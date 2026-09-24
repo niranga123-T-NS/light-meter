@@ -1,13 +1,17 @@
 {
   "expo": {
-    "name": "light-meter",
+    "name": "Light Meter",
     "slug": "light-meter",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.lightmeter.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Light Meter uses the camera exposure to measure how bright your surroundings are. No photos or video are saved."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -16,7 +20,8 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.lightmeter.app"
     },
     "web": {
       "favicon": "./assets/favicon.png"
