@@ -1,16 +1,17 @@
 {
   "expo": {
-    "name": "Light Meter",
-    "slug": "light-meter",
+    "name": "DIMO Sales",
+    "slug": "dimo-sales",
+    "scheme": "dimosales",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.lightmeter.app",
+      "bundleIdentifier": "lk.dimo.sales",
       "infoPlist": {
-        "NSCameraUsageDescription": "Light Meter uses the camera exposure to measure how bright your surroundings are. No photos or video are saved."
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -21,10 +22,45 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.lightmeter.app"
+      "package": "lk.dimo.sales",
+      "blockedPermissions": [
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-sqlite",
+      "expo-sharing",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "DIMO Sales records your location only when you check in or out of a customer visit, and only if you allow it. There is no background tracking.",
+          "isAndroidBackgroundLocationEnabled": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "DIMO Sales uses the camera to attach site photos to a visit.",
+          "photosPermission": "DIMO Sales lets you attach photos from your library to a visit.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#0B4F8A"
+        }
+      ],
+      "expo-web-browser"
+    ],
+    "experiments": {
+      "typedRoutes": false
     }
   }
 }

@@ -5,6 +5,7 @@ const expoConfig = require('eslint-config-expo/flat');
 module.exports = defineConfig([
   expoConfig,
   {
-    ignores: ['dist/*'],
+    // Edge Functions run on Deno (npm: specifiers), checked by the Supabase CLI
+    ignores: ['dist/*', 'supabase/functions/*/index.ts', 'supabase/functions/_shared/http.ts'],
   },
 ]);

@@ -1,9 +1,0 @@
-{
-  "name": "camera-light-meter",
-  "version": "1.0.0",
-  "description": "Estimates scene light level from iOS camera auto-exposure",
-  "main": "index.ts",
-  "license": "MIT",
-  "author": "light-meter",
-  "homepage": "https://expo.dev"
-}
