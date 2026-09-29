@@ -66,6 +66,10 @@
     "extra": {
       "eas": {
         "projectId": "bc46e6f0-514b-4946-8a0c-0571d906bf3a"
+      },
+      "supabase": {
+        "url": "https://xiqxeaztwnkwezdzjyby.supabase.co",
+        "anonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhpcXhlYXp0d25rd2V6ZHpqeWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1Nzk2NTksImV4cCI6MjEwNjE1NTY1OX0.DN2UKVJFEqtcVDQBRFV6bOSRbiKBSbQ6OSmaCV1MKu4"
       }
     }
   }

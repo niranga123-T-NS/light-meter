@@ -1,10 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
+import Constants from 'expo-constants';
 import { AppState, Platform } from 'react-native';
 
 import { kv } from './kv';
 
-const url = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
-const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? '';
+// Environment variables win; otherwise use the project in app.json (extra.supabase),
+// so web hosts and EAS builds work without extra configuration.
+const fallback = (Constants.expoConfig?.extra?.supabase ?? {}) as { url?: string; anonKey?: string };
+const url = process.env.EXPO_PUBLIC_SUPABASE_URL || fallback.url || '';
+const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || fallback.anonKey || '';
 
 export const isConfigured = !!url && !!key;
 
