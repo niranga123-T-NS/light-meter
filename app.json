@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "DIMO Sales",
-    "slug": "dimo-sales",
+    "slug": "dlight",
     "scheme": "dimosales",
     "version": "1.0.0",
     "orientation": "default",
@@ -62,7 +62,7 @@
     "experiments": {
       "typedRoutes": false
     },
-    "owner": "Niranga_123",
+    "owner": "dimo-lighting",
     "extra": {
       "eas": {
         "projectId": "7d1ccf87-c091-4f74-a6ee-bcd31f47659c"
