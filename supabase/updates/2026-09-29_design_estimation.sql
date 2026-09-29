@@ -1,10 +1,19 @@
 -- UPDATE 2026-09-29 – Design & Estimation teams (for a database already set up).
 -- In the Supabase SQL Editor run STEP 1 on its own first, then STEP 2.
+-- STEP 2 is safe to run again if an earlier attempt stopped part-way.
 
--- STEP 1 (run alone):
+-- STEP 1 (run alone, in its own query):
 --   alter type public.app_role add value if not exists 'designer';
 
 -- STEP 2: everything below
+do $$
+begin
+  if not exists (select 1 from pg_enum e join pg_type t on t.oid = e.enumtypid
+                 where t.typname = 'app_role' and e.enumlabel = 'designer') then
+    raise exception 'Run STEP 1 first (on its own): alter type public.app_role add value if not exists ''designer'';';
+  end if;
+end $$;
+
 -- DIMO Sales – design & estimation workflow
 -- * Separate Design (role 'designer') and Estimation (role 'estimator') teams
 -- * Work requests per package: inquiry received → design / estimation → submitted,
@@ -45,7 +54,7 @@ alter table public.opportunities alter column inquiry_received_at set default ((
 -- ---------------------------------------------------------------------------
 create sequence if not exists public.work_request_code_seq;
 
-create table public.work_requests (
+create table if not exists public.work_requests (
   id uuid primary key default gen_random_uuid(),
   code text not null unique default public.next_code('WR', 'public.work_request_code_seq'),
   kind text not null check (kind in ('design', 'estimation')),
@@ -77,12 +86,12 @@ create table public.work_requests (
   updated_by uuid references public.profiles (id),
   updated_at timestamptz not null default now()
 );
-create index work_requests_opp_idx on public.work_requests (opportunity_id, kind, revision);
-create index work_requests_assignee_idx on public.work_requests (assigned_to, status, due_date);
-create index work_requests_kind_status_idx on public.work_requests (kind, status, due_date);
-create index work_requests_project_idx on public.work_requests (project_id);
+create index if not exists work_requests_opp_idx on public.work_requests (opportunity_id, kind, revision);
+create index if not exists work_requests_assignee_idx on public.work_requests (assigned_to, status, due_date);
+create index if not exists work_requests_kind_status_idx on public.work_requests (kind, status, due_date);
+create index if not exists work_requests_project_idx on public.work_requests (project_id);
 
-create table public.work_request_events (
+create table if not exists public.work_request_events (
   id bigint generated always as identity primary key,
   request_id uuid not null references public.work_requests (id) on delete cascade,
   event text not null check (event in ('created', 'assigned', 'started', 'on_hold', 'resumed', 'submitted', 'cancelled',
@@ -93,9 +102,11 @@ create table public.work_request_events (
   created_by uuid default auth.uid() references public.profiles (id),
   created_at timestamptz not null default now()
 );
-create index work_request_events_req_idx on public.work_request_events (request_id, created_at);
+create index if not exists work_request_events_req_idx on public.work_request_events (request_id, created_at);
 
+drop trigger if exists work_requests_stamp on public.work_requests;
 create trigger work_requests_stamp before insert or update on public.work_requests for each row execute function public.tg_stamp();
+drop trigger if exists work_requests_audit on public.work_requests;
 create trigger work_requests_audit after insert or update or delete on public.work_requests for each row execute function public.tg_audit();
 
 -- Defaults, revision numbering, SLA due date, status time stamps, field guard
@@ -155,6 +166,7 @@ begin
   end if;
   return new;
 end $$;
+drop trigger if exists work_requests_rules on public.work_requests;
 create trigger work_requests_rules before insert or update on public.work_requests for each row execute function public.tg_work_request_rules();
 
 -- Timeline events, team membership of the project, activity stamps
@@ -197,6 +209,7 @@ begin
   update public.projects set last_activity_at = now() where id = new.project_id;
   return null;
 end $$;
+drop trigger if exists work_requests_events on public.work_requests;
 create trigger work_requests_events after insert or update on public.work_requests for each row execute function public.tg_work_request_events();
 
 -- ---------------------------------------------------------------------------
@@ -231,23 +244,30 @@ $$;
 alter table public.work_requests enable row level security;
 alter table public.work_request_events enable row level security;
 revoke all on public.work_requests, public.work_request_events from anon;
+drop policy if exists active_users_only on public.work_requests;
 create policy active_users_only on public.work_requests as restrictive for all to authenticated
   using (public.current_app_role() is not null) with check (public.current_app_role() is not null);
+drop policy if exists active_users_only on public.work_request_events;
 create policy active_users_only on public.work_request_events as restrictive for all to authenticated
   using (public.current_app_role() is not null) with check (public.current_app_role() is not null);
 
+drop policy if exists read_work on public.work_requests;
 create policy read_work on public.work_requests for select to authenticated
   using (public.is_manager() or public.team_of_kind(kind) or requested_by = auth.uid() or assigned_to = auth.uid()
          or created_by = auth.uid() or public.can_read_project(project_id));
+drop policy if exists insert_work on public.work_requests;
 create policy insert_work on public.work_requests for insert to authenticated
   with check (public.is_manager() or public.team_of_kind(kind)
               or (public.has_role('{salesperson}') and public.can_read_opportunity(opportunity_id)));
+drop policy if exists update_work on public.work_requests;
 create policy update_work on public.work_requests for update to authenticated
   using (public.is_manager() or public.team_of_kind(kind) or requested_by = auth.uid())
   with check (public.is_manager() or public.team_of_kind(kind) or requested_by = auth.uid());
 
+drop policy if exists read_work_events on public.work_request_events;
 create policy read_work_events on public.work_request_events for select to authenticated
   using (public.can_read_work_request(request_id));
+drop policy if exists add_work_notes on public.work_request_events;
 create policy add_work_notes on public.work_request_events for insert to authenticated
   with check (event = 'note' and created_by = auth.uid() and public.can_read_work_request(request_id));
 
@@ -337,14 +357,24 @@ begin
   return out;
 end $$;
 
-alter function public.dashboard_summary(jsonb) rename to dashboard_summary_base;
+do $$
+begin
+  if to_regprocedure('public.dashboard_summary_base(jsonb)') is null then
+    alter function public.dashboard_summary(jsonb) rename to dashboard_summary_base;
+  end if;
+end $$;
 create or replace function public.dashboard_summary(f jsonb default '{}'::jsonb) returns jsonb
 language sql stable set search_path = public as $$
   select public.dashboard_summary_base(f) || jsonb_build_object('work', public.work_summary(f))
 $$;
 
 -- Excel: add a "Design & Estimation" sheet
-alter function public.export_dataset(jsonb, text) rename to export_dataset_base;
+do $$
+begin
+  if to_regprocedure('public.export_dataset_base(jsonb, text)') is null then
+    alter function public.export_dataset(jsonb, text) rename to export_dataset_base;
+  end if;
+end $$;
 create or replace function public.export_dataset(f jsonb default '{}'::jsonb, p_channel text default 'download')
 returns jsonb language plpgsql volatile set search_path = public as $$
 declare
@@ -448,7 +478,9 @@ revoke execute on function public.mark_late_work_alerted() from public, anon, au
 
 do $$
 begin
-  if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime')
+     and not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime'
+                     and schemaname = 'public' and tablename = 'work_requests') then
     alter publication supabase_realtime add table public.work_requests;
   end if;
 end $$;
