@@ -242,7 +242,7 @@ export const styles = StyleSheet.create({
   chevron: { fontSize: 22, color: colors.faint },
   empty: { alignItems: 'center', justifyContent: 'center', padding: space.xl, gap: space.sm },
   banner: { borderRadius: 10, padding: space.md, flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  stat: { flexGrow: 1, flexBasis: 140, backgroundColor: colors.card, borderRadius: 12, padding: space.md, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
+  stat: { flexGrow: 1, alignSelf: 'stretch', flexBasis: 140, backgroundColor: colors.card, borderRadius: 12, padding: space.md, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
   statValue: { fontSize: 24, fontWeight: '700' },
   statLabel: { fontSize: 13, color: colors.muted },
 });
