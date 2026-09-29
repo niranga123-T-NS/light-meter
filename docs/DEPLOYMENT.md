@@ -106,7 +106,9 @@ The bundle identifier and package name are `lk.dimo.sales` (in `app.json`); chan
 npx expo export --platform web      # outputs dist/
 ```
 
-Host `dist/` on any static host (EAS Hosting via `npx eas-cli@latest deploy`, Azure Static Web Apps, Netlify and so on). Configure all paths to fall back to `index.html`.
+**Vercel (used by DIMO):** the repository contains `vercel.json`, so importing the GitHub repository in Vercel needs no settings. Set Settings › Environments › Production › Branch Tracking to the app branch; every push then redeploys the dashboard. The Supabase URL and anon key come from `app.json` (`extra.supabase`) when no environment variables are set.
+
+Or host `dist/` on any other static host (EAS Hosting via `npx eas-cli@latest deploy`, Azure Static Web Apps, Netlify and so on). Configure all paths to fall back to `index.html`.
 
 Over-the-air updates for JavaScript-only changes: `npx eas-cli@latest update --channel production`.
 
