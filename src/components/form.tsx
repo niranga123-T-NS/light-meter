@@ -243,7 +243,8 @@ export function SelectField({ label, value, options, onChange, required, placeho
         ) : <Text style={{ color: colors.faint }}>▾</Text>}
       </Pressable>
       <SearchModal visible={open} title={label} options={options} selected={value ? [value] : []}
-        onClose={() => setOpen(false)} onSelect={(o) => onChange(o.value)} onCreate={onCreate} createLabel={createLabel} />
+        onClose={() => setOpen(false)} onSelect={(o) => onChange(o.value)}
+        onCreate={onCreate ? (q) => { setOpen(false); onCreate(q); } : undefined} createLabel={createLabel} />
     </Field>
   );
 }
