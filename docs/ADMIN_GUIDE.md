@@ -5,7 +5,7 @@ All of these are in the app under **More** (web or mobile). The web dashboard is
 ## Users and roles (administrators)
 
 * **Invite user**: enter email, name, role and territories. Leave the password empty to send an email invitation, or set a temporary password.
-* Roles: **Salesperson**, **Sales manager**, **Estimator / designer** (sees only projects they are a member of) and **Administrator**.
+* Roles: **Salesperson**, **Sales manager**, **Design team** (`designer`), **Estimation team** (`estimator`) and **Administrator**. Design and estimation users see their team's request queue and the projects those requests belong to.
 * **Territories** control what salespeople see. Add estimators and designers to projects under Project › Team.
 * **Deactivate** blocks sign-in immediately. Optionally choose a person to take over the leaver's accounts, projects, open packages and open actions. Deactivated users keep their history; nothing is deleted.
 * People who sign in with Microsoft for the first time appear as *Inactive* until you activate them.
@@ -48,3 +48,14 @@ More › Visit corrections lists pending requests with the proposed changes. App
 ## Importing existing customers
 
 Admin › Import customers: copy rows from Excel **with the header row** and paste them. Recognised columns are listed on the screen, including `owner_email` and `territory_code`. Rows that match an existing customer (same normalised name and city) are skipped and marked as duplicates.
+
+## Design & estimation settings
+
+| Setting | Meaning |
+|---|---|
+| `design_sla_days` | Default days to complete a design request when no date is given (5) |
+| `estimation_sla_days` | Default days for an estimation request (3) |
+| `work_due_soon_days` | Reminder lead time for requests due soon (1) |
+
+Lists: **Design task types**, **Estimation task types** and **Revision reasons** are under Admin › Dropdown lists.
+The dashboard's **Design & estimation** section shows open / late / submitted work per team, on-time %, average turnaround, revision requests, workload per person, the late list and the average **inquiry → first quotation** time.

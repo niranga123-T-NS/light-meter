@@ -11,7 +11,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders, env, json } from '../_shared/http.ts';
 
-const ROLES = ['salesperson', 'manager', 'estimator', 'admin'];
+const ROLES = ['salesperson', 'manager', 'designer', 'estimator', 'admin'];
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });

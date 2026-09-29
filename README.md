@@ -24,6 +24,8 @@ Built from *Sales Visit and Project Tracking App Requirements* (28 September 202
 * Automated alerts: daily email and push digests, automatic escalation of long-overdue actions, and tender deadline notices.
 * Administration: users, roles, territories, dropdown lists, pipeline stages, settings, exchange rates, customer import, audit log, and user offboarding with record reassignment.
 
+**Design & estimation workflow:** separate Design and Estimation team logins with their own work queues; each request is tracked from inquiry received → started → submitted with a full timeline, SLA due dates and lateness; salespeople follow progress and raise revision requests from client feedback; managers see team workload, late work, turnaround and inquiry → quotation time on the dashboard; late work is alerted daily by push and e-mail.
+
 **Security:** all permissions are enforced in the database (row-level security) for four roles: salesperson, sales manager, estimator/designer and administrator. Cost and margin are restricted by role, and every change and export is attributable. See [docs/SECURITY_AND_SYNC.md](docs/SECURITY_AND_SYNC.md).
 
 ## Architecture

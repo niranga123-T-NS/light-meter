@@ -10,12 +10,13 @@ The Supabase PostgreSQL database is the single source of truth. The phone keeps 
 
 All permissions are enforced **in the database** with row-level security (RLS), whatever client is used (app, web, API). A deactivated or not-yet-activated user gets nothing: a restrictive policy on every table requires an active role.
 
-| | Salesperson | Sales manager | Estimator / designer | Administrator |
+| | Salesperson | Sales manager | Design / Estimation teams | Administrator |
 |---|---|---|---|---|
 | Customers & contacts | Read own + own territory + accounts on visible projects; create in own territory; edit own | All; assign owner & territory | Read accounts on assigned projects | All |
 | Visits | Create own; edit while planned/draft; request corrections after submit | Read all; plan for team; edit (audited); approve corrections | Read visits linked to assigned projects; **cannot edit** | As manager |
 | Projects & packages | Own, own-territory and shared (member) projects | All | Assigned projects (read); add notes, milestones, quotations | All |
 | Actions | Own, created, territory, linked to visible visits/projects | All | On assigned projects | All |
+| Design / estimation requests | Create on visible packages, follow progress, request revisions, cancel while new | All | Own team's queue: assign, start, hold, submit (cannot change the other team's work) | All |
 | Quotations | On visible packages | All | On assigned projects | All |
 | Cost & gross margin | **Hidden** (default) | Visible | Hidden unless added to `margin_visible_roles` | Visible |
 | Pipeline stages | Read | Configure | Read | Configure |

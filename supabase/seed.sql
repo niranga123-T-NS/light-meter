@@ -7,7 +7,8 @@
 --   manager@dimo.test    Sales manager
 --   sales1@dimo.test     Salesperson – Western
 --   sales2@dimo.test     Salesperson – Central
---   estimator@dimo.test  Estimator / designer
+--   estimator@dimo.test  Estimation team
+--   designer@dimo.test   Design team
 
 do $$
 declare
@@ -18,7 +19,8 @@ begin
     ('00000000-0000-4000-a000-000000000002'::uuid, 'manager@dimo.test', 'Mahesh Manager', 'manager'),
     ('00000000-0000-4000-a000-000000000003'::uuid, 'sales1@dimo.test', 'Sanjeewa Perera', 'salesperson'),
     ('00000000-0000-4000-a000-000000000004'::uuid, 'sales2@dimo.test', 'Dilani Fernando', 'salesperson'),
-    ('00000000-0000-4000-a000-000000000005'::uuid, 'estimator@dimo.test', 'Eshan Estimator', 'estimator')
+    ('00000000-0000-4000-a000-000000000005'::uuid, 'estimator@dimo.test', 'Eshan Estimator', 'estimator'),
+    ('00000000-0000-4000-a000-000000000006'::uuid, 'designer@dimo.test', 'Dinesh Designer', 'designer')
   ) t(id, email, name, role) loop
     insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
                             confirmation_token, recovery_token, email_change_token_new, email_change,

@@ -35,3 +35,16 @@ A submitted visit stays in the history and cannot be edited. If something is wro
 ## Signing out
 
 You can only sign out when all your visits have synced, so nothing captured offline is lost.
+
+## Design & estimation requests
+
+**Salespeople**
+* On a package (Projects › project › package) tap **＋ Design request** or **＋ Estimation request**. Give a title and brief, the date the inquiry was received and, if the client needs it sooner, a *Required by* date (otherwise the standard 5 days for design / 3 days for estimation). Attach drawings or BOQs on the next screen.
+* Follow progress under **Today › Design & estimation progress**, the **Design & Est.** tab, or the package page, which also shows the **inquiry → quotation timeline** (days from inquiry received to the first quotation submitted).
+* When the client comments on a submitted design or offer, open it and tap **↻ Request design / estimation revision**. Choose the reason and write the client's feedback. The revision (Rev 1, Rev 2 …) goes back to the same designer or estimator.
+
+**Design team (Designer login) and Estimation team (Estimator login)**
+* The app opens on **My work**. **Unassigned** is the team queue; **Late** shows everything past its due date.
+* Open a request and tap **Assign to me**, **Start work**, **Put on hold**, and finally **Submit to sales ✓** with a note of what was delivered (and files or a link). Every step is time-stamped on the request's **Timeline**.
+* Use **Change due date** (with a reason) if the client agrees a new date, and **Add note** for anything the salesperson should know.
+* Late items are sent to you every morning by push notification and e-mail until they are submitted.

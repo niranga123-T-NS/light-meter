@@ -16,7 +16,7 @@ import { useAsync } from '@/lib/useAsync';
 
 const ROLE_OPTIONS = [
   { value: 'salesperson', label: 'Salesperson' }, { value: 'manager', label: 'Sales manager' },
-  { value: 'estimator', label: 'Estimator / designer' }, { value: 'admin', label: 'Administrator' },
+  { value: 'designer', label: 'Design team' }, { value: 'estimator', label: 'Estimation team' }, { value: 'admin', label: 'Administrator' },
 ];
 
 interface Editing { user_id?: string; email: string; full_name: string; role: Role; territory_ids: string[]; password?: string; active?: boolean }

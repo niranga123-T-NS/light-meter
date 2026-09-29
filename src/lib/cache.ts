@@ -5,7 +5,7 @@
 import { kv } from './kv';
 import { createStore, useStore } from './store';
 import { supabase, unwrap } from './supabase';
-import type { Action, Contact, Customer, LookupValue, Opportunity, Profile, Project, Stage, Territory, Visit } from './types';
+import type { Action, Contact, Customer, LookupValue, Opportunity, Profile, Project, Stage, Territory, Visit, WorkRequest } from './types';
 
 export interface CacheState {
   lookups: LookupValue[];
@@ -18,6 +18,7 @@ export interface CacheState {
   opportunities: Opportunity[];
   myActions: Action[];
   plannedVisits: Visit[];
+  workRequests: WorkRequest[];
   settings: Record<string, unknown>;
   refreshedAt: string | null;
   loaded: boolean;
@@ -25,7 +26,7 @@ export interface CacheState {
 
 const EMPTY: CacheState = {
   lookups: [], stages: [], territories: [], profiles: [], customers: [], contacts: [], projects: [],
-  opportunities: [], myActions: [], plannedVisits: [], settings: {}, refreshedAt: null, loaded: false,
+  opportunities: [], myActions: [], plannedVisits: [], workRequests: [], settings: {}, refreshedAt: null, loaded: false,
 };
 
 const KEY = 'dimo:cache:v1';
@@ -53,12 +54,12 @@ export async function clearCache(): Promise<void> {
 const CUSTOMER_COLS = 'id,code,legal_name,trading_name,category,industry,district,city,phone,email,owner_id,territory_id,status,strategic_priority,parent_customer_id,last_visit_at,version';
 const CONTACT_COLS = 'id,code,customer_id,full_name,designation,department,work_phone,mobile_phone,email,decision_role,active,version';
 const PROJECT_COLS = 'id,code,name,aliases,district,city,customer_id,developer_id,end_user_id,segments,owner_id,territory_id,status,tender_closing_date,quotation_due_date,last_activity_at,currency,version';
-const OPP_COLS = 'id,code,project_id,name,segment,owner_id,stage_id,probability,estimated_value,currency,weighted_value,expected_order_date,quotation_due_date,closed_at,version';
+const OPP_COLS = 'id,code,project_id,name,segment,owner_id,stage_id,probability,estimated_value,currency,weighted_value,expected_order_date,quotation_due_date,closed_at,inquiry_received_at,version';
 
 /** Download the reference lists. Throws when offline (callers keep the old cache). */
 export async function refreshCache(userId: string): Promise<void> {
   const since = new Date(Date.now() - 30 * 86400000).toISOString();
-  const [lookups, stages, territories, profiles, pts, customers, contacts, projects, opps, actions, visits, settings] = await Promise.all([
+  const [lookups, stages, territories, profiles, pts, customers, contacts, projects, opps, actions, visits, settings, work] = await Promise.all([
     supabase.from('lookup_values').select('id,list_key,code,label,sort_order,active').order('list_key').order('sort_order'),
     supabase.from('pipeline_stages').select('*').order('sort_order'),
     supabase.from('territories').select('id,code,name,active').order('name'),
@@ -73,6 +74,9 @@ export async function refreshCache(userId: string): Promise<void> {
     supabase.from('visits').select('*').eq('salesperson_id', userId).or(`status.eq.planned,and(status.eq.submitted,visit_date.gte.${since.slice(0, 10)})`)
       .order('scheduled_at', { ascending: true }).limit(500),
     supabase.from('app_settings').select('key,value'),
+    // open design / estimation work plus the last 60 days of completed work the user can see
+    supabase.from('work_requests').select('*').or(`status.in.(new,in_progress,on_hold),completed_at.gte.${new Date(Date.now() - 60 * 86400000).toISOString()}`)
+      .order('due_date', { ascending: true, nullsFirst: false }).limit(2000),
   ]);
   const territoryMap = new Map<string, string[]>();
   for (const pt of unwrap(pts) as { user_id: string; territory_id: string }[]) {
@@ -89,6 +93,7 @@ export async function refreshCache(userId: string): Promise<void> {
     opportunities: unwrap(opps) as Opportunity[],
     myActions: unwrap(actions) as Action[],
     plannedVisits: unwrap(visits) as Visit[],
+    workRequests: unwrap(work) as WorkRequest[],
     settings: Object.fromEntries((unwrap(settings) as { key: string; value: unknown }[]).map((s) => [s.key, s.value])),
     refreshedAt: new Date().toISOString(),
     loaded: true,
@@ -96,7 +101,7 @@ export async function refreshCache(userId: string): Promise<void> {
   await persist();
 }
 
-type ListKey = 'customers' | 'contacts' | 'projects' | 'opportunities' | 'myActions' | 'plannedVisits';
+type ListKey = 'customers' | 'contacts' | 'projects' | 'opportunities' | 'myActions' | 'plannedVisits' | 'workRequests';
 
 /** Put a record created or edited online into the cache immediately. */
 export function upsertCached<K extends ListKey>(key: K, row: CacheState[K][number]): void {

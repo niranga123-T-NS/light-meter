@@ -2,6 +2,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 
 import { AttachmentList } from '@/components/AttachmentList';
+import { WorkPanel } from '@/components/WorkPanel';
 import { FormModal } from '@/components/FormModal';
 import { DateField, NumberField, SelectField, TextField } from '@/components/form';
 import { Badge, Banner, Body, Button, Card, KeyValue, ListItem, Loading, Muted, Row, Screen, SectionTitle } from '@/components/ui';
@@ -12,7 +13,7 @@ import { stageOptions } from '@/lib/options';
 import { saveRecord } from '@/lib/records';
 import { useSession } from '@/lib/session';
 import { errorMessage, supabase, unwrap } from '@/lib/supabase';
-import type { Opportunity, Quotation } from '@/lib/types';
+import type { Opportunity, Quotation, WorkRequest } from '@/lib/types';
 import { useAsync, useRefreshOnFocus } from '@/lib/useAsync';
 
 const FIELD_LABELS: Record<string, string> = {
@@ -28,14 +29,16 @@ export default function OpportunityProfile() {
   const reasons = useLookup('win_loss_reason');
 
   const { data, loading, error, reload } = useAsync(async () => {
-    const [opp, quotes, history] = await Promise.all([
+    const [opp, quotes, history, work] = await Promise.all([
       supabase.from('opportunities').select('*').eq('id', id).maybeSingle(),
       supabase.from('quotations').select('*').eq('opportunity_id', id).order('reference').order('revision', { ascending: false }),
       supabase.from('opportunity_stage_history').select('*').eq('opportunity_id', id).order('changed_at', { ascending: false }),
+      supabase.from('work_requests').select('*').eq('opportunity_id', id).order('received_at'),
     ]);
     return {
       opp: unwrap(opp) as Opportunity | null,
       quotes: unwrap(quotes) as Quotation[],
+      work: unwrap(work) as WorkRequest[],
       history: unwrap(history) as { id: number; from_stage_id: string | null; to_stage_id: string; changed_by: string; changed_at: string; probability: number }[],
     };
   }, [id]);
@@ -77,6 +80,7 @@ export default function OpportunityProfile() {
         <KeyValue label="Segment" value={lookupLabel('project_segment', o.segment)} />
         <KeyValue label="Estimated value" value={fmtMoney(o.estimated_value, o.currency)} />
         <KeyValue label="Weighted value" value={fmtMoney(o.weighted_value, o.currency)} />
+        <KeyValue label="Inquiry received" value={fmtDate(o.inquiry_received_at)} />
         <KeyValue label="Expected order" value={fmtDate(o.expected_order_date)} />
         <KeyValue label="Quotation due" value={fmtDate(o.quotation_due_date)} />
         <KeyValue label="Owner" value={profileName(o.owner_id)} />
@@ -97,6 +101,8 @@ export default function OpportunityProfile() {
           <Button style={{ flex: 1 }} variant="secondary" title="Edit" onPress={() => router.push({ pathname: '/opportunity/edit', params: { id: o.id } })} />
         </Row>
       ) : null}
+
+      <WorkPanel requests={data?.work ?? []} opportunityId={o.id} inquiryDate={o.inquiry_received_at} quotations={data?.quotes ?? []} />
 
       <SectionTitle right={<Button small variant="ghost" title="＋ Quotation" onPress={() => router.push({ pathname: '/quotation/edit', params: { opportunityId: o.id } })} />}>
         Quotations

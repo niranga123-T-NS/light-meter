@@ -13,7 +13,7 @@ const icon = (name: IconName) => function TabIcon({ color, size }: { color: Colo
 };
 
 export default function TabsLayout() {
-  const { isManager } = useSession();
+  const { isManager, isTeam } = useSession();
   const attention = useOutbox((s) => Object.values(s.items).filter((i) => i.status === 'needs_attention' || i.status === 'queued').length);
   return (
     <Tabs
@@ -25,8 +25,9 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: colors.muted,
       }}
     >
-      <Tabs.Screen name="index" options={{ title: 'Today', tabBarIcon: icon('today-outline'), tabBarBadge: attention || undefined }} />
-      <Tabs.Screen name="customers" options={{ title: 'Customers', tabBarIcon: icon('business-outline') }} />
+      <Tabs.Screen name="index" options={{ title: 'Today', tabBarIcon: icon('today-outline'), tabBarBadge: attention || undefined, href: isTeam ? null : undefined }} />
+      <Tabs.Screen name="work" options={{ title: isTeam ? 'My work' : 'Design & Est.', tabBarIcon: icon('color-palette-outline') }} />
+      <Tabs.Screen name="customers" options={{ title: 'Customers', tabBarIcon: icon('business-outline'), href: isTeam ? null : undefined }} />
       <Tabs.Screen name="projects" options={{ title: 'Projects', tabBarIcon: icon('construct-outline') }} />
       <Tabs.Screen name="actions" options={{ title: 'Actions', tabBarIcon: icon('checkbox-outline') }} />
       <Tabs.Screen name="dashboard" options={{ title: 'Dashboard', tabBarIcon: icon('stats-chart-outline'), href: isManager ? undefined : null }} />

@@ -22,6 +22,9 @@ interface SessionValue {
   isManager: boolean;
   isAdmin: boolean;
   canSell: boolean;
+  /** Design or estimation team member */
+  isTeam: boolean;
+  teamKind: 'design' | 'estimation' | null;
   signIn(email: string, password: string): Promise<string | null>;
   signInWithMicrosoft(): Promise<string | null>;
   signOut(): Promise<void>;
@@ -122,7 +125,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     role: profile?.active ? profile.role : null,
     isManager: !!profile?.active && (profile.role === 'manager' || profile.role === 'admin'),
     isAdmin: !!profile?.active && profile.role === 'admin',
-    canSell: !!profile?.active && profile.role !== 'estimator',
+    canSell: !!profile?.active && profile.role !== 'estimator' && profile.role !== 'designer',
+    isTeam: !!profile?.active && (profile.role === 'designer' || profile.role === 'estimator'),
+    teamKind: profile?.active && profile.role === 'designer' ? 'design' : profile?.active && profile.role === 'estimator' ? 'estimation' : null,
     async signIn(email, password) {
       const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
       return error ? errorMessage(error) : null;

@@ -85,3 +85,9 @@ export const MILESTONE_STATUS_OPTIONS: Option[] = [
 export const CONSENT_OPTIONS: Option[] = [
   { value: 'unknown', label: 'Unknown' }, { value: 'granted', label: 'Granted' }, { value: 'withdrawn', label: 'Withdrawn' },
 ];
+
+export const WORK_STATUS_OPTIONS: Option[] = [
+  { value: 'new', label: 'New' }, { value: 'in_progress', label: 'In progress' }, { value: 'on_hold', label: 'On hold' },
+  { value: 'submitted', label: 'Submitted' }, { value: 'cancelled', label: 'Cancelled' },
+];
+export const WORK_KIND_OPTIONS: Option[] = [{ value: 'design', label: 'Design' }, { value: 'estimation', label: 'Estimation' }];

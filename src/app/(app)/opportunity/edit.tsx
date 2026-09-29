@@ -60,6 +60,8 @@ function OppForm({ initial, isNew }: { initial: Opportunity; isNew: boolean }) {
         <NumberField label="Estimated value" value={o.estimated_value} onChange={(n) => set({ estimated_value: n })} />
         <SelectField label="Currency" value={o.currency} options={currencies} allowClear={false} onChange={(x) => set({ currency: x ?? 'LKR' })} />
         <NumberField label="Probability % (blank = stage default)" value={o.probability} onChange={(n) => set({ probability: n })} />
+        <DateField label="Inquiry received" quick={false} value={o.inquiry_received_at} onChange={(d) => set({ inquiry_received_at: d })}
+          hint="Start of the inquiry → quotation timeline" />
         <DateField label="Expected order date" value={o.expected_order_date} onChange={(d) => set({ expected_order_date: d })} />
         <DateField label="Quotation due date" value={o.quotation_due_date} onChange={(d) => set({ quotation_due_date: d })} />
         <TextField label="Next milestone" value={o.next_milestone} onChange={(t) => set({ next_milestone: t })} />

@@ -31,6 +31,8 @@ TABLES = [
     ('technical_notes', 'Technical note', 'Project members and editors add; author edits own.'),
     ('attachments', 'Attachment metadata (file in secure storage)', 'Uploader and Manager/Admin; readable by anyone who can read the parent record.'),
     ('correction_requests', 'Correction request for a submitted visit', 'Salesperson requests for own visits; Manager/Admin approve/reject.'),
+    ('work_requests', 'Design / estimation request (incl. revisions)', 'Salesperson: create for packages they can see, edit or cancel while new, request revisions. Design team (designer): progress design requests; Estimation team (estimator): progress estimation requests. Manager/Admin: all. Visible to the project team and the requester.'),
+    ('work_request_events', 'Design / estimation timeline event', 'Written automatically on every status, assignee and due-date change; anyone who can see the request may add notes.'),
 ]
 
 REQUIRED_AT_SUBMIT = {
@@ -120,7 +122,7 @@ def main() -> None:
                  case when a.attgenerated = 's' then 'generated' else '' end
           from pg_attribute a left join pg_attrdef d on d.adrelid = a.attrelid and d.adnum = a.attnum
           where a.attrelid = 'public.{table}'::regclass and a.attnum > 0 and not a.attisdropped order by a.attnum""")
-        sheet = {'visit_contacts': 'visit_contacts'}.get(table, table)
+        sheet = table
         dmap = desc.get(sheet, {})
         tchecks = [c[1] for c in checks if c[0] == table]
         lines += [f'## {title} – `{table}`', '', f'**Edit permission:** {perm}', '',

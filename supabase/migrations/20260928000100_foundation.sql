@@ -15,7 +15,7 @@ create extension if not exists pgcrypto with schema extensions;
 -- ---------------------------------------------------------------------------
 -- Types
 -- ---------------------------------------------------------------------------
-create type public.app_role as enum ('salesperson', 'manager', 'estimator', 'admin');
+create type public.app_role as enum ('salesperson', 'manager', 'estimator', 'admin', 'designer');
 
 -- ---------------------------------------------------------------------------
 -- Organisation structure

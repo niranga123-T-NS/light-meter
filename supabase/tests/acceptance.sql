@@ -327,3 +327,96 @@ exception when insufficient_privilege then
   raise notice 'ok: alert digests restricted to the server';
 end $$;
 select pg_temp.logout();
+
+-- ===========================================================================
+-- 9. Design & estimation workflow
+-- ===========================================================================
+\set designer '''00000000-0000-4000-a000-000000000006'''
+select pg_temp.login(:sales1);
+insert into public.work_requests (id, kind, opportunity_id, title, task_type, description)
+values ('a0000000-0000-4000-a000-000000000001', 'design', '40000000-0000-4000-a000-000000000001',
+        'Lobby lighting layout', 'lighting_layout', 'Layout for lobby at 300 lux');
+select pg_temp.check((select revision = 0 and status = 'new' and project_id = '30000000-0000-4000-a000-000000000001'
+                        and due_date = (received_at at time zone 'Asia/Colombo')::date + 5
+                      from public.work_requests where id = 'a0000000-0000-4000-a000-000000000001'),
+  'work: design request created with SLA due date and project');
+do $$
+begin
+  update public.work_requests set status = 'submitted' where id = 'a0000000-0000-4000-a000-000000000001';
+  raise exception 'FAILED: salesperson submitted design work';
+exception when insufficient_privilege then
+  raise notice 'ok: work: only the design team can progress a design request';
+end $$;
+select pg_temp.logout();
+
+select pg_temp.login(:designer);
+select pg_temp.check((select count(*) from public.work_requests where kind = 'design') = 1, 'work: designer sees the design queue');
+select pg_temp.check((select count(*) from public.projects where id = '30000000-0000-4000-a000-000000000001') = 1,
+  'work: designer can open the project of the request');
+select pg_temp.check((select count(*) from public.projects where id = '30000000-0000-4000-a000-000000000002') = 0,
+  'work: designer cannot see unrelated projects');
+update public.work_requests set assigned_to = auth.uid(), status = 'in_progress' where id = 'a0000000-0000-4000-a000-000000000001';
+update public.work_requests set status = 'submitted', deliverable_note = 'Layout rev 0 issued' where id = 'a0000000-0000-4000-a000-000000000001';
+insert into public.work_request_events (request_id, event, note) values ('a0000000-0000-4000-a000-000000000001', 'note', 'Sent to Nimal by email');
+select pg_temp.logout();
+
+select pg_temp.check((select started_at is not null and completed_at is not null and completed_late = false
+                      from public.work_requests where id = 'a0000000-0000-4000-a000-000000000001'),
+  'work: start and submission times recorded, on time');
+select pg_temp.check((select array_agg(event order by id) from public.work_request_events where request_id = 'a0000000-0000-4000-a000-000000000001')
+                     = array['created', 'assigned', 'started', 'submitted', 'note'],
+  'work: full timeline recorded');
+select pg_temp.check(exists (select 1 from public.project_members where project_id = '30000000-0000-4000-a000-000000000001'
+                             and user_id = :designer and member_role = 'designer'),
+  'work: assignee joins the project team');
+
+-- Revision request from sales based on client feedback
+select pg_temp.login(:sales1);
+insert into public.work_requests (id, opportunity_id, kind, parent_request_id, title, revision_reason, client_feedback)
+values ('a0000000-0000-4000-a000-000000000002', '40000000-0000-4000-a000-000000000001', 'design',
+        'a0000000-0000-4000-a000-000000000001', 'Lobby layout – revision', 'client_feedback', 'Client wants warmer 3000K and fewer fittings');
+select pg_temp.check((select revision = 1 and assigned_to = :designer and status = 'new'
+                      from public.work_requests where id = 'a0000000-0000-4000-a000-000000000002'),
+  'work: revision numbered and sent back to the same designer');
+select pg_temp.check((select event from public.work_request_events where request_id = 'a0000000-0000-4000-a000-000000000002' order by id limit 1) = 'revision_requested',
+  'work: revision request appears on the timeline');
+select pg_temp.check((select count(*) from public.work_requests where opportunity_id = '40000000-0000-4000-a000-000000000001') = 2,
+  'work: salesperson sees progress of requests on their package');
+
+-- A late estimation request
+insert into public.work_requests (id, kind, opportunity_id, title, received_at, due_date)
+values ('a0000000-0000-4000-a000-000000000003', 'estimation', '40000000-0000-4000-a000-000000000001', 'BOQ pricing',
+        now() - interval '10 days', current_date - 3);
+select pg_temp.logout();
+
+select pg_temp.login(:designer);
+update public.work_requests set status = 'in_progress' where id = 'a0000000-0000-4000-a000-000000000003';
+select pg_temp.logout();
+select pg_temp.check((select status from public.work_requests where id = 'a0000000-0000-4000-a000-000000000003') = 'new',
+  'work: design team cannot change estimation requests');
+
+select pg_temp.check(exists (select 1 from jsonb_array_elements(public.alert_digests()) d, jsonb_array_elements(d -> 'late_work') w
+                             where d ->> 'user_id' = :estimator and w ->> 'code' = (select code from public.work_requests where id = 'a0000000-0000-4000-a000-000000000003')),
+  'work: late unassigned estimation alerts the estimation team');
+select pg_temp.check(exists (select 1 from jsonb_array_elements(public.alert_digests()) d
+                             where d ->> 'user_id' = :manager and jsonb_array_length(d -> 'team_late_work') >= 1),
+  'work: manager alerted about late team work');
+select pg_temp.check(exists (select 1 from jsonb_array_elements(public.alert_digests()) d
+                             where d ->> 'user_id' = :sales1 and jsonb_array_length(d -> 'team_late_work') >= 1),
+  'work: salesperson told their request is late');
+
+select pg_temp.login(:manager);
+select pg_temp.check((public.dashboard_summary('{}') #>> '{work,teams,design,submitted_in_range}')::int = 1
+                     and (public.dashboard_summary('{}') #>> '{work,teams,estimation,late}')::int = 1,
+  'work: dashboard overview of design and estimation');
+select pg_temp.check(jsonb_array_length(public.export_dataset('{}') #> '{sheets,work_requests}') = 3,
+  'work: Excel export includes design & estimation sheet');
+select pg_temp.logout();
+
+select pg_temp.login(:estimator);
+select pg_temp.check((select count(*) from public.work_requests where kind = 'estimation') = 1,
+  'work: estimation team sees the estimation queue');
+update public.work_requests set status = 'in_progress' where id = 'a0000000-0000-4000-a000-000000000002';
+select pg_temp.check((select status from public.work_requests where id = 'a0000000-0000-4000-a000-000000000002') = 'new',
+  'work: estimation team cannot progress design requests');
+select pg_temp.logout();

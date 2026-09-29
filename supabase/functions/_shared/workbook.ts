@@ -202,6 +202,27 @@ export const SHEETS: SheetDef[] = [
     ],
   },
   {
+    key: 'work_requests', name: 'Design & Estimation', rowMeans: 'One design or estimation request (incl. revisions)',
+    keyLinks: 'id (Request ID), opportunity_id, parent_request_id',
+    columns: [
+      c('id', 'id', 'Request ID'), c('code', 'text', 'Request number, e.g. WR-000012'), c('kind', 'text', 'design or estimation'),
+      c('revision', 'number', '0 = original request, 1+ = revision'), c('parent_request_id', 'id', 'Request this revision is based on'),
+      c('opportunity_id', 'id', 'Opportunity (package) ID'), c('opportunity_code', 'text', 'Package number'), c('opportunity_name', 'text', 'Package'),
+      c('project_id', 'id', 'Project ID'), c('project_code', 'text', 'Project number'), c('project_name', 'text', 'Project'),
+      c('task_type', 'text', 'Type of work'), c('title', 'text', 'Title'), c('description', 'text', 'Brief'), c('priority', 'text', 'low, normal, high, urgent'),
+      c('status', 'text', 'new, in_progress, on_hold, submitted, cancelled'),
+      c('inquiry_received_at', 'date', 'Inquiry received on the package'), c('received_at', 'datetime', 'Request received'),
+      c('due_date', 'date', 'Required by'), c('started_at', 'datetime', 'Work started'), c('completed_at', 'datetime', 'Submitted to sales'),
+      c('turnaround_days', 'number', 'completed_at − received_at in days'), c('completed_late', 'bool', 'Submitted after the due date'),
+      c('is_late_open', 'bool', 'Still open and past the due date'),
+      c('requested_by', 'id', 'Requested by user ID'), c('requested_by_name', 'text', 'Requested by'),
+      c('assigned_to', 'id', 'Assigned to user ID'), c('assigned_to_name', 'text', 'Assigned to'),
+      c('revision_reason', 'text', 'Reason for revision'), c('client_feedback', 'text', 'Client feedback'),
+      c('quotation_id', 'id', 'Quotation the revision is based on'), c('deliverable_note', 'text', 'What was delivered'),
+      c('deliverable_link', 'text', 'Link to the deliverable'), ...audit,
+    ],
+  },
+  {
     key: 'audit_log', name: 'Audit Log', rowMeans: 'One material change', keyLinks: 'record_id, changed_by, changed_at',
     columns: [
       c('id', 'number', 'Audit entry number'), c('changed_at', 'datetime', 'When'), c('changed_by', 'id', 'User ID'),
@@ -310,6 +331,19 @@ function summaryRows(summary: Record<string, any> | undefined): Cell[][] {
   add('Quotations', 'Conversion % (accepted ÷ decided)', q.conversion_pct);
   add('Projects', `No activity for ${summary.stale_days ?? 30}+ days`, (summary.stale_projects ?? []).length);
   add('Projects', 'Tender / quotation deadlines in next 30 days', (summary.tender_deadlines ?? []).length);
+  for (const k of ['design', 'estimation'] as const) {
+    const t = summary.work?.teams?.[k];
+    if (!t) continue;
+    const name = k === 'design' ? 'Design' : 'Estimation';
+    add(name, 'Open requests', t.open);
+    add(name, 'Late now', t.late);
+    add(name, 'Received in period', t.received_in_range);
+    add(name, 'Submitted in period', t.submitted_in_range);
+    add(name, 'Submitted late in period', t.submitted_late_in_range);
+    add(name, 'Average turnaround (days)', t.avg_turnaround_days);
+    add(name, 'Revision requests in period', t.revisions_in_range);
+  }
+  if (summary.work?.inquiry_to_quotation) add('Design & Estimation', 'Inquiry → first quotation, average days', summary.work.inquiry_to_quotation.count, summary.work.inquiry_to_quotation.avg_days);
   return rows;
 }
 

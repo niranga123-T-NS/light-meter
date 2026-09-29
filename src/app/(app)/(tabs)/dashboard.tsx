@@ -31,7 +31,7 @@ export default function Dashboard() {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     const channel = supabase.channel('dashboard');
-    for (const table of ['visits', 'actions', 'opportunities', 'projects']) {
+    for (const table of ['visits', 'actions', 'opportunities', 'projects', 'work_requests']) {
       channel.on('postgres_changes', { event: '*', schema: 'public', table }, () => {
         if (timer.current) clearTimeout(timer.current);
         timer.current = setTimeout(() => void reload(), 1500);
@@ -131,6 +131,49 @@ export default function Dashboard() {
                 emptyText="No packages closed in this period" />
             </Card>
           </View>
+
+          {d.work ? (
+            <>
+              <SectionTitle right={<Button small variant="ghost" title="Open work queue" onPress={() => router.push('/work')} />}>
+                Design & estimation
+              </SectionTitle>
+              {(['design', 'estimation'] as const).map((k) => {
+                const t = d.work.teams?.[k] ?? {};
+                return (
+                  <Row key={k} wrap>
+                    <Stat label={`${k === 'design' ? 'Design' : 'Estimation'} – open`} value={t.open ?? 0} hint={`${t.unassigned ?? 0} unassigned · ${t.on_hold ?? 0} on hold`}
+                      onPress={() => router.push('/work')} />
+                    <Stat label="Late now" value={t.late ?? 0} tone={t.late ? 'danger' : 'success'} onPress={() => router.push('/work')} />
+                    <Stat label="Submitted in period" value={t.submitted_in_range ?? 0} tone="success"
+                      hint={t.on_time_pct == null ? undefined : `${t.on_time_pct}% on time`} />
+                    <Stat label="Avg turnaround" value={t.avg_turnaround_days == null ? '–' : `${t.avg_turnaround_days} d`} tone="info"
+                      hint={`${t.revisions_in_range ?? 0} revision request(s)`} />
+                  </Row>
+                );
+              })}
+              <Row wrap>
+                <Stat label="Inquiry → first quotation" value={d.work.inquiry_to_quotation?.avg_days == null ? '–' : `${d.work.inquiry_to_quotation.avg_days} days`}
+                  hint={`${d.work.inquiry_to_quotation?.count ?? 0} package(s) quoted in period`} tone="primary" />
+              </Row>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+                <Card style={{ flexGrow: 1, flexBasis: 320 }}>
+                  <SectionTitle>Workload by person (open · late)</SectionTitle>
+                  <BarList bars={(d.work.by_person as any[]).map((p) => ({
+                    key: `${p.kind}-${p.user_id ?? 'none'}`, label: `${p.kind === 'design' ? 'Design' : 'Estimation'} – ${p.name}`,
+                    value: Number(p.open), secondary: Number(p.late), display: `${p.open} open · ${p.late} late · ${p.submitted_in_range} done`,
+                  }))} emptyText="No design or estimation work" />
+                </Card>
+                <Card style={{ flexGrow: 1, flexBasis: 320, padding: 0, overflow: 'hidden' }}>
+                  <View style={{ padding: 16, paddingBottom: 0 }}><SectionTitle>Late design & estimation work</SectionTitle></View>
+                  {(d.work.late_list as any[]).length === 0 ? <Muted style={{ padding: 16 }}>Nothing late</Muted> : (d.work.late_list as any[]).slice(0, 15).map((w) => (
+                    <ListItem key={w.id} title={`${w.kind === 'design' ? 'Design' : 'Estimation'}${w.revision ? ` · Rev ${w.revision}` : ''}: ${w.title}`}
+                      subtitle={`${w.project ?? ''} · ${w.assigned}`} right={<Badge label={`${w.days_late}d late`} tone="danger" />}
+                      onPress={() => router.push(`/work/${w.id}`)} />
+                  ))}
+                </Card>
+              </View>
+            </>
+          ) : null}
 
           <SectionTitle>Tender and quotation deadlines (30 days)</SectionTitle>
           <Card style={{ padding: 0, overflow: 'hidden' }}>

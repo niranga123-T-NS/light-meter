@@ -6,11 +6,16 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders, env, escapeHtml, isCronCall, json, sendEmail } from '../_shared/http.ts';
 
 type Item = { code: string; description?: string; name?: string; due_date?: string; owner?: string;
-  tender_closing_date?: string; quotation_due_date?: string };
+  tender_closing_date?: string; quotation_due_date?: string; kind?: string; title?: string; project?: string; assigned?: string; id?: string };
 type Digest = {
   user_id: string; email: string; name: string; role: string; push_tokens: string[];
   overdue: Item[]; due_soon: Item[]; escalated: Item[]; deadlines: Item[]; pending_corrections: number;
+  late_work: Item[]; work_due_soon: Item[]; team_late_work: Item[];
 };
+
+const kindLabel = (k?: string) => (k === 'design' ? 'Design' : 'Estimation');
+const workLine = (i: Item) =>
+  `${escapeHtml(i.code)} – ${kindLabel(i.kind)}: ${escapeHtml(i.title)}${i.project ? ` (${escapeHtml(i.project)})` : ''} – due ${escapeHtml(i.due_date)}${i.assigned ? ` – ${escapeHtml(i.assigned)}` : ''}`;
 
 function list(title: string, items: Item[], fmt: (i: Item) => string): string {
   if (!items.length) return '';
@@ -36,6 +41,9 @@ Deno.serve(async (req) => {
   for (const d of digests) {
     const html =
       `<p>Hello ${escapeHtml(d.name)},</p>` +
+      list('LATE design / estimation work assigned to you or your team', d.late_work ?? [], workLine) +
+      list('Design / estimation work due soon', d.work_due_soon ?? [], workLine) +
+      list(d.role === 'salesperson' ? 'Your design / estimation requests that are late' : 'Late design / estimation work (all teams)', d.team_late_work ?? [], workLine) +
       list('Overdue actions', d.overdue, (i) => `${escapeHtml(i.code)} – ${escapeHtml(i.description)} (due ${escapeHtml(i.due_date)})`) +
       list('Due soon', d.due_soon, (i) => `${escapeHtml(i.code)} – ${escapeHtml(i.description)} (due ${escapeHtml(i.due_date)})`) +
       list('Escalated to you', d.escalated, (i) => `${escapeHtml(i.code)} – ${escapeHtml(i.description)} – ${escapeHtml(i.owner)} (due ${escapeHtml(i.due_date)})`) +
@@ -44,19 +52,31 @@ Deno.serve(async (req) => {
       (d.pending_corrections ? `<p>${d.pending_corrections} visit correction(s) are waiting for approval.</p>` : '');
     if (emailEnabled && d.email) {
       try {
-        if (await sendEmail([d.email], 'DIMO Sales – your daily follow-ups', html)) emails++;
+        if (await sendEmail([d.email], (d.late_work?.length || d.team_late_work?.length) ? 'DIMO Sales – LATE design / estimation work and your follow-ups' : 'DIMO Sales – your daily follow-ups', html)) emails++;
       } catch (e) {
         console.error('email', d.email, e);
       }
     }
+    const lateWork = [...(d.late_work ?? []), ...(d.team_late_work ?? [])];
     const count = d.overdue.length + d.escalated.length;
     for (const token of d.push_tokens ?? []) {
-      pushMessages.push({
-        to: token,
-        title: count ? `${count} overdue follow-up${count === 1 ? '' : 's'}` : 'Follow-ups due soon',
-        body: [d.overdue[0], d.due_soon[0], d.escalated[0]].filter(Boolean).map((i) => i!.description).join(' · ').slice(0, 170),
-        data: { url: '/actions' },
-      });
+      if (lateWork.length) {
+        pushMessages.push({
+          to: token,
+          title: `${lateWork.length} late design / estimation item${lateWork.length === 1 ? '' : 's'}`,
+          body: lateWork.slice(0, 3).map((i) => `${kindLabel(i.kind)}: ${i.title}`).join(' · ').slice(0, 170),
+          data: { url: lateWork.length === 1 && lateWork[0].id ? `/work/${lateWork[0].id}` : '/work' },
+        });
+      }
+      if (count || d.due_soon.length || (d.work_due_soon ?? []).length) {
+        pushMessages.push({
+          to: token,
+          title: count ? `${count} overdue follow-up${count === 1 ? '' : 's'}` : 'Due soon',
+          body: [d.overdue[0], d.due_soon[0], d.escalated[0]].filter(Boolean).map((i) => i!.description)
+            .concat((d.work_due_soon ?? []).slice(0, 2).map((i) => `${kindLabel(i.kind)}: ${i.title}`)).join(' · ').slice(0, 170),
+          data: { url: count || d.due_soon.length ? '/actions' : '/work' },
+        });
+      }
     }
   }
 
@@ -70,5 +90,6 @@ Deno.serve(async (req) => {
     if (r.ok) pushed += Math.min(100, pushMessages.length - i);
   }
 
+  await admin.rpc('mark_late_work_alerted');
   return json({ escalated: esc.data, digests: digests.length, emails, pushed });
 });

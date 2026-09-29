@@ -1,5 +1,5 @@
 // Daily agenda: planned visits, follow-ups due, drafts and sync state.
-import { router } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
@@ -8,10 +8,12 @@ import { Badge, Button, Card, EmptyState, ListItem, Muted, Row, Screen, SectionT
 import { customerName, lookupLabel, useCache } from '@/lib/cache';
 import { addDaysIso, fmtDateTime, relativeDue, todayIso } from '@/lib/format';
 import { sortedItems, useOutbox } from '@/lib/outbox';
+import { isOpen, kindLabel, workState } from '@/lib/work';
 import { useSession } from '@/lib/session';
 
 export default function Today() {
-  const { profile, sync, canSell } = useSession();
+  const { profile, sync, canSell, isTeam } = useSession();
+  const work = useCache('workRequests');
   const [refreshing, setRefreshing] = useState(false);
   const actions = useCache('myActions');
   const planned = useCache('plannedVisits');
@@ -29,11 +31,16 @@ export default function Today() {
   const local = sortedItems(items).filter((i) => i.status !== 'synced');
   const recent = sortedItems(items).filter((i) => i.status === 'synced').slice(0, 5);
 
+  const myWork = work.filter((w) => w.requested_by === profile?.id && (isOpen(w) || (w.completed_at ?? '').slice(0, 10) >= addDaysIso(today, -7)))
+    .sort((a, b) => Number(workState(b).late) - Number(workState(a).late));
+
   const refresh = async () => {
     setRefreshing(true);
     await sync({ includeFailed: false });
     setRefreshing(false);
   };
+
+  if (isTeam) return <Redirect href="/work" />;
 
   return (
     <Screen onRefresh={refresh} refreshing={refreshing}>
@@ -102,6 +109,22 @@ export default function Today() {
           })}
         </Card>
       )}
+
+      {myWork.length > 0 ? (
+        <>
+          <SectionTitle right={<Button small variant="ghost" title="All" onPress={() => router.push('/work')} />}>Design & estimation progress</SectionTitle>
+          <Card style={{ padding: 0, overflow: 'hidden' }}>
+            {myWork.slice(0, 8).map((w) => {
+              const st = workState(w);
+              return (
+                <ListItem key={w.id} title={`${kindLabel(w.kind)}${w.revision ? ` · Rev ${w.revision}` : ''}: ${w.title}`}
+                  subtitle={w.status === 'submitted' ? 'Submitted – ready to send to the client' : `Due ${w.due_date ?? '–'}`}
+                  right={<Badge label={st.label} tone={st.tone} />} onPress={() => router.push(`/work/${w.id}`)} />
+              );
+            })}
+          </Card>
+        </>
+      ) : null}
 
       {recent.length > 0 ? (
         <>

@@ -298,6 +298,7 @@ Generated from the database schema by `scripts/gen_field_dictionary.py` – rege
 | `updated_by` | uuid | Auto |  |  |
 | `updated_at` | timestamp with time zone | Auto | default now() |  |
 | `deleted_at` | timestamp with time zone |  |  |  |
+| `inquiry_received_at` | date |  | default now() AT TIME ZONE Asia/Colombo |  |
 
 ## Action (follow-up task) – `actions`
 
@@ -417,7 +418,7 @@ Generated from the database schema by `scripts/gen_field_dictionary.py` – rege
 | Field | Type | Mandatory | Allowed values / validation | Description |
 |---|---|---|---|---|
 | `id` | uuid | Auto |  |  |
-| `entity_type` | text | Yes | customer, contact, project, opportunity, visit, action, quotation, milestone |  |
+| `entity_type` | text | Yes | customer, contact, project, opportunity, visit, action, quotation, milestone, work_request |  |
 | `entity_id` | uuid | Yes |  |  |
 | `storage_path` | text | Yes |  |  |
 | `filename` | text | Yes |  |  |
@@ -448,6 +449,58 @@ Generated from the database schema by `scripts/gen_field_dictionary.py` – rege
 | `reviewed_by` | uuid |  |  |  |
 | `reviewed_at` | timestamp with time zone |  |  |  |
 | `review_note` | text |  |  |  |
+
+## Design / estimation request (incl. revisions) – `work_requests`
+
+**Edit permission:** Salesperson: create for packages they can see, edit or cancel while new, request revisions. Design team (designer): progress design requests; Estimation team (estimator): progress estimation requests. Manager/Admin: all. Visible to the project team and the requester.
+
+| Field | Type | Mandatory | Allowed values / validation | Description |
+|---|---|---|---|---|
+| `id` | uuid | Auto |  | Request ID |
+| `code` | text | Auto | issued by server | Request number, e.g. WR-000012 |
+| `kind` | text | Yes | design, estimation | design or estimation |
+| `opportunity_id` | uuid | Yes |  | Opportunity (package) ID |
+| `project_id` | uuid |  |  | Project ID |
+| `task_type` | text |  | list: design_task_type | Type of work |
+| `title` | text | Yes | not blank | Title |
+| `description` | text |  |  | Brief |
+| `priority` | text | Yes | low, normal, high, urgent; default normal | low, normal, high, urgent |
+| `status` | text | Yes | new, in_progress, on_hold, submitted, cancelled; default new | new, in_progress, on_hold, submitted, cancelled |
+| `received_at` | timestamp with time zone | Yes | default now() | Request received |
+| `due_date` | date |  |  | Required by |
+| `started_at` | timestamp with time zone |  |  | Work started |
+| `completed_at` | timestamp with time zone | Auto |  | Submitted to sales |
+| `completed_late` | boolean |  |  | Submitted after the due date |
+| `requested_by` | uuid |  | default auth.uid() | Requested by user ID |
+| `assigned_to` | uuid |  |  | Assigned to user ID |
+| `revision` | integer | Yes | revision >= 0; default 0 | 0 = original request, 1+ = revision |
+| `parent_request_id` | uuid |  |  | Request this revision is based on |
+| `quotation_id` | uuid |  |  | Quotation the revision is based on |
+| `revision_reason` | text |  | list: revision_reason | Reason for revision |
+| `client_feedback` | text |  |  | Client feedback |
+| `deliverable_note` | text |  |  | What was delivered |
+| `deliverable_link` | text |  |  | Link to the deliverable |
+| `last_late_alert_on` | date |  |  |  |
+| `version` | integer | Auto | default 1 |  |
+| `created_by` | uuid | Auto |  |  |
+| `created_at` | timestamp with time zone | Auto | default now() |  |
+| `updated_by` | uuid | Auto |  |  |
+| `updated_at` | timestamp with time zone | Auto | default now() |  |
+
+## Design / estimation timeline event – `work_request_events`
+
+**Edit permission:** Written automatically on every status, assignee and due-date change; anyone who can see the request may add notes.
+
+| Field | Type | Mandatory | Allowed values / validation | Description |
+|---|---|---|---|---|
+| `id` | bigint | Auto |  |  |
+| `request_id` | uuid | Yes |  |  |
+| `event` | text | Yes | created, assigned, started, on_hold, resumed, submitted, cancelled, reopened, due_changed, revision_requested, note |  |
+| `note` | text |  | event = ANY (ARRAY[created, assigned, started, on_hold, resumed, submitted, cancelled, reopened, due_changed, revision_requested, note]) |  |
+| `from_value` | text |  |  |  |
+| `to_value` | text |  |  |  |
+| `created_by` | uuid | Auto | default auth.uid() |  |
+| `created_at` | timestamp with time zone | Auto | default now() |  |
 
 ## Visit submission rule
 

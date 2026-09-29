@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Linking, View } from 'react-native';
 
 import { AttachmentList } from '@/components/AttachmentList';
+import { WorkPanel } from '@/components/WorkPanel';
 import { FormModal } from '@/components/FormModal';
 import { SelectField, SwitchField, TextField } from '@/components/form';
 import { Badge, Banner, Body, Button, Card, KeyValue, ListItem, Loading, Muted, Row, Screen, SectionTitle } from '@/components/ui';
@@ -13,7 +14,7 @@ import { newId } from '@/lib/ids';
 import { contactOptions, customerOptions, userOptions } from '@/lib/options';
 import { useSession } from '@/lib/session';
 import { errorMessage, supabase, unwrap } from '@/lib/supabase';
-import type { Action, Milestone, Opportunity, Project, Stakeholder } from '@/lib/types';
+import type { Action, Milestone, Opportunity, Project, Stakeholder, WorkRequest } from '@/lib/types';
 import { useAsync, useRefreshOnFocus } from '@/lib/useAsync';
 
 export default function ProjectProfile() {
@@ -26,7 +27,7 @@ export default function ProjectProfile() {
   const influence = useLookup('influence_stage');
 
   const { data, loading, error, reload } = useAsync(async () => {
-    const [project, stakeholders, members, opps, visits, actions, milestones, notes] = await Promise.all([
+    const [project, stakeholders, members, opps, visits, actions, milestones, notes, work] = await Promise.all([
       supabase.from('projects').select('*').eq('id', id).maybeSingle(),
       supabase.from('project_stakeholders').select('*').eq('project_id', id).order('stakeholder_role'),
       supabase.from('project_members').select('*').eq('project_id', id),
@@ -35,6 +36,7 @@ export default function ProjectProfile() {
       supabase.from('actions').select('*').eq('project_id', id).order('due_date', { ascending: true, nullsFirst: false }),
       supabase.from('project_milestones').select('*').eq('project_id', id).order('planned_date', { ascending: true, nullsFirst: false }),
       supabase.from('technical_notes').select('*').eq('project_id', id).order('created_at', { ascending: false }),
+      supabase.from('work_requests').select('*').eq('project_id', id).order('received_at'),
     ]);
     return {
       project: unwrap(project) as Project | null,
@@ -46,6 +48,7 @@ export default function ProjectProfile() {
       actions: unwrap(actions) as Action[],
       milestones: unwrap(milestones) as Milestone[],
       notes: unwrap(notes) as { id: string; body: string; created_by: string; created_at: string }[],
+      work: unwrap(work) as WorkRequest[],
     };
   }, [id]);
 
@@ -162,6 +165,8 @@ export default function ProjectProfile() {
           );
         })}
       </Card>
+
+      <WorkPanel requests={data?.work ?? []} projectLevel />
 
       <SectionTitle right={canSell ? <Button small variant="ghost" title="＋ Stakeholder" onPress={() => setStake({ id: newId(), project_id: id, stakeholder_role: 'architect', is_decision_maker: false })} /> : undefined}>
         Stakeholders

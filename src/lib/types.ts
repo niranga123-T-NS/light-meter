@@ -1,6 +1,6 @@
 // Domain types mirroring the database (supabase/migrations).
 
-export type Role = 'salesperson' | 'manager' | 'estimator' | 'admin';
+export type Role = 'salesperson' | 'manager' | 'designer' | 'estimator' | 'admin';
 export type SyncStatus = 'draft' | 'queued' | 'synced' | 'needs_attention';
 
 export interface Profile {
@@ -69,6 +69,7 @@ export interface Opportunity extends Stamped {
   bid_strategy?: string | null; partner_supplier?: string | null; competitors?: string | null; incumbent?: string | null;
   spec_status?: string | null; win_loss_reason?: string | null; win_loss_notes?: string | null;
   final_award_value?: number | null; award_date?: string | null; closed_at?: string | null; last_activity_at?: string;
+  inquiry_received_at?: string | null;
 }
 
 export interface Visit extends Stamped {
@@ -176,4 +177,22 @@ export interface ReportFilters {
   owner_id?: string | null;
   territory_id?: string | null;
   stage_id?: string | null;
+}
+
+export type WorkKind = 'design' | 'estimation';
+export type WorkStatus = 'new' | 'in_progress' | 'on_hold' | 'submitted' | 'cancelled';
+
+/** A design or estimation job for a package (inquiry → submitted), incl. revisions. */
+export interface WorkRequest extends Stamped {
+  id: string; code?: string; kind: WorkKind; opportunity_id: string; project_id?: string | null; task_type?: string | null;
+  title: string; description?: string | null; priority?: 'low' | 'normal' | 'high' | 'urgent'; status?: WorkStatus;
+  received_at?: string; due_date?: string | null; started_at?: string | null; completed_at?: string | null;
+  completed_late?: boolean | null; requested_by?: string | null; assigned_to?: string | null; revision?: number;
+  parent_request_id?: string | null; quotation_id?: string | null; revision_reason?: string | null;
+  client_feedback?: string | null; deliverable_note?: string | null; deliverable_link?: string | null;
+}
+
+export interface WorkEvent {
+  id: number; request_id: string; event: string; note?: string | null; from_value?: string | null; to_value?: string | null;
+  created_by?: string | null; created_at: string;
 }
