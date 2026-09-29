@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Text, View } from 'react-native';
+import { Image, View } from 'react-native';
 
 import { TextField } from '@/components/form';
-import { Banner, Button, Card, colors, Muted, Screen, space } from '@/components/ui';
+import { Banner, Button, Card, Muted, Screen, space } from '@/components/ui';
 import { useSession } from '@/lib/session';
 
 const microsoftEnabled = process.env.EXPO_PUBLIC_MICROSOFT_SSO === 'true';
@@ -24,11 +24,9 @@ export default function SignIn() {
   return (
     <Screen style={{ paddingTop: 80, maxWidth: 460 }}>
       <View style={{ alignItems: 'center', gap: space.sm, marginBottom: space.lg }}>
-        <View style={{ width: 64, height: 64, borderRadius: 16, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ color: colors.accent, fontSize: 32, fontWeight: '800' }}>D</Text>
-        </View>
-        <Text style={{ fontSize: 24, fontWeight: '800', color: colors.text }}>DIMO Sales</Text>
-        <Muted>Visits, projects and follow-ups</Muted>
+        <Image source={require('../../assets/logo.png')} accessibilityLabel="DIMO – The Perfect Partner"
+          style={{ width: 260, height: 100 }} resizeMode="contain" />
+        <Muted>Sales visits, projects and follow-ups</Muted>
       </View>
       <Card>
         {microsoftEnabled ? (
