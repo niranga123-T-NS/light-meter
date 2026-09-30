@@ -434,5 +434,32 @@ do $$ begin
 end $$;
 reset role;
 
+-- Customer edits: the account owner can rename; another sales person cannot; no duplicate names
+select pg_temp.act_as('asm_infra');
+set role authenticated;
+insert into public.organizations (id, name, visit_category) values ('00000000-0000-0000-0000-00000000a0f1', 'Manga Engineering', 'End-Client');
+update public.organizations set name = 'Manga Engineering (Pvt) Ltd', phone = '0112808835' where id = '00000000-0000-0000-0000-00000000a0f1';
+do $$ begin
+  assert (select name from public.organizations where id = '00000000-0000-0000-0000-00000000a0f1') = 'Manga Engineering (Pvt) Ltd', 'owner renamed';
+  begin
+    update public.organizations set name = 'ABC Hotels PLC' where id = '00000000-0000-0000-0000-00000000a0f1';
+    raise exception 'duplicate rename was not blocked';
+  exception when others then
+    if sqlerrm not like '%already has this name%' then raise; end if;
+  end;
+end $$;
+reset role;
+select pg_temp.act_as('asm_building');
+set role authenticated;
+do $$ begin
+  begin
+    update public.organizations set name = 'Renamed by someone else' where id = '00000000-0000-0000-0000-00000000a0f1';
+  exception when others then
+    if sqlerrm not like '%account owner%' then raise; end if;
+  end;
+  assert (select name from public.organizations where id = '00000000-0000-0000-0000-00000000a0f1') = 'Manga Engineering (Pvt) Ltd', 'non-owner cannot rename';
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

@@ -6,7 +6,7 @@ import { InquiryCard } from '@/components/InquiryBits';
 import { Badge, Button, Card, colors, ErrorBanner, Grid, KeyValue, ListRow, Loading, Muted, Pill, Row, Screen, Section, Segmented, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { fmtDate, fmtDateTime, fmtMoney } from '@/lib/format';
-import { useLoad, usePeople } from '@/lib/hooks';
+import { useLoad, useMasters, usePeople } from '@/lib/hooks';
 import { projectTypeLabel } from '@/lib/roles';
 import { supabase } from '@/lib/supabase';
 import type { Contact, Inquiry, Organization, OrgUnit, Project, Visit } from '@/lib/types';
@@ -19,6 +19,7 @@ export default function CustomerDetail() {
   const me = useMe();
   const people = usePeople();
   const dialog = useDialog();
+  const masters = useMasters();
   const [unitFilter, setUnitFilter] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('ongoing');
   const manager = me.role === 'sm_projects' || me.role === 'gm';
@@ -97,6 +98,28 @@ export default function CustomerDetail() {
     }, 'Contact added');
   };
 
+  // Account owner, SM Projects and GM / DGM can edit; renames are logged and may not duplicate another customer.
+  const canEdit = manager || org.account_owner_id === me.id;
+  const editDetails = async () => {
+    const r = await dialog.prompt({
+      title: 'Edit customer details',
+      fields: [
+        { key: 'name', label: 'Organization name', required: true, initial: org.name },
+        { key: 'category', label: 'Type (visit category)', type: 'select', required: true, initial: org.visit_category, options: masters.values('visit_category').map((v) => ({ value: v, label: v })) },
+        { key: 'address', label: 'Head office address', initial: org.address ?? '' },
+        { key: 'phone', label: 'Phone', initial: org.phone ?? '' },
+        { key: 'email', label: 'Email', initial: org.email ?? '' },
+      ],
+    });
+    if (!r) return;
+    await dialog.run(async () => {
+      const patch: Partial<Organization> = { name: r.name.trim(), visit_category: r.category, address: r.address || null, phone: r.phone || null, email: r.email || null };
+      const { error: e } = await supabase.from('organizations').update(patch).eq('id', org.id);
+      if (e) throw new Error(e.message);
+      await reload();
+    }, 'Customer updated – logged');
+  };
+
   const changeOwner = async (unit?: OrgUnit) => {
     const { data: sp } = await supabase.from('profiles').select('id, full_name').in('role', ['asm_building', 'asm_infra']).eq('active', true);
     const r = await dialog.prompt({
@@ -152,10 +175,11 @@ export default function CustomerDetail() {
           <KeyValue label="Last visit" value={fmtDateTime(data.visits[0]?.checkin_at)} />
         </Row>
         <Row wrap gap={6}>
+          {canEdit ? <Button small variant="secondary" title="Edit details" onPress={editDetails} /> : null}
           {me.role === 'sm_projects' || me.role === 'gm' ? <Button small variant="secondary" title="Change owner" onPress={() => changeOwner()} /> : null}
           <Button small variant="secondary" title="+ Unit" onPress={addUnit} />
           <Button small variant="secondary" title="+ Contact" onPress={addContact} />
-          <Button small variant="secondary" title="+ Project" onPress={() => router.push('/projects/new')} />
+          <Button small variant="secondary" title="+ Project" onPress={() => router.push({ pathname: '/projects/new', params: { organization: org.id } })} />
         </Row>
       </Card>
 
