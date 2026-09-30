@@ -33,9 +33,20 @@ Deno.serve(async (req) => {
       case 'invite': {
         const email = String(body.email ?? '').trim().toLowerCase();
         if (!email || !body.full_name || !ROLES.includes(body.role)) return json({ error: 'Email, full name and a valid role are required' }, 400);
-        const redirectTo = Deno.env.get('APP_URL') ? `${Deno.env.get('APP_URL')}/` : undefined;
-        const { data, error } = await admin.auth.admin.inviteUserByEmail(email, { redirectTo, data: { full_name: body.full_name } });
-        if (error) return json({ error: error.message }, 400);
+        // With a temporary password the account is ready at once (no email needed);
+        // otherwise an invitation email is sent (needs working SMTP for non-team addresses).
+        let data;
+        if (body.password) {
+          if (String(body.password).length < 8) return json({ error: 'Temporary password must be at least 8 characters' }, 400);
+          const res = await admin.auth.admin.createUser({ email, password: String(body.password), email_confirm: true, user_metadata: { full_name: body.full_name } });
+          if (res.error) return json({ error: res.error.message }, 400);
+          data = res.data;
+        } else {
+          const redirectTo = Deno.env.get('APP_URL') ? `${Deno.env.get('APP_URL')}/` : undefined;
+          const res = await admin.auth.admin.inviteUserByEmail(email, { redirectTo, data: { full_name: body.full_name } });
+          if (res.error) return json({ error: res.error.message }, 400);
+          data = res.data;
+        }
         const { error: pe } = await admin.from('profiles').insert({
           id: data.user.id,
           email,
@@ -44,7 +55,10 @@ Deno.serve(async (req) => {
           manager_id: body.manager_id || null,
           phone: body.phone || null,
         });
-        if (pe) return json({ error: pe.message }, 400);
+        if (pe) {
+          await admin.auth.admin.deleteUser(data.user.id); // don't leave a login without a role
+          return json({ error: pe.message }, 400);
+        }
         await admin.from('audit_log').insert({ user_id: caller.user.id, table_name: 'users', record_id: data.user.id, action: 'INVITE', new_data: { email, role: body.role } });
         return json({ id: data.user.id });
       }

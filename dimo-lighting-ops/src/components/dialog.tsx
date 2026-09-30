@@ -5,7 +5,7 @@ import { Button, colors, DateField, Field, Muted, Row, Select, styles, type Opti
 // Cross-platform dialogs: confirm, prompt with fields (reasons are mandatory throughout the SRS), toast.
 
 export type PromptField =
-  | { key: string; label: string; type?: 'text' | 'multiline'; required?: boolean; maxLength?: number; initial?: string; hint?: string }
+  | { key: string; label: string; type?: 'text' | 'multiline' | 'password'; required?: boolean; maxLength?: number; initial?: string; hint?: string }
   | { key: string; label: string; type: 'date'; required?: boolean; initial?: string; hint?: string }
   | { key: string; label: string; type: 'select'; options: Option[]; required?: boolean; initial?: string; hint?: string };
 
@@ -87,6 +87,8 @@ export function DialogProvider({ children }: { children: ReactNode }) {
                     required={f.required}
                     hint={f.hint}
                     multiline={f.type === 'multiline'}
+                    secureTextEntry={f.type === 'password'}
+                    autoCapitalize={f.type === 'password' ? 'none' : undefined}
                     maxLength={'maxLength' in f ? f.maxLength : undefined}
                     value={values[f.key]}
                     onChangeText={(t) => setValues((s) => ({ ...s, [f.key]: t }))}

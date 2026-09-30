@@ -51,7 +51,7 @@ jobs:
         run: supabase db push --yes --password "$SUPABASE_DB_PASSWORD" ${{ inputs.seed && '--include-seed' || '' }}
 
       - name: Set Edge Function secrets
-        run: supabase secrets set --project-ref "$PROJECT_REF" DISPATCH_SECRET="${{ secrets.DISPATCH_SECRET }}" APP_URL="${{ vars.APP_URL || 'http://localhost:8081' }}"
+        run: supabase secrets set --project-ref "$PROJECT_REF" DISPATCH_SECRET="${{ secrets.DISPATCH_SECRET }}" APP_URL="${{ vars.APP_URL || 'https://dimo-lighting-ops.vercel.app' }}"
 
       - name: Deploy Edge Functions
         run: |
