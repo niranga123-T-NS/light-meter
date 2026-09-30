@@ -448,6 +448,17 @@ do $$ begin
     if sqlerrm not like '%already has this name%' then raise; end if;
   end;
 end $$;
+insert into public.org_units (id, organization_id, name, unit_type) values ('00000000-0000-0000-0000-00000000a0f2', '00000000-0000-0000-0000-00000000a0f1', 'Kadawata Site', 'site');
+update public.org_units set name = 'Kadawatha Interchange Project', address = 'Kadawatha' where id = '00000000-0000-0000-0000-00000000a0f2';
+do $$ begin
+  assert (select name from public.org_units where id = '00000000-0000-0000-0000-00000000a0f2') = 'Kadawatha Interchange Project', 'owner edited unit';
+  begin
+    update public.org_units set account_owner_id = auth.uid() where id = '00000000-0000-0000-0000-00000000a0f2';
+    raise exception 'unit owner change was not blocked';
+  exception when others then
+    if sqlerrm not like '%owner of a unit%' then raise; end if;
+  end;
+end $$;
 reset role;
 select pg_temp.act_as('asm_building');
 set role authenticated;
@@ -458,6 +469,8 @@ do $$ begin
     if sqlerrm not like '%account owner%' then raise; end if;
   end;
   assert (select name from public.organizations where id = '00000000-0000-0000-0000-00000000a0f1') = 'Manga Engineering (Pvt) Ltd', 'non-owner cannot rename';
+  update public.org_units set name = 'Changed by someone else' where id = '00000000-0000-0000-0000-00000000a0f2';
+  assert (select name from public.org_units where id = '00000000-0000-0000-0000-00000000a0f2') = 'Kadawatha Interchange Project', 'non-owner cannot edit unit';
 end $$;
 reset role;
 

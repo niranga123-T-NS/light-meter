@@ -79,6 +79,46 @@ export default function CustomerDetail() {
     }, 'Unit added');
   };
 
+  // Units and contacts: the account owner, SM Projects and GM / DGM can correct them (logged)
+  const descendants = (id: string): string[] => units.filter((u) => u.parent_unit_id === id).flatMap((u) => [u.id, ...descendants(u.id)]);
+  const editUnit = async (unit: OrgUnit) => {
+    const blocked = new Set([unit.id, ...descendants(unit.id)]);
+    const r = await dialog.prompt({
+      title: 'Edit unit / department',
+      fields: [
+        { key: 'name', label: 'Unit name', required: true, initial: unit.name },
+        { key: 'type', label: 'Type', type: 'select', initial: unit.unit_type, options: ['department', 'division', 'branch', 'site'].map((v) => ({ value: v, label: v })) },
+        { key: 'parent', label: 'Parent unit (optional)', type: 'select', initial: unit.parent_unit_id ?? '', options: units.filter((u) => !blocked.has(u.id)).map((u) => ({ value: u.id, label: u.name })) },
+        { key: 'address', label: 'Address', initial: unit.address ?? '' },
+      ],
+    });
+    if (!r) return;
+    await dialog.run(async () => {
+      const { error: e } = await supabase.from('org_units').update({ name: r.name.trim(), unit_type: r.type, parent_unit_id: r.parent || null, address: r.address || null }).eq('id', unit.id);
+      if (e) throw new Error(e.message);
+      await reload();
+    }, 'Unit updated');
+  };
+
+  const editContact = async (c: Contact) => {
+    const r = await dialog.prompt({
+      title: 'Edit contact',
+      fields: [
+        { key: 'name', label: 'Name', required: true, initial: c.name },
+        { key: 'designation', label: 'Designation', initial: c.designation ?? '' },
+        { key: 'phone', label: 'Phone', initial: c.phone ?? '' },
+        { key: 'email', label: 'Email', initial: c.email ?? '' },
+        { key: 'unit', label: 'Unit', type: 'select', initial: c.unit_id ?? '', options: units.map((u) => ({ value: u.id, label: u.name })) },
+      ],
+    });
+    if (!r) return;
+    await dialog.run(async () => {
+      const { error: e } = await supabase.from('contacts').update({ name: r.name.trim(), designation: r.designation || null, phone: r.phone || null, email: r.email || null, unit_id: r.unit || null }).eq('id', c.id);
+      if (e) throw new Error(e.message);
+      await reload();
+    }, 'Contact updated');
+  };
+
   const addContact = async () => {
     const r = await dialog.prompt({
       title: 'Add contact',
@@ -148,7 +188,14 @@ export default function CustomerDetail() {
             subtitle={`${u.unit_type}${u.account_owner_id ? ` · owner ${people[u.account_owner_id]?.full_name ?? ''}` : ''}`}
             onPress={() => setUnitFilter(unitFilter === u.id ? null : u.id)}
             highlight={unitFilter === u.id ? colors.brand : undefined}
-            right={me.role === 'sm_projects' ? <Button small variant="ghost" title="Owner" onPress={() => changeOwner(u)} /> : undefined}
+            right={
+              canEdit || me.role === 'sm_projects' ? (
+                <Row gap={4}>
+                  {canEdit ? <Button small variant="ghost" title="Edit" onPress={() => editUnit(u)} /> : null}
+                  {me.role === 'sm_projects' ? <Button small variant="ghost" title="Owner" onPress={() => changeOwner(u)} /> : null}
+                </Row>
+              ) : undefined
+            }
           />
           {tree(u.id, depth + 1)}
         </View>
@@ -247,7 +294,12 @@ export default function CustomerDetail() {
       <Section title="Contacts">
         <Card style={{ padding: 0, overflow: 'hidden' }}>
           {contacts.map((c) => (
-            <ListRow key={c.id} title={c.name} subtitle={[c.designation, units.find((u) => u.id === c.unit_id)?.name, c.phone, c.email].filter(Boolean).join(' · ')} />
+            <ListRow
+              key={c.id}
+              title={c.name}
+              subtitle={[c.designation, units.find((u) => u.id === c.unit_id)?.name, c.phone, c.email].filter(Boolean).join(' · ')}
+              right={canEdit || c.created_by === me.id ? <Button small variant="ghost" title="Edit" onPress={() => editContact(c)} /> : undefined}
+            />
           ))}
           {!contacts.length ? <Muted style={{ padding: 12 }}>No contacts yet</Muted> : null}
         </Card>
