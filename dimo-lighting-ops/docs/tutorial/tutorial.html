@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>DIMO Lighting Operations System – User Tutorial</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm 18mm 16mm; }
+  :root {
+    --brand: #C8102E; --ink: #111827; --text: #1f2937; --muted: #6b7280; --line: #e5e7eb; --soft: #f6f7f9;
+    --green: #1E8E3E; --amber: #E8A317; --red: #C62828; --grey: #8A8F98; --blue: #1D4ED8;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: "Liberation Sans", Arial, Helvetica, sans-serif; font-size: 10.2pt; line-height: 1.45; color: var(--text); margin: 0; }
+  h1 { font-size: 21pt; color: var(--ink); margin: 0 0 4mm; }
+  h2 { font-size: 13.5pt; color: var(--ink); margin: 7mm 0 2.5mm; border-bottom: 1.5px solid var(--line); padding-bottom: 1.5mm; }
+  h3 { font-size: 11pt; color: var(--ink); margin: 5mm 0 1.5mm; }
+  p { margin: 0 0 2.5mm; }
+  ul, ol { margin: 0 0 3mm; padding-left: 6mm; }
+  li { margin-bottom: 1.2mm; }
+  .chapter { page-break-before: always; }
+  .chapter-head { display: flex; align-items: center; gap: 5mm; border-left: 6px solid var(--brand); padding: 3mm 0 3mm 5mm; margin-bottom: 5mm; background: var(--soft); }
+  .chapter-head .num { font-size: 26pt; font-weight: 700; color: var(--brand); }
+  .chapter-head .title { font-size: 17pt; font-weight: 700; color: var(--ink); }
+  .chapter-head .sub { color: var(--muted); font-size: 9.5pt; }
+  .btn { display: inline-block; font-weight: 700; color: var(--ink); background: #fff; border: 1px solid #cfd3da; border-radius: 4px; padding: 0 1.6mm; font-size: 9pt; white-space: nowrap; }
+  .btn.red { background: var(--brand); color: #fff; border-color: var(--brand); }
+  .path { font-weight: 700; color: var(--blue); }
+  .box { border: 1px solid var(--line); border-radius: 6px; padding: 3mm 4mm; margin: 3mm 0; background: #fff; page-break-inside: avoid; }
+  .tip { border-left: 4px solid var(--blue); background: #eef3ff; }
+  .warn { border-left: 4px solid var(--amber); background: #fff8e8; }
+  .rule { border-left: 4px solid var(--brand); background: #fdf0f2; }
+  .box b.label { display: block; font-size: 8.5pt; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin-bottom: 1mm; }
+  table { width: 100%; border-collapse: collapse; margin: 2mm 0 4mm; font-size: 9.3pt; page-break-inside: auto; }
+  thead { display: table-header-group; }
+  tr { page-break-inside: avoid; }
+  th { background: var(--ink); color: #fff; text-align: left; padding: 1.6mm 2mm; font-weight: 700; }
+  td { border-bottom: 1px solid var(--line); padding: 1.6mm 2mm; vertical-align: top; }
+  tr:nth-child(even) td { background: #fafafa; }
+  .steps { counter-reset: s; list-style: none; padding-left: 0; }
+  .steps > li { counter-increment: s; position: relative; padding-left: 9mm; margin-bottom: 2mm; }
+  .steps > li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 6mm; height: 6mm; border-radius: 50%; background: var(--brand); color: #fff; font-weight: 700; font-size: 8.5pt; text-align: center; line-height: 6mm; }
+  .dot { display: inline-block; width: 3mm; height: 3mm; border-radius: 50%; vertical-align: -0.3mm; margin-right: 1mm; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+  .flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 1.5mm; margin: 3mm 0 4mm; }
+  .flow .node { flex: 1 1 0; min-width: 24mm; border: 1.5px solid var(--ink); border-radius: 5px; padding: 2mm; font-size: 8.6pt; text-align: center; background: #fff; }
+  .flow .node b { display: block; font-size: 9pt; color: var(--brand); margin-bottom: .6mm; }
+  .flow .arrow { align-self: center; font-weight: 700; color: var(--muted); }
+  .toc td { border: none; padding: 1mm 0; }
+  .toc td.n { width: 10mm; color: var(--brand); font-weight: 700; }
+  .cover { height: 255mm; display: flex; flex-direction: column; justify-content: space-between; }
+  .cover .top { border-bottom: 3px solid var(--brand); padding-bottom: 6mm; }
+  .logo { font-size: 44pt; font-weight: 800; color: var(--brand); letter-spacing: 3px; }
+  .cover h1 { font-size: 26pt; margin-top: 10mm; }
+  .cover .lead { font-size: 12.5pt; color: var(--muted); }
+  .linkbox { font-size: 14pt; font-weight: 700; color: var(--ink); border: 2px solid var(--brand); border-radius: 8px; padding: 4mm 6mm; display: inline-block; margin: 6mm 0; }
+  .muted { color: var(--muted); }
+  .small { font-size: 8.8pt; }
+  .kbd { font-family: "Liberation Mono", monospace; font-size: 9pt; background: var(--soft); border: 1px solid var(--line); border-radius: 3px; padding: 0 1mm; }
+</style>
+</head>
+<body>
+
+<!-- ================================================================ COVER -->
+<section class="cover">
+  <div class="top">
+    <div class="logo">DIMO</div>
+    <div class="lead">Lighting Solutions</div>
+    <h1>Lighting Operations System<br />User Tutorial – all roles</h1>
+    <p class="lead">Sales visits, projects, inquiries, design, estimation, quotations, debtors and samples – step by step for every role.</p>
+  </div>
+  <div>
+    <p><b>Web address (computer, tablet and phone)</b></p>
+    <div class="linkbox">https://dimo-lighting-ops.vercel.app</div>
+    <p class="muted">Sign in with the work email and temporary password given to you by the System Administrator, then change your password under <span class="path">Profile → Change password</span>.</p>
+  </div>
+  <div class="small muted">
+    Version 1.0 · September 2026 · Based on the SRS "Lighting Solutions – Sales, Design &amp; Estimation Monitoring System", draft v0.1.<br />
+    Confidential – for internal use.
+  </div>
+</section>
+
+<!-- ================================================================ CONTENTS -->
+<section class="chapter">
+  <h1>Contents</h1>
+  <table class="toc">
+    <tr><td class="n">1</td><td>Getting started – for everyone</td></tr>
+    <tr><td class="n">2</td><td>How work flows through the system</td></tr>
+    <tr><td class="n">3</td><td>Assistant Sales Managers (Building and Infrastructure)</td></tr>
+    <tr><td class="n">4</td><td>Senior Manager – Building &amp; Infrastructure Projects (SM Projects)</td></tr>
+    <tr><td class="n">5</td><td>GM / DGM – Lighting Solutions</td></tr>
+    <tr><td class="n">6</td><td>Design Manager</td></tr>
+    <tr><td class="n">7</td><td>Lighting Designer and Lighting Engineer</td></tr>
+    <tr><td class="n">8</td><td>Senior Manager – Estimation (SM Estimation)</td></tr>
+    <tr><td class="n">9</td><td>Assistant Manager – Estimation and Estimation Executive</td></tr>
+    <tr><td class="n">10</td><td>Operations Executive</td></tr>
+    <tr><td class="n">11</td><td>System Administrator</td></tr>
+    <tr><td class="n">12</td><td>Deadlines, colours, escalations and notifications</td></tr>
+    <tr><td class="n">13</td><td>Quick answers (FAQ)</td></tr>
+  </table>
+
+  <div class="box tip"><b class="label">How to read this tutorial</b>
+    Read chapters 1, 2 and 12 first, then the chapter for your role. Button names are shown like <span class="btn">this</span>, and menu paths like <span class="path">Profile → Change password</span>.
+  </div>
+
+  <h2>Which chapter is mine?</h2>
+  <table>
+    <thead><tr><th>Role</th><th>Chapter</th><th>Main device</th><th>What opens first</th></tr></thead>
+    <tbody>
+      <tr><td>Assistant Sales Manager – Building Lighting / Infrastructure Lighting</td><td>3</td><td>Phone (app) and web</td><td>My Day</td></tr>
+      <tr><td>Senior Manager – Building &amp; Infrastructure Projects</td><td>4</td><td>Web and app</td><td>Sales Management dashboard</td></tr>
+      <tr><td>GM / DGM – Lighting Solutions</td><td>5</td><td>Web and app</td><td>Overall Dashboard</td></tr>
+      <tr><td>Design Manager</td><td>6</td><td>Web</td><td>Design Board</td></tr>
+      <tr><td>Lighting Designer, Lighting Engineer</td><td>7</td><td>Web</td><td>My Design Jobs</td></tr>
+      <tr><td>Senior Manager – Estimation</td><td>8</td><td>Web</td><td>Estimation Board</td></tr>
+      <tr><td>Assistant Manager – Estimation, Estimation Executive</td><td>9</td><td>Web</td><td>My Estimates</td></tr>
+      <tr><td>Operations Executive</td><td>10</td><td>Web and app</td><td>Operations home</td></tr>
+      <tr><td>System Administrator (IT)</td><td>11</td><td>Web</td><td>Administration</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ================================================================ 1 GETTING STARTED -->
+<section class="chapter">
+  <div class="chapter-head"><div class="num">1</div><div><div class="title">Getting started</div><div class="sub">For everyone</div></div></div>
+
+  <h2>1.1 Sign in</h2>
+  <ol class="steps">
+    <li>Open <b>https://dimo-lighting-ops.vercel.app</b> in Chrome, Edge or Safari.</li>
+    <li>Enter your <b>work email</b> and the <b>temporary password</b> from the System Administrator, then tap <span class="btn red">Sign in</span>.</li>
+    <li>Change the password straight away: <span class="path">your name (bottom-left) → Profile → Change password</span>. Type the new password twice (at least 8 characters) and save.</li>
+  </ol>
+  <div class="box tip"><b class="label">Make it an app icon</b>
+    <b>iPhone / iPad (Safari):</b> Share → <b>Add to Home Screen</b>. <b>Android (Chrome):</b> ⋮ menu → <b>Add to Home screen</b>. A DIMO icon then opens the system directly.
+  </div>
+  <p><b>Forgot your password?</b> Type your email on the sign-in page and tap <span class="btn">Forgot password</span>, or ask the System Administrator to reset it.</p>
+
+  <h2>1.2 The screen</h2>
+  <div class="two">
+    <div class="box"><b class="label">Computer / tablet</b>
+      A <b>dark menu on the left</b> shows only what your role may use. Your picture and name are at the bottom – tap them for your Profile.
+    </div>
+    <div class="box"><b class="label">Phone</b>
+      A <b>bottom bar</b> shows your four main screens. <span class="btn">More</span> opens everything else, plus Notifications, Search and Sign out.
+    </div>
+  </div>
+  <p>Every screen has two icons at the top right:</p>
+  <ul>
+    <li><b>Search</b> (magnifier) – finds customers, units, contacts, projects, inquiries, quotation numbers, tender numbers and invoice numbers. Partial words work. You only ever see records you are allowed to see.</li>
+    <li><b>Bell</b> – your notifications. A red number shows how many are unread. Tap a notification to open the record it is about.</li>
+  </ul>
+
+  <h2>1.3 Your profile</h2>
+  <ul>
+    <li><b>Profile picture:</b> <span class="path">Profile → Upload picture</span> (or <span class="btn">Take photo</span> on a phone). JPG or PNG up to 5 MB. Without a picture your initials are shown on a coloured circle.</li>
+    <li><b>Daily digest:</b> tick <i>"Daily digest at 08:30 instead of individual non-critical notices"</i> if you prefer one summary a day. Critical alerts always arrive immediately.</li>
+    <li>Your name, role and reporting manager are maintained by the System Administrator.</li>
+  </ul>
+
+  <h2>1.4 Things that work the same everywhere</h2>
+  <ul>
+    <li><b>Reasons are required</b> whenever you return, reject, put on hold, change a date or go outside a rule. The system asks for them in a pop-up; everything is logged with your name and the time.</li>
+    <li><b>Approvals tab</b> (managers): every item waiting for your decision, in one list. Approve, Return or Reject – returning and rejecting need a reason.</li>
+    <li><b>Files:</b> use the <span class="btn">+ …</span> buttons in the <i>Files</i> sections to attach drawings, BOQs, photos and PDFs (up to 50 MB each). Every version is kept. Open a file with <span class="btn">Open</span> / <span class="btn">Download</span> – downloads are logged.</li>
+    <li><b>Reports tab:</b> shows only the reports your role may run. Set the filters, tap <span class="btn">Run</span>, then <span class="btn">Export PDF</span> or <span class="btn">Export Excel</span>. PDFs carry the DIMO header and a watermark with your name and the time.</li>
+    <li><b>Currencies:</b> <b>Duty Free = USD</b> and <b>Duty Paid = LKR</b>. Every value shows its currency; totals show both, plus an LKR total at the month's exchange rate.</li>
+  </ul>
+
+  <h2>1.5 Status colours</h2>
+  <table>
+    <thead><tr><th>Colour</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><span class="dot" style="background:var(--green)"></span><b>Green</b></td><td>On time – less than 75% of the allowed time used.</td></tr>
+      <tr><td><span class="dot" style="background:var(--amber)"></span><b>Amber</b></td><td>At risk – 75% used, or less than 1 working day left.</td></tr>
+      <tr><td><span class="dot" style="background:var(--red)"></span><b>Red</b></td><td>Overdue – the due time has passed. Delayed items are pinned to the top of lists.</td></tr>
+      <tr><td><span class="dot" style="background:var(--grey)"></span><b>Grey</b></td><td>On hold – the clock is paused and the hold reason is shown.</td></tr>
+    </tbody>
+  </table>
+  <p class="small muted">Clocks count <b>working hours only</b>: Monday–Friday 08:30–17:30, excluding Sri Lanka public and mercantile holidays.</p>
+</section>
+
+<!-- ================================================================ 2 FLOW -->
+<section class="chapter">
+  <div class="chapter-head"><div class="num">2</div><div><div class="title">How work flows through the system</div><div class="sub">One linked record from the first visit to the submitted quotation</div></div></div>
+
+  <div class="flow">
+    <div class="node"><b>Visit</b>Sales checks in with GPS and records the visit</div><div class="arrow">→</div>
+    <div class="node"><b>Inquiry</b>Sales raises a request, chooses route A, B or C</div><div class="arrow">→</div>
+    <div class="node"><b>Design</b>Design Manager assigns; designer works; manager approves</div><div class="arrow">→</div>
+    <div class="node"><b>Estimation</b>SM Estimation assigns; estimator prices; approval</div><div class="arrow">→</div>
+    <div class="node"><b>Quotation</b>Released to sales with the design pack</div><div class="arrow">→</div>
+    <div class="node"><b>Client</b>Submitted; client response; won / lost</div>
+  </div>
+
+  <h2>2.1 The three routes</h2>
+  <table>
+    <thead><tr><th>Route</th><th>Use when</th><th>Goes to</th><th>Ends with</th></tr></thead>
+    <tbody>
+      <tr><td><b>A · Design → Estimation</b></td><td>A layout, concept, calculation or electrical design is needed before pricing</td><td>Design Manager, then SM Estimation</td><td>Quotation (and design) released to sales</td></tr>
+      <tr><td><b>B · Estimation only</b></td><td>BOQ or specification already available (tender BOQ, consultant spec, replacement)</td><td>SM Estimation</td><td>Quotation released to sales</td></tr>
+      <tr><td><b>C · Design only</b></td><td>Concept, calculation or presentation support, no quotation yet</td><td>Design Manager</td><td>Design pack returned to sales</td></tr>
+    </tbody>
+  </table>
+
+  <h2>2.2 Release modes (confirmed by SM Projects)</h2>
+  <table>
+    <thead><tr><th>Mode</th><th>Design goes to</th><th>Client receives</th></tr></thead>
+    <tbody>
+      <tr><td><b>1 · Design only</b></td><td>Sales person</td><td>Design pack only</td></tr>
+      <tr><td><b>2 · Estimation only</b></td><td>Estimation team only (internal input)</td><td>Quotation only</td></tr>
+      <tr><td><b>3 · Design + Estimation</b> (default for route A)</td><td>Estimation first; design is held until the quotation is released</td><td>Design and quotation together. An <b>early design release</b> needs Design Manager then SM Projects approval.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>2.3 Inquiry stages you will see</h2>
+  <p>Draft → Submitted → Accepted → In design → Design review → Design approved → In estimation → Estimation review → Quotation released → Submitted to client → (Awaiting client approval → Client approved) → <b>Won / Lost / On hold / Cancelled</b>.</p>
+  <p>Route B skips the design stages; route C ends at <i>Design returned to sales</i>. At every stage the inquiry shows <b>one current owner and one due date</b>, a progress bar and its colour.</p>
+
+  <div class="box rule"><b class="label">Who sees what</b>
+    Each team sees only its own part. <b>Sales</b> see a progress tracker (stage, %, dates, colour) for work in Design and Estimation – not drafts, hours, cost or margin – and download only the released design pack and quotation. <b>Design</b> sees only inquiries routed to Design (designers only their own jobs). <b>Estimation</b> sees only inquiries routed to it plus the approved design pack. <b>GM / DGM</b> sees everything.
+  </div>
+</section>
+
+<!-- ================================================================ 3 SALES -->
+<section class="chapter">
+  <div class="chapter-head"><div class="num">3</div><div><div class="title">Assistant Sales Managers</div><div class="sub">Building Lighting (Hospitality, Retail, Institutions, Commercial) · Infrastructure Lighting (Infrastructure, Industrial)</div></div></div>
+
+  <p>Your menu: <b>My Day · Visits · Plan · Projects · Pending · Customers · My Debtors · Samples · Scorecard · Reports</b>.</p>
+
+  <h2>3.1 My Day</h2>
+  <p>Your home screen shows today's planned visits (with a <span class="btn">Check in</span> button), next actions due, pending designs and estimations, delayed items, quotations awaiting follow-up, dormant projects, projects whose win probability has not been reviewed in 30 days, new projects assigned to you, open debts and overdue samples. A yellow note reminds you if next week's plan is not submitted.</p>
+
+  <h2>3.2 Plan next week (submit by Saturday 13:00)</h2>
+  <ol class="steps">
+    <li><span class="path">Plan → Open next week's plan</span>.</li>
+    <li>Tap <span class="btn red">+ Add visit</span>. Choose the day and time slot, Normal or <b>Tender</b> (then the tender activity), the project, the organization / unit / contact, the Visit Category and the planned objective. Tap <span class="btn red">Add to plan</span>. Repeat for every visit.</li>
+    <li>Tap <span class="btn red">Submit plan for approval</span>. SM Projects approves it by Monday 09:00, or returns it – then change it and resubmit the same day.</li>
+    <li>During the week use <span class="btn">Reschedule</span>, <span class="btn">Cancel</span> or <span class="btn">Missed</span> on a planned visit. A reason is required and every change is logged.</li>
+  </ol>
+  <div class="box warn"><b class="label">Reminders and alerts</b>You are reminded on Friday 16:00 and Saturday 10:00. A plan submitted after Saturday 13:00 is marked <b>Late</b> and SM Projects is alerted. Planning a visit to a customer owned by the other sales person also alerts SM Projects.</div>
+
+  <h2>3.3 Check in to a visit</h2>
+  <ol class="steps">
+    <li>From My Day tap <span class="btn">Check in</span> on a planned visit (details are filled in), or tap <span class="btn red">Check in to a visit</span> for an unplanned one.</li>
+    <li>Allow location access – your GPS position is captured <b>only</b> at check-in and check-out. It is never tracked continuously.</li>
+    <li>Choose <b>Normal</b> or <b>Tender</b>, the <b>project</b> (only networking visits may have no project), the customer, the <b>Visit Category</b>, then the <b>objective group</b> and <b>primary objective</b> (up to 3 secondary objectives).</li>
+    <li>Either tap <span class="btn">Check in (report later)</span>, or fill the report now and tap <span class="btn red">Save visit report</span>.</li>
+  </ol>
+  <h3>The visit report (same day, by 20:00)</h3>
+  <ul>
+    <li><b>Discussion summary</b> – at least 30 characters (use the keyboard microphone for voice-to-text), and the <b>Outcome</b>.</li>
+    <li>Competitors mentioned, brands specified, estimated project and lighting values, <b>next action and date</b> (you get a reminder on that date).</li>
+    <li>On the visit page tap <span class="btn red">Check out and save report</span>. Then add business cards, drawings and site photos under <i>Photos and documents</i>.</li>
+    <li>If the objective signals progress or risk (e.g. Specification Inclusion, Brand Approval, Price Negotiation) the app asks you to confirm the project's <b>win probability</b>.</li>
+  </ul>
+  <div class="box tip"><b class="label">No signal?</b>Save the visit anyway. It is kept on your phone ("waiting to sync") and sent automatically when you are back online, with the original check-in time.</div>
+  <h3>Tender visits</h3>
+  <p>For a <b>Bid Submission</b> or <b>Tender Opening</b> visit you must complete the <b>Tender result</b> form on the visit page before checking out: tender no. and name, type, duty status, dates, our price and brands, each competitor's bid (compliant or not). The system shows our rank (L1, L2 …) and the gap to L1. The result updates the project automatically.</p>
+
+  <h2>3.4 Customers and projects</h2>
+  <ul>
+    <li><b>New customer:</b> <span class="path">Customers → + New</span>. Organization, type, contact details, optional first unit and contact. Possible duplicates (same name, phone or email) are shown – use the existing one if it is the same customer. You become the account owner.</li>
+    <li><b>Units and contacts:</b> on the customer page, <span class="btn">+ Unit</span> (up to 3 levels, e.g. division → branch → site) and <span class="btn">+ Contact</span>.</li>
+    <li><b>New project:</b> <span class="path">Projects → + New project</span>. Name it <i>Customer – Project – City</i>, choose the type and customer, set values and the <b>expected duration in months</b> (mandatory – the term Short / Medium / Long is suggested). If similar projects exist, tap <span class="btn">Use this project</span> or confirm it is different and give a reason. Exact duplicates are blocked.</li>
+    <li><b>On the project page:</b> <span class="btn">Win probability</span> (the stage proposes a default; outside the band you must give a reason), Stage, Specification, Lighting value, Award date, Term / duration, <span class="btn">Review status</span> (active, on hold with review date, lost, cancelled, handed over). The stakeholder map shows which categories have been met.</li>
+    <li><b>Dormant projects:</b> after 60 days without activity a project is flagged Dormant – review it within 5 working days.</li>
+  </ul>
+
+  <h2>3.5 Raise an inquiry</h2>
+  <ol class="steps">
+    <li>From a visit tap <span class="btn red">Convert to inquiry</span> (or <span class="path">Pending → + New inquiry</span>).</li>
+    <li>Choose the <b>route</b> (A / B / C), release mode, design scope, <b>duty status</b> (mandatory for routes A and B – it fixes USD or LKR), priority, <b>customer deadline</b> (mandatory), your required-by dates, the scope, the documents-received checklist and the client's <b>solution level and origin</b>.</li>
+    <li>Tap <span class="btn red">Save draft and continue</span>. Use <span class="btn">Save and add another inquiry</span> for a second package from the same visit.</li>
+    <li>On the inquiry page attach drawings, BOQ and specifications under <i>Inquiry documents</i>, then tap <span class="btn red">Submit inquiry</span>.</li>
+  </ol>
+  <div class="box warn"><b class="label">The system may stop you</b>
+    <b>Mixed duty:</b> if the project already has an offer with the other duty status, an approval goes to SM Projects then GM / DGM – submit again once approved.<br />
+    <b>Debtor check:</b> if the client has debts over 90 days or under legal action you see a warning, and SM Projects must allow the inquiry.<br />
+    <b>Time:</b> you are warned if the time to the customer deadline is shorter than the standard turnaround.
+  </div>
+
+  <h2>3.6 Follow your inquiries – the Pending tab</h2>
+  <p>Tabs: <b>Pending designs · Pending estimations · All open · Delayed · Ready / with client · Drafts / returned · Closed</b>. Each card shows stage, progress, internal due date, customer deadline, days left and colour. Delayed items are pinned to the top in red with the delay reason and revised date. You receive a push when a stage becomes overdue, every working morning while it stays overdue, and when it is completed.</p>
+  <p>On the inquiry page you can also:</p>
+  <ul>
+    <li><span class="btn">Customer extended the deadline</span> – new date and reason; Design / Estimation are notified.</li>
+    <li><span class="btn">Request a change</span> – duty status, client solution level / origin, release mode, or an <b>early design release</b>. Each goes for approval.</li>
+    <li>Tap a red <b>Stage timer</b> only if you own it; otherwise just watch the tracker.</li>
+  </ul>
+
+  <h2>3.7 After release – client submission and result</h2>
+  <ol class="steps">
+    <li>You get a push "Quotation released" (or "Design released"). Download the files from <i>Released design pack and quotation files</i>.</li>
+    <li>Send them to the client yourself (the system never contacts clients), then tap <span class="btn red">Record submission to client</span> with the date – within 1 working day.</li>
+    <li>For designs sent for approval tap <span class="btn">Record client response</span>: Approved, Approved with comments, or <b>Revision required</b> (a new revision R1, R2 … goes back to Design).</li>
+    <li>When decided tap <span class="btn">Record result</span>: Won (order value and date), Lost (reason and competitor), On hold or Cancelled.</li>
+  </ol>
+  <p class="small muted">Quotations are valid 30 days – you are reminded 7 days before expiry. Follow-up reminders arrive every 7 days until a result is recorded.</p>
+
+  <h2>3.8 My Debtors</h2>
+  <p>Debts on your projects appear after the Saturday upload, coloured by age (1–30 green … over 365 black). You receive one short push per open debt every other day. Open a debt and tap <span class="btn red">Update status</span>: Follow-up done (note + next date), Payment promised (date), Partially collected (amount), Collected (date) or Disputed (reason). "Collected" is confirmed automatically when the invoice disappears from the next upload.</p>
+
+  <h2>3.9 Samples</h2>
+  <ol class="steps">
+    <li><span class="path">Samples → + Request sample</span>: project, returnable or not (return date), purpose, required-by date, items with quantities and values, handover location and person.</li>
+    <li><span class="btn red">Submit request</span> → Operations checks availability → SM Projects approves → Operations hands it over.</li>
+    <li>Returnable samples: you are reminded every other working day after the return date. Need longer? <span class="btn">Request new return date</span> (SM Projects approves).</li>
+  </ol>
+
+  <h2>3.10 Scorecard and reports</h2>
+  <p><span class="path">Scorecard</span> shows your monthly score out of 100 across order intake, pipeline, activity, win rate and coverage, with every KPI and the change from last month. When SM Projects adds a review comment, tap <span class="btn">Acknowledge</span>. <span class="path">Reports</span> gives your own visit, pipeline, tender, quotation, stakeholder, debtors and samples reports.</p>
+</section>
+
+<!-- ================================================================ 4 SM PROJECTS -->
+<section class="chapter">
+  <div class="chapter-head"><div class="num">4</div><div><div class="title">SM Projects</div><div class="sub">Senior Manager – Building &amp; Infrastructure Projects</div></div></div>
+  <p>Your menu: <b>Home · Approvals · Dashboard · Plans · Visits · Projects · Inquiries · Customers · Debtors · Samples · Scorecards · Reports · Team &amp; lists</b>.</p>
+
+  <h2>4.1 Your Approvals tab</h2>
+  <table>
+    <thead><tr><th>Item</th><th>What to do</th></tr></thead>
+    <tbody>
+      <tr><td>Weekly plans</td><td>Open the plan → <span class="btn red">Approve</span>, <span class="btn">Approve with comments</span> or <span class="btn">Return for changes</span> (by Monday 09:00). Tender visits are highlighted.</td></tr>
+      <tr><td>Release mode (every new inquiry)</td><td>Approve the proposed mode, or return it. The Design Manager cannot release a design until you confirm it.</td></tr>
+      <tr><td>Duplicate customer visit</td><td>On the plan use <span class="btn">Duplicate…</span>: approve as joint visit, reassign the account, or reject the visit.</td></tr>
+      <tr><td>Debtor check</td><td>Approve to let the inquiry proceed; reject to keep it on hold (ask for a collection plan).</td></tr>
+      <tr><td>Mixed duty offers</td><td>First approval (GM / DGM gives the final one).</td></tr>
+      <tr><td>Duty status change, release mode change, early design release (2nd step)</td><td>Approve or return with a reason.</td></tr>
+      <tr><td>Sample requests / new return dates</td><td>Open the sample → <span class="btn red">Approve</span>, <span class="btn">Return with comment</span> or <span class="btn">Reject</span>.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>4.2 Coaching and control</h2>
+  <ul>
+    <li><b>Plan evaluation:</b> on an approved plan see plan-vs-actual (completion %, objective match %, GPS-verified %, missed reasons) and tap <span class="btn">Rate the week</span>.</li>
+    <li><b>Visit review:</b> <span class="path">Visits → To review</span> → open a visit → <span class="btn">Mark reviewed / add coaching comment</span>. Visits far from the site show <b>GPS review</b>.</li>
+    <li><b>Projects:</b> create projects and assign a sales person (they are notified and get a first-visit action), <span class="btn">Reassign sales person</span>, override <span class="btn">Win probability</span> with a comment, and <span class="btn">Merge a duplicate into this</span>.</li>
+    <li><b>Customers:</b> change the account owner of an organization or a unit (reason required); the client view shows projects by status and every pending design / estimation with overdue items flagged.</li>
+    <li><b>Transfer accounts</b> when a sales person leaves: <span class="path">Team &amp; lists → Users → Transfer accounts</span>. Customers, units, open projects, inquiries, plan lines and debts move in one step; history stays with the original person.</li>
+    <li><b>Competitors:</b> add new competitor names under <span class="path">Team &amp; lists → Competitors</span>.</li>
+    <li><b>Scorecards:</b> choose a sales person and month → <span class="btn">Targets</span> (sent to GM / DGM) and <span class="btn">Add review comment</span>.</li>
+  </ul>
+
+  <h2>4.3 Sales Management dashboard</h2>
+  <p>Delay control, customer deadlines at risk, pipeline by project type (weighted, dormant excluded), inquiry funnel, SLA performance, sales activity per person, top overdue items and the debtors summary. Tap any number to open the records behind it. You also receive delay alerts for every sales inquiry, dormant-project and late-plan alerts, and debt crossings at 60, 120 and 180 days.</p>
+</section>
+
+<!-- ================================================================ 5 GM -->
+<section class="chapter">
+  <div class="chapter-head"><div class="num">5</div><div><div class="title">GM / DGM – Lighting Solutions</div><div class="sub">Full visibility and final escalation level</div></div></div>
+  <p>Your menu: <b>Home · Approvals · Overall · Inquiries · Projects · Jobs · Visits · Customers · Debtors · Samples · Scorecards · Reports · Settings</b>.</p>
+
+  <h2>5.1 Overall Dashboard</h2>
+  <table>
+    <thead><tr><th>Panel</th><th>What it tells you</th></tr></thead>
+    <tbody>
+      <tr><td>Delay control</td><td>Overdue (red), at-risk (amber) and on-hold items by team, with days overdue and escalation level.</td></tr>
+      <tr><td>Customer deadlines at risk</td><td>Inquiries due to the customer in the next 7 days that are not yet released.</td></tr>
+      <tr><td>Pipeline and results</td><td>Active lighting value by project type (LKR equivalent and weighted), the inquiry funnel, win rate and lost reasons.</td></tr>
+      <tr><td>SLA performance</td><td>On-time % per team and the time per stage (average and 90th percentile) – the slowest stage is highlighted.</td></tr>
+      <tr><td>Sales activity / Workload</td><td>Visits, plans, GPS compliance per sales person; open and overdue jobs per designer and estimator.</td></tr>
+      <tr><td>Top 10 lists</td><td>Longest overdue, largest open inquiries, oldest on hold.</td></tr>
+      <tr><td>Debtors</td><td>Outstanding by ageing band (LKR and USD), legal cases, non-moving debts, last upload date.</td></tr>
+    </tbody>
+  </table>
+  <p>Set the <b>From / To</b> dates at the top. Tap any tile to see the records.</p>
+
+  <h2>5.2 Approvals that reach you</h2>
+  <ul>
+    <li><b>Quotation release</b> above the value limit or below the margin floor (set in Settings).</li>
+    <li><b>Mixed Duty Free / Duty Paid offers</b> on one project (after SM Projects).</li>
+    <li><b>KPI targets</b> – saving targets as GM approves them.</li>
+    <li>You can decide any approval step when needed.</li>
+  </ul>
+
+  <h2>5.3 Escalations to you</h2>
+  <p>You are notified at <b>Level 3</b> (2 working days overdue, critical), when a customer deadline is within 2 days and nothing is released (critical), when a <b>customer deadline is missed</b>, when a debt crosses 180 days, and 2 days before every legal hearing.</p>
+
+  <h2>5.4 Reports and settings</h2>
+  <p>Only GM / DGM can run the <b>Short / medium / long term project lists</b>. You can run every report for the whole division. Under <span class="path">Settings</span> you can change SLA targets (in working hours) and settings such as approval thresholds, dormant days and GPS radius.</p>
+</section>
+
+<!-- ================================================================ 6 DESIGN MANAGER -->
+<section class="chapter">
+  <div class="chapter-head"><div class="num">6</div><div><div class="title">Design Manager</div><div class="sub">Accepts design inquiries, assigns designers, reviews and releases designs</div></div></div>
+  <p>Your menu: <b>Design Board · Approvals · Inquiries · Jobs · Reports</b>.</p>
+
+  <h2>6.1 Design Board</h2>
+  <p>Summary tiles (open, due this week, overdue, in review), <b>workload by designer</b> (open jobs, overdue, hours logged) and columns: <i>To accept / assign · Assigned · In progress · On hold · In review · Approved / released</i>.</p>
+
+  <h2>6.2 Accept and assign (4 working hours each)</h2>
+  <ol class="steps">
+    <li>Open an inquiry in <i>To accept / assign</i>. Check the scope and documents, then <span class="btn red">Accept</span>, <span class="btn">Return for information</span> (clock pauses, sales notified) or <span class="btn">Reject</span>.</li>
+    <li>Tap <span class="btn red">Assign designer</span>: task (<b>Lighting</b>, or <b>Electrical</b> – Lighting Engineer only), assignee, job size (small 3 wd, medium 5 wd, large 10 wd) and the due date. For <b>Lighting + Electrical</b> scope assign two tasks.</li>
+    <li>If your due date is later than the sales-requested date, choose a reason – sales and SM Projects are notified.</li>
+  </ol>
+
+  <h2>6.3 Review and release</h2>
+  <ol class="steps">
+    <li>When a designer submits, the job moves to <i>In review</i> (1 working day). Open it: <span class="btn red">Approve design</span> or <span class="btn">Return with comments</span> (counted as a review cycle).</li>
+    <li>When every task is approved the inquiry shows <b>Design approved</b>. On the inquiry tap <span class="btn red">Release design to Estimation</span> (modes 2 and 3) or <span class="btn red">Release design to sales</span> (mode 1). The release button is disabled until SM Projects confirms the release mode.</li>
+    <li>If the brands do not match the client's stated level or origin you must give a justification.</li>
+  </ol>
+
+  <h2>6.4 Other actions on a design job</h2>
+  <ul>
+    <li><span class="btn">Change due date</span> (versioned with reason – also used to accept a designer's date-change request), <span class="btn">Reassign</span> (clock continues), <span class="btn">Put on hold</span> / <span class="btn">Resume</span>.</li>
+    <li><b>Approvals tab:</b> first step of <b>early design release</b> requests and <b>client expectation changes</b>.</li>
+    <li><b>Clarifications</b> from Estimation unanswered for 1 working day are flagged to you.</li>
+    <li><span class="path">Reports → Design team performance</span>: jobs completed, on-time %, turnaround, review cycles, hours.</li>
+  </ul>
+</section>
+
+<!-- ================================================================ 7 DESIGNERS -->
+<section class="chapter">
+  <div class="chapter-head"><div class="num">7</div><div><div class="title">Lighting Designer and Lighting Engineer</div><div class="sub">Concepts, layouts, calculations, controls and electrical design</div></div></div>
+  <p>Your menu: <b>My Jobs · All my jobs · Reports</b>. You see only the jobs assigned to you.</p>
+
+  <h2>7.1 Working a design job</h2>
+  <ol class="steps">
+    <li>You get a push "Design job assigned". Open the job and, within 4 working hours, tap <span class="btn red">Confirm due date</span> – or <span class="btn">Request another date</span> with a reason.</li>
+    <li>Read <i>Scope from sales</i> and open the attached drawings.</li>
+    <li>As you work, enter the progress %, hours for today and tick milestones, then tap <span class="btn red">Save progress</span>.</li>
+    <li>Upload drafts under <i>Design files</i> (<span class="btn">+ Draft</span>) and the final set as <span class="btn">+ Design pack</span>: layouts, calculation reports (DIALux / Relux), luminaire schedule, controls; for electrical: single-line diagram, DB and cable schedules, load and voltage-drop report, electrical BOQ.</li>
+    <li>Enter the <b>Brands specified</b> per product group and tap <span class="btn">Save brands</span>.</li>
+    <li>Tap <span class="btn red">Submit for review</span>. If returned, the comments appear at the top – update and submit again.</li>
+  </ol>
+  <div class="box warn"><b class="label">Waiting for the client?</b>Tap <span class="btn">Put on hold</span>, choose the reason and who you are waiting on. The clock pauses (grey). Tap <span class="btn">Resume</span> when the information arrives.</div>
+  <h2>7.2 Clarifications</h2>
+  <p>Questions from the estimator appear under <i>Clarifications from Estimation</i>. Tap <span class="btn">Answer</span> within 1 working day. Upload revised files as new versions – the estimator is notified.</p>
+  <h2>7.3 If you are late</h2>
+  <p>On the inquiry page, the red stage timer you own has a <span class="btn">Delay reason</span> button. Enter the reason and a revised date – sales and SM Projects are informed. The item stays red on dashboards until it is completed.</p>
+</section>
+
+<!-- ================================================================ 8 SM ESTIMATION -->
+<section class="chapter">
+  <div class="chapter-head"><div class="num">8</div><div><div class="title">SM Estimation</div><div class="sub">Senior Manager – Estimation</div></div></div>
+  <p>Your menu: <b>Estimation Board · Approvals · Inquiries · Jobs · Customers · Reports</b>.</p>
+
+  <h2>8.1 Estimation Board</h2>
+  <p>Tabs: <b>Queue</b> (from Design and direct route B) · <b>In progress</b> · <b>Approval</b> · <b>Released</b>, plus workload per estimator and supplier price waits.</p>
+
+  <h2>8.2 Accept and assign</h2>
+  <ol class="steps">
+    <li><b>Route B inquiries:</b> open the inquiry → <span class="btn red">Accept</span>, <span class="btn">Return for information</span>, <span class="btn">Reject</span>, or <span class="btn">Send to Design (Route A)</span> if a BOQ or specification is missing.</li>
+    <li><b>Jobs released from Design:</b> open the job → <span class="btn red">Accept</span>.</li>
+    <li>Tap <span class="btn red">Assign estimator</span>. The default is pre-selected: Assistant Manager – Estimation for Infrastructure / Industrial, Estimation Executive for Hospitality, Retail, Institutions and Commercial. Choosing the other needs a reason. Set the value band and due date – it must leave at least 1 working day before the customer deadline.</li>
+  </ol>
+
+  <h2>8.3 Approve quotations (1 working day)</h2>
+  <p>Jobs in <i>Approval</i>: check the draft quotation PDF and restricted costing sheet, the value, cost and margin, then <span class="btn red">Approve quotation</span> or <span class="btn">Return</span>. Above the value limit or below the margin floor it goes automatically to GM / DGM.</p>
+
+  <h2>8.4 Also yours</h2>
+  <ul>
+    <li><span class="btn">Change due date</span>, <span class="btn">Reassign / re-plan</span>, <span class="btn">Put on hold</span> / <span class="btn">Resume</span>.</li>
+    <li><b>Approvals tab:</b> estimator hold requests (4 working hours), client expectation changes (with the Design Manager).</li>
+    <li>You are notified when a design is sent to Estimation, when the client changes the duty status, and on Level 2 escalations for your team.</li>
+    <li><span class="path">Reports → Estimation team performance, Quotation register, Tender and competitor report</span>.</li>
+  </ul>
+</section>
+
+<!-- ================================================================ 9 ESTIMATORS -->
+<section class="chapter">
+  <div class="chapter-head"><div class="num">9</div><div><div class="title">Assistant Manager – Estimation and Estimation Executive</div><div class="sub">BOQ, costing, technical and commercial proposals</div></div></div>
+  <p>Your menu: <b>My Estimates · All my jobs · Reports</b>. You see only the jobs assigned to you.</p>
+
+  <ol class="steps">
+    <li>You get a push "Estimate assigned". Open it and tap <span class="btn red">Confirm due date</span> (or <span class="btn">Request another date</span>) within 4 working hours. The header shows <b>Duty Free · USD</b> or <b>Duty Paid · LKR</b> – price in that currency. You cannot change it.</li>
+    <li>Open the inputs: the request documents and the <b>approved design pack</b>. Ask the designer with <span class="btn">+ Ask</span> under <i>Clarifications to Design</i> – never by email.</li>
+    <li>Enter the <b>quoted value</b>, <b>cost</b> (restricted – sales never see it), margin %, validity (default 30 days), alternatives, and the <b>brands offered per product group</b>. Log supplier price requests with <span class="btn">+ Supplier price request</span>. Tap <span class="btn">Save estimate</span>.</li>
+    <li>Upload the <b>Draft quotation (PDF)</b> and <b>Costing sheet (Excel)</b>, then tap <span class="btn red">Submit for approval</span>. Files are renamed automatically, e.g. <span class="kbd">QTN-2026-00125-R0.pdf</span>.</li>
+    <li>When approved, upload the <b>Final quotation PDF</b>, <b>Compliance sheet</b> and <b>Technical data sheets</b>, then tap <span class="btn red">Release to sales</span>. If brands do not match the client's expectation, give a justification.</li>
+  </ol>
+  <div class="box warn"><b class="label">Waiting on a supplier?</b>Waiting for prices does <b>not</b> pause the clock. If you really need a hold tap <span class="btn">Request hold</span> – SM Estimation must approve it.</div>
+  <p>Client revisions create a new quotation revision (R1, R2 …) with its own timeline; earlier versions are kept.</p>
+</section>
+
+<!-- ================================================================ 10 OPERATIONS -->
+<section class="chapter">
+  <div class="chapter-head"><div class="num">10</div><div><div class="title">Operations Executive</div><div class="sub">Weekly debtors upload, legal status and samples</div></div></div>
+  <p>Your menu: <b>Home · Debtors Upload · All Debtors · Samples · Approvals · Reports</b>. You do not see visits, pipeline, inquiries, design, estimation or scorecards.</p>
+
+  <h2>10.1 Saturday debtors upload</h2>
+  <ol class="steps">
+    <li><span class="path">Debtors Upload → Download template</span> (first time only). Columns: Project name, Client, Invoice number, Invoice date, Outstanding amount, Currency (LKR / USD), Outstanding days, Sales person (optional).</li>
+    <li>Set <b>As at</b> and tap <span class="btn red">Choose Excel file</span>. The system checks every row and shows a <b>preview</b> with totals and errors.</li>
+    <li>For rows marked <i>Project not matched</i> tap <span class="btn">Map</span> and pick the right project. Fix other errors in Excel and upload again.</li>
+    <li>When there are no errors tap <span class="btn red">Confirm upload</span>. New invoices are added, amounts and days updated, and invoices no longer in the file are cleared.</li>
+  </ol>
+  <div class="box warn"><b class="label">Deadline</b>You are reminded on Saturday at 16:00. If nothing is uploaded by Saturday 22:00, SM Projects and GM / DGM are alerted on Monday 09:00.</div>
+
+  <h2>10.2 Legal cases (only you can set Legal)</h2>
+  <p>Open a debt → <span class="btn">Place under Legal</span>: a short description (max 180 characters – case, court, lawyer, stage) and the <b>next hearing date</b>. Two days before each hearing GM / DGM, SM Projects and you receive a critical push. The day after a hearing, update the next hearing date or tap <span class="btn">Close legal case</span> with the outcome.</p>
+  <p><b>Collection mismatches</b> (marked collected by sales but still in your file) are listed under <span class="path">All Debtors → Collection mismatch</span>.</p>
+
+  <h2>10.3 Samples queue</h2>
+  <ol class="steps">
+    <li><b>Availability check</b> (1 working day): open the request → <span class="btn red">Record availability</span> – Available, Partly available or Not available (with the reason or expected date).</li>
+    <li>After SM Projects approves, arrange dispatch. Attach a photo or signed delivery note (<span class="btn">+ Delivery note / handover photo</span>), then <span class="btn red">Record handover</span>.</li>
+    <li>When a returnable sample comes back: <span class="btn red">Record return</span> with its condition (Good, Damaged, Incomplete). Damaged or lost samples are flagged to SM Projects.</li>
+  </ol>
+</section>
+
+<!-- ================================================================ 11 ADMIN -->
+<section class="chapter">
+  <div class="chapter-head"><div class="num">11</div><div><div class="title">System Administrator</div><div class="sub">Users, master lists, SLA rules and settings</div></div></div>
+  <p>Your menu: <b>Home · Administration</b>. You do not see commercial values.</p>
+
+  <h2>11.1 Users</h2>
+  <ol class="steps">
+    <li><span class="path">Administration → Users → + Invite user</span>.</li>
+    <li>Enter the work email, a <b>temporary password</b> (8+ characters), full name, <b>role</b>, reporting manager and phone. Tap Save – "User created".</li>
+    <li>Give the person the web address, their email and the temporary password. They change it under Profile.</li>
+  </ol>
+  <p>Create people top-down (GM / DGM, then managers, then their teams) so you can choose <i>Reports to</i>. Each person needs a different email. Use <span class="btn">Edit</span> for name, role, manager, project types and phone; <span class="btn">Deactivate</span> when someone leaves (logins are never deleted – SM Projects first transfers their accounts); <span class="btn">Remove picture</span> for an inappropriate profile photo.</p>
+
+  <h2>11.2 Reference data</h2>
+  <table>
+    <thead><tr><th>Tab</th><th>Keep up to date</th></tr></thead>
+    <tbody>
+      <tr><td>Holidays &amp; rates</td><td>Every Sri Lanka public, bank and mercantile holiday (including Poya days) for this year and next; the <b>USD → LKR rate</b> at the start of each month.</td></tr>
+      <tr><td>Brands</td><td>Brand, manufacturer, country, origin group (European / Chinese / Other) and level (High / Medium / Low). Required before designs and quotations can be released.</td></tr>
+      <tr><td>Master lists</td><td>Visit categories, objectives (Appendix A), outcomes, stages, missed / lost / delay / hold reasons, tender activities, sample purposes. Deactivate instead of deleting.</td></tr>
+      <tr><td>SLA rules</td><td>Target times in working hours (1 working day = 9 hours). Changes are approved by GM / DGM.</td></tr>
+      <tr><td>Settings</td><td>Approval thresholds, plan deadline, GPS radius, dormant days, term limits, report logo (<span class="btn">+ Report logo URL</span>).</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ================================================================ 12 SLA -->
+<section class="chapter">
+  <div class="chapter-head"><div class="num">12</div><div><div class="title">Deadlines, colours, escalations and notifications</div><div class="sub">For everyone</div></div></div>
+
+  <h2>12.1 Standard turnaround times (working time)</h2>
+  <table>
+    <thead><tr><th>Stage</th><th>Target</th></tr></thead>
+    <tbody>
+      <tr><td>Visit report</td><td>Same day, by 20:00</td></tr>
+      <tr><td>Inquiry acceptance · Assignment · Assignee acknowledgement</td><td>4 working hours each</td></tr>
+      <tr><td>Design – small / medium / large or tender</td><td>3 / 5 / 10 working days (or manager-set)</td></tr>
+      <tr><td>Design review by the Design Manager</td><td>1 working day</td></tr>
+      <tr><td>Estimation – small (&lt; LKR 5 M) / medium (5–25 M) / large (&gt; 25 M)</td><td>2 / 4 / 7 working days (or manager-set)</td></tr>
+      <tr><td>Quotation approval · Sales submission to client · Approvals</td><td>1 working day each</td></tr>
+      <tr><td>Quotation follow-up</td><td>Every 7 days until a result</td></tr>
+    </tbody>
+  </table>
+  <p class="small muted">A due date set by a manager always overrides the standard; the standard is used to warn when a date is unrealistic.</p>
+
+  <h2>12.2 Escalation ladder (applies to every stage)</h2>
+  <table>
+    <thead><tr><th>When</th><th>Who is notified</th></tr></thead>
+    <tbody>
+      <tr><td>Work assigned</td><td>Assignee</td></tr>
+      <tr><td>75% of the time used</td><td>Assignee</td></tr>
+      <tr><td>1 working day before due</td><td>Assignee + their manager</td></tr>
+      <tr><td>Due time passed – Level 1</td><td>+ requesting sales person + SM Projects</td></tr>
+      <tr><td>Overdue 1 working day – Level 2</td><td>+ Senior Manager of the team (SM Projects or SM Estimation)</td></tr>
+      <tr><td>Overdue 2 working days – Level 3 (critical)</td><td>+ GM / DGM</td></tr>
+      <tr><td>Customer deadline within 2 days, not released (critical)</td><td>Sales person, managers in the chain, GM / DGM</td></tr>
+    </tbody>
+  </table>
+  <p>Overdue notices repeat every working morning at 09:00 until the item moves. The owner enters a <b>delay reason and revised date</b> (the <span class="btn">Delay reason</span> button on the stage timer).</p>
+
+  <h2>12.3 Notifications</h2>
+  <ul>
+    <li><b>Internal only:</b> push notifications on the phone app, and the bell list and browser notifications on the web. Nothing is ever sent to clients or consultants, and no email or WhatsApp is used.</li>
+    <li><b>Quiet hours:</b> non-critical notices are held between 20:00 and 07:00 and on Sundays and public holidays, then delivered together at 07:00. Critical items arrive immediately.</li>
+    <li><b>Important unopened items</b> (overdue, approvals, critical) are re-sent once after 2 working hours and stay pinned at the top of your list until opened.</li>
+    <li><b>Daily digest</b> at 08:30: what is due today and what is overdue for you.</li>
+  </ul>
+</section>
+
+<!-- ================================================================ 13 FAQ -->
+<section class="chapter">
+  <div class="chapter-head"><div class="num">13</div><div><div class="title">Quick answers</div><div class="sub">Frequently asked questions</div></div></div>
+  <table>
+    <thead><tr><th style="width:38%">Question</th><th>Answer</th></tr></thead>
+    <tbody>
+      <tr><td>I can't see a menu, report or record a colleague can see.</td><td>Each role sees only its own part (chapter 2). If your role is wrong, ask the System Administrator.</td></tr>
+      <tr><td>"Your account has no profile yet."</td><td>Your login exists but no role is assigned – ask the System Administrator.</td></tr>
+      <tr><td>A button is grey or missing.</td><td>The record is not at the right stage, or it belongs to someone else. The timeline on the inquiry shows where it is.</td></tr>
+      <tr><td>Why can't I edit my submitted inquiry?</td><td>After submission, changes go through <span class="btn">Request a change</span> or <span class="btn">Customer extended the deadline</span> so everything is logged.</td></tr>
+      <tr><td>Why was my inquiry put on hold straight away?</td><td>The client has debts over 90 days or under legal action. SM Projects decides whether it proceeds.</td></tr>
+      <tr><td>"Win probability … is outside the band – give a reason".</td><td>Each stage has an allowed range (e.g. Brand specified 40–65%). Enter a reason to go outside it.</td></tr>
+      <tr><td>My visit says "waiting to sync".</td><td>It was saved without signal. It syncs automatically when you are online; you can also use <span class="path">Profile → Sync now</span>.</td></tr>
+      <tr><td>I cannot close a tender visit.</td><td>Bid Submission and Tender Opening visits need the Tender result form saved first.</td></tr>
+      <tr><td>I cannot submit or release a quotation.</td><td>Check the required files: draft PDF + costing sheet to submit; final PDF + compliance sheet + technical data sheets and brands to release.</td></tr>
+      <tr><td>Where do I download a report as PDF or Excel?</td><td><span class="path">Reports → choose the report → Run → Export PDF / Export Excel</span>.</td></tr>
+      <tr><td>Who do I contact for help?</td><td>Your manager for work questions; the System Administrator for logins, roles, lists and settings.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="box tip" style="margin-top:8mm"><b class="label">Remember</b>
+    One record from visit to quotation · one owner and one due date at every stage · give reasons for every exception · green → amber → red → escalation · check the bell every day.
+  </div>
+</section>
+
+</body>
+</html>

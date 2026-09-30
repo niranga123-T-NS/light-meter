@@ -1,0 +1,93 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Lighting Designer / Engineer</title><style>
+  @page { size: A4; margin: 18mm 16mm 18mm 16mm; }
+  :root {
+    --brand: #C8102E; --ink: #111827; --text: #1f2937; --muted: #6b7280; --line: #e5e7eb; --soft: #f6f7f9;
+    --green: #1E8E3E; --amber: #E8A317; --red: #C62828; --grey: #8A8F98; --blue: #1D4ED8;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: "Liberation Sans", Arial, Helvetica, sans-serif; font-size: 10.2pt; line-height: 1.45; color: var(--text); margin: 0; }
+  h1 { font-size: 21pt; color: var(--ink); margin: 0 0 4mm; }
+  h2 { font-size: 13.5pt; color: var(--ink); margin: 7mm 0 2.5mm; border-bottom: 1.5px solid var(--line); padding-bottom: 1.5mm; }
+  h3 { font-size: 11pt; color: var(--ink); margin: 5mm 0 1.5mm; }
+  p { margin: 0 0 2.5mm; }
+  ul, ol { margin: 0 0 3mm; padding-left: 6mm; }
+  li { margin-bottom: 1.2mm; }
+  .chapter { page-break-before: always; }
+  .chapter-head { display: flex; align-items: center; gap: 5mm; border-left: 6px solid var(--brand); padding: 3mm 0 3mm 5mm; margin-bottom: 5mm; background: var(--soft); }
+  .chapter-head .num { font-size: 26pt; font-weight: 700; color: var(--brand); }
+  .chapter-head .title { font-size: 17pt; font-weight: 700; color: var(--ink); }
+  .chapter-head .sub { color: var(--muted); font-size: 9.5pt; }
+  .btn { display: inline-block; font-weight: 700; color: var(--ink); background: #fff; border: 1px solid #cfd3da; border-radius: 4px; padding: 0 1.6mm; font-size: 9pt; white-space: nowrap; }
+  .btn.red { background: var(--brand); color: #fff; border-color: var(--brand); }
+  .path { font-weight: 700; color: var(--blue); }
+  .box { border: 1px solid var(--line); border-radius: 6px; padding: 3mm 4mm; margin: 3mm 0; background: #fff; page-break-inside: avoid; }
+  .tip { border-left: 4px solid var(--blue); background: #eef3ff; }
+  .warn { border-left: 4px solid var(--amber); background: #fff8e8; }
+  .rule { border-left: 4px solid var(--brand); background: #fdf0f2; }
+  .box b.label { display: block; font-size: 8.5pt; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin-bottom: 1mm; }
+  table { width: 100%; border-collapse: collapse; margin: 2mm 0 4mm; font-size: 9.3pt; page-break-inside: auto; }
+  thead { display: table-header-group; }
+  tr { page-break-inside: avoid; }
+  th { background: var(--ink); color: #fff; text-align: left; padding: 1.6mm 2mm; font-weight: 700; }
+  td { border-bottom: 1px solid var(--line); padding: 1.6mm 2mm; vertical-align: top; }
+  tr:nth-child(even) td { background: #fafafa; }
+  .steps { counter-reset: s; list-style: none; padding-left: 0; }
+  .steps > li { counter-increment: s; position: relative; padding-left: 9mm; margin-bottom: 2mm; }
+  .steps > li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 6mm; height: 6mm; border-radius: 50%; background: var(--brand); color: #fff; font-weight: 700; font-size: 8.5pt; text-align: center; line-height: 6mm; }
+  .dot { display: inline-block; width: 3mm; height: 3mm; border-radius: 50%; vertical-align: -0.3mm; margin-right: 1mm; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+  .flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 1.5mm; margin: 3mm 0 4mm; }
+  .flow .node { flex: 1 1 0; min-width: 24mm; border: 1.5px solid var(--ink); border-radius: 5px; padding: 2mm; font-size: 8.6pt; text-align: center; background: #fff; }
+  .flow .node b { display: block; font-size: 9pt; color: var(--brand); margin-bottom: .6mm; }
+  .flow .arrow { align-self: center; font-weight: 700; color: var(--muted); }
+  .toc td { border: none; padding: 1mm 0; }
+  .toc td.n { width: 10mm; color: var(--brand); font-weight: 700; }
+  .cover { height: 255mm; display: flex; flex-direction: column; justify-content: space-between; }
+  .cover .top { border-bottom: 3px solid var(--brand); padding-bottom: 6mm; }
+  .logo { font-size: 44pt; font-weight: 800; color: var(--brand); letter-spacing: 3px; }
+  .cover h1 { font-size: 26pt; margin-top: 10mm; }
+  .cover .lead { font-size: 12.5pt; color: var(--muted); }
+  .linkbox { font-size: 14pt; font-weight: 700; color: var(--ink); border: 2px solid var(--brand); border-radius: 8px; padding: 4mm 6mm; display: inline-block; margin: 6mm 0; }
+  .muted { color: var(--muted); }
+  .small { font-size: 8.8pt; }
+  .kbd { font-family: "Liberation Mono", monospace; font-size: 9pt; background: var(--soft); border: 1px solid var(--line); border-radius: 3px; padding: 0 1mm; }
+  .hdr { border-bottom: 3px solid var(--brand); padding-bottom: 3mm; margin-bottom: 4mm; display:flex; justify-content:space-between; align-items:flex-end; }
+  .hdr .logo { font-size: 26pt; }
+  h2 .n { display:inline-block; background: var(--brand); color:#fff; border-radius:4px; padding:0 2mm; margin-right:2mm; font-size:11pt; }
+  section { page-break-inside: avoid; }
+  body { font-size: 9.8pt; }
+  h2 { margin: 5mm 0 2mm; }
+  .steps > li { margin-bottom: 1.4mm; }
+</style>
+</head><body>
+<div class="hdr">
+  <div><div class="logo">DIMO</div><div class="muted">Lighting Operations System</div></div>
+  <div style="text-align:right"><div style="font-size:17pt;font-weight:700;color:var(--ink)">Lighting Designer / Engineer – Step by Step</div>
+  <div class="muted">Concepts, layouts, calculations, controls and electrical design – you see only the jobs assigned to you · https://dimo-lighting-ops.vercel.app</div></div>
+</div>
+<div class="box tip"><b class="label">Your flow</b>Job assigned → Confirm due date → Work and log progress → Upload design files → Save brands → Submit for review → Answer clarifications.
+Button names are shown like <span class="btn">this</span>; menu paths like <span class="path">My Jobs → open a job</span>.</div>
+<div class="box rule"><b class="label">Deadlines to watch</b>Confirm or request another due date within <b>4 working hours</b> · Log progress daily · Answer Estimation clarifications within <b>1 working day</b>.</div>
+<section>
+<h2><span class="n">1</span>A new job arrives</h2><ol class="steps"><li>You get a notification <b>"Design job assigned"</b>. Your home screen <b>My Jobs</b> lists your jobs with their colour status.</li><li>Open the job and, within 4 working hours, tap <span class="btn red">Confirm due date</span> – or <span class="btn">Request another date</span> with a reason (the Design Manager decides).</li></ol>
+</section>
+<section>
+<h2><span class="n">2</span>Understand the request</h2><ol class="steps"><li>Read <b>Scope from sales</b> and the <b>Client expectation</b> (solution level, preferred brands, origin, budget).</li><li>Open the attached drawings and documents. Tap <span class="btn">Open inquiry</span> to see the full request.</li></ol>
+</section>
+<section>
+<h2><span class="n">3</span>Work and log progress (daily)</h2><p>In <b>Work and log</b>:</p><ol class="steps"><li>Enter the <b>Progress</b> %, the <b>Hours to log today</b>, and tick the items in the <b>Deliverables checklist</b>.</li><li>Tap <span class="btn red">Save progress</span>.</li></ol>
+</section>
+<section>
+<h2><span class="n">4</span>Upload the design files</h2><p>Under <b>Design files</b>:</p><ol class="steps"><li>Upload drafts as <b>+ Draft</b> while you work.</li><li><b>Lighting</b> final set as <b>+ Design pack</b>: layouts, calculation reports (DIALux / Relux), luminaire schedule, controls.</li><li><b>Electrical</b> final set: single-line diagram, DB and cable schedules, load and voltage-drop report, electrical BOQ.</li></ol>
+</section>
+<section>
+<h2><span class="n">5</span>Brands and submit</h2><ol class="steps"><li>Under <b>Brands specified in the design</b>, enter the brand per product group and tap <span class="btn">Save brands</span>.</li><li>Tap <span class="btn red">Submit for review</span>. The Design Manager reviews within 1 working day.</li><li>If returned, the comments appear at the top – update the files and submit again.</li></ol>
+</section>
+<section>
+<h2><span class="n">6</span>Waiting for the client?</h2><ol class="steps"><li>Tap <span class="btn">Put on hold</span>, choose the reason and who you are waiting on. The clock pauses (grey).</li><li>Tap <span class="btn">Resume</span> when the information arrives.</li></ol>
+</section>
+<section>
+<h2><span class="n">+</span>Also yours</h2><ul><li><b>Clarifications from Estimation</b>: questions from the estimator appear on the job. Tap <span class="btn">Answer</span> within 1 working day. Upload revised files as new versions – the estimator is notified.</li><li><b>Running late?</b> On the inquiry page, your red stage timer has a <span class="btn">Delay reason</span> button. Enter the reason and a revised date – sales and SM Projects are informed.</li><li><b>Reports</b>: your own job history, on-time % and hours.</li></ul>
+</section>
+
+</body></html>
