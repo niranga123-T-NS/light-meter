@@ -6,7 +6,7 @@ import { useMe } from '@/lib/auth';
 import { fmtDate } from '@/lib/format';
 import { clearPeopleCache, loadMasters, useLoad } from '@/lib/hooks';
 import { PROJECT_TYPES, ROLE_LABELS, ROLE_SHORT } from '@/lib/roles';
-import { rpc, supabase } from '@/lib/supabase';
+import { callFunction, rpc, supabase } from '@/lib/supabase';
 import type { Profile, Role } from '@/lib/types';
 
 type Tab = 'users' | 'masters' | 'sla' | 'settings' | 'calendar' | 'brands' | 'competitors';
@@ -73,11 +73,7 @@ function Users() {
     });
     if (!r) return;
     await dialog.run(async () => {
-      const { data: res, error: e } = await supabase.functions.invoke('admin-users', {
-        body: { action: 'invite', ...r, email: r.email.trim(), password: r.password || null, manager_id: r.manager_id || null },
-      });
-      if (e) throw new Error(e.message);
-      if (res?.error) throw new Error(res.error);
+      await callFunction('admin-users', { action: 'invite', ...r, email: r.email.trim(), password: r.password || null, manager_id: r.manager_id || null });
       clearPeopleCache();
       await reload();
     }, r.password ? 'User created – share the email and temporary password' : 'Invitation sent');
@@ -153,8 +149,7 @@ function Users() {
                     title={p.active ? 'Deactivate' : 'Activate'}
                     onPress={() =>
                       dialog.run(async () => {
-                        const { data: res, error: e } = await supabase.functions.invoke('admin-users', { body: { action: p.active ? 'deactivate' : 'activate', user_id: p.id } });
-                        if (e || res?.error) throw new Error(e?.message ?? res.error);
+                        await callFunction('admin-users', { action: p.active ? 'deactivate' : 'activate', user_id: p.id });
                         await reload();
                       })
                     }

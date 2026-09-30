@@ -22,8 +22,8 @@ Deno.serve(async (req) => {
 
   // Who is calling?
   const jwt = (req.headers.get('Authorization') ?? '').replace('Bearer ', '');
-  const { data: caller } = await admin.auth.getUser(jwt);
-  if (!caller.user) return json({ error: 'Not signed in' }, 401);
+  const { data: caller, error: authError } = await admin.auth.getUser(jwt);
+  if (!caller?.user) return json({ error: `Not signed in${authError ? `: ${authError.message}` : ''}` }, 401);
   const { data: me } = await admin.from('profiles').select('role, active').eq('id', caller.user.id).single();
   if (!me || !me.active || me.role !== 'sys_admin') return json({ error: 'Only the System Administrator can manage users' }, 403);
 

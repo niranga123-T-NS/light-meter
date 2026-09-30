@@ -20,5 +20,7 @@ file_size_limit = "50MiB"
 [functions.push-dispatch]
 verify_jwt = false
 
+# The function verifies the caller itself (new projects use asymmetric JWT signing keys,
+# which the gateway's legacy verify_jwt check rejects)
 [functions.admin-users]
-verify_jwt = true
+verify_jwt = false
