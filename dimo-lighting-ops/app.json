@@ -1,0 +1,61 @@
+{
+  "expo": {
+    "name": "DIMO Lighting Ops",
+    "slug": "dimo-lighting-ops",
+    "scheme": "dimolighting",
+    "version": "0.1.0",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "lk.dimo.lightingops",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "lk.dimo.lightingops",
+      "adaptiveIcon": {
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "single",
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      "expo-sharing",
+      "expo-image",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "DIMO Lighting Ops records your location only when you check in or out of a customer visit."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Attach site photos, business cards and drawings to visits and set your profile picture.",
+          "cameraPermission": "Take site photos, business cards and delivery notes for your records."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#C8102E"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
+}
