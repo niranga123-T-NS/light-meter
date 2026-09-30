@@ -1,0 +1,93 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Design Manager</title><style>
+  @page { size: A4; margin: 18mm 16mm 18mm 16mm; }
+  :root {
+    --brand: #C8102E; --ink: #111827; --text: #1f2937; --muted: #6b7280; --line: #e5e7eb; --soft: #f6f7f9;
+    --green: #1E8E3E; --amber: #E8A317; --red: #C62828; --grey: #8A8F98; --blue: #1D4ED8;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: "Liberation Sans", Arial, Helvetica, sans-serif; font-size: 10.2pt; line-height: 1.45; color: var(--text); margin: 0; }
+  h1 { font-size: 21pt; color: var(--ink); margin: 0 0 4mm; }
+  h2 { font-size: 13.5pt; color: var(--ink); margin: 7mm 0 2.5mm; border-bottom: 1.5px solid var(--line); padding-bottom: 1.5mm; }
+  h3 { font-size: 11pt; color: var(--ink); margin: 5mm 0 1.5mm; }
+  p { margin: 0 0 2.5mm; }
+  ul, ol { margin: 0 0 3mm; padding-left: 6mm; }
+  li { margin-bottom: 1.2mm; }
+  .chapter { page-break-before: always; }
+  .chapter-head { display: flex; align-items: center; gap: 5mm; border-left: 6px solid var(--brand); padding: 3mm 0 3mm 5mm; margin-bottom: 5mm; background: var(--soft); }
+  .chapter-head .num { font-size: 26pt; font-weight: 700; color: var(--brand); }
+  .chapter-head .title { font-size: 17pt; font-weight: 700; color: var(--ink); }
+  .chapter-head .sub { color: var(--muted); font-size: 9.5pt; }
+  .btn { display: inline-block; font-weight: 700; color: var(--ink); background: #fff; border: 1px solid #cfd3da; border-radius: 4px; padding: 0 1.6mm; font-size: 9pt; white-space: nowrap; }
+  .btn.red { background: var(--brand); color: #fff; border-color: var(--brand); }
+  .path { font-weight: 700; color: var(--blue); }
+  .box { border: 1px solid var(--line); border-radius: 6px; padding: 3mm 4mm; margin: 3mm 0; background: #fff; page-break-inside: avoid; }
+  .tip { border-left: 4px solid var(--blue); background: #eef3ff; }
+  .warn { border-left: 4px solid var(--amber); background: #fff8e8; }
+  .rule { border-left: 4px solid var(--brand); background: #fdf0f2; }
+  .box b.label { display: block; font-size: 8.5pt; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin-bottom: 1mm; }
+  table { width: 100%; border-collapse: collapse; margin: 2mm 0 4mm; font-size: 9.3pt; page-break-inside: auto; }
+  thead { display: table-header-group; }
+  tr { page-break-inside: avoid; }
+  th { background: var(--ink); color: #fff; text-align: left; padding: 1.6mm 2mm; font-weight: 700; }
+  td { border-bottom: 1px solid var(--line); padding: 1.6mm 2mm; vertical-align: top; }
+  tr:nth-child(even) td { background: #fafafa; }
+  .steps { counter-reset: s; list-style: none; padding-left: 0; }
+  .steps > li { counter-increment: s; position: relative; padding-left: 9mm; margin-bottom: 2mm; }
+  .steps > li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 6mm; height: 6mm; border-radius: 50%; background: var(--brand); color: #fff; font-weight: 700; font-size: 8.5pt; text-align: center; line-height: 6mm; }
+  .dot { display: inline-block; width: 3mm; height: 3mm; border-radius: 50%; vertical-align: -0.3mm; margin-right: 1mm; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+  .flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 1.5mm; margin: 3mm 0 4mm; }
+  .flow .node { flex: 1 1 0; min-width: 24mm; border: 1.5px solid var(--ink); border-radius: 5px; padding: 2mm; font-size: 8.6pt; text-align: center; background: #fff; }
+  .flow .node b { display: block; font-size: 9pt; color: var(--brand); margin-bottom: .6mm; }
+  .flow .arrow { align-self: center; font-weight: 700; color: var(--muted); }
+  .toc td { border: none; padding: 1mm 0; }
+  .toc td.n { width: 10mm; color: var(--brand); font-weight: 700; }
+  .cover { height: 255mm; display: flex; flex-direction: column; justify-content: space-between; }
+  .cover .top { border-bottom: 3px solid var(--brand); padding-bottom: 6mm; }
+  .logo { font-size: 44pt; font-weight: 800; color: var(--brand); letter-spacing: 3px; }
+  .cover h1 { font-size: 26pt; margin-top: 10mm; }
+  .cover .lead { font-size: 12.5pt; color: var(--muted); }
+  .linkbox { font-size: 14pt; font-weight: 700; color: var(--ink); border: 2px solid var(--brand); border-radius: 8px; padding: 4mm 6mm; display: inline-block; margin: 6mm 0; }
+  .muted { color: var(--muted); }
+  .small { font-size: 8.8pt; }
+  .kbd { font-family: "Liberation Mono", monospace; font-size: 9pt; background: var(--soft); border: 1px solid var(--line); border-radius: 3px; padding: 0 1mm; }
+  .hdr { border-bottom: 3px solid var(--brand); padding-bottom: 3mm; margin-bottom: 4mm; display:flex; justify-content:space-between; align-items:flex-end; }
+  .hdr .logo { font-size: 26pt; }
+  h2 .n { display:inline-block; background: var(--brand); color:#fff; border-radius:4px; padding:0 2mm; margin-right:2mm; font-size:11pt; }
+  section { page-break-inside: avoid; }
+  body { font-size: 9.8pt; }
+  h2 { margin: 5mm 0 2mm; }
+  .steps > li { margin-bottom: 1.4mm; }
+</style>
+</head><body>
+<div class="hdr">
+  <div><div class="logo">DIMO</div><div class="muted">Lighting Operations System</div></div>
+  <div style="text-align:right"><div style="font-size:17pt;font-weight:700;color:var(--ink)">Design Manager – Step by Step</div>
+  <div class="muted">Accepts design inquiries (Route A and C), assigns designers, reviews and releases designs · https://dimo-lighting-ops.vercel.app</div></div>
+</div>
+<div class="box tip"><b class="label">Your flow</b>New inquiry (Route A or C) → Accept → Assign designer → Designer works → Review → Release design.
+Button names are shown like <span class="btn">this</span>; menu paths like <span class="path">Jobs → To accept / assign</span>.</div>
+<div class="box rule"><b class="label">Deadlines to watch</b>Accept / assign each new inquiry within <b>4 working hours</b> · Review a submitted design within <b>1 working day</b> · Answer Estimation clarifications within <b>1 working day</b>.</div>
+<section>
+<h2><span class="n">1</span>Start of the day – the Design Board</h2><ol class="steps"><li>Your home screen is the <b>Design Board</b>: tiles for open, due this week, overdue and in review, plus <b>workload by designer</b> (open jobs, overdue, hours logged).</li><li>Columns: <b>To accept / assign</b> · <b>Assigned</b> · <b>In progress</b> · <b>On hold</b> · <b>In review</b> · <b>Approved / released</b>. Red and amber cards need action first.</li><li>You are notified (app and email) as soon as a sales person submits a Route A or C inquiry.</li></ol>
+</section>
+<section>
+<h2><span class="n">2</span>Check and accept a new inquiry</h2><p>Open the inquiry from <b>To accept / assign</b>.</p><ol class="steps"><li>Check the <b>Scope</b>, <b>Design scope</b>, <b>Client solution expectation</b>, dates and the <b>Inquiry documents</b> (drawings, BOQ, RCPs, photos).</li><li>All good: tap <span class="btn red">Accept</span>.</li><li>Information missing: tap <span class="btn">Return for information</span> and say what is needed – the clock pauses and the sales person is notified.</li><li>Not a valid request: tap <span class="btn">Reject</span> with a reason.</li></ol>
+</section>
+<section>
+<h2><span class="n">3</span>Assign the designer</h2><p>On the accepted inquiry tap <span class="btn red">Assign designer</span>.</p><ol class="steps"><li><b>Task</b>: Lighting, or Electrical (Lighting Engineer only). For <i>Lighting + Electrical</i> scope, assign two tasks.</li><li><b>Assign to</b>: choose the designer – check the workload on the Design Board first.</li><li><b>Job size</b>: small (3 working days), medium (5) or large (10). The <b>Design due date</b> is suggested from this.</li><li>If your due date is later than the date sales asked for, choose a <b>Reason for later date</b> – sales and SM Projects are notified.</li><li>Tap <span class="btn red">Assign</span>. The designer is notified and the job moves to <b>Assigned</b>.</li></ol>
+</section>
+<section>
+<h2><span class="n">4</span>Follow the work</h2><ol class="steps"><li>The designer confirms the due date, logs hours and progress, and ticks the <b>Deliverables checklist</b>.</li><li>Date-change request from the designer: open the job → <span class="btn">Change due date</span> (reason is logged; each change is a new version).</li><li>Other actions on the job: <span class="btn">Reassign</span> (the clock continues), <span class="btn">Put on hold</span> / <span class="btn">Resume</span> (the clock pauses while on hold).</li></ol>
+</section>
+<section>
+<h2><span class="n">5</span>Review the design (within 1 working day)</h2><p>When the designer taps <b>Submit for review</b>, the job moves to <b>In review</b>.</p><ol class="steps"><li>Open the job: check the <b>Design files</b>, the <b>Deliverables checklist</b> and the <b>Brands specified in the design</b> against the client expectation.</li><li>Correct: tap <span class="btn red">Approve design</span>.</li><li>Changes needed: tap <span class="btn">Return with comments</span> – this counts as a review cycle and goes back to the designer.</li><li>If the brands do not match the client's stated level or origin, you must give a justification.</li></ol>
+</section>
+<section>
+<h2><span class="n">6</span>Release the design</h2><p>When every task is approved the inquiry shows <b>Design approved</b>. Open the inquiry:</p><ol class="steps"><li><b>Route A</b> (mode 3 or 2): tap <span class="btn red">Release design to Estimation</span>. SM Estimation is notified.</li><li><b>Route C</b> (mode 1, design only): tap <span class="btn red">Release design to sales</span>. The sales person is notified.</li><li>The release button stays disabled until <b>SM Projects</b> confirms the release mode.</li></ol>
+</section>
+<section>
+<h2><span class="n">+</span>Also yours</h2><ul><li><b>Clarifications from Estimation</b>: open the design job and tap <span class="btn">Answer</span> – unanswered after 1 working day they are flagged to you.</li><li><b>Approvals</b> tab: first step of early design release requests and client expectation changes.</li><li><b>Reports → Design team performance</b>: jobs completed, on-time %, turnaround, review cycles and hours.</li></ul>
+</section>
+
+</body></html>
