@@ -49,6 +49,14 @@ do $$ begin
   assert (select code from public.projects where id = '00000000-0000-0000-0000-00000000b001') like 'PRJ-%', 'project code';
 end $$;
 
+-- Sales creates a project through the app's RPC (INSERT ... RETURNING must pass the read policy)
+savepoint rpc_project;
+do $$ begin
+  assert (select public.create_project(jsonb_build_object('name', 'ABC Hotels – City Hotel – Kandy', 'project_type', 'hospitality',
+    'organization_id', '00000000-0000-0000-0000-00000000a001', 'expected_duration_months', 1, 'project_term', 'short'))) is not null, 'create_project as sales';
+end $$;
+rollback to savepoint rpc_project;
+
 -- Exact duplicate is blocked
 do $$ begin
   begin
