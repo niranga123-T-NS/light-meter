@@ -43,3 +43,24 @@ function cleanError(message: string) {
   // Database rule messages are already written for users; strip Postgres prefixes.
   return message.replace(/^(ERROR:\s*)/i, '').replace(/^new row violates row-level security policy.*/i, 'You do not have permission to do that.');
 }
+
+/** Calls an Edge Function and surfaces the function's own error message (not just "non-2xx status code"). */
+export async function callFunction<T = Record<string, unknown>>(name: string, body: Record<string, unknown>): Promise<T> {
+  const { data, error } = await supabase.functions.invoke(name, { body });
+  if (error) {
+    const ctx = (error as { context?: Response }).context;
+    let detail = '';
+    if (ctx && typeof ctx.text === 'function') {
+      const text = await ctx.text().catch(() => '');
+      try {
+        detail = JSON.parse(text).error ?? JSON.parse(text).message ?? text;
+      } catch {
+        detail = text;
+      }
+      detail = `${detail} (HTTP ${ctx.status})`;
+    }
+    throw new Error(detail || error.message);
+  }
+  if (data && typeof data === 'object' && 'error' in data && data.error) throw new Error(String(data.error));
+  return data as T;
+}
