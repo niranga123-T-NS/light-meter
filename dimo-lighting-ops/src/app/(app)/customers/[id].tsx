@@ -98,18 +98,14 @@ export default function CustomerDetail() {
     }, 'Contact added');
   };
 
-  // Contact details: account owner, SM Projects, GM / DGM. Name and type: SM Projects, GM / DGM only (4.9, 5.6).
+  // Account owner, SM Projects and GM / DGM can edit; renames are logged and may not duplicate another customer.
   const canEdit = manager || org.account_owner_id === me.id;
   const editDetails = async () => {
     const r = await dialog.prompt({
       title: 'Edit customer details',
       fields: [
-        ...(manager
-          ? [
-              { key: 'name', label: 'Organization name', required: true, initial: org.name },
-              { key: 'category', label: 'Type (visit category)', type: 'select' as const, required: true, initial: org.visit_category, options: masters.values('visit_category').map((v) => ({ value: v, label: v })) },
-            ]
-          : []),
+        { key: 'name', label: 'Organization name', required: true, initial: org.name },
+        { key: 'category', label: 'Type (visit category)', type: 'select', required: true, initial: org.visit_category, options: masters.values('visit_category').map((v) => ({ value: v, label: v })) },
         { key: 'address', label: 'Head office address', initial: org.address ?? '' },
         { key: 'phone', label: 'Phone', initial: org.phone ?? '' },
         { key: 'email', label: 'Email', initial: org.email ?? '' },
@@ -117,8 +113,7 @@ export default function CustomerDetail() {
     });
     if (!r) return;
     await dialog.run(async () => {
-      const patch: Partial<Organization> = { address: r.address || null, phone: r.phone || null, email: r.email || null };
-      if (manager) Object.assign(patch, { name: r.name.trim(), visit_category: r.category });
+      const patch: Partial<Organization> = { name: r.name.trim(), visit_category: r.category, address: r.address || null, phone: r.phone || null, email: r.email || null };
       const { error: e } = await supabase.from('organizations').update(patch).eq('id', org.id);
       if (e) throw new Error(e.message);
       await reload();
