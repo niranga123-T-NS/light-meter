@@ -43,6 +43,21 @@ jobs:
       - name: Signed in to Expo as
         run: npx eas-cli@latest whoami
 
+      # Push notifications on Android need Firebase: the google-services.json file is kept as a secret
+      # (GOOGLE_SERVICES_JSON) and added to this build only.
+      - name: Add Firebase config for push notifications
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -z "$GOOGLE_SERVICES_JSON" ]; then
+            echo "::warning::GOOGLE_SERVICES_JSON secret not set – the app builds, but Android push notifications will not be delivered."
+            exit 0
+          fi
+          printf '%s' "$GOOGLE_SERVICES_JSON" > google-services.json
+          jq -e '.project_info.project_id' google-services.json > /dev/null || { echo "::error::GOOGLE_SERVICES_JSON is not a valid google-services.json"; exit 1; }
+          jq '.expo.android.googleServicesFile = "./google-services.json"' app.json > app.tmp.json && mv app.tmp.json app.json
+          echo "Firebase project: $(jq -r '.project_info.project_id' google-services.json)"
+
       # Creates (first run) or links the Expo project and writes its projectId into app.json for this build.
       - name: Link the Expo project
         run: npx eas-cli@latest init --non-interactive --force
