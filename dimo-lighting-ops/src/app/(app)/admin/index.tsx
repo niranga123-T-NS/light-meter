@@ -61,9 +61,10 @@ function Users() {
   const invite = async () => {
     const r = await dialog.prompt({
       title: 'New user',
-      message: 'An invitation email is sent so the user can set a password.',
+      message: 'Give a temporary password and share it with the user (they change it under Profile). Leave it blank to send an invitation email instead.',
       fields: [
         { key: 'email', label: 'Work email', required: true },
+        { key: 'password', label: 'Temporary password (min. 8 characters)' },
         { key: 'full_name', label: 'Full name', required: true },
         { key: 'role', label: 'Role', type: 'select', required: true, options: ROLES.map((r2) => ({ value: r2, label: ROLE_LABELS[r2] })) },
         { key: 'manager_id', label: 'Reports to', type: 'select', options: people.map((p) => ({ value: p.id, label: `${p.full_name} (${ROLE_SHORT[p.role]})` })) },
@@ -72,12 +73,14 @@ function Users() {
     });
     if (!r) return;
     await dialog.run(async () => {
-      const { data: res, error: e } = await supabase.functions.invoke('admin-users', { body: { action: 'invite', ...r, manager_id: r.manager_id || null } });
+      const { data: res, error: e } = await supabase.functions.invoke('admin-users', {
+        body: { action: 'invite', ...r, email: r.email.trim(), password: r.password || null, manager_id: r.manager_id || null },
+      });
       if (e) throw new Error(e.message);
       if (res?.error) throw new Error(res.error);
       clearPeopleCache();
       await reload();
-    }, 'Invitation sent');
+    }, r.password ? 'User created – share the email and temporary password' : 'Invitation sent');
   };
 
   const edit = async (p: Profile) => {

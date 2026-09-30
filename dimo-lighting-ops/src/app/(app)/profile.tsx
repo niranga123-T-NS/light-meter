@@ -71,6 +71,32 @@ export default function Profile() {
         </Card>
       </Section>
 
+      <Section title="Password">
+        <Card>
+          <Button
+            small
+            variant="secondary"
+            title="Change password"
+            onPress={async () => {
+              const r = await dialog.prompt({
+                title: 'Change password',
+                fields: [
+                  { key: 'p1', label: 'New password (min. 8 characters)', type: 'password', required: true },
+                  { key: 'p2', label: 'Repeat new password', type: 'password', required: true },
+                ],
+              });
+              if (!r) return;
+              await dialog.run(async () => {
+                if (r.p1.length < 8) throw new Error('Use at least 8 characters');
+                if (r.p1 !== r.p2) throw new Error('The two passwords do not match');
+                const { error } = await supabase.auth.updateUser({ password: r.p1 });
+                if (error) throw new Error(error.message);
+              }, 'Password changed');
+            }}
+          />
+        </Card>
+      </Section>
+
       <Section title="Notification preferences">
         <Card>
           <Toggle
