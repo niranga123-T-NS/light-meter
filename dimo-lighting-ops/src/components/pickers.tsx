@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { cached } from '@/lib/hooks';
 import { projectTypeLabel } from '@/lib/roles';
@@ -7,6 +8,17 @@ import type { Contact, Organization, OrgUnit, Project, Role } from '@/lib/types'
 import { Button, colors, Muted, Row, Select, styles } from './ui';
 
 // Search-and-select lists (Section 5.6: projects are selected, never typed as free text).
+
+/** A project created (or chosen) from "+ Create project" inside a form; the form's picker selects it on return. */
+let pickedProject: string | null = null;
+export const handOffProject = (id: string) => {
+  pickedProject = id;
+};
+const takeHandedOffProject = () => {
+  const id = pickedProject;
+  pickedProject = null;
+  return id;
+};
 
 export function ProjectPicker({
   value,
@@ -26,6 +38,25 @@ export function ProjectPicker({
   const [loaded, setCurrent] = useState<Project | null>(null);
   const current = value && loaded?.id === value ? loaded : null;
   const [open, setOpen] = useState(false);
+
+  // Returning from "+ Create project": select the project that was just created
+  useFocusEffect(
+    useCallback(() => {
+      if (!onCreate) return;
+      const id = takeHandedOffProject();
+      if (!id) return;
+      supabase
+        .from('projects')
+        .select('*, organizations(name)')
+        .eq('id', id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (!data) return;
+          setCurrent(data as Project);
+          onChange(data as Project);
+        });
+    }, [onCreate, onChange]),
+  );
 
   useEffect(() => {
     if (!value || loaded?.id === value) return;

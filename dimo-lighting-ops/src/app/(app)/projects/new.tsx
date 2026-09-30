@@ -1,8 +1,8 @@
-import { router, Stack } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Text } from 'react-native';
 import { useDialog } from '@/components/dialog';
-import { CustomerPicker, PersonPicker } from '@/components/pickers';
+import { CustomerPicker, handOffProject, PersonPicker } from '@/components/pickers';
 import { Button, Card, colors, DateField, ErrorBanner, Field, ListRow, Muted, Notice, NumberField, Row, Screen, Section, Select } from '@/components/ui';
 import { captureLocation } from '@/components/VisitBits';
 import { useMe } from '@/lib/auth';
@@ -21,13 +21,21 @@ export default function NewProject() {
   const dialog = useDialog();
   const masters = useMasters();
   const sales = isSales(me.role);
+  // Opened from a visit or inquiry form: go back to it with the project selected
+  const params = useLocalSearchParams<{ pick?: string; name?: string; organization?: string }>();
+  const done = (id: string) => {
+    if (params.pick && router.canGoBack()) {
+      handOffProject(id);
+      router.back();
+    } else router.replace(`/projects/${id}`);
+  };
   const [error, setError] = useState<string | null>(null);
   const [matches, setMatches] = useState<Match[] | null>(null);
   const [differentReason, setDifferentReason] = useState('');
   const [f, setF] = useState({
-    name: '',
+    name: params.name ?? '',
     project_type: (sales ? me.project_types[0] : null) as ProjectType | null,
-    organization_id: null as string | null,
+    organization_id: (params.organization || null) as string | null,
     unit_id: null as string | null,
     city: '',
     location: '',
@@ -78,7 +86,7 @@ export default function NewProject() {
         p_reason: term !== suggested ? f.term_reason : null,
         p_duplicate_reason: res.length ? differentReason : null,
       });
-      router.replace(`/projects/${id}`);
+      done(id);
     }, 'Project created');
   };
 
@@ -132,7 +140,7 @@ export default function NewProject() {
                 title={m.name}
                 subtitle={`${m.code} · ${m.customer} · ${m.stage} · ${m.owner} · ${m.open_inquiries} open inquiries${m.distance_m != null ? ` · ${Math.round(m.distance_m)} m away` : ''}`}
                 highlight={m.exact ? colors.red : colors.amber}
-                right={<Button small title="Use this project" onPress={() => router.replace(`/projects/${m.id}`)} />}
+                right={<Button small title="Use this project" onPress={() => done(m.id)} />}
               />
             ))}
           </Card>

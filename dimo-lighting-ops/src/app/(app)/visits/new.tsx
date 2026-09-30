@@ -156,7 +156,7 @@ export default function NewVisit() {
               <DateField label="Closing / opening date" value={v.tender_date} onChange={(x) => set('tender_date', x)} />
             </>
           ) : null}
-          <ProjectPicker value={v.project_id} onChange={onProject} required={!networking} onCreate={() => router.push('/projects/new')} />
+          <ProjectPicker value={v.project_id} onChange={onProject} required={!networking} onCreate={(q) => router.push({ pathname: '/projects/new', params: { pick: '1', name: q, organization: v.organization_id ?? '' } })} />
           <CustomerPicker
             organizationId={v.organization_id}
             unitId={v.unit_id}

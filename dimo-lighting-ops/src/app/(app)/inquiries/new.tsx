@@ -111,7 +111,7 @@ export default function NewInquiry() {
             required
             value={f.project_id}
             onChange={(p: Project | null) => setF((s) => ({ ...s, project_id: p?.id ?? null, organization_id: p?.organization_id ?? s.organization_id, unit_id: p?.unit_id ?? s.unit_id, duty_status: s.duty_status ?? p?.duty_status ?? null }))}
-            onCreate={() => router.push('/projects/new')}
+            onCreate={(q) => router.push({ pathname: '/projects/new', params: { pick: '1', name: q, organization: f.organization_id ?? '' } })}
           />
           <CustomerPicker organizationId={f.organization_id} unitId={f.unit_id} contactId={f.contact_id} requireUnit={hasUnits} onChange={(c) => setF((s) => ({ ...s, organization_id: c.organizationId, unit_id: c.unitId, contact_id: c.contactId }))} />
         </Card>
