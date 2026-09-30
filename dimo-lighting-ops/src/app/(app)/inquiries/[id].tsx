@@ -60,7 +60,7 @@ export default function InquiryDetail() {
 
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const { inquiry: i, designJobs, estimationJobs, quotations, clocks, approvals, files } = data;
-  const mineAsSales = i.sales_person_id === me.id || me.role === 'sm_projects';
+  const mineAsSales = i.sales_person_id === me.id || me.role === 'sm_projects' || me.role === 'gm';
   const colour = i.status === 'on_hold' ? 'grey' : i.sla_colour;
   const daysLeft = i.customer_deadline ? daysBetween(todayISO(), i.customer_deadline) : null;
   const act = (fn: string, args: Record<string, unknown>, ok: string) =>
