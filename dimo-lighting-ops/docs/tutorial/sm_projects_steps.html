@@ -1,0 +1,93 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>SM Projects</title><style>
+  @page { size: A4; margin: 18mm 16mm 18mm 16mm; }
+  :root {
+    --brand: #C8102E; --ink: #111827; --text: #1f2937; --muted: #6b7280; --line: #e5e7eb; --soft: #f6f7f9;
+    --green: #1E8E3E; --amber: #E8A317; --red: #C62828; --grey: #8A8F98; --blue: #1D4ED8;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: "Liberation Sans", Arial, Helvetica, sans-serif; font-size: 10.2pt; line-height: 1.45; color: var(--text); margin: 0; }
+  h1 { font-size: 21pt; color: var(--ink); margin: 0 0 4mm; }
+  h2 { font-size: 13.5pt; color: var(--ink); margin: 7mm 0 2.5mm; border-bottom: 1.5px solid var(--line); padding-bottom: 1.5mm; }
+  h3 { font-size: 11pt; color: var(--ink); margin: 5mm 0 1.5mm; }
+  p { margin: 0 0 2.5mm; }
+  ul, ol { margin: 0 0 3mm; padding-left: 6mm; }
+  li { margin-bottom: 1.2mm; }
+  .chapter { page-break-before: always; }
+  .chapter-head { display: flex; align-items: center; gap: 5mm; border-left: 6px solid var(--brand); padding: 3mm 0 3mm 5mm; margin-bottom: 5mm; background: var(--soft); }
+  .chapter-head .num { font-size: 26pt; font-weight: 700; color: var(--brand); }
+  .chapter-head .title { font-size: 17pt; font-weight: 700; color: var(--ink); }
+  .chapter-head .sub { color: var(--muted); font-size: 9.5pt; }
+  .btn { display: inline-block; font-weight: 700; color: var(--ink); background: #fff; border: 1px solid #cfd3da; border-radius: 4px; padding: 0 1.6mm; font-size: 9pt; white-space: nowrap; }
+  .btn.red { background: var(--brand); color: #fff; border-color: var(--brand); }
+  .path { font-weight: 700; color: var(--blue); }
+  .box { border: 1px solid var(--line); border-radius: 6px; padding: 3mm 4mm; margin: 3mm 0; background: #fff; page-break-inside: avoid; }
+  .tip { border-left: 4px solid var(--blue); background: #eef3ff; }
+  .warn { border-left: 4px solid var(--amber); background: #fff8e8; }
+  .rule { border-left: 4px solid var(--brand); background: #fdf0f2; }
+  .box b.label { display: block; font-size: 8.5pt; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin-bottom: 1mm; }
+  table { width: 100%; border-collapse: collapse; margin: 2mm 0 4mm; font-size: 9.3pt; page-break-inside: auto; }
+  thead { display: table-header-group; }
+  tr { page-break-inside: avoid; }
+  th { background: var(--ink); color: #fff; text-align: left; padding: 1.6mm 2mm; font-weight: 700; }
+  td { border-bottom: 1px solid var(--line); padding: 1.6mm 2mm; vertical-align: top; }
+  tr:nth-child(even) td { background: #fafafa; }
+  .steps { counter-reset: s; list-style: none; padding-left: 0; }
+  .steps > li { counter-increment: s; position: relative; padding-left: 9mm; margin-bottom: 2mm; }
+  .steps > li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 6mm; height: 6mm; border-radius: 50%; background: var(--brand); color: #fff; font-weight: 700; font-size: 8.5pt; text-align: center; line-height: 6mm; }
+  .dot { display: inline-block; width: 3mm; height: 3mm; border-radius: 50%; vertical-align: -0.3mm; margin-right: 1mm; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+  .flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 1.5mm; margin: 3mm 0 4mm; }
+  .flow .node { flex: 1 1 0; min-width: 24mm; border: 1.5px solid var(--ink); border-radius: 5px; padding: 2mm; font-size: 8.6pt; text-align: center; background: #fff; }
+  .flow .node b { display: block; font-size: 9pt; color: var(--brand); margin-bottom: .6mm; }
+  .flow .arrow { align-self: center; font-weight: 700; color: var(--muted); }
+  .toc td { border: none; padding: 1mm 0; }
+  .toc td.n { width: 10mm; color: var(--brand); font-weight: 700; }
+  .cover { height: 255mm; display: flex; flex-direction: column; justify-content: space-between; }
+  .cover .top { border-bottom: 3px solid var(--brand); padding-bottom: 6mm; }
+  .logo { font-size: 44pt; font-weight: 800; color: var(--brand); letter-spacing: 3px; }
+  .cover h1 { font-size: 26pt; margin-top: 10mm; }
+  .cover .lead { font-size: 12.5pt; color: var(--muted); }
+  .linkbox { font-size: 14pt; font-weight: 700; color: var(--ink); border: 2px solid var(--brand); border-radius: 8px; padding: 4mm 6mm; display: inline-block; margin: 6mm 0; }
+  .muted { color: var(--muted); }
+  .small { font-size: 8.8pt; }
+  .kbd { font-family: "Liberation Mono", monospace; font-size: 9pt; background: var(--soft); border: 1px solid var(--line); border-radius: 3px; padding: 0 1mm; }
+  .hdr { border-bottom: 3px solid var(--brand); padding-bottom: 3mm; margin-bottom: 4mm; display:flex; justify-content:space-between; align-items:flex-end; }
+  .hdr .logo { font-size: 26pt; }
+  h2 .n { display:inline-block; background: var(--brand); color:#fff; border-radius:4px; padding:0 2mm; margin-right:2mm; font-size:11pt; }
+  section { page-break-inside: avoid; }
+  body { font-size: 9.8pt; }
+  h2 { margin: 5mm 0 2mm; }
+  .steps > li { margin-bottom: 1.4mm; }
+</style>
+</head><body>
+<div class="hdr">
+  <div><div class="logo">DIMO</div><div class="muted">Lighting Operations System</div></div>
+  <div style="text-align:right"><div style="font-size:17pt;font-weight:700;color:var(--ink)">SM Projects – Step by Step</div>
+  <div class="muted">Senior Manager – Building &amp; Infrastructure Projects: approvals, coaching and control of the sales team · https://dimo-lighting-ops.vercel.app</div></div>
+</div>
+<div class="box tip"><b class="label">Your flow</b>Approve weekly plans → Confirm release modes on new inquiries → Review visits → Manage projects and customers → Watch the dashboard.
+Button names are shown like <span class="btn">this</span>; menu paths like <span class="path">Approvals → Weekly plans</span>.</div>
+<div class="box rule"><b class="label">Deadlines to watch</b>Approve weekly plans by <b>Monday 09:00</b> · Confirm the release mode of every new inquiry promptly (design cannot be released until you do) · Answer approvals the same working day.</div>
+<section>
+<h2><span class="n">1</span>Start of the day</h2><ol class="steps"><li>Your home screen is the <b>Sales Management dashboard</b>: delay control, customer deadlines at risk, pipeline by project type, inquiry funnel, SLA performance, sales activity per person, top overdue items and debtors. Tap any number to open the records behind it.</li><li>Open the <span class="btn">Approvals</span> tab – everything waiting for you is listed there.</li></ol>
+</section>
+<section>
+<h2><span class="n">2</span>Approve weekly plans (by Monday 09:00)</h2><p><span class="path">Plans</span> → open a plan waiting for approval.</p><ol class="steps"><li>Check the planned visits, objectives and customers. Tender visits are highlighted.</li><li>Tap <span class="btn red">Approve</span>, <span class="btn">Approve with comments</span>, or <span class="btn">Return for changes</span> (the sales person corrects and resubmits the same day).</li><li>If a sales person planned a visit to another person's customer, use <span class="btn">Duplicate…</span>: approve as a joint visit, reassign the account, or reject the visit.</li></ol>
+</section>
+<section>
+<h2><span class="n">3</span>Confirm the release mode of each new inquiry</h2><p>Every new inquiry brings a release-mode approval to your Approvals tab.</p><ol class="steps"><li><b>Mode 3</b> – design and quotation released together (usual for Route A). <b>Mode 2</b> – quotation only, design stays internal. <b>Mode 1</b> – design only (Route C).</li><li>Approve the proposed mode, or return it with a reason. The Design Manager cannot release a design until you confirm.</li></ol>
+</section>
+<section>
+<h2><span class="n">4</span>Other approvals</h2><ol class="steps"><li><b>Debtor check</b>: approve to let the inquiry proceed, or reject to keep it on hold (ask for a collection plan).</li><li><b>Mixed duty offers</b>: first approval (GM / DGM gives the final one).</li><li><b>Duty status change, release mode change, early design release</b> (2nd step): approve or return with a reason.</li><li><b>Sample requests / new return dates</b>: open the sample → <span class="btn">Approve</span>, <span class="btn">Return with comment</span> or <span class="btn">Reject</span>.</li></ol>
+</section>
+<section>
+<h2><span class="n">5</span>Coach the team</h2><ol class="steps"><li><b>Visit review</b>: <span class="path">Visits → To review</span> → open a visit → <span class="btn red">Mark reviewed / add coaching comment</span>. Visits far from the site show a GPS review.</li><li><b>Plan evaluation</b>: on an approved plan see plan-vs-actual (completion %, objective match %, GPS-verified %, missed reasons) and tap <span class="btn">Rate the week</span>.</li><li><b>Scorecards</b>: choose a sales person and month → set targets (sent to GM / DGM) and add a review comment.</li></ol>
+</section>
+<section>
+<h2><span class="n">6</span>Projects and customers</h2><ol class="steps"><li><b>Create a project</b>: <span class="path">Projects → + New project</span> – fill it in as sales would, and choose the <b>Sales person</b> and <b>First visit due</b> under Assignment. The sales person is notified.</li><li>On a project: <span class="btn">Reassign sales person</span>, override <span class="btn">Win probability</span> with a comment, or <span class="btn">Merge a duplicate into this</span>.</li><li><b>Customers</b>: change the account owner of an organization or unit (reason required). The client view shows projects by status and every pending design / estimation.</li></ol>
+</section>
+<section>
+<h2><span class="n">+</span>Also yours</h2><ul><li><b>Sales person leaving</b>: <span class="path">Team &amp; lists → Users → Transfer accounts</span> – customers, open projects, inquiries, plan lines and debts move in one step; history stays with the original person.</li><li><b>Competitors</b>: add new names under <span class="path">Team &amp; lists → Competitors</span>.</li><li>You receive delay alerts for every sales inquiry, dormant-project and late-plan alerts, and debt alerts at 60, 120 and 180 days.</li></ul>
+</section>
+
+</body></html>
