@@ -1,0 +1,162 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Sales Data Entry Guide</title><style>
+  @page { size: A4; margin: 18mm 16mm 18mm 16mm; }
+  :root {
+    --brand: #C8102E; --ink: #111827; --text: #1f2937; --muted: #6b7280; --line: #e5e7eb; --soft: #f6f7f9;
+    --green: #1E8E3E; --amber: #E8A317; --red: #C62828; --grey: #8A8F98; --blue: #1D4ED8;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: "Liberation Sans", Arial, Helvetica, sans-serif; font-size: 10.2pt; line-height: 1.45; color: var(--text); margin: 0; }
+  h1 { font-size: 21pt; color: var(--ink); margin: 0 0 4mm; }
+  h2 { font-size: 13.5pt; color: var(--ink); margin: 7mm 0 2.5mm; border-bottom: 1.5px solid var(--line); padding-bottom: 1.5mm; }
+  h3 { font-size: 11pt; color: var(--ink); margin: 5mm 0 1.5mm; }
+  p { margin: 0 0 2.5mm; }
+  ul, ol { margin: 0 0 3mm; padding-left: 6mm; }
+  li { margin-bottom: 1.2mm; }
+  .chapter { page-break-before: always; }
+  .chapter-head { display: flex; align-items: center; gap: 5mm; border-left: 6px solid var(--brand); padding: 3mm 0 3mm 5mm; margin-bottom: 5mm; background: var(--soft); }
+  .chapter-head .num { font-size: 26pt; font-weight: 700; color: var(--brand); }
+  .chapter-head .title { font-size: 17pt; font-weight: 700; color: var(--ink); }
+  .chapter-head .sub { color: var(--muted); font-size: 9.5pt; }
+  .btn { display: inline-block; font-weight: 700; color: var(--ink); background: #fff; border: 1px solid #cfd3da; border-radius: 4px; padding: 0 1.6mm; font-size: 9pt; white-space: nowrap; }
+  .btn.red { background: var(--brand); color: #fff; border-color: var(--brand); }
+  .path { font-weight: 700; color: var(--blue); }
+  .box { border: 1px solid var(--line); border-radius: 6px; padding: 3mm 4mm; margin: 3mm 0; background: #fff; page-break-inside: avoid; }
+  .tip { border-left: 4px solid var(--blue); background: #eef3ff; }
+  .warn { border-left: 4px solid var(--amber); background: #fff8e8; }
+  .rule { border-left: 4px solid var(--brand); background: #fdf0f2; }
+  .box b.label { display: block; font-size: 8.5pt; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin-bottom: 1mm; }
+  table { width: 100%; border-collapse: collapse; margin: 2mm 0 4mm; font-size: 9.3pt; page-break-inside: auto; }
+  thead { display: table-header-group; }
+  tr { page-break-inside: avoid; }
+  th { background: var(--ink); color: #fff; text-align: left; padding: 1.6mm 2mm; font-weight: 700; }
+  td { border-bottom: 1px solid var(--line); padding: 1.6mm 2mm; vertical-align: top; }
+  tr:nth-child(even) td { background: #fafafa; }
+  .steps { counter-reset: s; list-style: none; padding-left: 0; }
+  .steps > li { counter-increment: s; position: relative; padding-left: 9mm; margin-bottom: 2mm; }
+  .steps > li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 6mm; height: 6mm; border-radius: 50%; background: var(--brand); color: #fff; font-weight: 700; font-size: 8.5pt; text-align: center; line-height: 6mm; }
+  .dot { display: inline-block; width: 3mm; height: 3mm; border-radius: 50%; vertical-align: -0.3mm; margin-right: 1mm; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+  .flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 1.5mm; margin: 3mm 0 4mm; }
+  .flow .node { flex: 1 1 0; min-width: 24mm; border: 1.5px solid var(--ink); border-radius: 5px; padding: 2mm; font-size: 8.6pt; text-align: center; background: #fff; }
+  .flow .node b { display: block; font-size: 9pt; color: var(--brand); margin-bottom: .6mm; }
+  .flow .arrow { align-self: center; font-weight: 700; color: var(--muted); }
+  .toc td { border: none; padding: 1mm 0; }
+  .toc td.n { width: 10mm; color: var(--brand); font-weight: 700; }
+  .cover { height: 255mm; display: flex; flex-direction: column; justify-content: space-between; }
+  .cover .top { border-bottom: 3px solid var(--brand); padding-bottom: 6mm; }
+  .logo { font-size: 44pt; font-weight: 800; color: var(--brand); letter-spacing: 3px; }
+  .cover h1 { font-size: 26pt; margin-top: 10mm; }
+  .cover .lead { font-size: 12.5pt; color: var(--muted); }
+  .linkbox { font-size: 14pt; font-weight: 700; color: var(--ink); border: 2px solid var(--brand); border-radius: 8px; padding: 4mm 6mm; display: inline-block; margin: 6mm 0; }
+  .muted { color: var(--muted); }
+  .small { font-size: 8.8pt; }
+  .kbd { font-family: "Liberation Mono", monospace; font-size: 9pt; background: var(--soft); border: 1px solid var(--line); border-radius: 3px; padding: 0 1mm; }
+  .hdr { border-bottom: 3px solid var(--brand); padding-bottom: 3mm; margin-bottom: 4mm; display:flex; justify-content:space-between; align-items:flex-end; }
+  .hdr .logo { font-size: 26pt; }
+  h2 .n { display:inline-block; background: var(--brand); color:#fff; border-radius:4px; padding:0 2mm; margin-right:2mm; font-size:11pt; }
+  section { page-break-inside: avoid; }
+  body { font-size: 9.8pt; }
+  h2 { margin: 5mm 0 2mm; }
+  .steps > li { margin-bottom: 1.4mm; }
+</style>
+</head><body>
+<div class="hdr">
+  <div><div class="logo">DIMO</div><div class="muted">Lighting Operations System</div></div>
+  <div style="text-align:right"><div style="font-size:17pt;font-weight:700;color:var(--ink)">Sales Person – Data Entry, Step by Step</div>
+  <div class="muted">For Assistant Sales Managers (Building Lighting and Infrastructure Lighting) · https://dimo-lighting-ops.vercel.app</div></div>
+</div>
+
+<div class="box tip"><b class="label">The order to enter data</b>
+Customer → Project → Weekly plan → Check in at the visit → Visit report → Inquiry → Keep the project up to date.
+Button names are shown like <span class="btn">this</span>; menu paths like <span class="path">Projects → + New project</span>.</div>
+
+<div class="box rule"><b class="label">Daily routine</b>
+Morning: check <b>My Day</b> · At every visit: <b>check in</b> · By 20:00: <b>finish visit reports</b> · Saturday 13:00: <b>submit next week's plan</b>.</div>
+
+<section>
+<h2><span class="n">1</span>Add the customer (once per organization)</h2>
+<p><span class="path">Customers → + New customer</span></p>
+<ol class="steps">
+  <li><b>Organization name</b>, <b>Type (visit category)</b>, <b>Phone</b> and <b>Head office address</b>.</li>
+  <li><b>First unit / department</b> (optional), e.g. "Engineering Division".</li>
+  <li><b>Contact</b> (optional): <b>Name</b>, <b>Designation</b>, <b>Phone</b> and <b>Email</b>.</li>
+  <li>Tap <span class="btn red">Create customer</span>. If <b>Possible duplicates</b> appear, tap <span class="btn">Use this</span> on the matching customer instead.</li>
+</ol>
+</section>
+
+<section>
+<h2><span class="n">2</span>Create the project</h2>
+<p><span class="path">Projects → + New project</span> (or from inside a visit – see step 4)</p>
+<ol class="steps">
+  <li><b>Project name</b> as <i>Customer – Project – City</i>, e.g. "ABC Hotels – Beach Resort – Galle".</li>
+  <li><b>Project type</b>: only your own types are listed.</li>
+  <li><b>Customer</b> (use <span class="btn">+ New customer</span> if it is missing), <b>City</b>, <b>Location / address</b>. Optionally tap <span class="btn">📍 Use my current location as the site</span>.</li>
+  <li><b>Stage and value</b>: <b>Project stage</b>, <b>Duty status</b> (sets LKR or USD), <b>Estimated project value</b> and <b>Estimated lighting value</b>.</li>
+  <li><b>Project term (mandatory)</b>: enter <b>Expected duration to order / award</b> in months. The term is suggested automatically; changing it needs a reason.</li>
+  <li>Tap <span class="btn red">Create project</span>. If a similar project exists, tap <span class="btn">Use this project</span>, or confirm it is a different project and give a reason.</li>
+</ol>
+</section>
+
+<section>
+<h2><span class="n">3</span>Plan next week (submit by Saturday 13:00)</h2>
+<ol class="steps">
+  <li><span class="path">Plan → Open next week's plan</span>.</li>
+  <li>Tap <span class="btn red">+ Add visit</span>: choose the <b>Day</b>, <b>Time slot</b>, Normal or <b>Tender</b>, the project, the customer, <b>Visit category</b> and <b>Planned objective</b>. Tap <span class="btn red">Add to plan</span>.</li>
+  <li>Repeat for every visit, then tap <span class="btn red">Submit plan for approval</span>. SM Projects approves it or returns it for changes.</li>
+</ol>
+</section>
+
+<section>
+<h2><span class="n">4</span>On the day – check in at the site</h2>
+<ol class="steps">
+  <li>On <b>My Day</b> tap <span class="btn">Check in</span> next to the planned visit (details fill in automatically). For a visit that was not planned, tap <span class="btn red">Check in to a visit</span>.</li>
+  <li>Allow location access. GPS is recorded only at check-in and check-out.</li>
+  <li>Choose <b>Normal</b> or <b>Tender</b>, the <b>Project</b>, the customer, <b>Visit category</b>, <b>Primary objective</b> and up to 3 <b>Secondary objectives</b>.
+    <br><span class="small muted">New project? In the project search tap <span class="btn">+ Create project</span>; after saving, the app returns to the visit with the project selected.</span></li>
+  <li>Either tap <span class="btn">Check in (report later)</span>, or fill in the report now and tap <span class="btn red">Save visit report</span>.</li>
+</ol>
+</section>
+
+<section>
+<h2><span class="n">5</span>Visit report (same day, by 20:00)</h2>
+<ol class="steps">
+  <li><b>Discussion summary</b> (at least 30 characters – the keyboard microphone can be used) and <b>Outcome</b>.</li>
+  <li><b>Competitors mentioned</b>, <b>Brands specified</b>, <b>Estimated project value</b> and <b>Estimated lighting value</b>.</li>
+  <li><b>Next action</b> and <b>Next action date</b>.</li>
+  <li>Tender visit: <b>Tender activity</b>, <b>Tender number</b> and <b>Closing / opening date</b>.</li>
+  <li>Add photos or documents if needed, then tap <span class="btn red">Check out and save report</span>.</li>
+</ol>
+</section>
+
+<section>
+<h2><span class="n">6</span>Raise an inquiry (design or quotation needed)</h2>
+<p>On the visit tap <span class="btn">Convert to inquiry</span>, or on the project tap <span class="btn">+ Inquiry</span>.</p>
+<ol class="steps">
+  <li><b>Project and customer</b>: already filled in.</li>
+  <li><b>Route</b>: design + estimation, estimation only, or design only.</li>
+  <li><b>Scope</b>: <b>Scope description</b>, <b>Areas / spaces</b>, <b>Design scope</b> and <b>Tender or submission type</b>.</li>
+  <li><b>Client solution expectation</b>: <b>Solution level</b>, <b>Preferred brands</b>, <b>Manufacturing origin</b>, <b>Budget indication</b> and <b>Approved makes list</b>.</li>
+  <li><b>Dates</b>: <b>Customer deadline</b>, <b>Design required by</b> and <b>Quotation required by</b>.</li>
+  <li>Tap <span class="btn">Save draft and continue</span>, attach drawings and the BOQ, then tap <span class="btn red">Submit inquiry</span>.</li>
+</ol>
+</section>
+
+<section>
+<h2><span class="n">7</span>Keep the project up to date</h2>
+<ol class="steps">
+  <li>On the project page update <span class="btn">Stage</span>, <span class="btn">Win probability</span> (a reason is needed outside the normal range), <span class="btn">Award date</span> and <span class="btn">Lighting value</span>.</li>
+  <li>Answer <span class="btn">Review status</span> prompts for dormant projects: active, on hold, lost or cancelled.</li>
+  <li>Follow up the quotation and record the result: won or lost.</li>
+</ol>
+</section>
+
+<section>
+<h2><span class="n">+</span>Also during the week</h2>
+<ul>
+  <li><span class="btn">Reschedule</span>, <span class="btn">Cancel</span> or <span class="btn">Missed</span> on planned visits – a reason is required and every change is logged.</li>
+  <li><b>My Debtors</b>: add follow-up comments on overdue customer payments.</li>
+  <li><b>Samples</b>: request samples and return them on time.</li>
+</ul>
+</section>
+
+</body></html>
