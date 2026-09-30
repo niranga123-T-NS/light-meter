@@ -65,6 +65,7 @@ export type Contact = {
   designation: string | null;
   phone: string | null;
   email: string | null;
+  created_by: string | null;
 };
 
 export type Milestone =
