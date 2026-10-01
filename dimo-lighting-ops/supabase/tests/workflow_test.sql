@@ -367,10 +367,11 @@ begin
   up := public.stage_debtor_upload(current_date, '[
     {"project_name":"ABC Hotels - Beach Resort - Galle","client_name":"ABC Hotels PLC","invoice_no":"INV-10452","amount":2400000,"currency":"LKR","outstanding_days":94},
     {"project_name":"Unknown Project","client_name":"Nobody","invoice_no":"INV-1","amount":10,"currency":"LKR","outstanding_days":5}]');
-  -- The debtors list is independent of the project register: unmatched rows are warnings, not errors
-  assert (select error_count from public.debt_uploads where id = up) = 0, 'unmatched project is not an error';
-  assert (select warnings from public.debt_upload_rows where upload_id = up and invoice_no = 'INV-1') @> '{"Project not linked","No sales person"}', 'unmatched row warned';
-  assert (select sales_person_id from public.debt_upload_rows where upload_id = up and invoice_no = 'INV-10452') is not null, 'matched row gets the sales person';
+  -- The debtors list stands on its own: projects are not looked up; only a missing sales person is a reminder
+  assert (select error_count from public.debt_uploads where id = up) = 0, 'unknown project is not an error';
+  assert (select warnings from public.debt_upload_rows where upload_id = up and invoice_no = 'INV-1') = '{"No sales person"}', 'only the sales person reminder';
+  assert (select count(*) from public.debt_upload_rows where upload_id = up and project_id is not null) = 0, 'project register not used';
+  assert (select sales_person_id from public.debt_upload_rows where upload_id = up and invoice_no = 'INV-10452') is not null, 'customer account owner follows up';
   res := public.confirm_debtor_upload(up);
   assert (res ->> 'added')::int = 2, 'two debts added without mapping';
   assert (select project_id from public.debts where invoice_no = 'INV-1') is null, 'unlinked debt kept';
@@ -381,16 +382,20 @@ begin
   -- Fix rows in the preview instead of re-uploading: edit a bad row, remove a totals line
   up := public.stage_debtor_upload(current_date, '[
     {"client_name":"ABC Hotels PLC","invoice_no":"INV-3","amount":null,"currency":"Rs","outstanding_days":12},
-    {"client_name":"TOTAL","amount":2400010}]');
-  assert (select error_count from public.debt_uploads where id = up) = 2, 'two bad rows';
+    {"client_name":"TOTAL","amount":2400010},
+    {"client_name":"Nobody","invoice_no":"INV-4","amount":"abc","currency":"usd","outstanding_days":"7"}]');
+  assert (select error_count from public.debt_uploads where id = up) = 3, 'three bad rows, no crash on text in a number column';
+  assert (select errors from public.debt_upload_rows where upload_id = up and invoice_no = 'INV-4') = '{"Outstanding amount missing or not a number"}', 'error says what is wrong';
+  perform public.edit_debtor_row((select id from public.debt_upload_rows where upload_id = up and invoice_no = 'INV-4'), '{"amount":"250"}');
+  perform public.set_debtor_row_sales_person((select id from public.debt_upload_rows where upload_id = up and invoice_no = 'INV-4'), (select id from u where role = 'asm_building'));
+  assert (select warnings from public.debt_upload_rows where upload_id = up and invoice_no = 'INV-4') = '{}', 'sales person chosen';
   perform public.edit_debtor_row((select id from public.debt_upload_rows where upload_id = up and invoice_no = 'INV-3'), '{"amount":"1500","currency":"LKR"}');
   perform public.remove_debtor_row((select id from public.debt_upload_rows where upload_id = up and client_name = 'TOTAL'));
   assert (select error_count from public.debt_uploads where id = up) = 0, 'fixed in place';
-  assert (select organization_id from public.debt_upload_rows where upload_id = up and invoice_no = 'INV-3') is not null, 'customer matched';
-  assert (select row_count from public.debt_uploads where id = up) = 1, 'totals line removed';
-  -- Link the unlinked debt later
-  perform public.link_debt((select id from public.debts where invoice_no = 'INV-1'), '00000000-0000-0000-0000-00000000b001');
-  assert (select sales_person_id from public.debts where invoice_no = 'INV-1') = (select id from u where role = 'asm_building'), 'linked to project and its sales person';
+  assert (select row_count from public.debt_uploads where id = up) = 2, 'totals line removed';
+  -- Assign a sales person to the debt later
+  perform public.set_debt_sales_person((select id from public.debts where invoice_no = 'INV-1'), (select id from u where role = 'asm_building'));
+  assert (select sales_person_id from public.debts where invoice_no = 'INV-1') = (select id from u where role = 'asm_building'), 'sales person assigned';
 end $$;
 reset role;
 
