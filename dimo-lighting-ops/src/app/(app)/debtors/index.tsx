@@ -2,7 +2,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { AgeingChip } from '@/components/Ageing';
-import { Button, Card, colors, Empty, ErrorBanner, Field, ListRow, Muted, Pill, Row, Screen, Segmented, Select } from '@/components/ui';
+import { Button, Card, colors, Empty, ErrorBanner, ListRow, Muted, Pill, Row, Screen, Segmented, Select } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { AGEING_COLOURS, AGEING_ORDER, fmtDate, fmtMoney, human } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
@@ -49,7 +49,6 @@ export default function Debtors() {
   const [person, setPerson] = useState<string | null>(null);
   const [view, setView] = useState<'invoices' | 'customers'>('invoices');
   const [customer, setCustomer] = useState<string | null>(null);
-  const [q, setQ] = useState('');
   const [custSort, setCustSort] = useState<'total' | 'name' | 'days'>('total');
 
   const { data, error, loading, reload } = useLoad(async () => {
@@ -57,15 +56,25 @@ export default function Debtors() {
     if (e) throw new Error(e.message);
     return rows as Debt[];
   });
+  // Date of the latest confirmed debtors file (management roles can read the upload list)
+  const latest = useLoad(async () => {
+    const { data: up } = await supabase.from('debt_uploads').select('as_at').eq('status', 'confirmed').order('as_at', { ascending: false }).limit(1).maybeSingle();
+    return (up as { as_at: string } | null)?.as_at ?? null;
+  });
 
   const [fourteen] = useState(() => Date.now() - 14 * 86400000);
   const clientOf = (d: Debt) => (d.client_name ?? '—').trim();
-  const customerOptions = [...new Set((data ?? []).map(clientOf))].sort((a, b) => a.localeCompare(b)).map((c) => ({ value: c, label: c }));
-  // Customer filter (exact customer) and search (part of the customer name, project or invoice no.) apply to everything below
-  const needle = q.trim().toLowerCase();
-  const all = (data ?? [])
-    .filter((d) => !customer || clientOf(d) === customer)
-    .filter((d) => !needle || [d.client_name, d.project_name, d.invoice_no].some((v) => (v ?? '').toLowerCase().includes(needle)));
+  // Customer list = the customers in the latest uploaded debtors file (invoices missing from a file are cleared,
+  // so the open invoices are exactly the latest file)
+  const inLatest = (data ?? []).filter((d) => !['collected_confirmed', 'cleared'].includes(d.status));
+  const customerOptions = [...new Set(inLatest.map(clientOf))]
+    .sort((a, b) => a.localeCompare(b))
+    .map((c) => {
+      const ds = inLatest.filter((d) => clientOf(d) === c);
+      return { value: c, label: c, hint: `${ds.length} invoice${ds.length === 1 ? '' : 's'} · ${moneyText(sumMoney(ds))}` };
+    });
+  // View all customers or one customer: applies to the totals, age brackets, tabs and both lists below
+  const all = (data ?? []).filter((d) => !customer || clientOf(d) === customer);
   const open = all.filter((d) => !['collected_confirmed', 'cleared'].includes(d.status));
   const byFilter: Record<Filter, Debt[]> = {
     open,
@@ -93,28 +102,20 @@ export default function Debtors() {
     <Screen refreshing={loading} onRefresh={reload}>
       <Stack.Screen options={{ title: isSales(me.role) ? 'My Debtors' : 'Debtors' }} />
       <ErrorBanner message={error} />
-      {/* Find a customer: filters every total, tab and list below, and opens the customer's profile */}
+      {/* Customer view: all customers or one customer from the latest uploaded debtors file */}
       <Card style={{ borderColor: colors.blue }}>
-        <Text style={{ fontWeight: '700' }}>Find a customer</Text>
-        <Row wrap gap={8}>
-          <View style={{ width: 280 }}>
-            <Select label="Customer" value={customer} onChange={(v) => setCustomer(v || null)} searchable options={[{ value: '', label: 'All customers' }, ...customerOptions]} />
-          </View>
-          <View style={{ width: 280 }}>
-            <Field label="Search customer, project or invoice" value={q} onChangeText={setQ} placeholder="e.g. Hilton or INV-104" />
+        <Row wrap gap={8} style={{ alignItems: 'flex-end' }}>
+          <View style={{ width: 360, maxWidth: '100%' }}>
+            <Select
+              label={`Customer – from the latest debtors list${latest.data ? ` (as at ${fmtDate(latest.data)})` : ''}`}
+              value={customer ?? ''}
+              onChange={(v) => setCustomer(v || null)}
+              searchable
+              options={[{ value: '', label: `All customers (${customerOptions.length})` }, ...customerOptions]}
+            />
           </View>
           {customer ? <Button small title="Customer profile & history" onPress={() => router.push({ pathname: '/debtors/customer', params: { name: customer } })} /> : null}
-          {customer || q ? (
-            <Button
-              small
-              variant="secondary"
-              title="✕ Clear"
-              onPress={() => {
-                setCustomer(null);
-                setQ('');
-              }}
-            />
-          ) : null}
+          {customer ? <Button small variant="secondary" title="✕ All customers" onPress={() => setCustomer(null)} /> : null}
         </Row>
       </Card>
       {/* Summary strip: total outstanding by category and currency */}
