@@ -1,6 +1,7 @@
 import { router, Stack } from 'expo-router';
 import { useShellCounts } from '@/components/AppShell';
 import { Button, Card, colors, Empty, ErrorBanner, ListRow, Pill, Row, Screen } from '@/components/ui';
+import { WebPushCard } from '@/components/WebPushCard';
 import { useMe } from '@/lib/auth';
 import { fmtDateTime } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
@@ -40,6 +41,7 @@ export default function Notifications() {
   return (
     <Screen refreshing={loading} onRefresh={reload}>
       <Stack.Screen options={{ title: 'Notifications' }} />
+      <WebPushCard compact />
       <Row style={{ justifyContent: 'flex-end', marginBottom: 8 }}>
         <Button
           small
