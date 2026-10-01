@@ -2,7 +2,7 @@ import { router, Stack } from 'expo-router';
 import { ReactNode, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useMe } from '@/lib/auth';
-import { fmtDate, fmtDateTime, human } from '@/lib/format';
+import { fmtDate, fmtDateTime, fmtWorkDays, human } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { isDesigner, isEstimator } from '@/lib/roles';
 import { supabase } from '@/lib/supabase';
@@ -94,7 +94,7 @@ export function DesignBoard({ header }: { header?: ReactNode } = {}) {
                       <View>
                         <Text style={{ fontWeight: '600' }}>{p.full_name}</Text>
                         <Muted>
-                          {mine.length} open · {red} overdue · {mine.reduce((a, j) => a + Number(j.hours_logged), 0)} h logged
+                          {mine.length} open · {red} overdue · {fmtWorkDays(mine.reduce((a, j) => a + Number(j.hours_logged), 0))} logged
                         </Muted>
                       </View>
                     </Row>

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useDialog } from '@/components/dialog';
 import { Avatar, Button, Card, colors, ErrorBanner, ListRow, Muted, Notice, Pill, Row, Screen, Section, Segmented } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { fmtDate } from '@/lib/format';
+import { fmtDate, fmtWorkDays, WORKING_HOURS_PER_DAY } from '@/lib/format';
 import { clearPeopleCache, loadMasters, useLoad } from '@/lib/hooks';
 import { PROJECT_TYPES, ROLE_LABELS, ROLE_SHORT } from '@/lib/roles';
 import { callFunction, rpc, supabase } from '@/lib/supabase';
@@ -210,7 +210,7 @@ function SlaRules() {
     return (rows ?? []) as { stage: string; label: string; target_minutes: number }[];
   });
   return (
-    <Section title="SLA defaults (working hours; 1 working day = 9 h)">
+    <Section title="SLA defaults (working days; 1 working day = 08:30–17:30)">
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         {(data ?? []).map((r) => (
           <ListRow
@@ -219,15 +219,16 @@ function SlaRules() {
             subtitle={r.stage}
             right={
               <Row gap={6}>
-                <Pill label={`${(r.target_minutes / 60).toFixed(1)} h`} />
+                <Pill label={fmtWorkDays(r.target_minutes / 60)} />
                 {['sys_admin', 'gm'].includes(me.role) ? (
                   <Button
                     small
                     variant="ghost"
                     title="Edit"
                     onPress={async () => {
-                      const x = await dialog.prompt({ title: r.label, fields: [{ key: 'h', label: 'Target (working hours)', required: true, initial: String(r.target_minutes / 60) }] });
-                      if (x) await dialog.run(async () => { const { error } = await supabase.from('sla_rules').update({ target_minutes: Math.round(Number(x.h) * 60), updated_by: me.id }).eq('stage', r.stage); if (error) throw new Error(error.message); await reload(); }, 'Saved');
+                      const x = await dialog.prompt({ title: r.label, fields: [{ key: 'd', label: 'Target (working days – e.g. 0.5, 1, 3)', required: true, initial: String(+(r.target_minutes / 60 / WORKING_HOURS_PER_DAY).toFixed(2)) }] });
+                      if (x && !(Number(x.d) > 0)) return dialog.toast('Enter the number of working days', 'error');
+                      if (x) await dialog.run(async () => { const { error } = await supabase.from('sla_rules').update({ target_minutes: Math.round(Number(x.d) * WORKING_HOURS_PER_DAY * 60), updated_by: me.id }).eq('stage', r.stage); if (error) throw new Error(error.message); await reload(); }, 'Saved');
                     }}
                   />
                 ) : null}

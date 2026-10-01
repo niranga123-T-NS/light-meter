@@ -1,5 +1,5 @@
 import type { Column, Section } from './export';
-import { AGEING_COLOURS, AGEING_ORDER, fmtDate, fmtMoney, human } from './format';
+import { AGEING_COLOURS, AGEING_ORDER, fmtDate, fmtMoney, human, WORKING_HOURS_PER_DAY } from './format';
 import { projectTypeLabel, ROLE_SHORT } from './roles';
 import { rpc, supabase } from './supabase';
 import type { Debt, Inquiry, Profile, Project, Quotation, Sample, SlaClock, Visit } from './types';
@@ -216,20 +216,20 @@ export async function buildReport(key: string, f: Filters, people: Record<string
       const stages = Array.from(new Set(clocks.map((c) => c.stage)));
       const rows = stages.map((s) => {
         const done = clocks.filter((c) => c.stage === s && c.stopped_at);
-        const hours = done.map((c) => (Date.parse(c.stopped_at as string) - Date.parse(c.started_at)) / 3_600_000).sort((a, b) => a - b);
+        const days = done.map((c) => (Date.parse(c.stopped_at as string) - Date.parse(c.started_at)) / 86_400_000).sort((a, b) => a - b);
         const onTime = done.filter((c) => Date.parse(c.stopped_at as string) <= Date.parse(c.revised_due_at ?? c.due_at)).length;
         return {
           stage: human(s),
           closed: done.length,
           open: clocks.filter((c) => c.stage === s && !c.stopped_at).length,
           on_time: done.length ? `${Math.round((100 * onTime) / done.length)}%` : '—',
-          avg: hours.length ? (hours.reduce((a, b) => a + b, 0) / hours.length).toFixed(1) : '—',
-          p90: hours.length ? hours[Math.min(hours.length - 1, Math.floor(hours.length * 0.9))].toFixed(1) : '—',
+          avg: days.length ? (days.reduce((a, b) => a + b, 0) / days.length).toFixed(1) : '—',
+          p90: days.length ? days[Math.min(days.length - 1, Math.floor(days.length * 0.9))].toFixed(1) : '—',
         };
       });
       return {
-        filterText: `Stage turnaround ${period} (elapsed hours; SLA colours use working hours)`,
-        columns: [col('Stage', 'stage'), col('Closed', 'closed', 'right'), col('Open', 'open', 'right'), col('On time', 'on_time', 'right'), col('Average h', 'avg', 'right'), col('90th percentile h', 'p90', 'right')],
+        filterText: `Stage turnaround ${period} (elapsed calendar days; SLA colours use working days)`,
+        columns: [col('Stage', 'stage'), col('Closed', 'closed', 'right'), col('Open', 'open', 'right'), col('On time', 'on_time', 'right'), col('Average days', 'avg', 'right'), col('90th percentile days', 'p90', 'right')],
         sections: [{ rows }],
       };
     }
@@ -245,7 +245,7 @@ export async function buildReport(key: string, f: Filters, people: Record<string
       const data = await rpc<Row[]>('team_performance', { p_team: key === 'design_performance' ? 'design' : 'estimation', p_from: f.from, p_to: f.to });
       return {
         filterText: `${key === 'design_performance' ? 'Design' : 'Estimation'} team ${period}`,
-        columns: [col('Team member', 'full_name'), col('Completed', 'jobs_completed', 'right'), col('On time %', 'on_time_pct', 'right'), col('Avg working days', 'avg_working_days', 'right'), col('Overdue open', 'overdue_open', 'right'), col('Review cycles', 'review_cycles', 'right'), col('Hours', 'hours_logged', 'right'), col('Open jobs', 'open_jobs', 'right')],
+        columns: [col('Team member', 'full_name'), col('Completed', 'jobs_completed', 'right'), col('On time %', 'on_time_pct', 'right'), col('Avg working days', 'avg_working_days', 'right'), col('Overdue open', 'overdue_open', 'right'), col('Review cycles', 'review_cycles', 'right'), { header: 'Days logged', value: (r: Row) => (r.hours_logged == null ? '' : (Number(r.hours_logged) / WORKING_HOURS_PER_DAY).toFixed(1)), align: 'right' as const }, col('Open jobs', 'open_jobs', 'right')],
         sections: [{ rows: data }],
       };
     }
