@@ -4,7 +4,7 @@ import { AgeingChip } from '@/components/Ageing';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, ErrorBanner, KeyValue, Loading, Muted, Notice, Row, Screen, Section } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { fmtDate, fmtDateTime, fmtMoney, human, todayISO } from '@/lib/format';
+import { daysBetween, fmtDate, fmtDateTime, fmtMoney, human, todayISO } from '@/lib/format';
 import { useLoad, useMasters, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 import type { Debt } from '@/lib/types';
@@ -86,6 +86,7 @@ export default function DebtDetail() {
     }, r.s === 'collected' ? 'Marked collected – awaiting confirmation by the next upload' : 'Status updated');
   };
 
+  const hearingOverdue = d.is_legal && !d.legal_outcome && !!d.next_hearing_date && d.next_hearing_date < todayISO();
   const legal = async (close: boolean) => {
     const r = await dialog.prompt({
       title: close ? 'Close legal case' : d.is_legal ? 'Update legal status' : 'Place under Legal',
@@ -105,12 +106,16 @@ export default function DebtDetail() {
                 ],
               },
             ]
-          : [{ key: 'hearing', label: 'Next hearing date', type: 'date' as const, required: true }]),
+          : [
+              { key: 'hearing', label: 'Next hearing date', type: 'date' as const, required: true },
+              ...(d.is_legal ? [{ key: 'comment', label: 'Comments on this update (what happened / current status)', type: 'multiline' as const, required: true }] : []),
+            ]),
       ],
     });
     if (!r) return;
+    if (r.hearing && r.hearing < todayISO()) return dialog.toast('The next hearing date cannot be in the past', 'error');
     await dialog.run(async () => {
-      await rpc('set_debt_legal', { p_debt: d.id, p_is_legal: !close, p_description: r.desc, p_next_hearing: r.hearing || null, p_outcome: r.outcome || null });
+      await rpc('set_debt_legal', { p_debt: d.id, p_is_legal: !close, p_description: r.desc, p_next_hearing: r.hearing || null, p_outcome: r.outcome || null, p_comment: r.comment || null });
       await reload();
     }, 'Legal status saved');
   };
@@ -139,6 +144,11 @@ export default function DebtDetail() {
           {d.next_follow_up_date ? <KeyValue label="Next follow-up" value={fmtDate(d.next_follow_up_date)} /> : null}
         </Row>
         {d.collection_mismatch ? <Notice tone={colors.red}>Marked collected but still in the latest debtors upload – check with Operations.</Notice> : null}
+        {hearingOverdue ? (
+          <Notice tone={colors.red}>
+            Hearing date {fmtDate(d.next_hearing_date)} has passed ({daysBetween(d.next_hearing_date!, todayISO())} days ago) – {ops ? 'update the status, next hearing date and comments now.' : 'waiting for the Operations Executive to update it.'} A reminder is sent every day until it is updated.
+          </Notice>
+        ) : null}
         {d.is_legal ? (
           <Notice tone={colors.ink}>
             Legal: {d.legal_description} · next hearing {fmtDate(d.next_hearing_date)}
@@ -147,7 +157,7 @@ export default function DebtDetail() {
         {d.legal_outcome ? <Muted>Legal outcome: {d.legal_outcome}</Muted> : null}
         <Row wrap gap={8} style={{ marginTop: 8 }}>
           {canUpdate && !d.is_legal && !['collected_confirmed', 'cleared'].includes(d.status) ? <Button title="Update status" onPress={updateStatus} /> : null}
-          {ops ? <Button variant="secondary" title={d.is_legal ? 'Update legal / next hearing' : 'Place under Legal'} onPress={() => legal(false)} /> : null}
+          {ops ? <Button variant={hearingOverdue ? 'primary' : 'secondary'} title={d.is_legal ? 'Update legal / next hearing' : 'Place under Legal'} onPress={() => legal(false)} /> : null}
           {ops && d.is_legal ? <Button variant="secondary" title="Close legal case" onPress={() => legal(true)} /> : null}
           {canAssign ? <Button variant="secondary" title={d.sales_person_id ? 'Change sales person' : 'Assign sales person'} onPress={assign} /> : null}
         </Row>

@@ -1,17 +1,18 @@
 import { router, Stack } from 'expo-router';
+import { Text, View } from 'react-native';
 import { useMe } from '@/lib/auth';
 import { fmtDate, fmtMoney } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import { ROLE_LABELS } from '@/lib/roles';
 import { supabase } from '@/lib/supabase';
-import { Button, Card, ErrorBanner, Grid, H1, Muted, Row, Screen, Section, Stat } from '../ui';
+import { Button, Card, colors, ErrorBanner, Grid, H1, ListRow, Muted, Row, Screen, Section, Stat } from '../ui';
 
 /** Operations Executive home: debtors upload status and the samples queue (Sections 12, 13). */
 export function OpsHome() {
   const { data, error, loading, reload } = useLoad(async () => {
     const [uploads, debts, samples] = await Promise.all([
       supabase.from('debt_uploads').select('as_at, status, confirmed_at').eq('status', 'confirmed').order('as_at', { ascending: false }).limit(1),
-      supabase.from('debts').select('amount, currency, is_legal, next_hearing_date, collection_mismatch').not('status', 'in', '(collected_confirmed,cleared)'),
+      supabase.from('debts').select('id, client_name, invoice_no, amount, currency, is_legal, legal_outcome, next_hearing_date, collection_mismatch').not('status', 'in', '(collected_confirmed,cleared)'),
       supabase.from('samples').select('status, expected_return_date'),
     ]);
     const today = new Date().toISOString().slice(0, 10);
@@ -23,6 +24,8 @@ export function OpsHome() {
       usd: d.filter((x) => x.currency === 'USD').reduce((a, x) => a + Number(x.amount), 0),
       legal: d.filter((x) => x.is_legal).length,
       hearings: d.filter((x) => x.is_legal && x.next_hearing_date && x.next_hearing_date <= today).length,
+      // Legal cases whose hearing date has passed without an update (alerted every day)
+      passed: d.filter((x) => x.is_legal && !x.legal_outcome && x.next_hearing_date && x.next_hearing_date < today),
       mismatches: d.filter((x) => x.collection_mismatch).length,
       toCheck: s.filter((x) => x.status === 'submitted').length,
       toDispatch: s.filter((x) => x.status === 'approved').length,
@@ -39,6 +42,24 @@ export function OpsHome() {
         <Button title="Upload debtors list" icon="⇪" onPress={() => router.push('/debtors/upload')} />
         <Button title="Samples queue" variant="secondary" onPress={() => router.push('/samples')} />
       </Row>
+      {data?.passed.length ? (
+        <Card style={{ borderColor: colors.red, borderWidth: 2, marginTop: 12, padding: 0, overflow: 'hidden' }}>
+          <View style={{ padding: 12, backgroundColor: '#FDECEC' }}>
+            <Text style={{ fontWeight: '800', color: colors.red }}>Hearing date passed – update {data.passed.length} legal case{data.passed.length === 1 ? '' : 's'}</Text>
+            <Muted>Enter the status, next hearing date and comments. A reminder is sent every day until each case is updated.</Muted>
+          </View>
+          {data.passed.map((x) => (
+            <ListRow
+              key={x.id}
+              highlight={colors.red}
+              title={`${x.client_name ?? ''} · ${x.invoice_no}`}
+              subtitle={`Hearing was ${fmtDate(x.next_hearing_date)} · ${fmtMoney(x.amount, x.currency)}`}
+              right={<Text style={{ color: colors.red, fontWeight: '700' }}>Update ›</Text>}
+              onPress={() => router.push(`/debtors/${x.id}`)}
+            />
+          ))}
+        </Card>
+      ) : null}
       {data ? (
         <>
           <Section title="Debtors">
@@ -47,7 +68,7 @@ export function OpsHome() {
               <Stat label="Outstanding LKR" value={fmtMoney(data.lkr, 'LKR')} />
               <Stat label="Outstanding USD" value={fmtMoney(data.usd, 'USD')} />
               <Stat label="Legal cases" value={data.legal} onPress={() => router.push('/debtors?filter=legal')} />
-              <Stat label="Hearing outcome to enter" value={data.hearings} tone={data.hearings ? 'red' : undefined} onPress={() => router.push('/debtors?filter=legal')} />
+              <Stat label="Hearing date passed – update" value={data.passed.length} tone={data.passed.length ? 'red' : undefined} onPress={() => router.push('/debtors?filter=hearing')} />
               <Stat label="Collection mismatches" value={data.mismatches} tone={data.mismatches ? 'amber' : undefined} onPress={() => router.push('/debtors?filter=mismatch')} />
             </Grid>
           </Section>
