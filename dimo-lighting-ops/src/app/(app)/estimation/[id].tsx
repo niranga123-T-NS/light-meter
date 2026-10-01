@@ -115,16 +115,16 @@ export default function EstimationJobScreen() {
           <KeyValue label="Estimation scope" value={estimationScopeText(inq?.estimation_scope, inq?.estimation_basis)} />
           <KeyValue label="Quotation no." value={j.quotation_no ?? '—'} />
         </Row>
-        {j.status === 'sm_projects_approval' ? <Notice tone={colors.blue}>Below the 15 Mn LKR limit – waiting for SM Projects to verify and accept before release.</Notice> : null}
+        {j.status === 'sm_projects_approval' ? <Notice tone={colors.blue}>Waiting for approval to release: SM Projects verifies, and from 15 Mn LKR (or below the margin floor) GM / DGM approves after SM Projects.</Notice> : null}
         {j.status === 'revision_requested' ? (
           <Notice tone={colors.red}>
-            SM Projects requested a revision: {j.review_comment}
+            Sent back for revision (SM Projects or GM / DGM): {j.review_comment}
             {sme ? ' – assign it to an estimator (same or another) with a new due date.' : ' – SM Estimation will re-assign it.'}
           </Notice>
         ) : j.review_comment ? (
           <Notice tone={j.status === 'returned' ? colors.amber : colors.blue}>Reviewer: {j.review_comment}</Notice>
         ) : null}
-        {j.needs_sm_projects && j.status === 'approved' ? <Notice tone={colors.green}>Accepted by SM Projects – SM Estimation releases it to sales.</Notice> : null}
+        {j.needs_sm_projects && j.status === 'approved' ? <Notice tone={colors.green}>Approved – SM Estimation releases it to sales.</Notice> : null}
         {j.status === 'on_hold' ? <Notice tone={colors.grey}>On hold: {j.hold_reason}</Notice> : null}
         {j.status === 'date_change_requested' ? <Notice tone={colors.amber}>Date change requested: {fmtDateTime(j.requested_due_at)}</Notice> : null}
 
@@ -164,7 +164,7 @@ export default function EstimationJobScreen() {
                   dialog.run(async () => {
                     const res = await rpc<string>('review_estimate', { p_job: j.id, p_approve: true });
                     if (res === 'gm_approval') dialog.toast('Above the value / below the margin limit – sent to GM / DGM for approval');
-                    if (res === 'sm_projects_approval') dialog.toast('Below 15 Mn LKR – sent to SM Projects to verify before release');
+                    if (res === 'sm_projects_approval') dialog.toast('Sent to SM Projects (then GM / DGM from 15 Mn LKR) for approval to release');
                     await reload();
                   })
                 }

@@ -3,6 +3,7 @@ import { useShellCounts } from '@/components/AppShell';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, Empty, ErrorBanner, ListRow, Muted, Pill, Row, Screen, Section } from '@/components/ui';
 import { fmtDateTime, human } from '@/lib/format';
+import { useMe } from '@/lib/auth';
 import { useLoad } from '@/lib/hooks';
 import { rpc } from '@/lib/supabase';
 import type { PendingApproval } from '@/lib/types';
@@ -10,6 +11,7 @@ import type { PendingApproval } from '@/lib/types';
 /** Every pending approval for the signed-in user in one place (Section 8.6). */
 export default function Approvals() {
   const dialog = useDialog();
+  const me = useMe();
   const { refresh } = useShellCounts();
   const { data, error, loading, reload } = useLoad(() => rpc<PendingApproval[]>('my_pending_approvals'));
 
@@ -18,7 +20,7 @@ export default function Approvals() {
     if (decision !== 'approved' || a.kind === 'duplicate_visit') {
       const r = await dialog.prompt({
         title: `${a.kind === 'quotation_sm_projects' && decision === 'returned' ? 'Request revision' : human(decision)}: ${a.title}`,
-        fields: [{ key: 'c', label: decision === 'approved' ? 'Comment' : a.kind === 'quotation_sm_projects' ? 'What needs to be revised (required)' : 'Reason (required)', type: 'multiline', required: decision !== 'approved' }],
+        fields: [{ key: 'c', label: decision === 'approved' ? 'Comment' : a.kind === 'quotation_sm_projects' ? (decision === 'rejected' ? 'Reason for rejection – goes back to SM Estimation (required)' : 'What needs to be revised (required)') : 'Reason (required)', type: 'multiline', required: decision !== 'approved' }],
       });
       if (!r) return;
       comment = r.c || null;
@@ -46,7 +48,13 @@ export default function Approvals() {
               subtitle={`${human(a.kind)} · ${a.requester ?? ''} · ${fmtDateTime(a.requested_at)}${a.step ? ` · ${a.step}` : ''}${a.reason ? `\n${a.reason}` : ''}`}
               onPress={a.inquiry_id ? () => router.push(a.url as never) : undefined}
               right={
-                a.kind === 'quotation_sm_projects' ? (
+                a.kind === 'quotation_sm_projects' && me.role === 'gm' ? (
+                  <Row gap={4} wrap>
+                    <Button small variant="secondary" title="Open quotation" onPress={() => router.push(a.url as never)} />
+                    <Button small title="Approve" onPress={() => decide(a, 'approved')} />
+                    <Button small variant="danger" title="Reject" onPress={() => decide(a, 'rejected')} />
+                  </Row>
+                ) : a.kind === 'quotation_sm_projects' ? (
                   // Verify the draft quotation on the inquiry page, then accept or ask for a revision
                   <Row gap={4} wrap>
                     <Button small variant="secondary" title="Open quotation" onPress={() => router.push(a.url as never)} />

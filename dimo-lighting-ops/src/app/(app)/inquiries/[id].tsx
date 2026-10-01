@@ -384,7 +384,10 @@ export default function InquiryDetail() {
   const mgr = managerActions();
   const showWorkspaceLinks = !isSales(me.role) && me.role !== 'sm_projects';
   // SM Projects verifies quotations below 15 Mn LKR before SM Estimation releases them
-  const quoteCheck = me.role === 'sm_projects' || me.role === 'gm' ? approvals.find((a) => a.kind === 'quotation_sm_projects' && a.status === 'pending') : undefined;
+  const quoteCheck = approvals.find(
+    (a) => a.kind === 'quotation_sm_projects' && a.status === 'pending' && ((me.role === 'sm_projects' && a.current_step === 1) || me.role === 'gm'),
+  );
+  const gmQuote = me.role === 'gm';
   const draftFiles = files.filter((f) => f.entity_type === 'estimation_job' && ['quotation_draft', 'costing_sheet', 'compliance_sheet', 'technical_data'].includes(f.kind));
   const releasedFiles = files.filter((f) => ['design_pack', 'quotation_final', 'compliance_sheet', 'technical_data'].includes(f.kind));
 
@@ -527,11 +530,15 @@ export default function InquiryDetail() {
       ) : null}
 
       {quoteCheck ? (
-        <Section title="Quotation for your approval (below 15 Mn LKR)">
+        <Section title="Quotation for your approval">
           <Card style={{ borderColor: colors.amber }}>
             <Text style={{ fontWeight: '700' }}>{quoteCheck.title}</Text>
             {quoteCheck.reason ? <Muted>{quoteCheck.reason}</Muted> : null}
-            <Muted style={{ marginTop: 6 }}>Open the draft quotation and supporting files, then accept it or request a revision. Accepted quotations are released to sales by SM Estimation.</Muted>
+            <Muted style={{ marginTop: 6 }}>
+              {gmQuote
+                ? 'Open the draft quotation and supporting files, then approve or reject. A rejection goes back to SM Estimation for revision (SM Projects is informed).'
+                : 'Open the draft quotation and supporting files, then accept it or request a revision. From 15 Mn LKR it then goes to GM / DGM; approved quotations are released to sales by SM Estimation.'}
+            </Muted>
           </Card>
           <Card style={{ padding: 0, overflow: 'hidden', marginTop: 8 }}>
             {draftFiles.map((f) => (
@@ -541,18 +548,23 @@ export default function InquiryDetail() {
           </Card>
           <Row gap={8} wrap style={{ marginTop: 8 }}>
             <Button
-              title="Accept quotation"
+              title={gmQuote ? 'Approve quotation' : 'Accept quotation'}
               onPress={async () => {
-                const r = await dialog.prompt({ title: 'Accept quotation', message: 'SM Estimation will be asked to release it to sales.', fields: [{ key: 'c', label: 'Comment (optional)', type: 'multiline' }], confirmLabel: 'Accept' });
-                if (r) await act('decide_approval', { p_approval: quoteCheck.id, p_decision: 'approved', p_comment: r.c || null }, 'Accepted – SM Estimation will release it');
+                const r = await dialog.prompt({ title: gmQuote ? 'Approve quotation' : 'Accept quotation', message: 'SM Estimation releases it to sales once all approvals are given.', fields: [{ key: 'c', label: 'Comment (optional)', type: 'multiline' }], confirmLabel: 'Accept' });
+                if (r) await act('decide_approval', { p_approval: quoteCheck.id, p_decision: 'approved', p_comment: r.c || null }, 'Approval recorded');
               }}
             />
             <Button
               variant="danger"
-              title="Request revision"
+              title={gmQuote ? 'Reject' : 'Request revision'}
               onPress={async () => {
-                const r = await dialog.prompt({ title: 'Request revision', message: 'Goes back to SM Estimation, who re-assigns it to an estimator.', fields: [{ key: 'c', label: 'What needs to be revised', type: 'multiline', required: true }], confirmLabel: 'Request revision' });
-                if (r) await act('decide_approval', { p_approval: quoteCheck.id, p_decision: 'returned', p_comment: r.c }, 'Revision requested – SM Estimation notified');
+                const r = await dialog.prompt({
+                  title: gmQuote ? 'Reject quotation' : 'Request revision',
+                  message: 'Goes back to SM Estimation, who re-assigns it to an estimator; it then comes through the same approvals again.',
+                  fields: [{ key: 'c', label: gmQuote ? 'Reason for rejection' : 'What needs to be revised', type: 'multiline', required: true }],
+                  confirmLabel: gmQuote ? 'Reject' : 'Request revision',
+                });
+                if (r) await act('decide_approval', { p_approval: quoteCheck.id, p_decision: gmQuote ? 'rejected' : 'returned', p_comment: r.c }, 'Sent back to SM Estimation');
               }}
             />
           </Row>

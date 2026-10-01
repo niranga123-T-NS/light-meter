@@ -342,16 +342,47 @@ select public.submit_estimate_for_approval((select id from public.estimation_job
 reset role;
 do $$ begin assert (select sm_projects_revisions from public.estimation_jobs) = 2, 'two revision rounds'; end $$;
 
--- Above the GM value threshold → GM approval
-select pg_temp.act_as('sm_estimation');
-set role authenticated;
+-- From 15 Mn LKR: SM Projects, then GM / DGM. A GM rejection goes back to SM Estimation; SM Projects is only told.
+select pg_temp.act_as('sm_estimation'); set role authenticated;
 do $$ begin
-  assert public.review_estimate((select id from public.estimation_jobs), true, 'OK') = 'gm_approval', 'needs GM';
+  assert public.review_estimate((select id from public.estimation_jobs), true, 'OK') = 'sm_projects_approval', 'SM Projects first';
 end $$;
 reset role;
-select pg_temp.act_as('gm');
-set role authenticated;
-select public.decide_approval((select id from public.approvals where kind = 'quotation_release'), 'approved', 'Proceed');
+do $$ begin
+  assert (select array_agg(approver_role::text order by step_no) from public.approval_steps
+          where approval_id = (select id from public.approvals where kind = 'quotation_sm_projects' and status = 'pending')) = '{sm_projects,gm}', 'SM Projects then GM';
+end $$;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+select public.decide_approval((select id from public.approvals where kind = 'quotation_sm_projects' and status = 'pending'), 'approved', 'Fine');
+reset role;
+do $$ begin
+  assert (select status from public.estimation_jobs) = 'sm_projects_approval', 'still waiting for GM';
+  assert exists (select 1 from public.notifications where kind = 'approval_requested' and recipient_id = (select id from u where role = 'gm') and title like '%Quotation release%'), 'GM asked';
+end $$;
+select pg_temp.act_as('gm'); set role authenticated;
+select public.decide_approval((select id from public.approvals where kind = 'quotation_sm_projects' and status = 'pending'), 'rejected', 'Price too high for this client');
+reset role;
+do $$ begin
+  assert (select status from public.estimation_jobs) = 'revision_requested', 'GM rejection back to SM Estimation';
+  assert exists (select 1 from public.notifications where kind = 'quotation_gm_rejected' and recipient_id = (select id from u where role = 'sm_projects')), 'SM Projects told';
+  assert exists (select 1 from public.notifications where kind = 'quotation_revision' and title like 'GM / DGM rejected%' and recipient_id = (select id from u where role = 'sm_estimation')), 'SM Estimation told';
+end $$;
+-- Re-assigned, revised and approved again the same way
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+select public.assign_estimation_job((select id from public.estimation_jobs), public.default_estimator('00000000-0000-0000-0000-00000000d001'), now() + interval '3 days', 'large');
+reset role;
+select pg_temp.act_as('estimation_exec'); set role authenticated;
+select public.save_estimate((select id from public.estimation_jobs), 58000000, 45000000, 22, '[{"group":"Downlights","brand":"TestBrand EU","origin":"european"}]');
+select public.submit_estimate_for_approval((select id from public.estimation_jobs));
+reset role;
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+select public.review_estimate((select id from public.estimation_jobs), true, 'Revised');
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+select public.decide_approval((select id from public.approvals where kind = 'quotation_sm_projects' and status = 'pending'), 'approved', 'OK');
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+select public.decide_approval((select id from public.approvals where kind = 'quotation_sm_projects' and status = 'pending'), 'approved', 'Proceed');
 reset role;
 
 select pg_temp.act_as('estimation_exec');
@@ -359,12 +390,16 @@ set role authenticated;
 do $$ declare j uuid;
 begin
   select id into j from public.estimation_jobs;
+  assert (select status from public.estimation_jobs where id = j) = 'approved', 'GM approved';
   insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values
     ('estimation_job', j, 'quotation_final', 'estimation_job/' || j || '/f.pdf', 'final.pdf'),
     ('estimation_job', j, 'compliance_sheet', 'estimation_job/' || j || '/cs.pdf', 'compliance.pdf'),
     ('estimation_job', j, 'technical_data', 'estimation_job/' || j || '/tds.pdf', 'tds.pdf');
-  perform public.release_quotation(j);
 end $$;
+reset role;
+-- SM Estimation releases
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+select public.release_quotation((select id from public.estimation_jobs));
 reset role;
 
 -- 7. Sales: released quotation visible, costing hidden; submit and win -------------
