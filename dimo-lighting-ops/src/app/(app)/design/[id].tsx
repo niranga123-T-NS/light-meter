@@ -68,6 +68,8 @@ export default function DesignJobScreen() {
   const mine = j.assignee_id === me.id;
   const dm = me.role === 'design_manager' || me.role === 'gm';
   const active = ['assigned', 'acknowledged', 'in_progress', 'returned', 'date_change_requested'].includes(j.status);
+  // The designer edits brands while working; the Design Manager can still complete them in review or after approval (until release)
+  const brandsEditable = (mine && active) || (dm && (active || ['in_review', 'approved'].includes(j.status)));
   const run = (fn: string, args: Record<string, unknown>, ok: string) =>
     dialog.run(async () => {
       await rpc(fn, args);
@@ -124,7 +126,9 @@ export default function DesignJobScreen() {
               onPress={async () => {
                 if (!(await dialog.confirm('Submit for review?', 'The Design Manager will review and approve or return it.'))) return;
                 await dialog.run(async () => {
-                  await rpc('set_design_brands', { p_job: j.id, p_brands: brands.filter((b) => b.group && b.brand) });
+                  const filled = brands.filter((b) => b.group && b.brand);
+                  if (j.task_type === 'lighting' && !filled.length) throw new Error('Enter the brands specified in the design (section below) before submitting');
+                  await rpc('set_design_brands', { p_job: j.id, p_brands: filled });
                   await rpc('submit_design_for_review', { p_job: j.id });
                   await reload();
                 }, 'Submitted for review');
@@ -240,8 +244,8 @@ export default function DesignJobScreen() {
 
       <Section title="Brands specified in the design">
         <Card>
-          <BrandEditor value={brands} onChange={setBrands} readOnly={!(mine || dm) || !active} expectedLevel={inq?.solution_level} expectedOrigin={inq?.manufacturing_origin} />
-          {(mine || dm) && active ? (
+          <BrandEditor value={brands} onChange={setBrands} readOnly={!brandsEditable} expectedLevel={inq?.solution_level} expectedOrigin={inq?.manufacturing_origin} />
+          {brandsEditable ? (
             <Button small title="Save brands" onPress={() => dialog.run(() => rpc('set_design_brands', { p_job: j.id, p_brands: brands.filter((b) => b.group && b.brand) }), 'Brands saved')} />
           ) : null}
         </Card>
