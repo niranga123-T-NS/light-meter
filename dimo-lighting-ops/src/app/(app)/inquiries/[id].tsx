@@ -5,6 +5,7 @@ import { Attachments, KIND_LABELS } from '@/components/Attachments';
 import { useDialog } from '@/components/dialog';
 import { InquiryTimeline, STAGE_COLOUR } from '@/components/InquiryBits';
 import { PersonPicker } from '@/components/pickers';
+import { DESIGN_SCOPE, designScopeText, ESTIMATION_BASIS, ESTIMATION_SCOPE, estimationScopeText } from '@/lib/constants';
 import { Button, Card, colors, DateField, ErrorBanner, KeyValue, ListRow, Loading, Muted, Notice, Pill, Progress, Row, Screen, Section, Select, SlaDot } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { openAttachment } from '@/lib/files';
@@ -198,7 +199,7 @@ export default function InquiryDetail() {
                   required: true,
                   options: [
                     { value: 'duty_change', label: 'Duty status (SM Projects approves)' },
-                    { value: 'expectation_change', label: 'Client solution level / origin (Design Manager + SM Estimation)' },
+                    { value: 'expectation_change', label: 'Client expectation or scope – level, origin, design / estimation scope (Design Manager + SM Estimation)' },
                     { value: 'release_mode', label: 'Release mode (SM Projects)' },
                     ...(i.release_mode === 3 ? [{ value: 'early_design_release', label: 'Early design release (Design Manager → SM Projects)' }] : []),
                   ],
@@ -232,6 +233,15 @@ export default function InquiryDetail() {
                     { value: 'no_preference', label: 'No preference' },
                   ],
                 },
+                ...(i.route !== 'B'
+                  ? [{ key: 'dscope', label: 'New design scope', type: 'select' as const, options: DESIGN_SCOPE }]
+                  : []),
+                ...(i.route !== 'C'
+                  ? [
+                      { key: 'escope', label: 'New estimation scope', type: 'multiselect' as const, options: ESTIMATION_SCOPE, initial: (i.estimation_scope ?? []).join(',') },
+                      { key: 'ebasis', label: 'New estimation basis', type: 'select' as const, options: ESTIMATION_BASIS, initial: i.estimation_basis ?? '' },
+                    ]
+                  : []),
                 {
                   key: 'mode',
                   label: 'New release mode',
@@ -251,7 +261,13 @@ export default function InquiryDetail() {
               r.kind === 'duty_change'
                 ? { duty_status: r.duty }
                 : r.kind === 'expectation_change'
-                  ? { solution_level: r.level || null, manufacturing_origin: r.origin || null }
+                  ? {
+                      solution_level: r.level || null,
+                      manufacturing_origin: r.origin || null,
+                      design_scope: r.dscope || null,
+                      estimation_scope: r.escope && r.escope !== (i.estimation_scope ?? []).join(',') ? r.escope.split(',') : null,
+                      estimation_basis: r.ebasis && r.ebasis !== i.estimation_basis ? r.ebasis : null,
+                    }
                   : r.kind === 'release_mode'
                     ? { release_mode: Number(r.mode) }
                     : { required_date: r.date };
@@ -453,7 +469,8 @@ export default function InquiryDetail() {
       <Section title="Request">
         <Card>
           <Row wrap>
-            <KeyValue label="Design scope" value={human(i.design_scope)} />
+            <KeyValue label="Design scope" value={designScopeText(i.design_scope)} />
+            <KeyValue label="Estimation scope" value={estimationScopeText(i.estimation_scope, i.estimation_basis)} />
             <KeyValue label="Submission type" value={i.submission_type ?? '—'} />
             <KeyValue label="Solution level" value={human(i.solution_level)} />
             <KeyValue label="Origin" value={human(i.manufacturing_origin)} />

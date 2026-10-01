@@ -1,13 +1,15 @@
 import { createContext, ReactNode, useCallback, useContext, useRef, useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
-import { Button, colors, DateField, Field, Muted, Row, Select, styles, type Option } from './ui';
+import { Button, colors, DateField, Field, Muted, MultiSelect, Row, Select, styles, type Option } from './ui';
 
 // Cross-platform dialogs: confirm, prompt with fields (reasons are mandatory throughout the SRS), toast.
 
 export type PromptField =
   | { key: string; label: string; type?: 'text' | 'multiline' | 'password'; required?: boolean; maxLength?: number; initial?: string; hint?: string }
   | { key: string; label: string; type: 'date'; required?: boolean; initial?: string; hint?: string }
-  | { key: string; label: string; type: 'select'; options: Option[]; required?: boolean; initial?: string; hint?: string };
+  | { key: string; label: string; type: 'select'; options: Option[]; required?: boolean; initial?: string; hint?: string }
+  /** Several choices; the value comes back comma-separated */
+  | { key: string; label: string; type: 'multiselect'; options: Option[]; required?: boolean; initial?: string; hint?: string };
 
 type PromptOptions = { title: string; message?: string; fields?: PromptField[]; confirmLabel?: string; danger?: boolean };
 
@@ -78,6 +80,15 @@ export function DialogProvider({ children }: { children: ReactNode }) {
               {(state?.fields ?? []).map((f) =>
                 f.type === 'date' ? (
                   <DateField key={f.key} label={f.label} required={f.required} hint={f.hint} value={values[f.key]} onChange={(v) => setValues((s) => ({ ...s, [f.key]: v ?? '' }))} />
+                ) : f.type === 'multiselect' ? (
+                  <MultiSelect
+                    key={f.key}
+                    label={f.required ? `${f.label} *` : f.label}
+                    hint={f.hint}
+                    options={f.options}
+                    values={(values[f.key] ?? '').split(',').filter(Boolean)}
+                    onChange={(v) => setValues((s) => ({ ...s, [f.key]: v.join(',') }))}
+                  />
                 ) : f.type === 'select' ? (
                   <Select key={f.key} label={f.label} required={f.required} hint={f.hint} options={f.options} value={values[f.key]} onChange={(v) => setValues((s) => ({ ...s, [f.key]: v }))} />
                 ) : (

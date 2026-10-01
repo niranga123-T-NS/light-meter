@@ -2,7 +2,8 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useDialog } from '@/components/dialog';
 import { CustomerPicker, ProjectPicker } from '@/components/pickers';
-import { Button, Card, colors, DateField, ErrorBanner, Field, Muted, Notice, NumberField, Row, Screen, Section, Segmented, Select, Toggle } from '@/components/ui';
+import { Button, Card, colors, DateField, ErrorBanner, Field, Muted, MultiSelect, Notice, NumberField, Row, Screen, Section, Segmented, Select, Toggle } from '@/components/ui';
+import { DESIGN_SCOPE, ESTIMATION_BASIS, ESTIMATION_SCOPE } from '@/lib/constants';
 import { supabase } from '@/lib/supabase';
 import type { DutyStatus, Inquiry, Project } from '@/lib/types';
 
@@ -28,6 +29,8 @@ export default function NewInquiry() {
     release_mode: 3 as number,
     duty_status: null as DutyStatus | null,
     design_scope: 'lighting' as string | null,
+    estimation_scope: ['fixtures'] as string[],
+    estimation_basis: null as string | null,
     priority: 'normal',
     submission_type: '',
     customer_deadline: null as string | null,
@@ -79,11 +82,15 @@ export default function NewInquiry() {
     if (hasUnits && !f.unit_id) return setError('Select the unit / department – this customer has units defined');
     if (!f.customer_deadline) return setError('Customer deadline is mandatory');
     if (needsDuty && !f.duty_status) return setError('Duty status is mandatory when estimation is in scope');
+    if (needsDuty && !f.estimation_scope.length) return setError('Select the estimation scope – what Estimation must price');
+    if (needsDuty && !f.estimation_basis) return setError('Select the estimation basis – supply only, supply & install, or supply, install & commission');
     if (f.design_required_by && f.design_required_by >= f.customer_deadline) return setError('Design required-by must be before the customer deadline');
     if (f.quotation_required_by && f.quotation_required_by >= f.customer_deadline) return setError('Quotation required-by must be before the customer deadline');
     const row = {
       ...f,
       design_scope: f.route === 'B' ? null : f.design_scope,
+      estimation_scope: needsDuty ? f.estimation_scope : [],
+      estimation_basis: needsDuty ? f.estimation_basis : null,
       duty_status: needsDuty ? f.duty_status : f.duty_status,
       submission_type: f.submission_type || null,
       areas: f.areas || null,
@@ -143,12 +150,21 @@ export default function NewInquiry() {
               label="Design scope"
               value={f.design_scope}
               onChange={(v) => set('design_scope', v)}
-              options={[
-                { value: 'lighting', label: 'Lighting' },
-                { value: 'electrical', label: 'Electrical' },
-                { value: 'lighting_electrical', label: 'Lighting + Electrical' },
-              ]}
+              options={DESIGN_SCOPE}
+              hint="What the design team must design"
             />
+          ) : null}
+          {f.route !== 'C' ? (
+            <>
+              <MultiSelect
+                label="Estimation scope *"
+                values={f.estimation_scope}
+                options={ESTIMATION_SCOPE}
+                onChange={(v) => set('estimation_scope', v)}
+                hint="What the estimation team must price"
+              />
+              <Select label="Estimation basis" required value={f.estimation_basis} options={ESTIMATION_BASIS} onChange={(v) => set('estimation_basis', v)} />
+            </>
           ) : null}
           <Select
             label={needsDuty ? 'Duty status (fixes the currency)' : 'Duty status (optional for design only)'}

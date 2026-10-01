@@ -1,4 +1,5 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { designScopeText, estimationScopeText } from '@/lib/constants';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { Attachments, KIND_LABELS } from '@/components/Attachments';
@@ -29,7 +30,7 @@ export default function EstimationJobScreen() {
   const { data, error, reload } = useLoad(async () => {
     const { data: j, error: e } = await supabase
       .from('estimation_jobs')
-      .select('*, inquiries(code, project_name, customer_name, customer_deadline, route, status, duty_status, currency, project_type, solution_level, manufacturing_origin, expectation_notes, scope_description, quotation_required_by, debtor_flag, revision)')
+      .select('*, inquiries(code, project_name, customer_name, customer_deadline, route, status, duty_status, currency, project_type, solution_level, manufacturing_origin, expectation_notes, scope_description, design_scope, estimation_scope, estimation_basis, quotation_required_by, debtor_flag, revision)')
       .eq('id', id)
       .single();
     if (e) throw new Error(e.message);
@@ -110,6 +111,8 @@ export default function EstimationJobScreen() {
           <KeyValue label="Quotation requested by" value={fmtDate(inq?.quotation_required_by)} />
           <KeyValue label="Customer deadline" value={fmtDate(inq?.customer_deadline)} />
           <KeyValue label="Client expectation" value={`${human(inq?.solution_level)} · ${human(inq?.manufacturing_origin)}`} />
+          <KeyValue label="Design scope" value={designScopeText(inq?.design_scope)} />
+          <KeyValue label="Estimation scope" value={estimationScopeText(inq?.estimation_scope, inq?.estimation_basis)} />
           <KeyValue label="Quotation no." value={j.quotation_no ?? '—'} />
         </Row>
         {j.review_comment ? <Notice tone={j.status === 'returned' ? colors.amber : colors.blue}>Reviewer: {j.review_comment}</Notice> : null}

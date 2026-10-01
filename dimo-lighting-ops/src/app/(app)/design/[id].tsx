@@ -1,4 +1,5 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { designScopeText, estimationScopeText } from '@/lib/constants';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { Attachments, KIND_LABELS } from '@/components/Attachments';
@@ -38,7 +39,7 @@ export default function DesignJobScreen() {
   const { data, error, reload } = useLoad(async () => {
     const { data: j, error: e } = await supabase
       .from('design_jobs')
-      .select('*, inquiries(code, project_name, customer_name, customer_deadline, route, status, solution_level, manufacturing_origin, expectation_notes, scope_description, design_required_by, revision)')
+      .select('*, inquiries(code, project_name, customer_name, customer_deadline, route, status, solution_level, manufacturing_origin, expectation_notes, scope_description, design_scope, estimation_scope, estimation_basis, design_required_by, revision)')
       .eq('id', id)
       .single();
     if (e) throw new Error(e.message);
@@ -101,6 +102,8 @@ export default function DesignJobScreen() {
           <KeyValue label="Hours logged" value={String(j.hours_logged)} />
           <KeyValue label="Review cycles" value={String(j.review_cycles)} />
           <KeyValue label="Client expectation" value={`${human(inq?.solution_level)} · ${human(inq?.manufacturing_origin)}`} />
+          <KeyValue label="Design scope" value={designScopeText(inq?.design_scope)} />
+          <KeyValue label="Estimation scope" value={estimationScopeText(inq?.estimation_scope, inq?.estimation_basis)} />
         </Row>
         {j.review_comment ? <Notice tone={j.status === 'returned' ? colors.amber : colors.blue}>Design Manager: {j.review_comment}</Notice> : null}
         {j.status === 'on_hold' ? <Notice tone={colors.grey}>On hold: {j.hold_reason} · waiting on {j.hold_waiting_on}</Notice> : null}
