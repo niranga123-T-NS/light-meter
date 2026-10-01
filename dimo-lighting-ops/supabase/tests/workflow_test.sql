@@ -470,12 +470,37 @@ do $$ begin
     raise exception 'electrical to designer allowed';
   exception when others then if sqlerrm not like '%Lighting Engineer%' then raise; end if;
   end;
+  -- Each design task is assigned once per revision; changing the designer is a Reassign
+  begin
+    perform public.assign_design_job('00000000-0000-0000-0000-00000000d003', (select id from u where role = 'lighting_engineer'), now() + interval '3 days', 'lighting');
+    raise exception 'second lighting assignment allowed';
+  exception when others then if sqlerrm not like '%already assigned%' then raise; end if;
+  end;
 end $$;
+-- The designer puts the job on hold: the Design Manager is alerted at once
+reset role;
+select pg_temp.act_as('lighting_engineer'); set role authenticated;
 select public.hold_job('design_job', (select id from public.design_jobs where inquiry_id = '00000000-0000-0000-0000-00000000d003' and task_type = 'electrical'), 'Waiting for client drawings', 'Client MEP consultant');
-do $$ begin
-  assert (select colour from public.sla_clocks where entity_id = (select id from public.design_jobs where inquiry_id = '00000000-0000-0000-0000-00000000d003' and task_type = 'electrical')
-          and stage = 'design' and stopped_at is null) = 'grey', 'hold pauses clock';
+reset role;
+do $$ declare j uuid := (select id from public.design_jobs where inquiry_id = '00000000-0000-0000-0000-00000000d003' and task_type = 'electrical');
+begin
+  assert (select colour from public.sla_clocks where entity_id = j and stage = 'design' and stopped_at is null) = 'grey', 'hold pauses clock';
+  assert exists (select 1 from public.notifications where kind = 'design_on_hold' and recipient_id = (select id from u where role = 'design_manager')), 'design manager alerted';
+  assert (select held_at from public.design_jobs where id = j) is not null, 'hold time recorded';
+  assert public.design_hold_tick() = 0, 'no long-hold alert yet';
+  -- Still on hold a week later (over 2 working days): SM Projects is told once
+  update public.design_jobs set held_at = now() - interval '7 days' where id = j;
+  assert public.design_hold_tick() = 1, 'long hold alerted';
+  assert exists (select 1 from public.notifications where kind = 'design_hold_long' and recipient_id = (select id from u where role = 'sm_projects')), 'SM Projects informed';
+  assert public.design_hold_tick() = 0, 'alerted only once';
 end $$;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert (select count(*) from public.design_holds()) = 1, 'dashboard lists the hold';
+  assert (select working_days from public.design_holds()) >= 2, 'days on hold';
+end $$;
+reset role;
+select pg_temp.act_as('design_manager'); set role authenticated;
 select public.resume_job('design_job', (select id from public.design_jobs where inquiry_id = '00000000-0000-0000-0000-00000000d003' and task_type = 'electrical'));
 reset role;
 do $$ declare j record;

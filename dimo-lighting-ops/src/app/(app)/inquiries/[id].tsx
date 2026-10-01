@@ -327,7 +327,7 @@ export default function InquiryDetail() {
           }
         }
       }
-      if (designOpen && !needsDueApproval) buttons.push(<AssignDesign key="asg" inquiry={i} onDone={reload} />);
+      if (designOpen && !needsDueApproval) buttons.push(<AssignDesign key="asg" inquiry={i} jobs={designJobs} onDone={reload} />);
       if (i.status === 'design_approved') {
         buttons.push(
           <Button
@@ -561,17 +561,32 @@ export default function InquiryDetail() {
 }
 
 /** Design Manager assigns lighting and/or electrical tasks with due dates (6.1, 6.4). */
-function AssignDesign({ inquiry, onDone }: { inquiry: Inquiry; onDone: () => void }) {
+function AssignDesign({ inquiry, jobs, onDone }: { inquiry: Inquiry; jobs: DesignJob[]; onDone: () => void }) {
   const dialog = useDialog();
+  const people = usePeople();
   const [open, setOpen] = useState(false);
+  // Each task in the design scope is assigned once per revision; after that the designer is changed with Reassign on the job
+  const needed = inquiry.design_scope === 'lighting_electrical' ? ['lighting', 'electrical'] : [inquiry.design_scope === 'electrical' ? 'electrical' : 'lighting'];
+  const current = jobs.filter((j) => j.revision === inquiry.revision);
+  const remaining = needed.filter((t) => !current.some((j) => j.task_type === t));
   const [f, setF] = useState({
     assignee: null as string | null,
-    task_type: inquiry.design_scope === 'electrical' ? 'electrical' : 'lighting',
+    task_type: remaining[0] ?? 'lighting',
     job_size: 'medium',
     due: (inquiry.design_due_at ? fmtDateISO(inquiry.design_due_at) : inquiry.design_required_by ?? null) as string | null,
     late_reason: '',
   });
-  if (!open) return <Button title="Assign designer" onPress={() => setOpen(true)} />;
+  if (!remaining.length) {
+    return (
+      <View style={{ gap: 4 }}>
+        <Button title="Designer assigned" disabled onPress={() => undefined} />
+        <Muted>
+          {current.map((j) => `${j.task_type === 'electrical' ? 'Electrical' : 'Lighting'}: ${people[j.assignee_id ?? '']?.full_name ?? '—'}`).join(' · ')} – to change, open the design job and use Reassign.
+        </Muted>
+      </View>
+    );
+  }
+  if (!open) return <Button title={current.length ? `Assign ${remaining[0]} designer` : 'Assign designer'} onPress={() => setOpen(true)} />;
   const late = !!(f.due && inquiry.design_required_by && f.due > inquiry.design_required_by);
   // The design must finish before the customer deadline, leaving time for estimation where it follows
   const afterDeadline = !!(f.due && inquiry.customer_deadline && f.due >= inquiry.customer_deadline);
@@ -586,7 +601,7 @@ function AssignDesign({ inquiry, onDone }: { inquiry: Inquiry; onDone: () => voi
         options={[
           { value: 'lighting', label: 'Lighting design' },
           { value: 'electrical', label: 'Electrical design (Lighting Engineer)' },
-        ]}
+        ].filter((o) => remaining.includes(o.value))}
       />
       <PersonPicker
         label="Assign to"

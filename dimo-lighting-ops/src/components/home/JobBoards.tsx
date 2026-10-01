@@ -8,6 +8,7 @@ import { isDesigner, isEstimator } from '@/lib/roles';
 import { supabase } from '@/lib/supabase';
 import type { DesignJob, EstimationJob, Inquiry, SlaClock } from '@/lib/types';
 import { STAGE_COLOUR } from '../InquiryBits';
+import { DesignHolds } from './DesignHolds';
 import { Avatar, Card, colors, Empty, ErrorBanner, Grid, H1, Muted, Pill, Progress, Row, Screen, Section, Segmented, SlaDot, Stat, useWide } from '../ui';
 
 type Colour = 'green' | 'amber' | 'red' | 'grey';
@@ -75,6 +76,8 @@ export function DesignBoard({ header }: { header?: ReactNode } = {}) {
           {manager ? <Stat label="Waiting to accept / assign / release" value={data?.queue.length ?? 0} /> : <Stat label="Returned for changes" value={jobs.filter((j) => j.status === 'returned').length} tone="amber" />}
         </Grid>
       </Section>
+
+      {manager ? <DesignHolds reloadKey={data} /> : null}
 
       {manager ? (
         <Section title="Workload by designer">
