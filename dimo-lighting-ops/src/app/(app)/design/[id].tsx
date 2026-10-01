@@ -8,7 +8,7 @@ import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, ErrorBanner, KeyValue, ListRow, Loading, Muted, Notice, NumberField, Pill, Progress, Row, Screen, Section, Toggle } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { openAttachment } from '@/lib/files';
-import { endOfWorkDay, fmtDate, fmtDateTime, human } from '@/lib/format';
+import { endOfWorkDay, fmtDate, fmtDateTime, fmtWorkDays, human, WORKING_HOURS_PER_DAY } from '@/lib/format';
 import { useLoad, useMasters, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 import type { Attachment, BrandLine, DesignJob } from '@/lib/types';
@@ -99,7 +99,7 @@ export default function DesignJobScreen() {
           <KeyValue label="Original due" value={fmtDateTime(j.original_due_at)} />
           {inq?.design_required_by ? <KeyValue label="Sales requested" value={fmtDate(inq.design_required_by)} /> : null}
           <KeyValue label="Customer deadline" value={fmtDate(inq?.customer_deadline)} />
-          <KeyValue label="Hours logged" value={String(j.hours_logged)} />
+          <KeyValue label="Days logged" value={fmtWorkDays(j.hours_logged)} />
           <KeyValue label="Design revision" value={`Rev ${j.review_cycles}${j.review_cycles ? ` (returned ${j.review_cycles}×)` : ' (first submission)'}`} />
           <KeyValue label="Client expectation" value={`${human(inq?.solution_level)} · ${human(inq?.manufacturing_origin)}`} />
           <KeyValue label="Design scope" value={designScopeText(inq?.design_scope)} />
@@ -207,7 +207,7 @@ export default function DesignJobScreen() {
         <Section title="Work and log">
           <Card>
             <NumberField label="Progress" suffix="%" value={progress} onChange={setProgress} />
-            <NumberField label="Hours to log today" value={hours} onChange={setHours} />
+            <NumberField label="Days worked today (e.g. 0.5 or 1)" suffix="days" value={hours} onChange={setHours} />
             <Muted style={{ marginBottom: 4 }}>Milestones</Muted>
             <Row wrap gap={12}>
               {milestones.map((m, idx) => (
@@ -218,7 +218,7 @@ export default function DesignJobScreen() {
               title="Save progress"
               onPress={() =>
                 dialog.run(async () => {
-                  await rpc('update_design_progress', { p_job: j.id, p_progress: progress ?? 0, p_hours: hours, p_milestones: milestones });
+                  await rpc('update_design_progress', { p_job: j.id, p_progress: progress ?? 0, p_hours: hours == null ? null : hours * WORKING_HOURS_PER_DAY, p_milestones: milestones });
                   setHours(null);
                   await reload();
                 }, 'Progress saved')

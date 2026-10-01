@@ -113,3 +113,12 @@ export const INQUIRY_STATUS_LABEL: Record<string, string> = {
   on_hold: 'On hold',
   cancelled: 'Cancelled',
 };
+
+/** Working day = 08:30–17:30 (9 working hours). Durations are shown in working days, not hours. */
+export const WORKING_HOURS_PER_DAY = 9;
+export function fmtWorkDays(hours: number | null | undefined) {
+  if (hours == null || Number.isNaN(Number(hours))) return '—';
+  const d = Number(hours) / WORKING_HOURS_PER_DAY;
+  const v = d >= 10 ? d.toFixed(0) : d.toFixed(1).replace(/\.0$/, '');
+  return `${v} ${v === '1' ? 'day' : 'days'}`;
+}

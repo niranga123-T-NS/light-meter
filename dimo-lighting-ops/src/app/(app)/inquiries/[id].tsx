@@ -693,9 +693,9 @@ function AssignDesign({ inquiry, jobs, onDone }: { inquiry: Inquiry; jobs: Desig
         value={f.job_size}
         onChange={(v) => setF((s) => ({ ...s, job_size: v }))}
         options={[
-          { value: 'small', label: 'Small (under 20 luminaire types or single area) – 3 wd' },
-          { value: 'medium', label: 'Medium – 5 wd' },
-          { value: 'large', label: 'Large / tender – 10 wd' },
+          { value: 'small', label: 'Small (under 20 luminaire types or single area) – 3 working days' },
+          { value: 'medium', label: 'Medium – 5 working days' },
+          { value: 'large', label: 'Large / tender – 10 working days' },
         ]}
       />
       <DateField label="Design due date" required value={f.due} onChange={(v) => setF((s) => ({ ...s, due: v }))} quick={[3, 5, 10]} hint={`${approvedDay ? `Approved completion ${fmtDate(approvedDay)} · ` : ''}Customer deadline ${fmtDate(inquiry.customer_deadline)}${inquiry.design_required_by ? ` · sales requested ${fmtDate(inquiry.design_required_by)}` : ''}`} />

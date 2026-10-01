@@ -338,9 +338,9 @@ function AssignEstimator({ job, onDone }: { job: EstimationJob; onDone: () => vo
               type: 'select',
               initial: job.value_band ?? 'medium',
               options: [
-                { value: 'small', label: 'Small (under LKR 5 M) – 2 wd' },
-                { value: 'medium', label: 'Medium (LKR 5–25 M) – 4 wd' },
-                { value: 'large', label: 'Large (over LKR 25 M) – 7 wd' },
+                { value: 'small', label: 'Small (under LKR 5 M) – 2 working days' },
+                { value: 'medium', label: 'Medium (LKR 5–25 M) – 4 working days' },
+                { value: 'large', label: 'Large (over LKR 25 M) – 7 working days' },
               ],
             },
             { key: 'r', label: 'Reason (other estimator / hand-over)', type: 'multiline' },

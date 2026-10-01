@@ -2,7 +2,7 @@ import { router, Stack } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useMe } from '@/lib/auth';
-import { AGEING_COLOURS, AGEING_ORDER, fmtDate, fmtMoney, fmtNumber, human, SLA_COLOURS } from '@/lib/format';
+import { AGEING_COLOURS, AGEING_ORDER, fmtDate, fmtMoney, fmtNumber, fmtWorkDays, human, SLA_COLOURS } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import { projectTypeLabel } from '@/lib/roles';
 import { rpc, supabase } from '@/lib/supabase';
@@ -180,14 +180,14 @@ export function ExecDashboard() {
               {data.sla_performance.map((s) => (
                 <Stat
                   key={s.team}
-                  label={`${human(s.team)} on-time · ${s.closed} closed · avg ${s.avg_hours ?? '—'} h`}
+                  label={`${human(s.team)} on-time · ${s.closed} closed · avg ${fmtWorkDays(s.avg_hours)}`}
                   value={s.on_time_pct == null ? '—' : `${s.on_time_pct}%`}
                   tone={s.on_time_pct == null ? undefined : s.on_time_pct >= 90 ? 'green' : s.on_time_pct >= 75 ? 'amber' : 'red'}
                 />
               ))}
             </Grid>
             <Card style={{ marginTop: 8 }}>
-              <Text style={{ fontWeight: '700', marginBottom: 6 }}>Time per stage (working hours, average · 90th percentile)</Text>
+              <Text style={{ fontWeight: '700', marginBottom: 6 }}>Time per stage (working days, average · 90th percentile)</Text>
               {data.sla_by_stage.map((s, i) => (
                 <Row key={s.stage} style={{ justifyContent: 'space-between', paddingVertical: 3 }}>
                   <Text style={i === 0 ? { color: colors.red, fontWeight: '700' } : undefined}>
@@ -195,7 +195,7 @@ export function ExecDashboard() {
                     {i === 0 ? ' · slowest stage' : ''}
                   </Text>
                   <Text>
-                    {s.avg_hours} · {s.p90_hours} ({s.n})
+                    {fmtWorkDays(s.avg_hours)} · {fmtWorkDays(s.p90_hours)} ({s.n})
                   </Text>
                 </Row>
               ))}
