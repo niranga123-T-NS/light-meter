@@ -286,6 +286,12 @@ begin
   assert j is not null, 'estimator sees own job';
   assert (select count(*) from public.attachments where entity_type = 'design_job' and kind = 'design_pack') = 2, 'estimator sees design pack (Rev 0 and Rev 1)';
   perform public.acknowledge_estimation_job(j);
+  perform public.save_estimate(j, 12000000, 9000000, 25, '[]');
+  begin
+    perform public.submit_estimate_for_approval(j);
+    raise exception 'submitted without brands';
+  exception when others then if sqlerrm not like '%brands and origin%' then raise; end if;
+  end;
   perform public.save_estimate(j, 12000000, 9000000, 25, '[{"group":"Downlights","brand":"TestBrand EU","origin":"european"}]');
   insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values
     ('estimation_job', j, 'quotation_draft', 'estimation_job/' || j || '/d.pdf', 'draft.pdf'),
@@ -348,6 +354,13 @@ do $$ begin
   end;
 end $$;
 reset role;
+-- SM Estimation can still enter the brands on an approved quotation before release
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+select public.set_estimate_brands((select id from public.estimation_jobs), '[{"group":"Floodlights","brand":"TestBrand EU","origin":"european"}]');
+reset role;
+do $$ begin
+  assert (select brands_offered -> 0 ->> 'group' from public.estimation_jobs) = 'Floodlights', 'brands updated after approval';
+end $$;
 rollback to savepoint smp_accept;
 -- Another revision round, this time the value goes above the limit
 select pg_temp.act_as('sm_projects'); set role authenticated;
