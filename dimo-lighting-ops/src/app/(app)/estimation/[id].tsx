@@ -77,8 +77,14 @@ export default function EstimationJobScreen() {
       await rpc(fn, args);
       await reload();
     }, ok);
-  const saveEstimate = () =>
-    rpc('save_estimate', {
+  // A product group without a brand (or a brand without a group) is an error, never silently dropped
+  const checkBrands = () => {
+    const half = brands.find((b) => (b.group?.trim() && !b.brand) || (!b.group?.trim() && b.brand));
+    if (half) throw new Error(half.group?.trim() ? `Choose the brand for “${half.group.trim()}” (or remove the line)` : 'Enter the product group for each brand');
+  };
+  const saveEstimate = async () => {
+    checkBrands();
+    return rpc('save_estimate', {
       p_job: j.id,
       p_quoted_value: est.quoted_value,
       p_cost: est.cost,
@@ -89,6 +95,7 @@ export default function EstimationJobScreen() {
       p_supplier_waits: waits,
       p_design_version: est.design_version || null,
     });
+  };
 
   return (
     <Screen maxWidth={1000}>
@@ -254,7 +261,8 @@ export default function EstimationJobScreen() {
                 title="Save brands"
                 onPress={() =>
                   dialog.run(async () => {
-                    await rpc('set_estimate_brands', { p_job: j.id, p_brands: brands });
+                    checkBrands();
+                    await rpc('set_estimate_brands', { p_job: j.id, p_brands: brands.filter((b) => b.group && b.brand) });
                     await reload();
                   }, 'Brands saved')
                 }
