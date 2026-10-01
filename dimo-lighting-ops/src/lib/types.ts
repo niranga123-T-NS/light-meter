@@ -408,6 +408,8 @@ export type PlanLine = {
 export type Debt = {
   id: string;
   invoice_no: string;
+  source?: 'upload' | 'sample';
+  sample_id?: string | null;
   project_id: string | null;
   project_name: string | null;
   organization_id: string | null;
@@ -461,6 +463,12 @@ export type Sample = {
   return_condition: string | null;
   submitted_at: string | null;
   created_at: string;
+  nr_disposition?: 'sell' | 'foc' | null;
+  return_reported_at?: string | null;
+  return_report_note?: string | null;
+  cleared_at?: string | null;
+  clear_note?: string | null;
+  debt_id?: string | null;
 };
 
 export type SampleItem = {
