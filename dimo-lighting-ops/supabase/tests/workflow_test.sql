@@ -475,5 +475,48 @@ do $$ begin
 end $$;
 reset role;
 
+-- Brand master list: teams add, managers approve / rename / merge ---------------
+select pg_temp.act_as('lighting_designer');
+set role authenticated;
+insert into public.brands (name, origin, level) values ('  Lumina   Pro ', 'european', 'high');
+do $$ begin
+  assert (select status from public.brands where name = 'Lumina Pro') = 'pending', 'designer brand is pending';
+  begin
+    insert into public.brands (name, origin, level) values ('lumina pro', 'other', 'low');
+    raise exception 'duplicate brand not blocked';
+  exception when others then
+    if sqlerrm not like '%already in the list%' then raise; end if;
+  end;
+  update public.brands set status = 'approved' where name = 'Lumina Pro';
+  assert (select status from public.brands where name = 'Lumina Pro') = 'pending', 'designer cannot approve';
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'brand_proposed' and recipient_id = (select id from u where role = 'design_manager')), 'DM told about new brand';
+end $$;
+-- an open design job already uses the pending brand
+insert into public.design_jobs (id, inquiry_id, revision, assignee_id, status, due_at, original_due_at, brands_specified)
+values ('00000000-0000-0000-0000-0000000000b7', '00000000-0000-0000-0000-00000000d001', 9, (select id from u where role = 'lighting_designer'),
+        'in_progress', now() + interval '3 days', now() + interval '3 days', '[{"group":"Downlights","brand":"Lumina Pro","origin":"european"}]');
+select pg_temp.act_as('design_manager');
+set role authenticated;
+update public.brands set name = 'Lumina Professional', status = 'approved', review_note = 'Corrected name' where name = 'Lumina Pro';
+insert into public.brands (name, origin, level) values ('Lumina Professional Ltd', 'european', 'high');
+select public.merge_brands((select id from public.brands where name = 'Lumina Professional Ltd'), (select id from public.brands where name = 'Lumina Professional'));
+reset role;
+do $$ begin
+  assert (select status from public.brands where name = 'Lumina Professional') = 'approved', 'DM approved';
+  assert (select status from public.brands where name = 'Lumina Professional Ltd') = 'rejected', 'duplicate merged away';
+  assert (select brands_specified -> 0 ->> 'brand' from public.design_jobs where id = '00000000-0000-0000-0000-0000000000b7') = 'Lumina Professional', 'rename carried into open job';
+  assert exists (select 1 from public.notifications where kind = 'brand_reviewed' and recipient_id = (select id from u where role = 'lighting_designer')), 'designer told brand approved';
+end $$;
+select pg_temp.act_as('estimation_exec');
+set role authenticated;
+insert into public.brands (name, origin, level) values ('Shine Asia', 'chinese', 'low');
+reset role;
+do $$ begin
+  assert (select status from public.brands where name = 'Shine Asia') = 'pending', 'estimator brand pending';
+end $$;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
