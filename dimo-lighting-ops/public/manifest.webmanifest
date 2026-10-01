@@ -1,0 +1,17 @@
+{
+  "name": "DIMO Lighting Operations",
+  "short_name": "DIMO Ops",
+  "description": "Sales visits, projects, design, estimation and quotations for DIMO Lighting Solutions.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F7F5F2",
+  "theme_color": "#C8102E",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -22,6 +22,8 @@ export default function Inquiries() {
   const people = usePeople();
   const params = useLocalSearchParams<{ tab?: Tab }>();
   const sales = isSales(me.role);
+  // Sales, SM Projects and GM / DGM can raise inquiries, so they also see drafts and returned ones
+  const raises = sales || me.role === 'sm_projects' || me.role === 'gm';
   const [tab, setTab] = useState<Tab>(params.tab ?? (sales || me.role === 'sm_projects' ? 'design' : 'all'));
   const [sort, setSort] = useState<'due' | 'deadline' | 'value'>('due');
   const [type, setType] = useState<string | null>(null);
@@ -73,11 +75,11 @@ export default function Inquiries() {
             { value: 'all', label: 'All open' },
             { value: 'delayed', label: 'Delayed', badge: badge('delayed') },
             { value: 'follow_up', label: 'Ready / with client' },
-            ...(sales || me.role === 'sm_projects' ? [{ value: 'drafts' as const, label: 'Drafts / returned', badge: all.filter(filters.drafts).length }] : []),
+            ...(raises ? [{ value: 'drafts' as const, label: 'Drafts / returned', badge: all.filter(filters.drafts).length }] : []),
             { value: 'closed', label: 'Closed' },
           ]}
         />
-        {sales || me.role === 'sm_projects' ? <Button title="+ New inquiry" onPress={() => router.push('/inquiries/new')} /> : null}
+        {raises ? <Button title="+ New inquiry" onPress={() => router.push('/inquiries/new')} /> : null}
       </Row>
       <Row wrap gap={8} style={{ marginTop: 8 }}>
         <TextInput value={q} onChangeText={setQ} placeholder="Search code, project or customer" placeholderTextColor={colors.faint} style={[styles.input, { flex: 1, minWidth: 220 }]} />

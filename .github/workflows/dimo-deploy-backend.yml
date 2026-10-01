@@ -53,6 +53,20 @@ jobs:
       - name: Set Edge Function secrets
         run: supabase secrets set --project-ref "$PROJECT_REF" DISPATCH_SECRET="${{ secrets.DISPATCH_SECRET }}" APP_URL="${{ vars.APP_URL || 'https://dimo-lighting-ops.vercel.app' }}"
 
+      # Web Push (browsers and the iPhone / iPad home-screen app): create the VAPID key pair once and keep it
+      # only in Supabase's function secrets. The private key is never printed or stored in GitHub.
+      - name: Ensure Web Push keys
+        run: |
+          if supabase secrets list --project-ref "$PROJECT_REF" | grep -q VAPID_PUBLIC_KEY; then
+            echo "Web Push keys already set"
+          else
+            keys=$(npx -y web-push@3.6.7 generate-vapid-keys --json)
+            priv=$(echo "$keys" | jq -r .privateKey); pub=$(echo "$keys" | jq -r .publicKey)
+            echo "::add-mask::$priv"
+            supabase secrets set --project-ref "$PROJECT_REF" VAPID_PUBLIC_KEY="$pub" VAPID_PRIVATE_KEY="$priv" > /dev/null
+            echo "Web Push keys created"
+          fi
+
       - name: Deploy Edge Functions
         run: |
           supabase functions deploy push-dispatch --project-ref "$PROJECT_REF" --no-verify-jwt

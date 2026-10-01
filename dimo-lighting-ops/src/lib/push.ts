@@ -5,10 +5,12 @@ import { router } from 'expo-router';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import { supabase } from './supabase';
+import { refreshWebPush, webPushActive } from './webpush';
 
 // Push notifications (Section 8.4): the mobile app registers its Expo push token; the
 // push-dispatch Edge Function sends queued notifications through Expo (FCM / APNs).
-// The web portal shows in-app notices and browser notifications while the portal is open.
+// The web portal uses Web Push (service worker) where the user turned it on, otherwise in-app notices
+// and browser notifications while the portal is open.
 
 if (Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
@@ -52,7 +54,11 @@ async function registerNativeToken(userId: string) {
 /** Registers for push and routes notification taps to the record (e.g. /inquiries/<id>). */
 export function usePushRegistration(userId: string | undefined) {
   useEffect(() => {
-    if (!userId || Platform.OS === 'web') return;
+    if (!userId) return;
+    if (Platform.OS === 'web') {
+      refreshWebPush(userId).catch((e) => console.warn('Web push refresh failed', e));
+      return;
+    }
     registerNativeToken(userId).catch((e) => console.warn('Push registration failed', e));
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
       const url = response.notification.request.content.data?.url;
@@ -65,13 +71,17 @@ export function usePushRegistration(userId: string | undefined) {
 /** Browser notification while the web portal is open (in addition to the in-app list). */
 export function showBrowserNotification(title: string, body: string, url?: string | null) {
   if (Platform.OS !== 'web' || typeof window === 'undefined' || !('Notification' in window)) return;
+  if (webPushActive()) return; // the service worker already shows it
   const show = () => {
-    const n = new Notification(title, { body, tag: url ?? undefined });
-    n.onclick = () => {
-      window.focus();
-      if (url) router.push(url as never);
-    };
+    try {
+      const n = new Notification(title, { body, tag: url ?? undefined });
+      n.onclick = () => {
+        window.focus();
+        if (url) router.push(url as never);
+      };
+    } catch {
+      // Some browsers (e.g. iPhone) only allow notifications through the service worker
+    }
   };
   if (Notification.permission === 'granted') show();
-  else if (Notification.permission !== 'denied') Notification.requestPermission().then((p) => p === 'granted' && show());
 }

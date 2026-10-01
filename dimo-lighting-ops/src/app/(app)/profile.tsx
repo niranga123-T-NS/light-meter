@@ -2,6 +2,7 @@ import { Stack } from 'expo-router';
 import { Platform, Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { Avatar, Button, Card, H2, KeyValue, Muted, Row, Screen, Section, Toggle } from '@/components/ui';
+import { WebPushCard } from '@/components/WebPushCard';
 import { useAuth, useMe } from '@/lib/auth';
 import { pickImage, uploadAvatar } from '@/lib/files';
 import { clearPeopleCache, usePeople } from '@/lib/hooks';
@@ -96,6 +97,12 @@ export default function Profile() {
           />
         </Card>
       </Section>
+
+      {Platform.OS === 'web' ? (
+        <Section title="Notifications on this device">
+          <WebPushCard />
+        </Section>
+      ) : null}
 
       <Section title="Notification preferences">
         <Card>
