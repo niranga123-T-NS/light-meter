@@ -85,7 +85,7 @@ export default function DesignJobScreen() {
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 18, fontWeight: '700' }}>{inq?.project_name}</Text>
             <Muted>
-              {inq?.customer_name} · {j.task_type} design · R{j.revision} · Design Rev {j.review_cycles} · {j.job_size} job
+              {inq?.customer_name} · {j.task_type} design{j.revision ? ` · Client rev ${j.revision}` : ''} · Design Rev {j.review_cycles} · {j.job_size} job
             </Muted>
           </View>
           <Pill label={human(j.status)} tone={j.status === 'returned' ? colors.amber : j.status === 'on_hold' ? colors.grey : colors.blue} solid />

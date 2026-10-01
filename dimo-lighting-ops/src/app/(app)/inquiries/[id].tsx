@@ -490,7 +490,7 @@ export default function InquiryDetail() {
               .map((d) => (
                 <ListRow
                   key={d.id}
-                  title={`Design · ${d.task_type} · R${d.revision} · Design Rev ${d.review_cycles}`}
+                  title={`Design · ${d.task_type}${d.revision ? ` · Client rev ${d.revision}` : ''} · Design Rev ${d.review_cycles}`}
                   subtitle={`${people[d.assignee_id ?? '']?.full_name ?? '—'} · ${human(d.status)} · ${d.progress_pct}% · due ${fmtDateTime(d.due_at)}`}
                   onPress={() => router.push(`/design/${d.id}`)}
                 />
@@ -500,7 +500,7 @@ export default function InquiryDetail() {
               .map((e) => (
                 <ListRow
                   key={e.id}
-                  title={`Estimation · ${e.source} · R${e.revision}`}
+                  title={`Estimation · ${e.source}${e.revision ? ` · Client rev ${e.revision}` : ''}`}
                   subtitle={`${people[e.assignee_id ?? '']?.full_name ?? 'Not assigned'} · ${human(e.status)} · due ${fmtDateTime(e.due_at)}`}
                   onPress={() => router.push(`/estimation/${e.id}`)}
                 />

@@ -96,7 +96,8 @@ export default function EstimationJobScreen() {
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 18, fontWeight: '700' }}>{inq?.project_name}</Text>
             <Muted>
-              {inq?.customer_name} · {projectTypeLabel(inq?.project_type)} · source {j.source} · R{j.revision}
+              {inq?.customer_name} · {projectTypeLabel(inq?.project_type)} · source {j.source}
+              {j.revision ? ` · Client rev ${j.revision}` : ''}
             </Muted>
           </View>
           <Row gap={6}>
