@@ -38,6 +38,11 @@ export function todayISO() {
   return new Date().toLocaleDateString('en-CA', { timeZone: TZ });
 }
 
+/** A timestamp's date in Sri Lanka as YYYY-MM-DD */
+export function fmtDateISO(v: string) {
+  return new Date(v).toLocaleDateString('en-CA', { timeZone: TZ });
+}
+
 export function addDaysISO(iso: string, days: number) {
   const d = new Date(`${iso}T12:00:00Z`);
   d.setUTCDate(d.getUTCDate() + days);

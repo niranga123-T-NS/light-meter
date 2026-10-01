@@ -197,6 +197,9 @@ export type Inquiry = {
   submission_type: string | null;
   customer_deadline: string | null;
   design_required_by: string | null;
+  design_due_proposed_at: string | null;
+  design_due_at: string | null;
+  design_due_status: 'pending' | 'approved' | 'returned' | null;
   quotation_required_by: string | null;
   scope_description: string | null;
   areas: string | null;
