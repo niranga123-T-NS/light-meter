@@ -70,13 +70,21 @@ export default function EstimationJobScreen() {
   const mine = j.assignee_id === me.id;
   const sme = me.role === 'sm_estimation' || me.role === 'gm';
   const editable = mine && ['assigned', 'acknowledged', 'in_progress', 'returned', 'date_change_requested'].includes(j.status);
+  // SM Estimation can enter / correct the brands offered on a quotation awaiting approval or release
+  const brandsBySme = sme && ['submitted_for_approval', 'sm_projects_approval', 'gm_approval', 'approved'].includes(j.status);
   const run = (fn: string, args: Record<string, unknown>, ok: string) =>
     dialog.run(async () => {
       await rpc(fn, args);
       await reload();
     }, ok);
-  const saveEstimate = () =>
-    rpc('save_estimate', {
+  // A product group without a brand (or a brand without a group) is an error, never silently dropped
+  const checkBrands = () => {
+    const half = brands.find((b) => (b.group?.trim() && !b.brand) || (!b.group?.trim() && b.brand));
+    if (half) throw new Error(half.group?.trim() ? `Choose the brand for “${half.group.trim()}” (or remove the line)` : 'Enter the product group for each brand');
+  };
+  const saveEstimate = async () => {
+    checkBrands();
+    return rpc('save_estimate', {
       p_job: j.id,
       p_quoted_value: est.quoted_value,
       p_cost: est.cost,
@@ -87,6 +95,7 @@ export default function EstimationJobScreen() {
       p_supplier_waits: waits,
       p_design_version: est.design_version || null,
     });
+  };
 
   return (
     <Screen maxWidth={1000}>
@@ -243,7 +252,23 @@ export default function EstimationJobScreen() {
             Current: {fmtMoney(j.quoted_value, cur)} · cost {fmtMoney(data.costing?.cost, cur)} · margin {data.costing?.margin_pct ?? '—'}%
           </Muted>
           <Text style={{ fontWeight: '700', marginTop: 12 }}>Brands offered (mandatory before release)</Text>
-          <BrandEditor value={brands} onChange={setBrands} readOnly={!editable} expectedLevel={inq?.solution_level} expectedOrigin={inq?.manufacturing_origin} />
+          <BrandEditor value={brands} onChange={setBrands} readOnly={!editable && !brandsBySme} expectedLevel={inq?.solution_level} expectedOrigin={inq?.manufacturing_origin} />
+          {brandsBySme ? (
+            <>
+              {!j.brands_offered?.length ? <Notice tone={colors.amber}>No brands were entered by the estimator – enter the brands and origin offered for each main product group, then save, before releasing.</Notice> : null}
+              <Button
+                small
+                title="Save brands"
+                onPress={() =>
+                  dialog.run(async () => {
+                    checkBrands();
+                    await rpc('set_estimate_brands', { p_job: j.id, p_brands: brands.filter((b) => b.group && b.brand) });
+                    await reload();
+                  }, 'Brands saved')
+                }
+              />
+            </>
+          ) : null}
           <Text style={{ fontWeight: '700', marginTop: 12 }}>Supplier / principal price waits</Text>
           <Muted>Logged for reporting; they do not pause the clock unless SM Estimation approves a hold.</Muted>
           {waits.map((w, i) => (
