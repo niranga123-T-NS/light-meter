@@ -722,6 +722,55 @@ begin
 end $$;
 reset role;
 
+-- Above LKR 100,000: SM Projects, then GM / DGM; below it GM / DGM is not asked
+select pg_temp.act_as('asm_building'); set role authenticated;
+insert into public.samples (id, project_id, sample_type, expected_return_date, purpose, required_by, handover_location)
+values ('00000000-0000-0000-0000-00000000e004', '00000000-0000-0000-0000-00000000b001', 'returnable', current_date + 7, 'Mock-up', now() + interval '3 days', 'Site');
+insert into public.sample_items (sample_id, description, quantity, unit_value) values ('00000000-0000-0000-0000-00000000e004', 'Flood 200W', 4, 45000);
+select public.submit_sample('00000000-0000-0000-0000-00000000e004');
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+select public.check_sample_availability('00000000-0000-0000-0000-00000000e004', 'available');
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ begin
+  assert not exists (select 1 from public.my_pending_approvals() where source = 'sample'), 'GM not asked before SM Projects';
+  begin
+    perform public.decide_sample('00000000-0000-0000-0000-00000000e004', 'approved');
+    raise exception 'GM approved before SM Projects';
+  exception when others then if sqlerrm not like '%SM Projects approves%' then raise; end if;
+  end;
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert public.decide_sample('00000000-0000-0000-0000-00000000e004', 'approved') = 'gm_approval', 'above 100,000 goes to GM / DGM';
+end $$;
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.my_pending_approvals() where source = 'sample'), 'GM / DGM asked';
+  assert public.decide_sample('00000000-0000-0000-0000-00000000e004', 'approved', 'OK') = 'approved', 'GM / DGM approved';
+end $$;
+reset role;
+-- Samples outstanding over LKR 500,000 → Monday alert to the sales person
+do $$ declare mon timestamptz := ((date_trunc('week', now() at time zone app.tz())::date + 7) + time '08:30') at time zone app.tz();
+begin
+  perform set_config('app.workflow', '1', true);
+  update public.samples set status = 'out', expected_return_date = current_date - 3 where id = '00000000-0000-0000-0000-00000000e004';
+  perform pg_temp.act_as('asm_building');
+  insert into public.samples (id, project_id, sales_person_id, sample_type, purpose, required_by, handover_location, nr_disposition)
+  values ('00000000-0000-0000-0000-00000000e005', '00000000-0000-0000-0000-00000000b001', (select id from u where role = 'asm_building'),
+          'non_returnable', 'Client purchase', now(), 'Site', 'sell');
+  insert into public.sample_items (sample_id, description, quantity, unit_value) values ('00000000-0000-0000-0000-00000000e005', 'Panel', 10, 35000);
+  update public.samples set status = 'sold_unpaid' where id = '00000000-0000-0000-0000-00000000e005';
+  assert (select total_lkr from public.sample_outstanding() where sales_person_id = (select id from u where role = 'asm_building')) = 530000, 'out + sold unpaid';
+  assert (select over_limit from public.sample_outstanding() where sales_person_id = (select id from u where role = 'asm_building')), 'over the limit';
+  assert public.sample_outstanding_tick(mon - interval '1 day') = 0, 'only on Monday';
+  assert public.sample_outstanding_tick(mon) = 1, 'Monday alert';
+  assert exists (select 1 from public.notifications where kind = 'sample_outstanding' and recipient_id = (select id from u where role = 'asm_building')), 'sales person alerted';
+end $$;
+
 -- 12. Dashboards and search run ----------------------------------------------------
 select pg_temp.act_as('gm'); set role authenticated;
 do $$ begin
