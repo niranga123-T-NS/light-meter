@@ -176,10 +176,19 @@ reset role;
 do $$ begin
   assert (select design_due_status from public.inquiries where id = '00000000-0000-0000-0000-00000000d001') = 'pending', 'completion date pending';
   assert (select reason from public.approvals where kind = 'design_due') like '%working days for estimation%', 'approval shows days left for estimation';
+  -- The Design Manager is not chased for assignment while SM Projects considers the date
+  assert (select paused_at from public.sla_clocks where entity_id = '00000000-0000-0000-0000-00000000d001' and stage = 'assignment' and stopped_at is null) is not null, 'assignment timer paused';
+  -- Approval timers: nobody before overdue; then only the approvers (no sales person)
+  assert cardinality(app.ladder_recipients((select c from public.sla_clocks c where entity_type = 'approval' and stage = 'approval_design_due' and stopped_at is null), 1)) = 0, 'no early approval reminder';
+  assert app.ladder_recipients((select c from public.sla_clocks c where entity_type = 'approval' and stage = 'approval_design_due' and stopped_at is null), 3)
+         = app.role_users('sm_projects'), 'overdue approval goes to its approvers only';
 end $$;
 select pg_temp.act_as('sm_projects'); set role authenticated;
 select public.decide_approval((select id from public.approvals where kind = 'design_due' and entity_id = '00000000-0000-0000-0000-00000000d001'), 'approved');
 reset role;
+do $$ begin
+  assert (select paused_at from public.sla_clocks where entity_id = '00000000-0000-0000-0000-00000000d001' and stage = 'assignment' and stopped_at is null) is null, 'assignment timer resumed';
+end $$;
 select pg_temp.act_as('design_manager'); set role authenticated;
 do $$ begin
   begin
@@ -635,5 +644,16 @@ do $$ begin
   assert (select status from public.brands where name = 'Shine Asia') = 'pending', 'estimator brand pending';
 end $$;
 
+-- A replaced approval stops its timer (no "Overdue" alerts for dead approvals)
+do $$ declare a1 uuid; a2 uuid; inq uuid := (select inquiry_id from public.approvals where kind = 'release_mode' and status = 'pending' limit 1);
+begin
+  a1 := (select id from public.approvals where kind = 'release_mode' and status = 'pending' and entity_id = inq);
+  a2 := app.create_approval('release_mode', 'inquiry', inq, inq, 'Release mode again', 'test', array['sm_projects']::public.app_role[]);
+  assert (select status from public.approvals where id = a1) = 'cancelled', 'old approval cancelled';
+  assert not exists (select 1 from public.sla_clocks where entity_type = 'approval' and entity_id = a1 and stopped_at is null), 'old approval timer stopped';
+  assert exists (select 1 from public.sla_clocks where entity_type = 'approval' and entity_id = a2 and stopped_at is null), 'new approval timer running';
+  assert not exists (select 1 from public.sla_clocks c join public.approvals a on a.id = c.entity_id
+                     where c.entity_type = 'approval' and c.stopped_at is null and a.status <> 'pending'), 'no timers on finished approvals';
+end $$;
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
