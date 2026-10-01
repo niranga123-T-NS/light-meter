@@ -26,7 +26,6 @@ type UploadRow = {
   amount: number | null;
   currency: 'LKR' | 'USD' | null;
   outstanding_days: number | null;
-  project_id: string | null;
   sales_person_id: string | null;
   errors: string[];
   warnings: string[];
@@ -40,8 +39,7 @@ function cellToString(v: unknown) {
 
 /**
  * Weekly debtors upload (Section 12.2): parse → validate and match on the server → preview → confirm.
- * The list is independent of the project register: unmatched projects, customers or sales people are warnings,
- * and rows can optionally be linked here or later on the debt.
+ * The list stands on its own (accounts system): project and client are kept as text; the only optional step is the sales person.
  */
 export default function DebtorsUpload() {
   const dialog = useDialog();
@@ -117,34 +115,18 @@ export default function DebtorsUpload() {
     }, 'File checked – review the preview');
   };
 
-  const mapRow = async (row: UploadRow) => {
+  const assignRow = async (row: UploadRow) => {
     const { data: sales } = await supabase.from('profiles').select('id, full_name').in('role', ['asm_building', 'asm_infra']).eq('active', true).order('full_name');
     const r = await dialog.prompt({
-      title: `Link row ${row.row_no}: ${row.client_name ?? ''}`,
-      message: 'Optional – link the invoice to a project in the system and / or a sales person.',
-      fields: [
-        { key: 'q', label: 'Search the project register (optional)', initial: row.project_name ?? '' },
-        { key: 'sp', label: 'Sales person (optional)', type: 'select', options: (sales ?? []).map((x) => ({ value: x.id, label: x.full_name })) },
-      ],
+      title: `Sales person for row ${row.row_no}`,
+      message: `${row.client_name ?? ''} · ${row.invoice_no ?? ''} – optional; it can also be assigned later on the debt.`,
+      fields: [{ key: 'sp', label: 'Sales person', type: 'select', required: true, options: (sales ?? []).map((x) => ({ value: x.id, label: x.full_name })) }],
     });
-    if (!r || (!r.q && !r.sp)) return;
-    let project: string | null = null;
-    if (r.q) {
-      const matches = await rpc<{ id: string; name: string; customer: string; owner: string }[]>('lookup_projects_basic', { p_query: r.q });
-      if (!matches.length && !r.sp) return dialog.toast('No project found – the row can stay unlinked', 'error');
-      if (matches.length) {
-        const pick = await dialog.prompt({
-          title: 'Choose the project',
-          fields: [{ key: 'p', label: 'Project', type: 'select', required: true, options: matches.map((m) => ({ value: m.id, label: `${m.name} – ${m.customer}`, hint: m.owner })) }],
-        });
-        if (!pick) return;
-        project = pick.p;
-      }
-    }
+    if (!r) return;
     await dialog.run(async () => {
-      await rpc('map_debtor_row', { p_row: row.id, p_project: project, p_sales_person: r.sp || null });
+      await rpc('set_debtor_row_sales_person', { p_row: row.id, p_sales_person: r.sp });
       await preview.reload();
-    }, 'Linked');
+    }, 'Sales person set');
   };
 
   const fixRow = async (row: UploadRow) => {
@@ -195,7 +177,7 @@ export default function DebtorsUpload() {
         <Button small variant="secondary" title="Remove" onPress={() => removeRow(r)} />
       </Row>
     ) : r.warnings?.length ? (
-      <Button small variant="secondary" title="Link" onPress={() => mapRow(r)} />
+      <Button small variant="secondary" title="Sales person" onPress={() => assignRow(r)} />
     ) : undefined;
   return (
     <Screen maxWidth={1000}>
@@ -217,14 +199,14 @@ export default function DebtorsUpload() {
             <Row wrap gap={8}>
               <Pill label={`${pv.upload.row_count} rows`} />
               <Pill label={`${pv.upload.error_count} with errors`} tone={pv.upload.error_count ? colors.red : colors.green} />
-              <Pill label={`${pv.rows.filter((r) => r.warnings?.length).length} not linked (optional)`} tone={colors.amber} />
+              <Pill label={`${pv.rows.filter((r) => r.warnings?.length).length} without sales person (optional)`} tone={colors.amber} />
               <Pill label={fmtMoney(pv.upload.totals?.LKR ?? 0, 'LKR')} tone={colors.blue} />
               <Pill label={fmtMoney(pv.upload.totals?.USD ?? 0, 'USD')} tone={colors.blue} />
             </Row>
             {pv.upload.error_count ? (
               <Notice tone={colors.red}>Rows in red have missing or invalid data. Press “Fix” to correct a row here, or “Remove” for lines that are not invoices (e.g. totals). Confirm unlocks when no errors are left.</Notice>
             ) : null}
-            <Muted>Rows in amber are not linked to a project, customer or sales person in the system. They upload as they are; link them now with “Link”, or later on the debt.</Muted>
+            <Muted>The list is uploaded exactly as it is in the accounts file – projects do not need to exist in the system. Rows in amber have no sales person yet; choose one with “Sales person” now or later on the debt.</Muted>
           </Card>
           {errorRows.length ? (
             <Card style={{ padding: 0, overflow: 'hidden', marginTop: 8, borderColor: colors.red }}>
