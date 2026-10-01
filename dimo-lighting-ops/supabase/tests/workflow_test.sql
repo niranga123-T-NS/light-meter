@@ -169,6 +169,8 @@ do $$ begin
     if sqlerrm not like '%before the customer deadline%' then raise; end if;
   end;
 end $$;
+-- Fresh state: no workflow flag left over from an earlier action in this transaction
+select set_config('app.workflow', '', true);
 select public.propose_design_due('00000000-0000-0000-0000-00000000d001', now() + interval '6 days', 'Medium job');
 reset role;
 do $$ begin
