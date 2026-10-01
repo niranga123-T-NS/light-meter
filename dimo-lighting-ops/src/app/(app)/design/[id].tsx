@@ -85,7 +85,7 @@ export default function DesignJobScreen() {
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 18, fontWeight: '700' }}>{inq?.project_name}</Text>
             <Muted>
-              {inq?.customer_name} · {j.task_type} design · R{j.revision} · {j.job_size} job
+              {inq?.customer_name} · {j.task_type} design · R{j.revision} · Design Rev {j.review_cycles} · {j.job_size} job
             </Muted>
           </View>
           <Pill label={human(j.status)} tone={j.status === 'returned' ? colors.amber : j.status === 'on_hold' ? colors.grey : colors.blue} solid />
@@ -100,12 +100,16 @@ export default function DesignJobScreen() {
           {inq?.design_required_by ? <KeyValue label="Sales requested" value={fmtDate(inq.design_required_by)} /> : null}
           <KeyValue label="Customer deadline" value={fmtDate(inq?.customer_deadline)} />
           <KeyValue label="Hours logged" value={String(j.hours_logged)} />
-          <KeyValue label="Review cycles" value={String(j.review_cycles)} />
+          <KeyValue label="Design revision" value={`Rev ${j.review_cycles}${j.review_cycles ? ` (returned ${j.review_cycles}×)` : ' (first submission)'}`} />
           <KeyValue label="Client expectation" value={`${human(inq?.solution_level)} · ${human(inq?.manufacturing_origin)}`} />
           <KeyValue label="Design scope" value={designScopeText(inq?.design_scope)} />
           <KeyValue label="Estimation scope" value={estimationScopeText(inq?.estimation_scope, inq?.estimation_basis)} />
         </Row>
-        {j.review_comment ? <Notice tone={j.status === 'returned' ? colors.amber : colors.blue}>Design Manager: {j.review_comment}</Notice> : null}
+        {j.review_comment ? (
+          <Notice tone={j.status === 'returned' ? colors.amber : colors.blue}>
+            {j.status === 'returned' ? `Returned – prepare Design Rev ${j.review_cycles}. ` : ''}Design Manager: {j.review_comment}
+          </Notice>
+        ) : null}
         {j.status === 'on_hold' ? <Notice tone={colors.grey}>On hold: {j.hold_reason} · waiting on {j.hold_waiting_on}</Notice> : null}
         {j.status === 'date_change_requested' ? <Notice tone={colors.amber}>Due date change requested: {fmtDateTime(j.requested_due_at)}</Notice> : null}
 

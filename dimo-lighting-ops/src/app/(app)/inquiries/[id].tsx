@@ -490,7 +490,7 @@ export default function InquiryDetail() {
               .map((d) => (
                 <ListRow
                   key={d.id}
-                  title={`Design · ${d.task_type} · R${d.revision}`}
+                  title={`Design · ${d.task_type} · R${d.revision} · Design Rev ${d.review_cycles}`}
                   subtitle={`${people[d.assignee_id ?? '']?.full_name ?? '—'} · ${human(d.status)} · ${d.progress_pct}% · due ${fmtDateTime(d.due_at)}`}
                   onPress={() => router.push(`/design/${d.id}`)}
                 />

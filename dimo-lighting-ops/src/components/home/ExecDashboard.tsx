@@ -5,7 +5,7 @@ import { useMe } from '@/lib/auth';
 import { AGEING_COLOURS, AGEING_ORDER, fmtDate, fmtMoney, fmtNumber, human, SLA_COLOURS } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import { projectTypeLabel } from '@/lib/roles';
-import { rpc } from '@/lib/supabase';
+import { rpc, supabase } from '@/lib/supabase';
 import { DesignHolds } from './DesignHolds';
 import { Avatar, Button, Card, colors, DateField, ErrorBanner, Grid, H1, ListRow, Muted, Pill, Row, Screen, Section, Stat } from '../ui';
 
@@ -47,6 +47,19 @@ export function ExecDashboard() {
   const [from, setFrom] = useState<string | null>(null);
   const [to, setTo] = useState<string | null>(null);
   const { data, error, loading, reload } = useLoad(() => rpc<Dash>('overall_dashboard', { p_from: from, p_to: to }), [from, to]);
+  // Total debtor outstanding, with legal debtors shown separately
+  const debtTotals = useLoad(async () => {
+    const { data: rows } = await supabase.from('debts').select('amount, currency, is_legal').not('status', 'in', '(collected_confirmed,cleared)').limit(5000);
+    const list = (rows ?? []) as { amount: number; currency: 'LKR' | 'USD'; is_legal: boolean }[];
+    const sum = (f: (d: (typeof list)[number]) => boolean, cur: 'LKR' | 'USD') => list.filter((d) => f(d) && d.currency === cur).reduce((a, d) => a + Number(d.amount), 0);
+    return {
+      n: list.length,
+      nLegal: list.filter((d) => d.is_legal).length,
+      all: { lkr: sum(() => true, 'LKR'), usd: sum(() => true, 'USD') },
+      legal: { lkr: sum((d) => d.is_legal, 'LKR'), usd: sum((d) => d.is_legal, 'USD') },
+      other: { lkr: sum((d) => !d.is_legal, 'LKR'), usd: sum((d) => !d.is_legal, 'USD') },
+    };
+  }, [data]);
   const gm = me.role === 'gm';
 
   const red = data?.delay_control.filter((d) => d.colour === 'red').reduce((a, d) => a + d.n, 0) ?? 0;
@@ -261,7 +274,14 @@ export function ExecDashboard() {
           </Grid>
 
           <Section title="Debtors" right={<Button small variant="secondary" title="Open debtors" onPress={() => router.push('/debtors')} />}>
-            <Card>
+            {debtTotals.data ? (
+              <Grid min={220}>
+                <Stat label={`Total debtor outstanding (${debtTotals.data.n} invoices)`} value={`${fmtMoney(debtTotals.data.all.lkr, 'LKR')}${debtTotals.data.all.usd ? ` + ${fmtMoney(debtTotals.data.all.usd, 'USD')}` : ''}`} onPress={() => router.push('/debtors')} />
+                <Stat label="Excluding legal" value={`${fmtMoney(debtTotals.data.other.lkr, 'LKR')}${debtTotals.data.other.usd ? ` + ${fmtMoney(debtTotals.data.other.usd, 'USD')}` : ''}`} onPress={() => router.push('/debtors')} />
+                <Stat label={`Legal debtors (${debtTotals.data.nLegal})`} value={`${fmtMoney(debtTotals.data.legal.lkr, 'LKR')}${debtTotals.data.legal.usd ? ` + ${fmtMoney(debtTotals.data.legal.usd, 'USD')}` : ''}`} tone={debtTotals.data.nLegal ? 'red' : undefined} onPress={() => router.push('/debtors?filter=legal')} />
+              </Grid>
+            ) : null}
+            <Card style={{ marginTop: 8 }}>
               {AGEING_ORDER.map((b) => {
                 const row = data.debtors.by_bucket.find((x) => x.bucket === b);
                 const c = AGEING_COLOURS[b];
