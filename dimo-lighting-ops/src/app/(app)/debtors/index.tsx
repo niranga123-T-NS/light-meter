@@ -93,6 +93,30 @@ export default function Debtors() {
     <Screen refreshing={loading} onRefresh={reload}>
       <Stack.Screen options={{ title: isSales(me.role) ? 'My Debtors' : 'Debtors' }} />
       <ErrorBanner message={error} />
+      {/* Find a customer: filters every total, tab and list below, and opens the customer's profile */}
+      <Card style={{ borderColor: colors.blue }}>
+        <Text style={{ fontWeight: '700' }}>Find a customer</Text>
+        <Row wrap gap={8}>
+          <View style={{ width: 280 }}>
+            <Select label="Customer" value={customer} onChange={(v) => setCustomer(v || null)} searchable options={[{ value: '', label: 'All customers' }, ...customerOptions]} />
+          </View>
+          <View style={{ width: 280 }}>
+            <Field label="Search customer, project or invoice" value={q} onChangeText={setQ} placeholder="e.g. Hilton or INV-104" />
+          </View>
+          {customer ? <Button small title="Customer profile & history" onPress={() => router.push({ pathname: '/debtors/customer', params: { name: customer } })} /> : null}
+          {customer || q ? (
+            <Button
+              small
+              variant="secondary"
+              title="✕ Clear"
+              onPress={() => {
+                setCustomer(null);
+                setQ('');
+              }}
+            />
+          ) : null}
+        </Row>
+      </Card>
       {/* Summary strip: total outstanding by category and currency */}
       <Card>
         <Row wrap gap={6}>
@@ -148,26 +172,6 @@ export default function Debtors() {
             { value: 'customers', label: 'By customer' },
           ]}
         />
-      </Row>
-      <Row wrap gap={8}>
-        <View style={{ width: 280 }}>
-          <Select label="Customer" value={customer} onChange={(v) => setCustomer(v || null)} searchable options={[{ value: '', label: 'All customers' }, ...customerOptions]} />
-        </View>
-        <View style={{ width: 280 }}>
-          <Field label="Search customer, project or invoice" value={q} onChangeText={setQ} placeholder="e.g. Hilton or INV-104" />
-        </View>
-        {customer ? <Button small title="Customer profile & history" onPress={() => router.push({ pathname: '/debtors/customer', params: { name: customer } })} /> : null}
-        {customer || q ? (
-          <Button
-            small
-            variant="secondary"
-            title="✕ Clear"
-            onPress={() => {
-              setCustomer(null);
-              setQ('');
-            }}
-          />
-        ) : null}
       </Row>
       <Row wrap gap={8}>
         {view === 'customers' ? (
