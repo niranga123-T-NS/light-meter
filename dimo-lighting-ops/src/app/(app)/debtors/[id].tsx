@@ -129,6 +129,9 @@ export default function DebtDetail() {
           <AgeingChip bucket={d.ageing_bucket} legal={d.is_legal} />
         </Row>
         {d.project_name ? <Muted>{d.project_name}</Muted> : null}
+        {d.sample_id ? (
+          <Button small variant="ghost" title="Sample sale – open the sample ›" onPress={() => router.push(`/samples/${d.sample_id}`)} />
+        ) : null}
         {d.client_name ? (
           <Button small variant="ghost" title="Customer profile & payment history ›" onPress={() => router.push({ pathname: '/debtors/customer', params: { name: d.client_name ?? '' } })} />
         ) : null}

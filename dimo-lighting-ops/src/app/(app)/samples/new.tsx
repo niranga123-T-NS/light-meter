@@ -21,6 +21,7 @@ export default function NewSample() {
     project_id: null as string | null,
     sample_type: 'returnable' as 'returnable' | 'non_returnable',
     expected_return_date: null as string | null,
+    nr_disposition: null as 'sell' | 'foc' | null,
     purpose: null as string | null,
     required_by: null as string | null,
     handover_location: '',
@@ -37,6 +38,7 @@ export default function NewSample() {
     setError(null);
     if (!f.project_id || !f.purpose || !f.required_by || !f.handover_location.trim()) return setError('Project, purpose, required-by date and handover location are required');
     if (f.sample_type === 'returnable' && !f.expected_return_date) return setError('Expected return date is mandatory for returnable samples');
+    if (f.sample_type === 'non_returnable' && !f.nr_disposition) return setError('Non-returnable samples: choose Sell or FOC');
     const good = items.filter((i) => i.description.trim() && i.quantity);
     if (!good.length) return setError('Add at least one item');
     await dialog.run(async () => {
@@ -46,6 +48,7 @@ export default function NewSample() {
           project_id: f.project_id,
           sample_type: f.sample_type,
           expected_return_date: f.sample_type === 'returnable' ? f.expected_return_date : null,
+          nr_disposition: f.sample_type === 'non_returnable' ? f.nr_disposition : null,
           purpose: f.purpose,
           required_by: endOfWorkDay(f.required_by as string),
           handover_location: f.handover_location,
@@ -85,6 +88,18 @@ export default function NewSample() {
           ]}
         />
         {f.sample_type === 'returnable' ? <DateField label="Expected return date" required value={f.expected_return_date} onChange={(v) => setF((s) => ({ ...s, expected_return_date: v }))} quick={[7, 14, 30]} /> : null}
+        {f.sample_type === 'non_returnable' ? (
+          <Select
+            label="Non-returnable as"
+            required
+            value={f.nr_disposition}
+            onChange={(v) => setF((s) => ({ ...s, nr_disposition: v as 'sell' | 'foc' }))}
+            options={[
+              { value: 'sell', label: 'Sell – added to my debtors at handover until collected' },
+              { value: 'foc', label: 'FOC – free of charge, recorded and cleared at handover' },
+            ]}
+          />
+        ) : null}
         <Select label="Purpose" required value={f.purpose} options={masters.values('sample_purpose').map((v) => ({ value: v, label: v }))} onChange={(v) => setF((s) => ({ ...s, purpose: v }))} />
         <DateField label="Required at site by" required value={f.required_by} onChange={(v) => setF((s) => ({ ...s, required_by: v }))} quick={[1, 2, 5]} />
       </Card>

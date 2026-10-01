@@ -630,6 +630,84 @@ do $$ begin
   assert (select total_value from public.samples where id = '00000000-0000-0000-0000-00000000e001') = 30000, 'sample value';
   assert (select status from public.samples where id = '00000000-0000-0000-0000-00000000e001') = 'approved', 'sample approved';
 end $$;
+-- Returnable: handed over → sales person reports it back → Operations confirms → cleared
+select pg_temp.act_as('operations_exec'); set role authenticated;
+insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name)
+values ('sample', '00000000-0000-0000-0000-00000000e001', 'delivery_note', 'sample/e001/dn.jpg', 'dn.jpg');
+select public.record_sample_handover('00000000-0000-0000-0000-00000000e001', 'Stores', 'Site engineer');
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+select public.report_sample_returned('00000000-0000-0000-0000-00000000e001', 'Collected back from site');
+reset role;
+do $$ begin
+  assert (select status from public.samples where id = '00000000-0000-0000-0000-00000000e001') = 'return_reported', 'return reported, still on record';
+  assert exists (select 1 from public.notifications where kind = 'sample_return_reported' and recipient_id = (select id from u where role = 'operations_exec')), 'Operations asked to confirm';
+end $$;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+select public.record_sample_return('00000000-0000-0000-0000-00000000e001', 'good');
+reset role;
+do $$ begin
+  assert (select status from public.samples where id = '00000000-0000-0000-0000-00000000e001') = 'cleared', 'cleared after Operations approval';
+end $$;
+
+-- Non-returnable: Sell or FOC is required; FOC clears at handover, Sell goes to the debtors list until collected
+select pg_temp.act_as('asm_building'); set role authenticated;
+insert into public.samples (id, project_id, sample_type, purpose, required_by, handover_location) values
+  ('00000000-0000-0000-0000-00000000e002', '00000000-0000-0000-0000-00000000b001', 'non_returnable', 'Mock-up', now() + interval '3 days', 'Site'),
+  ('00000000-0000-0000-0000-00000000e003', '00000000-0000-0000-0000-00000000b001', 'non_returnable', 'Client purchase', now() + interval '3 days', 'Site');
+insert into public.sample_items (sample_id, description, quantity, unit_value) values
+  ('00000000-0000-0000-0000-00000000e002', 'Spot 7W', 1, 8000), ('00000000-0000-0000-0000-00000000e003', 'Linear 1.2m', 4, 12500);
+do $$ begin
+  begin
+    perform public.submit_sample('00000000-0000-0000-0000-00000000e002');
+    raise exception 'non-returnable without Sell / FOC submitted';
+  exception when others then if sqlerrm not like '%Sell or FOC%' then raise; end if;
+  end;
+end $$;
+reset role;
+update public.samples set nr_disposition = 'foc' where id = '00000000-0000-0000-0000-00000000e002';
+update public.samples set nr_disposition = 'sell' where id = '00000000-0000-0000-0000-00000000e003';
+select pg_temp.act_as('asm_building'); set role authenticated;
+select public.submit_sample(x) from unnest(array['00000000-0000-0000-0000-00000000e002', '00000000-0000-0000-0000-00000000e003']::uuid[]) x;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+select public.check_sample_availability(x, 'available') from unnest(array['00000000-0000-0000-0000-00000000e002', '00000000-0000-0000-0000-00000000e003']::uuid[]) x;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+select public.decide_sample(x, 'approved') from unnest(array['00000000-0000-0000-0000-00000000e002', '00000000-0000-0000-0000-00000000e003']::uuid[]) x;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values
+  ('sample', '00000000-0000-0000-0000-00000000e002', 'delivery_note', 'sample/e002/dn.jpg', 'dn.jpg'),
+  ('sample', '00000000-0000-0000-0000-00000000e003', 'delivery_note', 'sample/e003/dn.jpg', 'dn.jpg');
+select public.record_sample_handover('00000000-0000-0000-0000-00000000e002', 'Stores', 'Client');
+select public.record_sample_handover('00000000-0000-0000-0000-00000000e003', 'Stores', 'Client', now(), 'SINV-501');
+do $$ declare up uuid;
+begin
+  assert (select status from public.samples where id = '00000000-0000-0000-0000-00000000e002') = 'cleared', 'FOC recorded and cleared';
+  assert (select status from public.samples where id = '00000000-0000-0000-0000-00000000e003') = 'sold_unpaid', 'sold – unpaid';
+  assert (select amount from public.debts where invoice_no = 'SINV-501' and source = 'sample') = 50000, 'sale added to debtors';
+  -- The weekly accounts file does not contain it: it stays open
+  up := public.stage_debtor_upload(current_date + 14, '[
+    {"client_name":"ABC Hotels PLC","invoice_no":"INV-10452","amount":2400000,"currency":"LKR","outstanding_days":101}]');
+  perform public.confirm_debtor_upload(up);
+  assert (select status from public.debts where invoice_no = 'SINV-501') = 'outstanding', 'sample debt not cleared by the upload';
+  assert (select outstanding_days from public.debts where invoice_no = 'SINV-501') = 14, 'sample debt ages from handover';
+end $$;
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+select public.update_debt_status((select id from public.debts where invoice_no = 'SINV-501'), 'collected', 'Cheque received', null, null, 50000, current_date);
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare up uuid;
+begin
+  up := public.stage_debtor_upload(current_date + 21, '[
+    {"client_name":"ABC Hotels PLC","invoice_no":"INV-10452","amount":2400000,"currency":"LKR","outstanding_days":108}]');
+  perform public.confirm_debtor_upload(up);
+  assert (select status from public.debts where invoice_no = 'SINV-501') = 'collected_confirmed', 'collected and confirmed';
+  assert (select status from public.samples where id = '00000000-0000-0000-0000-00000000e003') = 'cleared', 'sold sample cleared with its debt';
+end $$;
+reset role;
 
 -- 12. Dashboards and search run ----------------------------------------------------
 select pg_temp.act_as('gm'); set role authenticated;

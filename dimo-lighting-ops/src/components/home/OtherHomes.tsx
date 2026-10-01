@@ -31,6 +31,8 @@ export function OpsHome() {
       toDispatch: s.filter((x) => x.status === 'approved').length,
       out: s.filter((x) => x.status === 'out').length,
       overdue: s.filter((x) => x.status === 'out' && x.expected_return_date && x.expected_return_date < today).length,
+      toConfirm: s.filter((x) => x.status === 'return_reported' || x.status === 'damaged_lost').length,
+      soldUnpaid: s.filter((x) => x.status === 'sold_unpaid').length,
     };
   });
   return (
@@ -78,6 +80,8 @@ export function OpsHome() {
               <Stat label="Approved – to dispatch" value={data.toDispatch} onPress={() => router.push('/samples?tab=dispatch')} />
               <Stat label="Out – due for return" value={data.out} onPress={() => router.push('/samples?tab=out')} />
               <Stat label="Overdue" value={data.overdue} tone={data.overdue ? 'red' : undefined} onPress={() => router.push('/samples?tab=out')} />
+              <Stat label="Returns to confirm & clear" value={data.toConfirm} tone={data.toConfirm ? 'amber' : undefined} onPress={() => router.push('/samples?tab=confirm')} />
+              <Stat label="Sold – unpaid" value={data.soldUnpaid} onPress={() => router.push('/samples?tab=sold')} />
             </Grid>
           </Section>
         </>
