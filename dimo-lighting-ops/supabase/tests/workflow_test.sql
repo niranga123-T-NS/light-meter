@@ -398,6 +398,25 @@ reset role;
 select pg_temp.act_as('sm_estimation'); set role authenticated;
 select public.review_estimate((select id from public.estimation_jobs), true, 'Revised');
 reset role;
+-- A quotation still on the earlier GM-only approval: a GM / DGM rejection also goes to SM Estimation to re-assign
+savepoint old_gm_rule;
+do $$ declare j uuid := (select id from public.estimation_jobs); i uuid := (select inquiry_id from public.estimation_jobs);
+begin
+  update public.approvals set status = 'cancelled' where kind = 'quotation_sm_projects' and status = 'pending';
+  update public.estimation_jobs set status = 'gm_approval', needs_sm_projects = false where id = j;
+  perform app.create_approval('quotation_release', 'estimation_job', j, i, 'Quotation release – old rule', 'test', array['gm']::public.app_role[]);
+end $$;
+select pg_temp.act_as('gm'); set role authenticated;
+select public.decide_approval((select id from public.approvals where kind = 'quotation_release' and status = 'pending'), 'rejected', 'Too expensive');
+reset role;
+do $$ begin
+  assert (select status from public.estimation_jobs) = 'revision_requested', 'old-rule GM rejection goes to SM Estimation';
+  assert exists (select 1 from public.notifications where kind = 'quotation_revision' and title like 'GM / DGM rejected%'
+                 and recipient_id = (select id from u where role = 'sm_estimation')), 'SM Estimation asked to re-assign';
+  assert exists (select 1 from public.notifications where kind = 'quotation_gm_rejected' and recipient_id = (select id from u where role = 'sm_projects')), 'SM Projects informed';
+  assert exists (select 1 from public.sla_clocks where entity_type = 'estimation_job' and stage = 'assignment' and stopped_at is null), 're-assignment timer';
+end $$;
+rollback to savepoint old_gm_rule;
 select pg_temp.act_as('sm_projects'); set role authenticated;
 select public.decide_approval((select id from public.approvals where kind = 'quotation_sm_projects' and status = 'pending'), 'approved', 'OK');
 reset role;
