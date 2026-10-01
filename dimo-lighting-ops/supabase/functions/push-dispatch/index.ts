@@ -67,8 +67,11 @@ Deno.serve(async (req) => {
   }
 
   const invalid: string[] = [];
+  const errors: string[] = [];
   for (let i = 0; i < messages.length; i += 100) {
     const chunk = messages.slice(i, i + 100);
+    // One message per device token, so each Expo ticket maps back to exactly one token
+    const flat = chunk.flatMap((m) => (m.to as string[]).map((token) => ({ ...m, to: token })));
     const res = await fetch(EXPO_URL, {
       method: 'POST',
       headers: {
@@ -76,19 +79,20 @@ Deno.serve(async (req) => {
         Accept: 'application/json',
         ...(Deno.env.get('EXPO_ACCESS_TOKEN') ? { Authorization: `Bearer ${Deno.env.get('EXPO_ACCESS_TOKEN')}` } : {}),
       },
-      body: JSON.stringify(chunk),
+      body: JSON.stringify(flat),
     });
     const json = await res.json().catch(() => ({}));
-    // Remove tokens for uninstalled apps
-    (json.data ?? []).forEach((ticket: { status: string; details?: { error?: string } }, k: number) => {
-      if (ticket.status === 'error' && ticket.details?.error === 'DeviceNotRegistered') {
-        const to = chunk[k].to as string[];
-        invalid.push(...to);
-      }
+    if (!res.ok) errors.push(`Expo push service HTTP ${res.status}: ${JSON.stringify(json).slice(0, 300)}`);
+    (json.data ?? []).forEach((ticket: { status: string; message?: string; details?: { error?: string } }, k: number) => {
+      if (ticket.status !== 'error') return;
+      // Remove tokens for uninstalled apps; report anything else (e.g. InvalidCredentials = FCM key missing on expo.dev)
+      if (ticket.details?.error === 'DeviceNotRegistered') invalid.push(flat[k].to as string);
+      else errors.push(`${ticket.details?.error ?? 'error'}: ${ticket.message ?? ''}`.slice(0, 300));
     });
   }
+  if (errors.length) console.error('push-dispatch errors', errors);
   if (invalid.length) await db.from('push_tokens').delete().in('token', invalid);
 
   await db.from('notifications').update({ pushed_at: new Date().toISOString() }).in('id', notes.map((n) => n.id));
-  return Response.json({ notifications: notes.length, pushes: messages.length, removed_tokens: invalid.length });
+  return Response.json({ notifications: notes.length, pushes: messages.length, removed_tokens: invalid.length, errors });
 });
