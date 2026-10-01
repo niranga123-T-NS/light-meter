@@ -283,7 +283,36 @@ export default function InquiryDetail() {
     const buttons: React.ReactNode[] = [];
     const receiver = (i.route === 'B' && (me.role === 'sm_estimation' || me.role === 'gm')) || (i.route !== 'B' && (me.role === 'design_manager' || me.role === 'gm'));
     if (i.status === 'submitted' && receiver) {
-      buttons.push(<Button key="acc" title="Accept" onPress={() => act('accept_inquiry', { p_inquiry: i.id }, 'Accepted')} />);
+      buttons.push(
+        <Button
+          key="acc"
+          title="Accept"
+          onPress={async () => {
+            // Route A: the Design Manager gives the design completion date while accepting; it goes to SM Projects for approval
+            if (i.route !== 'A' || i.design_due_status === 'approved' || i.design_due_status === 'pending') return act('accept_inquiry', { p_inquiry: i.id }, 'Accepted');
+            const r = await dialog.prompt({
+              title: 'Accept and set the design completion date',
+              message: `When the whole design (all tasks) will be complete. SM Projects approves it after checking the time left for estimation before the customer deadline (${fmtDate(i.customer_deadline)}). You can assign the designer once it is approved.`,
+              fields: [
+                { key: 'date', label: 'Design complete by (17:30)', type: 'date', required: true },
+                { key: 'note', label: 'Note for SM Projects (optional)', type: 'multiline' },
+              ],
+              confirmLabel: 'Accept',
+            });
+            if (!r) return;
+            if (r.date < todayISO()) return dialog.toast('The completion date must be in the future', 'error');
+            if (i.customer_deadline && r.date >= i.customer_deadline) return dialog.toast(`The design must be complete before the customer deadline (${fmtDate(i.customer_deadline)})`, 'error');
+            await dialog.run(async () => {
+              await rpc('accept_inquiry', { p_inquiry: i.id });
+              try {
+                await rpc('propose_design_due', { p_inquiry: i.id, p_due: endOfWorkDay(r.date), p_note: r.note || null });
+              } finally {
+                await reload();
+              }
+            }, 'Accepted – completion date sent to SM Projects for approval');
+          }}
+        />,
+      );
       buttons.push(
         <Button key="ret" variant="secondary" title="Return for information" onPress={async () => { const r = await reason('Return for information', 'What is missing'); if (r) await act('return_inquiry', { p_inquiry: i.id, p_reason: r }, 'Returned to sales'); }} />,
       );
