@@ -109,7 +109,8 @@ insert into public.inquiries (id, project_id, visit_id, organization_id, unit_id
 values ('00000000-0000-0000-0000-00000000d001', '00000000-0000-0000-0000-00000000b001', '00000000-0000-0000-0000-00000000c001',
         '00000000-0000-0000-0000-00000000a001', '00000000-0000-0000-0000-00000000a002', '00000000-0000-0000-0000-00000000a003',
         'A', 'duty_paid', 'lighting', current_date + 30, current_date + 12, current_date + 25,
-        'Lobby, pool deck and 120 guest rooms – lighting layout and calculations', 'high', 'european');
+        'Lobby, pool deck and 120 guest rooms – lighting layout and calculations', 'high', 'european')
+returning id; -- the app saves with INSERT … RETURNING, so the new row must pass the read policy
 
 -- Sales cannot push the status directly
 do $$ begin
