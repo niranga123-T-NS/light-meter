@@ -7,15 +7,18 @@ import { sampleOverdue } from '@/lib/constants';
 import { fmtDate, fmtMoney, human } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { isSales } from '@/lib/roles';
-import { supabase } from '@/lib/supabase';
+import { rpc, supabase } from '@/lib/supabase';
 import type { Sample } from '@/lib/types';
 
-type Tab = 'all' | 'check' | 'approve' | 'dispatch' | 'out' | 'confirm' | 'sold' | 'cleared' | 'closed';
+type Tab = 'all' | 'mine' | 'check' | 'approve' | 'dispatch' | 'out' | 'confirm' | 'sold' | 'cleared' | 'closed';
+type Outstanding = { sales_person_id: string; out_n: number; out_lkr: number; overdue_n: number; overdue_lkr: number; sold_n: number; sold_lkr: number; total_lkr: number; over_limit: boolean };
+const LIMIT = 500000;
+const exposureTone = (v: number) => (v > LIMIT ? colors.red : v >= LIMIT * 0.8 ? colors.amber : colors.green);
 
 const DONE = ['cleared', 'rejected', 'not_available'];
 const typeText = (s: Sample) => (s.sample_type === 'returnable' ? 'returnable' : s.nr_disposition === 'sell' ? 'sell' : s.nr_disposition === 'foc' ? 'FOC' : 'non-returnable');
 const statusText = (s: Sample) =>
-  sampleOverdue(s) ? 'Overdue' : s.status === 'return_reported' ? 'Return to confirm' : s.status === 'sold_unpaid' ? 'Sold – unpaid' : s.status === 'damaged_lost' ? 'Damaged / incomplete' : human(s.status);
+  sampleOverdue(s) ? 'Overdue' : s.status === 'gm_approval' ? 'With GM / DGM' : s.status === 'return_reported' ? 'Return to confirm' : s.status === 'sold_unpaid' ? 'Sold – unpaid' : s.status === 'damaged_lost' ? 'Damaged / incomplete' : human(s.status);
 const clientOf = (s: Sample) => (s.client_name ?? '—').trim();
 const sum = (list: Sample[], cur: 'LKR' | 'USD') => list.filter((s) => s.currency === cur).reduce((a, s) => a + Number(s.total_value), 0);
 const money = (list: Sample[]) => [sum(list, 'LKR') ? fmtMoney(sum(list, 'LKR'), 'LKR') : null, sum(list, 'USD') ? fmtMoney(sum(list, 'USD'), 'USD') : null].filter(Boolean).join(' + ') || '–';
@@ -26,7 +29,8 @@ export default function Samples() {
   const people = usePeople();
   const params = useLocalSearchParams<{ tab?: Tab }>();
   const ops = me.role === 'operations_exec';
-  const [tab, setTab] = useState<Tab>(params.tab ?? (ops ? 'check' : me.role === 'sm_projects' ? 'approve' : 'all'));
+  const [tab, setTab] = useState<Tab>(params.tab ?? (ops ? 'check' : me.role === 'sm_projects' || me.role === 'gm' ? 'approve' : 'all'));
+  const outstanding = useLoad(() => rpc<Outstanding[]>('sample_outstanding'));
   const [view, setView] = useState<'list' | 'customers'>('list');
   const [customer, setCustomer] = useState<string | null>(null);
   const { data, error, loading, reload } = useLoad(async () => {
@@ -40,7 +44,8 @@ export default function Samples() {
   const filters: Record<Tab, (s: Sample) => boolean> = {
     all: (s) => !DONE.includes(s.status),
     check: (s) => s.status === 'submitted',
-    approve: (s) => s.status === 'availability_confirmed',
+    approve: (s) => (me.role === 'gm' ? s.status === 'gm_approval' : s.status === 'availability_confirmed' || s.status === 'gm_approval'),
+    mine: (s) => ['out', 'return_reported', 'sold_unpaid'].includes(s.status),
     dispatch: (s) => s.status === 'approved',
     out: (s) => s.status === 'out',
     confirm: (s) => s.status === 'return_reported' || s.status === 'damaged_lost',
@@ -94,6 +99,25 @@ export default function Samples() {
         </Muted>
       </Card>
       <ErrorBanner message={error} />
+      {(outstanding.data ?? []).length ? (
+        <Card style={{ marginTop: 8, padding: 0, overflow: 'hidden' }}>
+          <Text style={{ fontWeight: '700', padding: 12, paddingBottom: 4 }}>
+            {isSales(me.role) ? 'My samples outstanding' : 'Samples outstanding by sales person'} (returnable out + sold not paid · limit LKR 500,000)
+          </Text>
+          {[...(outstanding.data ?? [])]
+            .sort((a, b) => Number(b.total_lkr) - Number(a.total_lkr))
+            .map((o) => (
+              <ListRow
+                key={o.sales_person_id}
+                highlight={exposureTone(Number(o.total_lkr))}
+                title={isSales(me.role) ? 'Total outstanding' : people[o.sales_person_id]?.full_name ?? '—'}
+                subtitle={`${o.out_n} returnable out (${fmtMoney(o.out_lkr, 'LKR')})${o.overdue_n ? ` · ${o.overdue_n} overdue (${fmtMoney(o.overdue_lkr, 'LKR')})` : ''} · ${o.sold_n} sold not paid (${fmtMoney(o.sold_lkr, 'LKR')})${o.over_limit ? ' · over the limit – collect overdue samples and the money for sold samples' : ''}`}
+                right={<Pill label={fmtMoney(o.total_lkr, 'LKR')} tone={exposureTone(Number(o.total_lkr))} solid={o.over_limit} />}
+                onPress={() => setTab('mine')}
+              />
+            ))}
+        </Card>
+      ) : null}
 
       {view === 'customers' ? (
         <Card style={{ padding: 0, overflow: 'hidden', marginTop: 8 }}>
@@ -134,6 +158,7 @@ export default function Samples() {
             onChange={setTab}
             options={[
               { value: 'all', label: 'Open (not cleared)', badge: all.filter(filters.all).length },
+              { value: 'mine', label: 'Outstanding (out + sold unpaid)', badge: all.filter(filters.mine).length },
               { value: 'check', label: 'Availability check', badge: all.filter(filters.check).length },
               { value: 'approve', label: 'Approval', badge: all.filter(filters.approve).length },
               { value: 'dispatch', label: 'To dispatch', badge: all.filter(filters.dispatch).length },
