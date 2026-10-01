@@ -230,6 +230,26 @@ begin
 end $$;
 reset role;
 
+-- Rejected once: the resubmission is Design Rev 1, numbered on screen, in alerts and in the file names
+select pg_temp.act_as('design_manager');
+set role authenticated;
+select public.review_design((select id from public.design_jobs), false, 'Increase lux in the lobby');
+reset role;
+select pg_temp.act_as('lighting_designer');
+set role authenticated;
+do $$ declare j uuid := (select id from public.design_jobs);
+begin
+  assert (select review_cycles from public.design_jobs where id = j) = 1, 'Rev 1 after return';
+  assert (select file_name from public.attachments where entity_id = j and kind = 'design_pack' and version = 1) like 'INQ-%-R0 Lighting Rev0 - pack.pdf', 'Rev 0 file named';
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('design_job', j, 'design_pack', 'design_job/' || j || '/pack2.pdf', 'pack.pdf');
+  assert (select file_name from public.attachments where entity_id = j and kind = 'design_pack' and version = 2) like 'INQ-%-R0 Lighting Rev1 - pack.pdf', 'Rev 1 file named';
+  perform public.submit_design_for_review(j);
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'design_returned' and title like '%prepare Rev 1'), 'designer told the next Rev';
+  assert exists (select 1 from public.notifications where kind = 'design_submitted' and title like '%Rev 1'), 'Design Manager sees Rev 1';
+end $$;
 select pg_temp.act_as('design_manager');
 set role authenticated;
 select public.review_design((select id from public.design_jobs), true, 'Good');
@@ -264,7 +284,7 @@ do $$ declare j uuid;
 begin
   select id into j from public.estimation_jobs;
   assert j is not null, 'estimator sees own job';
-  assert (select count(*) from public.attachments where entity_type = 'design_job' and kind = 'design_pack') = 1, 'estimator sees design pack';
+  assert (select count(*) from public.attachments where entity_type = 'design_job' and kind = 'design_pack') = 2, 'estimator sees design pack (Rev 0 and Rev 1)';
   perform public.acknowledge_estimation_job(j);
   perform public.save_estimate(j, 12000000, 9000000, 25, '[{"group":"Downlights","brand":"TestBrand EU","origin":"european"}]');
   insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values
@@ -411,10 +431,10 @@ do $$ begin
   assert (select count(*) from public.estimation_costing) = 0, 'sales cannot see cost/margin';
   assert (select count(*) from public.attachments where kind = 'costing_sheet') = 0, 'sales cannot see costing sheet';
   assert (select count(*) from public.attachments where kind = 'quotation_final') = 1, 'sales sees final quotation';
-  assert (select count(*) from public.attachments where kind = 'design_pack') = 1, 'design pack released with quotation';
+  assert (select count(*) from public.attachments where kind = 'design_pack') = 2, 'design pack (Rev 0 and Rev 1) released with quotation';
   assert (select count(*) from public.notifications where kind = 'quotation_released') = 1, 'release notification';
   assert (select count(*) from public.inquiry_files('00000000-0000-0000-0000-00000000d001') where kind = 'costing_sheet') = 0, 'inquiry_files hides costing';
-  assert (select count(*) from public.inquiry_files('00000000-0000-0000-0000-00000000d001') where kind in ('design_pack', 'quotation_final')) = 2, 'inquiry_files shows released files';
+  assert (select count(*) from public.inquiry_files('00000000-0000-0000-0000-00000000d001') where kind in ('design_pack', 'quotation_final')) = 3, 'inquiry_files shows released files (pack Rev 0, Rev 1 and the quotation)';
 end $$;
 select public.record_client_submission('00000000-0000-0000-0000-00000000d001');
 select public.record_client_response('00000000-0000-0000-0000-00000000d001', 'approved');

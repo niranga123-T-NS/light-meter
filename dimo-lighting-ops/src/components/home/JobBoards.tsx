@@ -158,7 +158,14 @@ function JobCard({
             {job.revision ? `-R${job.revision}` : ''}
           </Text>
         </Row>
-        {'task_type' in job ? <Pill label={job.task_type} /> : <Pill label={job.source} />}
+        {'task_type' in job ? (
+          <Row gap={4}>
+            <Pill label={job.task_type} />
+            <Pill label={`Rev ${job.review_cycles}`} tone={job.review_cycles ? colors.amber : undefined} />
+          </Row>
+        ) : (
+          <Pill label={job.source} />
+        )}
       </Row>
       <Muted numberOfLines={1}>{inq?.project_name}</Muted>
       {pct != null ? (
