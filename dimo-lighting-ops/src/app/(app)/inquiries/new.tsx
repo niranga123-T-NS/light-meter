@@ -84,8 +84,6 @@ export default function NewInquiry() {
     if (needsDuty && !f.duty_status) return setError('Duty status is mandatory when estimation is in scope');
     if (needsDuty && !f.estimation_scope.length) return setError('Select the estimation scope – what Estimation must price');
     if (needsDuty && !f.estimation_basis) return setError('Select the estimation basis – supply only, supply & install, or supply, install & commission');
-    if (f.design_required_by && f.design_required_by >= f.customer_deadline) return setError('Design required-by must be before the customer deadline');
-    if (f.quotation_required_by && f.quotation_required_by >= f.customer_deadline) return setError('Quotation required-by must be before the customer deadline');
     const row = {
       ...f,
       design_scope: f.route === 'B' ? null : f.design_scope,
@@ -192,9 +190,7 @@ export default function NewInquiry() {
       <Section title="Dates">
         <Card>
           <DateField label="Customer deadline" required value={f.customer_deadline} onChange={(v) => set('customer_deadline', v)} quick={[7, 14, 21, 30]} hint="The date the client or consultant needs the submission" />
-          {f.route !== 'B' ? <DateField label="Design required by" value={f.design_required_by} onChange={(v) => set('design_required_by', v)} quick={[5, 10]} /> : null}
-          {f.route !== 'C' ? <DateField label="Quotation required by" value={f.quotation_required_by} onChange={(v) => set('quotation_required_by', v)} quick={[5, 10, 14]} /> : null}
-          <Muted>Internal dates must be before the customer deadline. You will be warned if the time left is shorter than the standard SLA.</Muted>
+          <Muted>Only the customer deadline is needed. The Design Manager and SM Estimation set the internal design and estimation due dates when they assign the work.</Muted>
         </Card>
       </Section>
 

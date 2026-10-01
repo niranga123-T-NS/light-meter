@@ -356,8 +356,8 @@ export default function InquiryDetail() {
           <KeyValue label="Current due" value={fmtDateTime(i.current_due_at)} />
           <KeyValue label="Customer deadline" value={`${fmtDate(i.customer_deadline)}${daysLeft != null ? ` (${daysLeft} days)` : ''}`} />
           <KeyValue label="Sales person" value={people[i.sales_person_id]?.full_name ?? '—'} />
-          <KeyValue label="Design required by" value={fmtDate(i.design_required_by)} />
-          <KeyValue label="Quotation required by" value={fmtDate(i.quotation_required_by)} />
+          {i.design_required_by ? <KeyValue label="Design required by" value={fmtDate(i.design_required_by)} /> : null}
+          {i.quotation_required_by ? <KeyValue label="Quotation required by" value={fmtDate(i.quotation_required_by)} /> : null}
         </Row>
         {i.sla_colour === 'red' ? (
           <Notice tone={colors.red}>
@@ -528,11 +528,13 @@ function AssignDesign({ inquiry, onDone }: { inquiry: Inquiry; onDone: () => voi
     assignee: null as string | null,
     task_type: inquiry.design_scope === 'electrical' ? 'electrical' : 'lighting',
     job_size: 'medium',
-    due: inquiry.design_required_by as string | null,
+    due: (inquiry.design_required_by ?? null) as string | null,
     late_reason: '',
   });
   if (!open) return <Button title="Assign designer" onPress={() => setOpen(true)} />;
   const late = !!(f.due && inquiry.design_required_by && f.due > inquiry.design_required_by);
+  // The design must finish before the customer deadline, leaving time for estimation where it follows
+  const afterDeadline = !!(f.due && inquiry.customer_deadline && f.due >= inquiry.customer_deadline);
   return (
     <Card style={{ width: '100%', borderColor: colors.brand }}>
       <Select
@@ -562,7 +564,8 @@ function AssignDesign({ inquiry, onDone }: { inquiry: Inquiry; onDone: () => voi
           { value: 'large', label: 'Large / tender – 10 wd' },
         ]}
       />
-      <DateField label="Design due date" required value={f.due} onChange={(v) => setF((s) => ({ ...s, due: v }))} quick={[3, 5, 10]} hint={`Sales requested ${fmtDate(inquiry.design_required_by)}`} />
+      <DateField label="Design due date" required value={f.due} onChange={(v) => setF((s) => ({ ...s, due: v }))} quick={[3, 5, 10]} hint={`Customer deadline ${fmtDate(inquiry.customer_deadline)}${inquiry.design_required_by ? ` · sales requested ${fmtDate(inquiry.design_required_by)}` : ''}`} />
+      {afterDeadline ? <Notice tone={colors.red}>The design due date must be before the customer deadline ({fmtDate(inquiry.customer_deadline)}).</Notice> : null}
       {late ? (
         <Notice tone={colors.amber}>
           Later than the sales-requested date – a reason is mandatory and Sales and SM Projects will be notified.
@@ -583,6 +586,7 @@ function AssignDesign({ inquiry, onDone }: { inquiry: Inquiry; onDone: () => voi
           onPress={() =>
             dialog.run(async () => {
               if (!f.assignee || !f.due) throw new Error('Choose the designer and the due date');
+              if (afterDeadline) throw new Error('The design due date must be before the customer deadline');
               await rpc('assign_design_job', {
                 p_inquiry: inquiry.id,
                 p_assignee: f.assignee,

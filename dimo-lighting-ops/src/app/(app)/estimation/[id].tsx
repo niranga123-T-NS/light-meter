@@ -108,7 +108,7 @@ export default function EstimationJobScreen() {
         <Row wrap style={{ marginTop: 8 }}>
           <KeyValue label="Estimator" value={people[j.assignee_id ?? '']?.full_name ?? 'Not assigned'} />
           <KeyValue label="Due" value={fmtDateTime(j.due_at)} />
-          <KeyValue label="Quotation requested by" value={fmtDate(inq?.quotation_required_by)} />
+          {inq?.quotation_required_by ? <KeyValue label="Quotation requested by" value={fmtDate(inq.quotation_required_by)} /> : null}
           <KeyValue label="Customer deadline" value={fmtDate(inq?.customer_deadline)} />
           <KeyValue label="Client expectation" value={`${human(inq?.solution_level)} · ${human(inq?.manufacturing_origin)}`} />
           <KeyValue label="Design scope" value={designScopeText(inq?.design_scope)} />

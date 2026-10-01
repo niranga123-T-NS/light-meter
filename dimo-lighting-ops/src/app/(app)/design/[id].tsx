@@ -97,7 +97,7 @@ export default function DesignJobScreen() {
           <KeyValue label="Assignee" value={people[j.assignee_id ?? '']?.full_name ?? '—'} />
           <KeyValue label="Due" value={fmtDateTime(j.due_at)} />
           <KeyValue label="Original due" value={fmtDateTime(j.original_due_at)} />
-          <KeyValue label="Sales requested" value={fmtDate(inq?.design_required_by)} />
+          {inq?.design_required_by ? <KeyValue label="Sales requested" value={fmtDate(inq.design_required_by)} /> : null}
           <KeyValue label="Customer deadline" value={fmtDate(inq?.customer_deadline)} />
           <KeyValue label="Hours logged" value={String(j.hours_logged)} />
           <KeyValue label="Review cycles" value={String(j.review_cycles)} />
