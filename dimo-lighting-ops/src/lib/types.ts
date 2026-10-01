@@ -484,3 +484,30 @@ export type SampleItem = {
 };
 
 export type MasterValue = { list_name: string; value: string; grp: string | null; tags: string[]; sort_order: number };
+
+export type Retention = {
+  id: string;
+  code: string;
+  project_name: string;
+  end_client: string;
+  main_contractor: string | null;
+  contract_no: string | null;
+  contract_value: number | null;
+  retention_pct: number | null;
+  retention_value: number;
+  currency: Currency;
+  retention_form: 'cash_withheld' | 'bank_guarantee';
+  bg_expiry: string | null;
+  start_date: string;
+  due_date: string;
+  original_due_date: string | null;
+  extensions: number;
+  sales_person_id: string | null;
+  status: 'held' | 'claimed' | 'collected' | 'cancelled';
+  claimed_on: string | null;
+  claim_ref: string | null;
+  collected_amount: number | null;
+  collected_on: string | null;
+  notes: string | null;
+  created_at: string;
+};
