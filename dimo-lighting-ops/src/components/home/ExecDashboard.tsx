@@ -6,6 +6,7 @@ import { AGEING_COLOURS, AGEING_ORDER, fmtDate, fmtMoney, fmtNumber, human, SLA_
 import { useLoad } from '@/lib/hooks';
 import { projectTypeLabel } from '@/lib/roles';
 import { rpc } from '@/lib/supabase';
+import { DesignHolds } from './DesignHolds';
 import { Avatar, Button, Card, colors, DateField, ErrorBanner, Grid, H1, ListRow, Muted, Pill, Row, Screen, Section, Stat } from '../ui';
 
 type Dash = {
@@ -238,6 +239,8 @@ export function ExecDashboard() {
               {!data.top_overdue.length ? <Muted style={{ padding: 12 }}>Nothing overdue</Muted> : null}
             </Card>
           </Section>
+
+          <DesignHolds reloadKey={data} />
 
           <Grid min={320}>
             <Section title="Largest open inquiries">
