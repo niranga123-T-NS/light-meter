@@ -939,5 +939,68 @@ begin
   assert not exists (select 1 from public.sla_clocks c join public.approvals a on a.id = c.entity_id
                      where c.entity_type = 'approval' and c.stopped_at is null and a.status <> 'pending'), 'no timers on finished approvals';
 end $$;
+-- 14. Retentions ------------------------------------------------------------------
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare rid uuid; d date := current_date;
+begin
+  rid := public.save_retention(null, jsonb_build_object('project_name', 'Beach Resort Galle', 'end_client', 'ABC Hotels PLC',
+    'main_contractor', 'MAGA Engineering', 'contract_no', 'PO-4512', 'contract_value', '48000000', 'retention_pct', '5',
+    'currency', 'LKR', 'retention_form', 'bank_guarantee', 'bg_expiry', (d + 20)::text, 'start_date', (d - 300)::text,
+    'due_date', (d + 45)::text, 'sales_person_id', (select id from u where role = 'asm_building')::text));
+  assert (select retention_value from public.retentions where id = rid) = 2400000, 'value from contract value × %';
+  assert (select code from public.retentions where id = rid) like 'RET-%', 'code';
+  assert (select organization_id from public.retentions where id = rid) is not null, 'end client matched to the customer';
+  begin
+    perform public.save_retention(rid, jsonb_build_object('project_name', 'Beach Resort Galle', 'end_client', 'ABC Hotels PLC', 'currency', 'LKR',
+      'retention_form', 'cash_withheld', 'retention_value', '2400000', 'start_date', (d - 300)::text, 'due_date', (d + 90)::text));
+    raise exception 'due date edited directly';
+  exception when others then if sqlerrm not like '%extension approved by GM%' then raise; end if;
+  end;
+  perform public.request_retention_extension(rid, d + 75, 'Defects period extended by the client');
+end $$;
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin assert (select count(*) from public.retentions) = 1, 'sales person sees own retention'; end $$;
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+select public.decide_approval((select id from public.approvals where kind = 'retention_extension' and status = 'pending'), 'approved', 'OK');
+reset role;
+do $$ declare r public.retentions; d date := current_date; at8 timestamptz;
+begin
+  select * into r from public.retentions limit 1;
+  assert r.due_date = d + 75 and r.extensions = 1 and r.original_due_date = d + 45, 'extended by GM / DGM';
+  assert exists (select 1 from public.retention_log where retention_id = r.id and kind = 'extended'), 'extension in history';
+  at8 := (d + time '08:30') at time zone app.tz();
+  -- 75 days before due: nothing yet except the bank guarantee (expires in 20 days)
+  assert public.retention_tick(at8) = 1, 'bank guarantee expiry alert';
+  assert exists (select 1 from public.notifications where kind = 'retention_bg_expiry'), 'BG alert sent';
+  assert public.retention_tick(at8 + interval '20 days') = 1, '60-day alert';
+  assert public.retention_tick(at8 + interval '50 days') = 1, '30-day alert';
+  assert public.retention_tick(at8 + interval '75 days') = 1, 'due today – claim';
+  assert public.retention_tick(at8 + interval '76 days') = 1, 'again the next day';
+  assert public.retention_tick(at8 + interval '82 days') = 1, 'daily reminder, plus SM Projects after 7 days';
+  assert exists (select 1 from public.notifications where kind = 'retention_due' and recipient_id = (select id from u where role = 'sm_projects')), 'SM Projects told';
+end $$;
+select pg_temp.act_as('asm_building'); set role authenticated;
+select public.mark_retention_claimed((select id from public.retentions), current_date, 'CLM-77');
+reset role;
+do $$ declare at8 timestamptz := (current_date + time '08:30') at time zone app.tz();
+begin
+  assert public.retention_tick(at8 + interval '31 days') = 1, 'claimed 30 days – sales person';
+  assert public.retention_tick(at8 + interval '61 days') = 1, 'claimed 60 days – SM Projects';
+  assert public.retention_tick(at8 + interval '91 days') = 1, 'claimed 90 days – GM / DGM';
+  assert exists (select 1 from public.notifications where kind = 'retention_claim_overdue' and priority = 'critical'
+                 and recipient_id = (select id from u where role = 'gm')), 'GM / DGM alerted';
+end $$;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+select public.mark_retention_collected((select id from public.retentions), 2400000, current_date);
+insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name)
+values ('retention', (select id from public.retentions), 'retention_doc', 'retention/x/claim.pdf', 'claim.pdf');
+reset role;
+do $$ begin
+  assert (select status from public.retentions) = 'collected', 'collected';
+  assert public.retention_tick(now() + interval '200 days') = 0, 'no alerts after collection';
+end $$;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
