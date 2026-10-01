@@ -2,7 +2,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { AgeingChip } from '@/components/Ageing';
-import { Button, Card, colors, Empty, ErrorBanner, ListRow, Muted, Pill, Row, Screen, Segmented, Select } from '@/components/ui';
+import { Button, Card, colors, Empty, ErrorBanner, Field, ListRow, Muted, Pill, Row, Screen, Segmented, Select } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { AGEING_COLOURS, AGEING_ORDER, fmtDate, fmtMoney, human } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
@@ -49,6 +49,7 @@ export default function Debtors() {
   const [person, setPerson] = useState<string | null>(null);
   const [view, setView] = useState<'invoices' | 'customers'>('invoices');
   const [customer, setCustomer] = useState<string | null>(null);
+  const [q, setQ] = useState('');
   const [custSort, setCustSort] = useState<'total' | 'name' | 'days'>('total');
 
   const { data, error, loading, reload } = useLoad(async () => {
@@ -58,7 +59,13 @@ export default function Debtors() {
   });
 
   const [fourteen] = useState(() => Date.now() - 14 * 86400000);
-  const all = data ?? [];
+  const clientOf = (d: Debt) => (d.client_name ?? '—').trim();
+  const customerOptions = [...new Set((data ?? []).map(clientOf))].sort((a, b) => a.localeCompare(b)).map((c) => ({ value: c, label: c }));
+  // Customer filter (exact customer) and search (part of the customer name, project or invoice no.) apply to everything below
+  const needle = q.trim().toLowerCase();
+  const all = (data ?? [])
+    .filter((d) => !customer || clientOf(d) === customer)
+    .filter((d) => !needle || [d.client_name, d.project_name, d.invoice_no].some((v) => (v ?? '').toLowerCase().includes(needle)));
   const open = all.filter((d) => !['collected_confirmed', 'cleared'].includes(d.status));
   const byFilter: Record<Filter, Debt[]> = {
     open,
@@ -70,7 +77,6 @@ export default function Debtors() {
   const rows = byFilter[filter]
     .filter((d) => !bucket || d.ageing_bucket === bucket)
     .filter((d) => !person || d.sales_person_id === person)
-    .filter((d) => !customer || (d.client_name ?? '—').trim() === customer)
     .sort((a, b) => (sort === 'amount' ? b.amount - a.amount : sort === 'client' ? (a.client_name ?? '').localeCompare(b.client_name ?? '') : b.outstanding_days - a.outstanding_days));
 
   // Customer view uses the same filters (tab, ageing bucket, sales person) as the invoice list
@@ -142,7 +148,25 @@ export default function Debtors() {
             { value: 'customers', label: 'By customer' },
           ]}
         />
-        {customer ? <Button small variant="secondary" title={`✕ ${customer}`} onPress={() => setCustomer(null)} /> : null}
+      </Row>
+      <Row wrap gap={8}>
+        <View style={{ width: 280 }}>
+          <Select label="Customer" value={customer} onChange={(v) => setCustomer(v || null)} searchable options={[{ value: '', label: 'All customers' }, ...customerOptions]} />
+        </View>
+        <View style={{ width: 280 }}>
+          <Field label="Search customer, project or invoice" value={q} onChangeText={setQ} placeholder="e.g. Hilton or INV-104" />
+        </View>
+        {customer || q ? (
+          <Button
+            small
+            variant="secondary"
+            title="✕ Clear"
+            onPress={() => {
+              setCustomer(null);
+              setQ('');
+            }}
+          />
+        ) : null}
       </Row>
       <Row wrap gap={8}>
         {view === 'customers' ? (
