@@ -12,7 +12,8 @@ import { fmtDate, fmtMoney, todayISO } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 
-const TEMPLATE = ['Project name', 'Client', 'Invoice number', 'Invoice date', 'Outstanding amount', 'Currency', 'Outstanding days', 'Sales person'];
+// Client, invoice number, amount, currency and days are required; project and sales person are optional
+const TEMPLATE = ['Project name (optional)', 'Client', 'Invoice number', 'Invoice date', 'Outstanding amount', 'Currency', 'Outstanding days', 'Sales person (optional)'];
 const KEYS = ['project_name', 'client_name', 'invoice_no', 'invoice_date', 'amount', 'currency', 'outstanding_days', 'sales_person'] as const;
 
 type UploadRow = {
@@ -27,6 +28,7 @@ type UploadRow = {
   project_id: string | null;
   sales_person_id: string | null;
   errors: string[];
+  warnings: string[];
 };
 
 function cellToString(v: unknown) {
@@ -35,7 +37,11 @@ function cellToString(v: unknown) {
   return String(v).trim();
 }
 
-/** Weekly debtors upload (Section 12.2): parse → validate and match on the server → preview → map → confirm. */
+/**
+ * Weekly debtors upload (Section 12.2): parse → validate and match on the server → preview → confirm.
+ * The list is independent of the project register: unmatched projects, customers or sales people are warnings,
+ * and rows can optionally be linked here or later on the debt.
+ */
 export default function DebtorsUpload() {
   const dialog = useDialog();
   const [asAt, setAsAt] = useState<string | null>(todayISO());
@@ -84,9 +90,12 @@ export default function DebtorsUpload() {
       const bytes = file.webFile ? await file.webFile.arrayBuffer() : await new FsFile(file.uri).arrayBuffer();
       const sheet = await readSheet(bytes);
       if (!sheet.length) throw new Error('The file is empty');
-      const header = sheet[0].map((h) => cellToString(h).toLowerCase());
-      const idx = TEMPLATE.map((t) => header.indexOf(t.toLowerCase()));
-      const missing = TEMPLATE.filter((t, i) => idx[i] < 0 && t !== 'Sales person' && t !== 'Invoice date');
+      // Column names are matched without "(optional)" so older files with the previous headers still work
+      const norm = (h: string) => h.toLowerCase().replace(/\(optional\)/g, '').trim();
+      const header = sheet[0].map((h) => norm(cellToString(h)));
+      const idx = TEMPLATE.map((t) => header.indexOf(norm(t)));
+      const optional = ['project name', 'sales person', 'invoice date'];
+      const missing = TEMPLATE.filter((t, i) => idx[i] < 0 && !optional.includes(norm(t)));
       if (missing.length) throw new Error(`Missing columns: ${missing.join(', ')}. Use the standard template.`);
       const rows = sheet
         .slice(1)
@@ -108,19 +117,33 @@ export default function DebtorsUpload() {
   };
 
   const mapRow = async (row: UploadRow) => {
-    const r = await dialog.prompt({ title: `Map row ${row.row_no}: ${row.project_name ?? ''}`, fields: [{ key: 'q', label: 'Search the project register', required: true, initial: row.project_name ?? '' }] });
-    if (!r) return;
-    const matches = await rpc<{ id: string; name: string; customer: string; owner: string }[]>('lookup_projects_basic', { p_query: r.q });
-    if (!matches.length) return dialog.toast('No project found – ask sales to create it', 'error');
-    const pick = await dialog.prompt({
-      title: 'Choose the project',
-      fields: [{ key: 'p', label: 'Project', type: 'select', required: true, options: matches.map((m) => ({ value: m.id, label: `${m.name} – ${m.customer}`, hint: m.owner })) }],
+    const { data: sales } = await supabase.from('profiles').select('id, full_name').in('role', ['asm_building', 'asm_infra']).eq('active', true).order('full_name');
+    const r = await dialog.prompt({
+      title: `Link row ${row.row_no}: ${row.client_name ?? ''}`,
+      message: 'Optional – link the invoice to a project in the system and / or a sales person.',
+      fields: [
+        { key: 'q', label: 'Search the project register (optional)', initial: row.project_name ?? '' },
+        { key: 'sp', label: 'Sales person (optional)', type: 'select', options: (sales ?? []).map((x) => ({ value: x.id, label: x.full_name })) },
+      ],
     });
-    if (!pick) return;
+    if (!r || (!r.q && !r.sp)) return;
+    let project: string | null = null;
+    if (r.q) {
+      const matches = await rpc<{ id: string; name: string; customer: string; owner: string }[]>('lookup_projects_basic', { p_query: r.q });
+      if (!matches.length && !r.sp) return dialog.toast('No project found – the row can stay unlinked', 'error');
+      if (matches.length) {
+        const pick = await dialog.prompt({
+          title: 'Choose the project',
+          fields: [{ key: 'p', label: 'Project', type: 'select', required: true, options: matches.map((m) => ({ value: m.id, label: `${m.name} – ${m.customer}`, hint: m.owner })) }],
+        });
+        if (!pick) return;
+        project = pick.p;
+      }
+    }
     await dialog.run(async () => {
-      await rpc('map_debtor_row', { p_row: row.id, p_project: pick.p });
+      await rpc('map_debtor_row', { p_row: row.id, p_project: project, p_sales_person: r.sp || null });
       await preview.reload();
-    }, 'Mapped');
+    }, 'Linked');
   };
 
   const pv = preview.data;
@@ -144,19 +167,21 @@ export default function DebtorsUpload() {
             <Row wrap gap={8}>
               <Pill label={`${pv.upload.row_count} rows`} />
               <Pill label={`${pv.upload.error_count} with errors`} tone={pv.upload.error_count ? colors.red : colors.green} />
+              <Pill label={`${pv.rows.filter((r) => r.warnings?.length).length} not linked (optional)`} tone={colors.amber} />
               <Pill label={fmtMoney(pv.upload.totals?.LKR ?? 0, 'LKR')} tone={colors.blue} />
               <Pill label={fmtMoney(pv.upload.totals?.USD ?? 0, 'USD')} tone={colors.blue} />
             </Row>
-            {pv.upload.error_count ? <Notice tone={colors.amber}>Map every unmatched project and fix other errors (edit the file and upload again) before confirming.</Notice> : null}
+            {pv.upload.error_count ? <Notice tone={colors.red}>Rows in red have missing or invalid data – fix them in the file and upload again before confirming.</Notice> : null}
+            <Muted>Rows in amber are not linked to a project, customer or sales person in the system. They upload as they are; link them now with “Link”, or later on the debt.</Muted>
           </Card>
           <Card style={{ padding: 0, overflow: 'hidden', marginTop: 8 }}>
             {pv.rows.map((r) => (
               <ListRow
                 key={r.id}
                 title={`${r.row_no}. ${r.client_name ?? ''} · ${r.invoice_no ?? '—'}`}
-                subtitle={`${r.project_name ?? ''} · ${fmtMoney(r.amount, r.currency)} · ${r.outstanding_days ?? '—'} days${r.errors.length ? ` · ${r.errors.join(', ')}` : ''}`}
-                highlight={r.errors.length ? colors.red : undefined}
-                right={r.errors.some((e) => e.includes('not matched')) && pv.upload.status === 'preview' ? <Button small variant="secondary" title="Map" onPress={() => mapRow(r)} /> : undefined}
+                subtitle={`${r.project_name ?? 'No project'} · ${fmtMoney(r.amount, r.currency)} · ${r.outstanding_days ?? '—'} days${[...r.errors, ...(r.warnings ?? [])].length ? ` · ${[...r.errors, ...(r.warnings ?? [])].join(', ')}` : ''}`}
+                highlight={r.errors.length ? colors.red : r.warnings?.length ? colors.amber : undefined}
+                right={r.warnings?.length && !r.errors.length && pv.upload.status === 'preview' ? <Button small variant="secondary" title="Link" onPress={() => mapRow(r)} /> : undefined}
               />
             ))}
           </Card>

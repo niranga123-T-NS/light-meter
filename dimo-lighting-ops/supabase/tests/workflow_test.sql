@@ -365,11 +365,20 @@ begin
   up := public.stage_debtor_upload(current_date, '[
     {"project_name":"ABC Hotels - Beach Resort - Galle","client_name":"ABC Hotels PLC","invoice_no":"INV-10452","amount":2400000,"currency":"LKR","outstanding_days":94},
     {"project_name":"Unknown Project","client_name":"Nobody","invoice_no":"INV-1","amount":10,"currency":"LKR","outstanding_days":5}]');
-  assert (select error_count from public.debt_uploads where id = up) = 1, 'unmatched row flagged';
-  perform public.map_debtor_row((select id from public.debt_upload_rows where upload_id = up and invoice_no = 'INV-1'), '00000000-0000-0000-0000-00000000b001');
+  -- The debtors list is independent of the project register: unmatched rows are warnings, not errors
+  assert (select error_count from public.debt_uploads where id = up) = 0, 'unmatched project is not an error';
+  assert (select warnings from public.debt_upload_rows where upload_id = up and invoice_no = 'INV-1') @> '{"Project not linked","No sales person"}', 'unmatched row warned';
+  assert (select sales_person_id from public.debt_upload_rows where upload_id = up and invoice_no = 'INV-10452') is not null, 'matched row gets the sales person';
   res := public.confirm_debtor_upload(up);
-  assert (res ->> 'added')::int = 2, 'two debts added';
+  assert (res ->> 'added')::int = 2, 'two debts added without mapping';
+  assert (select project_id from public.debts where invoice_no = 'INV-1') is null, 'unlinked debt kept';
   assert (select ageing_bucket from public.debts where invoice_no = 'INV-10452') = '91-120', 'bucket';
+  -- Missing client name is still an error
+  up := public.stage_debtor_upload(current_date, '[{"invoice_no":"INV-2","amount":5,"currency":"LKR","outstanding_days":3}]');
+  assert (select error_count from public.debt_uploads where id = up) = 1, 'missing client is an error';
+  -- Link the unlinked debt later
+  perform public.link_debt((select id from public.debts where invoice_no = 'INV-1'), '00000000-0000-0000-0000-00000000b001');
+  assert (select sales_person_id from public.debts where invoice_no = 'INV-1') = (select id from u where role = 'asm_building'), 'linked to project and its sales person';
 end $$;
 reset role;
 

@@ -28,6 +28,38 @@ export default function DebtDetail() {
   const d = data.debt;
   const canUpdate = d.sales_person_id === me.id || me.role === 'sm_projects' || me.role === 'gm';
   const ops = me.role === 'operations_exec';
+  const canLink = ops || me.role === 'sm_projects' || me.role === 'gm';
+
+  // The debtors list is independent of the project register; a debt can be linked to a project / sales person at any time
+  const link = async () => {
+    const { data: sales } = await supabase.from('profiles').select('id, full_name').in('role', ['asm_building', 'asm_infra']).eq('active', true).order('full_name');
+    const r = await dialog.prompt({
+      title: 'Link debt',
+      message: 'Link this invoice to a project in the system and / or a sales person (optional).',
+      fields: [
+        { key: 'q', label: 'Search the project register (optional)', initial: d.project_name ?? '' },
+        { key: 'sp', label: 'Sales person (optional)', type: 'select', options: (sales ?? []).map((x) => ({ value: x.id, label: x.full_name })) },
+      ],
+    });
+    if (!r || (!r.q && !r.sp)) return;
+    let project: string | null = null;
+    if (r.q) {
+      const matches = await rpc<{ id: string; name: string; customer: string; owner: string }[]>('lookup_projects_basic', { p_query: r.q });
+      if (!matches.length && !r.sp) return dialog.toast('No project found', 'error');
+      if (matches.length) {
+        const pick = await dialog.prompt({
+          title: 'Choose the project',
+          fields: [{ key: 'p', label: 'Project', type: 'select', required: true, options: matches.map((m) => ({ value: m.id, label: `${m.name} – ${m.customer}`, hint: m.owner })) }],
+        });
+        if (!pick) return;
+        project = pick.p;
+      }
+    }
+    await dialog.run(async () => {
+      await rpc('link_debt', { p_debt: d.id, p_project: project, p_sales_person: r.sp || null });
+      await reload();
+    }, 'Linked');
+  };
 
   const updateStatus = async () => {
     const r = await dialog.prompt({
@@ -107,7 +139,8 @@ export default function DebtDetail() {
           <Text style={{ fontSize: 18, fontWeight: '700' }}>{d.client_name}</Text>
           <AgeingChip bucket={d.ageing_bucket} legal={d.is_legal} />
         </Row>
-        <Muted>{d.project_name}</Muted>
+        <Muted>{d.project_name ?? 'No project'}</Muted>
+        {!d.project_id ? <Notice tone={colors.amber}>Not linked to a project in the system{d.sales_person_id ? '' : ' and no sales person assigned'}.</Notice> : null}
         <Row wrap style={{ marginTop: 8 }}>
           <KeyValue label="Outstanding" value={fmtMoney(d.amount, d.currency)} />
           <KeyValue label="Outstanding days" value={String(d.outstanding_days)} />
@@ -129,6 +162,7 @@ export default function DebtDetail() {
           {canUpdate && !d.is_legal && !['collected_confirmed', 'cleared'].includes(d.status) ? <Button title="Update status" onPress={updateStatus} /> : null}
           {ops ? <Button variant="secondary" title={d.is_legal ? 'Update legal / next hearing' : 'Place under Legal'} onPress={() => legal(false)} /> : null}
           {ops && d.is_legal ? <Button variant="secondary" title="Close legal case" onPress={() => legal(true)} /> : null}
+          {canLink ? <Button variant="secondary" title="Link to project / sales person" onPress={link} /> : null}
         </Row>
         {!ops && d.is_legal ? <Muted>Legal status is maintained by the Operations Executive.</Muted> : null}
       </Card>
