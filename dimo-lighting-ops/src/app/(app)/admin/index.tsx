@@ -325,7 +325,7 @@ function Brands() {
   const dialog = useDialog();
   const { data, reload } = useLoad(async () => {
     const { data: rows } = await supabase.from('brands').select('*').order('name');
-    return (rows ?? []) as { id: number; name: string; manufacturer: string | null; country: string | null; origin: string; level: string; active: boolean }[];
+    return (rows ?? []) as { id: number; name: string; manufacturer: string | null; country: string | null; origin: string; level: string; active: boolean; status: string }[];
   });
   return (
     <Section title="Brand master list" right={me.role === 'sys_admin' ? <Button small title="+ Brand" onPress={async () => {
@@ -343,7 +343,7 @@ function Brands() {
     }} /> : undefined}>
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         {(data ?? []).map((b) => (
-          <ListRow key={b.id} title={b.name} subtitle={[b.manufacturer, b.country].filter(Boolean).join(' · ')} right={<Row gap={4}><Pill label={b.origin} /><Pill label={b.level} tone={colors.blue} /></Row>} />
+          <ListRow key={b.id} title={b.name} subtitle={[b.manufacturer, b.country].filter(Boolean).join(' · ')} right={<Row gap={4}><Pill label={b.origin} /><Pill label={b.level} tone={colors.blue} />{b.status !== 'approved' ? <Pill label={b.status} tone={b.status === 'pending' ? colors.amber : colors.red} /> : null}</Row>} />
         ))}
       </Card>
     </Section>

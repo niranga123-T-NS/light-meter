@@ -294,6 +294,9 @@ export default function InquiryDetail() {
             }}
           />,
         );
+        if (!i.release_mode_confirmed) {
+          buttons.push(<Muted key="relwait">Waiting for SM Projects to confirm the release mode (Approvals) before the design can be released.</Muted>);
+        }
       }
     }
     if (i.status === 'on_hold' && (me.role === 'sm_projects' || me.role === 'gm') && i.hold_reason !== 'Debtor check') {

@@ -54,6 +54,7 @@ export function navFor(role: Role): NavItem[] {
   const home: NavItem = { href: '/', label: 'Home', icon: '⌂' };
   const approvals: NavItem = { href: '/approvals', label: 'Approvals', icon: '✓', badgeKey: 'approvals' };
   const reports: NavItem = { href: '/reports', label: 'Reports', icon: '▤' };
+  const brands: NavItem = { href: '/brands', label: 'Brands', icon: '◈' };
   switch (role) {
     case 'asm_building':
     case 'asm_infra':
@@ -107,11 +108,12 @@ export function navFor(role: Role): NavItem[] {
         approvals,
         { href: '/inquiries', label: 'Inquiries', icon: '⧗' },
         { href: '/jobs', label: 'Jobs', icon: '▣' },
+        brands,
         reports,
       ];
     case 'lighting_designer':
     case 'lighting_engineer':
-      return [{ href: '/', label: 'My Jobs', icon: '⌂' }, { href: '/jobs', label: 'All my jobs', icon: '▣' }, reports];
+      return [{ href: '/', label: 'My Jobs', icon: '⌂' }, { href: '/jobs', label: 'All my jobs', icon: '▣' }, brands, reports];
     case 'sm_estimation':
       return [
         { href: '/', label: 'Estimation Board', icon: '⌂' },
@@ -119,11 +121,12 @@ export function navFor(role: Role): NavItem[] {
         { href: '/inquiries', label: 'Inquiries', icon: '⧗' },
         { href: '/jobs', label: 'Jobs', icon: '▣' },
         { href: '/customers', label: 'Customers', icon: '☷' },
+        brands,
         reports,
       ];
     case 'am_estimation':
     case 'estimation_exec':
-      return [{ href: '/', label: 'My Estimates', icon: '⌂' }, { href: '/jobs', label: 'All my jobs', icon: '▣' }, reports];
+      return [{ href: '/', label: 'My Estimates', icon: '⌂' }, { href: '/jobs', label: 'All my jobs', icon: '▣' }, brands, reports];
     case 'operations_exec':
       return [
         { href: '/', label: 'Home', icon: '⌂' },
