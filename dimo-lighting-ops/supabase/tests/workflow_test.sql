@@ -122,6 +122,16 @@ do $$ begin
   end;
 end $$;
 
+do $$ begin
+  begin
+    perform public.submit_inquiry('00000000-0000-0000-0000-00000000d001');
+    raise exception 'submitted without estimation scope';
+  exception when others then
+    if sqlerrm not like '%estimation scope%' then raise; end if;
+  end;
+end $$;
+update public.inquiries set estimation_scope = '{fixtures,controls}', estimation_basis = 'supply_install'
+ where id = '00000000-0000-0000-0000-00000000d001';
 select public.submit_inquiry('00000000-0000-0000-0000-00000000d001');
 do $$ begin
   assert (select status from public.inquiries where id = '00000000-0000-0000-0000-00000000d001') = 'submitted', 'submitted';
@@ -264,9 +274,9 @@ reset role;
 -- 8. Mixed duty requires SM Projects → GM ------------------------------------------
 select pg_temp.act_as('asm_building');
 set role authenticated;
-insert into public.inquiries (id, project_id, organization_id, unit_id, route, duty_status, customer_deadline, scope_description)
+insert into public.inquiries (id, project_id, organization_id, unit_id, route, duty_status, customer_deadline, scope_description, estimation_scope, estimation_basis)
 values ('00000000-0000-0000-0000-00000000d002', '00000000-0000-0000-0000-00000000b001', '00000000-0000-0000-0000-00000000a001',
-        '00000000-0000-0000-0000-00000000a002', 'B', 'duty_free', current_date + 20, 'Façade package – BOQ attached');
+        '00000000-0000-0000-0000-00000000a002', 'B', 'duty_free', current_date + 20, 'Façade package – BOQ attached', '{fixtures}', 'supply');
 do $$ begin
   assert (public.submit_inquiry('00000000-0000-0000-0000-00000000d002') ->> 'status') = 'approval_required', 'mixed duty blocked';
 end $$;
@@ -474,6 +484,21 @@ do $$ begin
   assert (select name from public.org_units where id = '00000000-0000-0000-0000-00000000a0f2') = 'Kadawatha Interchange Project', 'non-owner cannot edit unit';
 end $$;
 reset role;
+
+-- Estimation scope change after submission goes through the expectation-change approval (Route B: SM Estimation)
+select pg_temp.act_as('asm_building');
+set role authenticated;
+select public.request_inquiry_change('00000000-0000-0000-0000-00000000d002', 'expectation_change',
+  '{"estimation_scope": ["fixtures", "poles"], "estimation_basis": "supply_install_commission"}', 'Client added poles and commissioning');
+reset role;
+select pg_temp.act_as('sm_estimation');
+set role authenticated;
+select public.decide_approval((select id from public.approvals where kind = 'expectation_change' and entity_id = '00000000-0000-0000-0000-00000000d002'), 'approved');
+reset role;
+do $$ begin
+  assert (select estimation_scope from public.inquiries where id = '00000000-0000-0000-0000-00000000d002') = '{fixtures,poles}', 'scope changed by approval';
+  assert (select estimation_basis from public.inquiries where id = '00000000-0000-0000-0000-00000000d002') = 'supply_install_commission', 'basis changed by approval';
+end $$;
 
 -- Brand master list: teams add, managers approve / rename / merge ---------------
 select pg_temp.act_as('lighting_designer');
