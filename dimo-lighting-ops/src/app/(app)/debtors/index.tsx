@@ -156,6 +156,7 @@ export default function Debtors() {
         <View style={{ width: 280 }}>
           <Field label="Search customer, project or invoice" value={q} onChangeText={setQ} placeholder="e.g. Hilton or INV-104" />
         </View>
+        {customer ? <Button small title="Customer profile & history" onPress={() => router.push({ pathname: '/debtors/customer', params: { name: customer } })} /> : null}
         {customer || q ? (
           <Button
             small
@@ -224,10 +225,7 @@ export default function Debtors() {
               {customers.map((c) => (
                 <Pressable
                   key={c.client}
-                  onPress={() => {
-                    setCustomer(c.client);
-                    setView('invoices');
-                  }}
+                  onPress={() => router.push({ pathname: '/debtors/customer', params: { name: c.client } })}
                 >
                   <Row gap={0} style={{ borderBottomWidth: 1, borderBottomColor: colors.line }}>
                     <View style={[cellBox, { width: 220 }]}>

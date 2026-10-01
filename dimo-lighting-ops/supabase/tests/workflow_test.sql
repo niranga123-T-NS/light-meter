@@ -528,6 +528,22 @@ begin
   perform public.set_debt_sales_person((select id from public.debts where invoice_no = 'INV-1'), (select id from u where role = 'asm_building'));
   assert (select sales_person_id from public.debts where invoice_no = 'INV-1') = (select id from u where role = 'asm_building'), 'sales person assigned';
 end $$;
+-- Next week's list no longer has INV-1: it is cleared and becomes part of the customer's payment history
+do $$ declare up uuid; p jsonb;
+begin
+  up := public.stage_debtor_upload(current_date + 7, '[
+    {"project_name":"ABC Hotels - Beach Resort - Galle","client_name":"ABC Hotels PLC","invoice_no":"INV-10452","amount":2400000,"currency":"LKR","outstanding_days":94}]');
+  perform public.confirm_debtor_upload(up);
+  assert (select status from public.debts where invoice_no = 'INV-1') = 'cleared', 'INV-1 cleared';
+  p := public.customer_debt_profile(' nobody ');
+  assert (p -> 'history' ->> 'n')::int = 1, 'one cleared invoice in history';
+  assert (p -> 'history' ->> 'avg_days')::int >= 5, 'days to clear from the last outstanding days';
+  assert (p -> 'open' ->> 'n')::int = 0, 'nothing open';
+  p := public.customer_debt_profile('ABC Hotels PLC');
+  assert (p -> 'open' ->> 'lkr')::numeric = 2400000, 'open total';
+  assert (p -> 'open' -> 'by_bucket' -> 0 ->> 'bucket') = '91-120', 'by ageing bracket';
+  assert jsonb_array_length(p -> 'trend') = 2, 'outstanding per upload';
+end $$;
 reset role;
 
 select pg_temp.act_as('asm_building'); set role authenticated;

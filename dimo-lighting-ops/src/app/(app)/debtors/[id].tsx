@@ -1,4 +1,4 @@
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Text } from 'react-native';
 import { AgeingChip } from '@/components/Ageing';
 import { useDialog } from '@/components/dialog';
@@ -124,6 +124,9 @@ export default function DebtDetail() {
           <AgeingChip bucket={d.ageing_bucket} legal={d.is_legal} />
         </Row>
         {d.project_name ? <Muted>{d.project_name}</Muted> : null}
+        {d.client_name ? (
+          <Button small variant="ghost" title="Customer profile & payment history ›" onPress={() => router.push({ pathname: '/debtors/customer', params: { name: d.client_name ?? '' } })} />
+        ) : null}
         {!d.sales_person_id ? <Notice tone={colors.amber}>No sales person assigned – nobody is following this invoice up yet.</Notice> : null}
         <Row wrap style={{ marginTop: 8 }}>
           <KeyValue label="Outstanding" value={fmtMoney(d.amount, d.currency)} />
