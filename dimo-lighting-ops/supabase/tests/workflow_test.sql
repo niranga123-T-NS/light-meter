@@ -154,8 +154,49 @@ do $$ begin
   assert (select count(*) from public.projects) = 0, 'DM cannot see projects';
 end $$;
 select public.accept_inquiry('00000000-0000-0000-0000-00000000d001');
+-- Route A: the design completion date needs SM Projects' approval before a designer is assigned
+do $$ begin
+  begin
+    perform public.assign_design_job('00000000-0000-0000-0000-00000000d001', (select id from u where role = 'lighting_designer'), now() + interval '5 days', 'lighting', 'medium');
+    raise exception 'assigned without an approved completion date';
+  exception when others then
+    if sqlerrm not like '%design completion date%' then raise; end if;
+  end;
+  begin
+    perform public.propose_design_due('00000000-0000-0000-0000-00000000d001', now() + interval '60 days');
+    raise exception 'completion date after the customer deadline accepted';
+  exception when others then
+    if sqlerrm not like '%before the customer deadline%' then raise; end if;
+  end;
+end $$;
+select public.propose_design_due('00000000-0000-0000-0000-00000000d001', now() + interval '6 days', 'Medium job');
+reset role;
+do $$ begin
+  assert (select design_due_status from public.inquiries where id = '00000000-0000-0000-0000-00000000d001') = 'pending', 'completion date pending';
+  assert (select reason from public.approvals where kind = 'design_due') like '%working days for estimation%', 'approval shows days left for estimation';
+end $$;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+select public.decide_approval((select id from public.approvals where kind = 'design_due' and entity_id = '00000000-0000-0000-0000-00000000d001'), 'approved');
+reset role;
+select pg_temp.act_as('design_manager'); set role authenticated;
+do $$ begin
+  begin
+    perform public.assign_design_job('00000000-0000-0000-0000-00000000d001', (select id from u where role = 'lighting_designer'), now() + interval '8 days', 'lighting', 'medium');
+    raise exception 'task later than the approved completion date accepted';
+  exception when others then
+    if sqlerrm not like '%approved design completion date%' then raise; end if;
+  end;
+end $$;
 select public.assign_design_job('00000000-0000-0000-0000-00000000d001', (select id from u where role = 'lighting_designer'),
                                 now() + interval '5 days', 'lighting', 'medium');
+do $$ begin
+  begin
+    perform public.change_job_due_date('design_job', (select id from public.design_jobs where inquiry_id = '00000000-0000-0000-0000-00000000d001' limit 1), now() + interval '9 days', 'More time');
+    raise exception 'due date moved past the approved completion date';
+  exception when others then
+    if sqlerrm not like '%approved design completion date%' then raise; end if;
+  end;
+end $$;
 reset role;
 
 -- 4. Designer works and submits --------------------------------------------------

@@ -9,7 +9,7 @@ import { DESIGN_SCOPE, designScopeText, ESTIMATION_BASIS, ESTIMATION_SCOPE, esti
 import { Button, Card, colors, DateField, ErrorBanner, KeyValue, ListRow, Loading, Muted, Notice, Pill, Progress, Row, Screen, Section, Select, SlaDot } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { openAttachment } from '@/lib/files';
-import { daysBetween, endOfWorkDay, fmtDate, fmtDateTime, fmtMoney, human, INQUIRY_STATUS_LABEL, todayISO } from '@/lib/format';
+import { daysBetween, endOfWorkDay, fmtDate, fmtDateISO, fmtDateTime, fmtMoney, human, INQUIRY_STATUS_LABEL, todayISO } from '@/lib/format';
 import { useLoad, useMasters, usePeople } from '@/lib/hooks';
 import { isDesigner, isEstimator, isSales, projectTypeLabel } from '@/lib/roles';
 import { rpc, supabase } from '@/lib/supabase';
@@ -297,7 +297,37 @@ export default function InquiryDetail() {
       );
     }
     if (me.role === 'design_manager' || me.role === 'gm') {
-      if (['accepted', 'in_design', 'design_review'].includes(i.status) && i.route !== 'B') buttons.push(<AssignDesign key="asg" inquiry={i} onDone={reload} />);
+      const designOpen = ['accepted', 'in_design', 'design_review'].includes(i.status) && i.route !== 'B';
+      // Route A: the design completion date is approved by SM Projects before designers are assigned
+      const needsDueApproval = i.route === 'A' && i.design_due_status !== 'approved';
+      if (designOpen && i.route === 'A') {
+        if (i.design_due_status === 'pending') {
+          buttons.push(<Muted key="duewait">Waiting for SM Projects to approve the design completion date ({fmtDateTime(i.design_due_proposed_at)}).</Muted>);
+        } else {
+          buttons.push(
+            <Button
+              key="due"
+              variant={i.design_due_status === 'approved' ? 'secondary' : 'primary'}
+              title={i.design_due_status === 'approved' ? 'Change design completion date' : 'Set design completion date'}
+              onPress={async () => {
+                const r = await dialog.prompt({
+                  title: 'Design completion date',
+                  message: `When the whole design (all tasks) will be complete. SM Projects approves it after checking the time left for estimation before the customer deadline (${fmtDate(i.customer_deadline)}).`,
+                  fields: [
+                    { key: 'date', label: 'Design complete by (17:30)', type: 'date', required: true },
+                    { key: 'note', label: 'Note for SM Projects (optional)', type: 'multiline' },
+                  ],
+                });
+                if (r) await act('propose_design_due', { p_inquiry: i.id, p_due: endOfWorkDay(r.date), p_note: r.note || null }, 'Sent to SM Projects for approval');
+              }}
+            />,
+          );
+          if (i.design_due_status === 'returned') {
+            buttons.push(<Muted key="dueret">SM Projects returned the proposed completion date – see Approvals for the comment and propose another date.</Muted>);
+          }
+        }
+      }
+      if (designOpen && !needsDueApproval) buttons.push(<AssignDesign key="asg" inquiry={i} onDone={reload} />);
       if (i.status === 'design_approved') {
         buttons.push(
           <Button
@@ -355,9 +385,19 @@ export default function InquiryDetail() {
           <KeyValue label="Current owner" value={people[i.current_owner_id ?? '']?.full_name ?? '—'} />
           <KeyValue label="Current due" value={fmtDateTime(i.current_due_at)} />
           <KeyValue label="Customer deadline" value={`${fmtDate(i.customer_deadline)}${daysLeft != null ? ` (${daysLeft} days)` : ''}`} />
+          {i.route === 'A' && (i.design_due_at || i.design_due_proposed_at) ? (
+            <KeyValue
+              label="Design completion"
+              value={
+                i.design_due_status === 'approved'
+                  ? `${fmtDateTime(i.design_due_at)} (approved)`
+                  : `${fmtDateTime(i.design_due_proposed_at)} (${i.design_due_status === 'returned' ? 'returned' : 'awaiting SM Projects'})`
+              }
+            />
+          ) : null}
           <KeyValue label="Sales person" value={people[i.sales_person_id]?.full_name ?? '—'} />
-          <KeyValue label="Design required by" value={fmtDate(i.design_required_by)} />
-          <KeyValue label="Quotation required by" value={fmtDate(i.quotation_required_by)} />
+          {i.design_required_by ? <KeyValue label="Design required by" value={fmtDate(i.design_required_by)} /> : null}
+          {i.quotation_required_by ? <KeyValue label="Quotation required by" value={fmtDate(i.quotation_required_by)} /> : null}
         </Row>
         {i.sla_colour === 'red' ? (
           <Notice tone={colors.red}>
@@ -528,11 +568,15 @@ function AssignDesign({ inquiry, onDone }: { inquiry: Inquiry; onDone: () => voi
     assignee: null as string | null,
     task_type: inquiry.design_scope === 'electrical' ? 'electrical' : 'lighting',
     job_size: 'medium',
-    due: inquiry.design_required_by as string | null,
+    due: (inquiry.design_due_at ? fmtDateISO(inquiry.design_due_at) : inquiry.design_required_by ?? null) as string | null,
     late_reason: '',
   });
   if (!open) return <Button title="Assign designer" onPress={() => setOpen(true)} />;
   const late = !!(f.due && inquiry.design_required_by && f.due > inquiry.design_required_by);
+  // The design must finish before the customer deadline, leaving time for estimation where it follows
+  const afterDeadline = !!(f.due && inquiry.customer_deadline && f.due >= inquiry.customer_deadline);
+  const approvedDay = inquiry.design_due_at ? fmtDateISO(inquiry.design_due_at) : null;
+  const afterApproved = !!(f.due && approvedDay && f.due > approvedDay);
   return (
     <Card style={{ width: '100%', borderColor: colors.brand }}>
       <Select
@@ -562,7 +606,9 @@ function AssignDesign({ inquiry, onDone }: { inquiry: Inquiry; onDone: () => voi
           { value: 'large', label: 'Large / tender – 10 wd' },
         ]}
       />
-      <DateField label="Design due date" required value={f.due} onChange={(v) => setF((s) => ({ ...s, due: v }))} quick={[3, 5, 10]} hint={`Sales requested ${fmtDate(inquiry.design_required_by)}`} />
+      <DateField label="Design due date" required value={f.due} onChange={(v) => setF((s) => ({ ...s, due: v }))} quick={[3, 5, 10]} hint={`${approvedDay ? `Approved completion ${fmtDate(approvedDay)} · ` : ''}Customer deadline ${fmtDate(inquiry.customer_deadline)}${inquiry.design_required_by ? ` · sales requested ${fmtDate(inquiry.design_required_by)}` : ''}`} />
+      {afterApproved ? <Notice tone={colors.red}>Later than the approved design completion date ({fmtDate(approvedDay)}) – change the completion date first.</Notice> : null}
+      {afterDeadline ? <Notice tone={colors.red}>The design due date must be before the customer deadline ({fmtDate(inquiry.customer_deadline)}).</Notice> : null}
       {late ? (
         <Notice tone={colors.amber}>
           Later than the sales-requested date – a reason is mandatory and Sales and SM Projects will be notified.
@@ -583,6 +629,8 @@ function AssignDesign({ inquiry, onDone }: { inquiry: Inquiry; onDone: () => voi
           onPress={() =>
             dialog.run(async () => {
               if (!f.assignee || !f.due) throw new Error('Choose the designer and the due date');
+              if (afterDeadline) throw new Error('The design due date must be before the customer deadline');
+              if (afterApproved) throw new Error('The due date is later than the approved design completion date');
               await rpc('assign_design_job', {
                 p_inquiry: inquiry.id,
                 p_assignee: f.assignee,
