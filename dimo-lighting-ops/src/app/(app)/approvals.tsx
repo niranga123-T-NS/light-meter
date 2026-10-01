@@ -17,8 +17,8 @@ export default function Approvals() {
     let comment: string | null = null;
     if (decision !== 'approved' || a.kind === 'duplicate_visit') {
       const r = await dialog.prompt({
-        title: `${human(decision)}: ${a.title}`,
-        fields: [{ key: 'c', label: decision === 'approved' ? 'Comment' : 'Reason (required)', type: 'multiline', required: decision !== 'approved' }],
+        title: `${a.kind === 'quotation_sm_projects' && decision === 'returned' ? 'Request revision' : human(decision)}: ${a.title}`,
+        fields: [{ key: 'c', label: decision === 'approved' ? 'Comment' : a.kind === 'quotation_sm_projects' ? 'What needs to be revised (required)' : 'Reason (required)', type: 'multiline', required: decision !== 'approved' }],
       });
       if (!r) return;
       comment = r.c || null;
@@ -46,11 +46,20 @@ export default function Approvals() {
               subtitle={`${human(a.kind)} · ${a.requester ?? ''} · ${fmtDateTime(a.requested_at)}${a.step ? ` · ${a.step}` : ''}${a.reason ? `\n${a.reason}` : ''}`}
               onPress={a.inquiry_id ? () => router.push(a.url as never) : undefined}
               right={
-                <Row gap={4} wrap>
-                  <Button small title="Approve" onPress={() => decide(a, 'approved')} />
-                  <Button small variant="secondary" title="Return" onPress={() => decide(a, 'returned')} />
-                  <Button small variant="danger" title="Reject" onPress={() => decide(a, 'rejected')} />
-                </Row>
+                a.kind === 'quotation_sm_projects' ? (
+                  // Verify the draft quotation on the inquiry page, then accept or ask for a revision
+                  <Row gap={4} wrap>
+                    <Button small variant="secondary" title="Open quotation" onPress={() => router.push(a.url as never)} />
+                    <Button small title="Accept" onPress={() => decide(a, 'approved')} />
+                    <Button small variant="danger" title="Request revision" onPress={() => decide(a, 'returned')} />
+                  </Row>
+                ) : (
+                  <Row gap={4} wrap>
+                    <Button small title="Approve" onPress={() => decide(a, 'approved')} />
+                    <Button small variant="secondary" title="Return" onPress={() => decide(a, 'returned')} />
+                    <Button small variant="danger" title="Reject" onPress={() => decide(a, 'rejected')} />
+                  </Row>
+                )
               }
             />
           ))}
