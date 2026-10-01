@@ -383,6 +383,9 @@ export default function InquiryDetail() {
   const sales = salesActions();
   const mgr = managerActions();
   const showWorkspaceLinks = !isSales(me.role) && me.role !== 'sm_projects';
+  // SM Projects verifies quotations below 15 Mn LKR before SM Estimation releases them
+  const quoteCheck = me.role === 'sm_projects' || me.role === 'gm' ? approvals.find((a) => a.kind === 'quotation_sm_projects' && a.status === 'pending') : undefined;
+  const draftFiles = files.filter((f) => f.entity_type === 'estimation_job' && ['quotation_draft', 'costing_sheet', 'compliance_sheet', 'technical_data'].includes(f.kind));
   const releasedFiles = files.filter((f) => ['design_pack', 'quotation_final', 'compliance_sheet', 'technical_data'].includes(f.kind));
 
   return (
@@ -520,6 +523,39 @@ export default function InquiryDetail() {
             })}
             <Muted>Brands offered: {quotations[0].brands_offered.map((b) => `${b.group}: ${b.brand}`).join(' · ') || '—'}</Muted>
           </Card>
+        </Section>
+      ) : null}
+
+      {quoteCheck ? (
+        <Section title="Quotation for your approval (below 15 Mn LKR)">
+          <Card style={{ borderColor: colors.amber }}>
+            <Text style={{ fontWeight: '700' }}>{quoteCheck.title}</Text>
+            {quoteCheck.reason ? <Muted>{quoteCheck.reason}</Muted> : null}
+            <Muted style={{ marginTop: 6 }}>Open the draft quotation and supporting files, then accept it or request a revision. Accepted quotations are released to sales by SM Estimation.</Muted>
+          </Card>
+          <Card style={{ padding: 0, overflow: 'hidden', marginTop: 8 }}>
+            {draftFiles.map((f) => (
+              <ListRow key={f.id} title={f.file_name} subtitle={`${KIND_LABELS[f.kind] ?? f.kind} · v${f.version} · ${fmtDateTime(f.uploaded_at)}`} right={<Button small variant="secondary" title="Open" onPress={() => dialog.run(() => openAttachment(f))} />} />
+            ))}
+            {!draftFiles.length ? <Muted style={{ padding: 12 }}>No quotation files found.</Muted> : null}
+          </Card>
+          <Row gap={8} wrap style={{ marginTop: 8 }}>
+            <Button
+              title="Accept quotation"
+              onPress={async () => {
+                const r = await dialog.prompt({ title: 'Accept quotation', message: 'SM Estimation will be asked to release it to sales.', fields: [{ key: 'c', label: 'Comment (optional)', type: 'multiline' }], confirmLabel: 'Accept' });
+                if (r) await act('decide_approval', { p_approval: quoteCheck.id, p_decision: 'approved', p_comment: r.c || null }, 'Accepted – SM Estimation will release it');
+              }}
+            />
+            <Button
+              variant="danger"
+              title="Request revision"
+              onPress={async () => {
+                const r = await dialog.prompt({ title: 'Request revision', message: 'Goes back to SM Estimation, who re-assigns it to an estimator.', fields: [{ key: 'c', label: 'What needs to be revised', type: 'multiline', required: true }], confirmLabel: 'Request revision' });
+                if (r) await act('decide_approval', { p_approval: quoteCheck.id, p_decision: 'returned', p_comment: r.c }, 'Revision requested – SM Estimation notified');
+              }}
+            />
+          </Row>
         </Section>
       ) : null}
 

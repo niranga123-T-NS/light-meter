@@ -282,6 +282,8 @@ export type EstimationJob = {
   hold_reason: string | null;
   requested_due_at: string | null;
   review_comment: string | null;
+  needs_sm_projects?: boolean;
+  sm_projects_revisions?: number;
   submitted_at: string | null;
   released_at: string | null;
   inquiries?: Pick<Inquiry, 'code' | 'project_name' | 'customer_name' | 'customer_deadline' | 'route' | 'status' | 'duty_status' | 'currency' | 'project_type' | 'solution_level' | 'manufacturing_origin' | 'expectation_notes' | 'scope_description' | 'design_scope' | 'estimation_scope' | 'estimation_basis' | 'quotation_required_by' | 'debtor_flag' | 'revision'> | null;

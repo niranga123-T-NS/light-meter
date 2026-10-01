@@ -199,9 +199,9 @@ export function EstimationBoard({ header }: { header?: ReactNode } = {}) {
   });
   const jobs = data?.jobs ?? [];
   const groups = {
-    queue: jobs.filter((j) => ['queued', 'accepted'].includes(j.status)),
+    queue: jobs.filter((j) => ['queued', 'accepted', 'revision_requested'].includes(j.status)),
     open: jobs.filter((j) => ['assigned', 'acknowledged', 'date_change_requested', 'in_progress', 'returned', 'on_hold'].includes(j.status)),
-    approval: jobs.filter((j) => ['submitted_for_approval', 'gm_approval', 'approved'].includes(j.status)),
+    approval: jobs.filter((j) => ['submitted_for_approval', 'gm_approval', 'sm_projects_approval', 'approved'].includes(j.status)),
     released: jobs.filter((j) => j.status === 'released'),
   };
   const overdue = [...groups.open, ...groups.approval].filter((j) => data?.colours[j.id] === 'red').length;

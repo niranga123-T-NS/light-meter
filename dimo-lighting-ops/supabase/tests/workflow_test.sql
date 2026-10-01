@@ -266,7 +266,7 @@ begin
   assert j is not null, 'estimator sees own job';
   assert (select count(*) from public.attachments where entity_type = 'design_job' and kind = 'design_pack') = 1, 'estimator sees design pack';
   perform public.acknowledge_estimation_job(j);
-  perform public.save_estimate(j, 60000000, 45000000, 25, '[{"group":"Downlights","brand":"TestBrand EU","origin":"european"}]');
+  perform public.save_estimate(j, 12000000, 9000000, 25, '[{"group":"Downlights","brand":"TestBrand EU","origin":"european"}]');
   insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values
     ('estimation_job', j, 'quotation_draft', 'estimation_job/' || j || '/d.pdf', 'draft.pdf'),
     ('estimation_job', j, 'costing_sheet', 'estimation_job/' || j || '/c.xlsx', 'costing.xlsx');
@@ -274,6 +274,73 @@ begin
   assert (select file_name from public.attachments where kind = 'quotation_draft') like 'INQ-%-R0-draft-v1.pdf', 'file renamed';
 end $$;
 reset role;
+
+-- Below 15 Mn LKR: SM Projects verifies before release; a revision goes back through SM Estimation to an estimator
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+do $$ begin
+  assert public.review_estimate((select id from public.estimation_jobs), true, 'Checked') = 'sm_projects_approval', 'below 15 Mn needs SM Projects';
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+select public.decide_approval((select id from public.approvals where kind = 'quotation_sm_projects' and status = 'pending'), 'returned', 'Check the floodlight quantities');
+reset role;
+do $$ begin
+  assert (select status from public.estimation_jobs) = 'revision_requested', 'revision requested';
+  assert (select status from public.inquiries where id = '00000000-0000-0000-0000-00000000d001') = 'in_estimation', 'back in estimation';
+  assert exists (select 1 from public.notifications where kind = 'quotation_revision' and recipient_id = (select id from u where role = 'sm_estimation')), 'SM Estimation told';
+  assert exists (select 1 from public.sla_clocks where entity_type = 'estimation_job' and stage = 'assignment' and stopped_at is null), 're-assignment timer';
+end $$;
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+select public.assign_estimation_job((select id from public.estimation_jobs), public.default_estimator('00000000-0000-0000-0000-00000000d001'), now() + interval '3 days', 'large');
+reset role;
+do $$ begin
+  assert (select status from public.estimation_jobs) = 'returned', 'same estimator continues the revision';
+  assert not exists (select 1 from public.sla_clocks where entity_type = 'estimation_job' and stage = 'assignment' and stopped_at is null), 're-assignment timer stopped';
+  assert exists (select 1 from public.notifications where title like 'Revise the quotation%' and recipient_id = (select id from u where role = 'estimation_exec')), 'estimator told';
+end $$;
+select pg_temp.act_as('estimation_exec'); set role authenticated;
+select public.save_estimate((select id from public.estimation_jobs), 13000000, 9500000, 27, '[{"group":"Downlights","brand":"TestBrand EU","origin":"european"}]');
+select public.submit_estimate_for_approval((select id from public.estimation_jobs));
+reset role;
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+select public.review_estimate((select id from public.estimation_jobs), true, null);
+reset role;
+do $$ begin
+  assert (select reason from public.approvals where kind = 'quotation_sm_projects' and status = 'pending') like '%revision 1%', 'SM Projects sees it is a revision';
+end $$;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.inquiry_files('00000000-0000-0000-0000-00000000d001') where kind = 'quotation_draft'), 'SM Projects can open the draft quotation';
+end $$;
+reset role;
+-- Accepted → only SM Estimation releases it
+savepoint smp_accept;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+select public.decide_approval((select id from public.approvals where kind = 'quotation_sm_projects' and status = 'pending'), 'approved', 'OK');
+reset role;
+select pg_temp.act_as('estimation_exec'); set role authenticated;
+do $$ begin
+  assert (select status from public.estimation_jobs) = 'approved', 'accepted by SM Projects';
+  begin
+    perform public.release_quotation((select id from public.estimation_jobs));
+    raise exception 'estimator released';
+  exception when others then if sqlerrm not like '%SM Estimation releases%' then raise; end if;
+  end;
+end $$;
+reset role;
+rollback to savepoint smp_accept;
+-- Another revision round, this time the value goes above the limit
+select pg_temp.act_as('sm_projects'); set role authenticated;
+select public.decide_approval((select id from public.approvals where kind = 'quotation_sm_projects' and status = 'pending'), 'returned', 'Add the external lighting');
+reset role;
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+select public.assign_estimation_job((select id from public.estimation_jobs), public.default_estimator('00000000-0000-0000-0000-00000000d001'), now() + interval '3 days', 'large');
+reset role;
+select pg_temp.act_as('estimation_exec'); set role authenticated;
+select public.save_estimate((select id from public.estimation_jobs), 60000000, 45000000, 25, '[{"group":"Downlights","brand":"TestBrand EU","origin":"european"}]');
+select public.submit_estimate_for_approval((select id from public.estimation_jobs));
+reset role;
+do $$ begin assert (select sm_projects_revisions from public.estimation_jobs) = 2, 'two revision rounds'; end $$;
 
 -- Above the GM value threshold → GM approval
 select pg_temp.act_as('sm_estimation');
