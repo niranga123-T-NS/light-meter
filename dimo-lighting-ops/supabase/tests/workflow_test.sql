@@ -545,6 +545,42 @@ begin
   assert jsonb_array_length(p -> 'trend') = 2, 'outstanding per upload';
 end $$;
 reset role;
+-- Legal case whose hearing date has passed: the Operations Executive is alerted every day until it is updated
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare d uuid := (select id from public.debts where invoice_no = 'INV-10452');
+begin
+  perform public.set_debt_legal(d, true, 'Commercial High Court case 123/26', current_date + 5);
+  begin
+    perform public.set_debt_legal(d, true, 'Commercial High Court case 123/26', current_date - 1, null, 'Postponed');
+    raise exception 'past hearing date accepted';
+  exception when others then if sqlerrm not like '%cannot be in the past%' then raise; end if;
+  end;
+end $$;
+reset role;
+update public.debts set next_hearing_date = current_date - 3 where invoice_no = 'INV-10452';
+do $$ declare morning timestamptz := ((now() at time zone app.tz())::date + time '08:00') at time zone app.tz();
+begin
+  assert public.legal_hearing_tick(morning) = 1, 'hearing passed → alert';
+  assert exists (select 1 from public.notifications where kind = 'legal_hearing_overdue' and priority = 'critical'
+                 and recipient_id = (select id from u where role = 'operations_exec')), 'Operations Executive alerted (critical)';
+  assert public.legal_hearing_tick(morning + interval '2 hours') = 0, 'once a day';
+  assert public.legal_hearing_tick(morning + interval '1 day') = 1, 'again the next day';
+end $$;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare d uuid := (select id from public.debts where invoice_no = 'INV-10452');
+begin
+  begin
+    perform public.set_debt_legal(d, true, 'Commercial High Court case 123/26', current_date + 14);
+    raise exception 'update without comments accepted';
+  exception when others then if sqlerrm not like '%Add comments%' then raise; end if;
+  end;
+  perform public.set_debt_legal(d, true, 'Commercial High Court case 123/26', current_date + 14, null, 'Hearing postponed – judge on leave');
+end $$;
+reset role;
+do $$ begin
+  assert public.legal_hearing_tick(((now() at time zone app.tz())::date + 2 + time '08:00') at time zone app.tz()) = 0, 'updated → no more alerts';
+  assert (select note from public.debt_log where kind = 'legal' order by at desc, id desc limit 1) like '%judge on leave%', 'comment kept in history';
+end $$;
 
 select pg_temp.act_as('asm_building'); set role authenticated;
 do $$ begin

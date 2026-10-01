@@ -4,16 +4,17 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { AgeingChip } from '@/components/Ageing';
 import { Button, Card, colors, Empty, ErrorBanner, ListRow, Muted, Pill, Row, Screen, Segmented, Select } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { AGEING_COLOURS, AGEING_ORDER, fmtDate, fmtMoney, human } from '@/lib/format';
+import { AGEING_COLOURS, AGEING_ORDER, fmtDate, fmtMoney, human, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { isSales } from '@/lib/roles';
 import { supabase } from '@/lib/supabase';
 import type { Debt } from '@/lib/types';
 
-type Filter = 'open' | 'legal' | 'mismatch' | 'non_moving' | 'closed';
+type Filter = 'open' | 'legal' | 'hearing' | 'mismatch' | 'non_moving' | 'closed';
 type Money = { lkr: number; usd: number };
 type CustomerRow = { client: string; n: number; legal: number; maxDays: number; total: Money; legalTotal: Money; buckets: Record<string, Money> };
 
+const hearingPassed = (d: Debt) => d.is_legal && !d.legal_outcome && !!d.next_hearing_date && d.next_hearing_date < todayISO();
 const sumMoney = (list: Debt[]): Money => ({
   lkr: list.filter((d) => d.currency === 'LKR').reduce((a, d) => a + Number(d.amount), 0),
   usd: list.filter((d) => d.currency === 'USD').reduce((a, d) => a + Number(d.amount), 0),
@@ -79,6 +80,8 @@ export default function Debtors() {
   const byFilter: Record<Filter, Debt[]> = {
     open,
     legal: open.filter((d) => d.is_legal),
+    // Legal cases whose hearing date has passed without an update
+    hearing: open.filter((d) => hearingPassed(d)),
     mismatch: open.filter((d) => d.collection_mismatch),
     non_moving: open.filter((d) => !d.is_legal && !['collected', 'disputed'].includes(d.status) && Date.parse(d.last_status_at) < fourteen && Date.parse(d.last_amount_change_at) < fourteen),
     closed: all.filter((d) => ['collected_confirmed', 'cleared'].includes(d.status)),
@@ -157,6 +160,7 @@ export default function Debtors() {
           options={[
             { value: 'open', label: 'Open', badge: 0 },
             { value: 'legal', label: 'Legal', badge: byFilter.legal.length },
+            { value: 'hearing', label: 'Hearing date passed', badge: byFilter.hearing.length },
             { value: 'non_moving', label: 'Non-moving', badge: byFilter.non_moving.length },
             { value: 'mismatch', label: 'Collection mismatch', badge: byFilter.mismatch.length },
             { value: 'closed', label: 'Collected / cleared' },
@@ -271,10 +275,12 @@ export default function Debtors() {
           <ListRow
             key={d.id}
             left={<AgeingChip bucket={d.ageing_bucket} legal={d.is_legal} />}
+            highlight={hearingPassed(d) ? colors.red : undefined}
             title={`${d.client_name ?? ''} · ${d.invoice_no}`}
             subtitle={`${d.project_name ?? ''} · ${d.outstanding_days} days · ${human(d.status)}${d.status === 'payment_promised' ? ` ${fmtDate(d.promised_date)}` : ''}${isSales(me.role) ? '' : ` · ${people[d.sales_person_id ?? '']?.full_name ?? ''}`}${d.is_legal && d.next_hearing_date ? ` · hearing ${fmtDate(d.next_hearing_date)}` : ''}`}
             right={
               <Row gap={4}>
+                {hearingPassed(d) ? <Pill label="Hearing passed – update" tone={colors.red} solid /> : null}
                 {d.collection_mismatch ? <Pill label="Mismatch" tone={colors.red} /> : null}
                 <Text style={{ fontWeight: '700' }}>{fmtMoney(d.amount, d.currency)}</Text>
               </Row>
