@@ -22,6 +22,7 @@ type UploadRow = {
   project_name: string | null;
   client_name: string | null;
   invoice_no: string | null;
+  invoice_date: string | null;
   amount: number | null;
   currency: 'LKR' | 'USD' | null;
   outstanding_days: number | null;
@@ -146,7 +147,56 @@ export default function DebtorsUpload() {
     }, 'Linked');
   };
 
+  const fixRow = async (row: UploadRow) => {
+    const r = await dialog.prompt({
+      title: `Fix row ${row.row_no}`,
+      message: row.errors.length ? `Problem: ${row.errors.join('; ')}` : undefined,
+      fields: [
+        { key: 'client_name', label: 'Client', required: true, initial: row.client_name ?? '' },
+        { key: 'invoice_no', label: 'Invoice number', required: true, initial: row.invoice_no ?? '' },
+        { key: 'invoice_date', label: 'Invoice date (optional)', type: 'date', initial: row.invoice_date ?? undefined },
+        { key: 'amount', label: 'Outstanding amount', required: true, initial: row.amount == null ? '' : String(row.amount) },
+        { key: 'currency', label: 'Currency', type: 'select', required: true, initial: row.currency ?? undefined, options: [{ value: 'LKR', label: 'LKR' }, { value: 'USD', label: 'USD' }] },
+        { key: 'outstanding_days', label: 'Outstanding days', required: true, initial: row.outstanding_days == null ? '' : String(row.outstanding_days) },
+        { key: 'project_name', label: 'Project name (optional)', initial: row.project_name ?? '' },
+      ],
+    });
+    if (!r) return;
+    const amount = Number(String(r.amount).replace(/,/g, ''));
+    const days = Number(String(r.outstanding_days).replace(/,/g, ''));
+    if (!Number.isFinite(amount)) return dialog.toast('The outstanding amount must be a number', 'error');
+    if (!Number.isInteger(days) || days < 0) return dialog.toast('Outstanding days must be a whole number', 'error');
+    await dialog.run(async () => {
+      await rpc('edit_debtor_row', { p_row: row.id, p_data: { ...r, amount: String(amount), outstanding_days: String(days), invoice_date: r.invoice_date || '' } });
+      await preview.reload();
+    }, 'Row updated');
+  };
+
+  const removeRow = async (row: UploadRow) => {
+    const ok = await dialog.confirm(
+      `Remove row ${row.row_no}?`,
+      `${row.client_name ?? ''} ${row.invoice_no ?? ''}\nUse this for totals or blank lines. A removed invoice is treated as not in this week's list – if it is already in the system it will be cleared when you confirm.`,
+      { confirmLabel: 'Remove', danger: true },
+    );
+    if (!ok) return;
+    await dialog.run(async () => {
+      await rpc('remove_debtor_row', { p_row: row.id });
+      await preview.reload();
+    }, 'Row removed');
+  };
+
   const pv = preview.data;
+  const editable = pv?.upload.status === 'preview';
+  const errorRows = (pv?.rows ?? []).filter((r) => r.errors.length);
+  const rowActions = (r: UploadRow) =>
+    !editable ? undefined : r.errors.length ? (
+      <Row gap={6}>
+        <Button small title="Fix" onPress={() => fixRow(r)} />
+        <Button small variant="secondary" title="Remove" onPress={() => removeRow(r)} />
+      </Row>
+    ) : r.warnings?.length ? (
+      <Button small variant="secondary" title="Link" onPress={() => mapRow(r)} />
+    ) : undefined;
   return (
     <Screen maxWidth={1000}>
       <Stack.Screen options={{ title: 'Debtors upload' }} />
@@ -171,9 +221,27 @@ export default function DebtorsUpload() {
               <Pill label={fmtMoney(pv.upload.totals?.LKR ?? 0, 'LKR')} tone={colors.blue} />
               <Pill label={fmtMoney(pv.upload.totals?.USD ?? 0, 'USD')} tone={colors.blue} />
             </Row>
-            {pv.upload.error_count ? <Notice tone={colors.red}>Rows in red have missing or invalid data – fix them in the file and upload again before confirming.</Notice> : null}
+            {pv.upload.error_count ? (
+              <Notice tone={colors.red}>Rows in red have missing or invalid data. Press “Fix” to correct a row here, or “Remove” for lines that are not invoices (e.g. totals). Confirm unlocks when no errors are left.</Notice>
+            ) : null}
             <Muted>Rows in amber are not linked to a project, customer or sales person in the system. They upload as they are; link them now with “Link”, or later on the debt.</Muted>
           </Card>
+          {errorRows.length ? (
+            <Card style={{ padding: 0, overflow: 'hidden', marginTop: 8, borderColor: colors.red }}>
+              <View style={{ padding: 12, paddingBottom: 4 }}>
+                <Text style={{ fontWeight: '700', color: colors.red }}>Rows with errors ({errorRows.length})</Text>
+              </View>
+              {errorRows.map((r) => (
+                <ListRow
+                  key={r.id}
+                  title={`Row ${r.row_no}: ${r.client_name || '(no client)'} · ${r.invoice_no || '(no invoice no.)'}`}
+                  subtitle={`Problem: ${r.errors.join('; ')}`}
+                  highlight={colors.red}
+                  right={rowActions(r)}
+                />
+              ))}
+            </Card>
+          ) : null}
           <Card style={{ padding: 0, overflow: 'hidden', marginTop: 8 }}>
             {pv.rows.map((r) => (
               <ListRow
@@ -181,11 +249,11 @@ export default function DebtorsUpload() {
                 title={`${r.row_no}. ${r.client_name ?? ''} · ${r.invoice_no ?? '—'}`}
                 subtitle={`${r.project_name ?? 'No project'} · ${fmtMoney(r.amount, r.currency)} · ${r.outstanding_days ?? '—'} days${[...r.errors, ...(r.warnings ?? [])].length ? ` · ${[...r.errors, ...(r.warnings ?? [])].join(', ')}` : ''}`}
                 highlight={r.errors.length ? colors.red : r.warnings?.length ? colors.amber : undefined}
-                right={r.warnings?.length && !r.errors.length && pv.upload.status === 'preview' ? <Button small variant="secondary" title="Link" onPress={() => mapRow(r)} /> : undefined}
+                right={rowActions(r)}
               />
             ))}
           </Card>
-          {pv.upload.status === 'preview' ? (
+          {editable ? (
             <Row style={{ marginTop: 12 }}>
               <Button
                 title="Confirm upload"

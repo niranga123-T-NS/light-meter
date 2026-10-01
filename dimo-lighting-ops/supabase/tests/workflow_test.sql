@@ -376,6 +376,16 @@ begin
   -- Missing client name is still an error
   up := public.stage_debtor_upload(current_date, '[{"invoice_no":"INV-2","amount":5,"currency":"LKR","outstanding_days":3}]');
   assert (select error_count from public.debt_uploads where id = up) = 1, 'missing client is an error';
+  -- Fix rows in the preview instead of re-uploading: edit a bad row, remove a totals line
+  up := public.stage_debtor_upload(current_date, '[
+    {"client_name":"ABC Hotels PLC","invoice_no":"INV-3","amount":null,"currency":"Rs","outstanding_days":12},
+    {"client_name":"TOTAL","amount":2400010}]');
+  assert (select error_count from public.debt_uploads where id = up) = 2, 'two bad rows';
+  perform public.edit_debtor_row((select id from public.debt_upload_rows where upload_id = up and invoice_no = 'INV-3'), '{"amount":"1500","currency":"LKR"}');
+  perform public.remove_debtor_row((select id from public.debt_upload_rows where upload_id = up and client_name = 'TOTAL'));
+  assert (select error_count from public.debt_uploads where id = up) = 0, 'fixed in place';
+  assert (select organization_id from public.debt_upload_rows where upload_id = up and invoice_no = 'INV-3') is not null, 'customer matched';
+  assert (select row_count from public.debt_uploads where id = up) = 1, 'totals line removed';
   -- Link the unlinked debt later
   perform public.link_debt((select id from public.debts where invoice_no = 'INV-1'), '00000000-0000-0000-0000-00000000b001');
   assert (select sales_person_id from public.debts where invoice_no = 'INV-1') = (select id from u where role = 'asm_building'), 'linked to project and its sales person';
