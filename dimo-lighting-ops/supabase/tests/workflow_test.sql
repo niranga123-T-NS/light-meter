@@ -314,7 +314,24 @@ do $$ begin
   assert exists (select 1 from public.notifications where kind = 'duty_changed' and title like 'Duty changed – re-assign%'
                  and recipient_id = (select id from u where role = 'sm_estimation')), 'SM Estimation asked to re-assign';
   assert exists (select 1 from public.sla_clocks where entity_type = 'estimation_job' and stage = 'assignment' and stopped_at is null), 're-assignment timer';
+  assert (select price_currency from public.estimation_jobs) = 'LKR', 'old figures stay in LKR';
 end $$;
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+select public.assign_estimation_job((select id from public.estimation_jobs), public.default_estimator('00000000-0000-0000-0000-00000000d001'), now() + interval '3 days', 'large');
+reset role;
+select pg_temp.act_as('estimation_exec'); set role authenticated;
+do $$ declare j uuid := (select id from public.estimation_jobs);
+begin
+  begin
+    perform public.submit_estimate_for_approval(j);
+    raise exception 'submitted LKR figures on a USD inquiry';
+  exception when others then if sqlerrm not like '%re-price the estimate in USD%' then raise; end if;
+  end;
+  perform public.save_estimate(j, 40000, 30000, 25, '[{"group":"Downlights","brand":"TestBrand EU","origin":"european"}]');
+  assert (select price_currency from public.estimation_jobs where id = j) = 'USD', 're-priced in USD';
+  perform public.submit_estimate_for_approval(j);
+end $$;
+reset role;
 rollback to savepoint duty1;
 
 -- Below 15 Mn LKR: SM Projects verifies before release; a revision goes back through SM Estimation to an estimator

@@ -274,6 +274,7 @@ export type EstimationJob = {
   due_at: string | null;
   quotation_no: string | null;
   quoted_value: number | null;
+  price_currency?: Currency | null;
   validity_days: number;
   brands_offered: BrandLine[];
   alternatives: string | null;

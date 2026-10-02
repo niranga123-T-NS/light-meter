@@ -70,10 +70,12 @@ export default function EstimationJobScreen() {
   const [loaded, setLoaded] = useState<unknown>(null);
   if (data && data !== loaded) {
     setLoaded(data);
+    // Figures priced in another currency (duty status changed) are not carried into the boxes – they must be re-priced
+    const repriced = !data.job.price_currency || data.job.price_currency === (data.job.inquiries?.currency ?? 'LKR');
     setEst({
-      quoted_value: data.job.quoted_value,
-      cost: data.costing?.cost ?? null,
-      margin_pct: data.costing?.margin_pct ?? null,
+      quoted_value: repriced ? data.job.quoted_value : null,
+      cost: repriced ? (data.costing?.cost ?? null) : null,
+      margin_pct: repriced ? (data.costing?.margin_pct ?? null) : null,
       validity_days: data.job.validity_days,
       alternatives: data.job.alternatives ?? '',
       design_version: data.job.design_version_used ?? '',
@@ -86,6 +88,8 @@ export default function EstimationJobScreen() {
   const { job: j } = data;
   const inq = j.inquiries;
   const cur = inq?.currency ?? 'LKR';
+  // Currency the saved figures were priced in (differs from cur after a duty change until re-priced)
+  const priceCur = j.price_currency ?? cur;
   const mine = j.assignee_id === me.id;
   const sme = me.role === 'sm_estimation' || me.role === 'gm';
   const editable = mine && ['assigned', 'acknowledged', 'in_progress', 'returned', 'date_change_requested'].includes(j.status);
@@ -272,8 +276,8 @@ export default function EstimationJobScreen() {
         <Section key={p.job.id} title={`Previous quotation – ${p.quote?.full_no ?? `R${p.job.revision}`} (submitted)`}>
           <Card>
             <Row wrap>
-              <KeyValue label="Quoted value" value={fmtMoney(p.quote?.quoted_value ?? p.job.quoted_value, p.quote?.currency ?? cur)} />
-              {p.costing ? <KeyValue label="Cost · margin" value={`${fmtMoney(p.costing.cost, cur)} · ${p.costing.margin_pct ?? '—'}%`} /> : null}
+              <KeyValue label="Quoted value" value={fmtMoney(p.quote?.quoted_value ?? p.job.quoted_value, p.quote?.currency ?? p.job.price_currency ?? cur)} />
+              {p.costing ? <KeyValue label="Cost · margin" value={`${fmtMoney(p.costing.cost, p.quote?.currency ?? p.job.price_currency ?? cur)} · ${p.costing.margin_pct ?? '—'}%`} /> : null}
               <KeyValue label="Released" value={fmtDateTime(p.quote?.released_at ?? p.job.released_at)} />
               <KeyValue label="Submitted to client" value={fmtDateTime(p.quote?.submitted_to_client_at ?? null)} />
               <KeyValue label="Valid until" value={fmtDate(p.quote?.validity_date ?? null)} />
@@ -304,6 +308,7 @@ export default function EstimationJobScreen() {
 
       <Section title={`Estimate (${cur})`}>
         <Card>
+          {priceCur !== cur ? <Notice tone={colors.red}>Duty status changed – the previous figures are in {priceCur} (shown above for reference). Enter the re-priced values in {cur} and save before submitting.</Notice> : null}
           <NumberField label="Quoted value" suffix={cur} value={est.quoted_value} onChange={(v) => setEst((s) => ({ ...s, quoted_value: v }))} />
           <NumberField label="Cost (restricted)" suffix={cur} value={est.cost} onChange={(v) => setEst((s) => ({ ...s, cost: v }))} />
           <NumberField label="Margin % (calculated if blank)" value={est.margin_pct} onChange={(v) => setEst((s) => ({ ...s, margin_pct: v }))} />
@@ -311,7 +316,7 @@ export default function EstimationJobScreen() {
           <Field label="Alternatives / value engineering" multiline value={est.alternatives} onChangeText={(v) => setEst((s) => ({ ...s, alternatives: v }))} />
           <Field label="Design version used" value={est.design_version} onChangeText={(v) => setEst((s) => ({ ...s, design_version: v }))} />
           <Muted>
-            Current: {fmtMoney(j.quoted_value, cur)} · cost {fmtMoney(data.costing?.cost, cur)} · margin {data.costing?.margin_pct ?? '—'}%
+            {priceCur !== cur ? 'Previous figures (before the duty change)' : 'Current'}: {fmtMoney(j.quoted_value, priceCur)} · cost {fmtMoney(data.costing?.cost, priceCur)} · margin {data.costing?.margin_pct ?? '—'}%
           </Muted>
           <Text style={{ fontWeight: '700', marginTop: 12 }}>Brands offered (mandatory before release)</Text>
           <BrandEditor value={brands} onChange={setBrands} readOnly={!editable && !brandsBySme} expectedLevel={inq?.solution_level} expectedOrigin={inq?.manufacturing_origin} />
