@@ -1394,6 +1394,13 @@ begin
 end $$;
 reset role;
 do $$ begin
+  assert (select assignee_id from public.warranty_claims) is null, 'Operations cannot assign engineers';
+  assert exists (select 1 from public.notifications where kind = 'warranty_claim_to_assign' and recipient_id = (select id from u where role = 'senior_elec_engineer')), 'Senior Elec. Engineer asked to assign';
+end $$;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select public.assign_warranty_claim((select id from public.warranty_claims), (select id from u where role = 'assistant_engineer'));
+reset role;
+do $$ begin
   assert exists (select 1 from public.notifications where kind = 'warranty_claim_opened' and recipient_id = (select id from u where role = 'asm_building')), 'sales person told';
   assert exists (select 1 from public.notifications where kind = 'warranty_claim_assigned' and recipient_id = (select id from u where role = 'assistant_engineer')), 'engineer told';
 end $$;
@@ -1487,6 +1494,52 @@ do $$ begin
                                      where a.entity_type = 'estimation_job' and a.kind = 'quotation_final' and j.status = 'released' and a.archived_at is null limit 1));
   raise exception 'removed a released quotation';
 exception when others then if sqlerrm not like '%already released%' then raise; end if;
+end $$;
+reset role;
+
+-- Sales / SM Projects raise a warranty claim directly → Operations verify and assign --------------------------
+select pg_temp.act_as('asm_infra'); set role authenticated;
+do $$ begin
+  perform public.log_warranty_claim(jsonb_build_object('warranty_id', (select id from public.warranties where status = 'active' limit 1),
+    'reported_via', 'customer_call', 'description', 'x'));
+  raise exception 'sales raised a claim on another category';
+exception when others then if sqlerrm not like '%your own projects or categories%' and sqlerrm not like '%Choose the warranty%' then raise; end if;
+end $$;
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ declare cid uuid;
+begin
+  cid := public.log_warranty_claim(jsonb_build_object('warranty_id', (select id from public.warranties where status = 'active' limit 1),
+    'reported_via', 'customer_call', 'description', 'Customer called – corridor lights off', 'assignee_id', (select id from u where role = 'assistant_engineer')));
+  perform set_config('test.sc', cid::text, false);
+end $$;
+reset role;
+do $$ declare c public.warranty_claims;
+begin
+  select * into c from public.warranty_claims where id = current_setting('test.sc')::uuid;
+  assert c.needs_verification and c.assignee_id is null and c.reported_by = (select id from u where role = 'asm_building'), 'sales claim waits for verification';
+  assert exists (select 1 from public.notifications where kind = 'warranty_claim_logged' and title like '%verify and assign%'
+                 and recipient_id = (select id from u where role = 'operations_exec')), 'Operations told to verify';
+end $$;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ begin
+  perform public.assign_warranty_claim(current_setting('test.sc')::uuid, (select id from u where role = 'assistant_engineer'));
+  raise exception 'Operations assigned an engineer';
+exception when others then if sqlerrm not like '%Only the Senior Electrical Engineer assigns%' then raise; end if;
+end $$;
+select public.verify_warranty_claim(current_setting('test.sc')::uuid, 'INV-26-04412 checked');
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select public.assign_warranty_claim(current_setting('test.sc')::uuid, (select id from u where role = 'assistant_engineer'));
+reset role;
+do $$ begin
+  assert (select verified_at is not null from public.warranty_claims where id = current_setting('test.sc')::uuid), 'verified on assignment';
+  assert exists (select 1 from public.notifications where title = 'Your warranty claim was verified' and recipient_id = (select id from u where role = 'asm_building')), 'sales told';
+end $$;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert public.log_warranty_claim(jsonb_build_object('warranty_id', (select id from public.warranties where status = 'active' limit 1),
+    'reported_via', 'customer_letter', 'description', 'Direct complaint to SM Projects')) is not null, 'SM Projects raises a claim';
 end $$;
 reset role;
 

@@ -9,6 +9,7 @@ export const W_TONE: Record<WarrantyStage, string> = {
   cancelled: colors.grey,
 };
 export const C_TONE: Record<ClaimStage, string> = {
+  verify: colors.amber,
   assign: colors.amber,
   inspect: colors.amber,
   decide: colors.blue,

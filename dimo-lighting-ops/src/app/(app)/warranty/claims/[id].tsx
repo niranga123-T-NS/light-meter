@@ -93,6 +93,7 @@ export default function ClaimDetail() {
           {c.rectified_on ? <KeyValue label="Rectified" value={`${fmtDate(c.rectified_on)}${c.rectification_note ? ` · ${c.rectification_note}` : ''}`} /> : null}
           <KeyValue label="Cost to DIMO · recovered" value={`${fmtMoney(c.cost_amount, cur)} · ${fmtMoney(c.recovered_amount, cur)}`} />
         </Row>
+        {stage === 'verify' ? <Notice tone={colors.amber}>Raised by sales / SM Projects – Operations verifies it (invoice / contract no., our supply); the Senior Electrical Engineer assigns the engineer.</Notice> : null}
         {stage === 'goodwill' ? <Notice tone={colors.amber}>Out of warranty – waiting for SM Projects to approve goodwill cover.</Notice> : null}
         {stage === 'goodwill' && (me.role === 'sm_projects' || me.role === 'gm') ? (
           <Row style={{ marginTop: 8 }}>
@@ -102,12 +103,28 @@ export default function ClaimDetail() {
         {stage === 'quote' ? <Notice tone={colors.blue}>Chargeable – the sales person quotes the repair. Record the rectification once the customer orders it.</Notice> : null}
         {open ? (
           <Row wrap gap={8} style={{ marginTop: 8 }}>
-            {desk ? (
+            {desk && stage === 'verify' && !see ? (
               <Button
-                variant={stage === 'assign' ? 'primary' : 'secondary'}
-                title={c.assignee_id ? 'Re-assign' : 'Assign engineer'}
+                title="Verify"
                 onPress={async () => {
-                  const x = await dialog.prompt({ title: 'Assign the site inspection', fields: [{ key: 'a', label: 'Engineer', type: 'select', required: true, options: engineerOptions, initial: c.assignee_id ?? undefined }] });
+                  const x = await dialog.prompt({
+                    title: 'Verify the claim',
+                    message: 'Check the invoice / contract number and that it is our supply. The Senior Electrical Engineer then assigns the engineer.',
+                    fields: [{ key: 'n', label: 'Note (e.g. invoice checked)' }],
+                  });
+                  if (x) await run('verify_warranty_claim', { p_id: c.id, p_note: x.n || null }, 'Verified – Senior Electrical Engineer asked to assign');
+                }}
+              />
+            ) : null}
+            {see ? (
+              <Button
+                variant={stage === 'assign' || stage === 'verify' ? 'primary' : 'secondary'}
+                title={stage === 'verify' ? 'Verify & assign' : c.assignee_id ? 'Re-assign' : 'Assign engineer'}
+                onPress={async () => {
+                  const x = await dialog.prompt({
+                    title: stage === 'verify' ? 'Verify the claim (invoice / contract no., our supply) and assign the site inspection' : 'Assign the site inspection',
+                    fields: [{ key: 'a', label: 'Engineer', type: 'select', required: true, options: engineerOptions, initial: c.assignee_id ?? undefined }],
+                  });
                   if (x) await run('assign_warranty_claim', { p_id: c.id, p_assignee: x.a }, 'Assigned – engineer notified');
                 }}
               />

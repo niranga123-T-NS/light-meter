@@ -633,6 +633,8 @@ export type WarrantyClaim = {
   status: 'open' | 'closed' | 'cancelled';
   closed_on: string | null;
   close_note: string | null;
+  needs_verification?: boolean;
+  verified_at?: string | null;
 };
 
 export type WarrantyReport = {

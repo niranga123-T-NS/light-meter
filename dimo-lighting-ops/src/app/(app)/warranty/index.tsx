@@ -14,6 +14,7 @@ import {
   CLAIM_STAGE_LABEL,
   claimDaysOpen,
   claimStage,
+  canRaiseClaim,
   isWarrantyDesk,
   supplierGapDays,
   viaLabel,
@@ -105,7 +106,7 @@ export default function WarrantyHome() {
       <ErrorBanner message={error} />
       <Row wrap gap={8} style={{ justifyContent: 'flex-end' }}>
         {sales ? <Button title="Report warranty issue" onPress={() => router.push('/warranty/report')} /> : null}
-        {desk ? <Button variant="secondary" title="+ Log claim" onPress={() => router.push('/warranty/claims/new')} /> : null}
+        {canRaiseClaim(me.role) ? <Button variant="secondary" title={desk ? '+ Log claim' : '+ Raise warranty claim'} onPress={() => router.push('/warranty/claims/new')} /> : null}
         {desk ? <Button title="+ Completion record" onPress={() => router.push('/warranty/edit')} /> : null}
       </Row>
 
@@ -207,7 +208,7 @@ export default function WarrantyHome() {
               return (
                 <ListRow
                   key={c.id}
-                  highlight={c.status === 'open' && days >= 14 ? colors.red : st === 'inspect' || st === 'assign' ? colors.amber : undefined}
+                  highlight={c.status === 'open' && days >= 14 ? colors.red : st === 'inspect' || st === 'assign' || st === 'verify' ? colors.amber : undefined}
                   title={`${c.code} · ${w?.project_name ?? '—'} · ${w?.customer ?? ''}`}
                   subtitle={`${c.description}\n${viaLabel(c.reported_via)} · logged ${fmtDate(c.logged_at)}${c.status === 'open' ? ` · ${days} days open` : ''} · ${people[c.assignee_id ?? '']?.full_name ?? 'not assigned'}${w ? ` · ${[w.invoice_no, w.contract_no].filter(Boolean).join(' · ')}` : ''}`}
                   right={

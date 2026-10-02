@@ -15,6 +15,7 @@ import {
   CLAIM_STAGE_LABEL,
   claimStage,
   gapLabel,
+  canRaiseClaim,
   isWarrantyDesk,
   lineStage,
   START_BASIS,
@@ -86,7 +87,9 @@ export default function WarrantyDetail() {
         </Row>
         {w.notes ? <Muted>{w.notes}</Muted> : null}
         <Row wrap gap={8} style={{ marginTop: 8 }}>
-          {desk && w.status === 'active' ? <Button title="+ Log claim" onPress={() => router.push({ pathname: '/warranty/claims/new', params: { warranty: w.id } })} /> : null}
+          {canRaiseClaim(me.role) && w.status === 'active' ? (
+            <Button title={desk ? '+ Log claim' : '+ Raise warranty claim'} onPress={() => router.push({ pathname: '/warranty/claims/new', params: { warranty: w.id } })} />
+          ) : null}
           {desk && w.status === 'active' ? <Button variant="secondary" title="Edit" onPress={() => router.push({ pathname: '/warranty/edit', params: { id: w.id } })} /> : null}
           {w.project_id ? <Button variant="ghost" title="Open project" onPress={() => router.push(`/projects/${w.project_id}`)} /> : null}
           {desk && w.status === 'active' ? (

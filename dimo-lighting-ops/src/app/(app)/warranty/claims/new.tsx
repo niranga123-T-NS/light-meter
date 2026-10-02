@@ -7,12 +7,16 @@ import { fmtDate, fmtDateTime, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 import type { Warranty, WarrantyLine, WarrantyReport } from '@/lib/types';
-import { REPORTED_VIA } from '@/lib/warranty';
+import { isWarrantyDesk, REPORTED_VIA } from '@/lib/warranty';
+import { useMe } from '@/lib/auth';
 
 /** Log a warranty claim (Operations Executive, Senior Electrical Engineer) – from a customer, or from an issue a sales person reported. */
 export default function ClaimNew() {
   const params = useLocalSearchParams<{ warranty?: string; report?: string }>();
   const dialog = useDialog();
+  const me = useMe();
+  const desk = isWarrantyDesk(me.role);
+  const see = me.role === 'senior_elec_engineer';
   const people = usePeople();
   const [warrantyId, setWarrantyId] = useState<string | null>(params.warranty ?? null);
   const [lineId, setLineId] = useState<string>('');
@@ -70,7 +74,7 @@ export default function ClaimNew() {
 
   return (
     <Screen maxWidth={760}>
-      <Stack.Screen options={{ title: 'Log warranty claim' }} />
+      <Stack.Screen options={{ title: desk ? 'Log warranty claim' : 'Raise warranty claim' }} />
       <ErrorBanner message={error} />
       {report ? (
         <Notice tone={colors.blue}>
@@ -95,7 +99,11 @@ export default function ClaimNew() {
             }))}
           />
           {!sorted.length ? <Muted>No warranty records yet – enter the completion record first (outside projects too).</Muted> : null}
-          <Button small variant="ghost" title="+ New completion record (project not recorded yet)" onPress={() => router.push('/warranty/edit')} />
+          {desk ? (
+            <Button small variant="ghost" title="+ New completion record (project not recorded yet)" onPress={() => router.push('/warranty/edit')} />
+          ) : (
+            <Muted>Not in the list? Use “Report warranty issue” instead – Operations will find or create the warranty record.</Muted>
+          )}
           {warrantyId ? (
             <Select
               label="Item (warranty line)"
@@ -122,12 +130,20 @@ export default function ClaimNew() {
           <Field label="What failed" required multiline value={description} onChangeText={setDesc} />
           <NumberField label="Quantity" value={quantity} onChange={(v) => setQty(v)} />
           <Field label="Location on site" value={location} onChangeText={setLoc} />
-          <PersonPicker label="Assign to engineer (site inspection)" roles={['assistant_engineer', 'senior_elec_engineer']} value={assignee} onChange={(v) => setAssignee(v || null)} />
+          {see ? (
+            <PersonPicker label="Assign to engineer (site inspection)" roles={['assistant_engineer', 'senior_elec_engineer']} value={assignee} onChange={(v) => setAssignee(v || null)} />
+          ) : (
+            <Muted>
+              {desk
+                ? 'The Senior Electrical Engineer is notified to assign the engineer.'
+                : 'Operations verifies the invoice / contract number; the Senior Electrical Engineer then assigns the engineer. You will be notified.'}
+            </Muted>
+          )}
           <Muted>Add photos and the customer letter / email on the claim after saving.</Muted>
         </Card>
       </Section>
       <Row style={{ marginTop: 12 }}>
-        <Button title="Log claim" onPress={save} />
+        <Button title={desk ? 'Log claim' : 'Raise warranty claim'} onPress={save} />
       </Row>
     </Screen>
   );

@@ -20,6 +20,8 @@ export const REPORTED_VIA = [
 export const viaLabel = (v: string) => REPORTED_VIA.find((x) => x.value === v)?.label ?? v;
 
 export const isWarrantyDesk = (role: string) => role === 'operations_exec' || role === 'senior_elec_engineer';
+/** Sales persons and SM Projects can also raise claims (verified and assigned by the warranty desk). */
+export const canRaiseClaim = (role: string) => isWarrantyDesk(role) || role === 'asm_building' || role === 'asm_infra' || role === 'sm_projects';
 
 /** Where a warranty line stands today. */
 export type LineStage = 'active' | 'expiring' | 'expired';
@@ -56,10 +58,11 @@ export const WARRANTY_STAGE_LABEL: Record<WarrantyStage, string> = {
 };
 
 /** Where a claim stands – the next step. */
-export type ClaimStage = 'assign' | 'inspect' | 'decide' | 'goodwill' | 'quote' | 'rectify' | 'close' | 'closed' | 'rejected' | 'cancelled';
+export type ClaimStage = 'verify' | 'assign' | 'inspect' | 'decide' | 'goodwill' | 'quote' | 'rectify' | 'close' | 'closed' | 'rejected' | 'cancelled';
 export function claimStage(c: WarrantyClaim): ClaimStage {
   if (c.status === 'cancelled') return 'cancelled';
   if (c.status === 'closed') return c.decision === 'rejected' ? 'rejected' : 'closed';
+  if (c.needs_verification && !c.verified_at) return 'verify';
   if (!c.assignee_id) return 'assign';
   if (!c.inspected_on) return 'inspect';
   if (!c.decision) return 'decide';
@@ -68,7 +71,8 @@ export function claimStage(c: WarrantyClaim): ClaimStage {
   return 'close';
 }
 export const CLAIM_STAGE_LABEL: Record<ClaimStage, string> = {
-  assign: 'To assign',
+  verify: 'To verify',
+  assign: 'To assign (Sr. Elec. Eng.)',
   inspect: 'Inspection due',
   decide: 'Decision due',
   goodwill: 'Goodwill – SM Projects',
