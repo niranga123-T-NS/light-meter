@@ -1,5 +1,5 @@
 import { createContext, ReactNode, useCallback, useContext, useRef, useState } from 'react';
-import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import { Button, colors, DateField, Field, Muted, MultiSelect, Row, Select, styles, type Option } from './ui';
 
 // Cross-platform dialogs: confirm, prompt with fields (reasons are mandatory throughout the SRS), toast.
@@ -25,6 +25,7 @@ const DialogContext = createContext<DialogApi | null>(null);
 
 export function DialogProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<(PromptOptions & { mode: 'confirm' | 'prompt' }) | null>(null);
+  const { height } = useWindowDimensions();
   const [values, setValues] = useState<Record<string, string>>({});
   const [toastMsg, setToastMsg] = useState<{ text: string; tone: 'ok' | 'error' } | null>(null);
   const resolver = useRef<((v: Record<string, string> | null) => void) | null>(null);
@@ -73,9 +74,10 @@ export function DialogProvider({ children }: { children: ReactNode }) {
       {children}
       <Modal visible={!!state} transparent animationType="fade" onRequestClose={() => close(null)}>
         <Pressable style={styles.backdrop} onPress={() => close(null)}>
-          <Pressable style={styles.sheet} onPress={() => undefined}>
-            <ScrollView keyboardShouldPersistTaps="handled">
-              <Text style={[styles.h2, { marginBottom: 6 }]}>{state?.title}</Text>
+          {/* Fits the window: the title and the buttons stay in view, only the fields scroll */}
+          <Pressable style={[styles.sheet, { maxHeight: height - 32, flexShrink: 1 }]} onPress={() => undefined}>
+            <Text style={[styles.h2, { marginBottom: 6 }]}>{state?.title}</Text>
+            <ScrollView keyboardShouldPersistTaps="handled" style={{ flexGrow: 0, flexShrink: 1 }} contentContainerStyle={{ paddingBottom: 4 }}>
               {state?.message ? <Muted style={{ marginBottom: 12 }}>{state.message}</Muted> : null}
               {(state?.fields ?? []).map((f) =>
                 f.type === 'date' ? (
@@ -106,16 +108,16 @@ export function DialogProvider({ children }: { children: ReactNode }) {
                   />
                 ),
               )}
-              <Row style={{ justifyContent: 'flex-end', marginTop: 8 }}>
-                <Button title="Cancel" variant="secondary" onPress={() => close(null)} />
-                <Button
-                  title={state?.confirmLabel ?? (state?.mode === 'confirm' ? 'Confirm' : 'Save')}
-                  variant={state?.danger ? 'danger' : 'primary'}
-                  disabled={missing}
-                  onPress={() => close(values)}
-                />
-              </Row>
             </ScrollView>
+            <Row style={{ justifyContent: 'flex-end', marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.line }}>
+              <Button title="Cancel" variant="secondary" onPress={() => close(null)} />
+              <Button
+                title={state?.confirmLabel ?? (state?.mode === 'confirm' ? 'Confirm' : 'Save')}
+                variant={state?.danger ? 'danger' : 'primary'}
+                disabled={missing}
+                onPress={() => close(values)}
+              />
+            </Row>
           </Pressable>
         </Pressable>
       </Modal>
