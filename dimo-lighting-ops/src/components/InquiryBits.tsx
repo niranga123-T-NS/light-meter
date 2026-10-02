@@ -23,6 +23,7 @@ export function InquiryCard({ inquiry, ownerName }: { inquiry: Inquiry; ownerNam
           </Text>
           <Pill label={`Route ${inquiry.route}`} />
           {inquiry.duty_status ? <Pill label={inquiry.currency} tone={colors.blue} /> : null}
+          {inquiry.tender_group_id ? <Pill label="Tender · several contractors" tone={colors.amber} /> : null}
         </Row>
         <Pill label={INQUIRY_STATUS_LABEL[inquiry.status] ?? inquiry.status} tone={STAGE_COLOUR[colour]} />
       </Row>

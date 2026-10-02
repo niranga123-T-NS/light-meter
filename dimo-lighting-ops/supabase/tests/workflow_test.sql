@@ -588,6 +588,58 @@ reset role;
 select pg_temp.act_as('asm_building'); set role authenticated;
 rollback to savepoint quote_rev;
 select pg_temp.act_as('asm_building'); set role authenticated;
+-- Same tender, another main contractor: the released quotation is copied (no new design / estimation)
+savepoint tender;
+insert into public.organizations (id, name, visit_category) values ('00000000-0000-0000-0000-00000000a101', 'MAGA Engineering (Pvt) Ltd', 'Main Contractor');
+do $$ declare nid uuid;
+begin
+  nid := public.copy_quotation_to_contractor('00000000-0000-0000-0000-00000000d001', '00000000-0000-0000-0000-00000000a101', null, null,
+    current_date + 5, 'MAGA is bidding for the main contract');
+  perform set_config('test.nid', nid::text, false);
+  assert (select tender_group_id from public.inquiries where id = '00000000-0000-0000-0000-00000000d001') = '00000000-0000-0000-0000-00000000d001', 'source joins the tender group';
+  assert (select tender_group_id from public.inquiries where id = nid) = '00000000-0000-0000-0000-00000000d001', 'copy in the same group';
+  assert (select customer_name from public.inquiries where id = nid) = 'MAGA Engineering (Pvt) Ltd', 'customer is the contractor';
+  begin
+    perform public.copy_quotation_to_contractor('00000000-0000-0000-0000-00000000d001', '00000000-0000-0000-0000-00000000a101');
+    raise exception 'copied twice to the same contractor';
+  exception when others then if sqlerrm not like '%already has a quotation for this tender%' then raise; end if;
+  end;
+end $$;
+reset role;
+do $$ declare nid uuid := current_setting('test.nid')::uuid;
+begin
+  assert (select status from public.inquiries where id = nid) = 'estimation_review', 'waits for SM Estimation to release';
+  assert (select status = 'approved' and copied_from_job_id is not null and quoted_value is not null from public.estimation_jobs where inquiry_id = nid), 'estimate reused';
+  assert exists (select 1 from public.notifications where kind = 'quotation_copy' and recipient_id = (select id from u where role = 'sm_estimation')), 'SM Estimation told';
+end $$;
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+do $$ declare j uuid := (select id from public.estimation_jobs where inquiry_id = current_setting('test.nid')::uuid);
+begin
+  begin
+    perform public.release_quotation(j);
+    raise exception 'released without the quotation addressed to the contractor';
+  exception when others then if sqlerrm not like '%final quotation PDF%' then raise; end if;
+  end;
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('estimation_job', j, 'quotation_final', 'est/maga/q.pdf', 'Quotation – MAGA.pdf');
+  perform public.release_quotation(j);
+end $$;
+reset role;
+do $$ declare nid uuid := current_setting('test.nid')::uuid;
+begin
+  assert (select status from public.inquiries where id = nid) = 'quotation_released', 'released to the second contractor';
+  assert (select quotation_no from public.quotations where inquiry_id = nid) <> (select quotation_no from public.quotations where inquiry_id = '00000000-0000-0000-0000-00000000d001'), 'own quotation number';
+end $$;
+select pg_temp.act_as('asm_building'); set role authenticated;
+select public.record_client_response('00000000-0000-0000-0000-00000000d001', 'approved');
+select public.record_inquiry_result('00000000-0000-0000-0000-00000000d001', 'won', null, null, 62000000, current_date);
+do $$ begin
+  assert public.close_tender_group_others('00000000-0000-0000-0000-00000000d001') = 1, 'the other contractor closed';
+  assert (select status from public.inquiries where id = current_setting('test.nid')::uuid) = 'cancelled', 'cancelled (counts once in the win rate)';
+  assert (select lost_reason from public.inquiries where id = current_setting('test.nid')::uuid) like 'Tender awarded to%', 'reason';
+end $$;
+reset role;
+rollback to savepoint tender;
+select pg_temp.act_as('asm_building'); set role authenticated;
 select public.record_client_response('00000000-0000-0000-0000-00000000d001', 'approved');
 select public.record_inquiry_result('00000000-0000-0000-0000-00000000d001', 'won', null, null, 62000000, current_date);
 do $$ begin

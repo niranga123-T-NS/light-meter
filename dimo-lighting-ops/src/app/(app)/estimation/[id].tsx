@@ -221,9 +221,11 @@ export default function EstimationJobScreen() {
               title="Release to sales"
               onPress={async () => {
                 // Compliance sheet and data sheets: uploaded, or marked not applicable with a reason (SM Estimation)
-                const { data: files } = await supabase.from('attachments').select('kind').eq('entity_type', 'estimation_job').eq('entity_id', j.id).is('archived_at', null);
+                const { data: files } = await supabase.from('attachments').select('kind, entity_id').eq('entity_type', 'estimation_job')
+                  .in('entity_id', [j.id, ...(j.copied_from_job_id ? [j.copied_from_job_id] : [])]).is('archived_at', null);
                 const has = (k: string) => (files ?? []).some((f) => f.kind === k);
-                if (!has('quotation_final')) return dialog.toast('Upload the final quotation PDF first', 'error');
+                if (!(files ?? []).some((f) => f.kind === 'quotation_final' && f.entity_id === j.id)) return dialog.toast('Upload the final quotation PDF first', 'error');
+                // A quotation copied to another contractor uses the compliance / data sheets of the original estimate
                 const missing = [!has('compliance_sheet') ? 'compliance sheet' : null, !has('technical_data') ? 'technical data sheets' : null].filter(Boolean);
                 if (missing.length && !sme) return dialog.toast(`Upload the ${missing.join(' and ')} (only SM Estimation can release without them)`, 'error');
                 const r = await dialog.prompt({
@@ -274,7 +276,16 @@ export default function EstimationJobScreen() {
         </Row>
       </Card>
 
-      {j.revision_request ? <Notice tone={colors.amber}>Client revision R{j.revision} requested: {j.revision_request}</Notice> : null}
+      {j.copied_from_job_id ? (
+        <Card style={{ borderColor: colors.blue }}>
+          <Text>{`${j.revision_request ?? 'Quotation to another contractor'}. Upload the final quotation addressed to ${inq?.customer_name ?? 'the new contractor'} and release it – the compliance and data sheets of the original estimate count.`}</Text>
+          <Row style={{ marginTop: 6 }}>
+            <Button small variant="secondary" title="Open the original estimate" onPress={() => router.push(`/estimation/${j.copied_from_job_id}`)} />
+          </Row>
+        </Card>
+      ) : j.revision_request ? (
+        <Notice tone={colors.amber}>Client revision R{j.revision} requested: {j.revision_request}</Notice>
+      ) : null}
       {data.previous.map((p) => (
         <Section key={p.job.id} title={`Previous quotation – ${p.quote?.full_no ?? `R${p.job.revision}`} (submitted)`}>
           <Card>

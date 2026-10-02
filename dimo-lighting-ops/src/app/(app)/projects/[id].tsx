@@ -49,6 +49,18 @@ export default function ProjectDetail() {
 
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const { project: p, inquiries, visits, log, stakeholders, quotations, tenders, warranties } = data;
+  // Quoted value counts each offer once: the latest revision of each inquiry, and one (the highest) per tender quoted to several contractors
+  const latestQuotes = inquiries
+    .map((i) => quotations.filter((q) => q.inquiry_id === i.id).sort((a, b) => b.revision - a.revision)[0])
+    .filter((q): q is Quotation => !!q);
+  const tenderQuotes = Object.values(
+    latestQuotes.reduce<Record<string, Quotation>>((acc, q) => {
+      const inq = inquiries.find((i) => i.id === q.inquiry_id);
+      const key = inq?.tender_group_id ?? q.inquiry_id;
+      if (!acc[key] || Number(q.quoted_value) > Number(acc[key].quoted_value)) acc[key] = q;
+      return acc;
+    }, {}),
+  );
   const canEdit = p.owner_id === me.id || me.role === 'sm_projects' || me.role === 'gm';
   const manager = me.role === 'sm_projects' || me.role === 'gm';
   const band = MILESTONES.find((m) => m.value === p.milestone);
@@ -260,14 +272,17 @@ export default function ProjectDetail() {
             <Text style={{ fontWeight: '700', marginBottom: 4 }}>Quotations</Text>
             {quotations.map((q) => (
               <Row key={q.id} style={{ justifyContent: 'space-between', paddingVertical: 3 }}>
-                <Text>{q.full_no}</Text>
+                <Text>
+                  {q.full_no}
+                  {inquiries.find((i) => i.id === q.inquiry_id)?.tender_group_id ? <Text style={{ color: colors.muted }}> · {inquiries.find((i) => i.id === q.inquiry_id)?.customer_name}</Text> : null}
+                </Text>
                 <Text>
                   {fmtMoney(q.quoted_value, q.currency)} · {q.result ?? (new Date(q.validity_date) < new Date() ? 'Expired' : `valid to ${fmtDate(q.validity_date)}`)}
                 </Text>
               </Row>
             ))}
             <Muted>
-              Quoted: {['LKR', 'USD'].map((c) => fmtMoney(quotations.filter((q) => q.currency === c).reduce((a, q) => a + Number(q.quoted_value), 0), c as 'LKR')).join(' + ')} · Won:{' '}
+              Quoted: {['LKR', 'USD'].map((c) => fmtMoney(tenderQuotes.filter((q) => q.currency === c).reduce((a, q) => a + Number(q.quoted_value), 0), c as 'LKR')).join(' + ')} · Won:{' '}
               {['LKR', 'USD'].map((c) => fmtMoney(inquiries.filter((i) => i.status === 'won' && i.currency === c).reduce((a, i) => a + Number(i.order_value ?? 0), 0), c as 'LKR')).join(' + ')}
             </Muted>
           </Card>

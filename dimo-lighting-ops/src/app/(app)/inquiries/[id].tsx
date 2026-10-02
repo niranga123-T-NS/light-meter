@@ -36,7 +36,16 @@ export default function InquiryDetail() {
       supabase.from('approvals').select('*').eq('inquiry_id', id).order('requested_at', { ascending: false }),
       rpc<Attachment[]>('inquiry_files', { p_inquiry: id }).catch(() => []),
     ]);
+    // Other main contractors quoted for the same tender
+    const group = inq.tender_group_id
+      ? ((await supabase.from('inquiries').select('*').eq('tender_group_id', inq.tender_group_id).order('created_at')).data ?? []) as Inquiry[]
+      : [];
+    const groupQuotes = group.length
+      ? (((await supabase.from('quotations').select('*').in('inquiry_id', group.map((g) => g.id)).order('released_at', { ascending: false })).data ?? []) as Quotation[])
+      : [];
     return {
+      group,
+      groupQuotes,
       inquiry: inq as Inquiry,
       designJobs: (dj.data ?? []) as DesignJob[],
       estimationJobs: (ej.data ?? []) as EstimationJob[],
@@ -60,7 +69,8 @@ export default function InquiryDetail() {
   }, [id, refresh]);
 
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const { inquiry: i, designJobs, estimationJobs, quotations, clocks, approvals, files } = data;
+  const { inquiry: i, designJobs, estimationJobs, quotations, clocks, approvals, files, group, groupQuotes } = data;
+  const openOthers = group.filter((g) => g.id !== i.id && !['won', 'lost', 'cancelled', 'rejected'].includes(g.status));
   const mineAsSales = i.sales_person_id === me.id || me.role === 'sm_projects' || me.role === 'gm';
   const colour = i.status === 'on_hold' ? 'grey' : i.sla_colour;
   const daysLeft = i.customer_deadline ? daysBetween(todayISO(), i.customer_deadline) : null;
@@ -177,15 +187,27 @@ export default function InquiryDetail() {
                 { key: 'date', label: 'Order date', type: 'date' },
               ],
             });
-            if (r)
-              await act(
-                'record_inquiry_result',
-                { p_inquiry: i.id, p_result: r.res, p_lost_reason: r.reason || null, p_competitor: r.comp ? Number(r.comp) : null, p_order_value: r.value ? Number(r.value) : null, p_order_date: r.date || null },
-                'Result recorded',
+            if (!r) return;
+            const ok = await act(
+              'record_inquiry_result',
+              { p_inquiry: i.id, p_result: r.res, p_lost_reason: r.reason || null, p_competitor: r.comp ? Number(r.comp) : null, p_order_value: r.value ? Number(r.value) : null, p_order_date: r.date || null },
+              'Result recorded',
+            );
+            // Same tender quoted to other contractors: close their quotes in one step (the tender counts once)
+            if (ok && (r.res === 'won' || r.res === 'lost') && openOthers.length) {
+              const yes = await dialog.confirm(
+                `Close the other ${openOthers.length} contractor quote${openOthers.length > 1 ? 's' : ''}?`,
+                `${openOthers.map((g) => `${g.customer_name} (${g.code})`).join(', ')} – ${r.res === 'won' ? `tender awarded to ${i.customer_name}` : 'same tender, result recorded here'}. They are closed as cancelled so the tender counts once in the win rate.`,
+                { confirmLabel: 'Close them' },
               );
+              if (yes) await act('close_tender_group_others', { p_inquiry: i.id }, 'Other contractor quotes closed');
+            }
           }}
         />,
       );
+    }
+    if (['quotation_released', 'returned_to_sales', 'submitted_to_client', 'awaiting_client_approval', 'client_approved'].includes(i.status)) {
+      buttons.push(<Button key="copy" variant="secondary" title="Quote to another contractor" onPress={() => router.push({ pathname: '/inquiries/copy', params: { from: i.id } })} />);
     }
     if (!['draft', 'won', 'lost', 'cancelled', 'rejected'].includes(i.status)) {
       buttons.push(
@@ -531,6 +553,32 @@ export default function InquiryDetail() {
                 />
               ))}
           </Card>
+        </Section>
+      ) : null}
+
+      {group.length > 1 ? (
+        <Section title={`Same tender – ${group.length} contractors`}>
+          <Card style={{ padding: 0, overflow: 'hidden' }}>
+            {group.map((g) => {
+              const q = groupQuotes.find((x) => x.inquiry_id === g.id && x.revision === g.revision) ?? groupQuotes.find((x) => x.inquiry_id === g.id);
+              return (
+                <ListRow
+                  key={g.id}
+                  highlight={g.id === i.id ? colors.blue : g.status === 'won' ? colors.green : undefined}
+                  title={`${g.customer_name ?? '—'}${g.id === i.id ? ' (this quote)' : ''}`}
+                  subtitle={`${g.code}${q ? ` · ${q.full_no}` : ' · not released yet'}${g.lost_reason && ['cancelled', 'lost'].includes(g.status) ? ` · ${g.lost_reason}` : ''}`}
+                  right={
+                    <Row gap={6}>
+                      {q ? <Text style={{ fontWeight: '700' }}>{fmtMoney(q.quoted_value, q.currency)}</Text> : null}
+                      <Pill label={human(g.status)} tone={g.status === 'won' ? colors.green : ['lost', 'cancelled'].includes(g.status) ? colors.grey : colors.blue} />
+                    </Row>
+                  }
+                  onPress={g.id === i.id ? undefined : () => router.push(`/inquiries/${g.id}`)}
+                />
+              );
+            })}
+          </Card>
+          <Muted>One tender quoted to several main contractors – the project value counts once.</Muted>
         </Section>
       ) : null}
 
