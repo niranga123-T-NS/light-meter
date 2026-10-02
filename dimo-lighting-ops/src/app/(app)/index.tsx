@@ -3,6 +3,7 @@ import { ExecDashboard } from '@/components/home/ExecDashboard';
 import { DesignBoard, EstimationBoard } from '@/components/home/JobBoards';
 import { SalesHome } from '@/components/home/SalesHome';
 import { useMe } from '@/lib/auth';
+import WarrantyHome from './warranty';
 
 /** Each role opens to its own dashboard (Section 9). */
 export default function Home() {
@@ -24,6 +25,9 @@ export default function Home() {
       return <ExecDashboard />;
     case 'operations_exec':
       return <OpsHome />;
+    case 'senior_elec_engineer':
+    case 'assistant_engineer':
+      return <WarrantyHome />;
     default:
       return <AdminHome />;
   }

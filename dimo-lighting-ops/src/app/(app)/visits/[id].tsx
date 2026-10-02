@@ -167,6 +167,12 @@ export default function VisitDetail() {
 
       <Attachments entityType="visit" entityId={v.id} kinds={['visit_photo', 'visit_doc']} title="Photos and documents" canUpload={mine} allowCamera />
 
+      {mine ? (
+        <Row wrap gap={8} style={{ marginTop: 8 }}>
+          <Button variant="secondary" title="Report warranty issue" onPress={() => router.push(`/warranty/report?visit=${v.id}`)} />
+        </Row>
+      ) : null}
+
       {mine && v.project_id ? (
         <Section title="Next steps">
           <Row wrap gap={8}>

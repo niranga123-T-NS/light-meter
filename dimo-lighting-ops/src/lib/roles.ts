@@ -12,6 +12,8 @@ export const ROLE_LABELS: Record<Role, string> = {
   am_estimation: 'Assistant Manager – Estimation (Infrastructure)',
   estimation_exec: 'Estimation Executive (Building)',
   operations_exec: 'Operations Executive',
+  senior_elec_engineer: 'Senior Electrical Engineer – Project Execution',
+  assistant_engineer: 'Assistant Engineer – Project Execution',
   sys_admin: 'System Administrator',
 };
 
@@ -27,6 +29,8 @@ export const ROLE_SHORT: Record<Role, string> = {
   am_estimation: 'AM Estimation',
   estimation_exec: 'Estimation Exec.',
   operations_exec: 'Operations Exec.',
+  senior_elec_engineer: 'Senior Elec. Engineer',
+  assistant_engineer: 'Asst. Engineer',
   sys_admin: 'System Admin',
 };
 
@@ -68,6 +72,7 @@ export function navFor(role: Role): NavItem[] {
         { href: '/debtors', label: 'My Debtors', icon: '₨' },
         { href: '/retentions', label: 'Retentions', icon: '⛁' },
         { href: '/bonds', label: 'Bonds', icon: '⛨' },
+        { href: '/warranty', label: 'Warranty', icon: '⛉' },
         { href: '/samples', label: 'Samples', icon: '⬚' },
         { href: '/scorecard', label: 'Scorecard', icon: '★' },
         reports,
@@ -85,6 +90,7 @@ export function navFor(role: Role): NavItem[] {
         { href: '/debtors', label: 'Debtors', icon: '₨' },
         { href: '/retentions', label: 'Retentions', icon: '⛁' },
         { href: '/bonds', label: 'Bonds', icon: '⛨' },
+        { href: '/warranty', label: 'Warranty', icon: '⛉' },
         { href: '/samples', label: 'Samples', icon: '⬚' },
         { href: '/scorecard', label: 'Scorecards', icon: '★' },
         reports,
@@ -103,6 +109,7 @@ export function navFor(role: Role): NavItem[] {
         { href: '/debtors', label: 'Debtors', icon: '₨' },
         { href: '/retentions', label: 'Retentions', icon: '⛁' },
         { href: '/bonds', label: 'Bonds', icon: '⛨' },
+        { href: '/warranty', label: 'Warranty', icon: '⛉' },
         { href: '/samples', label: 'Samples', icon: '⬚' },
         { href: '/scorecard', label: 'Scorecards', icon: '★' },
         reports,
@@ -140,10 +147,15 @@ export function navFor(role: Role): NavItem[] {
         { href: '/debtors', label: 'All Debtors', icon: '₨' },
         { href: '/retentions', label: 'Retentions', icon: '⛁' },
         { href: '/bonds', label: 'Bonds', icon: '⛨' },
+        { href: '/warranty', label: 'Warranty', icon: '⛉' },
         { href: '/samples', label: 'Samples', icon: '⬚' },
         approvals,
         reports,
       ];
+    case 'senior_elec_engineer':
+      return [{ href: '/', label: 'Warranty', icon: '⛉' }, approvals, { href: '/projects', label: 'Projects', icon: '◆' }, reports];
+    case 'assistant_engineer':
+      return [{ href: '/', label: 'Warranty', icon: '⛉' }];
     case 'sys_admin':
       return [{ href: '/', label: 'Home', icon: '⌂' }, { href: '/admin', label: 'Administration', icon: '⚙' }];
   }
@@ -188,6 +200,8 @@ const COL: Record<Role, Col | null> = {
   estimation_exec: 'est',
   gm: 'gm',
   operations_exec: 'ops',
+  senior_elec_engineer: null,
+  assistant_engineer: null,
   sys_admin: null,
 };
 
