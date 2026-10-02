@@ -257,16 +257,17 @@ export function NumberField({
   hint?: string;
   suffix?: string;
 }) {
-  const [text, setText] = useState(value == null ? '' : String(value));
-  const [focused, setFocused] = useState(false);
-  // Money (an LKR / USD field) shows in full – 3,153,318.00 – except while it is being typed
+  // Money (an LKR / USD field): commas while typing, at most 2 decimals, shown as 3,153,318.00 when not being edited
   const money = suffix === 'LKR' || suffix === 'USD';
+  const show = (v: number | null | undefined) => (v == null ? '' : money ? fmtAmount(v) : String(v));
+  const [text, setText] = useState(show(value));
+  const [focused, setFocused] = useState(false);
   // Follow external changes to the value without fighting the user's typing
   const [prev, setPrev] = useState(value);
   if (value !== prev) {
     setPrev(value);
     if (value == null) setText('');
-    else if (Number(text.replace(/,/g, '')) !== value) setText(String(value));
+    else if (Number(text.replace(/,/g, '')) !== value) setText(focused ? String(value) : show(value));
   }
   return (
     <Field
@@ -274,16 +275,33 @@ export function NumberField({
       required={required}
       hint={hint}
       keyboardType="decimal-pad"
-      value={money && !focused && value != null ? fmtAmount(value) : text}
+      value={text}
       onFocus={() => setFocused(true)}
-      onBlur={() => setFocused(false)}
-      onChangeText={(t) => {
+      onBlur={() => {
+        setFocused(false);
+        if (money && value != null) setText(fmtAmount(value));
+      }}
+      onChangeText={(raw) => {
+        const t = money ? typingMoney(raw) : raw;
         setText(t);
         const n = Number(t.replace(/,/g, ''));
-        onChange(t.trim() === '' || Number.isNaN(n) ? null : n);
+        onChange(t.trim() === '' || t === '-' || Number.isNaN(n) ? null : n);
       }}
     />
   );
+}
+
+/** Live money typing: keeps digits, one decimal point (max 2 decimals) and a leading minus; adds thousands commas. */
+function typingMoney(raw: string) {
+  let t = raw.replace(/[^0-9.-]/g, '');
+  const neg = t.startsWith('-');
+  t = t.replace(/-/g, '');
+  const dot = t.indexOf('.');
+  let whole = dot >= 0 ? t.slice(0, dot) : t;
+  const dec = dot >= 0 ? t.slice(dot + 1).replace(/\./g, '').slice(0, 2) : null;
+  whole = whole.replace(/^0+(?=\d)/, '');
+  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return `${neg ? '-' : ''}${grouped}${dec != null ? `.${dec}` : ''}`;
 }
 
 export function DateField({
