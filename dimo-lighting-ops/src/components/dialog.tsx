@@ -1,5 +1,5 @@
 import { createContext, ReactNode, useCallback, useContext, useRef, useState } from 'react';
-import { Modal, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
+import { Modal, Platform, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import { Button, colors, DateField, Field, Muted, MultiSelect, Row, Select, styles, type Option } from './ui';
 
 // Cross-platform dialogs: confirm, prompt with fields (reasons are mandatory throughout the SRS), toast.
@@ -75,7 +75,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
       <Modal visible={!!state} transparent animationType="fade" onRequestClose={() => close(null)}>
         <Pressable style={styles.backdrop} onPress={() => close(null)}>
           {/* Fits the window: the title and the buttons stay in view, only the fields scroll */}
-          <Pressable style={[styles.sheet, { maxHeight: height - 32, flexShrink: 1 }]} onPress={() => undefined}>
+          <Pressable style={[styles.sheet, { maxHeight: Math.max(240, height - 32), flexShrink: 1 }, Platform.OS === 'web' ? ({ maxHeight: 'calc(100dvh - 32px)' } as object) : null]} onPress={() => undefined}>
             <Text style={[styles.h2, { marginBottom: 6 }]}>{state?.title}</Text>
             <ScrollView keyboardShouldPersistTaps="handled" style={{ flexGrow: 0, flexShrink: 1 }} contentContainerStyle={{ paddingBottom: 4 }}>
               {state?.message ? <Muted style={{ marginBottom: 12 }}>{state.message}</Muted> : null}

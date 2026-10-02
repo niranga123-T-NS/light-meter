@@ -1,6 +1,7 @@
 import { Stack } from 'expo-router';
 import { View } from 'react-native';
 import { BottomBar, CountsProvider, HeaderActions, Sidebar } from '@/components/AppShell';
+import { UpdateBanner } from '@/components/UpdateBanner';
 import { colors, useWide } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { usePushRegistration } from '@/lib/push';
@@ -15,6 +16,7 @@ export default function AppLayout() {
       <View style={{ flex: 1, flexDirection: wide ? 'row' : 'column', backgroundColor: colors.bg }}>
         {wide ? <Sidebar /> : null}
         <View style={{ flex: 1 }}>
+          <UpdateBanner />
           <Stack
             screenOptions={{
               headerRight: () => <HeaderActions />,
