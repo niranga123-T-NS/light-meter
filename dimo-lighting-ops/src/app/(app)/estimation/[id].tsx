@@ -71,7 +71,8 @@ export default function EstimationJobScreen() {
   if (data && data !== loaded) {
     setLoaded(data);
     // Figures priced in another currency (duty status changed) are not carried into the boxes – they must be re-priced
-    const repriced = !data.job.price_currency || data.job.price_currency === (data.job.inquiries?.currency ?? 'LKR');
+    // (a released quotation is never re-priced: it keeps its own figures and currency)
+    const repriced = data.job.status === 'released' || !data.job.price_currency || data.job.price_currency === (data.job.inquiries?.currency ?? 'LKR');
     setEst({
       quoted_value: repriced ? data.job.quoted_value : null,
       cost: repriced ? (data.costing?.cost ?? null) : null,
@@ -87,7 +88,9 @@ export default function EstimationJobScreen() {
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const { job: j } = data;
   const inq = j.inquiries;
-  const cur = inq?.currency ?? 'LKR';
+  const inqCur = inq?.currency ?? 'LKR';
+  // A released quotation stays in the currency it was offered in, even if the duty status changed later
+  const cur = j.status === 'released' ? (j.price_currency ?? inqCur) : inqCur;
   // Currency the saved figures were priced in (differs from cur after a duty change until re-priced)
   const priceCur = j.price_currency ?? cur;
   const mine = j.assignee_id === me.id;
@@ -132,7 +135,7 @@ export default function EstimationJobScreen() {
             </Muted>
           </View>
           <Row gap={6}>
-            <Pill label={`${inq?.duty_status === 'duty_free' ? 'Duty Free' : 'Duty Paid'} · ${cur}`} tone={colors.blue} solid />
+            <Pill label={`${inq?.duty_status === 'duty_free' ? 'Duty Free' : 'Duty Paid'} · ${inqCur}`} tone={colors.blue} solid />
             <Pill label={human(j.status)} tone={j.status === 'returned' ? colors.amber : colors.blue} />
           </Row>
         </Row>
@@ -308,6 +311,9 @@ export default function EstimationJobScreen() {
 
       <Section title={`Estimate (${cur})`}>
         <Card>
+          {j.status === 'released' && cur !== inqCur ? (
+            <Notice tone={colors.blue}>This quotation was released in {cur}. The inquiry is now priced in {inqCur} – the re-priced offer is on the next revision.</Notice>
+          ) : null}
           {priceCur !== cur ? <Notice tone={colors.red}>Duty status changed – the previous figures are in {priceCur} (shown above for reference). Enter the re-priced values in {cur} and save before submitting.</Notice> : null}
           <NumberField label="Quoted value" suffix={cur} value={est.quoted_value} onChange={(v) => setEst((s) => ({ ...s, quoted_value: v }))} />
           <NumberField label="Cost (restricted)" suffix={cur} value={est.cost} onChange={(v) => setEst((s) => ({ ...s, cost: v }))} />
