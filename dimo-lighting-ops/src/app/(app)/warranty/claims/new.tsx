@@ -74,9 +74,7 @@ export default function ClaimNew() {
       <ErrorBanner message={error} />
       {report ? (
         <Notice tone={colors.blue}>
-          Reported from a visit by {people[report.sales_person_id]?.full_name ?? '—'} on {fmtDateTime(report.created_at)}: {report.customer}
-          {report.project_name ? ` – ${report.project_name}` : ''} · {report.description}
-          {report.site_contact ? ` · site contact ${report.site_contact}` : ''}
+          {`Reported from a visit by ${people[report.sales_person_id]?.full_name ?? '—'} on ${fmtDateTime(report.created_at)}: ${report.customer}${report.project_name ? ` – ${report.project_name}` : ''} · ${report.description}${report.site_contact ? ` · site contact ${report.site_contact}` : ''}`}
         </Notice>
       ) : null}
       <Section title="Warranty">

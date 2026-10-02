@@ -67,10 +67,7 @@ export default function ReportIssue() {
       <Stack.Screen options={{ title: 'Report warranty issue' }} />
       <ErrorBanner message={error ?? v.error} />
       {fromVisit ? (
-        <Notice tone={colors.blue}>
-          From visit {fromVisit.code} · {fromVisit.organizations?.name ?? ''}
-          {fromVisit.projects?.name ? ` · ${fromVisit.projects.name}` : ''}
-        </Notice>
+        <Notice tone={colors.blue}>{`From visit ${fromVisit.code} · ${fromVisit.organizations?.name ?? ''}${fromVisit.projects?.name ? ` · ${fromVisit.projects.name}` : ''}`}</Notice>
       ) : null}
       <Section title="Where">
         <Card>
