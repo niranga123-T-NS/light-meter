@@ -1051,5 +1051,11 @@ do $$ begin
   assert public.retention_tick(now() + interval '200 days') = 0, 'no alerts after collection';
 end $$;
 
+-- Sales people can add brands; they stay pending until a brand manager approves them
+select pg_temp.act_as('asm_infra'); set role authenticated;
+insert into public.brands (name, origin, level) values ('Sales Proposed Brand', 'european', 'medium');
+reset role;
+do $$ begin assert (select status from public.brands where name = 'Sales Proposed Brand') = 'pending', 'sales brand pending'; end $$;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

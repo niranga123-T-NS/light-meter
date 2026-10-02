@@ -30,7 +30,14 @@ export const LEVELS = [
 export const isBrandManager = (r?: Role | null) => r === 'design_manager' || r === 'sm_estimation' || r === 'gm' || r === 'sys_admin';
 /** Add brands while working – new ones are recorded as pending until a manager approves them. */
 export const canAddBrand = (r?: Role | null) =>
-  isBrandManager(r) || r === 'lighting_designer' || r === 'lighting_engineer' || r === 'am_estimation' || r === 'estimation_exec';
+  isBrandManager(r) ||
+  r === 'lighting_designer' ||
+  r === 'lighting_engineer' ||
+  r === 'am_estimation' ||
+  r === 'estimation_exec' ||
+  r === 'asm_building' ||
+  r === 'asm_infra' ||
+  r === 'sm_projects';
 
 export const brandFields = (b?: Partial<BrandRow>) => [
   { key: 'name', label: 'Brand', required: true, initial: b?.name ?? '' },

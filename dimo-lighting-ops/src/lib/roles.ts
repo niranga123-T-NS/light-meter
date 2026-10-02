@@ -69,6 +69,7 @@ export function navFor(role: Role): NavItem[] {
         { href: '/retentions', label: 'Retentions', icon: '⛁' },
         { href: '/samples', label: 'Samples', icon: '⬚' },
         { href: '/scorecard', label: 'Scorecard', icon: '★' },
+        brands,
         reports,
       ];
     case 'sm_projects':
@@ -85,6 +86,7 @@ export function navFor(role: Role): NavItem[] {
         { href: '/retentions', label: 'Retentions', icon: '⛁' },
         { href: '/samples', label: 'Samples', icon: '⬚' },
         { href: '/scorecard', label: 'Scorecards', icon: '★' },
+        brands,
         reports,
         { href: '/admin', label: 'Team & lists', icon: '⚙' },
       ];
