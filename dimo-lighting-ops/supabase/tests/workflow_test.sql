@@ -277,6 +277,22 @@ select public.accept_estimation((select id from public.estimation_jobs));
 select public.assign_estimation_job((select id from public.estimation_jobs), public.default_estimator('00000000-0000-0000-0000-00000000d001'),
                                     now() + interval '7 days', 'large');
 reset role;
+-- Re-assigning only the estimator keeps the due date without a new deadline check; a new date is checked
+savepoint reassign_due;
+update public.inquiries set customer_deadline = (now() at time zone app.tz())::date + 7 where id = '00000000-0000-0000-0000-00000000d001';
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+do $$ declare j public.estimation_jobs := (select e from public.estimation_jobs e limit 1);
+begin
+  perform public.assign_estimation_job(j.id, (select id from u where role = 'am_estimation'), j.due_at, 'large', 'Hand-over – leave');
+  assert (select assignee_id from public.estimation_jobs where id = j.id) = (select id from u where role = 'am_estimation'), 're-assigned';
+  begin
+    perform public.assign_estimation_job(j.id, (select id from u where role = 'am_estimation'), j.due_at + interval '1 day', 'large', 'x');
+    raise exception 'new due date past the deadline accepted';
+  exception when others then if sqlerrm not like '%1 working day before the customer deadline%' then raise; end if;
+  end;
+end $$;
+reset role;
+rollback to savepoint reassign_due;
 
 select pg_temp.act_as('estimation_exec');
 set role authenticated;
