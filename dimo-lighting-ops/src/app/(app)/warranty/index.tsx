@@ -174,8 +174,8 @@ export default function WarrantyHome() {
                 right={
                   <Row gap={6}>
                     <Pill label={w.source === 'system' ? 'System' : 'Outside'} tone={w.source === 'system' ? colors.blue : colors.grey} />
-                    {gaps ? <Pill label={`${gaps} supplier gap`} tone={colors.red} /> : null}
-                    {open ? <Pill label={`${open} open claim`} tone={colors.amber} /> : null}
+                    {gaps ? <Pill label={`${gaps} supplier gap${gaps > 1 ? 's' : ''}`} tone={colors.red} /> : null}
+                    {open ? <Pill label={`${open} open claim${open > 1 ? 's' : ''}`} tone={colors.amber} /> : null}
                     <Pill label={WARRANTY_STAGE_LABEL[st]} tone={W_TONE[st]} solid />
                   </Row>
                 }

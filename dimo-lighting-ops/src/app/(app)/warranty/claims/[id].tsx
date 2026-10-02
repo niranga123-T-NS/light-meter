@@ -94,6 +94,11 @@ export default function ClaimDetail() {
           <KeyValue label="Cost to DIMO · recovered" value={`${fmtMoney(c.cost_amount, cur)} · ${fmtMoney(c.recovered_amount, cur)}`} />
         </Row>
         {stage === 'goodwill' ? <Notice tone={colors.amber}>Out of warranty – waiting for SM Projects to approve goodwill cover.</Notice> : null}
+        {stage === 'goodwill' && (me.role === 'sm_projects' || me.role === 'gm') ? (
+          <Row style={{ marginTop: 8 }}>
+            <Button title="Approve / reject goodwill" onPress={() => router.push('/approvals')} />
+          </Row>
+        ) : null}
         {stage === 'quote' ? <Notice tone={colors.blue}>Chargeable – the sales person quotes the repair. Record the rectification once the customer orders it.</Notice> : null}
         {open ? (
           <Row wrap gap={8} style={{ marginTop: 8 }}>
