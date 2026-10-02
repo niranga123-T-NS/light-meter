@@ -178,6 +178,8 @@ export type InquiryStatus =
 export type Inquiry = {
   id: string;
   code: string;
+  tender_group_id?: string | null;
+  copied_from_inquiry_id?: string | null;
   project_id: string;
   visit_id: string | null;
   sales_person_id: string;
@@ -288,6 +290,7 @@ export type EstimationJob = {
   needs_sm_projects?: boolean;
   docs_not_applicable?: { compliance_sheet?: string; technical_data?: string };
   previous_job_id?: string | null;
+  copied_from_job_id?: string | null;
   revision_request?: string | null;
   sm_projects_revisions?: number;
   submitted_at: string | null;
