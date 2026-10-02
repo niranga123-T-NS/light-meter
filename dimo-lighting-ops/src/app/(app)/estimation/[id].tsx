@@ -12,7 +12,7 @@ import { endOfWorkDay, fmtDate, fmtDateTime, fmtMoney, human } from '@/lib/forma
 import { useLoad, useMasters, usePeople } from '@/lib/hooks';
 import { projectTypeLabel } from '@/lib/roles';
 import { rpc, supabase } from '@/lib/supabase';
-import type { Attachment, BrandLine, EstimationJob } from '@/lib/types';
+import type { Attachment, BrandLine, EstimationJob, Quotation } from '@/lib/types';
 
 type Clarification = { id: string; question: string; asked_at: string; answer: string | null; answered_at: string | null };
 
@@ -35,16 +35,35 @@ export default function EstimationJobScreen() {
       .single();
     if (e) throw new Error(e.message);
     const job = j as EstimationJob;
-    const [costing, files, clar] = await Promise.all([
+    const [costing, files, clar, prevJobs] = await Promise.all([
       supabase.from('estimation_costing').select('*').eq('estimation_job_id', id).maybeSingle(),
       rpc<Attachment[]>('inquiry_files', { p_inquiry: job.inquiry_id }).catch(() => []),
       supabase.from('clarifications').select('*').eq('estimation_job_id', id).order('asked_at', { ascending: false }),
+      // Earlier (released) estimates of this inquiry – the quotations already submitted
+      job.revision > 0
+        ? supabase.from('estimation_jobs').select('*').eq('inquiry_id', job.inquiry_id).lt('revision', job.revision).eq('status', 'released').order('revision', { ascending: false })
+        : Promise.resolve({ data: [] as EstimationJob[] }),
     ]);
+    const prev = (prevJobs.data ?? []) as EstimationJob[];
+    const prevIds = prev.map((p) => p.id);
+    const [prevQuotes, prevFiles, prevCosting] = prevIds.length
+      ? await Promise.all([
+          supabase.from('quotations').select('*').in('estimation_job_id', prevIds),
+          supabase.from('attachments').select('*').eq('entity_type', 'estimation_job').in('entity_id', prevIds).is('archived_at', null).order('uploaded_at', { ascending: false }),
+          supabase.from('estimation_costing').select('*').in('estimation_job_id', prevIds),
+        ])
+      : [{ data: [] }, { data: [] }, { data: [] }];
     return {
       job,
       costing: costing.data as { cost: number | null; margin_pct: number | null } | null,
       inputFiles: files.filter((f) => f.entity_type === 'inquiry' || (f.entity_type === 'design_job' && f.kind === 'design_pack')),
       clarifications: (clar.data ?? []) as Clarification[],
+      previous: prev.map((p) => ({
+        job: p,
+        quote: ((prevQuotes.data ?? []) as Quotation[]).find((q) => q.estimation_job_id === p.id) ?? null,
+        files: ((prevFiles.data ?? []) as Attachment[]).filter((f) => f.entity_id === p.id),
+        costing: ((prevCosting.data ?? []) as { estimation_job_id: string; cost: number | null; margin_pct: number | null }[]).find((c) => c.estimation_job_id === p.id) ?? null,
+      })),
     };
   }, [id]);
 
@@ -247,6 +266,30 @@ export default function EstimationJobScreen() {
           <Button variant="ghost" title="Open inquiry" onPress={() => router.push(`/inquiries/${j.inquiry_id}`)} />
         </Row>
       </Card>
+
+      {j.revision_request ? <Notice tone={colors.amber}>Client revision R{j.revision} requested: {j.revision_request}</Notice> : null}
+      {data.previous.map((p) => (
+        <Section key={p.job.id} title={`Previous quotation – ${p.quote?.full_no ?? `R${p.job.revision}`} (submitted)`}>
+          <Card>
+            <Row wrap>
+              <KeyValue label="Quoted value" value={fmtMoney(p.quote?.quoted_value ?? p.job.quoted_value, p.quote?.currency ?? cur)} />
+              {p.costing ? <KeyValue label="Cost · margin" value={`${fmtMoney(p.costing.cost, cur)} · ${p.costing.margin_pct ?? '—'}%`} /> : null}
+              <KeyValue label="Released" value={fmtDateTime(p.quote?.released_at ?? p.job.released_at)} />
+              <KeyValue label="Submitted to client" value={fmtDateTime(p.quote?.submitted_to_client_at ?? null)} />
+              <KeyValue label="Valid until" value={fmtDate(p.quote?.validity_date ?? null)} />
+              <KeyValue label="Estimator" value={people[p.job.assignee_id ?? '']?.full_name ?? '—'} />
+            </Row>
+            <Muted>Brands offered: {(p.quote?.brands_offered ?? p.job.brands_offered ?? []).map((b) => `${b.group}: ${b.brand}`).join(' · ') || '—'}</Muted>
+            {p.job.alternatives ? <Muted>Alternatives: {p.job.alternatives}</Muted> : null}
+          </Card>
+          <Card style={{ padding: 0, overflow: 'hidden', marginTop: 8 }}>
+            {p.files.map((f) => (
+              <ListRow key={f.id} title={f.file_name} subtitle={`${KIND_LABELS[f.kind] ?? f.kind} · v${f.version}`} right={<Button small variant="secondary" title="Open" onPress={() => dialog.run(() => openAttachment(f))} />} />
+            ))}
+            {!p.files.length ? <Muted style={{ padding: 12 }}>No files on the previous quotation.</Muted> : null}
+          </Card>
+        </Section>
+      ))}
 
       <Section title="Inputs (request documents and approved design pack)">
         <Card style={{ padding: 0, overflow: 'hidden' }}>

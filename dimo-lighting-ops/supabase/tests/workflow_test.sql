@@ -487,6 +487,38 @@ do $$ begin
   assert (select count(*) from public.inquiry_files('00000000-0000-0000-0000-00000000d001') where kind in ('design_pack', 'quotation_final')) = 3, 'inquiry_files shows released files (pack Rev 0, Rev 1 and the quotation)';
 end $$;
 select public.record_client_submission('00000000-0000-0000-0000-00000000d001');
+-- Client asks for a revised quotation → new estimate revision for SM Estimation; the last quotation stays visible
+savepoint quote_rev;
+do $$ declare jid uuid;
+begin
+  jid := public.request_quotation_revision('00000000-0000-0000-0000-00000000d001', 'Client wants option with local brand for downlights');
+  perform set_config('test.jid', jid::text, false);
+end $$;
+reset role;
+do $$ declare jid uuid := current_setting('test.jid')::uuid;
+begin
+  assert (select revision from public.inquiries where id = '00000000-0000-0000-0000-00000000d001') = 1, 'inquiry R1';
+  assert (select status from public.inquiries where id = '00000000-0000-0000-0000-00000000d001') = 'in_estimation', 'back in estimation';
+  assert (select status from public.estimation_jobs where id = jid) = 'accepted', 'waits for SM Estimation to assign';
+  assert (select jsonb_array_length(brands_offered) from public.estimation_jobs where id = jid) > 0, 'brands carried over';
+  assert exists (select 1 from public.notifications where kind = 'quotation_revision' and title like 'Revised quotation requested%'
+                 and recipient_id = (select id from u where role = 'sm_estimation')), 'SM Estimation told';
+end $$;
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+select public.assign_estimation_job(current_setting('test.jid')::uuid, (select id from u where role = 'am_estimation'), now() + interval '3 days', 'large', 'Revision handled by AM');
+reset role;
+select pg_temp.act_as('am_estimation'); set role authenticated;
+do $$ begin
+  assert (select count(*) from public.estimation_jobs where status = 'released') = 1, 'estimator sees the previous estimate';
+  assert (select count(*) from public.quotations) >= 1, 'estimator sees the previous quotation';
+  assert exists (select 1 from public.attachments where entity_type = 'estimation_job' and kind = 'quotation_final'), 'previous final quotation file';
+  assert exists (select 1 from public.attachments where entity_type = 'estimation_job' and kind = 'costing_sheet'), 'previous costing sheet';
+  assert exists (select 1 from public.estimation_costing), 'previous cost / margin';
+end $$;
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+rollback to savepoint quote_rev;
+select pg_temp.act_as('asm_building'); set role authenticated;
 select public.record_client_response('00000000-0000-0000-0000-00000000d001', 'approved');
 select public.record_inquiry_result('00000000-0000-0000-0000-00000000d001', 'won', null, null, 62000000, current_date);
 do $$ begin
