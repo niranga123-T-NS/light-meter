@@ -8,7 +8,7 @@ import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, DateField, ErrorBanner, Field, KeyValue, ListRow, Loading, Muted, Notice, NumberField, Pill, Row, Screen, Section, Select } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { openAttachment } from '@/lib/files';
-import { endOfWorkDay, fmtDate, fmtDateTime, fmtMoney, human } from '@/lib/format';
+import { endOfWorkDay, fmtDate, fmtDateISO, fmtDateTime, fmtMoney, human } from '@/lib/format';
 import { useLoad, useMasters, usePeople } from '@/lib/hooks';
 import { projectTypeLabel } from '@/lib/roles';
 import { rpc, supabase } from '@/lib/supabase';
@@ -418,12 +418,13 @@ function AssignEstimator({ job, onDone }: { job: EstimationJob; onDone: () => vo
           supabase.from('profiles').select('id, full_name, role').in('role', ['am_estimation', 'estimation_exec']).eq('active', true),
           rpc<string | null>('default_estimator', { p_inquiry: job.inquiry_id }).catch(() => null),
         ]);
+        const currentDay = job.due_at ? fmtDateISO(job.due_at) : undefined;
         const r = await dialog.prompt({
           title: 'Assign estimator',
-          message: 'Pre-selected by project type. Assigning the other estimator needs a reason. The due date must leave 1 working day before the customer deadline.',
+          message: 'Pre-selected by project type. Assigning the other estimator needs a reason. A new due date must leave 1 working day before the customer deadline (the current deadline, including any extension) – keep the date to change only the estimator.',
           fields: [
             { key: 'a', label: 'Estimator', type: 'select', required: true, initial: job.assignee_id ?? def ?? undefined, options: (people ?? []).map((p) => ({ value: p.id, label: `${p.full_name}${p.id === def ? ' (default)' : ''}` })) },
-            { key: 'd', label: 'Estimation due date', type: 'date', required: true },
+            { key: 'd', label: 'Estimation due date', type: 'date', required: true, initial: currentDay, hint: job.due_at ? 'Keep the current date to change only the estimator' : undefined },
             {
               key: 'band',
               label: 'Value band',
@@ -443,7 +444,9 @@ function AssignEstimator({ job, onDone }: { job: EstimationJob; onDone: () => vo
           if (job.assignee_id && job.assignee_id !== r.a) {
             await rpc('reassign_job', { p_entity_type: 'estimation_job', p_job: job.id, p_assignee: r.a, p_reason: r.r || 'Hand-over' });
           }
-          await rpc('assign_estimation_job', { p_job: job.id, p_assignee: r.a, p_due: endOfWorkDay(r.d), p_value_band: r.band, p_reason: r.r || null });
+          // Same date as before → keep the exact due time (no new deadline check); a new date is checked against the current customer deadline
+          const due = job.due_at && r.d === currentDay && job.status !== 'revision_requested' ? job.due_at : endOfWorkDay(r.d);
+          await rpc('assign_estimation_job', { p_job: job.id, p_assignee: r.a, p_due: due, p_value_band: r.band, p_reason: r.r || null });
           onDone();
         }, 'Assigned – estimator notified');
       }}
