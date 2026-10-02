@@ -10,7 +10,7 @@ import { useLoad, usePeople } from '@/lib/hooks';
 import { daysFrom } from '@/lib/retentions';
 import { projectTypeLabel } from '@/lib/roles';
 import { rpc, supabase } from '@/lib/supabase';
-import type { Warranty, WarrantyClaim, WarrantyLine } from '@/lib/types';
+import type { Manufacturer, Warranty, WarrantyClaim, WarrantyLine, WarrantyRegistration } from '@/lib/types';
 import {
   CLAIM_STAGE_LABEL,
   claimStage,
@@ -33,14 +33,23 @@ export default function WarrantyDetail() {
   const people = usePeople();
   const dialog = useDialog();
   const { data, error, reload } = useLoad(async () => {
-    const [{ data: w, error: e }, { data: lines }, { data: claims }, { data: log }] = await Promise.all([
+    const [{ data: w, error: e }, { data: lines }, { data: claims }, { data: log }, { data: regs }, { data: mfrs }] = await Promise.all([
       supabase.from('warranties').select('*').eq('id', id).single(),
       supabase.from('warranty_lines').select('*').eq('warranty_id', id).order('sort_order'),
       supabase.from('warranty_claims').select('*').eq('warranty_id', id).order('logged_at', { ascending: false }),
       supabase.from('warranty_log').select('*').eq('warranty_id', id).order('at', { ascending: false }).limit(200),
+      supabase.from('warranty_registrations').select('*').eq('warranty_id', id).order('due_date'),
+      supabase.from('manufacturers').select('*').order('name'),
     ]);
     if (e) throw new Error(e.message);
-    return { w: w as Warranty, lines: (lines ?? []) as WarrantyLine[], claims: (claims ?? []) as WarrantyClaim[], log: (log ?? []) as Log[] };
+    return {
+      w: w as Warranty,
+      lines: (lines ?? []) as WarrantyLine[],
+      claims: (claims ?? []) as WarrantyClaim[],
+      log: (log ?? []) as Log[],
+      regs: (regs ?? []) as WarrantyRegistration[],
+      mfrs: (mfrs ?? []) as Manufacturer[],
+    };
   }, [id]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const { w, lines, claims } = data;
@@ -116,7 +125,18 @@ export default function WarrantyDetail() {
                 key={l.id}
                 highlight={gap && l.end_date >= today ? colors.red : ls === 'expiring' ? colors.amber : undefined}
                 title={`${l.product_group}${l.brand ? ` – ${l.brand}` : ''}`}
-                subtitle={`${l.quantity != null ? `${Number(l.quantity).toLocaleString('en-US')} · ` : ''}${l.months % 12 ? `${l.months} months` : `${l.months / 12} yrs`} to client · ends ${fmtDate(l.end_date)}${l.supplier_end ? ` · supplier ends ${fmtDate(l.supplier_end)}` : ' · supplier end not entered'}`}
+                subtitle={`${l.quantity != null ? `${Number(l.quantity).toLocaleString('en-US')} · ` : ''}${l.months % 12 ? `${l.months} months` : `${l.months / 12} yrs`} to client · ends ${fmtDate(l.end_date)}${l.supplier_end ? ` · supplier ends ${fmtDate(l.supplier_end)}` : ' · supplier end not entered'} · manufacturer ${data.mfrs.find((m) => m.id === l.manufacturer_id)?.name ?? 'not set'}`}
+                onPress={
+                  desk && w.status === 'active'
+                    ? async () => {
+                        const x = await dialog.prompt({
+                          title: `Manufacturer for ${l.product_group}`,
+                          fields: [{ key: 'm', label: 'Manufacturer', type: 'select', required: true, initial: l.manufacturer_id ?? undefined, options: data.mfrs.filter((m) => m.active).map((m) => ({ value: m.id, label: m.name })) }],
+                        });
+                        if (x) await dialog.run(async () => { await rpc('set_line_manufacturer', { p_line: l.id, p_manufacturer: x.m }); await reload(); }, 'Manufacturer set');
+                      }
+                    : undefined
+                }
                 right={
                   <Row gap={6}>
                     {l.supplier_end ? <Pill label={gapLabel(gap)} tone={gap ? colors.red : colors.green} /> : null}
@@ -163,6 +183,47 @@ export default function WarrantyDetail() {
           </Card>
         ) : null}
       </Section>
+
+      {data.regs.length ? (
+        <Section title="Registration with the manufacturer">
+          <Card style={{ padding: 0, overflow: 'hidden' }}>
+            {data.regs.map((g) => {
+              const overdue = !g.registered_on && g.due_date < today;
+              return (
+                <ListRow
+                  key={g.id}
+                  highlight={overdue ? colors.red : !g.registered_on ? colors.amber : undefined}
+                  title={data.mfrs.find((m) => m.id === g.manufacturer_id)?.name ?? '—'}
+                  subtitle={g.registered_on ? `Registered ${fmtDate(g.registered_on)}${g.reference ? ` · ref ${g.reference}` : ''}${g.note ? ` · ${g.note}` : ''}` : `Register by ${fmtDate(g.due_date)} – done manually; record it here`}
+                  right={
+                    <Row gap={6}>
+                      <Pill label={g.registered_on ? 'Registered' : overdue ? 'Overdue' : 'Due'} tone={g.registered_on ? colors.green : overdue ? colors.red : colors.amber} />
+                      {desk && !g.registered_on ? (
+                        <Button
+                          small
+                          title="Record"
+                          onPress={async () => {
+                            const x = await dialog.prompt({
+                              title: 'Registered with the manufacturer',
+                              message: 'Upload the registration certificate under Documents.',
+                              fields: [
+                                { key: 'd', label: 'Registration date', type: 'date', required: true, initial: today },
+                                { key: 'r', label: 'Manufacturer reference' },
+                                { key: 'n', label: 'Note' },
+                              ],
+                            });
+                            if (x) await dialog.run(async () => { await rpc('record_registration', { p_id: g.id, p_on: x.d, p_reference: x.r || null, p_note: x.n || null }); await reload(); }, 'Registration recorded');
+                          }}
+                        />
+                      ) : null}
+                    </Row>
+                  }
+                />
+              );
+            })}
+          </Card>
+        </Section>
+      ) : null}
 
       <Section title={`Claims (${claims.length})`}>
         <Card style={{ padding: 0, overflow: 'hidden' }}>

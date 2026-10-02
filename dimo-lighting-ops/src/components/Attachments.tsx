@@ -31,6 +31,7 @@ export const KIND_LABELS: Record<string, string> = {
   warranty_doc: 'Warranty / completion document',
   claim_photo: 'Claim photo / document',
   report_photo: 'Photo from visit',
+  rma_doc: 'Manufacturer claim document',
 };
 
 /**

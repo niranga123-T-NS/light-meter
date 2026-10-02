@@ -2,27 +2,29 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
-import { C_TONE, W_TONE } from '@/components/warrantyTones';
+import { C_TONE, R_TONE, W_TONE } from '@/components/warrantyTones';
 import { Button, Card, colors, Empty, ErrorBanner, Grid, ListRow, Muted, Pill, Row, Screen, Segmented, Select, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { fmtDate, fmtDateTime, fmtMoney, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { isSales } from '@/lib/roles';
 import { rpc, supabase } from '@/lib/supabase';
-import type { Warranty, WarrantyClaim, WarrantyLine, WarrantyReport } from '@/lib/types';
+import type { Manufacturer, ManufacturerClaim, ManufacturerClaimItem, Warranty, WarrantyClaim, WarrantyLine, WarrantyReport } from '@/lib/types';
 import {
   CLAIM_STAGE_LABEL,
   claimDaysOpen,
   claimStage,
   canRaiseClaim,
   isWarrantyDesk,
+  RMA_STAGE_LABEL,
+  rmaStage,
   supplierGapDays,
   viaLabel,
   WARRANTY_STAGE_LABEL,
   warrantyStage,
 } from '@/lib/warranty';
 
-type Tab = 'warranties' | 'claims' | 'reports' | 'brands';
+type Tab = 'warranties' | 'claims' | 'reports' | 'brands' | 'rma' | 'mfr';
 
 /** Warranty tab: completion records / warranties, claims, issues reported from visits and the brand view. */
 export default function WarrantyHome() {
@@ -36,11 +38,14 @@ export default function WarrantyHome() {
   const [owner, setOwner] = useState('');
   const [claimFilter, setClaimFilter] = useState<'open' | 'mine' | 'closed' | 'all'>(me.role === 'assistant_engineer' ? 'mine' : 'open');
   const { data, error, loading, reload } = useLoad(async () => {
-    const [w, l, c, r] = await Promise.all([
+    const [w, l, c, r, m, rm, ri] = await Promise.all([
       supabase.from('warranties').select('*').order('created_at', { ascending: false }).limit(3000),
       supabase.from('warranty_lines').select('*').order('sort_order').limit(10000),
       supabase.from('warranty_claims').select('*').order('logged_at', { ascending: false }).limit(3000),
       supabase.from('warranty_reports').select('*').order('created_at', { ascending: false }).limit(1000),
+      supabase.from('manufacturers').select('*').order('name'),
+      supabase.from('manufacturer_claims').select('*').order('created_at', { ascending: false }).limit(2000),
+      supabase.from('manufacturer_claim_items').select('*').limit(10000),
     ]);
     if (w.error) throw new Error(w.error.message);
     return {
@@ -48,6 +53,9 @@ export default function WarrantyHome() {
       lines: (l.data ?? []) as WarrantyLine[],
       claims: (c.data ?? []) as WarrantyClaim[],
       reports: (r.data ?? []) as WarrantyReport[],
+      manufacturers: (m.data ?? []) as Manufacturer[],
+      rmas: (rm.data ?? []) as ManufacturerClaim[],
+      rmaItems: (ri.data ?? []) as ManufacturerClaimItem[],
     };
   });
   const today = todayISO();
@@ -99,6 +107,31 @@ export default function WarrantyHome() {
       gaps: ls.filter((l) => supplierGapDays(l) > 0 && l.end_date >= today).length,
     };
   });
+
+  const editManufacturer = async (mm: Manufacturer | null) => {
+    const x = await dialog.prompt({
+      title: mm ? `Edit ${mm.name}` : 'New manufacturer',
+      fields: [
+        { key: 'name', label: 'Manufacturer (same as the brand on warranty lines)', required: true, initial: mm?.name },
+        { key: 'agent', label: 'Local agent', initial: mm?.local_agent ?? undefined },
+        { key: 'contact', label: 'Contact (person, email, phone, portal)', initial: mm?.contact ?? undefined },
+        { key: 'terms', label: 'Standard warranty terms', initial: mm?.warranty_terms ?? undefined, hint: 'e.g. luminaires 5 yrs, drivers 3 yrs' },
+        { key: 'reg', label: 'Project registration required?', type: 'select', required: true, initial: mm?.registration_required ? 'yes' : 'no', options: [{ value: 'no', label: 'No' }, { value: 'yes', label: 'Yes' }] },
+        { key: 'days', label: 'Register within (days after the warranty start)', initial: mm?.registration_days ? String(mm.registration_days) : undefined },
+        { key: 'evidence', label: 'Evidence needed for a claim', type: 'multiline', initial: mm?.evidence_required ?? undefined },
+        ...(mm ? [{ key: 'active', label: 'Active', type: 'select' as const, initial: mm.active ? 'yes' : 'no', options: [{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }] }] : []),
+      ],
+    });
+    if (!x) return;
+    await dialog.run(async () => {
+      await rpc('save_manufacturer', {
+        p_id: mm?.id ?? null,
+        p_data: { name: x.name, local_agent: x.agent ?? '', contact: x.contact ?? '', warranty_terms: x.terms ?? '', registration_required: x.reg === 'yes',
+          registration_days: x.days ? String(Number(x.days) || '') : '', evidence_required: x.evidence ?? '', ...(mm ? { active: x.active !== 'no' } : {}) },
+      });
+      await reload();
+    }, 'Manufacturer saved');
+  };
 
   return (
     <Screen refreshing={loading} onRefresh={reload} maxWidth={1300}>
@@ -155,6 +188,10 @@ export default function WarrantyHome() {
           { value: 'claims', label: 'Claims', badge: openClaims.length },
           { value: 'reports', label: sales ? 'My reported issues' : 'Reported from visits', badge: waitingReports.length },
           { value: 'brands', label: 'By brand' },
+          ...(sales ? [] : [
+            { value: 'rma' as Tab, label: 'Manufacturer claims', badge: (data?.rmas ?? []).filter((x) => x.status === 'open').length },
+            { value: 'mfr' as Tab, label: 'Manufacturers' },
+          ]),
         ]}
       />
 
@@ -289,6 +326,61 @@ export default function WarrantyHome() {
           </ScrollView>
           {data && !brandRows.length ? <Empty title="No warranty lines yet" /> : null}
         </Card>
+      ) : null}
+      {tab === 'rma' ? (
+        <>
+          {desk ? (
+            <Row style={{ justifyContent: 'flex-end' }}>
+              <Button small title="+ Manufacturer claim" onPress={() => router.push('/warranty/rma/new')} />
+            </Row>
+          ) : null}
+          <Card style={{ padding: 0, overflow: 'hidden', marginTop: 8 }}>
+            {(data?.rmas ?? []).map((x) => {
+              const st = rmaStage(x);
+              const its = (data?.rmaItems ?? []).filter((i) => i.rma_id === x.id);
+              return (
+                <ListRow
+                  key={x.id}
+                  highlight={st === 'rejected' ? colors.red : undefined}
+                  title={`${x.code} · ${(data?.manufacturers ?? []).find((mm) => mm.id === x.manufacturer_id)?.name ?? '—'}${x.rma_no ? ` · RMA ${x.rma_no}` : ''}`}
+                  subtitle={`${its.length} item(s) · claimed ${fmtMoney(its.reduce((a, i) => a + Number(i.value_claimed), 0), x.currency)} · recovered ${fmtMoney(x.value_recovered, x.currency)} · raised ${fmtDate(x.created_at)}`}
+                  right={<Pill label={RMA_STAGE_LABEL[st]} tone={R_TONE[st]} solid />}
+                  onPress={() => router.push(`/warranty/rma/${x.id}`)}
+                />
+              );
+            })}
+            {data && !(data.rmas ?? []).length ? <Empty title="No manufacturer claims yet" /> : null}
+          </Card>
+        </>
+      ) : null}
+
+      {tab === 'mfr' ? (
+        <>
+          {desk || me.role === 'sm_projects' ? (
+            <Row style={{ justifyContent: 'flex-end' }}>
+              <Button small title="+ Manufacturer" onPress={() => editManufacturer(null)} />
+            </Row>
+          ) : null}
+          <Card style={{ padding: 0, overflow: 'hidden', marginTop: 8 }}>
+            {(data?.manufacturers ?? []).map((mm) => {
+              const rs = (data?.rmas ?? []).filter((x) => x.manufacturer_id === mm.id);
+              const decided = rs.filter((x) => x.decision);
+              const accepted = decided.filter((x) => x.decision !== 'rejected');
+              const claimedV = (data?.rmaItems ?? []).filter((i) => rs.some((x) => x.id === i.rma_id)).reduce((a, i) => a + Number(i.value_claimed), 0);
+              const recovered = rs.reduce((a, x) => a + Number(x.value_recovered), 0);
+              const days = decided.filter((x) => x.returned_on && x.decided_on).map((x) => (Date.parse(x.decided_on as string) - Date.parse(x.returned_on as string)) / 86_400_000);
+              return (
+                <ListRow
+                  key={mm.id}
+                  title={`${mm.name}${mm.active ? '' : ' (inactive)'}${mm.registration_required ? ` · registration within ${mm.registration_days} days` : ''}`}
+                  subtitle={`${rs.length} claim(s) · ${rs.filter((x) => x.status === 'open').length} open · accepted ${decided.length ? Math.round((accepted.length / decided.length) * 100) : 0}% · avg ${days.length ? Math.round(days.reduce((a, b) => a + b, 0) / days.length) : '–'} days to decision · claimed ${fmtMoney(claimedV, 'LKR')} · recovered ${fmtMoney(recovered, 'LKR')}${mm.warranty_terms ? `\n${mm.warranty_terms}` : ''}`}
+                  onPress={desk || me.role === 'sm_projects' ? () => editManufacturer(mm) : undefined}
+                />
+              );
+            })}
+            {data && !(data.manufacturers ?? []).length ? <Empty title="No manufacturers yet" /> : null}
+          </Card>
+        </>
       ) : null}
       <Muted>Red edge: supplier warranty ends before ours, or a claim open 14 days or more. Amber: expiring within 90 days, or waiting for assignment / inspection.</Muted>
     </Screen>
