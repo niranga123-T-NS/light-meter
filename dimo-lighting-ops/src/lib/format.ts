@@ -19,13 +19,17 @@ export function fmtDateTime(v?: string | null) {
   });
 }
 
-export function fmtMoney(amount?: number | null, currency?: Currency | null) {
-  if (amount == null) return '—';
-  const cur = currency ?? 'LKR';
-  const abs = Math.abs(amount);
-  if (abs >= 1_000_000) return `${cur} ${(amount / 1_000_000).toFixed(abs >= 10_000_000 ? 1 : 2)}M`;
-  if (abs >= 1_000) return `${cur} ${(amount / 1_000).toFixed(1)}K`;
-  return `${cur} ${amount.toFixed(0)}`;
+/** Money always in full: comma thousands separators and two decimals – LKR 2,400,000.00 */
+export function fmtMoney(amount?: number | string | null, currency?: Currency | null) {
+  if (amount == null || amount === '' || Number.isNaN(Number(amount))) return '—';
+  return `${currency ?? 'LKR'} ${fmtAmount(Number(amount))}`;
+}
+
+/** 2400000 → "2,400,000.00" (no currency); works the same on every device */
+export function fmtAmount(n: number) {
+  const neg = n < 0;
+  const [whole, dec] = Math.abs(n).toFixed(2).split('.');
+  return `${neg ? '-' : ''}${whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}.${dec}`;
 }
 
 export function fmtNumber(n?: number | null, digits = 0) {

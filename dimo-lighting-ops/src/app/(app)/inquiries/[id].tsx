@@ -383,7 +383,7 @@ export default function InquiryDetail() {
   const sales = salesActions();
   const mgr = managerActions();
   const showWorkspaceLinks = !isSales(me.role) && me.role !== 'sm_projects';
-  // SM Projects verifies quotations below 15 Mn LKR before SM Estimation releases them
+  // SM Projects verifies quotations below LKR 15,000,000.00 before SM Estimation releases them
   const quoteCheck = approvals.find(
     (a) => a.kind === 'quotation_sm_projects' && a.status === 'pending' && ((me.role === 'sm_projects' && a.current_step === 1) || me.role === 'gm'),
   );
@@ -538,7 +538,7 @@ export default function InquiryDetail() {
             <Muted style={{ marginTop: 6 }}>
               {gmQuote
                 ? 'Open the draft quotation and supporting files, then approve or reject. A rejection goes back to SM Estimation for revision (SM Projects is informed).'
-                : 'Open the draft quotation and supporting files, then accept it or request a revision. From 15 Mn LKR it then goes to GM / DGM; approved quotations are released to sales by SM Estimation.'}
+                : 'Open the draft quotation and supporting files, then accept it or request a revision. From LKR 15,000,000.00 it then goes to GM / DGM; approved quotations are released to sales by SM Estimation.'}
             </Muted>
           </Card>
           <Card style={{ padding: 0, overflow: 'hidden', marginTop: 8 }}>
