@@ -283,6 +283,7 @@ export type EstimationJob = {
   requested_due_at: string | null;
   review_comment: string | null;
   needs_sm_projects?: boolean;
+  docs_not_applicable?: { compliance_sheet?: string; technical_data?: string };
   sm_projects_revisions?: number;
   submitted_at: string | null;
   released_at: string | null;
@@ -291,6 +292,7 @@ export type EstimationJob = {
 
 export type Quotation = {
   id: string;
+  docs_note?: string | null;
   inquiry_id: string;
   quotation_no: string;
   revision: number;
