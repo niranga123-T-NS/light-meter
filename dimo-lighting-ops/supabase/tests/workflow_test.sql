@@ -1163,5 +1163,85 @@ do $$ begin
   assert public.retention_tick(now() + interval '200 days') = 0, 'no alerts after collection';
 end $$;
 
+-- Bonds: Operations records, owner by category, others view, alerts --------------
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  perform public.save_bond(null, jsonb_build_object('bond_type', 'bid', 'bond_no', 'X1', 'bank', 'HNB', 'project_name', 'P', 'customer', 'C',
+    'tender_no', 'T1', 'currency', 'LKR', 'category', 'infrastructure', 'bond_value', '1000', 'issue_date', current_date::text,
+    'expiry_date', (current_date + 30)::text));
+  raise exception 'sales recorded a bond';
+exception when others then if sqlerrm not like '%Only the Operations Executive%' then raise; end if;
+end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare bid uuid; d date := current_date;
+begin
+  bid := public.save_bond(null, jsonb_build_object('bond_type', 'bid', 'bond_no', 'CB/BB/26/1301', 'bank', 'Commercial Bank',
+    'project_name', 'Southern Expressway Lighting', 'customer', 'ABC Hotels PLC', 'tender_no', 'CEB/LT/2026/07', 'currency', 'LKR',
+    'category', 'infrastructure', 'contract_value', '120000000', 'bond_pct', '1', 'issue_date', (d - 10)::text,
+    'expiry_date', (d + 65)::text, 'tender_closing_date', (d + 5)::text));
+  assert (select owner_id from public.bonds where id = bid) = (select id from u where role = 'asm_infra'), 'owner from the category';
+  assert (select bond_value from public.bonds where id = bid) = 1200000, 'value from contract value × %';
+  assert (select code from public.bonds where id = bid) like 'BND-%', 'code';
+  begin
+    perform public.save_bond(bid, jsonb_build_object('bond_type', 'bid', 'bond_no', 'CB/BB/26/1301', 'bank', 'Commercial Bank',
+      'project_name', 'Southern Expressway Lighting', 'customer', 'ABC Hotels PLC', 'tender_no', 'CEB/LT/2026/07', 'currency', 'LKR',
+      'category', 'infrastructure', 'bond_value', '1200000', 'issue_date', (d - 10)::text, 'expiry_date', (d + 90)::text));
+    raise exception 'expiry edited directly';
+  exception when others then if sqlerrm not like '%Extend validity%' then raise; end if;
+  end;
+end $$;
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin assert (select count(*) from public.bonds) = 0, 'building sales person does not see an infrastructure bond'; end $$;
+reset role;
+select pg_temp.act_as('asm_infra'); set role authenticated;
+do $$ begin assert (select count(*) from public.bonds) = 1, 'owner sees the bond'; end $$;
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ begin assert (select count(*) from public.bonds) = 1, 'GM / DGM sees all bonds'; end $$;
+reset role;
+do $$ declare b public.bonds; at8 timestamptz := (current_date + time '08:30') at time zone app.tz();
+  smp uuid := (select id from u where role = 'sm_projects'); own uuid := (select id from u where role = 'asm_infra');
+begin
+  select * into b from public.bonds;
+  perform public.bond_tick(at8 + interval '5 days');      -- 60 days left
+  assert exists (select 1 from public.notifications where kind = 'bond_expiring' and recipient_id = own), '60 days – owner';
+  assert exists (select 1 from public.notifications where kind = 'bond_expiring' and recipient_id = (select id from u where role = 'operations_exec')), '60 days – Operations';
+  assert not exists (select 1 from public.notifications where kind = 'bond_expiring' and recipient_id = smp), '60 days – not yet SM Projects';
+  perform public.bond_tick(at8 + interval '36 days');     -- 29 days left
+  assert exists (select 1 from public.notifications where kind = 'bond_expiring' and recipient_id = smp), '30 days – SM Projects';
+  assert exists (select 1 from public.notifications where kind = 'bond_expiring' and recipient_id = (select id from u where role = 'gm')), '30 days – GM / DGM';
+  assert (select alert_level from public.bonds) = 2, 'level 30 days';
+  perform public.bond_tick(at8 + interval '59 days');     -- 6 days left: 7-day alert, critical
+  assert exists (select 1 from public.notifications where kind = 'bond_expiring' and priority = 'critical'), '7 days – critical';
+  perform public.bond_tick(at8 + interval '60 days');
+  assert exists (select 1 from public.notifications where dedupe_key = format('bonddaily:%s:%s', b.id, current_date + 60)), 'daily reminder in the last week';
+  perform public.bond_tick(at8 + interval '67 days');     -- expired
+  assert exists (select 1 from public.notifications where kind = 'bond_expired' and recipient_id = smp), 'expired – SM Projects told';
+end $$;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+select public.extend_bond((select id from public.bonds), current_date + 120, 'Bank extension letter EXT-55');
+select public.record_bond_tender_result((select id from public.bonds), 'lost', current_date, 'Awarded to a competitor');
+insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name)
+values ('bond', (select id from public.bonds), 'bond_doc', 'bond/x/bond.pdf', 'bond.pdf');
+reset role;
+do $$ declare at8 timestamptz := (current_date + time '08:30') at time zone app.tz();
+begin
+  assert (select extensions from public.bonds) = 1 and (select alert_level from public.bonds) = 0 and not (select expired_alerted from public.bonds), 'extended';
+  assert exists (select 1 from public.notifications where kind = 'bond_return_due'), 'lost tender – collect the bid bond';
+  perform public.bond_tick(at8 + interval '15 days');
+  assert (select return_alerted from public.bonds), 'not returned 14 days after the result';
+end $$;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+select public.close_bond((select id from public.bonds), 'claimed', current_date, 'Encashed by the customer');
+reset role;
+do $$ begin
+  assert (select status from public.bonds) = 'claimed', 'closed as claimed';
+  assert exists (select 1 from public.notifications where kind = 'bond_claimed' and priority = 'critical'
+                 and recipient_id = (select id from u where role = 'gm')), 'claim – GM / DGM alerted at once';
+  assert (select count(*) from public.bond_log) = 4, 'history kept';
+end $$;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

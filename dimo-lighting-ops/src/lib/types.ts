@@ -517,3 +517,40 @@ export type Retention = {
   notes: string | null;
   created_at: string;
 };
+
+export type BondType = 'bid' | 'performance' | 'advance_payment';
+
+export type Bond = {
+  id: string;
+  code: string;
+  bond_type: BondType;
+  bond_no: string;
+  bank: string;
+  bank_branch: string | null;
+  category: ProjectType;
+  owner_id: string | null;
+  project_name: string;
+  tender_no: string | null;
+  contract_no: string | null;
+  customer: string;
+  currency: Currency;
+  bond_value: number;
+  contract_value: number | null;
+  bond_pct: number | null;
+  advance_amount: number | null;
+  recovered_amount: number;
+  issue_date: string;
+  expiry_date: string;
+  original_expiry: string | null;
+  extensions: number;
+  tender_closing_date: string | null;
+  tender_result: 'pending' | 'won' | 'lost' | 'cancelled';
+  result_on: string | null;
+  completion_date: string | null;
+  dlp_end_date: string | null;
+  status: 'active' | 'returned' | 'claimed' | 'cancelled';
+  closed_on: string | null;
+  close_note: string | null;
+  notes: string | null;
+  created_at: string;
+};

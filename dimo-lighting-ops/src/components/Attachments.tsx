@@ -25,6 +25,7 @@ export const KIND_LABELS: Record<string, string> = {
   sample_doc: 'Sample document',
   deadline_extension: 'Extension notice',
   retention_doc: 'Retention document',
+  bond_doc: 'Bond document',
 };
 
 /**
