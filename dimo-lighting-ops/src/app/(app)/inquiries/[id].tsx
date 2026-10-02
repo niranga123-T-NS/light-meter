@@ -84,6 +84,11 @@ export default function InquiryDetail() {
       buttons.push(<Button key="edit" variant="secondary" title="Edit request" onPress={() => router.push(`/inquiries/new?edit=${i.id}`)} />);
       buttons.push(<Button key="submit" title="Submit inquiry" onPress={() => act('submit_inquiry', { p_inquiry: i.id }, 'Submitted')} />);
     }
+    // A change request already waiting for approval: no second one until it is decided
+    const pendingChange = approvals.find((a) => ['duty_change', 'expectation_change', 'early_design_release'].includes(a.kind) && a.status === 'pending');
+    // After submission the sales actions belong to the inquiry's own sales person only – SM Projects and GM / DGM
+    // approve these requests, so they do not get the buttons that raise them
+    if (i.sales_person_id !== me.id) return buttons.length ? buttons : null;
     if (['quotation_released', 'returned_to_sales'].includes(i.status) || (i.early_design_release_at && !i.submitted_to_client_at)) {
       buttons.push(
         <Button
@@ -97,7 +102,7 @@ export default function InquiryDetail() {
       );
     }
     // Client asked for a revised quotation → back to SM Estimation as the next revision (R1, R2 …)
-    if (mineAsSales && quotations.length && ['quotation_released', 'submitted_to_client', 'awaiting_client_approval', 'client_approved'].includes(i.status)) {
+    if (quotations.length && ['quotation_released', 'submitted_to_client', 'awaiting_client_approval', 'client_approved'].includes(i.status)) {
       buttons.push(
         <Button
           key="qrev"
@@ -205,7 +210,8 @@ export default function InquiryDetail() {
         <Button
           key="chg"
           variant="secondary"
-          title="Request a change"
+          title={pendingChange ? 'Change request waiting for approval' : 'Request a change'}
+          disabled={!!pendingChange}
           onPress={async () => {
             const r = await dialog.prompt({
               title: 'Revision request',
