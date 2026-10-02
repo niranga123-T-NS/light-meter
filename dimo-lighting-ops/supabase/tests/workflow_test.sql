@@ -55,6 +55,13 @@ do $$ begin
   assert (select public.create_project(jsonb_build_object('name', 'ABC Hotels – City Hotel – Kandy', 'project_type', 'hospitality',
     'organization_id', '00000000-0000-0000-0000-00000000a001', 'expected_duration_months', 1, 'project_term', 'short'))) is not null, 'create_project as sales';
 end $$;
+-- A similar name confirmed as a different project (reason logged) – sales has no direct insert on project_log
+do $$ declare pid uuid;
+begin
+  pid := public.create_project(jsonb_build_object('name', 'ABC Hotels – City Hotel – Kandy Annex', 'project_type', 'hospitality', 'stage', 'Award',
+    'organization_id', '00000000-0000-0000-0000-00000000a001', 'expected_duration_months', 3, 'project_term', 'short'), null, 'This is a different project');
+  assert exists (select 1 from public.project_log where project_id = pid and field = 'duplicate_override'), 'duplicate reason logged';
+end $$;
 rollback to savepoint rpc_project;
 
 -- Exact duplicate is blocked
