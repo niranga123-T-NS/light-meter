@@ -8,6 +8,7 @@ import { navFor, NavItem, ROLE_SHORT } from '@/lib/roles';
 import { rpc, supabase } from '@/lib/supabase';
 import type { AppNotification } from '@/lib/types';
 import { Avatar, Badge, colors } from './ui';
+import { BUILD_ID, BUILD_TIME } from './UpdateBanner';
 
 type Counts = { approvals: number; notifications: number; delayed: number };
 const CountsContext = createContext<{ counts: Counts; refresh: () => void }>({
@@ -86,6 +87,10 @@ export function Sidebar() {
           <Text style={{ color: '#9CA3AF', fontSize: 12 }}>{ROLE_SHORT[me.role]}</Text>
         </View>
       </Pressable>
+      <Text style={{ color: '#6B7280', fontSize: 10, paddingHorizontal: 14, paddingBottom: 8 }}>
+        Version {BUILD_ID}
+        {BUILD_TIME ? ` · ${BUILD_TIME}` : ''}
+      </Text>
     </View>
   );
 }
