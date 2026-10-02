@@ -17,7 +17,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { avatarUrl } from '@/lib/files';
-import { addDaysISO, isISODate, SLA_COLOURS, todayISO } from '@/lib/format';
+import { addDaysISO, fmtAmount, isISODate, SLA_COLOURS, todayISO } from '@/lib/format';
 import type { SlaColour } from '@/lib/types';
 
 export const colors = {
@@ -258,6 +258,9 @@ export function NumberField({
   suffix?: string;
 }) {
   const [text, setText] = useState(value == null ? '' : String(value));
+  const [focused, setFocused] = useState(false);
+  // Money (an LKR / USD field) shows in full – 3,153,318.00 – except while it is being typed
+  const money = suffix === 'LKR' || suffix === 'USD';
   // Follow external changes to the value without fighting the user's typing
   const [prev, setPrev] = useState(value);
   if (value !== prev) {
@@ -271,7 +274,9 @@ export function NumberField({
       required={required}
       hint={hint}
       keyboardType="decimal-pad"
-      value={text}
+      value={money && !focused && value != null ? fmtAmount(value) : text}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
       onChangeText={(t) => {
         setText(t);
         const n = Number(t.replace(/,/g, ''));
