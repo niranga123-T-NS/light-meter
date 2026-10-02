@@ -58,8 +58,8 @@ export default function SampleDetail() {
           {s.cleared_at ? <KeyValue label="Cleared" value={`${fmtDateTime(s.cleared_at)}${s.clear_note ? ` · ${s.clear_note}` : ''}`} /> : null}
         </Row>
         {s.approval_comment ? <Notice>Approval comments: {s.approval_comment}</Notice> : null}
-        {s.status === 'gm_approval' ? <Notice tone={colors.amber}>Approved by SM Projects – above LKR 100,000, so GM / DGM approves next.</Notice> : null}
-        {s.status === 'availability_confirmed' && me.role === 'gm' ? <Notice>Waiting for SM Projects. GM / DGM approves only requests above LKR 100,000, after SM Projects.</Notice> : null}
+        {s.status === 'gm_approval' ? <Notice tone={colors.amber}>Approved by SM Projects – above LKR 100,000.00, so GM / DGM approves next.</Notice> : null}
+        {s.status === 'availability_confirmed' && me.role === 'gm' ? <Notice>Waiting for SM Projects. GM / DGM approves only requests above LKR 100,000.00, after SM Projects.</Notice> : null}
         {s.status === 'return_reported' ? <Notice tone={colors.amber}>Reported returned by the sales person – waiting for the Operations Executive to confirm and clear it.</Notice> : null}
         {s.status === 'sold_unpaid' ? <Notice tone={colors.amber}>Sold – in the debtors list until it is collected. The sample clears automatically when the debt is cleared.</Notice> : null}
         {s.status === 'damaged_lost' ? <Notice tone={colors.red}>Returned {human(s.return_condition)} – stays open until the Operations Executive clears it.</Notice> : null}
@@ -93,7 +93,7 @@ export default function SampleDetail() {
           ) : null}
           {(me.role === 'sm_projects' && s.status === 'availability_confirmed') || (me.role === 'gm' && s.status === 'gm_approval') ? (
             <>
-              <Button title="Approve" onPress={() => run('decide_sample', { p_sample: s.id, p_decision: 'approved' }, me.role === 'sm_projects' ? 'Approved (above LKR 100,000 it goes to GM / DGM next)' : 'Approved')} />
+              <Button title="Approve" onPress={() => run('decide_sample', { p_sample: s.id, p_decision: 'approved' }, me.role === 'sm_projects' ? 'Approved (above LKR 100,000.00 it goes to GM / DGM next)' : 'Approved')} />
               <Button
                 variant="secondary"
                 title="Return with comment"

@@ -102,7 +102,7 @@ export default function Samples() {
       {(outstanding.data ?? []).length ? (
         <Card style={{ marginTop: 8, padding: 0, overflow: 'hidden' }}>
           <Text style={{ fontWeight: '700', padding: 12, paddingBottom: 4 }}>
-            {isSales(me.role) ? 'My samples outstanding' : 'Samples outstanding by sales person'} (returnable out + sold not paid · limit LKR 500,000)
+            {isSales(me.role) ? 'My samples outstanding' : 'Samples outstanding by sales person'} (returnable out + sold not paid · limit LKR 500,000.00)
           </Text>
           {[...(outstanding.data ?? [])]
             .sort((a, b) => Number(b.total_lkr) - Number(a.total_lkr))

@@ -126,7 +126,7 @@ export default function EstimationJobScreen() {
           {j.docs_not_applicable?.compliance_sheet ? <KeyValue label="Compliance sheet" value={`Not applicable – ${j.docs_not_applicable.compliance_sheet}`} /> : null}
           {j.docs_not_applicable?.technical_data ? <KeyValue label="Data sheets" value={`Not applicable – ${j.docs_not_applicable.technical_data}`} /> : null}
         </Row>
-        {j.status === 'sm_projects_approval' ? <Notice tone={colors.blue}>Waiting for approval to release: SM Projects verifies, and from 15 Mn LKR (or below the margin floor) GM / DGM approves after SM Projects.</Notice> : null}
+        {j.status === 'sm_projects_approval' ? <Notice tone={colors.blue}>Waiting for approval to release: SM Projects verifies, and from LKR 15,000,000.00 (or below the margin floor) GM / DGM approves after SM Projects.</Notice> : null}
         {j.status === 'revision_requested' ? (
           <Notice tone={colors.red}>
             Sent back for revision (SM Projects or GM / DGM): {j.review_comment}
@@ -175,7 +175,7 @@ export default function EstimationJobScreen() {
                   dialog.run(async () => {
                     const res = await rpc<string>('review_estimate', { p_job: j.id, p_approve: true });
                     if (res === 'gm_approval') dialog.toast('Above the value / below the margin limit – sent to GM / DGM for approval');
-                    if (res === 'sm_projects_approval') dialog.toast('Sent to SM Projects (then GM / DGM from 15 Mn LKR) for approval to release');
+                    if (res === 'sm_projects_approval') dialog.toast('Sent to SM Projects (then GM / DGM from LKR 15,000,000.00) for approval to release');
                     await reload();
                   })
                 }
@@ -382,9 +382,9 @@ function AssignEstimator({ job, onDone }: { job: EstimationJob; onDone: () => vo
               type: 'select',
               initial: job.value_band ?? 'medium',
               options: [
-                { value: 'small', label: 'Small (under LKR 5 M) – 2 working days' },
-                { value: 'medium', label: 'Medium (LKR 5–25 M) – 4 working days' },
-                { value: 'large', label: 'Large (over LKR 25 M) – 7 working days' },
+                { value: 'small', label: 'Small (under LKR 5,000,000.00) – 2 working days' },
+                { value: 'medium', label: 'Medium (LKR 5,000,000.00 – 25,000,000.00) – 4 working days' },
+                { value: 'large', label: 'Large (over LKR 25,000,000.00) – 7 working days' },
               ],
             },
             { key: 'r', label: 'Reason (other estimator / hand-over)', type: 'multiline' },
