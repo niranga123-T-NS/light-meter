@@ -123,6 +123,8 @@ export default function EstimationJobScreen() {
           <KeyValue label="Design scope" value={designScopeText(inq?.design_scope)} />
           <KeyValue label="Estimation scope" value={estimationScopeText(inq?.estimation_scope, inq?.estimation_basis)} />
           <KeyValue label="Quotation no." value={j.quotation_no ?? '—'} />
+          {j.docs_not_applicable?.compliance_sheet ? <KeyValue label="Compliance sheet" value={`Not applicable – ${j.docs_not_applicable.compliance_sheet}`} /> : null}
+          {j.docs_not_applicable?.technical_data ? <KeyValue label="Data sheets" value={`Not applicable – ${j.docs_not_applicable.technical_data}`} /> : null}
         </Row>
         {j.status === 'sm_projects_approval' ? <Notice tone={colors.blue}>Waiting for approval to release: SM Projects verifies, and from 15 Mn LKR (or below the margin floor) GM / DGM approves after SM Projects.</Notice> : null}
         {j.status === 'revision_requested' ? (
@@ -192,12 +194,29 @@ export default function EstimationJobScreen() {
             <Button
               title="Release to sales"
               onPress={async () => {
+                // Compliance sheet and data sheets: uploaded, or marked not applicable with a reason (SM Estimation)
+                const { data: files } = await supabase.from('attachments').select('kind').eq('entity_type', 'estimation_job').eq('entity_id', j.id).is('archived_at', null);
+                const has = (k: string) => (files ?? []).some((f) => f.kind === k);
+                if (!has('quotation_final')) return dialog.toast('Upload the final quotation PDF first', 'error');
+                const missing = [!has('compliance_sheet') ? 'compliance sheet' : null, !has('technical_data') ? 'technical data sheets' : null].filter(Boolean);
+                if (missing.length && !sme) return dialog.toast(`Upload the ${missing.join(' and ')} (only SM Estimation can release without them)`, 'error');
                 const r = await dialog.prompt({
                   title: 'Release quotation',
-                  message: 'Final quotation PDF, compliance sheet and technical data sheets must be uploaded. A justification is needed only if brands do not match the client expectation.',
-                  fields: [{ key: 'j', label: 'Brand justification (optional)', type: 'multiline' }],
+                  message: missing.length
+                    ? `Not uploaded: ${missing.join(' and ')}. If not applicable to this job (e.g. budget quotation, labour-only or service job, local fabrication), give the reason – it is shown to sales with the quotation. Otherwise cancel and upload them.`
+                    : 'A justification is needed only if brands do not match the client expectation.',
+                  fields: [
+                    ...(!has('compliance_sheet') ? [{ key: 'nc', label: 'Compliance sheet not applicable because…', type: 'multiline' as const, required: true }] : []),
+                    ...(!has('technical_data') ? [{ key: 'nd', label: 'Data sheets not applicable because…', type: 'multiline' as const, required: true }] : []),
+                    { key: 'j', label: 'Brand justification (optional)', type: 'multiline' },
+                  ],
                 });
-                if (r) await run('release_quotation', { p_job: j.id, p_justification: r.j || null }, 'Released – sales person notified');
+                if (r)
+                  await run(
+                    'release_quotation',
+                    { p_job: j.id, p_justification: r.j || null, p_no_compliance_reason: r.nc || null, p_no_datasheets_reason: r.nd || null },
+                    'Released – sales person notified',
+                  );
               }}
             />
           ) : null}

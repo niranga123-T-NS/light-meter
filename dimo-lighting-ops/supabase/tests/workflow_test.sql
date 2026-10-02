@@ -449,6 +449,24 @@ begin
     ('estimation_job', j, 'technical_data', 'estimation_job/' || j || '/tds.pdf', 'tds.pdf');
 end $$;
 reset role;
+-- Without data sheets / compliance sheet: only with a reason (e.g. labour-only job)
+savepoint no_docs;
+delete from public.attachments where kind in ('compliance_sheet', 'technical_data');
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+do $$ begin
+  begin
+    perform public.release_quotation((select id from public.estimation_jobs));
+    raise exception 'released without data sheets';
+  exception when others then if sqlerrm not like '%not applicable with a reason%' then raise; end if;
+  end;
+  perform public.release_quotation((select id from public.estimation_jobs), null, 'Budget quotation – no specification', 'Labour-only installation');
+end $$;
+reset role;
+do $$ begin
+  assert (select docs_note from public.quotations) like '%No data sheets: Labour-only installation%', 'reason shown with the quotation';
+  assert (select docs_not_applicable ->> 'technical_data' from public.estimation_jobs) = 'Labour-only installation', 'reason kept on the estimate';
+end $$;
+rollback to savepoint no_docs;
 -- SM Estimation releases
 select pg_temp.act_as('sm_estimation'); set role authenticated;
 select public.release_quotation((select id from public.estimation_jobs));

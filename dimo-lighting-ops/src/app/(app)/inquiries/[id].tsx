@@ -525,6 +525,7 @@ export default function InquiryDetail() {
               );
             })}
             <Muted>Brands offered: {quotations[0].brands_offered.map((b) => `${b.group}: ${b.brand}`).join(' · ') || '—'}</Muted>
+            {quotations[0].docs_note ? <Muted>{quotations[0].docs_note}</Muted> : null}
           </Card>
         </Section>
       ) : null}
