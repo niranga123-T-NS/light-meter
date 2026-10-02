@@ -28,7 +28,7 @@ export function CountsProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(async () => {
     const [appr, notes, delayed] = await Promise.all([
       rpc<unknown[]>('my_pending_approvals').catch(() => []),
-      supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('recipient_id', me.id).is('read_at', null),
+      supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('recipient_id', me.id).is('read_at', null).is('cleared_at', null),
       supabase.from('inquiries').select('id', { count: 'exact', head: true }).eq('sla_colour', 'red').not('status', 'in', '(won,lost,cancelled)'),
     ]);
     setCounts({ approvals: appr?.length ?? 0, notifications: notes.count ?? 0, delayed: delayed.count ?? 0 });

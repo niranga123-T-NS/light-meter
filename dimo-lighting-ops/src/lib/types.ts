@@ -357,6 +357,7 @@ export type AppNotification = {
   requires_open: boolean;
   created_at: string;
   read_at: string | null;
+  cleared_at?: string | null;
 };
 
 export type PendingApproval = {

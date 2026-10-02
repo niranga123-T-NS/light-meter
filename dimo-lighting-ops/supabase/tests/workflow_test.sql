@@ -1243,5 +1243,25 @@ do $$ begin
   assert (select count(*) from public.bond_log) = 4, 'history kept';
 end $$;
 
+-- Notifications: clear → history → clear history ------------------------------
+insert into public.notifications (recipient_id, kind, title, body, requires_open) values ((select id from u where role = 'sm_projects'), 'test', 'Pinned approval', 'x', true);
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ declare me uuid := auth.uid(); total int; pinned int; n int;
+begin
+  select count(*) into total from public.notifications where recipient_id = me and cleared_at is null and deliver_after <= now();
+  select count(*) into pinned from public.notifications where recipient_id = me and cleared_at is null and deliver_after <= now() and requires_open and read_at is null;
+  n := public.clear_notifications();
+  assert n = total - pinned, 'cleared all except unopened pinned items';
+  assert exists (select 1 from public.notifications where recipient_id = me and title = 'Pinned approval' and cleared_at is null), 'pinned item stays';
+  assert public.clear_notifications((select id from public.notifications where recipient_id = me and title = 'Pinned approval')) = 1, 'clear one';
+  perform public.clear_notifications(id) from public.notifications where recipient_id = me and cleared_at is null and deliver_after <= now();
+  assert not exists (select 1 from public.notifications where recipient_id = me and cleared_at is null and deliver_after <= now()), 'list empty';
+  assert public.clear_notification_history(null, now() - interval '1 day') = 0, 'nothing older than a day';
+  assert public.clear_notification_history() = total, 'history cleared';
+  assert (select count(*) from public.notifications where recipient_id = me) >= total, 'rows kept so alerts are not re-sent';
+  assert (select count(*) from public.notifications where recipient_id <> me) = 0, 'only own notifications visible';
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
