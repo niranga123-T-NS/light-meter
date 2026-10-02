@@ -148,7 +148,7 @@ export default function EstimationJobScreen() {
         {j.status === 'sm_projects_approval' ? <Notice tone={colors.blue}>Waiting for approval to release: SM Projects verifies, and from LKR 15,000,000.00 (or below the margin floor) GM / DGM approves after SM Projects.</Notice> : null}
         {j.status === 'revision_requested' ? (
           <Notice tone={colors.red}>
-            Sent back for revision (SM Projects or GM / DGM): {j.review_comment}
+            Sent back to SM Estimation for revision: {j.review_comment}
             {sme ? ' – assign it to an estimator (same or another) with a new due date.' : ' – SM Estimation will re-assign it.'}
           </Notice>
         ) : j.review_comment ? (

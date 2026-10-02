@@ -300,6 +300,22 @@ begin
   assert (select file_name from public.attachments where kind = 'quotation_draft') like 'INQ-%-R0-draft-v1.pdf', 'file renamed';
 end $$;
 reset role;
+-- Duty change approved while the estimate is with SM Estimation → back to SM Estimation to re-assign
+savepoint duty1;
+select pg_temp.act_as('asm_building'); set role authenticated;
+select public.request_inquiry_change('00000000-0000-0000-0000-00000000d001', 'duty_change', '{"duty_status":"duty_free"}', 'Client importing under BOI');
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+select public.decide_approval((select id from public.approvals where kind = 'duty_change' and status = 'pending'), 'approved');
+reset role;
+do $$ begin
+  assert (select currency from public.inquiries where id = '00000000-0000-0000-0000-00000000d001') = 'USD', 'now USD';
+  assert (select status from public.estimation_jobs) = 'revision_requested', 'back to SM Estimation to re-assign';
+  assert exists (select 1 from public.notifications where kind = 'duty_changed' and title like 'Duty changed – re-assign%'
+                 and recipient_id = (select id from u where role = 'sm_estimation')), 'SM Estimation asked to re-assign';
+  assert exists (select 1 from public.sla_clocks where entity_type = 'estimation_job' and stage = 'assignment' and stopped_at is null), 're-assignment timer';
+end $$;
+rollback to savepoint duty1;
 
 -- Below 15 Mn LKR: SM Projects verifies before release; a revision goes back through SM Estimation to an estimator
 select pg_temp.act_as('sm_estimation'); set role authenticated;
@@ -487,6 +503,19 @@ do $$ begin
   assert (select count(*) from public.inquiry_files('00000000-0000-0000-0000-00000000d001') where kind in ('design_pack', 'quotation_final')) = 3, 'inquiry_files shows released files (pack Rev 0, Rev 1 and the quotation)';
 end $$;
 select public.record_client_submission('00000000-0000-0000-0000-00000000d001');
+-- Duty change approved after the quotation went to the client → a new revision for SM Estimation
+savepoint duty2;
+select public.request_inquiry_change('00000000-0000-0000-0000-00000000d001', 'duty_change', '{"duty_status":"duty_free"}', 'Client now duty free');
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+select public.decide_approval((select id from public.approvals where kind = 'duty_change' and status = 'pending'), 'approved');
+reset role;
+do $$ begin
+  assert (select revision from public.inquiries where id = '00000000-0000-0000-0000-00000000d001') = 1, 'new revision R1';
+  assert exists (select 1 from public.estimation_jobs where revision = 1 and status = 'accepted' and revision_request like 'Duty changed to duty free (USD)%'), 'revision waits for SM Estimation';
+end $$;
+rollback to savepoint duty2;
+select pg_temp.act_as('asm_building'); set role authenticated;
 -- Client asks for a revised quotation → new estimate revision for SM Estimation; the last quotation stays visible
 savepoint quote_rev;
 do $$ declare jid uuid;
