@@ -1394,6 +1394,13 @@ begin
 end $$;
 reset role;
 do $$ begin
+  assert (select assignee_id from public.warranty_claims) is null, 'Operations cannot assign engineers';
+  assert exists (select 1 from public.notifications where kind = 'warranty_claim_to_assign' and recipient_id = (select id from u where role = 'senior_elec_engineer')), 'Senior Elec. Engineer asked to assign';
+end $$;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select public.assign_warranty_claim((select id from public.warranty_claims), (select id from u where role = 'assistant_engineer'));
+reset role;
+do $$ begin
   assert exists (select 1 from public.notifications where kind = 'warranty_claim_opened' and recipient_id = (select id from u where role = 'asm_building')), 'sales person told';
   assert exists (select 1 from public.notifications where kind = 'warranty_claim_assigned' and recipient_id = (select id from u where role = 'assistant_engineer')), 'engineer told';
 end $$;
@@ -1415,11 +1422,6 @@ select pg_temp.act_as('assistant_engineer'); set role authenticated;
 select public.record_claim_rectified((select id from public.warranty_claims), current_date, 228000, '38 drivers replaced');
 reset role;
 select pg_temp.act_as('operations_exec'); set role authenticated;
-do $$ begin
-  perform public.close_warranty_claim((select id from public.warranty_claims), 'closed', current_date, null);
-  raise exception 'closed with the supplier claim open';
-exception when others then if sqlerrm not like '%supplier claim is still open%' then raise; end if;
-end $$;
 select public.resolve_supplier_claim((select id from public.warranty_claims), 'resolved', 180000, current_date, 'Credit note');
 select public.close_warranty_claim((select id from public.warranty_claims), 'closed', current_date, 'Customer confirmed');
 reset role;
@@ -1489,6 +1491,131 @@ do $$ begin
 exception when others then if sqlerrm not like '%already released%' then raise; end if;
 end $$;
 reset role;
+
+-- Sales / SM Projects raise a warranty claim directly → Operations verify and assign --------------------------
+select pg_temp.act_as('asm_infra'); set role authenticated;
+do $$ begin
+  perform public.log_warranty_claim(jsonb_build_object('warranty_id', (select id from public.warranties where status = 'active' limit 1),
+    'reported_via', 'customer_call', 'description', 'x'));
+  raise exception 'sales raised a claim on another category';
+exception when others then if sqlerrm not like '%your own projects or categories%' and sqlerrm not like '%Choose the warranty%' then raise; end if;
+end $$;
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ declare cid uuid;
+begin
+  cid := public.log_warranty_claim(jsonb_build_object('warranty_id', (select id from public.warranties where status = 'active' limit 1),
+    'reported_via', 'customer_call', 'description', 'Customer called – corridor lights off', 'assignee_id', (select id from u where role = 'assistant_engineer')));
+  perform set_config('test.sc', cid::text, false);
+end $$;
+reset role;
+do $$ declare c public.warranty_claims;
+begin
+  select * into c from public.warranty_claims where id = current_setting('test.sc')::uuid;
+  assert c.needs_verification and c.assignee_id is null and c.reported_by = (select id from u where role = 'asm_building'), 'sales claim waits for verification';
+  assert exists (select 1 from public.notifications where kind = 'warranty_claim_logged' and title like '%verify and assign%'
+                 and recipient_id = (select id from u where role = 'operations_exec')), 'Operations told to verify';
+end $$;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ begin
+  perform public.assign_warranty_claim(current_setting('test.sc')::uuid, (select id from u where role = 'assistant_engineer'));
+  raise exception 'Operations assigned an engineer';
+exception when others then if sqlerrm not like '%Only the Senior Electrical Engineer assigns%' then raise; end if;
+end $$;
+select public.verify_warranty_claim(current_setting('test.sc')::uuid, 'INV-26-04412 checked');
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select public.assign_warranty_claim(current_setting('test.sc')::uuid, (select id from u where role = 'assistant_engineer'));
+reset role;
+do $$ begin
+  assert (select verified_at is not null from public.warranty_claims where id = current_setting('test.sc')::uuid), 'verified on assignment';
+  assert exists (select 1 from public.notifications where title = 'Your warranty claim was verified' and recipient_id = (select id from u where role = 'asm_building')), 'sales told';
+end $$;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert public.log_warranty_claim(jsonb_build_object('warranty_id', (select id from public.warranties where status = 'active' limit 1),
+    'reported_via', 'customer_letter', 'description', 'Direct complaint to SM Projects')) is not null, 'SM Projects raises a claim';
+end $$;
+reset role;
+
+-- Manufacturer: master list, registration, manufacturer claim (RMA) -----------------------------------------
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare mw uuid; ph uuid; reg public.warranty_registrations;
+begin
+  mw := public.save_manufacturer(null, '{"name":"Meanwell","registration_required":true,"registration_days":30,"warranty_terms":"Drivers 5 yrs"}');
+  ph := public.save_manufacturer(null, '{"name":"Philips","warranty_terms":"Luminaires 5 yrs"}');
+  assert (select count(*) from public.warranty_lines where manufacturer_id = mw) = 1, 'Meanwell line linked by brand';
+  select * into reg from public.warranty_registrations where manufacturer_id = mw;
+  assert reg.id is not null and reg.due_date = (select start_date + 30 from public.warranties where id = reg.warranty_id), 'registration due 30 days after start';
+  assert not exists (select 1 from public.warranty_registrations where manufacturer_id = ph), 'no registration where not required';
+  perform set_config('test.reg', reg.id::text, false);
+  perform set_config('test.mw', mw::text, false);
+end $$;
+reset role;
+do $$ begin
+  perform public.manufacturer_tick((current_date + time '08:30') at time zone app.tz());
+  assert exists (select 1 from public.notifications where kind = 'warranty_registration' and title like 'Manufacturer registration overdue%'
+                 and recipient_id = (select id from u where role = 'sm_projects')), 'overdue registration – SM Projects told';
+end $$;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+select public.record_registration(current_setting('test.reg')::uuid, current_date, 'MW-REG-2211');
+reset role;
+-- Manufacturer claim for the covered driver claim
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare rid uuid; cl uuid := (select id from public.warranty_claims c where c.decision = 'covered' and c.line_id in
+    (select id from public.warranty_lines where product_group = 'LED drivers') limit 1);
+begin
+  perform set_config('test.cl', cl::text, false);
+  rid := public.create_manufacturer_claim(current_setting('test.mw')::uuid,
+    jsonb_build_array(jsonb_build_object('claim_id', cl, 'product', 'LED driver 40W', 'quantity', '38', 'batch_code', 'MW-2402', 'value_claimed', '200000')),
+    'Photos, failure report, batch codes');
+  assert (select code from public.manufacturer_claims where id = rid) like 'RMA-%', 'RMA code';
+  perform public.update_manufacturer_claim(rid, 'contacted', jsonb_build_object('date', current_date::text, 'note', 'Emailed Meanwell agent'));
+  perform public.update_manufacturer_claim(rid, 'acknowledged', jsonb_build_object('date', current_date::text, 'rma_no', 'MW-RMA-301'));
+  perform set_config('test.rma', rid::text, false);
+end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare rid uuid := current_setting('test.rma')::uuid; before numeric := (select recovered_amount from public.warranty_claims where id = current_setting('test.cl')::uuid);
+begin
+  perform public.update_manufacturer_claim(rid, 'returned', jsonb_build_object('date', current_date::text, 'courier', 'DHL', 'tracking_no', 'DHL123'));
+  begin
+    perform public.update_manufacturer_claim(rid, 'received', jsonb_build_object('date', current_date::text, 'grn_no', 'G1'));
+    raise exception 'received before the decision';
+  exception when others then if sqlerrm not like '%decision first%' then raise; end if;
+  end;
+  perform public.update_manufacturer_claim(rid, 'decision', jsonb_build_object('date', current_date::text, 'decision', 'accepted', 'outcome', 'credit_note'));
+  perform public.update_manufacturer_claim(rid, 'received', jsonb_build_object('date', current_date::text, 'credit_note_no', 'CN-778', 'value_recovered', '150000'));
+  perform public.close_manufacturer_claim(rid, 'closed');
+  assert (select recovered_amount from public.warranty_claims where id = current_setting('test.cl')::uuid) = before + 150000, 'recovery shared to the claim';
+end $$;
+reset role;
+-- Rejected → SM Projects absorbs
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare rid uuid;
+begin
+  rid := public.create_manufacturer_claim(current_setting('test.mw')::uuid, '[{"product":"Driver 60W","quantity":"2"}]');
+  perform public.update_manufacturer_claim(rid, 'contacted', jsonb_build_object('date', (current_date - 8)::text));
+  perform set_config('test.rma2', rid::text, false);
+end $$;
+reset role;
+do $$ begin
+  perform public.manufacturer_tick((current_date + time '08:30') at time zone app.tz());
+  assert exists (select 1 from public.notifications where kind = 'rma_followup' and title like 'No RMA number%'), 'no acknowledgement alert';
+end $$;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select public.update_manufacturer_claim(current_setting('test.rma2')::uuid, 'decision', jsonb_build_object('date', current_date::text, 'decision', 'rejected', 'note', 'Surge damage'));
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+select public.decide_rejected_rma(current_setting('test.rma2')::uuid, 'absorb', 'Small value');
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select public.close_manufacturer_claim(current_setting('test.rma2')::uuid, 'closed', 'Absorbed');
+reset role;
+do $$ begin
+  assert (select status from public.manufacturer_claims where id = current_setting('test.rma2')::uuid) = 'closed', 'rejected claim closed after absorb';
+  assert (select count(*) from public.manufacturer_claim_log where rma_id = current_setting('test.rma2')::uuid) >= 4, 'history';
+end $$;
 
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

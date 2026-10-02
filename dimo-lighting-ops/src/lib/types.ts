@@ -598,6 +598,7 @@ export type WarrantyLine = {
   months: number;
   end_date: string;
   supplier_end: string | null;
+  manufacturer_id?: string | null;
 };
 
 export type WarrantyClaim = {
@@ -633,6 +634,9 @@ export type WarrantyClaim = {
   status: 'open' | 'closed' | 'cancelled';
   closed_on: string | null;
   close_note: string | null;
+  needs_verification?: boolean;
+  verified_at?: string | null;
+  repaired_from?: 'dimo_stock' | 'manufacturer' | null;
 };
 
 export type WarrantyReport = {
@@ -652,4 +656,66 @@ export type WarrantyReport = {
   claim_id: string | null;
   dismiss_reason: string | null;
   created_at: string;
+};
+
+export type Manufacturer = {
+  id: string;
+  name: string;
+  local_agent: string | null;
+  contact: string | null;
+  warranty_terms: string | null;
+  registration_required: boolean;
+  registration_days: number | null;
+  evidence_required: string | null;
+  active: boolean;
+};
+
+export type WarrantyRegistration = {
+  id: string;
+  warranty_id: string;
+  manufacturer_id: string;
+  due_date: string;
+  registered_on: string | null;
+  reference: string | null;
+  note: string | null;
+};
+
+export type ManufacturerClaim = {
+  id: string;
+  code: string;
+  manufacturer_id: string;
+  currency: Currency;
+  evidence: string | null;
+  contacted_on: string | null;
+  contact_note: string | null;
+  rma_no: string | null;
+  acknowledged_on: string | null;
+  returned_on: string | null;
+  courier: string | null;
+  tracking_no: string | null;
+  freight_cost: number;
+  decision: 'accepted' | 'partly' | 'rejected' | null;
+  decided_on: string | null;
+  decision_note: string | null;
+  outcome: 'replacement' | 'credit_note' | 'repair' | null;
+  received_on: string | null;
+  grn_no: string | null;
+  credit_note_no: string | null;
+  value_recovered: number;
+  smp_decision: 'absorb' | 'escalate' | null;
+  escalations: number;
+  status: 'open' | 'closed' | 'cancelled';
+  closed_on: string | null;
+  close_note: string | null;
+  created_at: string;
+};
+
+export type ManufacturerClaimItem = {
+  id: string;
+  rma_id: string;
+  claim_id: string | null;
+  product: string;
+  quantity: number;
+  batch_code: string | null;
+  value_claimed: number;
 };

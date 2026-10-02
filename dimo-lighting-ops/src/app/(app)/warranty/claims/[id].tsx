@@ -30,7 +30,9 @@ export default function ClaimDetail() {
       supabase.from('warranty_log').select('*').eq('claim_id', id).order('at', { ascending: false }),
       supabase.from('profiles').select('id, full_name, role').in('role', ['assistant_engineer', 'senior_elec_engineer']).eq('active', true).order('full_name'),
     ]);
+    const rmaIds = (((await supabase.from('manufacturer_claim_items').select('rma_id').eq('claim_id', id)).data ?? []) as { rma_id: string }[]).map((x) => x.rma_id);
     return {
+      rmaIds: [...new Set(rmaIds)],
       c: claim,
       w: w as Warranty | null,
       line: l as WarrantyLine | null,
@@ -93,6 +95,15 @@ export default function ClaimDetail() {
           {c.rectified_on ? <KeyValue label="Rectified" value={`${fmtDate(c.rectified_on)}${c.rectification_note ? ` · ${c.rectification_note}` : ''}`} /> : null}
           <KeyValue label="Cost to DIMO · recovered" value={`${fmtMoney(c.cost_amount, cur)} · ${fmtMoney(c.recovered_amount, cur)}`} />
         </Row>
+        {data.rmaIds.length ? (
+          <Row wrap gap={6} style={{ marginTop: 6 }}>
+            {data.rmaIds.map((rid) => (
+              <Button key={rid} small variant="secondary" title={`Open manufacturer claim${data.rmaIds.length > 1 ? ` ${data.rmaIds.indexOf(rid) + 1}` : ''}`} onPress={() => router.push(`/warranty/rma/${rid}`)} />
+            ))}
+          </Row>
+        ) : null}
+        {c.repaired_from ? <Muted>{c.repaired_from === 'dimo_stock' ? 'Customer repaired from DIMO stock (advance replacement)' : "Customer repaired with the manufacturer's replacement"}</Muted> : null}
+        {stage === 'verify' ? <Notice tone={colors.amber}>Raised by sales / SM Projects – Operations verifies it (invoice / contract no., our supply); the Senior Electrical Engineer assigns the engineer.</Notice> : null}
         {stage === 'goodwill' ? <Notice tone={colors.amber}>Out of warranty – waiting for SM Projects to approve goodwill cover.</Notice> : null}
         {stage === 'goodwill' && (me.role === 'sm_projects' || me.role === 'gm') ? (
           <Row style={{ marginTop: 8 }}>
@@ -102,12 +113,28 @@ export default function ClaimDetail() {
         {stage === 'quote' ? <Notice tone={colors.blue}>Chargeable – the sales person quotes the repair. Record the rectification once the customer orders it.</Notice> : null}
         {open ? (
           <Row wrap gap={8} style={{ marginTop: 8 }}>
-            {desk ? (
+            {desk && stage === 'verify' && !see ? (
               <Button
-                variant={stage === 'assign' ? 'primary' : 'secondary'}
-                title={c.assignee_id ? 'Re-assign' : 'Assign engineer'}
+                title="Verify"
                 onPress={async () => {
-                  const x = await dialog.prompt({ title: 'Assign the site inspection', fields: [{ key: 'a', label: 'Engineer', type: 'select', required: true, options: engineerOptions, initial: c.assignee_id ?? undefined }] });
+                  const x = await dialog.prompt({
+                    title: 'Verify the claim',
+                    message: 'Check the invoice / contract number and that it is our supply. The Senior Electrical Engineer then assigns the engineer.',
+                    fields: [{ key: 'n', label: 'Note (e.g. invoice checked)' }],
+                  });
+                  if (x) await run('verify_warranty_claim', { p_id: c.id, p_note: x.n || null }, 'Verified – Senior Electrical Engineer asked to assign');
+                }}
+              />
+            ) : null}
+            {see ? (
+              <Button
+                variant={stage === 'assign' || stage === 'verify' ? 'primary' : 'secondary'}
+                title={stage === 'verify' ? 'Verify & assign' : c.assignee_id ? 'Re-assign' : 'Assign engineer'}
+                onPress={async () => {
+                  const x = await dialog.prompt({
+                    title: stage === 'verify' ? 'Verify the claim (invoice / contract no., our supply) and assign the site inspection' : 'Assign the site inspection',
+                    fields: [{ key: 'a', label: 'Engineer', type: 'select', required: true, options: engineerOptions, initial: c.assignee_id ?? undefined }],
+                  });
                   if (x) await run('assign_warranty_claim', { p_id: c.id, p_assignee: x.a }, 'Assigned – engineer notified');
                 }}
               />
@@ -164,33 +191,29 @@ export default function ClaimDetail() {
                     fields: [
                       { key: 'd', label: 'Date', type: 'date', required: true, initial: today },
                       { key: 'c', label: `Cost to DIMO (${cur})`, initial: '0' },
+                      {
+                        key: 'f',
+                        label: 'Replaced from',
+                        type: 'select',
+                        options: [
+                          { value: 'dimo_stock', label: 'DIMO stock now (claim back from the manufacturer)' },
+                          { value: 'manufacturer', label: "The manufacturer's replacement" },
+                        ],
+                      },
                       { key: 'n', label: 'What was done', type: 'multiline' },
                     ],
                   });
                   if (!x) return;
                   const cost = num(x.c);
                   if (!(cost >= 0)) return dialog.toast('Enter the cost (0 if none)', 'error');
-                  await run('record_claim_rectified', { p_id: c.id, p_on: x.d, p_cost: cost, p_note: x.n || null }, 'Rectification recorded');
+                  await run('record_claim_rectified', { p_id: c.id, p_on: x.d, p_cost: cost, p_note: x.n || null, p_from: x.f || null }, 'Rectification recorded');
                 }}
               />
             ) : null}
-            {desk && (c.supplier_status === 'none' || c.supplier_status === 'rejected') ? (
-              <Button
-                variant="secondary"
-                title="Raise supplier claim"
-                onPress={async () => {
-                  const x = await dialog.prompt({
-                    title: 'Back-to-back claim to the supplier',
-                    fields: [
-                      { key: 'r', label: 'Supplier reference (RMA / letter no.)' },
-                      { key: 'd', label: 'Date raised', type: 'date', required: true, initial: today },
-                    ],
-                  });
-                  if (x) await run('raise_supplier_claim', { p_id: c.id, p_ref: x.r || null, p_on: x.d }, 'Supplier claim raised');
-                }}
-              />
+            {desk && c.decision === 'covered' && (c.supplier_status === 'none' || c.supplier_status === 'rejected') ? (
+              <Button variant="secondary" title="Manufacturer claim (RMA)" onPress={() => router.push({ pathname: '/warranty/rma/new', params: { claim: c.id } })} />
             ) : null}
-            {desk && c.supplier_status === 'raised' ? (
+            {desk && c.supplier_status === 'raised' && !data.rmaIds.length ? (
               <Button
                 variant="secondary"
                 title="Supplier answered"
