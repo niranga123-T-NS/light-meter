@@ -13,6 +13,8 @@ export type Role =
   | 'am_estimation'
   | 'estimation_exec'
   | 'operations_exec'
+  | 'senior_elec_engineer'
+  | 'assistant_engineer'
   | 'sys_admin';
 
 export type ProjectType = 'hospitality' | 'retail' | 'institutions' | 'commercial' | 'infrastructure' | 'industrial';
@@ -553,5 +555,98 @@ export type Bond = {
   closed_on: string | null;
   close_note: string | null;
   notes: string | null;
+  created_at: string;
+};
+
+export type Warranty = {
+  id: string;
+  code: string;
+  source: 'system' | 'outside';
+  project_id: string | null;
+  project_name: string;
+  customer: string;
+  site: string | null;
+  site_contact: string | null;
+  category: ProjectType;
+  owner_id: string | null;
+  invoice_no: string | null;
+  contract_no: string | null;
+  currency: Currency;
+  contract_value: number | null;
+  start_basis: 'delivery' | 'tc' | 'handover' | 'invoice';
+  delivery_date: string | null;
+  tc_date: string | null;
+  handover_date: string | null;
+  invoice_date: string | null;
+  start_date: string;
+  project_engineer_id: string | null;
+  notes: string | null;
+  status: 'active' | 'cancelled';
+  created_at: string;
+};
+
+export type WarrantyLine = {
+  id: string;
+  warranty_id: string;
+  sort_order: number;
+  product_group: string;
+  brand: string | null;
+  quantity: number | null;
+  months: number;
+  end_date: string;
+  supplier_end: string | null;
+};
+
+export type WarrantyClaim = {
+  id: string;
+  code: string;
+  warranty_id: string;
+  line_id: string | null;
+  reported_via: 'customer_call' | 'customer_email' | 'customer_letter' | 'sales_visit' | 'site_inspection' | 'other';
+  report_id: string | null;
+  reported_by: string | null;
+  description: string;
+  quantity: number | null;
+  location: string | null;
+  logged_at: string;
+  logged_by: string | null;
+  in_warranty: boolean;
+  assignee_id: string | null;
+  assigned_at: string | null;
+  inspected_on: string | null;
+  inspection_findings: string | null;
+  decision: 'covered' | 'chargeable' | 'rejected' | null;
+  decision_note: string | null;
+  decided_at: string | null;
+  goodwill_status: 'pending' | 'approved' | 'rejected' | null;
+  supplier_status: 'none' | 'raised' | 'resolved' | 'rejected';
+  supplier_ref: string | null;
+  supplier_raised_on: string | null;
+  supplier_resolved_on: string | null;
+  recovered_amount: number;
+  cost_amount: number;
+  rectified_on: string | null;
+  rectification_note: string | null;
+  status: 'open' | 'closed' | 'cancelled';
+  closed_on: string | null;
+  close_note: string | null;
+};
+
+export type WarrantyReport = {
+  id: string;
+  code: string;
+  sales_person_id: string;
+  visit_id: string | null;
+  organization_id: string | null;
+  customer: string;
+  project_id: string | null;
+  project_name: string | null;
+  description: string;
+  quantity: number | null;
+  location: string | null;
+  site_contact: string | null;
+  status: 'reported' | 'converted' | 'dismissed';
+  claim_id: string | null;
+  dismiss_reason: string | null;
   created_at: string;
 };

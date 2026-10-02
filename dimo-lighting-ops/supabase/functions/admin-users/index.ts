@@ -9,7 +9,7 @@ const cors = {
 };
 
 const ROLES = [
-  'gm', 'sm_projects', 'asm_building', 'asm_infra', 'design_manager', 'lighting_designer', 'lighting_engineer',
+  'gm', 'sm_projects', 'asm_building', 'asm_infra', 'design_manager', 'lighting_designer', 'lighting_engineer', 'senior_elec_engineer', 'assistant_engineer',
   'sm_estimation', 'am_estimation', 'estimation_exec', 'operations_exec', 'sys_admin',
 ];
 

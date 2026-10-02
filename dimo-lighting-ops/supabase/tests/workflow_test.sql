@@ -1263,5 +1263,149 @@ begin
 end $$;
 reset role;
 
+-- Warranty: completion record, claims, sales reports, goodwill, alerts --------------
+insert into u values ('senior_elec_engineer', gen_random_uuid()), ('assistant_engineer', gen_random_uuid());
+insert into auth.users (id, email) select id, role || '@test.local' from u where role in ('senior_elec_engineer', 'assistant_engineer');
+insert into public.profiles (id, full_name, role) select id, initcap(replace(role, '_', ' ')), role::public.app_role from u where role = 'senior_elec_engineer';
+insert into public.profiles (id, full_name, role, manager_id) select id, 'Assistant Engineer', 'assistant_engineer', (select id from u where role = 'senior_elec_engineer')
+  from u where role = 'assistant_engineer';
+do $$ begin assert (select team from public.profiles where id = (select id from u where role = 'assistant_engineer')) = 'execution', 'execution team'; end $$;
+
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ declare rid uuid;
+begin
+  begin
+    perform public.save_warranty(null, jsonb_build_object('source', 'outside', 'project_name', 'X', 'customer', 'Y', 'category', 'hospitality',
+      'invoice_no', 'I1', 'start_basis', 'invoice', 'invoice_date', current_date::text), '[{"product_group":"L","months":12}]'::jsonb);
+    raise exception 'sales recorded a warranty';
+  exception when others then if sqlerrm not like '%Only the Operations Executive or the Senior Electrical Engineer%' then raise; end if;
+  end;
+  rid := public.report_warranty_issue(jsonb_build_object('customer', 'Lakeside Hotels PLC', 'project_name', 'Lakeside Lobby',
+    'description', 'About 15 downlights flickering in the lobby', 'quantity', '15', 'location', 'Lobby ceiling'));
+  assert (select code from public.warranty_reports where id = rid) like 'WIR-%', 'report code';
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'warranty_issue_reported' and recipient_id = (select id from u where role = 'senior_elec_engineer')), 'Senior Elec. Engineer told of the report';
+end $$;
+
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare wid uuid; ho date := ((current_date + 60) - interval '24 months')::date;
+begin
+  begin
+    perform public.save_warranty(null, jsonb_build_object('source', 'outside', 'project_name', 'Lakeside Lobby', 'customer', 'Lakeside Hotels PLC',
+      'category', 'hospitality', 'start_basis', 'handover', 'handover_date', ho::text), '[{"product_group":"L","months":12}]'::jsonb);
+    raise exception 'saved without invoice / contract';
+  exception when others then if sqlerrm not like '%invoice number or the contract number%' then raise; end if;
+  end;
+  wid := public.save_warranty(null, jsonb_build_object('source', 'outside', 'project_name', 'Lakeside Lobby', 'customer', 'Lakeside Hotels PLC',
+    'category', 'hospitality', 'invoice_no', 'INV-26-04412', 'contract_no', 'CHL-7781', 'currency', 'LKR', 'contract_value', '46800000',
+    'start_basis', 'handover', 'delivery_date', (ho - 60)::text, 'handover_date', ho::text,
+    'project_engineer_id', (select id from u where role = 'assistant_engineer')::text),
+    jsonb_build_array(
+      jsonb_build_object('product_group', 'Luminaires', 'brand', 'Philips', 'quantity', '1240', 'months', 60, 'supplier_end', (ho + 1800)::text),
+      jsonb_build_object('product_group', 'LED drivers', 'brand', 'Meanwell', 'quantity', '1240', 'months', 24),
+      jsonb_build_object('product_group', 'Controls', 'brand', 'Dali', 'quantity', '1', 'months', 12)));
+  assert (select owner_id from public.warranties where id = wid) = (select id from u where role = 'asm_building'), 'owner from the category';
+  assert (select code from public.warranties where id = wid) like 'WAR-%', 'warranty code';
+  assert (select end_date from public.warranty_lines where warranty_id = wid and product_group = 'LED drivers') = current_date + 60, 'line end date';
+  assert (select count(*) from public.warranty_lines where warranty_id = wid) = 3, 'three lines';
+end $$;
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin assert (select count(*) from public.warranties) = 1, 'owner sees the warranty'; end $$;
+reset role;
+select pg_temp.act_as('asm_infra'); set role authenticated;
+do $$ begin assert (select count(*) from public.warranties) = 0, 'other category does not'; end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin assert (select count(*) from public.warranties) = 1, 'engineer sees all warranties'; end $$;
+reset role;
+
+-- Claim from the sales report, assigned to the Assistant Engineer
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare cid uuid; w uuid := (select id from public.warranties);
+begin
+  cid := public.log_warranty_claim(jsonb_build_object('warranty_id', w,
+    'line_id', (select id from public.warranty_lines where warranty_id = w and product_group = 'LED drivers'),
+    'report_id', (select id from public.warranty_reports), 'assignee_id', (select id from u where role = 'assistant_engineer')));
+  assert (select in_warranty and reported_via = 'sales_visit' and reported_by = (select id from u where role = 'asm_building')
+          from public.warranty_claims where id = cid), 'claim from the visit report, in warranty';
+  assert (select status from public.warranty_reports) = 'converted', 'report converted';
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'warranty_claim_opened' and recipient_id = (select id from u where role = 'asm_building')), 'sales person told';
+  assert exists (select 1 from public.notifications where kind = 'warranty_claim_assigned' and recipient_id = (select id from u where role = 'assistant_engineer')), 'engineer told';
+end $$;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+select public.record_claim_inspection((select id from public.warranty_claims), current_date, 'Driver failures – batch fault');
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ begin
+  perform public.decide_warranty_claim((select id from public.warranty_claims), 'covered', null);
+  raise exception 'Operations decided';
+exception when others then if sqlerrm not like '%Senior Electrical Engineer decides%' then raise; end if;
+end $$;
+select public.raise_supplier_claim((select id from public.warranty_claims), 'MW-RMA-118', current_date);
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select public.decide_warranty_claim((select id from public.warranty_claims), 'covered', null);
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+select public.record_claim_rectified((select id from public.warranty_claims), current_date, 228000, '38 drivers replaced');
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ begin
+  perform public.close_warranty_claim((select id from public.warranty_claims), 'closed', current_date, null);
+  raise exception 'closed with the supplier claim open';
+exception when others then if sqlerrm not like '%supplier claim is still open%' then raise; end if;
+end $$;
+select public.resolve_supplier_claim((select id from public.warranty_claims), 'resolved', 180000, current_date, 'Credit note');
+select public.close_warranty_claim((select id from public.warranty_claims), 'closed', current_date, 'Customer confirmed');
+reset role;
+do $$ begin
+  assert (select status = 'closed' and cost_amount = 228000 and recovered_amount = 180000 from public.warranty_claims), 'closed with cost and recovery';
+  assert exists (select 1 from public.notifications where kind = 'warranty_claim_closed' and recipient_id = (select id from u where role = 'asm_building')), 'sales told of closure';
+end $$;
+
+-- Out-of-warranty claim covered as goodwill → SM Projects approval
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare cid uuid; w uuid := (select id from public.warranties);
+begin
+  cid := public.log_warranty_claim(jsonb_build_object('warranty_id', w, 'reported_via', 'customer_call', 'description', 'Controller not responding',
+    'line_id', (select id from public.warranty_lines where warranty_id = w and product_group = 'Controls')));
+  assert not (select in_warranty from public.warranty_claims where id = cid), 'out of warranty';
+  perform public.record_claim_inspection(cid, current_date, 'Controller failed');
+  perform public.decide_warranty_claim(cid, 'covered', 'Key customer');
+  assert (select goodwill_status from public.warranty_claims where id = cid) = 'pending', 'goodwill pending';
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+select public.decide_approval((select id from public.approvals where kind = 'warranty_goodwill' and status = 'pending'), 'approved', 'OK as goodwill');
+reset role;
+do $$ begin
+  assert (select goodwill_status from public.warranty_claims where status = 'open') = 'approved', 'goodwill approved';
+end $$;
+
+-- Alerts
+select pg_temp.act_as('operations_exec'); set role authenticated;
+select public.log_warranty_claim(jsonb_build_object('warranty_id', (select id from public.warranties), 'reported_via', 'customer_email',
+  'description', 'Façade linear not lighting'));
+reset role;
+insert into public.project_completions (project_id, completed_at) select id, now() - interval '8 days' from public.projects limit 1;
+do $$ declare at8 timestamptz := (current_date + time '08:30') at time zone app.tz();
+begin
+  perform public.warranty_tick(at8);
+  assert exists (select 1 from public.notifications where kind = 'warranty_expiring' and recipient_id = (select id from u where role = 'asm_building')), '90-day sales opportunity';
+  assert exists (select 1 from public.notifications where kind = 'warranty_completion_due' and recipient_id = (select id from u where role = 'senior_elec_engineer')), 'completion record due';
+  perform public.warranty_tick(at8 + interval '7 days');
+  assert exists (select 1 from public.notifications where kind = 'warranty_inspection_overdue'), 'inspection overdue';
+  perform public.warranty_tick(at8 + interval '15 days');
+  assert exists (select 1 from public.notifications where kind = 'warranty_claim_overdue' and recipient_id = (select id from u where role = 'sm_projects')), 'open 14 days – SM Projects';
+  perform public.warranty_tick(at8 + interval '31 days');
+  assert exists (select 1 from public.notifications where kind = 'warranty_expiring' and recipient_id = (select id from u where role = 'operations_exec')), '30 days – Operations';
+end $$;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

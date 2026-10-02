@@ -26,6 +26,9 @@ export const KIND_LABELS: Record<string, string> = {
   deadline_extension: 'Extension notice',
   retention_doc: 'Retention document',
   bond_doc: 'Bond document',
+  warranty_doc: 'Warranty / completion document',
+  claim_photo: 'Claim photo / document',
+  report_photo: 'Photo from visit',
 };
 
 /**

@@ -10,6 +10,7 @@ import { useLoad, useMasters, usePeople } from '@/lib/hooks';
 import { isSales, projectTypeLabel } from '@/lib/roles';
 import { rpc, supabase } from '@/lib/supabase';
 import type { Inquiry, Project, Quotation, Visit } from '@/lib/types';
+import { isWarrantyDesk } from '@/lib/warranty';
 
 // Key stakeholder categories for the stakeholder map (Section 4.3)
 const KEY_CATEGORIES = ['End-Client', 'Architect', 'Electrical Consultant', 'MEP Consultant', 'Main Contractor', 'MEP Contractor'];
@@ -24,12 +25,13 @@ export default function ProjectDetail() {
   const { data, error, reload } = useLoad(async () => {
     const { data: p, error: e } = await supabase.from('projects').select('*, organizations(name)').eq('id', id).single();
     if (e) throw new Error(e.message);
-    const [inq, vis, log, st, tenders] = await Promise.all([
+    const [inq, vis, log, st, tenders, war] = await Promise.all([
       supabase.from('inquiries').select('*').eq('project_id', id).order('created_at', { ascending: false }),
       supabase.from('visits').select('*, organizations(name)').eq('project_id', id).order('checkin_at', { ascending: false }).limit(50),
       supabase.from('project_log').select('*').eq('project_id', id).order('at', { ascending: false }).limit(50),
       supabase.from('project_stakeholders').select('category, organizations(name)').eq('project_id', id),
       supabase.from('tenders').select('id, tender_no, tender_name, result_status, visit_id').eq('project_id', id),
+      supabase.from('warranties').select('id, code, invoice_no, contract_no, start_date, status').eq('project_id', id).order('created_at', { ascending: false }),
     ]);
     const inquiries = (inq.data ?? []) as Inquiry[];
     const q = inquiries.length ? await supabase.from('quotations').select('*').in('inquiry_id', inquiries.map((i) => i.id)) : { data: [] };
@@ -41,11 +43,12 @@ export default function ProjectDetail() {
       stakeholders: (st.data ?? []) as unknown as { category: string; organizations: { name: string } | null }[],
       quotations: (q.data ?? []) as Quotation[],
       tenders: tenders.data ?? [],
+      warranties: (war.data ?? []) as { id: string; code: string; invoice_no: string | null; contract_no: string | null; start_date: string; status: string }[],
     };
   }, [id]);
 
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const { project: p, inquiries, visits, log, stakeholders, quotations, tenders } = data;
+  const { project: p, inquiries, visits, log, stakeholders, quotations, tenders, warranties } = data;
   const canEdit = p.owner_id === me.id || me.role === 'sm_projects' || me.role === 'gm';
   const manager = me.role === 'sm_projects' || me.role === 'gm';
   const band = MILESTONES.find((m) => m.value === p.milestone);
@@ -277,6 +280,25 @@ export default function ProjectDetail() {
             {tenders.map((t) => (
               <ListRow key={t.id} title={`${t.tender_no} – ${t.tender_name}`} right={<Pill label={human(t.result_status)} />} onPress={() => t.visit_id && router.push(`/visits/${t.visit_id}`)} />
             ))}
+          </Card>
+        </Section>
+      ) : null}
+
+      {warranties.length || p.status === 'completed' || isWarrantyDesk(me.role) ? (
+        <Section
+          title={`Warranties (${warranties.length})`}
+          right={isWarrantyDesk(me.role) ? <Button small title="+ Completion record" onPress={() => router.push({ pathname: '/warranty/edit', params: { project: p.id } })} /> : undefined}
+        >
+          <Card style={{ padding: 0, overflow: 'hidden' }}>
+            {warranties.map((w) => (
+              <ListRow
+                key={w.id}
+                title={`${w.code} · ${[w.invoice_no, w.contract_no].filter(Boolean).join(' · ')}`}
+                subtitle={`Starts ${fmtDate(w.start_date)}${w.status === 'cancelled' ? ' · cancelled' : ''}`}
+                onPress={() => router.push(`/warranty/${w.id}`)}
+              />
+            ))}
+            {!warranties.length ? <Muted style={{ padding: 12 }}>{p.status === 'completed' ? 'Completed – no completion record / warranty entered yet' : 'No warranty recorded'}</Muted> : null}
           </Card>
         </Section>
       ) : null}
