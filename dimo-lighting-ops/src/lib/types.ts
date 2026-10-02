@@ -284,6 +284,8 @@ export type EstimationJob = {
   review_comment: string | null;
   needs_sm_projects?: boolean;
   docs_not_applicable?: { compliance_sheet?: string; technical_data?: string };
+  previous_job_id?: string | null;
+  revision_request?: string | null;
   sm_projects_revisions?: number;
   submitted_at: string | null;
   released_at: string | null;
@@ -292,6 +294,7 @@ export type EstimationJob = {
 
 export type Quotation = {
   id: string;
+  estimation_job_id: string;
   docs_note?: string | null;
   inquiry_id: string;
   quotation_no: string;

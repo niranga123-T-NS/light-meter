@@ -96,6 +96,25 @@ export default function InquiryDetail() {
         />,
       );
     }
+    // Client asked for a revised quotation → back to SM Estimation as the next revision (R1, R2 …)
+    if (mineAsSales && quotations.length && ['quotation_released', 'submitted_to_client', 'awaiting_client_approval', 'client_approved'].includes(i.status)) {
+      buttons.push(
+        <Button
+          key="qrev"
+          variant="secondary"
+          title="Client requested revised quotation"
+          onPress={async () => {
+            const r = await dialog.prompt({
+              title: `Revised quotation – ${i.code}-R${i.revision + 1}`,
+              message: "Goes to SM Estimation to assign. The last submitted quotation and its files stay visible to SM Estimation and the estimator. Attach the client's mark-ups or e-mail under Inquiry documents below.",
+              fields: [{ key: 'c', label: 'What the client wants changed', type: 'multiline', required: true }],
+              confirmLabel: 'Send to SM Estimation',
+            });
+            if (r) await act('request_quotation_revision', { p_inquiry: i.id, p_comments: r.c }, 'Sent to SM Estimation');
+          }}
+        />,
+      );
+    }
     if (i.status === 'awaiting_client_approval') {
       buttons.push(
         <Button
