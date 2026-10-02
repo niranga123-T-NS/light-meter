@@ -2,7 +2,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { listAttachments, openAttachment, pickDocument, pickImage, uploadAttachment } from '@/lib/files';
 import { fmtDateTime, human } from '@/lib/format';
+import { useMe } from '@/lib/auth';
 import { usePeople } from '@/lib/hooks';
+import { rpc } from '@/lib/supabase';
 import type { Attachment } from '@/lib/types';
 import { useDialog } from './dialog';
 import { Button, Card, ListRow, Muted, Row, Section } from './ui';
@@ -56,6 +58,7 @@ export function Attachments({
 }) {
   const dialog = useDialog();
   const people = usePeople();
+  const me = useMe();
   const [files, setFiles] = useState<Attachment[]>([]);
   const ids = [entityId, ...(extraEntityIds ?? [])];
   const idsKey = ids.join(',');
@@ -94,7 +97,32 @@ export function Attachments({
             key={f.id}
             title={f.file_name}
             subtitle={`${KIND_LABELS[f.kind] ?? human(f.kind)} · v${f.version} · ${people[f.uploaded_by]?.full_name ?? ''} · ${fmtDateTime(f.uploaded_at)}`}
-            right={<Button small variant="secondary" title="Open" onPress={() => dialog.run(() => openAttachment(f))} />}
+            right={
+              <Row gap={6}>
+                <Button small variant="secondary" title="Open" onPress={() => dialog.run(() => openAttachment(f))} />
+                {canUpload && (f.uploaded_by === me.id || me.role === 'gm') ? (
+                  <Button
+                    small
+                    variant="ghost"
+                    title="Remove"
+                    onPress={async () => {
+                      const r = await dialog.prompt({
+                        title: `Remove ${f.file_name}?`,
+                        message: 'Use this for a file uploaded by mistake. It is taken off this list (kept in the audit history).',
+                        fields: [{ key: 'r', label: 'Reason (optional)' }],
+                        confirmLabel: 'Remove',
+                        danger: true,
+                      });
+                      if (!r) return;
+                      await dialog.run(async () => {
+                        await rpc('remove_attachment', { p_id: f.id, p_reason: r.r || null });
+                        await reload();
+                      }, 'File removed');
+                    }}
+                  />
+                ) : null}
+              </Row>
+            }
           />
         ))}
         {!files.length ? <Muted style={{ padding: 12 }}>No files yet</Muted> : null}

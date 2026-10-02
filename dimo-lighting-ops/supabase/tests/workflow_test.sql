@@ -1466,5 +1466,29 @@ begin
   assert exists (select 1 from public.notifications where kind = 'warranty_expiring' and recipient_id = (select id from u where role = 'operations_exec')), '30 days – Operations';
 end $$;
 
+-- Remove a file uploaded by mistake: only the uploader; not once the quotation is released --------------------
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ declare aid uuid;
+begin
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name)
+  values ('inquiry', '00000000-0000-0000-0000-00000000d001', 'inquiry_doc', 'inq/x/wrong.pdf', 'wrong.pdf') returning id into aid;
+  perform public.remove_attachment(aid, 'Wrong file');
+  assert (select archived_at is not null from public.attachments where id = aid), 'removed (archived)';
+  begin
+    perform public.remove_attachment((select id from public.attachments where entity_type = 'estimation_job' and kind = 'quotation_final' limit 1));
+    raise exception 'removed a file uploaded by someone else';
+  exception when others then if sqlerrm not like '%Only the person who uploaded%' then raise; end if;
+  end;
+end $$;
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ begin
+  perform public.remove_attachment((select a.id from public.attachments a join public.estimation_jobs j on j.id = a.entity_id
+                                     where a.entity_type = 'estimation_job' and a.kind = 'quotation_final' and j.status = 'released' and a.archived_at is null limit 1));
+  raise exception 'removed a released quotation';
+exception when others then if sqlerrm not like '%already released%' then raise; end if;
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
