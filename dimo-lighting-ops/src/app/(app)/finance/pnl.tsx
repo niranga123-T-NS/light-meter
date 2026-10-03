@@ -285,19 +285,13 @@ export default function PnlScreen() {
             { h: 'GP YTD', w: 100, right: true, v: (r) => mn(r.yRev - r.yCost, 2), tone: (r) => (r.yRev - r.yCost < 0 ? colors.red : undefined) },
             {
               h: 'GP %',
-              w: 120,
+              w: 130,
               right: true,
               v: (r) => {
                 const g = pct(r.yRev - r.yCost, r.yRev);
-                return g > 60 ? (
-                  <Row gap={4}>
-                    <Text style={{ fontSize: 13 }}>{fmtPct(g, 1)}</Text>
-                    <Pill label="check cost" tone={colors.amber} />
-                  </Row>
-                ) : (
-                  fmtPct(g, 1)
-                );
+                return g > 60 ? `${fmtPct(g, 1)} · check cost` : fmtPct(g, 1);
               },
+              tone: (r) => (pct(r.yRev - r.yCost, r.yRev) > 60 ? colors.amber : undefined),
             },
             { h: 'Budget GP %', w: 100, right: true, v: (r) => (r.b?.budget_gp_pct != null ? fmtPct(Number(r.b.budget_gp_pct), 1) : '—') },
           ]}
