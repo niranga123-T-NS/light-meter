@@ -1808,5 +1808,26 @@ do $$ begin
                  and recipient_id = (select id from u where role = 'asm_infra')), 'sales person reminded';
 end $$;
 
+
+-- Weekly plans: only SM Projects approves; GM / DGM do not see them in Approvals
+insert into public.visit_plans (id, sales_person_id, week_start, status, submitted_at)
+values ('00000000-0000-0000-0000-0000000f1a01', (select id from u where role = 'asm_infra'),
+        (date_trunc('week', current_date) + interval '14 days')::date, 'submitted', now());
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ begin
+  assert not exists (select 1 from public.my_pending_approvals() where source = 'visit_plan'), 'GM / DGM do not get weekly plans';
+  begin
+    perform public.decide_visit_plan('00000000-0000-0000-0000-0000000f1a01', 'approved', null);
+    assert false, 'GM cannot approve';
+  exception when others then assert sqlerrm = 'Only SM Projects approves weekly plans', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.my_pending_approvals() where source = 'visit_plan'), 'SM Projects gets the plan';
+  perform public.decide_visit_plan('00000000-0000-0000-0000-0000000f1a01', 'approved', null);
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

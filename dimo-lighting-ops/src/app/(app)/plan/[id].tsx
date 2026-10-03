@@ -51,6 +51,8 @@ export default function PlanDetail() {
   const mine = plan.sales_person_id === me.id;
   const editable = mine && ['draft', 'returned', 'approved'].includes(plan.status);
   const manager = me.role === 'sm_projects' || me.role === 'gm';
+  // Only SM Projects approves or returns weekly plans
+  const approver = me.role === 'sm_projects';
 
   const lineAction = async (l: PlanLine, action: 'rescheduled' | 'cancelled' | 'missed' | 'delete') => {
     if (action === 'delete') {
@@ -121,7 +123,7 @@ export default function PlanDetail() {
             />
           </Row>
         ) : null}
-        {manager && plan.status === 'submitted' ? (
+        {approver && plan.status === 'submitted' ? (
           <Row wrap gap={8} style={{ marginTop: 8 }}>
             <Button title="Approve" onPress={() => dialog.run(async () => { await rpc('decide_visit_plan', { p_plan: plan.id, p_decision: 'approved' }); await reload(); }, 'Approved')} />
             <Button
@@ -219,7 +221,7 @@ export default function PlanDetail() {
                         {mine && l.status === 'planned' && plan.status === 'approved' ? (
                           <Button small title="Check in" onPress={() => router.push(`/visits/new?planLine=${l.id}`)} />
                         ) : null}
-                        {manager && plan.status === 'submitted' ? (
+                        {approver && plan.status === 'submitted' ? (
                           <Button
                             small
                             variant="ghost"
