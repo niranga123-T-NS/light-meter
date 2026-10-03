@@ -1829,5 +1829,22 @@ do $$ begin
 end $$;
 reset role;
 
+
+-- Unlinked project codes: invoicing on a WBS with no secured project is listed for Operations; sales cannot call it
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ begin
+  assert (select invoiced from public.unlinked_wbs(app.fy_of(current_date)) where wbs = 'LS-000999') = 5000000, 'unlinked code listed';
+  assert not exists (select 1 from public.unlinked_wbs(app.fy_of(current_date)) where wbs = 'LS-000500'), 'linked code not listed';
+end $$;
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  begin
+    perform * from public.unlinked_wbs(app.fy_of(current_date));
+    assert false, 'sales cannot see it';
+  exception when others then assert sqlerrm = 'Not available for your role', sqlerrm; end;
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
