@@ -1617,5 +1617,196 @@ do $$ begin
   assert (select count(*) from public.manufacturer_claim_log where rma_id = current_setting('test.rma2')::uuid) >= 4, 'history';
 end $$;
 
+
+-- Finance: secured projects from Won, budget list, invoice schedule, OR upload, date moves, targets --------------------------
+do $$ declare sid uuid;
+begin
+  select id into sid from public.secured_projects where project_id = '00000000-0000-0000-0000-00000000b001';
+  assert sid is not null, 'won project joins the secured list';
+  assert (select order_value from public.secured_projects where id = sid) = 62000000, 'order value from the won inquiry';
+  assert (select sales_person_id from public.secured_projects where id = sid) = (select id from u where role = 'asm_building'), 'sales person = owner';
+  assert (select schedule_status from public.secured_projects where id = sid) = 'missing', 'schedule missing';
+  assert exists (select 1 from public.notifications where kind = 'secured_new' and entity_id = sid
+                 and recipient_id = (select id from u where role = 'sm_projects')), 'SM Projects told about the win';
+  assert exists (select 1 from public.notifications where kind = 'secured_schedule' and entity_id = sid
+                 and recipient_id = (select id from u where role = 'asm_building')), 'sales asked for the schedule';
+  perform set_config('test.sec', sid::text, false);
+end $$;
+
+-- Budget list: Operations uploads; a bad business line blocks the save
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare y int := app.fy_of(current_date); res jsonb;
+begin
+  res := public.check_budget_list(y, jsonb_build_array(
+    jsonb_build_object('row_no', 2, 'business_line', 'Building Lighting – LMS', 'project_name', 'ABC Hotels – Beach Resort – Galle', 'customer', 'ABC Hotels PLC',
+      'sales_person', 'asm building', 'budget_value', '62000000', 'budget_gp_pct', '20', 'order_month', current_date::text,
+      'invoices', jsonb_build_array(jsonb_build_object('month', current_date::text, 'amount', '40000000'))),
+    jsonb_build_object('row_no', 3, 'business_line', 'Street lights', 'project_name', 'Airport apron', 'sales_person', 'Nobody', 'budget_value', 'x')));
+  assert jsonb_array_length(res -> 0 -> 'errors') = 0, 'good row';
+  assert (res -> 0 ->> 'project_id') = '00000000-0000-0000-0000-00000000b001', 'matched to the project';
+  assert jsonb_array_length(res -> 1 -> 'errors') = 3, 'bad line, unknown person, bad value: ' || (res -> 1 -> 'errors')::text;
+  begin
+    perform public.save_budget_list(y, jsonb_build_array(jsonb_build_object('row_no', 3, 'business_line', 'x', 'project_name', 'y', 'sales_person', 'z', 'budget_value', '1')));
+    assert false, 'errors block the save';
+  exception when others then assert sqlerrm like 'Some rows have errors%', sqlerrm; end;
+  assert public.save_budget_list(y, jsonb_build_array(
+    jsonb_build_object('row_no', 2, 'business_line', 'LMS', 'project_name', 'ABC Hotels – Beach Resort – Galle', 'customer', 'ABC Hotels PLC',
+      'sales_person', 'Asm Building', 'budget_value', '62000000', 'order_month', current_date::text,
+      'invoices', jsonb_build_array(jsonb_build_object('month', current_date::text, 'amount', '40000000'))),
+    jsonb_build_object('row_no', 3, 'business_line', 'Infrastructure', 'project_name', 'Airport apron lighting', 'sales_person', 'Asm Infra',
+      'budget_value', '55000000', 'order_month', current_date::text, 'wbs', 'LS-000170',
+      'invoices', jsonb_build_array(jsonb_build_object('month', current_date::text, 'amount', '55000000'))))) = 2, 'budget saved';
+  assert (select budget_id from public.secured_projects where id = current_setting('test.sec')::uuid) is not null, 'won project linked to its budget line';
+end $$;
+reset role;
+
+-- Sales enters the schedule: advance + delivery this month, retention next year; another sales person cannot
+select pg_temp.act_as('asm_infra'); set role authenticated;
+do $$ begin
+  assert not exists (select 1 from public.secured_projects where id = current_setting('test.sec')::uuid), 'other sales person cannot see it';
+  begin
+    perform public.save_invoice_schedule(current_setting('test.sec')::uuid, '{}', '[]', false);
+    assert false, 'other sales person cannot edit';
+  exception when others then assert sqlerrm like 'Only the sales person%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ declare y int := app.fy_of(current_date);
+begin
+  begin
+    perform public.save_invoice_schedule(current_setting('test.sec')::uuid, '{"business_line": "lms"}',
+      jsonb_build_array(jsonb_build_object('kind', 'advance', 'amount', '10000000', 'month', current_date::text)), true);
+    assert false, 'schedule must equal the order value';
+  exception when others then assert sqlerrm like 'The invoices add up to%', sqlerrm; end;
+  perform public.save_invoice_schedule(current_setting('test.sec')::uuid, '{"business_line": "lms"}', jsonb_build_array(
+    jsonb_build_object('kind', 'advance', 'description', 'Advance 20%', 'amount', '12400000', 'month', current_date::text),
+    jsonb_build_object('kind', 'delivery', 'description', 'Delivery 60%', 'amount', '37200000', 'month', current_date::text),
+    jsonb_build_object('kind', 'retention', 'description', 'Retention 20%', 'amount', '12400000', 'month', (app.fy_end(y) + 1)::text)), true);
+  assert (select schedule_status from public.secured_projects where id = current_setting('test.sec')::uuid) = 'review', 'sent for review';
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'schedule_review' and recipient_id = (select id from u where role = 'sm_projects')), 'SM Projects asked to review';
+end $$;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+select public.review_invoice_schedule(current_setting('test.sec')::uuid, true, 'OK');
+reset role;
+-- Operations adds the WBS once SAP creates it
+select pg_temp.act_as('operations_exec'); set role authenticated;
+select public.set_secured_details(current_setting('test.sec')::uuid, '{"wbs": "LS-000500"}');
+-- Monthly OR file: P&L lines and invoicing by WBS (sub-codes already rolled up by the app)
+select public.save_or_upload(current_date, 'Draft_OR.xlsx',
+  '[{"seq":1,"section":"pnl","label":"Net Turnover","m_act":"77185779","m_bud":"537674381","c_act":"192017248","c_bud":"638215765","fy_bp":"2828320495","ly_cum":"204448057"},
+    {"seq":2,"section":"pnl","label":"Net Profit","m_act":"-8646210","m_bud":"39518116","c_act":"-95303797","c_bud":"-38698544","fy_bp":"210493422","ly_cum":"40266140"}]',
+  '[{"wbs":"LS-000500","revenue":"20000000","cost":"15000000"},{"wbs":"LS-000999","revenue":"5000000","cost":"1000000"}]');
+reset role;
+do $$ begin
+  assert (select invoiced from public.invoice_line_status where secured_id = current_setting('test.sec')::uuid and kind = 'advance') = 12400000, 'advance fully invoiced';
+  assert (select invoiced from public.invoice_line_status where secured_id = current_setting('test.sec')::uuid and kind = 'delivery') = 7600000, 'delivery part invoiced';
+  assert exists (select 1 from public.notifications where kind = 'invoice_slipped' and title like 'Invoice part billed%'
+                 and recipient_id = (select id from u where role = 'asm_building')), 'part-billed delivery alerted';
+  assert (select net_profit from public.or_uploads where month = app.month_of(current_date)) = -8646210, 'net profit stored';
+end $$;
+-- P&L: SM Estimation sees it; Operations and sales do not
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+do $$ begin assert (select count(*) from public.pnl_lines) = 2, 'SM Estimation sees the P&L'; end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ begin assert (select count(*) from public.pnl_lines) = 0, 'Operations does not see the P&L lines'; end $$;
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin assert (select count(*) from public.pnl_lines) = 0, 'sales do not see the P&L'; end $$;
+-- Moving the delivery invoice (due this month) waits for SM Projects
+do $$ declare lid uuid; res text;
+begin
+  select id into lid from public.invoice_lines where secured_id = current_setting('test.sec')::uuid and kind = 'delivery';
+  begin
+    perform public.move_invoice_line(lid, (current_date + 31), '', null);
+    assert false, 'reason required';
+  exception when others then assert sqlerrm = 'Choose the reason', sqlerrm; end;
+  res := public.move_invoice_line(lid, (current_date + 31), 'Site not ready', 'Client delayed access');
+  assert res = 'pending', 'needs SM Projects';
+  assert (select forecast_month from public.invoice_lines where id = lid) = app.month_of(current_date), 'not moved yet';
+  perform set_config('test.line', lid::text, false);
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+select public.decide_invoice_move((select id from public.invoice_line_changes where line_id = current_setting('test.line')::uuid and status = 'pending'), true, null);
+reset role;
+do $$ begin
+  assert (select forecast_month from public.invoice_lines where id = current_setting('test.line')::uuid) = app.month_of(current_date + 31), 'moved after approval';
+  assert (select original_month from public.invoice_lines where id = current_setting('test.line')::uuid) = app.month_of(current_date), 'original month kept';
+  assert (select moves from public.invoice_lines where id = current_setting('test.line')::uuid) = 1, 'move counted';
+end $$;
+
+-- Opening secured list: order value must equal billed before + invoices still to do
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare res jsonb;
+begin
+  res := public.check_opening_list(jsonb_build_array(
+    jsonb_build_object('row_no', 2, 'project_name', 'Bank HQ lighting controls', 'customer', 'XYZ Bank', 'business_line', 'LMS', 'sales_person', 'Asm Building',
+      'wbs', 'LS-000090-01', 'order_value', '64000000', 'won_on', '2025-09-01', 'billed_before', '34100000',
+      'invoices', jsonb_build_array(jsonb_build_object('month', current_date::text, 'amount', '29900000'))),
+    jsonb_build_object('row_no', 3, 'project_name', 'Mall', 'business_line', 'Indoor', 'sales_person', 'Asm Building', 'order_value', '10', 'won_on', '2025-01-01',
+      'invoices', jsonb_build_array(jsonb_build_object('month', current_date::text, 'amount', '5')))));
+  assert jsonb_array_length(res -> 0 -> 'errors') = 0, 'opening row ok: ' || (res -> 0 -> 'errors')::text;
+  assert (res -> 1 -> 'errors' ->> 0) like 'Invoiced before%', 'totals must agree';
+  assert public.save_opening_list(jsonb_build_array(res -> 0 || jsonb_build_object('project_name', 'Bank HQ lighting controls', 'customer', 'XYZ Bank',
+    'business_line', 'LMS', 'sales_person', 'Asm Building', 'wbs', 'LS-000090-01', 'order_value', '64000000', 'won_on', '2025-09-01',
+    'billed_before', '34100000', 'invoices', jsonb_build_array(jsonb_build_object('month', current_date::text, 'amount', '29900000'))))) = 1, 'opening saved';
+end $$;
+reset role;
+do $$ begin
+  assert (select schedule_status from public.secured_projects where wbs = 'LS-000090') = 'approved', 'opening rows need no review';
+  assert (select source from public.secured_projects where wbs = 'LS-000090') = 'opening', 'source';
+end $$;
+
+-- Targets: SM Projects fills from the budget list, submits; GM approves; sales see only their own
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ declare y int := app.fy_of(current_date);
+begin
+  assert public.fill_targets_from_budget(y) > 0, 'targets filled';
+  assert (select sum(invoice_target) from public.sales_targets where fy = app.fy_of(current_date)
+           and sales_person_id = (select id from u where role = 'asm_infra')) = 55000000, 'invoicing target from the budget';
+  assert (select sum(secured_target) from public.sales_targets where fy = app.fy_of(current_date)
+           and sales_person_id = (select id from u where role = 'asm_building')) = 40000000, 'secured target = this-year value';
+  perform public.submit_targets(y);
+  begin
+    perform public.save_targets(y, '[]');
+    assert false, 'locked after submit';
+  exception when others then assert sqlerrm like 'Targets are submitted%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+select public.decide_targets(app.fy_of(current_date), true, null);
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ declare perf jsonb := public.finance_performance(app.fy_of(current_date)); me jsonb;
+begin
+  assert (select count(distinct sales_person_id) from public.sales_targets) = 1, 'sales see only their own targets';
+  assert jsonb_array_length(perf -> 'people') = 1, 'performance: only me';
+  me := perf -> 'people' -> 0;
+  assert (select sum((m ->> 'secured')::numeric) from jsonb_array_elements(me -> 'months') m) = 49600000, 'secured credit = this-year part: ' || (me -> 'months')::text;
+  assert (select sum((m ->> 'invoiced')::numeric) from jsonb_array_elements(me -> 'months') m) = 20000000, 'invoiced from the OR file';
+  assert (me ->> 'to_bill_fy')::numeric = 29600000 + 29900000, 'still to bill this year: ' || (me ->> 'to_bill_fy');
+  assert perf -> 'unlinked_invoiced' = 'null'::jsonb, 'sales do not see unlinked totals';
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'targets' and title = 'Your sales target is set'
+                 and recipient_id = (select id from u where role = 'asm_building')), 'sales told';
+  assert (public.finance_performance(app.fy_of(current_date)) is not null), 'runs';
+end $$;
+
+-- Reminder: won 5+ working days ago with no schedule
+insert into public.secured_projects (code, project_name, sales_person_id, won_on, created_at)
+values ('SEC-T-1', 'Old win', (select id from u where role = 'asm_infra'), current_date - 20, now() - interval '20 days');
+select public.finance_tick(date_trunc('day', now()) + interval '10 hours');
+do $$ begin
+  assert (select schedule_alerted from public.secured_projects where code = 'SEC-T-1'), 'schedule missing alerted';
+  assert exists (select 1 from public.notifications where kind = 'secured_schedule' and title = 'Invoice schedule missing'
+                 and recipient_id = (select id from u where role = 'asm_infra')), 'sales person reminded';
+end $$;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
