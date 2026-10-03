@@ -1,13 +1,16 @@
 import { router, Stack } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import { BarChart, CHART, DeviationBars, LineChart } from '@/components/charts';
 import { DataTable } from '@/components/DataTable';
 import { Button, Card, colors, Empty, ErrorBanner, Grid, Loading, Muted, Notice, Pill, Progress, Row, Screen, Section, Select } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import {
   findLine,
   fmtMonth,
+  fmtMonthShort,
   fmtPct,
+  fyLabel,
   isFinanceDesk,
   isIncomeLine,
   mn,
@@ -24,6 +27,8 @@ import { useLoad, usePeople } from '@/lib/hooks';
 import { supabase } from '@/lib/supabase';
 
 type Col = { k: 'm_act' | 'm_bud' | 'c_act' | 'c_bud' | 'var' | 'ly_cum' | 'fy_bp'; h: string };
+const TREND_LABELS = ['Total Turnover', 'Gross Proceeds from Sales', 'Gross Profit', 'Operating Profit 01', 'Net Profit'];
+
 const COLS: Col[] = [
   { k: 'm_act', h: 'Month act' },
   { k: 'm_bud', h: 'Month bud' },
@@ -63,19 +68,22 @@ export default function PnlScreen() {
     if (e) throw new Error(e.message);
     const uploads = (ups ?? []) as OrUpload[];
     const u = uploads.find((x) => x.id === uploadId) ?? uploads[0];
-    if (!u) return { uploads, upload: null, lines: [] as PnlLine[], wbs: [] as WbsActual[], wbsYtd: [] as WbsActual[], secured: [] as SecuredProject[], budget: [] as BudgetProject[] };
+    if (!u) return { uploads, upload: null, lines: [] as PnlLine[], trend: [] as PnlLine[], wbs: [] as WbsActual[], wbsYtd: [] as WbsActual[], secured: [] as SecuredProject[], budget: [] as BudgetProject[] };
     const fyUploads = uploads.filter((x) => x.fy === u.fy && x.month <= u.month).map((x) => x.id);
-    const [l, w, s, b] = await Promise.all([
+    const [l, w, s, b, t] = await Promise.all([
       supabase.from('pnl_lines').select('*').eq('upload_id', u.id).order('seq'),
       supabase.from('wbs_actuals').select('*').in('upload_id', fyUploads),
       supabase.from('secured_projects').select('*'),
       supabase.from('budget_projects').select('*').eq('fy', u.fy),
+      // Headline lines of every month loaded this year, for the trend charts
+      supabase.from('pnl_lines').select('*').in('upload_id', fyUploads).eq('section', 'pnl').in('label', TREND_LABELS),
     ]);
     const all = (w.data ?? []) as WbsActual[];
     return {
       uploads,
       upload: u,
       lines: (l.data ?? []) as PnlLine[],
+      trend: (t.data ?? []) as PnlLine[],
       wbs: all.filter((x) => x.upload_id === u.id),
       wbsYtd: all,
       secured: (s.data ?? []) as SecuredProject[],
@@ -112,9 +120,28 @@ export default function PnlScreen() {
   const np = L('Net Profit');
   const n = (v: number | null | undefined) => Number(v ?? 0);
   const groups = pnlGroups(lines);
+  const trendMonths = [...new Set(data.trend.map((t) => data.uploads.find((u) => u.id === t.upload_id)?.month).filter(Boolean) as string[])].sort();
+  const T = (m: string, k: 'turn' | 'gp' | 'np') => {
+    const up = data.uploads.find((u) => u.month === m)?.id;
+    const rows = data.trend.filter((t) => t.upload_id === up);
+    const by = (l: string) => rows.find((r) => r.label.toLowerCase() === l.toLowerCase());
+    return k === 'turn' ? by('Total Turnover') ?? by('Gross Proceeds from Sales') : k === 'gp' ? by('Gross Profit') : by('Net Profit');
+  };
+  const mnv = (v: number | null | undefined) => (v == null ? null : Number(v) / 1_000_000);
+  const gpPct = (g: number | null | undefined, t: number | null | undefined) => (g == null || !t ? null : (Number(g) / Number(t)) * 100);
   const value = (l: PnlLine, k: Col['k']) => (k === 'var' ? n(l.c_act) - n(l.c_bud) : l[k]);
   // Positive variance = better for profit
   const impact = (l: PnlLine) => (isIncomeLine(l.label) ? 1 : -1) * (n(l.c_act) - n(l.c_bud));
+  const deviations = groups
+    // Turnover and cost of sales move together, so gross profit stands for both
+    .filter((g) => g.detail.length && !/turnover|proceeds|profit|cost of sales/i.test(g.total.label))
+    .map((g) => ({ label: g.total.label, value: impact(g.total) }))
+    .concat(gp ? [{ label: 'Gross profit', value: impact(gp) }] : [])
+    .filter((x) => Math.abs(x.value) >= 100_000)
+    .sort((a, b) => a.value - b.value)
+    .slice(0, 10);
+  // Row highlight: more than 10% and 0.5 Mn worse than the YTD budget
+  const flagged = (l: PnlLine) => impact(l) < -500_000 && Math.abs(impact(l)) > 0.1 * Math.abs(n(l.c_bud) || n(l.c_act));
   const watch = lines
     .filter((l) => l.section === 'pnl' && l.rank)
     .map((l) => ({ l, impact: impact(l) }))
@@ -179,6 +206,78 @@ export default function PnlScreen() {
         {tile('Net profit · YTD', n(np?.c_act), n(np?.c_bud), `Budget ${mn(np?.c_bud)} · last yr ${mn(np?.ly_cum)} · month ${mn(np?.m_act)}`, true)}
       </Grid>
 
+      <Section title={`Trend · ${fyLabel(upload.fy)}`}>
+        <Grid min={430}>
+          <Card>
+            <Text style={chartTitle}>Turnover by month – actual vs budget (LKR Mn)</Text>
+            <BarChart
+              categories={trendMonths.map(fmtMonthShort)}
+              series={[
+                { name: 'Budget', color: CHART.budget, fill: CHART.budgetFill, values: trendMonths.map((m) => mnv(T(m, 'turn')?.m_bud)) },
+                { name: 'Actual', color: CHART.actual, values: trendMonths.map((m) => mnv(T(m, 'turn')?.m_act)) },
+              ]}
+              fmt={(v) => `${v.toFixed(1)} Mn`}
+              fmtAxis={(v) => v.toFixed(0)}
+              flags={(i) => (n(T(trendMonths[i], 'turn')?.m_act) < 0.9 * n(T(trendMonths[i], 'turn')?.m_bud) ? 'bad' : undefined)}
+              note={trendMonths.length < 2 ? 'Only one month loaded – upload the earlier OR files of the year to see the trend.' : '▼ = month below 90% of budget'}
+            />
+          </Card>
+          <Card>
+            <Text style={chartTitle}>Turnover year to date – actual, budget and last year (LKR Mn)</Text>
+            <LineChart
+              categories={trendMonths.map(fmtMonthShort)}
+              series={[
+                { name: 'Budget', color: CHART.budget, dashed: true, values: trendMonths.map((m) => mnv(T(m, 'turn')?.c_bud)) },
+                { name: 'Last year', color: CHART.second, values: trendMonths.map((m) => mnv(T(m, 'turn')?.ly_cum)) },
+                { name: 'Actual', color: CHART.actual, values: trendMonths.map((m) => mnv(T(m, 'turn')?.c_act)) },
+              ]}
+              fmt={(v) => `${v.toFixed(1)} Mn`}
+              fmtAxis={(v) => v.toFixed(0)}
+              flags={(i) => (n(T(trendMonths[i], 'turn')?.c_act) < 0.9 * n(T(trendMonths[i], 'turn')?.c_bud) ? 'bad' : undefined)}
+              note={`FY plan ${mn(turnover?.fy_bp)} Mn · ▼ = year to date below 90% of budget`}
+            />
+          </Card>
+          <Card>
+            <Text style={chartTitle}>Gross profit % by month – actual vs budget</Text>
+            <LineChart
+              categories={trendMonths.map(fmtMonthShort)}
+              series={[
+                { name: 'Budget', color: CHART.budget, dashed: true, values: trendMonths.map((m) => gpPct(T(m, 'gp')?.m_bud, T(m, 'turn')?.m_bud)) },
+                { name: 'Actual', color: CHART.actual, values: trendMonths.map((m) => gpPct(T(m, 'gp')?.m_act, T(m, 'turn')?.m_act)) },
+              ]}
+              fmt={(v) => `${v.toFixed(1)}%`}
+              fmtAxis={(v) => `${v.toFixed(0)}%`}
+              flags={(i) => {
+                const a = gpPct(T(trendMonths[i], 'gp')?.m_act, T(trendMonths[i], 'turn')?.m_act);
+                const b = gpPct(T(trendMonths[i], 'gp')?.m_bud, T(trendMonths[i], 'turn')?.m_bud);
+                return a != null && b != null && a < b - 2 ? 'bad' : undefined;
+              }}
+              note="▼ = more than 2 points below the budgeted GP %"
+            />
+          </Card>
+          <Card>
+            <Text style={chartTitle}>Net profit year to date – actual vs budget (LKR Mn)</Text>
+            <LineChart
+              categories={trendMonths.map(fmtMonthShort)}
+              series={[
+                { name: 'Budget', color: CHART.budget, dashed: true, values: trendMonths.map((m) => mnv(T(m, 'np')?.c_bud)) },
+                { name: 'Last year', color: CHART.second, values: trendMonths.map((m) => mnv(T(m, 'np')?.ly_cum)) },
+                { name: 'Actual', color: CHART.actual, values: trendMonths.map((m) => mnv(T(m, 'np')?.c_act)) },
+              ]}
+              fmt={(v) => `${v.toFixed(1)} Mn`}
+              fmtAxis={(v) => v.toFixed(0)}
+              flags={(i) => (n(T(trendMonths[i], 'np')?.c_act) < n(T(trendMonths[i], 'np')?.c_bud) ? 'bad' : undefined)}
+              note="▼ = below budget"
+            />
+          </Card>
+        </Grid>
+        <Card>
+          <Text style={chartTitle}>Where the year to date differs from budget (LKR Mn, effect on profit)</Text>
+          <DeviationBars rows={deviations} fmt={(v) => mn(v)} />
+          <Muted>Each P&L heading’s difference from budget, as its effect on profit. Highlighted rows in the table below are more than 10% and 0.5 Mn worse than budget.</Muted>
+        </Card>
+      </Section>
+
       <Section title="P&L (LKR Mn) – tap a line for its detail">
         <Card style={{ padding: 0, overflow: 'hidden' }}>
           <ScrollView horizontal>
@@ -194,10 +293,11 @@ export default function PnlScreen() {
               {groups.map((g) => (
                 <View key={g.total.seq}>
                   <Pressable onPress={() => setOpen((o) => ({ ...o, [g.total.seq]: !o[g.total.seq] }))}>
-                    <Row gap={0} style={{ backgroundColor: colors.soft, borderBottomWidth: 1, borderBottomColor: colors.line }}>
+                    <Row gap={0} style={{ backgroundColor: flagged(g.total) ? BAD_BG : colors.soft, borderBottomWidth: 1, borderBottomColor: colors.line, borderLeftWidth: 4, borderLeftColor: flagged(g.total) ? colors.red : 'transparent' }}>
                       <Text style={[cell, { width: 290, fontWeight: '700', color: colors.ink }]}>
                         {g.detail.length ? (open[g.total.seq] ? '▾ ' : '▸ ') : '   '}
                         {g.total.label}
+                        {flagged(g.total) ? '  ▼' : ''}
                       </Text>
                       {COLS.map((c) => {
                         const v = value(g.total, c.k);
@@ -212,8 +312,11 @@ export default function PnlScreen() {
                   </Pressable>
                   {open[g.total.seq]
                     ? g.detail.map((d) => (
-                        <Row key={d.seq} gap={0} style={{ borderBottomWidth: 1, borderBottomColor: colors.line }}>
-                          <Text style={[cell, { width: 290, paddingLeft: 24 }]}>{d.label}</Text>
+                        <Row key={d.seq} gap={0} style={{ borderBottomWidth: 1, borderBottomColor: colors.line, backgroundColor: flagged(d) ? BAD_BG : undefined, borderLeftWidth: 4, borderLeftColor: flagged(d) ? colors.red : 'transparent' }}>
+                          <Text style={[cell, { width: 290, paddingLeft: 24 }]}>
+                            {d.label}
+                            {flagged(d) ? '  ▼' : ''}
+                          </Text>
                           {COLS.map((c) => {
                             const v = value(d, c.k);
                             const bad = c.k === 'var' && impact(d) < 0;
@@ -312,5 +415,7 @@ function fmtH(v: number | null, h: { days?: boolean; count?: boolean; abs?: bool
   return mn(v);
 }
 
+const BAD_BG = '#fdecee';
+const chartTitle = { fontWeight: '700' as const, color: colors.ink, marginBottom: 6 };
 const cell = { paddingVertical: 7, paddingHorizontal: 8, fontSize: 13, color: colors.text } as const;
 const num = { textAlign: 'right' as const, fontVariant: ['tabular-nums' as const] };

@@ -1,16 +1,20 @@
 import { router, Stack } from 'expo-router';
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Text, View } from 'react-native';
+import { BarChart, CHART, LineChart } from '@/components/charts';
 import { DataTable } from '@/components/DataTable';
 import { useDialog } from '@/components/dialog';
-import { Button, colors, ErrorBanner, Grid, Loading, Muted, Pill, Row, Screen, Section, Segmented, Select, Stat } from '@/components/ui';
+import { Button, Card, colors, ErrorBanner, Grid, Loading, Muted, Pill, Row, Screen, Section, Segmented, Select, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import {
   addMonths,
   fmtMonth,
+  fyLabel,
   fmtPct,
   fyOf,
+  fyMonths,
   fyStart,
+  fmtMonthShort,
   isReviewer,
   kindLabel,
   lineColour,
@@ -87,6 +91,26 @@ export default function Invoicing() {
   const b = budgetFor(month);
   const f = forecastFor(month);
   const inv = invoicedFor(month);
+  // Year view for the charts
+  const ym = fyMonths(fy);
+  const latest = data.latest && fyOf(data.latest) === fy ? data.latest : data.latest && data.latest > ym[11] ? ym[11] : null;
+  const yBudget = ym.map((m) => budgetFor(m) / 1e6);
+  const yForecast = ym.map((m) => forecastFor(m) / 1e6);
+  const yInvoiced = ym.map((m) => (latest && m <= latest ? invoicedFor(m) / 1e6 : null));
+  const cum = (xs: (number | null)[]) => {
+    let t = 0;
+    return xs.map((x) => (x == null ? null : (t += x)));
+  };
+  const cumBudget = cum(yBudget);
+  const cumInvoiced = cum(yInvoiced);
+  // Outlook: invoiced so far + what is still to bill, in its forecast month (slipped amounts in the month after the last OR file)
+  const startIdx = latest ? ym.indexOf(latest) : -1;
+  const slipped = lines.filter((l) => (latest ? l.forecast_month <= latest : false) && Number(l.remaining) > 0.5).reduce((a, l) => a + Number(l.remaining), 0) / 1e6;
+  const addBy = ym.map((m, i) =>
+    i <= startIdx ? 0 : lines.filter((l) => l.forecast_month === m).reduce((a, l) => a + Math.max(0, Number(l.remaining)), 0) / 1e6 + (i === startIdx + 1 ? slipped : 0),
+  );
+  const base = startIdx >= 0 ? cumInvoiced[startIdx] ?? 0 : 0;
+  const outlook = ym.map((_, i) => (i < startIdx ? null : base + addBy.slice(0, i + 1).reduce((a, x) => a + x, 0)));
   const reasons = new Map<string, number>();
   data.changes
     .filter((c) => c.status !== 'rejected' && fyOf(c.from_month) === fy)
@@ -138,6 +162,39 @@ export default function Invoicing() {
         <Stat label={`Forecast (schedules) · ${fmtPct(pct(f, b))} of budget`} value={`${mn(f)} Mn`} tone={b && f < b * 0.9 ? 'amber' : undefined} />
         <Stat label={`Invoiced · ${data.latest && data.latest >= month ? 'from the OR file' : 'OR file not loaded for this month yet'}`} value={`${mn(inv)} Mn`} />
         <Stat label="Slipped – not invoiced in the planned month" value={String(tabs.slipped.length)} tone={tabs.slipped.length ? 'red' : undefined} onPress={() => setTab('slipped')} />
+      </Grid>
+
+      <Grid min={430}>
+        <Card>
+          <Text style={chartTitle}>{`Invoicing by month · ${fyLabel(fy)} (LKR Mn)`}</Text>
+          <BarChart
+            categories={ym.map(fmtMonthShort)}
+            series={[
+              { name: 'Budget', color: CHART.budget, fill: CHART.budgetFill, values: yBudget },
+              { name: 'Forecast', color: CHART.second, values: yForecast },
+              { name: 'Invoiced', color: CHART.actual, values: yInvoiced },
+            ]}
+            fmt={(v) => `${v.toFixed(1)} Mn`}
+            fmtAxis={(v) => v.toFixed(0)}
+            flags={(i) => (yInvoiced[i] != null && yInvoiced[i]! < 0.9 * yBudget[i] ? 'bad' : undefined)}
+            note="▼ = month invoiced below 90% of budget. Forecast = invoice schedules as they stand now."
+          />
+        </Card>
+        <Card>
+          <Text style={chartTitle}>Cumulative invoicing – budget, invoiced and outlook (LKR Mn)</Text>
+          <LineChart
+            categories={ym.map(fmtMonthShort)}
+            series={[
+              { name: 'Budget', color: CHART.budget, dashed: true, values: cumBudget },
+              { name: 'Outlook (schedules)', color: CHART.second, dashed: true, values: outlook },
+              { name: 'Invoiced', color: CHART.actual, values: cumInvoiced },
+            ]}
+            fmt={(v) => `${v.toFixed(1)} Mn`}
+            fmtAxis={(v) => v.toFixed(0)}
+            flags={(i) => (cumInvoiced[i] != null && cumInvoiced[i]! < 0.9 * (cumBudget[i] ?? 0) ? 'bad' : undefined)}
+            note={`Year-end: budget ${mn((cumBudget[11] ?? 0) * 1e6)} · outlook ${mn((outlook[11] ?? cumInvoiced[11] ?? 0) * 1e6)} · gap ${mn(((cumBudget[11] ?? 0) - (outlook[11] ?? cumInvoiced[11] ?? 0)) * 1e6)} Mn`}
+          />
+        </Card>
       </Grid>
 
       <Section title={`By business line · ${fmtMonth(month)} (LKR Mn)`}>
@@ -226,3 +283,5 @@ export default function Invoicing() {
     </Screen>
   );
 }
+
+const chartTitle = { fontWeight: '700' as const, color: colors.ink, marginBottom: 6 };
