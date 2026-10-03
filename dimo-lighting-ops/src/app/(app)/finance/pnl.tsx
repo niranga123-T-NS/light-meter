@@ -17,13 +17,10 @@ import {
   pct,
   pnlGroups,
   seesPnl,
-  type BudgetProject,
   type OrUpload,
   type PnlLine,
-  type SecuredProject,
-  type WbsActual,
 } from '@/lib/finance';
-import { useLoad, usePeople } from '@/lib/hooks';
+import { useLoad } from '@/lib/hooks';
 import { supabase } from '@/lib/supabase';
 
 type Col = { k: 'm_act' | 'm_bud' | 'c_act' | 'c_bud' | 'var' | 'ly_cum' | 'fy_bp'; h: string };
@@ -60,7 +57,6 @@ const HEALTH: { label: string; title: string; first?: boolean; abs?: boolean; da
 /** P&L from the monthly OR file – GM / DGM, SM Projects and SM Estimation. */
 export default function PnlScreen() {
   const me = useMe();
-  const people = usePeople();
   const [uploadId, setUploadId] = useState<string | null>(null);
   const [open, setOpen] = useState<Record<number, boolean>>({});
   const { data, error } = useLoad(async () => {
@@ -68,26 +64,18 @@ export default function PnlScreen() {
     if (e) throw new Error(e.message);
     const uploads = (ups ?? []) as OrUpload[];
     const u = uploads.find((x) => x.id === uploadId) ?? uploads[0];
-    if (!u) return { uploads, upload: null, lines: [] as PnlLine[], trend: [] as PnlLine[], wbs: [] as WbsActual[], wbsYtd: [] as WbsActual[], secured: [] as SecuredProject[], budget: [] as BudgetProject[] };
+    if (!u) return { uploads, upload: null, lines: [] as PnlLine[], trend: [] as PnlLine[] };
     const fyUploads = uploads.filter((x) => x.fy === u.fy && x.month <= u.month).map((x) => x.id);
-    const [l, w, s, b, t] = await Promise.all([
+    const [l, t] = await Promise.all([
       supabase.from('pnl_lines').select('*').eq('upload_id', u.id).order('seq'),
-      supabase.from('wbs_actuals').select('*').in('upload_id', fyUploads),
-      supabase.from('secured_projects').select('*'),
-      supabase.from('budget_projects').select('*').eq('fy', u.fy),
       // Headline lines of every month loaded this year, for the trend charts
       supabase.from('pnl_lines').select('*').in('upload_id', fyUploads).eq('section', 'pnl').in('label', TREND_LABELS),
     ]);
-    const all = (w.data ?? []) as WbsActual[];
     return {
       uploads,
       upload: u,
       lines: (l.data ?? []) as PnlLine[],
       trend: (t.data ?? []) as PnlLine[],
-      wbs: all.filter((x) => x.upload_id === u.id),
-      wbsYtd: all,
-      secured: (s.data ?? []) as SecuredProject[],
-      budget: (b.data ?? []) as BudgetProject[],
     };
   }, [uploadId]);
 
@@ -149,28 +137,6 @@ export default function PnlScreen() {
     .sort((a, b) => a.impact - b.impact)
     .slice(0, 5);
 
-  // Project P&L by WBS: month and year to date
-  const nameOf = (w: string) => data.secured.find((s) => s.wbs === w) ?? null;
-  const budgetOf = (w: string, s: SecuredProject | null) => data.budget.find((b) => b.wbs === w || (s?.budget_id && b.id === s.budget_id)) ?? null;
-  const ytdOf = (w: string) => data.wbsYtd.filter((x) => x.wbs === w);
-  const projRows = [...new Set(data.wbsYtd.map((x) => x.wbs))]
-    .map((w) => {
-      const m = data.wbs.find((x) => x.wbs === w);
-      const y = ytdOf(w);
-      const s = nameOf(w);
-      return {
-        wbs: w,
-        s,
-        b: budgetOf(w, s),
-        mRev: n(m?.revenue),
-        mCost: n(m?.cost),
-        yRev: y.reduce((a, x) => a + n(x.revenue), 0),
-        yCost: y.reduce((a, x) => a + n(x.cost), 0),
-      };
-    })
-    .filter((r) => r.yRev !== 0)
-    .sort((a, b) => b.mRev - a.mRev || b.yRev - a.yRev);
-  const costOnly = [...new Set(data.wbsYtd.map((x) => x.wbs))].filter((w) => !projRows.some((r) => r.wbs === w)).length;
 
   const tile = (title: string, act: number, bud: number, sub: string, profit = false) => {
     const p = pct(act, bud);
@@ -371,39 +337,6 @@ export default function PnlScreen() {
         </Section>
       </Grid>
 
-      <Section title={`Project P&L · invoicing and cost booked on the WBS`}>
-        <DataTable
-          rows={projRows}
-          keyOf={(r) => r.wbs}
-          onPress={(r) => (r.s ? router.push(`/finance/secured/${r.s.id}`) : undefined)}
-          emptyTitle="No invoicing on WBS codes"
-          columns={[
-            { h: 'WBS', w: 100, v: (r) => r.wbs, bold: true },
-            { h: 'Project', w: 230, v: (r) => (r.s ? r.s.project_name : <Pill label="Not linked" />) },
-            { h: 'Sales person', w: 150, v: (r) => (r.s ? people[r.s.sales_person_id ?? '']?.full_name ?? '—' : '—') },
-            { h: 'Invoiced (month)', w: 120, right: true, v: (r) => mn(r.mRev, 2) },
-            { h: 'Cost (month)', w: 110, right: true, v: (r) => mn(r.mCost, 2) },
-            { h: 'Invoiced YTD', w: 110, right: true, v: (r) => mn(r.yRev, 2) },
-            { h: 'Cost YTD', w: 100, right: true, v: (r) => mn(r.yCost, 2) },
-            { h: 'GP YTD', w: 100, right: true, v: (r) => mn(r.yRev - r.yCost, 2), tone: (r) => (r.yRev - r.yCost < 0 ? colors.red : undefined) },
-            {
-              h: 'GP %',
-              w: 130,
-              right: true,
-              v: (r) => {
-                const g = pct(r.yRev - r.yCost, r.yRev);
-                return g > 60 ? `${fmtPct(g, 1)} · check cost` : fmtPct(g, 1);
-              },
-              tone: (r) => (pct(r.yRev - r.yCost, r.yRev) > 60 ? colors.amber : undefined),
-            },
-            { h: 'Budget GP %', w: 100, right: true, v: (r) => (r.b?.budget_gp_pct != null ? fmtPct(Number(r.b.budget_gp_pct), 1) : '—') },
-          ]}
-        />
-        <Muted>
-          Cost = everything booked on the WBS (WIP / RA cost, materials, SSCL). A very high GP % usually means cost is not booked yet. “Not linked” = the WBS is not on any
-          secured project – Operations adds it on the project.{costOnly ? ` ${costOnly} WBS codes have cost but no invoicing this year.` : ''}
-        </Muted>
-      </Section>
     </Screen>
   );
 }
