@@ -1651,12 +1651,16 @@ begin
   exception when others then assert sqlerrm like 'Some rows have errors%', sqlerrm; end;
   assert public.save_budget_list(y, jsonb_build_array(
     jsonb_build_object('row_no', 2, 'business_line', 'LMS', 'project_name', 'ABC Hotels – Beach Resort – Galle', 'customer', 'ABC Hotels PLC',
-      'sales_person', 'Asm Building', 'budget_value', '62000000', 'order_month', current_date::text,
+      'sales_person', 'Asm Building', 'budget_value', '62000000', 'budget_gp_pct', '13640000', 'order_month', current_date::text,
       'invoices', jsonb_build_array(jsonb_build_object('month', current_date::text, 'amount', '40000000'))),
     jsonb_build_object('row_no', 3, 'business_line', 'Infrastructure', 'project_name', 'Airport apron lighting', 'sales_person', 'Asm Infra',
-      'budget_value', '55000000', 'order_month', current_date::text, 'wbs', 'LS-000170',
+      'budget_value', '55000000', 'budget_gp_pct', '0.18', 'order_month', current_date::text, 'wbs', 'LS-000170',
       'invoices', jsonb_build_array(jsonb_build_object('month', current_date::text, 'amount', '55000000'))))) = 2, 'budget saved';
   assert (select budget_id from public.secured_projects where id = current_setting('test.sec')::uuid) is not null, 'won project linked to its budget line';
+  assert (select budget_gp_pct from public.budget_projects where wbs is null and fy = y) = 22, 'GP amount saved as a %';
+  assert (select budget_gp_pct from public.budget_projects where wbs = 'LS-000170') = 18, 'GP from a %-formatted cell';
+  assert (public.check_budget_list(y, jsonb_build_array(jsonb_build_object('row_no', 2, 'business_line', 'LMS', 'project_name', 'x',
+    'sales_person', 'Asm Building', 'budget_value', '1000', 'budget_gp_pct', '5000000'))) -> 0 -> 'errors') ->> 0 like 'Budget GP%', 'impossible GP is a row error';
 end $$;
 reset role;
 
