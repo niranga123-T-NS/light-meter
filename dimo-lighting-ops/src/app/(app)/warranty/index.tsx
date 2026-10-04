@@ -1,4 +1,5 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { MyDayMeetings } from '@/components/WeekMeetings';
 import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
@@ -27,7 +28,7 @@ import {
 type Tab = 'warranties' | 'claims' | 'reports' | 'brands' | 'rma' | 'mfr';
 
 /** Warranty tab: completion records / warranties, claims, issues reported from visits and the brand view. */
-export default function WarrantyHome() {
+export default function WarrantyHome({ myDay }: { myDay?: boolean } = {}) {
   const me = useMe();
   const people = usePeople();
   const dialog = useDialog();
@@ -137,6 +138,7 @@ export default function WarrantyHome() {
     <Screen refreshing={loading} onRefresh={reload} maxWidth={1300}>
       <Stack.Screen options={{ title: 'Warranty' }} />
       <ErrorBanner message={error} />
+      {myDay ? <MyDayMeetings /> : null}
       <Row wrap gap={8} style={{ justifyContent: 'flex-end' }}>
         {sales ? <Button title="Report warranty issue" onPress={() => router.push('/warranty/report')} /> : null}
         {canRaiseClaim(me.role) ? <Button variant="secondary" title={desk ? '+ Log claim' : '+ Raise warranty claim'} onPress={() => router.push('/warranty/claims/new')} /> : null}

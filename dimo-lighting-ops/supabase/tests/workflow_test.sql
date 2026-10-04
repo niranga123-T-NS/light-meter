@@ -2368,7 +2368,7 @@ end $$;
 reset role;
 do $$ begin
   assert exists (select 1 from public.notifications where kind = 'meeting_action' and recipient_id = (select id from u where role = 'asm_infra')), 'owner notified of the action';
-  assert exists (select 1 from public.notifications where kind = 'meeting_action' and title = 'Sales meeting action done'
+  assert exists (select 1 from public.notifications where kind = 'meeting_action' and title = 'Meeting action done'
                  and recipient_id = (select id from u where role = 'sm_projects')), 'SM Projects told it is done';
 end $$;
 select pg_temp.act_as('gm'); set role authenticated;
@@ -2552,14 +2552,115 @@ reset role;
 do $$ begin
   assert exists (select 1 from public.notifications where title like 'Task from the sales meeting%' and requires_open
                  and recipient_id = (select id from u where role = 'lighting_designer')), 'designer popup';
-  assert exists (select 1 from public.notifications where title = 'Sales meeting action done' and recipient_id = (select id from u where role = 'design_manager')), 'manager told';
-  assert exists (select 1 from public.notifications where title = 'Sales meeting action done' and recipient_id = (select id from u where role = 'asm_building')), 'sales person told';
+  assert exists (select 1 from public.notifications where title = 'Meeting action done' and recipient_id = (select id from u where role = 'design_manager')), 'manager told';
+  assert exists (select 1 from public.notifications where title = 'Meeting action done' and recipient_id = (select id from u where role = 'asm_building')), 'sales person told';
   -- Estimation task not appointed within 24 hours → GM / DGM and SM Projects
   assert public.meeting_action_tick(now() + interval '25 hours') >= 1, 'tick';
   assert exists (select 1 from public.notifications where title like 'Not appointed – estimation task%' and recipient_id = (select id from u where role = 'gm')), 'GM told of the delay';
   assert exists (select 1 from public.notifications where title like 'Not appointed – estimation task%' and recipient_id = (select id from u where role = 'sm_projects')), 'SM Projects told of the delay';
   assert not exists (select 1 from public.notifications where title like 'Not appointed – design task%'), 'appointed task not escalated';
 end $$;
+
+-- Team meetings: Estimation (SM Estimation) and Design (Design Manager), same flow, one Meetings tab ---------------------
+do $$ declare d date := current_date + 9; begin
+  if extract(isodow from d) = 7 then d := d + 1; end if;
+  perform set_config('test.dm', d::text, false);
+end $$;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  begin perform public.invite_team_meeting('design', current_setting('test.dm')::date, '08:30', '10:00', array[(select id from u where role = 'lighting_designer')]);
+    assert false, 'only the design manager';
+  exception when others then assert sqlerrm like 'Only the Design Manager runs the design team meeting%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('design_manager'); set role authenticated;
+do $$ declare mid uuid;
+begin
+  begin perform public.invite_team_meeting('design', current_setting('test.dm')::date, '08:30', '10:00', array[(select id from u where role = 'gm')]);
+    assert false, 'no GM';
+  exception when others then assert sqlerrm like 'GM / DGM, System Admin%', sqlerrm; end;
+  mid := public.invite_team_meeting('design', current_setting('test.dm')::date, '09:00', '10:30',
+    array[(select id from u where role = 'lighting_designer'), (select id from u where role = 'lighting_engineer'), (select id from u where role = 'estimation_exec')]);
+  perform set_config('test.dmid', mid::text, false);
+  assert (select team = 'design' and starts_at = '09:00' and ends_at = '10:30' from public.sales_meetings where id = mid), 'design meeting with its time';
+  assert public.generate_team_meeting('design', current_setting('test.dm')::date) = mid, 'pack generated';
+  assert (select pack ->> 'team_kind' from public.sales_meetings where id = mid) = 'design', 'design pack';
+  assert (select jsonb_array_length(pack -> 'people') from public.sales_meetings where id = mid) = 2, 'invited designers in the pack';
+  assert (select pack -> 'team' -> 'in_hand' ? 'in_review' from public.sales_meetings where id = mid), 'jobs by stage';
+  assert not exists (select 1 from public.sales_meetings where team = 'sales' and id = mid), 'separate from the sales meeting';
+end $$;
+reset role;
+-- The designer sees the invitation and applies for leave; the Design Manager decides
+select pg_temp.act_as('lighting_designer'); set role authenticated;
+do $$ begin
+  assert (select title from public.my_meetings() where meeting_id = current_setting('test.dmid')::uuid) = 'Design team meeting', 'sees the design meeting';
+  perform public.request_meeting_leave(current_setting('test.dmid')::uuid, 'Site survey in Kandy');
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert not exists (select 1 from public.my_pending_approvals() where source = 'meeting_exception' and title like 'Design team meeting%'), 'not SM Projects''';
+  assert not exists (select 1 from public.sales_meetings where id = current_setting('test.dmid')::uuid), 'SM Projects does not see the draft';
+end $$;
+reset role;
+select pg_temp.act_as('design_manager'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.my_pending_approvals() where source = 'meeting_exception' and title like 'Design team meeting leave%'), 'leave to the Design Manager';
+  perform public.decide_meeting_exception((select id from public.meeting_exceptions where team = 'design' and status = 'pending'), true, null);
+  assert (select status from public.sales_meeting_invitees where meeting_id = current_setting('test.dmid')::uuid
+          and person_id = (select id from u where role = 'lighting_designer')) = 'excused', 'excused';
+  perform public.add_meeting_action(current_setting('test.dmid')::uuid, jsonb_build_object('owner_id', (select id from u where role = 'lighting_engineer'),
+    'sales_person_id', (select id from u where role = 'lighting_engineer'), 'action', 'Close the review comments on the airport job', 'due_date', (current_date + 12)::text));
+  perform public.publish_sales_meeting(current_setting('test.dmid')::uuid);
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where title like 'Design team meeting pack%' and recipient_id = (select id from u where role = 'gm')), 'GM told';
+  assert exists (select 1 from public.notifications where title like 'Design team meeting pack%' and recipient_id = (select id from u where role = 'sm_projects')), 'SM Projects told';
+  assert exists (select 1 from public.notifications where title = 'Action from the design team meeting' and recipient_id = (select id from u where role = 'lighting_engineer')), 'owner told';
+end $$;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin assert exists (select 1 from public.sales_meetings where id = current_setting('test.dmid')::uuid), 'SM Projects reads the published design pack'; end $$;
+reset role;
+select pg_temp.act_as('lighting_engineer'); set role authenticated;
+do $$ begin
+  assert (select count(*) from public.my_meeting_actions()) = 1, 'engineer sees the action';
+  perform public.complete_meeting_action((select id from public.my_meeting_actions()), 'All 12 comments closed');
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where title = 'Meeting action done' and recipient_id = (select id from u where role = 'design_manager')), 'host told';
+  -- Not marked by the end → absent; the excused designer stays excused
+  perform public.team_meeting_tick((current_setting('test.dm')::date + time '10:35') at time zone app.tz());
+  assert (select status from public.sales_meeting_invitees where meeting_id = current_setting('test.dmid')::uuid
+          and person_id = (select id from u where role = 'estimation_exec')) = 'absent', 'absent after the end';
+  assert (select status from public.sales_meeting_invitees where meeting_id = current_setting('test.dmid')::uuid
+          and person_id = (select id from u where role = 'lighting_designer')) = 'excused', 'still excused';
+end $$;
+-- Estimation: SM Estimation generates its pack
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+do $$ declare mid uuid;
+begin
+  mid := public.generate_team_meeting('estimation', current_setting('test.dm')::date);
+  assert (select pack ->> 'team_kind' from public.sales_meetings where id = mid) = 'estimation', 'estimation pack';
+  assert (select jsonb_array_length(pack -> 'people') from public.sales_meetings where id = mid) = 2, 'every estimator when nobody is invited';
+  assert (select pack -> 'team' ? 'waiting_design_n' from public.sales_meetings where id = mid), 'waiting on design';
+end $$;
+reset role;
+-- My Day: this week's meetings
+insert into public.sales_meetings (team, meeting_date, starts_at, ends_at, initiated_at)
+values ('estimation', (now() at time zone app.tz())::date + case when extract(isodow from (now() at time zone app.tz())::date) = 7 then -1 else 0 end, '08:00', '09:00', now())
+on conflict (team, meeting_date) do update set initiated_at = now();
+insert into public.sales_meeting_invitees (meeting_id, person_id)
+select m.id, (select id from u where role = 'estimation_exec') from public.sales_meetings m
+ where m.team = 'estimation' and m.meeting_date = (now() at time zone app.tz())::date + case when extract(isodow from (now() at time zone app.tz())::date) = 7 then -1 else 0 end
+on conflict do nothing;
+select pg_temp.act_as('estimation_exec'); set role authenticated;
+do $$ begin assert exists (select 1 from public.my_week_meetings() where team = 'estimation' and my_part = 'invitee'), 'invitee sees it this week'; end $$;
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ begin assert exists (select 1 from public.my_week_meetings() where team = 'estimation' and my_part = 'viewer'), 'GM sees the week'; end $$;
+reset role;
 
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

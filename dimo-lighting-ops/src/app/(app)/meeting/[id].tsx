@@ -5,6 +5,8 @@ import { pctTone } from '@/components/financeTones';
 import { useDialog } from '@/components/dialog';
 import { MeetingActionForm, type ActionDraft } from '@/components/MeetingActionForm';
 import { isTeamKind, kindLabel } from '@/lib/meetingActions';
+import { hhmm, type Team, TEAMS } from '@/lib/meetings';
+import { TeamPackView, type TeamPack } from '@/components/TeamPackView';
 import { captureLocation } from '@/components/VisitBits';
 import { Button, Card, colors, ErrorBanner, Grid, KeyValue, Loading, Muted, Notice, Pill, Progress, Row, Screen, Section, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
@@ -43,6 +45,9 @@ type Pack = {
 };
 type Meeting = {
   id: string;
+  team: Team;
+  starts_at: string;
+  ends_at: string;
   meeting_date: string;
   status: 'draft' | 'published';
   pack: Pack | null;
@@ -88,7 +93,8 @@ const bar = (label: string, done: number, target: number, value: number) => (
   </View>
 );
 
-/** One meeting pack: team summary, a part per sales person with notes and actions. SM Projects edits until published; GM / DGM read. */
+/** One meeting pack (sales, estimation or design): team summary, a part per person with notes and actions. The host edits until
+ * published; GM / DGM (and SM Projects for Estimation / Design) read. */
 export default function MeetingPack() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const me = useMe();
@@ -107,8 +113,10 @@ export default function MeetingPack() {
   const [adding, setAdding] = useState<string | null>(null); // sales person id, 'general', or null
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const { m } = data;
-  const smp = me.role === 'sm_projects';
-  const edit = smp && m.status === 'draft';
+  const cfg = TEAMS[m.team ?? 'sales'];
+  // The host runs the meeting: SM Projects (sales), SM Estimation, Design Manager
+  const host = me.role === cfg.hostRole;
+  const edit = host && m.status === 'draft';
   const pack = m.pack;
   const t = pack?.team ?? {};
   const pct = (a: number, b: number) => (b ? (a / b) * 100 : 0);
@@ -181,7 +189,7 @@ export default function MeetingPack() {
             {a.organizations?.name || a.new_customer ? ` · ${a.organizations?.name ?? `${a.new_customer} (new)`}` : ''}
             {a.status === 'done' && a.done_note ? ` · ${a.done_note}` : ''}
           </Text>
-          {smp ? (
+          {host ? (
             <Button small variant="ghost" title={a.status === 'done' ? 'Re-open' : 'Mark done'} onPress={() => run('set_meeting_action_done', { p_id: a.id, p_done: a.status !== 'done' }, 'Updated')} />
           ) : null}
           {edit ? <Button small variant="ghost" title="Delete" onPress={() => run('delete_meeting_action', { p_id: a.id }, 'Deleted')} /> : null}
@@ -199,10 +207,12 @@ export default function MeetingPack() {
 
   return (
     <Screen maxWidth={1100}>
-      <Stack.Screen options={{ title: `Sales meeting · ${fmtDate(m.meeting_date)}` }} />
+      <Stack.Screen options={{ title: `${cfg.label} · ${fmtDate(m.meeting_date)}` }} />
       <Card>
         <Row wrap style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-          <Text style={{ fontSize: 18, fontWeight: '700', color: colors.ink }}>Monday {fmtDate(m.meeting_date)} · 08:30 – 12:00</Text>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: colors.ink }}>
+            {`${cfg.label} · ${new Date(`${m.meeting_date}T00:00:00`).toLocaleDateString('en-GB', { weekday: 'long' })} ${fmtDate(m.meeting_date)} · ${hhmm(m.starts_at)} – ${hhmm(m.ends_at)}`}
+          </Text>
           <Pill label={m.status === 'published' ? 'Published' : 'Draft'} tone={m.status === 'published' ? colors.green : colors.amber} solid />
         </Row>
         <Muted>
@@ -214,18 +224,19 @@ export default function MeetingPack() {
             <Button
               variant="secondary"
               title="Regenerate figures"
-              onPress={() => run('generate_sales_meeting', { p_date: m.meeting_date }, 'Figures refreshed – notes and actions kept')}
+              onPress={() => run('generate_team_meeting', { p_team: m.team, p_date: m.meeting_date }, 'Figures refreshed – notes and actions kept')}
             />
             <Button
-              title="Publish to GM / DGM"
+              title={m.team === 'sales' ? 'Publish to GM / DGM' : 'Publish to GM / DGM and SM Projects'}
               onPress={async () => {
-                if (await dialog.confirm('Publish the meeting pack?', 'GM / DGM are notified and can view it. It can no longer be changed (actions can still be marked done).', { confirmLabel: 'Publish' }))
-                  await run('publish_sales_meeting', { p_id: m.id }, 'Published – GM / DGM notified');
+                const who = m.team === 'sales' ? 'GM / DGM' : 'GM / DGM and SM Projects';
+                if (await dialog.confirm('Publish the meeting pack?', `${who} are notified and can view it. It can no longer be changed; actions go to their people.`, { confirmLabel: 'Publish' }))
+                  await run('publish_sales_meeting', { p_id: m.id }, `Published – ${who} notified`);
               }}
             />
           </Row>
         ) : null}
-        {!smp ? <Muted>Read only.</Muted> : null}
+        {!host ? <Muted>Read only.</Muted> : null}
       </Card>
 
       <Section
@@ -233,7 +244,7 @@ export default function MeetingPack() {
         right={
           edit && !m.started_at ? (
             <Row gap={6}>
-              <Button small variant="secondary" title="Invitees" onPress={() => router.push({ pathname: '/meeting/invite', params: { date: m.meeting_date } })} />
+              <Button small variant="secondary" title="Invitees" onPress={() => router.push({ pathname: '/meeting/invite', params: { team: m.team, date: m.meeting_date } })} />
               {isToday ? <Button small title="Start meeting here" onPress={startMeeting} /> : null}
             </Row>
           ) : undefined
@@ -241,12 +252,12 @@ export default function MeetingPack() {
       >
         <Card>
           {m.started_at ? (
-            <Muted>{`Started ${fmtDateTime(m.started_at)} – invitees marking present more than 200 m from here need your approval.`}</Muted>
+            <Muted>{`Started ${fmtDateTime(m.started_at)} – invitees marking present more than 200 m from the venue need ${host ? 'your' : `${cfg.host}'s`} approval.`}</Muted>
           ) : (
             <Muted>
-              {isToday && smp
+              {isToday && host
                 ? 'Press “Start meeting here” at the meeting venue – its location is used for everyone’s attendance.'
-                : 'Invitees mark their attendance in Internal meetings once the meeting is started.'}
+                : 'Invitees mark their attendance in Meetings once the meeting is started.'}
             </Muted>
           )}
           {data.invitees.length ? (
@@ -260,7 +271,7 @@ export default function MeetingPack() {
                   <Pill label={ATT[x.status].label} tone={ATT[x.status].tone} />
                   {x.checkin_at ? <Muted>{`${fmtDateTime(x.checkin_at)}${x.distance_m != null ? ` · ${Math.round(x.distance_m)} m` : ''}`}</Muted> : null}
                   {x.note ? <Muted>{x.note}</Muted> : null}
-                  {smp && x.status === 'location_check' ? (
+                  {host && x.status === 'location_check' ? (
                     <Row gap={4}>
                       <Button small title="Accept present" onPress={() => decideAttendance(x, true)} />
                       <Button small variant="secondary" title="Absent" onPress={() => decideAttendance(x, false)} />
@@ -274,7 +285,35 @@ export default function MeetingPack() {
         </Card>
       </Section>
 
-      {pack ? (
+      {pack && m.team !== 'sales' ? (
+        <TeamPackView
+          team={m.team}
+          pack={pack as unknown as TeamPack}
+          general={
+            <Card style={{ marginTop: 8 }}>
+              <Row style={{ justifyContent: 'space-between' }}>
+                <Text style={{ fontWeight: '700', color: colors.ink }}>Meeting notes</Text>
+                {edit ? <Button small variant="ghost" title="Edit" onPress={() => editNote(null, m.notes ?? '')} /> : null}
+              </Row>
+              <Muted>{m.notes ?? 'No notes'}</Muted>
+              {actionList(null)}
+            </Card>
+          }
+          personFooter={(pid) => {
+            const note = data.notes.find((n) => n.sales_person_id === pid)?.note ?? '';
+            return (
+              <View style={{ marginTop: 8, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 8 }}>
+                <Row style={{ justifyContent: 'space-between' }}>
+                  <Text style={{ fontWeight: '700', color: colors.ink }}>Discussion</Text>
+                  {edit ? <Button small variant="ghost" title={note ? 'Edit' : 'Add notes'} onPress={() => editNote(pid, note)} /> : null}
+                </Row>
+                <Muted>{note || 'No notes'}</Muted>
+                {actionList(pid)}
+              </View>
+            );
+          }}
+        />
+      ) : pack ? (
         <>
           <Section title="Team">
             <Card>

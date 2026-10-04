@@ -3,7 +3,7 @@ import type { Role } from './types';
 export type ActionKind = 'task' | 'visit' | 'design' | 'estimation' | 'execution';
 
 export const ACTION_KINDS: { value: ActionKind; label: string; hint: string }[] = [
-  { value: 'task', label: 'Task', hint: 'The person confirms it is done in My Day / Internal meetings.' },
+  { value: 'task', label: 'Task', hint: 'The person confirms it is done in My Day / Meetings.' },
   { value: 'visit', label: 'Customer / project visit', hint: "Goes into the sales person's weekly plan by itself – they only set the day and time." },
   { value: 'design', label: 'Design task', hint: 'Goes to the Design Manager, who appoints the designer.' },
   { value: 'estimation', label: 'Estimation task', hint: 'Goes to SM / AM Estimation, who appoints the estimator.' },
