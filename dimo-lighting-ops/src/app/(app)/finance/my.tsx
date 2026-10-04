@@ -51,7 +51,7 @@ export default function MyTarget() {
                   <View style={{ flex: 1, minWidth: 220, gap: 10 }}>
                     <View>
                       <Row style={{ justifyContent: 'space-between' }}>
-                        <Text style={{ color: colors.text }}>Secured (this-year value)</Text>
+                        <Text style={{ color: colors.text }}>Secured (wins this year) vs budget</Text>
                         <Text style={{ fontWeight: '700', color: colors.ink }}>
                           {mn(y.secured)} / {mn(y.securedTarget)} · {fmtPct(y.securedPct)}
                         </Text>
@@ -60,24 +60,24 @@ export default function MyTarget() {
                     </View>
                     <View>
                       <Row style={{ justifyContent: 'space-between' }}>
-                        <Text style={{ color: colors.text }}>Invoiced</Text>
+                        <Text style={{ color: colors.text }}>Invoiced vs budget</Text>
                         <Text style={{ fontWeight: '700', color: colors.ink }}>
                           {mn(y.invoiced)} / {mn(y.invoiceTarget)} · {fmtPct(y.invoicedPct)}
                         </Text>
                       </Row>
                       <Progress pct={y.invoicedPct} colour={pctTone(y.invoicedPct)} />
                     </View>
-                    <Muted>LKR Mn · score = 40% secured + 60% invoiced, each against the target to date.</Muted>
+                    <Muted>LKR Mn · budget from the budget list · score = 40% secured + 60% invoiced, each against the budget to date.</Muted>
                   </View>
                 </Row>
               </Card>
               <Grid min={200}>
-                <KeyValue label={`Invoicing target ${fyLabel(fy)}`} value={`${mn(y.fyInvoiceTarget)} Mn`} />
+                <KeyValue label={`Invoicing budget ${fyLabel(fy)}`} value={`${mn(y.fyInvoiceTarget)} Mn`} />
                 <KeyValue label="Invoiced so far" value={`${mn(y.fyInvoiced)} Mn`} />
                 <KeyValue label="Secured, still to bill this year" value={`${mn(y.toBill)} Mn`} />
                 <KeyValue label="Cover" value={fmtPct(y.cover)} />
                 <KeyValue label="Still to win and bill" value={<Text style={{ color: y.gap ? colors.red : colors.green, fontWeight: '700' }}>{mn(y.gap)} Mn</Text>} />
-                <KeyValue label={`Secured target ${fyLabel(fy)}`} value={`${mn(y.fySecuredTarget)} Mn`} />
+                <KeyValue label={`Budget to secure ${fyLabel(fy)}`} value={`${mn(y.fySecuredTarget)} Mn`} />
               </Grid>
 
               <TargetCharts p={p} fy={fy} upTo={upTo} lines={data.lines} />
@@ -122,7 +122,7 @@ export default function MyTarget() {
                       { h: 'Status', w: 180, v: (s) => <Pill label={SCHEDULE_LABEL[s.schedule_status]} tone={SCHEDULE_TONE[s.schedule_status]} /> },
                     ]}
                   />
-                  <Muted>A win counts toward your secured target once SM Projects approves its invoice schedule.</Muted>
+                  <Muted>A win counts as secured at once (its order value until you enter the schedule, then the invoices due this year). Enter the schedule and send it to SM Projects.</Muted>
                 </Section>
               ) : null}
 
@@ -133,9 +133,9 @@ export default function MyTarget() {
                   rowStyle={(m) => (upTo && m.month > upTo ? { opacity: 0.55 } : undefined)}
                   columns={[
                     { h: 'Month', w: 100, v: (m) => fmtMonth(m.month) },
-                    { h: 'Secured target', w: 120, right: true, v: (m) => mn(m.secured_target) },
+                    { h: 'Budget to secure', w: 125, right: true, v: (m) => mn(m.secured_target) },
                     { h: 'Secured', w: 90, right: true, v: (m) => mn(m.secured) },
-                    { h: 'Invoicing target', w: 120, right: true, v: (m) => mn(m.invoice_target) },
+                    { h: 'Budget to invoice', w: 125, right: true, v: (m) => mn(m.invoice_target) },
                     { h: 'Invoiced', w: 90, right: true, v: (m) => mn(m.invoiced), tone: (m) => (Number(m.invoiced) < Number(m.invoice_target) && (!upTo || m.month <= upTo) ? colors.red : undefined) },
                   ]}
                 />

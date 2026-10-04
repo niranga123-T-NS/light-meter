@@ -47,12 +47,12 @@ export function TargetCharts({ p, fy, upTo, lines }: { p: PerfPerson; fy: number
   return (
     <Grid min={430}>
       <Card>
-        <Text style={title}>Invoicing by month – target vs invoiced (LKR Mn)</Text>
+        <Text style={title}>Invoicing by month – budget vs invoiced (LKR Mn)</Text>
         <BarChart
           categories={cats}
           series={[
             {
-              name: 'Target',
+              name: 'Budget',
               color: CHART.budget,
               fill: CHART.budgetFill,
               values: s.target,
@@ -67,16 +67,16 @@ export function TargetCharts({ p, fy, upTo, lines }: { p: PerfPerson; fy: number
           fmt={(v) => `${amt(v)} Mn`}
           fmtAxis={(v) => v.toFixed(0)}
           flags={(i) => (s.invoiced[i] != null && s.invoiced[i]! < 0.9 * s.target[i] ? 'bad' : undefined)}
-          note="▼ = month invoiced below 90% of target. Planned = invoices still to bill in your schedules (slipped ones in the next month)."
+          note="▼ = month invoiced below 90% of budget. Planned = invoices still to bill in your schedules (slipped ones in the next month)."
         />
       </Card>
       <Card>
-        <Text style={title}>Year to date – cumulative target, invoiced and outlook (LKR Mn)</Text>
+        <Text style={title}>Year to date – cumulative budget, invoiced and outlook (LKR Mn)</Text>
         <LineChart
           categories={cats}
           series={[
             {
-              name: 'Target',
+              name: 'Budget',
               color: CHART.budget,
               dashed: true,
               values: s.cumTarget,
@@ -92,7 +92,7 @@ export function TargetCharts({ p, fy, upTo, lines }: { p: PerfPerson; fy: number
           fmt={(v) => `${amt(v)} Mn`}
           fmtAxis={(v) => v.toFixed(0)}
           flags={(i) => (s.cumInvoiced[i] != null && s.cumInvoiced[i]! < 0.9 * (s.cumTarget[i] ?? 0) ? 'bad' : undefined)}
-          note={`Year-end: target ${amt(s.cumTarget[11] ?? 0)} · outlook ${amt(yearEnd)} · ${
+          note={`Year-end: budget ${amt(s.cumTarget[11] ?? 0)} · outlook ${amt(yearEnd)} · ${
             yearEnd >= (s.cumTarget[11] ?? 0) ? 'on track' : `gap ${amt((s.cumTarget[11] ?? 0) - yearEnd)} Mn – win and bill more`
           }`}
         />
