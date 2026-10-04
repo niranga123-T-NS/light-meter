@@ -1,6 +1,7 @@
 import { router, Stack } from 'expo-router';
 import { Text } from 'react-native';
 import { MeetingActions } from '@/components/MeetingActions';
+import { WeekMeetings } from '@/components/WeekMeetings';
 import { TargetCard } from '@/components/TargetCharts';
 import { useMe } from '@/lib/auth';
 import { fyOf, type Performance } from '@/lib/finance';
@@ -91,6 +92,7 @@ export function SalesHome() {
         <Button title="Weekly plan" variant="secondary" onPress={() => router.push('/plan')} />
       </Row>
 
+      <WeekMeetings />
       <MeetingActions />
 
       {myPerf ? (

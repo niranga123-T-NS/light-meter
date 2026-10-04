@@ -40,7 +40,7 @@ const PARTS: { part: MyAction['my_part']; title: string }[] = [
   { part: 'track', title: 'With my team' },
 ];
 
-/** My Day and Internal meetings: every sales meeting follow-up I do, appoint or track. */
+/** My Day and Meetings: every meeting follow-up I do, appoint or track. */
 export function MeetingActions() {
   const dialog = useDialog();
   const { data, reload } = useLoad(() => rpc<MyAction[]>('my_meeting_actions').catch(() => [] as MyAction[]));
@@ -115,7 +115,7 @@ export function MeetingActions() {
         const rows = data.filter((a) => a.my_part === part);
         if (!rows.length) return null;
         return (
-          <Section key={part} title={`Sales meeting – ${title.toLowerCase()} (${rows.length})`}>
+          <Section key={part} title={`Meeting actions – ${title.toLowerCase()} (${rows.length})`}>
             <Card style={{ padding: 0, overflow: 'hidden' }}>
               {rows.map((a) => {
                 const late = (a.due_date && a.due_date < today) || (part === 'assign' && a.assign_by && a.assign_by < now);

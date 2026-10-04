@@ -2,6 +2,7 @@ import { AdminHome, OpsHome } from '@/components/home/OtherHomes';
 import { ExecDashboard } from '@/components/home/ExecDashboard';
 import { DesignBoard, EstimationBoard } from '@/components/home/JobBoards';
 import { SalesHome } from '@/components/home/SalesHome';
+import { MyDayMeetings } from '@/components/WeekMeetings';
 import { useMe } from '@/lib/auth';
 import WarrantyHome from './warranty';
 
@@ -15,11 +16,11 @@ export default function Home() {
     case 'design_manager':
     case 'lighting_designer':
     case 'lighting_engineer':
-      return <DesignBoard />;
+      return <DesignBoard header={<MyDayMeetings />} />;
     case 'sm_estimation':
     case 'am_estimation':
     case 'estimation_exec':
-      return <EstimationBoard />;
+      return <EstimationBoard header={<MyDayMeetings />} />;
     case 'gm':
     case 'sm_projects':
       return <ExecDashboard />;
@@ -27,7 +28,7 @@ export default function Home() {
       return <OpsHome />;
     case 'senior_elec_engineer':
     case 'assistant_engineer':
-      return <WarrantyHome />;
+      return <WarrantyHome myDay />;
     default:
       return <AdminHome />;
   }

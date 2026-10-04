@@ -53,12 +53,11 @@ export const isManager = (r?: Role | null) =>
 
 export type NavItem = { href: string; label: string; icon: string; badgeKey?: 'approvals' | 'notifications' | 'delayed' };
 
-/** Navigation per role (Section 2 visibility rule and Section 10.2 dashboards). Everyone but GM / DGM gets Internal
- * meetings (invitations, attendance, leave and actions from meetings). */
+/** Navigation per role (Section 2 visibility rule and Section 10.2 dashboards). Everyone gets Meetings: the sales,
+ * estimation and design meetings in one place (invitations, attendance, leave, packs and actions). */
 export function navFor(role: Role): NavItem[] {
   const items = baseNav(role);
-  if (role === 'gm') return items;
-  const meetings: NavItem = { href: '/meetings', label: 'Internal meetings', icon: '◴' };
+  const meetings: NavItem = { href: '/meetings', label: 'Meetings', icon: '◴' };
   return [...items.slice(0, 1), meetings, ...items.slice(1)];
 }
 
@@ -93,7 +92,6 @@ function baseNav(role: Role): NavItem[] {
         home,
         approvals,
         { href: '/dashboard', label: 'Dashboard', icon: '◔' },
-        { href: '/meeting', label: 'Sales meeting', icon: '◷' },
         { href: '/plan', label: 'Plans', icon: '▦' },
         { href: '/visits', label: 'Visits', icon: '◎' },
         { href: '/projects', label: 'Projects', icon: '◆' },
@@ -118,7 +116,6 @@ function baseNav(role: Role): NavItem[] {
         home,
         approvals,
         { href: '/dashboard', label: 'Overall', icon: '◔' },
-        { href: '/meeting', label: 'Sales meeting', icon: '◷' },
         { href: '/inquiries', label: 'Inquiries', icon: '⧗' },
         { href: '/projects', label: 'Projects', icon: '◆' },
         { href: '/jobs', label: 'Jobs', icon: '▣' },
