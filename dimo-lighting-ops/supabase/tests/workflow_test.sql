@@ -2257,5 +2257,29 @@ begin
 end $$;
 reset role;
 
+-- Secured approvals are SM Projects only ------------------------------------------------------------------------------------
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare sid uuid;
+begin
+  sid := public.add_secured_project(jsonb_build_object('project_name', 'Galadari Hotel lighting supply', 'business_line', 'LMS',
+    'sales_person_id', (select id from u where role = 'asm_building'), 'won_on', current_date::text, 'order_value', '8,600,000.00'));
+  perform public.save_invoice_schedule(sid, '{}', jsonb_build_array(
+    jsonb_build_object('kind', 'progress', 'description', 'IPC', 'amount', '1610000', 'month', current_date::text),
+    jsonb_build_object('kind', 'retention', 'description', 'Final retention', 'amount', '6990000', 'month', current_date::text)), true);
+  assert (select schedule_status from public.secured_projects where id = sid) = 'review', 'sent to SM Projects';
+  perform set_config('test.gal', sid::text, false);
+end $$;
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ begin
+  perform public.review_invoice_schedule(current_setting('test.gal')::uuid, true, null);
+  assert false, 'GM cannot approve';
+exception when others then assert sqlerrm like 'Only SM Projects approves invoice schedules%', sqlerrm; end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+select public.review_invoice_schedule(current_setting('test.gal')::uuid, true, null);
+reset role;
+do $$ begin assert (select schedule_status from public.secured_projects where id = current_setting('test.gal')::uuid) = 'approved', 'SM Projects approved'; end $$;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

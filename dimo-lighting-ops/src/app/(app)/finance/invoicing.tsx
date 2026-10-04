@@ -16,7 +16,6 @@ import {
   fyMonths,
   fyStart,
   fmtMonthShort,
-  isReviewer,
   kindLabel,
   lineColour,
   lineShort,
@@ -260,7 +259,7 @@ export default function Invoicing() {
             h: '',
             w: 170,
             v: (l) =>
-              l.pending_change_id && isReviewer(me.role) ? (
+              l.pending_change_id && me.role === 'sm_projects' ? (
                 <Row gap={4}>
                   <Button small title="Approve" onPress={() => decide(l.pending_change_id!, true)} />
                   <Button small variant="secondary" title="Reject" onPress={() => decide(l.pending_change_id!, false)} />

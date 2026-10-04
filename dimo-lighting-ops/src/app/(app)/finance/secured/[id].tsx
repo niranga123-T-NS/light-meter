@@ -31,7 +31,6 @@ import {
   fyLabel,
   fyOf,
   isFinanceDesk,
-  isReviewer,
   kindLabel,
   KINDS,
   lineLabel,
@@ -164,7 +163,8 @@ export default function SecuredDetail() {
   const fy = fyOf(s.won_on > thisMonth() ? s.won_on : thisMonth());
   const owner = s.sales_person_id === me.id;
   const desk = isFinanceDesk(me.role);
-  const reviewer = isReviewer(me.role);
+  // Schedule, date changes and variations: SM Projects approves
+  const reviewer = me.role === "sm_projects";
   const canEdit = (owner || desk) && s.status === "open";
   const editable = canEdit && (s.schedule_status !== "approved" || desk);
   const lineOf = (lid: string | null) => lines.find((x) => x.id === lid);
