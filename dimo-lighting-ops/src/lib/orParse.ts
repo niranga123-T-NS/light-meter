@@ -38,14 +38,34 @@ export function parseMonth(v: unknown): string | null {
   }
   return null;
 }
+const monIdx = (t: string) => MON.findIndex((x) => x.toLowerCase() === t.slice(0, 3).toLowerCase());
+const yyyy = (y: string) => (y.length === 2 ? `20${y}` : y);
+/** Excel stores dates as days since 30 Dec 1899. */
+function excelSerial(n: number): string | null {
+  if (!Number.isFinite(n) || n < 20000 || n > 80000) return null;
+  return new Date(Date.UTC(1899, 11, 30) + Math.floor(n) * 86400000).toISOString().slice(0, 10);
+}
 export function parseDate(v: unknown): string | null {
   if (v == null || v === '') return null;
   if (v instanceof Date) return v.toISOString().slice(0, 10);
+  if (typeof v === 'number') return excelSerial(v);
   const s = String(v).trim();
   let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (m) return `${m[1]}-${m[2]}-${m[3]}`;
-  m = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
-  if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+  m = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4}|\d{2})$/);
+  if (m) {
+    // Day first (17/07/2026); a "day" over 12 means the month came first (7/17/2026)
+    const [d, mo] = Number(m[2]) > 12 && Number(m[1]) <= 12 ? [m[2], m[1]] : [m[1], m[2]];
+    return Number(mo) >= 1 && Number(mo) <= 12 ? `${yyyy(m[3])}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}` : null;
+  }
+  // 17-Jul-2026, 17 Jul 26
+  m = s.match(/^(\d{1,2})[-/. ]+([A-Za-z]{3,9})[-/., ]+(\d{4}|\d{2})$/);
+  if (m && monIdx(m[2]) >= 0) return `${yyyy(m[3])}-${String(monIdx(m[2]) + 1).padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+  // July 17, 2026
+  m = s.match(/^([A-Za-z]{3,9})[ .]+(\d{1,2}),?[ ]+(\d{4})$/);
+  if (m && monIdx(m[1]) >= 0) return `${m[3]}-${String(monIdx(m[1]) + 1).padStart(2, '0')}-${m[2].padStart(2, '0')}`;
+  // Excel date serial number kept as a number / text
+  if (/^\d{5}(\.\d+)?$/.test(s)) return excelSerial(Number(s));
   return parseMonth(s);
 }
 export function parseNum(v: unknown): number | null {

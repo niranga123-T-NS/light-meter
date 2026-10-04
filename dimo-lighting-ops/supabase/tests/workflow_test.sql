@@ -2200,5 +2200,21 @@ begin
 end $$;
 reset role;
 
+-- Won date: not in the future in the opening list; Operations corrects it in the details --------------------------------
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare res jsonb; sid uuid := (select id from public.secured_projects where wbs = 'LS-000771');
+begin
+  res := public.check_opening_list(jsonb_build_array(jsonb_build_object('row_no', 2, 'project_name', 'W Hotel renovation', 'business_line', 'LMS',
+    'sales_person', 'Asm Infra', 'order_value', '100', 'won_on', (current_date + 300)::text)));
+  assert exists (select 1 from jsonb_array_elements_text(res -> 0 -> 'errors') e where e like 'Won date % is in the future%'), 'future won date';
+  perform public.set_secured_details(sid, jsonb_build_object('won_on', '2025-07-17'));
+  assert (select won_on from public.secured_projects where id = sid) = '2025-07-17', 'won date corrected';
+  begin
+    perform public.set_secured_details(sid, jsonb_build_object('won_on', (current_date + 1)::text));
+    assert false, 'future';
+  exception when others then assert sqlerrm like 'The won date cannot be in the future%', sqlerrm; end;
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

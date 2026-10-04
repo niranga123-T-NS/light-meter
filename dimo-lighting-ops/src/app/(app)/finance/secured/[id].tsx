@@ -188,9 +188,19 @@ export default function SecuredDetail() {
     (draft ?? []).reduce((a, d) => a + (d.amount ?? 0), 0) +
     Number(s.billed_before);
   const ov = orderValue ?? Number(s.order_value ?? 0);
-  const monthOptions = Array.from({ length: 48 }, (_, i) =>
-    addMonths(monthOf(s.won_on), i - 6),
-  ).map((m) => ({ value: m, label: fmtMonth(m) }));
+  // Months from 6 before the won date (or 3 years back for older projects) to 5 years ahead
+  const monthOptions = (() => {
+    const won = monthOf(s.won_on);
+    const now = thisMonth();
+    let m = [addMonths(won, -6), addMonths(now, -36)].sort()[0];
+    const last = [addMonths(won, 48), addMonths(now, 60)].sort()[1];
+    const out: { value: string; label: string }[] = [];
+    while (m <= last) {
+      out.push({ value: m, label: fmtMonth(m) });
+      m = addMonths(m, 1);
+    }
+    return out;
+  })();
 
   const applyPattern = async () => {
     if (!ov) return setError("Enter the order value first");
@@ -470,6 +480,12 @@ export default function SecuredDetail() {
         ...(desk
           ? [
               {
+                key: "won_on",
+                label: "Won (PO) date",
+                type: "date" as const,
+                initial: s.won_on,
+              },
+              {
                 key: "sales_person_id",
                 label: "Sales person",
                 type: "select" as const,
@@ -497,6 +513,7 @@ export default function SecuredDetail() {
       notes: r.notes,
     };
     if (r.business_line) patch.business_line = r.business_line;
+    if (desk && r.won_on && r.won_on !== s.won_on) patch.won_on = r.won_on;
     if (desk && r.sales_person_id && r.sales_person_id !== s.sales_person_id)
       patch.sales_person_id = r.sales_person_id;
     await dialog.run(async () => {
