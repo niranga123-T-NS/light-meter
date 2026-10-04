@@ -2354,9 +2354,22 @@ select public.publish_sales_meeting(current_setting('test.meet')::uuid);
 do $$ begin
   begin perform public.save_meeting_note(current_setting('test.meet')::uuid, null, 'x'); assert false, 'locked';
   exception when others then assert sqlerrm like 'The meeting is published%', sqlerrm; end;
-  perform public.set_meeting_action_done((select id from public.sales_meeting_actions where meeting_id = current_setting('test.meet')::uuid), true);
 end $$;
 reset role;
+-- The owner sees and closes their action on My Day
+select pg_temp.act_as('asm_infra'); set role authenticated;
+do $$ begin
+  assert (select count(*) from public.my_meeting_actions()) = 1, 'owner sees the action';
+  assert (select count(*) from public.sales_meeting_actions) = 1, 'owner reads only their action';
+  perform public.set_meeting_action_done((select id from public.my_meeting_actions()), true);
+  assert (select count(*) from public.my_meeting_actions()) = 0, 'done';
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'sales_meeting_action' and recipient_id = (select id from u where role = 'asm_infra')), 'owner notified of the action';
+  assert exists (select 1 from public.notifications where kind = 'sales_meeting_action' and title = 'Meeting action done'
+                 and recipient_id = (select id from u where role = 'sm_projects')), 'SM Projects told it is done';
+end $$;
 select pg_temp.act_as('gm'); set role authenticated;
 do $$ begin
   assert (select status from public.sales_meetings where id = current_setting('test.meet')::uuid) = 'published', 'GM sees it once published';

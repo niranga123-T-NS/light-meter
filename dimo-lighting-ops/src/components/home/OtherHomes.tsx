@@ -1,5 +1,6 @@
 import { router, Stack } from 'expo-router';
 import { Text, View } from 'react-native';
+import { MeetingActions } from '@/components/MeetingActions';
 import { useMe } from '@/lib/auth';
 import { fmtDate, fmtMoney } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
@@ -44,6 +45,7 @@ export function OpsHome() {
         <Button title="Upload debtors list" icon="⇪" onPress={() => router.push('/debtors/upload')} />
         <Button title="Samples queue" variant="secondary" onPress={() => router.push('/samples')} />
       </Row>
+      <MeetingActions />
       {data?.passed.length ? (
         <Card style={{ borderColor: colors.red, borderWidth: 2, marginTop: 12, padding: 0, overflow: 'hidden' }}>
           <View style={{ padding: 12, backgroundColor: '#FDECEC' }}>
