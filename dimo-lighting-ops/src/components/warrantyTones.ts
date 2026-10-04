@@ -14,10 +14,13 @@ export const C_TONE: Record<ClaimStage, string> = {
   inspect: colors.amber,
   decide: colors.blue,
   goodwill: colors.amber,
+  dispute: colors.red,
   quote: colors.blue,
+  customer: colors.blue,
   rectify: colors.blue,
   close: colors.green,
   closed: colors.grey,
+  declined: colors.grey,
   rejected: colors.grey,
   cancelled: colors.grey,
 };

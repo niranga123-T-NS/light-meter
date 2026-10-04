@@ -637,6 +637,17 @@ export type WarrantyClaim = {
   needs_verification?: boolean;
   verified_at?: string | null;
   repaired_from?: 'dimo_stock' | 'manufacturer' | null;
+  fault_cause?: string | null;
+  quote_amount?: number | null;
+  quote_ref?: string | null;
+  quoted_on?: string | null;
+  customer_response?: 'accepted' | 'declined' | null;
+  responded_on?: string | null;
+  response_note?: string | null;
+  dispute_status?: 'pending' | 'upheld' | 'goodwill' | null;
+  dispute_reason?: string | null;
+  disputed_at?: string | null;
+  dispute_note?: string | null;
 };
 
 export type WarrantyReport = {

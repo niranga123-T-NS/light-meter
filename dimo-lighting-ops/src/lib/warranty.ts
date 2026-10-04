@@ -58,16 +58,32 @@ export const WARRANTY_STAGE_LABEL: Record<WarrantyStage, string> = {
 };
 
 /** Where a claim stands – the next step. */
-export type ClaimStage = 'verify' | 'assign' | 'inspect' | 'decide' | 'goodwill' | 'quote' | 'rectify' | 'close' | 'closed' | 'rejected' | 'cancelled';
+export type ClaimStage =
+  | 'verify'
+  | 'assign'
+  | 'inspect'
+  | 'decide'
+  | 'goodwill'
+  | 'dispute'
+  | 'quote'
+  | 'customer'
+  | 'rectify'
+  | 'close'
+  | 'closed'
+  | 'declined'
+  | 'rejected'
+  | 'cancelled';
 export function claimStage(c: WarrantyClaim): ClaimStage {
   if (c.status === 'cancelled') return 'cancelled';
-  if (c.status === 'closed') return c.decision === 'rejected' ? 'rejected' : 'closed';
+  if (c.dispute_status === 'pending') return 'dispute';
+  if (c.status === 'closed') return c.decision === 'rejected' ? 'rejected' : c.customer_response === 'declined' ? 'declined' : 'closed';
   if (c.needs_verification && !c.verified_at) return 'verify';
   if (!c.assignee_id) return 'assign';
   if (!c.inspected_on) return 'inspect';
   if (!c.decision) return 'decide';
   if (c.goodwill_status === 'pending') return 'goodwill';
-  if (!c.rectified_on) return c.decision === 'chargeable' ? 'quote' : 'rectify';
+  if (!c.rectified_on && c.decision === 'chargeable' && c.customer_response !== 'accepted') return c.quoted_on ? 'customer' : 'quote';
+  if (!c.rectified_on) return 'rectify';
   return 'close';
 }
 export const CLAIM_STAGE_LABEL: Record<ClaimStage, string> = {
@@ -76,13 +92,29 @@ export const CLAIM_STAGE_LABEL: Record<ClaimStage, string> = {
   inspect: 'Inspection due',
   decide: 'Decision due',
   goodwill: 'Goodwill – SM Projects',
+  dispute: 'Disputed – SM Projects',
   quote: 'Chargeable – quote',
+  customer: 'Quoted – customer to answer',
   rectify: 'Rectify',
   close: 'Rectified – close',
   closed: 'Closed',
+  declined: 'Quote declined',
   rejected: 'Rejected',
   cancelled: 'Cancelled',
 };
+/** Why a fault is (not) covered – set with the decision. Anything but a manufacturing defect is not covered by the warranty. */
+export const FAULT_CAUSES = [
+  { value: 'manufacturing_defect', label: 'Manufacturing defect' },
+  { value: 'power_surge', label: 'Power surge / voltage fluctuation' },
+  { value: 'misuse_damage', label: 'Misuse / physical damage' },
+  { value: 'water_ingress', label: 'Water ingress (installation / sealing)' },
+  { value: 'installation_by_others', label: 'Installation / wiring by others' },
+  { value: 'not_dimo_supply', label: 'Not DIMO supply' },
+  { value: 'wear_tear', label: 'Normal wear / consumables' },
+  { value: 'other', label: 'Other' },
+];
+export const faultCauseLabel = (v: string | null | undefined) => FAULT_CAUSES.find((x) => x.value === v)?.label ?? '';
+
 export const claimDaysOpen = (c: WarrantyClaim, today = todayISO()) => daysFrom(c.logged_at.slice(0, 10), c.closed_on ?? today);
 
 /** Next step on a manufacturer claim (RMA). */
