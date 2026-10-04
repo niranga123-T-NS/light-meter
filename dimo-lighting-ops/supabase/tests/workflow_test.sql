@@ -2103,5 +2103,50 @@ begin
 end $$;
 reset role;
 
+-- Mark a budgeted project as secured; add an earlier, unbudgeted secured project by hand -----------------------------------
+insert into public.budget_projects (id, fy, business_line, project_name, sales_person_id, budget_value)
+values ('00000000-0000-0000-0000-0000000bb001', app.fy_of(current_date), 'indoor', 'Warehouse lighting – Ekala',
+        (select id from u where role = 'asm_infra'), 8000000);
+insert into public.budget_invoices (budget_id, month, amount)
+values ('00000000-0000-0000-0000-0000000bb001', app.month_of(current_date), 4000000),
+       ('00000000-0000-0000-0000-0000000bb001', (app.month_of(current_date) + interval '1 month')::date, 4000000);
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  perform public.secure_budget_project('00000000-0000-0000-0000-0000000bb001', '{"won_on": "2026-01-01"}');
+  assert false, 'other sales person cannot';
+exception when others then assert sqlerrm like 'Only the sales person%', sqlerrm; end $$;
+reset role;
+select pg_temp.act_as('asm_infra'); set role authenticated;
+do $$ declare sid uuid;
+begin
+  sid := public.secure_budget_project('00000000-0000-0000-0000-0000000bb001', jsonb_build_object('won_on', current_date::text, 'order_value', '8,200,000.00'));
+  assert (select source = 'won' and budget_id is not null and order_value = 8200000 and schedule_status = 'missing'
+            from public.secured_projects where id = sid), 'secured from the budget list';
+  assert (select count(*) from public.invoice_lines where secured_id = sid) = 2, 'budget invoices become the draft schedule';
+  begin
+    perform public.secure_budget_project('00000000-0000-0000-0000-0000000bb001', jsonb_build_object('won_on', current_date::text));
+    assert false, 'only once';
+  exception when others then assert sqlerrm like '%already secured%', sqlerrm; end;
+  begin
+    perform public.add_secured_project(jsonb_build_object('project_name', 'x'));
+    assert false, 'sales cannot add by hand';
+  exception when others then assert sqlerrm like 'Only Operations%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare sid uuid;
+begin
+  sid := public.add_secured_project(jsonb_build_object('project_name', 'Old hotel retrofit', 'customer', 'Galle Face Hotel', 'business_line', 'Indoor',
+    'sales_person_id', (select id from u where role = 'asm_building'), 'won_on', (app.fy_start(app.fy_of(current_date)) - 200)::text,
+    'order_value', '5,000,000.00', 'billed_before', '3000000', 'wbs', 'LS-000881'));
+  assert (select source = 'opening' and billed_before = 3000000 and budget_id is null from public.secured_projects where id = sid), 'earlier unbudgeted order';
+  begin
+    perform public.add_secured_project(jsonb_build_object('project_name', 'Dup', 'business_line', 'Indoor', 'sales_person_id', (select id from u where role = 'asm_building'),
+      'won_on', current_date::text, 'order_value', '1', 'wbs', 'LS-000881-01'));
+    assert false, 'WBS used once';
+  exception when others then assert sqlerrm like 'This WBS is already%', sqlerrm; end;
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

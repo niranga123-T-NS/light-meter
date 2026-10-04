@@ -2,9 +2,10 @@ import { router, Stack } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 import { DataTable } from '@/components/DataTable';
+import { useDialog } from '@/components/dialog';
 import { SCHEDULE_LABEL, SCHEDULE_TONE } from '@/components/financeTones';
 import { ListUpload } from '@/components/ListUpload';
-import { colors, ErrorBanner, Grid, Loading, Muted, Pill, Row, Screen, Section, Segmented, Select, Stat } from '@/components/ui';
+import { Button, colors, ErrorBanner, Grid, Loading, Muted, Pill, Row, Screen, Section, Segmented, Select, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import {
   downloadXlsx,
@@ -36,6 +37,7 @@ export default function SecuredList() {
   const people = usePeople();
   const fy = fyOf(todayISO());
   const [tab, setTab] = useState<Tab>('book');
+  const dialog = useDialog();
   const [line, setLine] = useState('');
   const [person, setPerson] = useState('');
   const { data, error, reload } = useLoad(async () => {
@@ -49,6 +51,33 @@ export default function SecuredList() {
     return { secured: (s.data ?? []) as SecuredProject[], lines: (l.data ?? []) as InvoiceLine[], allocs: (a.data ?? []) as Allocation[] };
   });
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
+  const addOne = async () => {
+    const { data: sales } = await supabase.from('profiles').select('id, full_name').in('role', ['asm_building', 'asm_infra', 'sm_projects']).eq('active', true).order('full_name');
+    const r = await dialog.prompt({
+      title: 'Add a secured project',
+      message: 'Won before 1 April counts as an earlier order (invoicing only); won this year counts toward the secured target once its schedule is approved.',
+      fields: [
+        { key: 'name', label: 'Project name', required: true },
+        { key: 'cust', label: 'Customer' },
+        { key: 'line', label: 'Business line', type: 'select', required: true, options: LINES.map((x) => ({ value: x.value, label: x.label })) },
+        { key: 'sp', label: 'Sales person', type: 'select', required: true, options: (sales ?? []).map((x) => ({ value: x.id, label: x.full_name })) },
+        { key: 'won', label: 'Won (PO) date', type: 'date', required: true },
+        { key: 'val', label: 'Order value (LKR)', required: true },
+        { key: 'before', label: 'Invoiced before 1 April (LKR)', initial: '0.00' },
+        { key: 'wbs', label: 'WBS' },
+        { key: 'po', label: 'PO / contract no.' },
+      ],
+      confirmLabel: 'Add',
+    });
+    if (!r) return;
+    await dialog.run(async () => {
+      const id = await rpc<string>('add_secured_project', {
+        p_data: { project_name: r.name, customer: r.cust || null, business_line: r.line, sales_person_id: r.sp, won_on: r.won, order_value: r.val, billed_before: r.before || '0', wbs: r.wbs || null, po_no: r.po || null },
+      });
+      await reload();
+      router.push(`/finance/secured/${id}`);
+    }, 'Added – enter its invoice schedule');
+  };
 
   const end = fyEnd(fy);
   const calc = (s: SecuredProject) => {
@@ -151,6 +180,15 @@ export default function SecuredList() {
         LKR Mn. Due this FY = invoices planned in {fyLabel(fy)} (and older ones still open). Balance FY = still to bill by 31 March. Each sales person’s cover of the
         invoicing target is in Targets.
       </Muted>
+
+      {isFinanceDesk(me.role) ? (
+        <Section title="Add one secured project" right={<Button small title="Add secured project" onPress={addOne} />}>
+          <Muted>
+            For an order not won through the system and not on the budget list – e.g. won before the system. Budgeted projects: use “Mark secured” on the budget
+            list. Projects won in the system join this list by themselves.
+          </Muted>
+        </Section>
+      ) : null}
 
       {isFinanceDesk(me.role) ? (
         <Section title="Opening secured list (orders won before the system)">
