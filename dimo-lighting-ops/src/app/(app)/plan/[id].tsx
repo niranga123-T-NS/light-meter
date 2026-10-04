@@ -6,7 +6,7 @@ import { CustomerPicker, ProjectPicker } from '@/components/pickers';
 import { Button, Card, colors, ErrorBanner, Field, Grid, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section, Segmented, Select, Stat } from '@/components/ui';
 import { ObjectivePicker } from '@/components/VisitBits';
 import { useMe } from '@/lib/auth';
-import { addDaysISO, fmtDate, fmtDateTime } from '@/lib/format';
+import { addDaysISO, fmtDate, fmtDateTime, todayISO } from '@/lib/format';
 import { useLoad, useMasters, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 import type { PlanLine, VisitPlan } from '@/lib/types';
@@ -43,11 +43,23 @@ export default function PlanDetail() {
       .order('planned_date')
       .order('time_slot');
     const pva = await rpc<PvA[]>('plan_vs_actual', { p_sales_person: plan.sales_person_id, p_week_start: plan.week_start }).catch(() => []);
-    return { plan: plan as VisitPlan, lines: (lines ?? []) as PlanLine[], pva: pva[0] ?? null };
+    // Monday 08:30 – 12:00 is the sales meeting: an exception approved by SM Projects frees it for this sales person
+    const { data: ex } = await supabase
+      .from('meeting_exceptions')
+      .select('status, reason, decision_note')
+      .eq('sales_person_id', plan.sales_person_id)
+      .eq('meeting_date', plan.week_start)
+      .maybeSingle();
+    return {
+      plan: plan as VisitPlan,
+      lines: (lines ?? []) as PlanLine[],
+      pva: pva[0] ?? null,
+      exception: (ex ?? null) as { status: 'pending' | 'approved' | 'rejected'; reason: string; decision_note: string | null } | null,
+    };
   }, [id]);
 
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const { plan, lines, pva } = data;
+  const { plan, lines, pva, exception } = data;
   const mine = plan.sales_person_id === me.id;
   const editable = mine && ['draft', 'returned', 'approved'].includes(plan.status);
   const manager = me.role === 'sm_projects' || me.role === 'gm';
@@ -145,6 +157,39 @@ export default function PlanDetail() {
           </Row>
         ) : null}
       </Card>
+
+      {mine && plan.week_start >= addDaysISO(todayISO(), -6) ? (
+        <Notice tone={exception?.status === 'approved' ? colors.blue : colors.amber}>
+          <Row wrap gap={8} style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={{ flexShrink: 1, color: colors.ink }}>
+              {exception?.status === 'approved'
+                ? `Monday ${fmtDate(plan.week_start)}: exception approved – you may plan visits during the sales meeting (08:30 – 12:00).`
+                : exception?.status === 'pending'
+                  ? `Monday ${fmtDate(plan.week_start)} 08:30 – 12:00 is the sales meeting. Exception requested – waiting for SM Projects.`
+                  : `Monday ${fmtDate(plan.week_start)} 08:30 – 12:00 is the sales meeting – plan Monday visits from 12:00.${exception?.status === 'rejected' ? ` Exception not approved${exception.decision_note ? `: ${exception.decision_note}` : ''}.` : ''}`}
+            </Text>
+            {!exception || exception.status === 'rejected' ? (
+              <Button
+                small
+                variant="secondary"
+                title="Request exception"
+                onPress={async () => {
+                  const r = await dialog.prompt({
+                    title: `Visit during the sales meeting – Monday ${fmtDate(plan.week_start)}`,
+                    message: 'SM Projects decides. Once approved you can plan visits between 08:30 and 12:00 that Monday.',
+                    fields: [{ key: 'r', label: 'Reason', type: 'multiline', required: true }],
+                  });
+                  if (r)
+                    await dialog.run(async () => {
+                      await rpc('request_meeting_exception', { p_date: plan.week_start, p_reason: r.r });
+                      await reload();
+                    }, 'Sent to SM Projects');
+                }}
+              />
+            ) : null}
+          </Row>
+        </Notice>
+      ) : null}
 
       {plan.status === 'approved' && pva ? (
         <Section title="Plan vs actual">
@@ -287,7 +332,7 @@ function AddLine({ planId, weekStart, onDone }: { planId: string; weekStart: str
         options={DAYS.map((d, i) => ({ value: addDaysISO(weekStart, i), label: `${d} ${fmtDate(addDaysISO(weekStart, i))}` }))}
         onChange={(v) => setF((s) => ({ ...s, planned_date: v }))}
       />
-      <Field label="Time slot" placeholder="e.g. 10:00" value={f.time_slot} onChangeText={(v) => setF((s) => ({ ...s, time_slot: v }))} />
+      <Field label="Time slot" placeholder="e.g. 13:30 (Monday 08:30 – 12:00 is the sales meeting)" value={f.time_slot} onChangeText={(v) => setF((s) => ({ ...s, time_slot: v }))} />
       <Segmented value={f.visit_type} onChange={(v) => setF((s) => ({ ...s, visit_type: v }))} options={[{ value: 'normal', label: 'Normal' }, { value: 'tender', label: 'Tender' }]} />
       {f.visit_type === 'tender' ? (
         <Select label="Tender activity" value={f.tender_activity} options={masters.values('tender_activity').map((v) => ({ value: v, label: v }))} onChange={(v) => setF((s) => ({ ...s, tender_activity: v }))} />

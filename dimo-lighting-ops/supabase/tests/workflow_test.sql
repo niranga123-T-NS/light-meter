@@ -2281,5 +2281,114 @@ select public.review_invoice_schedule(current_setting('test.gal')::uuid, true, n
 reset role;
 do $$ begin assert (select schedule_status from public.secured_projects where id = current_setting('test.gal')::uuid) = 'approved', 'SM Projects approved'; end $$;
 
+-- Sales meeting: pack, notes, actions, publish → GM read only; Monday 08:30 – 12:00 kept free -------------------------------
+do $$ declare mon date := current_date + ((8 - extract(isodow from current_date)::int) % 7); plan uuid;
+begin
+  perform set_config('test.mon', mon::text, false);
+  -- the visit plan of the week starting that Monday (made directly – the plan screens are tested elsewhere)
+  insert into public.visit_plans (sales_person_id, week_start) values ((select id from u where role = 'asm_infra'), mon)
+  on conflict (sales_person_id, week_start) do update set status = public.visit_plans.status returning id into plan;
+  perform set_config('test.plan', plan::text, false);
+end $$;
+do $$ declare plan uuid := current_setting('test.plan')::uuid; mon date := current_setting('test.mon')::date;
+  org uuid := (select id from public.organizations limit 1);
+begin
+  begin
+    insert into public.visit_plan_lines (plan_id, planned_date, time_slot, organization_id, visit_category, planned_objective)
+    values (plan, mon, '10:00', org, 'End-Client', 'Site visit');
+    assert false, '10:00 Monday blocked';
+  exception when others then assert sqlerrm like 'Monday 08:30 – 12:00 is the sales meeting%', sqlerrm; end;
+  begin
+    insert into public.visit_plan_lines (plan_id, planned_date, time_slot, organization_id, visit_category, planned_objective)
+    values (plan, mon, null, org, 'End-Client', 'Site visit');
+    assert false, 'no time on Monday blocked';
+  exception when others then assert sqlerrm like 'Monday 08:30 – 12:00 is the sales meeting – enter the visit time%', sqlerrm; end;
+  begin
+    insert into public.visit_plan_lines (plan_id, planned_date, time_slot, organization_id, visit_category, planned_objective)
+    values (plan, mon, '7.30-9.00', org, 'End-Client', 'Site visit');
+    assert false, 'overlapping range blocked';
+  exception when others then assert sqlerrm like 'Monday 08:30%', sqlerrm; end;
+  insert into public.visit_plan_lines (plan_id, planned_date, time_slot, organization_id, visit_category, planned_objective)
+  values (plan, mon, '2pm', org, 'End-Client', 'Afternoon visit'), (plan, mon + 1, '09:00', org, 'End-Client', 'Tuesday visit');
+end $$;
+select pg_temp.act_as('asm_infra'); set role authenticated;
+select public.request_meeting_exception(current_setting('test.mon')::date, 'Client CEO available only Monday 9:00');
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.my_pending_approvals() where source = 'meeting_exception'), 'exception in approvals';
+  perform public.decide_meeting_exception((select id from public.meeting_exceptions where status = 'pending'), true, 'OK this once');
+end $$;
+reset role;
+insert into public.visit_plan_lines (plan_id, planned_date, time_slot, organization_id, visit_category, planned_objective)
+values (current_setting('test.plan')::uuid, current_setting('test.mon')::date, '09:00', (select id from public.organizations limit 1), 'End-Client', 'Approved exception');
+-- Pack: SM Projects only; GM sees it once published, read only
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ begin
+  perform public.generate_sales_meeting(current_setting('test.mon')::date); assert false, 'GM cannot generate';
+exception when others then assert sqlerrm like 'Only SM Projects runs%', sqlerrm; end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ declare mid uuid; p jsonb;
+begin
+  begin perform public.generate_sales_meeting(current_setting('test.mon')::date + 1); assert false, 'Monday only';
+  exception when others then assert sqlerrm like 'Choose a Monday%', sqlerrm; end;
+  mid := public.generate_sales_meeting(current_setting('test.mon')::date);
+  select pack into p from public.sales_meetings where id = mid;
+  assert jsonb_array_length(p -> 'people') >= 2, 'a part per sales person';
+  assert (select x -> 'exception' ->> 'status' from jsonb_array_elements(p -> 'people') x where x ->> 'id' = (select id::text from u where role = 'asm_infra')) = 'approved', 'exception shown';
+  assert (p -> 'team' ->> 'budget_invoice') is not null, 'team totals';
+  perform public.save_meeting_note(mid, (select id from u where role = 'asm_infra'), 'Push the airport quotation');
+  perform public.save_meeting_note(mid, null, 'Focus: invoicing this month');
+  perform public.add_meeting_action(mid, jsonb_build_object('sales_person_id', (select id from u where role = 'asm_infra'), 'action', 'Follow up Airport apron quote', 'due_date', (current_date + 7)::text));
+  assert public.generate_sales_meeting(current_setting('test.mon')::date) = mid, 'regenerate keeps notes and actions';
+  assert (select count(*) from public.sales_meeting_actions where meeting_id = mid) = 1, 'action kept';
+  perform set_config('test.meet', mid::text, false);
+end $$;
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ begin assert not exists (select 1 from public.sales_meetings), 'GM does not see a draft'; end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+select public.publish_sales_meeting(current_setting('test.meet')::uuid);
+do $$ begin
+  begin perform public.save_meeting_note(current_setting('test.meet')::uuid, null, 'x'); assert false, 'locked';
+  exception when others then assert sqlerrm like 'The meeting is published%', sqlerrm; end;
+end $$;
+reset role;
+-- The owner sees and closes their action on My Day
+select pg_temp.act_as('asm_infra'); set role authenticated;
+do $$ begin
+  assert (select count(*) from public.my_meeting_actions()) = 1, 'owner sees the action';
+  assert (select count(*) from public.sales_meeting_actions) = 1, 'owner reads only their action';
+  perform public.set_meeting_action_done((select id from public.my_meeting_actions()), true);
+  assert (select count(*) from public.my_meeting_actions()) = 0, 'done';
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'sales_meeting_action' and recipient_id = (select id from u where role = 'asm_infra')), 'owner notified of the action';
+  assert exists (select 1 from public.notifications where kind = 'sales_meeting_action' and title = 'Meeting action done'
+                 and recipient_id = (select id from u where role = 'sm_projects')), 'SM Projects told it is done';
+end $$;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ begin
+  assert (select status from public.sales_meetings where id = current_setting('test.meet')::uuid) = 'published', 'GM sees it once published';
+  assert (select count(*) from public.sales_meeting_notes) = 1, 'GM reads the notes';
+  begin perform public.add_meeting_action(current_setting('test.meet')::uuid, '{"action":"x"}'); assert false, 'GM read only';
+  exception when others then assert sqlerrm like 'Only SM Projects runs%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('asm_infra'); set role authenticated;
+do $$ begin assert not exists (select 1 from public.sales_meetings), 'sales persons do not see the pack'; end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'sales_meeting' and recipient_id = (select id from u where role = 'gm')), 'GM notified';
+  assert not exists (select 1 from public.notifications where kind = 'sales_meeting' and title like 'Sales meeting pack%'
+                     and recipient_id in (select id from u where role in ('asm_infra', 'asm_building'))), 'only GM notified of the pack';
+  assert public.sales_meeting_tick((current_setting('test.mon')::date + time '08:05') at time zone app.tz()) >= 1, 'Monday reminder';
+  assert not exists (select 1 from public.notifications where title = 'Sales meeting today 08:30 – 12:00' and recipient_id = (select id from u where role = 'asm_infra')),
+    'excused sales person not reminded';
+end $$;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
