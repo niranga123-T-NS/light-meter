@@ -1846,5 +1846,36 @@ do $$ begin
 end $$;
 reset role;
 
+
+-- Older project: claim entered with the project details by hand creates the warranty record
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare cid uuid; wid uuid;
+begin
+  cid := public.log_warranty_claim(jsonb_build_object('reported_via', 'customer_call', 'description', 'High-bays flickering',
+    'manual', jsonb_build_object('project_name', 'Warehouse – Biyagama', 'customer', 'Old Customer Ltd', 'category', 'industrial',
+      'invoice_no', 'INV-2023-0042', 'start_date', '2024-01-15', 'months', '60', 'product_group', 'High-bay luminaires', 'brand', 'Philips')));
+  select warranty_id into wid from public.warranty_claims where id = cid;
+  assert (select source from public.warranties where id = wid) = 'outside', 'outside warranty created';
+  assert (select end_date from public.warranty_lines where warranty_id = wid) = '2029-01-15', 'line end date from start + months';
+  assert (select in_warranty from public.warranty_claims where id = cid), 'in warranty';
+  begin
+    perform public.log_warranty_claim(jsonb_build_object('description', 'x', 'manual', jsonb_build_object('project_name', 'Other', 'customer', 'C',
+      'category', 'industrial', 'invoice_no', 'inv-2023-0042', 'start_date', '2024-01-15', 'months', '12', 'product_group', 'Downlights')));
+    assert false, 'duplicate invoice blocked';
+  exception when others then assert sqlerrm like 'A warranty with this invoice%', sqlerrm; end;
+end $$;
+reset role;
+-- Sales person: older project from the system (own project)
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ declare cid uuid;
+begin
+  cid := public.log_warranty_claim(jsonb_build_object('reported_via', 'customer_call', 'description', 'Downlights failed in the lobby',
+    'manual', jsonb_build_object('project_id', '00000000-0000-0000-0000-00000000b001', 'contract_no', 'ABC-OLD-77', 'start_date', '2022-06-01',
+      'months', '24', 'product_group', 'Downlights')));
+  assert (select needs_verification from public.warranty_claims where id = cid), 'raised by sales – to verify';
+  assert not (select in_warranty from public.warranty_claims where id = cid), 'warranty ended 2024 – out of warranty';
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
