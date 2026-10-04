@@ -2185,5 +2185,36 @@ begin
 end $$;
 reset role;
 
+-- Opening list: the same WBS twice in the file is a row error -----------------------------------------------------------
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare res jsonb;
+begin
+  res := public.check_opening_list(jsonb_build_array(
+    jsonb_build_object('row_no', 2, 'project_name', 'Terminal blocks', 'business_line', 'Infrastructure', 'sales_person', 'Asm Infra',
+      'order_value', '100', 'won_on', '2026-02-10', 'wbs', 'LS-000990-01'),
+    jsonb_build_object('row_no', 9, 'project_name', 'Terminal blocks', 'business_line', 'Infrastructure', 'sales_person', 'Asm Building',
+      'order_value', '100', 'won_on', '2026-02-10', 'wbs', 'LS-000990-02')));
+  assert (res -> 0 -> 'errors' ->> 0) like 'Same WBS LS-000990 as row 9%', 'duplicate WBS: ' || (res -> 0 -> 'errors')::text;
+  assert (res -> 1 -> 'errors' ->> 0) like 'Same WBS LS-000990 as row 2%', 'both rows flagged';
+  assert exists (select 1 from jsonb_array_elements_text(res -> 0 -> 'warnings') w where w like 'Same project name as row 9%'), 'same name warned';
+end $$;
+reset role;
+
+-- Won date: not in the future in the opening list; Operations corrects it in the details --------------------------------
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare res jsonb; sid uuid := (select id from public.secured_projects where wbs = 'LS-000771');
+begin
+  res := public.check_opening_list(jsonb_build_array(jsonb_build_object('row_no', 2, 'project_name', 'W Hotel renovation', 'business_line', 'LMS',
+    'sales_person', 'Asm Infra', 'order_value', '100', 'won_on', (current_date + 300)::text)));
+  assert exists (select 1 from jsonb_array_elements_text(res -> 0 -> 'errors') e where e like 'Won date % is in the future%'), 'future won date';
+  perform public.set_secured_details(sid, jsonb_build_object('won_on', '2025-07-17'));
+  assert (select won_on from public.secured_projects where id = sid) = '2025-07-17', 'won date corrected';
+  begin
+    perform public.set_secured_details(sid, jsonb_build_object('won_on', (current_date + 1)::text));
+    assert false, 'future';
+  exception when others then assert sqlerrm like 'The won date cannot be in the future%', sqlerrm; end;
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
