@@ -17,6 +17,7 @@ type Meeting = {
   starts_at: string;
   ends_at: string;
 };
+type InviteRequest = { meeting_id: string; team: Team; meeting_date: string; starts_at: string; ends_at: string; person_id: string; person: string; requested_by: string };
 type Exception = { id: string; sales_person_id: string; meeting_date: string; reason: string; status: 'pending' | 'approved' | 'rejected'; decision_note: string | null };
 
 /** One team's meetings: the host invites, generates and publishes the pack and decides leave; GM / DGM (and SM Projects for
@@ -28,7 +29,7 @@ export function TeamMeetingsPanel({ team }: { team: Team }) {
   const cfg = TEAMS[team];
   const host = me.role === cfg.hostRole;
   const { data, error, reload } = useLoad(async () => {
-    const [m, e] = await Promise.all([
+    const [m, e, inv] = await Promise.all([
       supabase
         .from('sales_meetings')
         .select('id, meeting_date, status, generated_at, published_at, initiated_at, starts_at, ends_at')
@@ -36,9 +37,10 @@ export function TeamMeetingsPanel({ team }: { team: Team }) {
         .order('meeting_date', { ascending: false })
         .limit(52),
       supabase.from('meeting_exceptions').select('*').eq('team', team).gte('meeting_date', addDaysISO(todayISO(), -28)).order('meeting_date', { ascending: false }),
+      me.role === 'sm_projects' && team !== 'sales' ? rpc<InviteRequest[]>('meeting_invites_to_approve').catch(() => [] as InviteRequest[]) : Promise.resolve([] as InviteRequest[]),
     ]);
     if (m.error) throw new Error(m.error.message);
-    return { meetings: (m.data ?? []) as Meeting[], exceptions: (e.data ?? []) as Exception[] };
+    return { meetings: (m.data ?? []) as Meeting[], exceptions: (e.data ?? []) as Exception[], invites: inv.filter((x) => x.team === team) };
   }, [team]);
   if (!data) return error ? <ErrorBanner message={error} /> : <Loading />;
   const upcoming = nextMeetingDate(team);
@@ -66,6 +68,18 @@ export function TeamMeetingsPanel({ team }: { team: Team }) {
       await rpc('decide_meeting_exception', { p_id: e.id, p_approve: approve, p_note: r.n || null });
       await reload();
     }, approve ? 'Approved' : 'Not approved');
+  };
+  const decideInvite = async (x: InviteRequest, approve: boolean) => {
+    const r = await dialog.prompt({
+      title: approve ? `Approve – invite ${x.person}` : `Do not invite ${x.person}`,
+      message: `${cfg.label} · ${fmtDate(x.meeting_date)} ${hhmm(x.starts_at)} – ${hhmm(x.ends_at)} · requested by ${x.requested_by}`,
+      fields: [{ key: 'n', label: approve ? 'Note' : 'Reason', type: 'multiline', required: !approve }],
+    });
+    if (!r) return;
+    await dialog.run(async () => {
+      await rpc('decide_meeting_invite', { p_meeting: x.meeting_id, p_person: x.person_id, p_approve: approve, p_note: r.n || null });
+      await reload();
+    }, approve ? 'Approved – invitation sent' : 'Not approved – the host is told');
   };
   const when = (m: { meeting_date: string; starts_at?: string; ends_at?: string }) =>
     `${fmtDate(m.meeting_date)} · ${hhmm(m.starts_at) || cfg.starts} – ${hhmm(m.ends_at) || cfg.ends}`;
@@ -104,6 +118,27 @@ export function TeamMeetingsPanel({ team }: { team: Team }) {
           <Muted>Packs appear here once {cfg.host} publishes them (read only).</Muted>
         )}
       </Card>
+
+      {data.invites.length ? (
+        <Section title={`Invitations to approve – outside the team (${data.invites.length})`}>
+          <Card style={{ padding: 0, overflow: 'hidden' }}>
+            {data.invites.map((x) => (
+              <ListRow
+                key={`${x.meeting_id}-${x.person_id}`}
+                wrapRight
+                title={`${x.person} · ${fmtDate(x.meeting_date)} ${hhmm(x.starts_at)} – ${hhmm(x.ends_at)}`}
+                subtitle={`Requested by ${x.requested_by} – the invitation is sent only after you approve`}
+                right={
+                  <Row gap={6}>
+                    <Button small title="Approve" onPress={() => decideInvite(x, true)} />
+                    <Button small variant="secondary" title="Reject" onPress={() => decideInvite(x, false)} />
+                  </Row>
+                }
+              />
+            ))}
+          </Card>
+        </Section>
+      ) : null}
 
       {host && pending.length ? (
         <Section title={`Leave requests to approve (${pending.length})`}>

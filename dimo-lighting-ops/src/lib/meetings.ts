@@ -68,3 +68,9 @@ export function nextMeetingDate(team: Team): string {
 }
 
 export const hhmm = (t: string | null | undefined) => (t ? t.slice(0, 5) : '');
+
+/** The host's own team – invited at once; anyone else (Estimation / Design meetings) waits for SM Projects. */
+export function ownTeam(team: Team): Role[] {
+  if (team === 'sales') return [];
+  return [TEAMS[team].hostRole, ...TEAMS[team].members, ...(team === 'estimation' ? (['am_estimation'] as Role[]) : [])];
+}
