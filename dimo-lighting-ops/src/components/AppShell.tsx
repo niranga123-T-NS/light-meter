@@ -1,7 +1,8 @@
 import { Link, router, usePathname } from 'expo-router';
-import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
+import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useDialog } from '@/components/dialog';
 import { useMe } from '@/lib/auth';
 import { showBrowserNotification } from '@/lib/push';
 import { navFor, NavItem, ROLE_SHORT } from '@/lib/roles';
@@ -20,9 +21,17 @@ export function useShellCounts() {
   return useContext(CountsContext);
 }
 
+const POPUP_KINDS = ['meeting_action', 'meeting_invite'];
+
 /** Badge counts for the approvals tab, notification bell and delayed inquiries; live via Realtime. */
 export function CountsProvider({ children }: { children: ReactNode }) {
   const me = useMe();
+  // (the dialog API is a new object on every render – kept in a ref so the Realtime channel is not re-subscribed)
+  const dialogApi = useDialog();
+  const dialog = useRef(dialogApi);
+  useEffect(() => {
+    dialog.current = dialogApi;
+  });
   const [counts, setCounts] = useState<Counts>({ approvals: 0, notifications: 0, delayed: 0 });
 
   const refresh = useCallback(async () => {
@@ -43,6 +52,12 @@ export function CountsProvider({ children }: { children: ReactNode }) {
         const n = payload.new as AppNotification;
         if (new Date((payload.new as { deliver_after: string }).deliver_after) <= new Date()) {
           showBrowserNotification(n.title, n.body, n.url);
+          // Sales meeting follow-ups also pop up in the app
+          if (POPUP_KINDS.includes(n.kind)) {
+            dialog.current.confirm(n.title, n.body ?? undefined, { confirmLabel: 'Open' }).then((open) => {
+              if (open && n.url) router.push(n.url as never);
+            });
+          }
         }
         refresh();
       })

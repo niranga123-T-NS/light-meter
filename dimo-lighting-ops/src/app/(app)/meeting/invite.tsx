@@ -11,7 +11,7 @@ import { rpc, supabase } from '@/lib/supabase';
 
 type Person = { id: string; full_name: string; role: keyof typeof ROLE_LABELS };
 
-// Order of the groups on the list; GM / DGM are never invited
+// Order of the groups on the list; GM / DGM and System Admin are never invited
 const GROUPS: (keyof typeof ROLE_LABELS)[] = [
   'asm_building',
   'asm_infra',
@@ -34,7 +34,7 @@ export default function InviteToMeeting() {
   const [picked, setPicked] = useState<Set<string> | null>(null);
   const { data, error } = useLoad(async () => {
     const [p, m] = await Promise.all([
-      supabase.from('profiles').select('id, full_name, role').eq('active', true).neq('role', 'gm').order('full_name'),
+      supabase.from('profiles').select('id, full_name, role').eq('active', true).not('role', 'in', '(gm,sys_admin)').order('full_name'),
       supabase.from('sales_meetings').select('id').eq('meeting_date', date).maybeSingle(),
     ]);
     const invited = m.data
@@ -67,7 +67,7 @@ export default function InviteToMeeting() {
       <Stack.Screen options={{ title: 'Invite to the sales meeting' }} />
       <Card>
         <Text style={{ fontSize: 17, fontWeight: '700', color: colors.ink }}>Monday {fmtDate(date)} · 08:30 – 12:00</Text>
-        <Muted>Select who is invited – anyone except GM / DGM. Invite by Sunday 10:00; GM / DGM are told if it is not done by 15:00.</Muted>
+        <Muted>Select who is invited – anyone except GM / DGM and System Admin. Invite by Sunday 10:00; GM / DGM are told if it is not done by 15:00.</Muted>
         <Row wrap gap={8} style={{ marginTop: 8 }}>
           <Button
             title={`Send invitations (${sel.size})`}

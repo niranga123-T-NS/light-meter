@@ -413,6 +413,7 @@ export type PlanLine = {
   missed_reason: string | null;
   added_after_approval: boolean;
   joint_visit_approved: boolean;
+  meeting_action_id?: string | null;
   organizations?: { name: string } | null;
   projects?: { name: string } | null;
 };

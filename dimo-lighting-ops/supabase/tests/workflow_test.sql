@@ -876,7 +876,8 @@ begin
     {"client_name":"ABC Hotels PLC","invoice_no":"INV-10452","amount":2400000,"currency":"LKR","outstanding_days":101}]');
   perform public.confirm_debtor_upload(up);
   assert (select status from public.debts where invoice_no = 'SINV-501') = 'outstanding', 'sample debt not cleared by the upload';
-  assert (select outstanding_days from public.debts where invoice_no = 'SINV-501') = 14, 'sample debt ages from handover';
+  -- (handover is dated in Colombo time, the upload by the server date: 13 or 14 depending on the hour the tests run)
+  assert (select outstanding_days from public.debts where invoice_no = 'SINV-501') in (13, 14), 'sample debt ages from handover';
 end $$;
 reset role;
 select pg_temp.act_as('asm_building'); set role authenticated;
@@ -2234,7 +2235,7 @@ begin
   perform public.set_secured_details(sid, jsonb_build_object('won_on', '2025-07-17'));
   assert (select won_on from public.secured_projects where id = sid) = '2025-07-17', 'won date corrected';
   begin
-    perform public.set_secured_details(sid, jsonb_build_object('won_on', (current_date + 1)::text));
+    perform public.set_secured_details(sid, jsonb_build_object('won_on', (current_date + 2)::text));
     assert false, 'future';
   exception when others then assert sqlerrm like 'The won date cannot be in the future%', sqlerrm; end;
 end $$;
@@ -2366,8 +2367,8 @@ do $$ begin
 end $$;
 reset role;
 do $$ begin
-  assert exists (select 1 from public.notifications where kind = 'sales_meeting_action' and recipient_id = (select id from u where role = 'asm_infra')), 'owner notified of the action';
-  assert exists (select 1 from public.notifications where kind = 'sales_meeting_action' and title = 'Meeting action done'
+  assert exists (select 1 from public.notifications where kind = 'meeting_action' and recipient_id = (select id from u where role = 'asm_infra')), 'owner notified of the action';
+  assert exists (select 1 from public.notifications where kind = 'meeting_action' and title = 'Sales meeting action done'
                  and recipient_id = (select id from u where role = 'sm_projects')), 'SM Projects told it is done';
 end $$;
 select pg_temp.act_as('gm'); set role authenticated;
@@ -2404,7 +2405,7 @@ begin
   begin
     perform public.invite_sales_meeting(current_setting('test.mon2')::date, array[(select id from u where role = 'gm')]);
     assert false, 'GM cannot be invited';
-  exception when others then assert sqlerrm like 'GM / DGM and inactive users cannot be invited%', sqlerrm; end;
+  exception when others then assert sqlerrm like 'GM / DGM, System Admin and inactive users cannot be invited%', sqlerrm; end;
   mid := public.invite_sales_meeting(current_setting('test.mon2')::date,
     array[(select id from u where role = 'asm_building'), (select id from u where role = 'asm_infra'), (select id from u where role = 'operations_exec')]);
   perform set_config('test.m2', mid::text, false);
@@ -2450,6 +2451,114 @@ do $$ begin
   assert (select status from public.sales_meeting_invitees where meeting_id = current_setting('test.m2')::uuid and person_id = (select id from u where role = 'asm_infra')) = 'present', 'present after approval';
   perform public.sales_meeting_tick((current_setting('test.mon2')::date + time '12:10') at time zone app.tz());
   assert (select status from public.sales_meeting_invitees where meeting_id = current_setting('test.m2')::uuid and person_id = (select id from u where role = 'asm_building')) = 'absent', 'not marked by 12:00 → absent';
+end $$;
+
+-- Sales meeting part 3: action types, follow-up visits in the plan, team tasks appointed by the manager ----------------
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ declare mid uuid := current_setting('test.m2')::uuid;
+begin
+  begin perform public.invite_sales_meeting(current_setting('test.mon2')::date, array[(select id from u where role = 'sys_admin')]); assert false, 'no sys admin';
+  exception when others then assert sqlerrm like 'GM / DGM, System Admin%', sqlerrm; end;
+  begin perform public.add_meeting_action(mid, jsonb_build_object('kind', 'visit', 'owner_id', (select id from u where role = 'operations_exec'),
+    'action', 'Visit', 'organization_id', '00000000-0000-0000-0000-00000000a001', 'objective', 'Project Qualification', 'due_date', current_setting('test.mon2')));
+    assert false, 'visit only to sales';
+  exception when others then assert sqlerrm like 'A follow-up visit is given to a sales person%', sqlerrm; end;
+  begin perform public.add_meeting_action(mid, jsonb_build_object('kind', 'visit', 'owner_id', (select id from u where role = 'asm_building'),
+    'action', 'Visit', 'project_id', '00000000-0000-0000-0000-00000000b001', 'due_date', current_setting('test.mon2')));
+    assert false, 'objective needed';
+  exception when others then assert sqlerrm like 'Choose the visit objective%', sqlerrm; end;
+  perform public.add_meeting_action(mid, jsonb_build_object('kind', 'visit', 'owner_id', (select id from u where role = 'asm_building'),
+    'sales_person_id', (select id from u where role = 'asm_building'), 'action', 'Confirm lighting budget with the client',
+    'project_id', '00000000-0000-0000-0000-00000000b001', 'objective', 'Project Qualification', 'due_date', (current_setting('test.mon2')::date + 2)::text));
+  begin perform public.add_meeting_action(mid, jsonb_build_object('kind', 'design', 'owner_id', (select id from u where role = 'lighting_designer'), 'action', 'x'));
+    assert false, 'design goes to the manager';
+  exception when others then assert sqlerrm like 'A design task goes to its manager%', sqlerrm; end;
+  perform public.add_meeting_action(mid, jsonb_build_object('kind', 'design', 'sales_person_id', (select id from u where role = 'asm_building'),
+    'action', 'Revised lighting layout for the lobby', 'project_id', '00000000-0000-0000-0000-00000000b001', 'due_date', (current_setting('test.mon2')::date + 4)::text));
+  perform public.add_meeting_action(mid, jsonb_build_object('kind', 'estimation', 'action', 'Re-price the façade option',
+    'project_id', '00000000-0000-0000-0000-00000000b001'));
+  assert (select owner_id from public.sales_meeting_actions where meeting_id = mid and kind = 'design') = (select id from u where role = 'design_manager'), 'design → design manager';
+  assert (select owner_id from public.sales_meeting_actions where meeting_id = mid and kind = 'estimation') in (select id from u where role in ('sm_estimation', 'am_estimation')), 'estimation → manager';
+  perform public.publish_sales_meeting(mid);
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where title = 'Follow-up visit(s) from the sales meeting' and requires_open
+                 and recipient_id = (select id from u where role = 'asm_building')), 'sales person told the visit goes into the plan';
+  assert exists (select 1 from public.notifications where title like 'Appoint a person – design task%' and requires_open
+                 and recipient_id = (select id from u where role = 'design_manager')), 'design manager asked to appoint';
+  assert exists (select 1 from public.notifications where title like 'Follow-up on your project – design task%'
+                 and recipient_id = (select id from u where role = 'asm_building')), 'sales person told of the design task';
+end $$;
+-- The sales person creates the week's plan: the follow-up visit is already in; only the day and time change
+select set_config('app.workflow', '', true); -- (set earlier in this one-transaction test run)
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ declare pid uuid; lid uuid;
+begin
+  insert into public.visit_plans (sales_person_id, week_start) values ((select id from u where role = 'asm_building'), current_setting('test.mon2')::date)
+  returning id into pid;
+  select id into lid from public.visit_plan_lines where plan_id = pid and meeting_action_id is not null;
+  assert lid is not null, 'follow-up visit placed in the plan';
+  assert (select planned_date from public.visit_plan_lines where id = lid) = current_setting('test.mon2')::date + 2, 'on the due date';
+  assert (select planned_objective from public.visit_plan_lines where id = lid) = 'Project Qualification', 'objective kept';
+  begin update public.visit_plan_lines set planned_objective = 'Initial Site Survey' where id = lid; assert false, 'objective fixed';
+  exception when others then assert sqlerrm like '%only the day and time can be changed%', sqlerrm; end;
+  begin delete from public.visit_plan_lines where id = lid; assert false, 'cannot remove';
+  exception when others then assert sqlerrm like '%cannot be removed%', sqlerrm; end;
+  update public.visit_plan_lines set planned_date = current_setting('test.mon2')::date + 1, time_slot = '10:30' where id = lid;
+  assert (select planned_date from public.visit_plan_lines where id = lid) = current_setting('test.mon2')::date + 1, 'day changed';
+  assert (select my_part from public.my_meeting_actions() where kind = 'visit') = 'visit', 'listed as my visit';
+  assert (select plan_id from public.my_meeting_actions() where kind = 'visit') = pid, 'linked to the plan';
+  begin perform public.complete_meeting_action((select id from public.my_meeting_actions() where kind = 'visit'), 'done'); assert false, 'visit closes it';
+  exception when others then assert sqlerrm like 'A follow-up visit is done when you check out%', sqlerrm; end;
+  -- Check in and check out of the planned visit → the follow-up is done
+  insert into public.visits (sales_person_id, plan_line_id, project_id, organization_id, visit_category, primary_objective, status, summary, outcome)
+  select (select id from u where role = 'asm_building'), l.id, l.project_id, l.organization_id, l.visit_category, l.planned_objective, 'closed',
+         'Client confirmed the lighting budget and asked for a revised layout by Friday.', 'Positive'
+    from public.visit_plan_lines l where l.id = lid;
+  assert not exists (select 1 from public.my_meeting_actions() where kind = 'visit'), 'visit follow-up done after check-out';
+end $$;
+reset role;
+do $$ begin
+  assert (select visit_id is not null and status = 'done' from public.sales_meeting_actions where kind = 'visit' and meeting_id = current_setting('test.m2')::uuid), 'visit recorded on the action';
+  assert exists (select 1 from public.notifications where title = 'Sales meeting follow-up visit done' and recipient_id = (select id from u where role = 'sm_projects')), 'SM Projects told';
+end $$;
+-- Design manager appoints the designer; the designer confirms it is done
+select pg_temp.act_as('design_manager'); set role authenticated;
+do $$ declare aid uuid;
+begin
+  select id into aid from public.my_meeting_actions() where kind = 'design' and my_part = 'assign';
+  assert aid is not null, 'manager sees it to assign';
+  assert exists (select 1 from public.my_pending_approvals() where source = 'meeting_assign' and id = aid), 'in approvals';
+  assert (select count(*) from public.meeting_action_team(aid)) = 3, 'design team';
+  begin perform public.assign_meeting_action(aid, (select id from u where role = 'estimation_exec')); assert false, 'team only';
+  exception when others then assert sqlerrm like 'Choose a person from the team%', sqlerrm; end;
+  perform public.assign_meeting_action(aid, (select id from u where role = 'lighting_designer'), 'Use the new façade drawings');
+  assert (select my_part from public.my_meeting_actions() where id = aid) = 'track', 'manager tracks it';
+end $$;
+reset role;
+select pg_temp.act_as('lighting_designer'); set role authenticated;
+do $$ declare aid uuid;
+begin
+  select id into aid from public.my_meeting_actions() where kind = 'design';
+  assert (select my_part from public.my_meeting_actions() where id = aid) = 'do', 'designer does it';
+  assert (select count(*) from public.sales_meeting_actions where id = aid) = 1, 'designer reads the action';
+  begin perform public.complete_meeting_action(aid, ' '); assert false, 'note needed';
+  exception when others then assert sqlerrm like 'Say what was done%', sqlerrm; end;
+  perform public.complete_meeting_action(aid, 'Layout revised and sent to sales');
+  assert not exists (select 1 from public.my_meeting_actions() where id = aid), 'done';
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where title like 'Task from the sales meeting%' and requires_open
+                 and recipient_id = (select id from u where role = 'lighting_designer')), 'designer popup';
+  assert exists (select 1 from public.notifications where title = 'Sales meeting action done' and recipient_id = (select id from u where role = 'design_manager')), 'manager told';
+  assert exists (select 1 from public.notifications where title = 'Sales meeting action done' and recipient_id = (select id from u where role = 'asm_building')), 'sales person told';
+  -- Estimation task not appointed within 24 hours → GM / DGM and SM Projects
+  assert public.meeting_action_tick(now() + interval '25 hours') >= 1, 'tick';
+  assert exists (select 1 from public.notifications where title like 'Not appointed – estimation task%' and recipient_id = (select id from u where role = 'gm')), 'GM told of the delay';
+  assert exists (select 1 from public.notifications where title like 'Not appointed – estimation task%' and recipient_id = (select id from u where role = 'sm_projects')), 'SM Projects told of the delay';
+  assert not exists (select 1 from public.notifications where title like 'Not appointed – design task%'), 'appointed task not escalated';
 end $$;
 
 \echo 'ALL WORKFLOW TESTS PASSED'
