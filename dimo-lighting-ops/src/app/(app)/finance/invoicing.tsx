@@ -47,12 +47,11 @@ export default function Invoicing() {
   const [person, setPerson] = useState('');
   const fy = fyOf(month);
   const { data, error, reload } = useLoad(async () => {
-    const [l, a, b, c, u] = await Promise.all([
+    const [l, a, b, c] = await Promise.all([
       supabase.from('invoice_line_status').select('*'),
       supabase.from('invoice_allocations').select('*'),
       supabase.from('budget_projects').select('*, budget_invoices(*)').eq('fy', fy),
       supabase.from('invoice_line_changes').select('*').order('requested_at', { ascending: false }),
-      supabase.from('or_uploads').select('month').order('month', { ascending: false }).limit(1),
     ]);
     if (l.error) throw new Error(l.error.message);
     return {
@@ -60,7 +59,8 @@ export default function Invoicing() {
       allocs: (a.data ?? []) as Allocation[],
       budget: (b.data ?? []) as (BudgetProject & { budget_invoices: BudgetInvoice[] })[],
       changes: (c.data ?? []) as LineChange[],
-      latest: (u.data?.[0]?.month as string | undefined) ?? null,
+      // Invoices are recorded in the app: invoiced is known up to this month
+      latest: thisMonth() as string | null,
     };
   }, [fy]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
@@ -104,7 +104,7 @@ export default function Invoicing() {
   };
   const cumBudget = cum(yBudget);
   const cumInvoiced = cum(yInvoiced);
-  // Outlook: invoiced so far + what is still to bill, in its forecast month (slipped amounts in the month after the last OR file)
+  // Outlook: invoiced so far + what is still to bill, in its forecast month (slipped amounts in the next month)
   const startIdx = latest ? ym.indexOf(latest) : -1;
   const slipped = lines.filter((l) => (latest ? l.forecast_month <= latest : false) && Number(l.remaining) > 0.5).reduce((a, l) => a + Number(l.remaining), 0) / 1e6;
   const addBy = ym.map((m, i) =>
@@ -161,7 +161,7 @@ export default function Invoicing() {
       <Grid min={210}>
         <Stat label={`Budget invoicing · ${fmtMonth(month)}`} value={`${mn(b)} Mn`} />
         <Stat label={`Forecast (schedules) · ${fmtPct(pct(f, b))} of budget`} value={`${mn(f)} Mn`} tone={b && f < b * 0.9 ? 'amber' : undefined} />
-        <Stat label={`Invoiced · ${data.latest && data.latest >= month ? 'from the OR file' : 'OR file not loaded for this month yet'}`} value={`${mn(inv)} Mn`} />
+        <Stat label="Invoiced (recorded invoices)" value={`${mn(inv)} Mn`} />
         <Stat label="Slipped – not invoiced in the planned month" value={String(tabs.slipped.length)} tone={tabs.slipped.length ? 'red' : undefined} onPress={() => setTab('slipped')} />
       </Grid>
 
@@ -280,7 +280,7 @@ export default function Invoicing() {
           </Row>
         </Section>
       ) : null}
-      <Muted>Open a project to move an invoice (a reason is required). Invoicing comes from the monthly OR file by WBS.</Muted>
+      <Muted>Open a project to move an invoice (a reason is required). Record each invoice on its project (Secured → project → Record invoice).</Muted>
     </Screen>
   );
 }

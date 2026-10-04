@@ -138,7 +138,7 @@ export default function Targets() {
           <Muted>{`Budget ${mn(tot.st)} · ${fmtPct((tot.s / (tot.st || 1)) * 100)}`}</Muted>
         </Card>
         <Card>
-          <Muted>Invoiced (OR file) · Apr – {upTo ? fmtMonthShort(upTo) : '—'}</Muted>
+          <Muted>Invoiced · Apr – {upTo ? fmtMonthShort(upTo) : '—'}</Muted>
           <Text style={{ fontSize: 22, fontWeight: '700', color: colors.ink }}>{mn(tot.i)} Mn</Text>
           <Progress pct={(tot.i / (tot.it || 1)) * 100} colour={pctTone((tot.i / (tot.it || 1)) * 100)} />
           <Muted>{`Budget ${mn(tot.it)} · ${fmtPct((tot.i / (tot.it || 1)) * 100)}`}</Muted>
@@ -149,7 +149,6 @@ export default function Targets() {
           <Muted>{`Invoiced ${mn(tot.fyi)} + secured to bill ${mn(tot.tb)} of ${mn(tot.fy)} · still to win ${mn(Math.max(0, tot.fy - tot.fyi - tot.tb))}`}</Muted>
         </Card>
       </Grid>
-      {!upTo ? <Notice tone={colors.amber}>No OR file loaded for this year yet – invoiced shows 0 until Operations uploads it.</Notice> : null}
 
       <Section title={`Team league · Apr – ${upTo ? fmtMonth(upTo) : '…'} (LKR Mn)`}>
         <DataTable
@@ -174,10 +173,9 @@ export default function Targets() {
         />
         <Muted>
           Budget = from the budget list (to secure: this-year value of each budgeted project in its order month; to invoice: its invoice months). Secured = this-year value of each
-          project marked Won by sales or Mark secured by Operations, counted at once in the month won (the order value until its schedule is entered). Invoiced = OR file.
-          Secured to the current month; invoiced to the last OR month. Score = 40% secured + 60% invoiced. Cover = (invoiced + secured still to bill this year) ÷ the year’s
+          project marked Won by sales or Mark secured by Operations, counted at once in the month won (the order value until its schedule is entered). Invoiced = invoices recorded on the projects.
+          Both to the current month. Score = 40% secured + 60% invoiced. Cover = (invoiced + secured still to bill this year) ÷ the year’s
           invoicing budget.
-          {perf.unlinked_invoiced ? ` ${mn(perf.unlinked_invoiced)} Mn invoiced this year is on WBS codes not linked to a secured project – add the WBS on the project.` : ''}
         </Muted>
       </Section>
 

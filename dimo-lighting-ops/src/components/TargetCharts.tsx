@@ -7,13 +7,13 @@ import { amt, fmtMonth, fmtMonthShort, fmtPct, fyMonths, mn, pct, ytd, type Invo
 
 const M = 1e6;
 
-/** Month series for one sales person: invoicing target, invoiced (to the last OR month) and invoices planned after it. */
+/** Month series for one sales person: invoicing target, invoiced (recorded invoices, to this month) and invoices planned after it. */
 function series(p: PerfPerson, fy: number, upTo: string | null, lines: InvoiceLine[]) {
   const months = fyMonths(fy);
   const at = (m: string) => p.months.find((x) => x.month === m);
   const target = months.map((m) => Number(at(m)?.invoice_target ?? 0) / M);
   const invoiced = months.map((m) => (upTo && m <= upTo ? Number(at(m)?.invoiced ?? 0) / M : null));
-  // Still to bill: future months as planned; anything slipped (planned up to the last OR month) lands in the next month
+  // Still to bill: future months as planned; anything slipped (planned before this month) lands in the next month
   const first = months.find((m) => !upTo || m > upTo);
   const planned = months.map((m) =>
     first && m >= first
@@ -101,7 +101,7 @@ export function TargetCharts({ p, fy, upTo, lines }: { p: PerfPerson; fy: number
   );
 }
 
-/** My Day card: last OR month and year to date, invoiced against target; taps through to My Target. */
+/** My Day card: this month and year to date, invoiced against target; taps through to My Target. */
 export function TargetCard({ p, upTo }: { p: PerfPerson; upTo: string | null }) {
   const y = ytd(p, upTo);
   const m = upTo ? p.months.find((x) => x.month === upTo) : undefined;
@@ -130,7 +130,7 @@ export function TargetCard({ p, upTo }: { p: PerfPerson; upTo: string | null }) 
           {bar('Secured · year to date', y.secured, y.securedTarget, y.securedPct)}
           <Muted>
             {y.gap ? `Still to win and bill this year: ${mn(y.gap)} Mn` : 'Year covered: invoiced + secured still to bill meets the target'}
-            {upTo ? '' : ' · no OR file uploaded yet this year'} · tap for details
+            · tap for details
           </Muted>
         </View>
       </Row>

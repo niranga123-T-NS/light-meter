@@ -1710,10 +1710,34 @@ select public.save_or_upload(current_date, 'Draft_OR.xlsx',
   '[{"wbs":"LS-000500","revenue":"20000000","cost":"15000000"},{"wbs":"LS-000999","revenue":"5000000","cost":"1000000"}]');
 reset role;
 do $$ begin
+  assert not exists (select 1 from public.invoice_allocations where secured_id = current_setting('test.sec')::uuid), 'the OR file does not record invoicing';
+end $$;
+-- Invoices are recorded in the app against the schedule
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare sid uuid := current_setting('test.sec')::uuid;
+begin
+  perform public.record_invoice((select id from public.invoice_lines where secured_id = sid and kind = 'advance'),
+    jsonb_build_object('invoice_no', 'INV-26-0101', 'invoice_date', current_date::text, 'amount', '12,400,000.00'));
+  perform public.record_invoice((select id from public.invoice_lines where secured_id = sid and kind = 'delivery'),
+    jsonb_build_object('invoice_no', 'INV-26-0102', 'invoice_date', current_date::text, 'amount', '7600000'));
+  begin
+    perform public.record_invoice((select id from public.invoice_lines where secured_id = sid and kind = 'advance'),
+      jsonb_build_object('invoice_no', 'INV-26-0103', 'invoice_date', current_date::text, 'amount', '100'));
+    assert false, 'over the line';
+  exception when others then assert sqlerrm like 'Only % is still to invoice%', sqlerrm; end;
+  begin
+    perform public.record_invoice((select id from public.invoice_lines where secured_id = sid and kind = 'delivery'),
+      jsonb_build_object('invoice_no', 'inv-26-0102', 'invoice_date', current_date::text, 'amount', '100'));
+    assert false, 'duplicate invoice no';
+  exception when others then assert sqlerrm like 'This invoice number is already%', sqlerrm; end;
+end $$;
+reset role;
+do $$ begin
   assert (select invoiced from public.invoice_line_status where secured_id = current_setting('test.sec')::uuid and kind = 'advance') = 12400000, 'advance fully invoiced';
   assert (select invoiced from public.invoice_line_status where secured_id = current_setting('test.sec')::uuid and kind = 'delivery') = 7600000, 'delivery part invoiced';
+  perform public.finance_tick(((app.month_of(current_date) + interval '1 month')::date + time '08:30') at time zone app.tz());
   assert exists (select 1 from public.notifications where kind = 'invoice_slipped' and title like 'Invoice part billed%'
-                 and recipient_id = (select id from u where role = 'asm_building')), 'part-billed delivery alerted';
+                 and recipient_id = (select id from u where role = 'asm_building')), 'part-billed delivery alerted on the 1st';
   assert (select net_profit from public.or_uploads where month = app.month_of(current_date)) = -8646210, 'net profit stored';
 end $$;
 -- P&L: SM Estimation sees it; Operations and sales do not
@@ -2060,9 +2084,9 @@ select s.id, x.n, 'progress', 1000000, app.month_of(current_date - x.d), app.mon
   from public.secured_projects s, (values (1, 180), (2, 150), (3, 120)) x(n, d) where s.code = 'SEC-V-1';
 insert into public.invoice_lines (secured_id, seq, kind, amount, original_month, forecast_month)
 select id, 1, 'delivery', 1000000, app.month_of(current_date), app.month_of(current_date) from public.secured_projects where code = 'SEC-V-2';
-update public.secured_projects set wbs = 'LS-000778' where code = 'SEC-V-2';
-insert into public.wbs_actuals (upload_id, wbs, revenue, cost)
-values ((select id from public.or_uploads where month = app.month_of(current_date)), 'LS-000778', 1100000, 0);
+-- An earlier amount recorded without an invoice line (e.g. taken from the August OR file) above the schedule
+insert into public.invoice_allocations (month, secured_id, amount, manual, note)
+select app.month_of(current_date), id, 1100000, true, 'From the OR file' from public.secured_projects where code = 'SEC-V-2';
 select app.reallocate(id) from public.secured_projects where code = 'SEC-V-2';
 do $$ declare at10 timestamptz := (current_date + time '10:00') at time zone app.tz();
 begin
@@ -2213,6 +2237,23 @@ begin
     perform public.set_secured_details(sid, jsonb_build_object('won_on', (current_date + 1)::text));
     assert false, 'future';
   exception when others then assert sqlerrm like 'The won date cannot be in the future%', sqlerrm; end;
+end $$;
+reset role;
+
+-- Recorded invoices: other sales persons cannot record; Operations deletes with a reason --------------------------------
+select pg_temp.act_as('asm_infra'); set role authenticated;
+do $$ begin
+  perform public.record_invoice((select id from public.invoice_lines where secured_id = current_setting('test.sec')::uuid and kind = 'delivery'),
+    jsonb_build_object('invoice_no', 'X-1', 'invoice_date', current_date::text, 'amount', '1'));
+  assert false, 'not their project';
+exception when others then assert sqlerrm like 'Only the sales person%' or sqlerrm like 'Invoice not found%', sqlerrm; end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare aid bigint := (select id from public.invoice_allocations where invoice_no = 'INV-26-0102');
+begin
+  begin perform public.delete_invoice(aid, ''); assert false, 'reason'; exception when others then assert sqlerrm like 'Give the reason%', sqlerrm; end;
+  perform public.delete_invoice(aid, 'Wrong project');
+  assert not exists (select 1 from public.invoice_allocations where id = aid), 'deleted';
 end $$;
 reset role;
 
