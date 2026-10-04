@@ -1,4 +1,4 @@
-import { router, Stack } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Button, Card, colors, Empty, ErrorBanner, Grid, ListRow, Muted, Pill, Row, Screen, Section, Segmented, Select, Stat } from '@/components/ui';
@@ -37,7 +37,8 @@ export default function Retentions() {
   const me = useMe();
   const people = usePeople();
   const [customer, setCustomer] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>('open');
+  const params = useLocalSearchParams<{ tab?: Tab }>();
+  const [tab, setTab] = useState<Tab>(params.tab ?? 'open');
   const [view, setView] = useState<'list' | 'customers'>('list');
   const { data, error, loading, reload } = useLoad(async () => {
     const { data: rows, error: e } = await supabase.from('retentions').select('*').order('due_date').limit(3000);

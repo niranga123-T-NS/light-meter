@@ -1,10 +1,12 @@
 import { router, Stack } from 'expo-router';
 import { Text } from 'react-native';
 import { useMe } from '@/lib/auth';
-import { fmtDate, fmtMoney } from '@/lib/format';
+import { fmtDate, fmtMoney, todayISO } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
+import { daysFrom, retentionStage } from '@/lib/retentions';
 import { useOfflineSync } from '@/lib/offline';
-import { rpc } from '@/lib/supabase';
+import { rpc, supabase } from '@/lib/supabase';
+import type { Retention } from '@/lib/types';
 import { Button, Card, colors, Empty, ErrorBanner, Grid, H1, ListRow, Muted, Notice, Pill, Row, Screen, Section, Stat } from '../ui';
 
 type MyDay = {
@@ -39,9 +41,25 @@ export function SalesHome() {
   const me = useMe();
   const { data, error, loading, reload } = useLoad(() => rpc<MyDay>('my_day'));
   const offline = useOfflineSync();
+  // My retentions that need action: due and not claimed, due within 60 days, or claimed and unpaid for 60+ days
+  const ret = useLoad(async () => {
+    const { data: rows } = await supabase.from('retentions').select('*').eq('sales_person_id', me.id).in('status', ['held', 'claimed']);
+    return (rows ?? []) as Retention[];
+  }, [me.id]);
+  const retAction = (ret.data ?? [])
+    .map((r) => ({ r, st: retentionStage(r) }))
+    .filter((x) => x.st === 'due' || x.st === 'due_soon' || x.st === 'claim_overdue')
+    .sort((a, b) => a.r.due_date.localeCompare(b.r.due_date));
+  const retDue = retAction.filter((x) => x.st === 'due');
+  const sumText = (list: { r: Retention }[]) =>
+    (['LKR', 'USD'] as const)
+      .map((c) => [c, list.filter((x) => x.r.currency === c).reduce((a, x) => a + Number(x.r.retention_value), 0)] as const)
+      .filter(([, v]) => v > 0)
+      .map(([c, v]) => fmtMoney(v, c))
+      .join(' + ');
 
   return (
-    <Screen refreshing={loading} onRefresh={reload}>
+    <Screen refreshing={loading} onRefresh={() => { reload(); ret.reload(); }}>
       <Stack.Screen options={{ title: 'My Day' }} />
       <H1>Good day, {me.full_name.split(' ')[0]}</H1>
       <ErrorBanner message={error} />
@@ -55,6 +73,10 @@ export function SalesHome() {
       ) : null}
       {data && data.plan_next_week !== 'submitted' && data.plan_next_week !== 'approved' ? (
         <Notice tone={colors.amber}>Next week&apos;s visit plan is not submitted yet – due Saturday 13:00.</Notice>
+      ) : null}
+
+      {retDue.length ? (
+        <Notice tone={colors.red}>{`Retentions due – claim now: ${retDue.length} · ${sumText(retDue)}`}</Notice>
       ) : null}
 
       <Row wrap gap={8} style={{ marginTop: 12 }}>
@@ -80,6 +102,39 @@ export function SalesHome() {
               />
             </Grid>
           </Section>
+
+          {retAction.length ? (
+            <Section title="Retentions to act on" right={<Button small variant="ghost" title="All retentions" onPress={() => router.push('/retentions?tab=due')} />}>
+              <Card style={{ padding: 0, overflow: 'hidden' }}>
+                {retAction.map(({ r, st }) => (
+                  <ListRow
+                    key={r.id}
+                    wrapRight
+                    highlight={st === 'due' || st === 'claim_overdue' ? colors.red : colors.amber}
+                    title={`${r.project_name} · ${r.end_client}`}
+                    subtitle={
+                      st === 'claim_overdue'
+                        ? `Claimed ${fmtDate(r.claimed_on)} – not paid for ${daysFrom(r.claimed_on as string, todayISO())} days · follow up`
+                        : st === 'due'
+                          ? `Due ${fmtDate(r.due_date)} – claim it now`
+                          : `Due ${fmtDate(r.due_date)} · in ${daysFrom(todayISO(), r.due_date)} days`
+                    }
+                    right={
+                      <Row gap={6} wrap>
+                        <Pill label={fmtMoney(r.retention_value, r.currency)} />
+                        <Pill
+                          label={st === 'due' ? 'Due – not claimed' : st === 'claim_overdue' ? 'Claimed > 60 days' : 'Due within 60 days'}
+                          tone={st === 'due_soon' ? colors.amber : colors.red}
+                          solid
+                        />
+                      </Row>
+                    }
+                    onPress={() => router.push(`/retentions/${r.id}`)}
+                  />
+                ))}
+              </Card>
+            </Section>
+          ) : null}
 
           <Section title="Today's planned visits">
             <Card style={{ padding: 0, overflow: 'hidden' }}>

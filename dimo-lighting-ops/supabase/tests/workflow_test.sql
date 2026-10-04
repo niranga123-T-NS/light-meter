@@ -1409,14 +1409,14 @@ select public.record_claim_inspection((select id from public.warranty_claims), c
 reset role;
 select pg_temp.act_as('operations_exec'); set role authenticated;
 do $$ begin
-  perform public.decide_warranty_claim((select id from public.warranty_claims), 'covered', null);
+  perform public.decide_warranty_claim((select id from public.warranty_claims), 'covered', null, 'manufacturing_defect');
   raise exception 'Operations decided';
 exception when others then if sqlerrm not like '%Senior Electrical Engineer decides%' then raise; end if;
 end $$;
 select public.raise_supplier_claim((select id from public.warranty_claims), 'MW-RMA-118', current_date);
 reset role;
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
-select public.decide_warranty_claim((select id from public.warranty_claims), 'covered', null);
+select public.decide_warranty_claim((select id from public.warranty_claims), 'covered', null, 'manufacturing_defect');
 reset role;
 select pg_temp.act_as('assistant_engineer'); set role authenticated;
 select public.record_claim_rectified((select id from public.warranty_claims), current_date, 228000, '38 drivers replaced');
@@ -1438,7 +1438,7 @@ begin
     'line_id', (select id from public.warranty_lines where warranty_id = w and product_group = 'Controls')));
   assert not (select in_warranty from public.warranty_claims where id = cid), 'out of warranty';
   perform public.record_claim_inspection(cid, current_date, 'Controller failed');
-  perform public.decide_warranty_claim(cid, 'covered', 'Key customer');
+  perform public.decide_warranty_claim(cid, 'covered', 'Key customer', 'manufacturing_defect');
   assert (select goodwill_status from public.warranty_claims where id = cid) = 'pending', 'goodwill pending';
 end $$;
 reset role;
@@ -1876,6 +1876,135 @@ begin
   assert not (select in_warranty from public.warranty_claims where id = cid), 'warranty ended 2024 – out of warranty';
 end $$;
 reset role;
+
+-- Not covered because of the fault (fault cause, evidence, quote, dispute, sales told of every step) -------------
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  perform set_config('test.fw', (select warranty_id::text from public.warranty_claims where id = current_setting('test.sc')::uuid), false);
+  perform set_config('test.fc', public.log_warranty_claim(jsonb_build_object('warranty_id', current_setting('test.fw')::uuid,
+    'reported_via', 'customer_call', 'description', 'Drivers burnt after a storm', 'line_id',
+    (select id from public.warranty_lines where warranty_id = current_setting('test.fw')::uuid and end_date > current_date limit 1)))::text, false);
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select public.assign_warranty_claim(current_setting('test.fc')::uuid, (select id from u where role = 'assistant_engineer'));
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+select public.record_claim_inspection(current_setting('test.fc')::uuid, current_date, 'Surge marks on drivers, no surge protection at the DB');
+reset role;
+do $$ begin
+  assert (select in_warranty from public.warranty_claims where id = current_setting('test.fc')::uuid), 'in warranty by date';
+  assert exists (select 1 from public.notifications where kind = 'warranty_claim_step' and title like 'Engineer assigned%'
+                 and recipient_id = (select id from u where role = 'asm_building')), 'sales told: engineer assigned';
+  assert exists (select 1 from public.notifications where kind = 'warranty_claim_step' and title like 'Site inspection done%'
+                 and recipient_id = (select id from u where role = 'asm_building')), 'sales told: inspection done';
+end $$;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare cid uuid := current_setting('test.fc')::uuid;
+begin
+  begin perform public.decide_warranty_claim(cid, 'chargeable', 'Surge', null); assert false, 'cause required';
+  exception when others then assert sqlerrm like 'Choose the cause%', sqlerrm; end;
+  begin perform public.decide_warranty_claim(cid, 'rejected', 'No', 'manufacturing_defect'); assert false, 'defect in warranty must be covered';
+  exception when others then assert sqlerrm like 'A manufacturing defect within the warranty period%', sqlerrm; end;
+  begin perform public.decide_warranty_claim(cid, 'chargeable', 'Surge damage', 'power_surge'); assert false, 'evidence required';
+  exception when others then assert sqlerrm like 'Attach a photo%', sqlerrm; end;
+end $$;
+reset role;
+insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name, uploaded_by)
+values ('warranty_claim', current_setting('test.fc')::uuid, 'claim_photo', 'test/fc-1.jpg', 'surge.jpg', (select id from u where role = 'assistant_engineer'));
+-- Covering a surge (not a defect) inside the warranty period is goodwill → SM Projects
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select public.decide_warranty_claim(current_setting('test.fc')::uuid, 'covered', 'Customer is a key account', 'power_surge');
+reset role;
+do $$ begin
+  assert (select goodwill_status = 'pending' and fault_cause = 'power_surge' from public.warranty_claims where id = current_setting('test.fc')::uuid), 'goodwill pending for a surge';
+  assert exists (select 1 from public.approvals where kind = 'warranty_goodwill' and entity_id = current_setting('test.fc')::uuid and reason like '%not a manufacturing defect%'), 'approval says why';
+end $$;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+select public.decide_approval((select id from public.approvals where kind = 'warranty_goodwill' and entity_id = current_setting('test.fc')::uuid), 'rejected', 'Site has no surge protection');
+reset role;
+do $$ declare at8 timestamptz := (current_date + time '08:30') at time zone app.tz();
+begin
+  assert (select decision from public.warranty_claims where id = current_setting('test.fc')::uuid) = 'chargeable', 'goodwill refused → chargeable';
+  perform public.claim_followup_tick(at8 + interval '8 days');
+  assert exists (select 1 from public.notifications where kind = 'warranty_quote_due' and recipient_id = (select id from u where role = 'asm_building')), 'sales reminded to quote';
+end $$;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin
+  perform public.record_claim_rectified(current_setting('test.fc')::uuid, current_date, 0, 'x', null); assert false, 'no repair before acceptance';
+exception when others then assert sqlerrm like 'Chargeable – the customer must accept%', sqlerrm; end $$;
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+select public.record_claim_quote(current_setting('test.fc')::uuid, 45000, 'Q-WC-1', current_date);
+select public.record_quote_response(current_setting('test.fc')::uuid, 'declined', current_date, 'Customer says DIMO should have fitted surge protection');
+select public.dispute_warranty_claim(current_setting('test.fc')::uuid, 'Surge protection was in DIMO''s scope');
+reset role;
+do $$ begin
+  assert (select status = 'closed' and close_note like 'Declined by customer%' and dispute_status = 'pending'
+            from public.warranty_claims where id = current_setting('test.fc')::uuid), 'declined, then disputed';
+  assert exists (select 1 from public.notifications where kind = 'warranty_claim_quoted' and recipient_id = (select id from u where role = 'operations_exec')), 'Operations told of the quote';
+  assert exists (select 1 from public.notifications where kind = 'warranty_claim_disputed' and recipient_id = (select id from u where role = 'sm_projects')), 'SM Projects asked';
+  assert not exists (select 1 from public.notifications where kind = 'warranty_claim_step' and title like 'Repair quote%'
+                     and recipient_id = (select id from u where role = 'asm_building')), 'not told of own step';
+end $$;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.my_pending_approvals() where source = 'claim_dispute' and id = current_setting('test.fc')::uuid), 'dispute in approvals';
+end $$;
+select public.decide_claim_dispute(current_setting('test.fc')::uuid, 'goodwill', 'Scope confirmed – cover it');
+reset role;
+do $$ begin
+  assert (select status = 'open' and decision = 'covered' and goodwill_status = 'approved' and dispute_status = 'goodwill'
+            from public.warranty_claims where id = current_setting('test.fc')::uuid), 'reopened as goodwill';
+  assert exists (select 1 from public.notifications where kind = 'warranty_claim_step' and title like 'Dispute: covered as goodwill%'
+                 and recipient_id = (select id from u where role = 'asm_building')), 'sales told of the outcome';
+end $$;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+select public.record_claim_rectified(current_setting('test.fc')::uuid, current_date, 52000, 'Drivers replaced, SPD fitted', 'dimo_stock');
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'warranty_claim_step' and title like 'Repaired / replaced%'
+                 and recipient_id = (select id from u where role = 'asm_building')), 'sales told of the repair';
+end $$;
+-- Rejected (not DIMO supply) → dispute upheld; chargeable accepted → repair
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ begin
+  perform set_config('test.fr', public.log_warranty_claim(jsonb_build_object('warranty_id', current_setting('test.fw')::uuid,
+    'reported_via', 'customer_email', 'description', 'Garden bollards not working'))::text, false);
+  perform set_config('test.fq', public.log_warranty_claim(jsonb_build_object('warranty_id', current_setting('test.fw')::uuid,
+    'reported_via', 'customer_email', 'description', 'Broken diffusers'))::text, false);
+end $$;
+reset role;
+insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name, uploaded_by)
+select 'warranty_claim', x::uuid, 'claim_photo', 'test/' || x || '.jpg', 'p.jpg', (select id from u where role = 'operations_exec')
+  from unnest(array[current_setting('test.fr'), current_setting('test.fq')]) x;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select public.decide_warranty_claim(current_setting('test.fr')::uuid, 'rejected', 'Bollards are not our supply', 'not_dimo_supply');
+select public.assign_warranty_claim(current_setting('test.fq')::uuid, (select id from u where role = 'assistant_engineer'));
+select public.record_claim_inspection(current_setting('test.fq')::uuid, current_date, 'Diffusers cracked by impact');
+select public.decide_warranty_claim(current_setting('test.fq')::uuid, 'chargeable', 'Impact damage', 'misuse_damage');
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+select public.dispute_warranty_claim(current_setting('test.fr')::uuid, 'Customer insists we supplied them');
+select public.record_claim_quote(current_setting('test.fq')::uuid, 18000, null, current_date);
+select public.record_quote_response(current_setting('test.fq')::uuid, 'accepted', current_date);
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+select public.decide_claim_dispute(current_setting('test.fr')::uuid, 'uphold', 'Delivery records show another supplier');
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+select public.record_claim_rectified(current_setting('test.fq')::uuid, current_date, 0, 'Diffusers replaced (paid)', null);
+reset role;
+do $$ declare mon timestamptz := ((current_date + ((8 - extract(isodow from current_date)::int) % 7)) + time '09:00') at time zone app.tz();
+begin
+  assert (select status = 'closed' and dispute_status = 'upheld' from public.warranty_claims where id = current_setting('test.fr')::uuid), 'dispute upheld, stays closed';
+  assert exists (select 1 from public.notifications where kind = 'warranty_claim_step' and title like 'Dispute: SM Projects upheld%'
+                 and recipient_id = (select id from u where role = 'asm_building')), 'sales told: upheld';
+  assert (select rectified_on is not null from public.warranty_claims where id = current_setting('test.fq')::uuid), 'paid repair recorded';
+  perform public.claim_followup_tick(mon);
+  assert exists (select 1 from public.notifications where kind = 'warranty_causes_weekly' and body like '%Not DIMO supply%'
+                 and recipient_id = (select id from u where role = 'gm')), 'Monday summary by cause';
+end $$;
 
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

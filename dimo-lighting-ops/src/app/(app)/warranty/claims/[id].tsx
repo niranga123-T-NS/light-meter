@@ -9,7 +9,7 @@ import { fmtDate, fmtDateTime, fmtMoney, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 import type { Warranty, WarrantyClaim, WarrantyLine } from '@/lib/types';
-import { CLAIM_STAGE_LABEL, claimDaysOpen, claimStage, isWarrantyDesk, viaLabel } from '@/lib/warranty';
+import { CLAIM_STAGE_LABEL, claimDaysOpen, claimStage, FAULT_CAUSES, faultCauseLabel, isWarrantyDesk, viaLabel } from '@/lib/warranty';
 
 type Log = { id: number; at: string; user_id: string | null; kind: string; note: string | null };
 
@@ -48,6 +48,16 @@ export default function ClaimDetail() {
   const see = me.role === 'senior_elec_engineer';
   const worker = desk || c.assignee_id === me.id;
   const open = c.status === 'open';
+  const sales = me.role === 'asm_building' || me.role === 'asm_infra';
+  // Customer side of a chargeable claim: the sales person (SM Projects / the warranty desk can step in)
+  const customerSide = sales || desk || me.role === 'sm_projects';
+  const canDispute =
+    (sales || me.role === 'sm_projects') &&
+    c.status !== 'cancelled' &&
+    !c.dispute_status &&
+    c.goodwill_status !== 'pending' &&
+    (c.decision === 'rejected' || (c.decision === 'chargeable' && c.customer_response !== 'accepted' && !c.rectified_on));
+  const decidesDispute = c.dispute_status === 'pending' && (me.role === 'sm_projects' || me.role === 'gm');
   const cur = w?.currency ?? 'LKR';
   const run = (fn: string, args: Record<string, unknown>, ok: string) =>
     dialog.run(async () => {
@@ -86,6 +96,22 @@ export default function ClaimDetail() {
               value={`${c.decision}${c.goodwill_status ? ` · goodwill ${c.goodwill_status}` : ''}${c.decision_note ? ` · ${c.decision_note}` : ''}`}
             />
           ) : null}
+          {c.fault_cause ? <KeyValue label="Cause of the fault" value={faultCauseLabel(c.fault_cause)} /> : null}
+          {c.quoted_on ? (
+            <KeyValue label="Repair quote" value={`${fmtMoney(c.quote_amount ?? 0, cur)}${c.quote_ref ? ` · ${c.quote_ref}` : ''} · ${fmtDate(c.quoted_on)}`} />
+          ) : null}
+          {c.customer_response ? (
+            <KeyValue
+              label="Customer's answer"
+              value={`${c.customer_response === 'accepted' ? 'Accepted' : 'Declined'} · ${fmtDate(c.responded_on)}${c.response_note ? ` · ${c.response_note}` : ''}`}
+            />
+          ) : null}
+          {c.dispute_status ? (
+            <KeyValue
+              label="Customer's dispute"
+              value={`${c.dispute_reason ?? ''} · ${c.dispute_status === 'pending' ? 'with SM Projects' : c.dispute_status === 'upheld' ? 'decision upheld' : 'covered as goodwill'}${c.dispute_note ? ` · ${c.dispute_note}` : ''}`}
+            />
+          ) : null}
           {c.supplier_status !== 'none' ? (
             <KeyValue
               label="Supplier claim"
@@ -110,7 +136,103 @@ export default function ClaimDetail() {
             <Button title="Approve / reject goodwill" onPress={() => router.push('/approvals')} />
           </Row>
         ) : null}
-        {stage === 'quote' ? <Notice tone={colors.blue}>Chargeable – the sales person quotes the repair. Record the rectification once the customer orders it.</Notice> : null}
+        {stage === 'quote' ? (
+          <Notice tone={colors.blue}>Not covered – the sales person quotes the repair and records it here. The repair is done once the customer accepts.</Notice>
+        ) : null}
+        {stage === 'customer' ? <Notice tone={colors.blue}>Quoted – record the customer&apos;s answer (accepted → repair; declined → the claim closes).</Notice> : null}
+        {stage === 'dispute' ? <Notice tone={colors.red}>The customer disputes the decision – SM Projects upholds it or covers it as goodwill.</Notice> : null}
+        {canDispute ? (
+          <Muted>If the customer does not agree with the decision, record their dispute – it goes to SM Projects.</Muted>
+        ) : null}
+        {customerSide || canDispute || decidesDispute ? (
+          <Row wrap gap={8} style={{ marginTop: 8 }}>
+            {customerSide && open && c.decision === 'chargeable' && c.goodwill_status !== 'pending' && !c.customer_response && c.dispute_status !== 'pending' ? (
+              <Button
+                variant={stage === 'quote' ? 'primary' : 'secondary'}
+                title={c.quoted_on ? 'Revise quote' : 'Record repair quote'}
+                onPress={async () => {
+                  const x = await dialog.prompt({
+                    title: 'Repair quote to the customer',
+                    fields: [
+                      { key: 'a', label: `Amount (${cur})`, required: true, initial: c.quote_amount ? String(c.quote_amount) : '' },
+                      { key: 'r', label: 'Quote number', initial: c.quote_ref ?? '' },
+                      { key: 'd', label: 'Quote date', type: 'date', required: true, initial: c.quoted_on ?? today },
+                    ],
+                  });
+                  if (!x) return;
+                  const amount = num(x.a);
+                  if (!(amount > 0)) return dialog.toast('Enter the quoted amount', 'error');
+                  await run('record_claim_quote', { p_id: c.id, p_amount: amount, p_ref: x.r || null, p_on: x.d }, 'Quote recorded – Operations told');
+                }}
+              />
+            ) : null}
+            {customerSide && open && c.decision === 'chargeable' && c.quoted_on && !c.customer_response && c.dispute_status !== 'pending' ? (
+              <Button
+                variant={stage === 'customer' ? 'primary' : 'secondary'}
+                title="Customer's answer"
+                onPress={async () => {
+                  const x = await dialog.prompt({
+                    title: "Customer's answer to the repair quote",
+                    fields: [
+                      {
+                        key: 'r',
+                        label: 'Answer',
+                        type: 'select',
+                        required: true,
+                        options: [
+                          { value: 'accepted', label: 'Accepted – go ahead with the repair' },
+                          { value: 'declined', label: 'Declined – close the claim' },
+                        ],
+                      },
+                      { key: 'd', label: 'Date', type: 'date', required: true, initial: today },
+                      { key: 'n', label: "Customer's reason / note (required if declined)", type: 'multiline' },
+                    ],
+                  });
+                  if (x) await run('record_quote_response', { p_id: c.id, p_response: x.r, p_on: x.d, p_note: x.n || null }, 'Answer recorded');
+                }}
+              />
+            ) : null}
+            {canDispute ? (
+              <Button
+                variant="secondary"
+                title="Customer disputes"
+                onPress={async () => {
+                  const x = await dialog.prompt({
+                    title: 'Customer disputes the decision',
+                    message: 'SM Projects reviews it and either upholds the decision or covers the claim as goodwill.',
+                    fields: [{ key: 'n', label: "Customer's reason", type: 'multiline', required: true }],
+                  });
+                  if (x) await run('dispute_warranty_claim', { p_id: c.id, p_reason: x.n }, 'Sent to SM Projects');
+                }}
+              />
+            ) : null}
+            {decidesDispute ? (
+              <Button
+                title="Decide the dispute"
+                onPress={async () => {
+                  const x = await dialog.prompt({
+                    title: 'Customer dispute',
+                    message: `${faultCauseLabel(c.fault_cause)} · ${c.decision_note ?? ''}\nCustomer: ${c.dispute_reason ?? ''}`,
+                    fields: [
+                      {
+                        key: 'd',
+                        label: 'Decision',
+                        type: 'select',
+                        required: true,
+                        options: [
+                          { value: 'uphold', label: 'Uphold the decision' },
+                          { value: 'goodwill', label: 'Cover as goodwill – reopen for the repair' },
+                        ],
+                      },
+                      { key: 'n', label: 'Reason', type: 'multiline', required: true },
+                    ],
+                  });
+                  if (x) await run('decide_claim_dispute', { p_id: c.id, p_decision: x.d, p_note: x.n }, 'Decision recorded – sales person told');
+                }}
+              />
+            ) : null}
+          </Row>
+        ) : null}
         {open ? (
           <Row wrap gap={8} style={{ marginTop: 8 }}>
             {desk && stage === 'verify' && !see ? (
@@ -162,14 +284,17 @@ export default function ClaimDetail() {
                 onPress={async () => {
                   const x = await dialog.prompt({
                     title: c.in_warranty ? 'Decision' : 'Decision – out of warranty (covered = goodwill, SM Projects approves)',
+                    message:
+                      'Only a manufacturing defect within the warranty period is covered by the warranty. Covering anything else is goodwill (SM Projects approves). For chargeable or rejected, attach a photo or the inspection report first – the customer is shown why.',
                     fields: [
+                      { key: 'c', label: 'Cause of the fault', type: 'select', required: true, options: FAULT_CAUSES, initial: c.fault_cause ?? undefined },
                       {
                         key: 'd',
                         label: 'Decision',
                         type: 'select',
                         required: true,
                         options: [
-                          { value: 'covered', label: c.in_warranty ? 'Covered by warranty' : 'Cover as goodwill (SM Projects approval)' },
+                          { value: 'covered', label: c.in_warranty ? 'Covered (goodwill if not a manufacturing defect)' : 'Cover as goodwill (SM Projects approval)' },
                           { value: 'chargeable', label: 'Chargeable – quote the customer' },
                           { value: 'rejected', label: 'Rejected (misuse, not our supply …)' },
                         ],
@@ -177,11 +302,11 @@ export default function ClaimDetail() {
                       { key: 'n', label: 'Reason / note (required unless covered)', type: 'multiline' },
                     ],
                   });
-                  if (x) await run('decide_warranty_claim', { p_id: c.id, p_decision: x.d, p_note: x.n || null }, 'Decision recorded');
+                  if (x) await run('decide_warranty_claim', { p_id: c.id, p_decision: x.d, p_note: x.n || null, p_cause: x.c }, 'Decision recorded – sales person told');
                 }}
               />
             ) : null}
-            {worker && (c.decision === 'covered' || c.decision === 'chargeable') && c.goodwill_status !== 'pending' && !c.rectified_on ? (
+            {worker && (c.decision === 'covered' || c.customer_response === 'accepted') && c.goodwill_status !== 'pending' && c.dispute_status !== 'pending' && !c.rectified_on ? (
               <Button
                 variant={stage === 'rectify' ? 'primary' : 'secondary'}
                 title="Record rectification"
