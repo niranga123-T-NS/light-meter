@@ -2169,5 +2169,21 @@ begin
 end $$;
 reset role;
 
+-- Opening list row without invoice months: loads with the schedule missing ------------------------------------------------
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare res jsonb;
+  row jsonb := jsonb_build_object('row_no', 2, 'project_name', 'Supply of terminal blocks', 'business_line', 'Infrastructure', 'sales_person', 'Asm Infra',
+    'order_value', '950,000.00', 'won_on', '2026-02-10', 'wbs', 'LS-000771');
+begin
+  res := public.check_opening_list(jsonb_build_array(row));
+  assert jsonb_array_length(res -> 0 -> 'errors') = 0, 'no invoice months is not an error: ' || (res -> 0 -> 'errors')::text;
+  assert (res -> 0 -> 'warnings' ->> 0) like 'No invoice months%', 'warned';
+  assert public.save_opening_list(jsonb_build_array(row)) = 1, 'saved';
+  assert (select schedule_status = 'missing' and order_value = 950000 and source = 'opening' from public.secured_projects where wbs = 'LS-000771'), 'schedule missing';
+  res := public.check_opening_list(jsonb_build_array(row || jsonb_build_object('billed_before', '1,000,000')));
+  assert (res -> 0 -> 'errors' ->> 0) like 'Invoiced before 1 April is more%', 'billed before above the value';
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
