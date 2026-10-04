@@ -2086,5 +2086,22 @@ do $$ begin
                      where s.code = 'SEC-V-2' and a.line_id is null), 'all invoicing now on invoices';
 end $$;
 
+-- Targets from a budget list without invoice months: spread from the order month to March ------------------------------
+insert into public.budget_projects (fy, business_line, project_name, sales_person_id, budget_value, order_month)
+values (app.fy_of(current_date) + 1, 'indoor', 'Mall fit-out', (select id from u where role = 'asm_infra'), 12000000,
+        (app.fy_start(app.fy_of(current_date) + 1) + interval '2 months')::date);
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ declare y int := app.fy_of(current_date) + 1; me uuid := (select id from u where role = 'asm_infra');
+begin
+  perform public.fill_targets_from_budget(y);
+  assert (select sum(invoice_target) from public.sales_targets where fy = y and sales_person_id = me) = 12000000, 'whole value as invoicing target';
+  assert (select invoice_target from public.sales_targets where fy = y and sales_person_id = me and month = app.fy_start(y)) = 0, 'nothing before the order month';
+  assert (select invoice_target from public.sales_targets where fy = y and sales_person_id = me
+           and month = (app.fy_start(y) + interval '2 months')::date) = 1200000, 'spread over 10 months';
+  assert (select sum(secured_target) from public.sales_targets where fy = y and sales_person_id = me
+           and month = (app.fy_start(y) + interval '2 months')::date) = 12000000, 'secured in the order month';
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
