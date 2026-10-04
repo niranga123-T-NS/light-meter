@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import type { ProjectType, Role } from './types';
 
 export const ROLE_LABELS: Record<Role, string> = {
@@ -58,6 +59,11 @@ export type NavItem = { href: string; label: string; icon: string; badgeKey?: 'a
 export function navFor(role: Role): NavItem[] {
   const items = baseNav(role);
   const meetings: NavItem = { href: '/meetings', label: 'Meetings', icon: '◴' };
+  // Sales map: web app only, for GM / DGM, SM Projects and sales – placed after Visits
+  if (Platform.OS === 'web' && (role === 'gm' || role === 'sm_projects' || isSales(role))) {
+    const at = items.findIndex((i) => i.href === '/visits');
+    items.splice(at < 0 ? items.length : at + 1, 0, { href: '/map', label: 'Map', icon: '⌖' });
+  }
   return [...items.slice(0, 1), meetings, ...items.slice(1)];
 }
 

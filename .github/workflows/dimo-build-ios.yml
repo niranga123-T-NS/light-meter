@@ -1,0 +1,112 @@
+# Builds the DIMO Lighting Ops iPhone app in the Expo cloud (EAS) and uploads it to App Store Connect – no Mac needed.
+# Run it from GitHub → Actions → "DIMO – build iPhone app" → Run workflow.
+# After the upload the build appears in App Store Connect → TestFlight (about 10–30 minutes later, once Apple has
+# processed it). From there: test with TestFlight, then add it to an App Store version and submit for review.
+#
+# Repository secrets needed (Settings → Secrets and variables → Actions → New repository secret):
+#   EXPO_TOKEN     – already used by the Android build
+#   APPLE_TEAM_ID  – developer.apple.com → Account → Membership details → Team ID (10 characters)
+#   ASC_KEY_ID     – App Store Connect → Users and Access → Integrations → App Store Connect API → Team keys:
+#   ASC_ISSUER_ID    create a key with the Admin role (needed to create the signing certificate and profile);
+#   ASC_API_KEY_P8   ASC_KEY_ID = its Key ID, ASC_ISSUER_ID = the Issuer ID shown above the list,
+#                    ASC_API_KEY_P8 = the whole text of the downloaded AuthKey_XXXX.p8 file
+#   ASC_APP_ID     – App Store Connect → Apps → DIMO Lighting Ops → App Information → Apple ID (digits only);
+#                    create the app first with bundle ID lk.dimo.lightingops
+name: DIMO – build iPhone app
+
+on:
+  workflow_dispatch:
+    inputs:
+      submit:
+        description: Upload the build to App Store Connect (TestFlight)
+        type: boolean
+        default: true
+      team_type:
+        description: Apple Developer account type
+        type: choice
+        options: [COMPANY_OR_ORGANIZATION, INDIVIDUAL]
+        default: COMPANY_OR_ORGANIZATION
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    defaults:
+      run:
+        working-directory: dimo-lighting-ops
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EXPO_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      EXPO_APPLE_TEAM_TYPE: ${{ inputs.team_type }}
+      EXPO_ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      EXPO_ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the secrets are set
+        env:
+          ASC_API_KEY_P8: ${{ secrets.ASC_API_KEY_P8 }}
+          ASC_APP_ID: ${{ secrets.ASC_APP_ID }}
+        run: |
+          missing=""
+          [ -n "$EXPO_TOKEN" ] || missing="$missing EXPO_TOKEN"
+          [ -n "$EXPO_APPLE_TEAM_ID" ] || missing="$missing APPLE_TEAM_ID"
+          [ -n "$EXPO_ASC_KEY_ID" ] || missing="$missing ASC_KEY_ID"
+          [ -n "$EXPO_ASC_ISSUER_ID" ] || missing="$missing ASC_ISSUER_ID"
+          [ -n "$ASC_API_KEY_P8" ] || missing="$missing ASC_API_KEY_P8"
+          [ -n "$ASC_APP_ID" ] || missing="$missing ASC_APP_ID"
+          if [ -n "$missing" ]; then echo "::error::Add these repository secrets first:$missing (see the top of this workflow file)"; exit 1; fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: npm ci
+
+      - name: Signed in to Expo as
+        run: npx eas-cli@latest whoami
+
+      # The App Store Connect API key lets EAS create the signing certificate and provisioning profile without a Mac.
+      # It is written outside the project folder so it is never uploaded with the source.
+      - name: App Store Connect API key
+        env:
+          ASC_API_KEY_P8: ${{ secrets.ASC_API_KEY_P8 }}
+        run: |
+          printf '%s\n' "$ASC_API_KEY_P8" > "$RUNNER_TEMP/AuthKey.p8"
+          grep -q "BEGIN PRIVATE KEY" "$RUNNER_TEMP/AuthKey.p8" || { echo "::error::ASC_API_KEY_P8 must be the whole .p8 file, including the BEGIN / END PRIVATE KEY lines"; exit 1; }
+          echo "EXPO_ASC_API_KEY_PATH=$RUNNER_TEMP/AuthKey.p8" >> "$GITHUB_ENV"
+
+      - name: Link the Expo project
+        run: npx eas-cli@latest init --non-interactive --force
+
+      - name: Build on EAS (iOS, production)
+        run: |
+          npx eas-cli@latest build --platform ios --profile production --non-interactive --json > build.json
+          cat build.json
+
+      - name: Upload to App Store Connect
+        if: ${{ inputs.submit }}
+        env:
+          ASC_APP_ID: ${{ secrets.ASC_APP_ID }}
+        run: |
+          jq --arg p "$EXPO_ASC_API_KEY_PATH" --arg k "$EXPO_ASC_KEY_ID" --arg i "$EXPO_ASC_ISSUER_ID" --arg a "$ASC_APP_ID" --arg t "$EXPO_APPLE_TEAM_ID" \
+            '.submit.production.ios = {ascApiKeyPath: $p, ascApiKeyId: $k, ascApiKeyIssuerId: $i, ascAppId: $a, appleTeamId: $t}' eas.json > eas.tmp.json
+          mv eas.tmp.json eas.json
+          npx eas-cli@latest submit --platform ios --profile production --id "$(jq -r '.[0].id' build.json)" --non-interactive --wait
+
+      - name: Summary
+        run: |
+          id=$(jq -r '.[0].id' build.json)
+          version=$(jq -r '.[0].appVersion' build.json); number=$(jq -r '.[0].appBuildVersion' build.json)
+          project=$(jq -r '.[0].project.fullName // empty' build.json); project=${project#@}
+          {
+            echo "### iPhone build finished – version $version ($number)"
+            echo ""
+            echo "Build page: https://expo.dev/accounts/${project%%/*}/projects/${project#*/}/builds/$id"
+            echo ""
+            if [ "${{ inputs.submit }}" = "true" ]; then
+              echo "Uploaded to App Store Connect. It appears under TestFlight once Apple has processed it (usually 10–30 minutes)."
+            else
+              echo "Not uploaded (submit was off)."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
