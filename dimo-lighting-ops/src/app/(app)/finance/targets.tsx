@@ -168,7 +168,7 @@ export default function Targets() {
             { h: 'Invoiced', w: 85, right: true, v: (x) => mn(x.y.invoiced) },
             { h: '% ', w: 75, v: (x) => <Pill label={fmtPct(x.y.invoicedPct)} tone={pctTone(x.y.invoicedPct)} /> },
             { h: 'Cover (FY)', w: 85, right: true, v: (x) => fmtPct(x.y.cover) },
-            { h: 'Score', w: 70, right: true, v: (x) => x.y.score.toFixed(1), bold: true },
+            { h: 'Score', w: 70, right: true, v: (x) => x.y.score.toFixed(2), bold: true },
             { h: 'Awaiting schedule', w: 140, v: (x) => (x.p.pending_n ? <Pill label={`${x.p.pending_n} won · ${mn(x.p.pending_value)}`} tone={colors.amber} /> : '—') },
           ]}
         />

@@ -45,7 +45,7 @@ export default function MyTarget() {
               <Card>
                 <Row wrap gap={16} style={{ alignItems: 'center' }}>
                   <View style={{ alignItems: 'center', minWidth: 110 }}>
-                    <Text style={{ fontSize: 36, fontWeight: '800', color: pctTone(y.score) }}>{y.score.toFixed(1)}</Text>
+                    <Text style={{ fontSize: 36, fontWeight: '800', color: pctTone(y.score) }}>{y.score.toFixed(2)}</Text>
                     <Muted>Score · Apr – {upTo ? fmtMonthShort(upTo) : '—'}</Muted>
                   </View>
                   <View style={{ flex: 1, minWidth: 220, gap: 10 }}>

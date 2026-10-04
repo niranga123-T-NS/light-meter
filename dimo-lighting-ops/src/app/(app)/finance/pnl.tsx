@@ -6,6 +6,7 @@ import { DataTable } from '@/components/DataTable';
 import { Button, Card, colors, Empty, ErrorBanner, Grid, Loading, Muted, Notice, Pill, Progress, Row, Screen, Section, Select } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import {
+  amt,
   findLine,
   fmtMonth,
   fmtMonthShort,
@@ -182,7 +183,7 @@ export default function PnlScreen() {
                 { name: 'Budget', color: CHART.budget, fill: CHART.budgetFill, values: trendMonths.map((m) => mnv(T(m, 'turn')?.m_bud)) },
                 { name: 'Actual', color: CHART.actual, values: trendMonths.map((m) => mnv(T(m, 'turn')?.m_act)) },
               ]}
-              fmt={(v) => `${v.toFixed(1)} Mn`}
+              fmt={(v) => `${amt(v)} Mn`}
               fmtAxis={(v) => v.toFixed(0)}
               flags={(i) => (n(T(trendMonths[i], 'turn')?.m_act) < 0.9 * n(T(trendMonths[i], 'turn')?.m_bud) ? 'bad' : undefined)}
               note={trendMonths.length < 2 ? 'Only one month loaded – upload the earlier OR files of the year to see the trend.' : '▼ = month below 90% of budget'}
@@ -197,7 +198,7 @@ export default function PnlScreen() {
                 { name: 'Last year', color: CHART.second, values: trendMonths.map((m) => mnv(T(m, 'turn')?.ly_cum)) },
                 { name: 'Actual', color: CHART.actual, values: trendMonths.map((m) => mnv(T(m, 'turn')?.c_act)) },
               ]}
-              fmt={(v) => `${v.toFixed(1)} Mn`}
+              fmt={(v) => `${amt(v)} Mn`}
               fmtAxis={(v) => v.toFixed(0)}
               flags={(i) => (n(T(trendMonths[i], 'turn')?.c_act) < 0.9 * n(T(trendMonths[i], 'turn')?.c_bud) ? 'bad' : undefined)}
               note={`FY plan ${mn(turnover?.fy_bp)} Mn · ▼ = year to date below 90% of budget`}
@@ -211,7 +212,7 @@ export default function PnlScreen() {
                 { name: 'Budget', color: CHART.budget, dashed: true, values: trendMonths.map((m) => gpPct(T(m, 'gp')?.m_bud, T(m, 'turn')?.m_bud)) },
                 { name: 'Actual', color: CHART.actual, values: trendMonths.map((m) => gpPct(T(m, 'gp')?.m_act, T(m, 'turn')?.m_act)) },
               ]}
-              fmt={(v) => `${v.toFixed(1)}%`}
+              fmt={(v) => `${amt(v)}%`}
               fmtAxis={(v) => `${v.toFixed(0)}%`}
               flags={(i) => {
                 const a = gpPct(T(trendMonths[i], 'gp')?.m_act, T(trendMonths[i], 'turn')?.m_act);
@@ -230,7 +231,7 @@ export default function PnlScreen() {
                 { name: 'Last year', color: CHART.second, values: trendMonths.map((m) => mnv(T(m, 'np')?.ly_cum)) },
                 { name: 'Actual', color: CHART.actual, values: trendMonths.map((m) => mnv(T(m, 'np')?.c_act)) },
               ]}
-              fmt={(v) => `${v.toFixed(1)} Mn`}
+              fmt={(v) => `${amt(v)} Mn`}
               fmtAxis={(v) => v.toFixed(0)}
               flags={(i) => (n(T(trendMonths[i], 'np')?.c_act) < n(T(trendMonths[i], 'np')?.c_bud) ? 'bad' : undefined)}
               note="▼ = below budget"
