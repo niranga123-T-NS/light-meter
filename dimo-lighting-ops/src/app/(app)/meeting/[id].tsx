@@ -72,8 +72,9 @@ type Action = {
   projects: { name: string } | null;
   organizations: { name: string } | null;
 };
-type Invitee = { person_id: string; status: 'invited' | 'present' | 'location_check' | 'absent' | 'excused'; checkin_at: string | null; distance_m: number | null; note: string | null };
+type Invitee = { person_id: string; status: 'pending_approval' | 'invited' | 'present' | 'location_check' | 'absent' | 'excused'; checkin_at: string | null; distance_m: number | null; note: string | null };
 const ATT: Record<Invitee['status'], { label: string; tone: string }> = {
+  pending_approval: { label: 'Waiting for SM Projects to approve the invitation', tone: colors.amber },
   invited: { label: 'Not marked yet', tone: colors.grey },
   present: { label: 'Present', tone: colors.green },
   location_check: { label: 'Location differs – approve', tone: colors.red },
@@ -240,7 +241,7 @@ export default function MeetingPack() {
       </Card>
 
       <Section
-        title={`Attendance (${data.invitees.filter((x) => x.status === 'present').length} of ${data.invitees.length} present)`}
+        title={`Attendance (${data.invitees.filter((x) => x.status === 'present').length} of ${data.invitees.filter((x) => x.status !== 'pending_approval').length} present)`}
         right={
           edit && !m.started_at ? (
             <Row gap={6}>

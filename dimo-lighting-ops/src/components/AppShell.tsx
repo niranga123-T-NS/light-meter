@@ -21,7 +21,7 @@ export function useShellCounts() {
   return useContext(CountsContext);
 }
 
-const POPUP_KINDS = ['meeting_action', 'meeting_invite'];
+const POPUP_KINDS = ['meeting_action', 'meeting_invite', 'meeting_invite_approval'];
 
 /** Badge counts for the approvals tab, notification bell and delayed inquiries; live via Realtime. */
 export function CountsProvider({ children }: { children: ReactNode }) {

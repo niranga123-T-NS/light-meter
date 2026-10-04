@@ -2583,6 +2583,9 @@ begin
     array[(select id from u where role = 'lighting_designer'), (select id from u where role = 'lighting_engineer'), (select id from u where role = 'estimation_exec')]);
   perform set_config('test.dmid', mid::text, false);
   assert (select team = 'design' and starts_at = '09:00' and ends_at = '10:30' from public.sales_meetings where id = mid), 'design meeting with its time';
+  -- The estimation executive is outside the design team: waits for SM Projects, not told yet
+  assert (select status from public.sales_meeting_invitees where meeting_id = mid and person_id = (select id from u where role = 'estimation_exec')) = 'pending_approval', 'outsider waits';
+  assert (select status from public.sales_meeting_invitees where meeting_id = mid and person_id = (select id from u where role = 'lighting_engineer')) = 'invited', 'own team invited at once';
   assert public.generate_team_meeting('design', current_setting('test.dm')::date) = mid, 'pack generated';
   assert (select pack ->> 'team_kind' from public.sales_meetings where id = mid) = 'design', 'design pack';
   assert (select jsonb_array_length(pack -> 'people') from public.sales_meetings where id = mid) = 2, 'invited designers in the pack';
@@ -2590,6 +2593,37 @@ begin
   assert not exists (select 1 from public.sales_meetings where team = 'sales' and id = mid), 'separate from the sales meeting';
 end $$;
 reset role;
+do $$ begin
+  assert not exists (select 1 from public.notifications where kind = 'meeting_invite' and title like 'Invited: design team meeting%'
+                     and recipient_id = (select id from u where role = 'estimation_exec')), 'outsider not told before approval';
+  assert exists (select 1 from public.notifications where kind = 'meeting_invite_approval' and recipient_id = (select id from u where role = 'sm_projects')), 'SM Projects asked';
+end $$;
+select pg_temp.act_as('estimation_exec'); set role authenticated;
+do $$ begin
+  assert not exists (select 1 from public.my_meetings() where meeting_id = current_setting('test.dmid')::uuid), 'not shown before approval';
+  begin perform public.request_meeting_leave(current_setting('test.dmid')::uuid, 'x'); assert false, 'not invited yet';
+  exception when others then assert sqlerrm like 'You are not invited%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('design_manager'); set role authenticated;
+do $$ begin
+  begin perform public.decide_meeting_invite(current_setting('test.dmid')::uuid, (select id from u where role = 'estimation_exec'), true); assert false, 'SM Projects only';
+  exception when others then assert sqlerrm like 'Only SM Projects approves invitations%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.my_pending_approvals() where source = 'meeting_invite'), 'in SM Projects approvals';
+  assert (select count(*) from public.meeting_invites_to_approve()) = 1, 'one to approve';
+  perform public.decide_meeting_invite(current_setting('test.dmid')::uuid, (select id from u where role = 'estimation_exec'), true, 'Needed for the costing discussion');
+end $$;
+reset role;
+do $$ begin
+  assert (select status from public.sales_meeting_invitees where meeting_id = current_setting('test.dmid')::uuid
+          and person_id = (select id from u where role = 'estimation_exec')) = 'invited', 'released after approval';
+  assert exists (select 1 from public.notifications where title like 'Invited: design team meeting%' and recipient_id = (select id from u where role = 'estimation_exec')), 'told after approval';
+  assert exists (select 1 from public.notifications where title like 'Invitation approved%' and recipient_id = (select id from u where role = 'design_manager')), 'host told';
+end $$;
 -- The designer sees the invitation and applies for leave; the Design Manager decides
 select pg_temp.act_as('lighting_designer'); set role authenticated;
 do $$ begin

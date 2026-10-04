@@ -6,7 +6,7 @@ import { Button, Card, colors, DateField, ErrorBanner, Field, Loading, Muted, No
 import { useMe } from '@/lib/auth';
 import { fmtDate } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
-import { hhmm, isTeam, TEAMS } from '@/lib/meetings';
+import { hhmm, isTeam, ownTeam, TEAMS } from '@/lib/meetings';
 import { ROLE_LABELS } from '@/lib/roles';
 import { rpc, supabase } from '@/lib/supabase';
 
@@ -75,6 +75,7 @@ export default function InviteToMeeting() {
     else n.add(id);
     setPicked(n);
   };
+  const outsiders = cfg.fixed ? 0 : data.people.filter((p) => sel.has(p.id) && !data.invited.includes(p.id) && !ownTeam(team).includes(p.role)).length;
   const groups = [...GROUPS, ...[...new Set(data.people.map((p) => p.role))].filter((r) => !GROUPS.includes(r))];
 
   return (
@@ -101,7 +102,7 @@ export default function InviteToMeeting() {
         <Muted>
           {cfg.fixed
             ? 'Select who is invited – anyone except GM / DGM and System Admin. Invite by Sunday 10:00; GM / DGM are told if it is not done by 15:00.'
-            : 'Select who is invited – anyone except GM / DGM and System Admin. Invitees are notified, reminded an hour before, and mark attendance at the venue.'}
+            : 'Select who is invited – anyone except GM / DGM and System Admin. Your team is invited at once; anyone from outside the team is invited only after SM Projects approves. Invitees are reminded an hour before and mark attendance at the venue.'}
         </Muted>
         <Row wrap gap={8} style={{ marginTop: 8 }}>
           <Button
@@ -117,7 +118,7 @@ export default function InviteToMeeting() {
                   p_people: [...sel],
                 });
                 router.replace(`/meeting/${id}`);
-              }, 'Invitations sent')
+              }, outsiders ? `Team invited – ${outsiders} from outside the team sent to SM Projects for approval` : 'Invitations sent')
             }
           />
           <Button variant="ghost" title="Cancel" onPress={() => router.back()} />
@@ -127,7 +128,7 @@ export default function InviteToMeeting() {
         const list = data.people.filter((p) => p.role === r);
         if (!list.length) return null;
         return (
-          <Section key={r} title={ROLE_LABELS[r] ?? r}>
+          <Section key={r} title={`${ROLE_LABELS[r] ?? r}${!cfg.fixed && !ownTeam(team).includes(r) ? ' · needs SM Projects approval' : ''}`}>
             <Card style={{ padding: 0, overflow: 'hidden' }}>
               {list.map((p) => {
                 const on = sel.has(p.id);
