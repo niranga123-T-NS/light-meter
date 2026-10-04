@@ -2,14 +2,12 @@ import { router, Stack } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 import { DataTable } from '@/components/DataTable';
-import { useDialog } from '@/components/dialog';
 import { SCHEDULE_LABEL, SCHEDULE_TONE } from '@/components/financeTones';
 import { ListUpload } from '@/components/ListUpload';
-import { Button, colors, ErrorBanner, Grid, Loading, Muted, Pill, Row, Screen, Section, Segmented, Select, Stat } from '@/components/ui';
+import { colors, ErrorBanner, Grid, Loading, Muted, Pill, Row, Screen, Section, Segmented, Select, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import {
   downloadXlsx,
-  fmtMonth,
   fyEnd,
   fyLabel,
   fyOf,
@@ -30,14 +28,12 @@ import { fmtDate, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 
-type Unlinked = { wbs: string; invoiced: number; months: number; last_month: string };
 type Tab = 'book' | 'missing' | 'review' | 'unbudgeted' | 'done' | 'closed';
 
 /** Secured projects (order book): won in the system or loaded from the opening list, with what is still to invoice. */
 export default function SecuredList() {
   const me = useMe();
   const people = usePeople();
-  const dialog = useDialog();
   const fy = fyOf(todayISO());
   const [tab, setTab] = useState<Tab>('book');
   const [line, setLine] = useState('');
@@ -50,8 +46,7 @@ export default function SecuredList() {
     ]);
     if (s.error) throw new Error(s.error.message);
     // Project codes invoiced this year that are on no secured project (Operations links them)
-    const unlinked = seesFinance(me.role) ? await rpc<Unlinked[]>('unlinked_wbs', { p_fy: fy }).catch(() => [] as Unlinked[]) : [];
-    return { secured: (s.data ?? []) as SecuredProject[], lines: (l.data ?? []) as InvoiceLine[], allocs: (a.data ?? []) as Allocation[], unlinked };
+    return { secured: (s.data ?? []) as SecuredProject[], lines: (l.data ?? []) as InvoiceLine[], allocs: (a.data ?? []) as Allocation[] };
   });
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
 
@@ -81,30 +76,6 @@ export default function SecuredList() {
   const securedFy = wonFy.reduce((a, s) => a + data.lines.filter((l) => l.secured_id === s.id && inFy(l.original_month, fy)).reduce((x, l) => x + Number(l.amount), 0), 0);
   const invoicedFy = scoped.reduce((a, s) => a + calc(s).invoicedFy, 0);
   const toBill = open.reduce((a, s) => a + calc(s).balFy, 0);
-  const link = async (u: Unlinked) => {
-    const choices = data.secured
-      .filter((x) => x.status === 'open')
-      .sort((a, b) => Number(!!a.wbs) - Number(!!b.wbs) || a.project_name.localeCompare(b.project_name));
-    const r = await dialog.prompt({
-      title: `Link ${u.wbs}`,
-      message: `${mn(u.invoiced, 2)} Mn invoiced this year. Choose the secured project – its WBS is set to ${u.wbs} and the invoicing is matched to its invoices.`,
-      fields: [
-        {
-          key: 'p',
-          label: 'Secured project',
-          type: 'select',
-          required: true,
-          options: choices.map((x) => ({ value: x.id, label: x.project_name, hint: `${people[x.sales_person_id ?? '']?.full_name ?? '—'}${x.wbs ? ` · now ${x.wbs}` : ' · no WBS yet'}` })),
-        },
-      ],
-      confirmLabel: 'Link',
-    });
-    if (!r) return;
-    await dialog.run(async () => {
-      await rpc('set_secured_details', { p_secured: r.p, p_data: { wbs: u.wbs } });
-      await reload();
-    }, `${u.wbs} linked`);
-  };
   const salesPeople = [...new Set(data.secured.map((s) => s.sales_person_id).filter(Boolean))] as string[];
 
   return (
@@ -180,28 +151,6 @@ export default function SecuredList() {
         LKR Mn. Due this FY = invoices planned in {fyLabel(fy)} (and older ones still open). Balance FY = still to bill by 31 March. Each sales person’s cover of the
         invoicing target is in Targets.
       </Muted>
-
-      {seesFinance(me.role) && data.unlinked.length ? (
-        <Section title={`Project codes not linked (${data.unlinked.length})`}>
-          <DataTable
-            rows={data.unlinked}
-            keyOf={(u) => u.wbs}
-            edge={() => colors.amber}
-            footer={['Total', mn(data.unlinked.reduce((a, u) => a + Number(u.invoiced), 0), 2), '', '', '']}
-            columns={[
-              { h: 'WBS', w: 110, v: (u) => u.wbs, bold: true },
-              { h: `Invoiced ${fyLabel(fy)} (Mn)`, w: 150, right: true, v: (u) => mn(u.invoiced, 2) },
-              { h: 'Months', w: 70, right: true, v: (u) => String(u.months) },
-              { h: 'Last invoiced', w: 110, v: (u) => fmtMonth(u.last_month) },
-              { h: '', w: 150, v: (u) => (isFinanceDesk(me.role) ? <Button small title="Link to a project" onPress={() => link(u)} /> : null) },
-            ]}
-          />
-          <Muted>
-            These codes were invoiced in the OR files but are on no secured project, so their invoicing counts toward nobody’s target. Link each to its secured project (or load
-            it in the opening list with its WBS).
-          </Muted>
-        </Section>
-      ) : null}
 
       {isFinanceDesk(me.role) ? (
         <Section title="Opening secured list (orders won before the system)">
