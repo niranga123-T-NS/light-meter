@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Text, View } from 'react-native';
+import { BrandLogo } from '@/components/BrandLogo';
 import { Button, Card, colors, ErrorBanner, Field, Muted, Notice } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { isConfigured } from '@/lib/supabase';
@@ -14,8 +15,8 @@ export default function SignIn() {
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: '#15171C', justifyContent: 'center', padding: 16 }}>
       <View style={{ width: '100%', maxWidth: 420, alignSelf: 'center' }}>
-        <Text style={{ color: colors.brand, fontSize: 40, fontWeight: '800', letterSpacing: 2, textAlign: 'center' }}>DIMO</Text>
-        <Text style={{ color: '#D1D5DB', textAlign: 'center', marginBottom: 24 }}>Lighting Solutions · Operations System</Text>
+        <BrandLogo width={240} tagline align="center" />
+        <Text style={{ color: '#D1D5DB', textAlign: 'center', marginTop: 14, marginBottom: 24 }}>Lighting Solutions · Operations System</Text>
         <Card>
           {!isConfigured ? (
             <Notice tone={colors.red}>
