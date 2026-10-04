@@ -143,3 +143,52 @@ const title = {
   color: colors.ink,
   marginBottom: 6,
 };
+
+/** SM Projects / GM dashboard: the team's year to date – budget vs secured vs invoiced – and each sales person; taps to Targets. */
+export function TeamTargetCard({ people, upTo }: { people: PerfPerson[]; upTo: string | null }) {
+  const rows = people.map((p) => ({ p, y: ytd(p, upTo) })).sort((a, b) => b.y.score - a.y.score);
+  const t = rows.reduce(
+    (a, { y }) => ({ st: a.st + y.securedTarget, s: a.s + y.secured, it: a.it + y.invoiceTarget, i: a.i + y.invoiced, fy: a.fy + y.fyInvoiceTarget, fyi: a.fyi + y.fyInvoiced }),
+    { st: 0, s: 0, it: 0, i: 0, fy: 0, fyi: 0 },
+  );
+  const bar = (label: string, done: number, target: number) => {
+    const v = pct(done, target);
+    return (
+      <View style={{ gap: 4 }}>
+        <Row style={{ justifyContent: 'space-between' }}>
+          <Text style={{ color: colors.text }}>{label}</Text>
+          <Text style={{ fontWeight: '700', color: colors.ink }}>
+            {mn(done)} / {mn(target)} Mn · {fmtPct(v)}
+          </Text>
+        </Row>
+        <Progress pct={v} colour={pctTone(v)} />
+      </View>
+    );
+  };
+  return (
+    <Card onPress={() => router.push('/finance/targets')}>
+      <View style={{ gap: 10 }}>
+        {bar('Secured vs budget · year to date', t.s, t.st)}
+        {bar('Invoiced vs budget · year to date', t.i, t.it)}
+        {bar('Invoiced vs full-year invoicing budget', t.fyi, t.fy)}
+      </View>
+      {rows.length ? (
+        <View style={{ marginTop: 12, gap: 6 }}>
+          {rows.map(({ p, y }) => (
+            <Row key={p.id} wrap style={{ justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 6 }}>
+              <Text style={{ fontWeight: '700', color: colors.ink, minWidth: 160 }}>{p.name}</Text>
+              <Text style={{ color: pctTone(y.securedPct) }}>Secured {fmtPct(y.securedPct)}</Text>
+              <Text style={{ color: pctTone(y.invoicedPct) }}>Invoiced {fmtPct(y.invoicedPct)}</Text>
+              <Text style={{ fontWeight: '700', color: pctTone(y.score) }}>Score {y.score.toFixed(2)}</Text>
+            </Row>
+          ))}
+        </View>
+      ) : (
+        <Muted>No targets for this year yet – fill them from the budget list in Targets.</Muted>
+      )}
+      <View style={{ marginTop: 8 }}>
+        <Muted>LKR Mn · budget from the budget list · secured = projects won / marked secured · invoiced = invoices recorded · tap for details</Muted>
+      </View>
+    </Card>
+  );
+}
