@@ -1,14 +1,21 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useDialog } from '@/components/dialog';
-import { PersonPicker } from '@/components/pickers';
-import { Button, Card, colors, ErrorBanner, Field, Loading, Muted, Notice, NumberField, Row, Screen, Section, Select } from '@/components/ui';
+import { PersonPicker, ProjectPicker } from '@/components/pickers';
+import { Button, Card, colors, DateField, ErrorBanner, Field, Loading, Muted, Notice, NumberField, Row, Screen, Section, Segmented, Select } from '@/components/ui';
 import { fmtDate, fmtDateTime, todayISO } from '@/lib/format';
+import { PROJECT_TYPES } from '@/lib/roles';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 import type { Warranty, WarrantyLine, WarrantyReport } from '@/lib/types';
 import { isWarrantyDesk, REPORTED_VIA } from '@/lib/warranty';
 import { useMe } from '@/lib/auth';
+
+function addMonthsISO(iso: string, n: number) {
+  const d = new Date(`${iso}T12:00:00Z`);
+  d.setUTCMonth(d.getUTCMonth() + n);
+  return d.toISOString().slice(0, 10);
+}
 
 /** Log a warranty claim (Operations Executive, Senior Electrical Engineer) – from a customer, or from an issue a sales person reported. */
 export default function ClaimNew() {
@@ -26,6 +33,11 @@ export default function ClaimNew() {
   const [loc, setLoc] = useState<string | null>(null);
   const [assignee, setAssignee] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Older project with no warranty record: details entered by hand create the record with the claim
+  const [mode, setMode] = useState<'list' | 'manual' | null>(null);
+  const [inSystem, setInSystem] = useState<'system' | 'outside'>('system');
+  const [man, setMan] = useState({ project_id: '', project_label: '', project_name: '', customer: '', category: '', invoice_no: '', contract_no: '', start_basis: 'handover', start_date: null as string | null, months: '', product_group: '', brand: '' });
+  const setM = (patch: Partial<typeof man>) => setMan({ ...man, ...patch });
   const { data, error: loadErr } = useLoad(async () => {
     const [w, l, r] = await Promise.all([
       supabase.from('warranties').select('*').eq('status', 'active').order('created_at', { ascending: false }).limit(3000),
@@ -47,19 +59,47 @@ export default function ClaimNew() {
   const lines = data.lines.filter((l) => l.warranty_id === warrantyId);
   const line = lines.find((l) => l.id === lineId);
   const inWarranty = line ? line.end_date >= today : lines.some((l) => l.end_date >= today);
+  const entry = mode ?? (data.warranties.length || params.warranty ? 'list' : 'manual');
+  const manualEnd = man.start_date && Number(man.months) > 0 ? addMonthsISO(man.start_date, Number(man.months)) : null;
   const description = desc ?? report?.description ?? '';
   const quantity = qty === undefined ? (report?.quantity ?? null) : qty;
   const location = loc ?? report?.location ?? '';
 
   const save = () => {
     setError(null);
-    if (!warrantyId) return setError('Choose the warranty – search by invoice / contract number, customer or project');
+    if (entry === 'list' && !warrantyId) return setError('Choose the warranty – search by invoice / contract number, customer or project');
+    if (entry === 'manual') {
+      if (inSystem === 'system' && !man.project_id) return setError('Choose the project');
+      if (inSystem === 'outside' && (!man.project_name.trim() || !man.customer.trim() || !man.category)) return setError('Enter the project name, customer and category');
+      if (!man.invoice_no.trim() && !man.contract_no.trim()) return setError('Enter the invoice number or the contract number');
+      if (!man.start_date) return setError('Enter the date the warranty started');
+      if (!man.months) return setError('Choose the warranty period');
+      if (!man.product_group.trim()) return setError('Enter the item that failed (product group)');
+    }
     if (!description.trim()) return setError('Describe the failure');
     return dialog.run(async () => {
       const cid = await rpc<string>('log_warranty_claim', {
         p_data: {
-          warranty_id: warrantyId,
-          line_id: lineId,
+          warranty_id: entry === 'list' ? warrantyId : '',
+          line_id: entry === 'list' ? lineId : '',
+          ...(entry === 'manual'
+            ? {
+                manual: {
+                  project_id: inSystem === 'system' ? man.project_id : '',
+                  project_name: man.project_name,
+                  customer: man.customer,
+                  category: man.category,
+                  invoice_no: man.invoice_no,
+                  contract_no: man.contract_no,
+                  start_basis: man.start_basis,
+                  start_date: man.start_date,
+                  months: man.months,
+                  product_group: man.product_group,
+                  brand: man.brand,
+                  quantity: quantity == null ? '' : String(quantity),
+                },
+              }
+            : {}),
           reported_via: via,
           report_id: report?.id ?? '',
           description,
@@ -82,6 +122,15 @@ export default function ClaimNew() {
         </Notice>
       ) : null}
       <Section title="Warranty">
+        <Segmented
+          value={entry}
+          onChange={(v) => setMode(v)}
+          options={[
+            { value: 'list', label: 'From the warranty list' },
+            { value: 'manual', label: 'Enter manually (older project)' },
+          ]}
+        />
+        {entry === 'list' ? (
         <Card>
           <Select
             label="Warranty (invoice / contract no., customer or project)"
@@ -98,12 +147,8 @@ export default function ClaimNew() {
               hint: `${w.code}${w.source === 'outside' ? ' · outside project' : ''}`,
             }))}
           />
-          {!sorted.length ? <Muted>No warranty records yet – enter the completion record first (outside projects too).</Muted> : null}
-          {desk ? (
-            <Button small variant="ghost" title="+ New completion record (project not recorded yet)" onPress={() => router.push('/warranty/edit')} />
-          ) : (
-            <Muted>Not in the list? Use “Report warranty issue” instead – Operations will find or create the warranty record.</Muted>
-          )}
+          {!sorted.length ? <Muted>No warranty records yet – use “Enter manually (older project)”.</Muted> : null}
+          <Muted>Not in the list? Use “Enter manually (older project)” above – the warranty record is created with the claim.</Muted>
           {warrantyId ? (
             <Select
               label="Item (warranty line)"
@@ -123,6 +168,58 @@ export default function ClaimNew() {
             <Notice tone={inWarranty ? colors.green : colors.red}>{inWarranty ? 'In warranty' : 'Out of warranty – covering it needs SM Projects approval (goodwill)'}</Notice>
           ) : null}
         </Card>
+        ) : (
+          <Card>
+            <Segmented
+              value={inSystem}
+              onChange={(v) => setInSystem(v)}
+              options={[
+                { value: 'system', label: 'Project in the system' },
+                { value: 'outside', label: 'Project not in the system' },
+              ]}
+            />
+            {inSystem === 'system' ? (
+              <ProjectPicker label="Project" required value={man.project_id || null} onChange={(p) => setM({ project_id: p?.id ?? '', project_label: p?.name ?? '' })} />
+            ) : (
+              <>
+                <Field label="Project name" required value={man.project_name} onChangeText={(v) => setM({ project_name: v })} />
+                <Field label="Customer" required value={man.customer} onChangeText={(v) => setM({ customer: v })} hint="Same name as in the debtors list" />
+                <Select label="Category" required value={man.category} onChange={(v) => setM({ category: v })} options={PROJECT_TYPES.map((t) => ({ value: t.value, label: t.label }))} hint="Decides the owner (sales person)" />
+              </>
+            )}
+            <Field label="Invoice number" value={man.invoice_no} onChangeText={(v) => setM({ invoice_no: v })} hint="Invoice or contract number is required" />
+            <Field label="Contract / PO number" value={man.contract_no} onChangeText={(v) => setM({ contract_no: v })} />
+            <Select
+              label="Warranty started from"
+              value={man.start_basis}
+              onChange={(v) => setM({ start_basis: v })}
+              options={[
+                { value: 'handover', label: 'Handover' },
+                { value: 'tc', label: 'Testing & commissioning' },
+                { value: 'delivery', label: 'Delivery' },
+                { value: 'invoice', label: 'Invoice' },
+              ]}
+            />
+            <DateField label="Start date" required value={man.start_date} onChange={(v) => setM({ start_date: v })} quick={[]} />
+            <Select
+              label="Warranty period"
+              required
+              value={man.months}
+              onChange={(v) => setM({ months: v })}
+              options={[12, 18, 24, 36, 48, 60, 84, 120].map((n) => ({ value: String(n), label: n % 12 === 0 ? `${n / 12} year${n > 12 ? 's' : ''} (${n} months)` : `${n} months` }))}
+            />
+            <Field label="Item that failed (product group)" required value={man.product_group} onChangeText={(v) => setM({ product_group: v })} hint="e.g. Downlights, LED drivers, Pole-top luminaires" />
+            <Field label="Brand" value={man.brand} onChangeText={(v) => setM({ brand: v })} />
+            {manualEnd ? (
+              <Notice tone={manualEnd >= today ? colors.green : colors.red}>
+                {manualEnd >= today
+                  ? `In warranty – ends ${fmtDate(manualEnd)}`
+                  : `Out of warranty – ended ${fmtDate(manualEnd)}. Covering it needs SM Projects approval (goodwill).`}
+              </Notice>
+            ) : null}
+            <Muted>A warranty record is created with these details; Operations completes it later (other items, documents).</Muted>
+          </Card>
+        )}
       </Section>
       <Section title="Failure">
         <Card>
