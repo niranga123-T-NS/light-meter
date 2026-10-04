@@ -55,6 +55,25 @@ export type SecuredProject = {
   status: 'open' | 'closed' | 'cancelled';
   notes: string | null;
   created_at: string;
+  original_value?: number | null;
+  final_at?: string | null;
+};
+
+/** A change to the contract value: + addition / − omission (VO), or the final-account adjustment. */
+export type Variation = {
+  id: string;
+  secured_id: string;
+  kind: 'variation' | 'final_account';
+  vo_no: string | null;
+  amount: number;
+  month: string | null;
+  reason: string;
+  status: 'pending' | 'approved' | 'rejected';
+  requested_by: string | null;
+  requested_at: string;
+  decided_by: string | null;
+  decided_at: string | null;
+  decision_note: string | null;
 };
 
 export type InvoiceLine = {

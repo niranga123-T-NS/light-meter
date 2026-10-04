@@ -2006,5 +2006,76 @@ begin
                  and recipient_id = (select id from u where role = 'gm')), 'Monday summary by cause';
 end $$;
 
+-- Secured: variations register, final account, invoicing watch ------------------------------------------------------
+do $$ begin
+  assert (select original_value from public.secured_projects where id = current_setting('test.sec')::uuid) = 62000000, 'original value kept';
+end $$;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  assert public.request_variation(current_setting('test.sec')::uuid,
+    jsonb_build_object('vo_no', 'VO-01', 'amount', '5000000', 'month', current_date::text, 'reason', 'Extra façade fittings')) = 'pending', 'sales variation waits';
+  begin
+    perform public.request_variation(current_setting('test.sec')::uuid, jsonb_build_object('amount', '-1000', 'reason', 'x'));
+    assert false, 'one pending at a time';
+  exception when others then assert sqlerrm like 'A variation is already waiting%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.my_pending_approvals() where source = 'variation'), 'variation in approvals';
+  perform public.decide_variation((select id from public.secured_variations where status = 'pending'), true, null);
+  -- SM Projects' own omission applies at once: comes off the last open invoices (retention)
+  assert public.request_variation(current_setting('test.sec')::uuid, jsonb_build_object('vo_no', 'VO-02', 'amount', '-10000000',
+    'reason', 'Car park lighting omitted')) = 'approved', 'SM Projects variation applies';
+  begin
+    perform public.request_variation(current_setting('test.sec')::uuid, jsonb_build_object('amount', '-900000000', 'reason', 'too much'));
+    assert false, 'omission larger than the balance';
+  exception when others then assert sqlerrm like 'Only % is still to bill%', sqlerrm; end;
+end $$;
+reset role;
+do $$ declare sid uuid := current_setting('test.sec')::uuid;
+begin
+  assert (select original_value = 62000000 and order_value = 57000000 from public.secured_projects where id = sid), 'revised value 62 + 5 − 10';
+  assert (select amount from public.invoice_lines where secured_id = sid and kind = 'variation') = 5000000, 'variation invoice added';
+  assert (select amount from public.invoice_lines where secured_id = sid and kind = 'retention') = 2400000, 'omission off the retention';
+  assert (select count(*) from public.secured_variations where secured_id = sid and status = 'approved') = 2, 'two approved';
+  assert exists (select 1 from public.notifications where kind = 'secured_variation' and title = 'Variation approved'
+                 and recipient_id = (select id from u where role = 'asm_building')), 'sales told';
+end $$;
+-- Work-done project: nothing invoiced after the last planned IPC → alert; final account clears the balance
+insert into public.secured_projects (code, project_name, sales_person_id, won_on, order_value, schedule_status, business_line)
+values ('SEC-V-1', 'Hospital IPC job', (select id from u where role = 'asm_building'), current_date - 200, 3000000, 'approved', 'indoor'),
+       ('SEC-V-2', 'Office supply', (select id from u where role = 'asm_building'), current_date - 30, 1000000, 'approved', 'indoor');
+insert into public.invoice_lines (secured_id, seq, kind, amount, original_month, forecast_month)
+select s.id, x.n, 'progress', 1000000, app.month_of(current_date - x.d), app.month_of(current_date - x.d)
+  from public.secured_projects s, (values (1, 180), (2, 150), (3, 120)) x(n, d) where s.code = 'SEC-V-1';
+insert into public.invoice_lines (secured_id, seq, kind, amount, original_month, forecast_month)
+select id, 1, 'delivery', 1000000, app.month_of(current_date), app.month_of(current_date) from public.secured_projects where code = 'SEC-V-2';
+update public.secured_projects set wbs = 'LS-000778' where code = 'SEC-V-2';
+insert into public.wbs_actuals (upload_id, wbs, revenue, cost)
+values ((select id from public.or_uploads where month = app.month_of(current_date)), 'LS-000778', 1100000, 0);
+select app.reallocate(id) from public.secured_projects where code = 'SEC-V-2';
+do $$ declare at10 timestamptz := (current_date + time '10:00') at time zone app.tz();
+begin
+  perform public.secured_watch_tick(at10);
+  assert exists (select 1 from public.notifications n join public.secured_projects s on s.id = n.entity_id
+                 where n.kind = 'secured_stale' and s.code = 'SEC-V-1' and n.recipient_id = (select id from u where role = 'asm_building')), 'stale alert';
+  assert exists (select 1 from public.notifications n join public.secured_projects s on s.id = n.entity_id
+                 where n.kind = 'secured_over_invoiced' and s.code = 'SEC-V-2'), 'over-invoiced alert';
+  assert public.secured_watch_tick(at10 + interval '1 hour') = 0, 'not repeated';
+end $$;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+select public.close_final_account((select id from public.secured_projects where code = 'SEC-V-1'), 'Final bill FB-12 – job stopped by client');
+select public.close_final_account((select id from public.secured_projects where code = 'SEC-V-2'), 'Final bill incl. extra drivers');
+reset role;
+do $$ begin
+  assert (select status = 'closed' and order_value = 0 and original_value = 3000000 from public.secured_projects where code = 'SEC-V-1'), 'balance cleared';
+  assert (select amount from public.secured_variations v join public.secured_projects s on s.id = v.secured_id
+           where s.code = 'SEC-V-1' and v.kind = 'final_account') = -3000000, 'final account omission recorded';
+  assert (select status = 'closed' and order_value = 1100000 from public.secured_projects where code = 'SEC-V-2'), 'extra recorded';
+  assert not exists (select 1 from public.invoice_allocations a join public.secured_projects s on s.id = a.secured_id
+                     where s.code = 'SEC-V-2' and a.line_id is null), 'all invoicing now on invoices';
+end $$;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
