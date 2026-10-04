@@ -1,6 +1,7 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Text, View } from 'react-native';
 import { DataTable } from '@/components/DataTable';
+import { TargetCharts } from '@/components/TargetCharts';
 import { pctTone, SCHEDULE_LABEL, SCHEDULE_TONE } from '@/components/financeTones';
 import { Card, colors, Empty, ErrorBanner, Grid, KeyValue, Loading, Muted, Notice, Pill, Progress, Row, Screen, Section } from '@/components/ui';
 import { useMe } from '@/lib/auth';
@@ -78,6 +79,8 @@ export default function MyTarget() {
                 <KeyValue label="Still to win and bill" value={<Text style={{ color: y.gap ? colors.red : colors.green, fontWeight: '700' }}>{mn(y.gap)} Mn</Text>} />
                 <KeyValue label={`Secured target ${fyLabel(fy)}`} value={`${mn(y.fySecuredTarget)} Mn`} />
               </Grid>
+
+              <TargetCharts p={p} fy={fy} upTo={upTo} lines={data.lines} />
 
               <Section title="Invoices due now (this month and slipped)">
                 <DataTable

@@ -1,6 +1,8 @@
 import { router, Stack } from 'expo-router';
 import { Text } from 'react-native';
+import { TargetCard } from '@/components/TargetCharts';
 import { useMe } from '@/lib/auth';
+import { fyOf, type Performance } from '@/lib/finance';
 import { fmtDate, fmtMoney, todayISO } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import { daysFrom, retentionStage } from '@/lib/retentions';
@@ -46,6 +48,9 @@ export function SalesHome() {
     const { data: rows } = await supabase.from('retentions').select('*').eq('sales_person_id', me.id).in('status', ['held', 'claimed']);
     return (rows ?? []) as Retention[];
   }, [me.id]);
+  // My invoicing / secured against target (from the monthly OR file)
+  const perf = useLoad(() => rpc<Performance>('finance_performance', { p_fy: fyOf(todayISO()) }).catch(() => null), []);
+  const myPerf = perf.data?.people.find((x) => x.id === me.id);
   const retAction = (ret.data ?? [])
     .map((r) => ({ r, st: retentionStage(r) }))
     .filter((x) => x.st === 'due' || x.st === 'due_soon' || x.st === 'claim_overdue')
@@ -59,7 +64,7 @@ export function SalesHome() {
       .join(' + ');
 
   return (
-    <Screen refreshing={loading} onRefresh={() => { reload(); ret.reload(); }}>
+    <Screen refreshing={loading} onRefresh={() => { reload(); ret.reload(); perf.reload(); }}>
       <Stack.Screen options={{ title: 'My Day' }} />
       <H1>Good day, {me.full_name.split(' ')[0]}</H1>
       <ErrorBanner message={error} />
@@ -84,6 +89,12 @@ export function SalesHome() {
         <Button title="New inquiry" variant="secondary" onPress={() => router.push('/inquiries/new')} />
         <Button title="Weekly plan" variant="secondary" onPress={() => router.push('/plan')} />
       </Row>
+
+      {myPerf ? (
+        <Section title="My target" right={<Button small variant="ghost" title="Details" onPress={() => router.push('/finance/my')} />}>
+          <TargetCard p={myPerf} upTo={perf.data?.latest_month ?? null} />
+        </Section>
+      ) : null}
 
       {data ? (
         <>
