@@ -4,6 +4,7 @@ import { Text, View } from 'react-native';
 import { pctTone } from '@/components/financeTones';
 import { useDialog } from '@/components/dialog';
 import { MeetingActionForm, type ActionDraft } from '@/components/MeetingActionForm';
+import { isTeamKind, kindLabel } from '@/lib/meetingActions';
 import { captureLocation } from '@/components/VisitBits';
 import { Button, Card, colors, ErrorBanner, Grid, KeyValue, Loading, Muted, Notice, Pill, Progress, Row, Screen, Section, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
@@ -60,6 +61,9 @@ type Action = {
   status: 'open' | 'done';
   new_project: string | null;
   new_customer: string | null;
+  kind: string;
+  assignee_id: string | null;
+  done_note: string | null;
   projects: { name: string } | null;
   organizations: { name: string } | null;
 };
@@ -121,16 +125,27 @@ export default function MeetingPack() {
     });
     if (r) await run('save_meeting_note', { p_meeting: m.id, p_sales_person: personId, p_note: r.n ?? '' }, 'Saved');
   };
-  // Anyone but GM / DGM can be given an action
+  // Anyone but GM / DGM and System Admin can be given an action
   const owners = Object.values(people)
-    .filter((p) => p.active !== false && p.role !== 'gm')
+    .filter((p) => p.active !== false && p.role !== 'gm' && p.role !== 'sys_admin')
     .sort((a, b) => a.full_name.localeCompare(b.full_name));
   const saveAction = async (personId: string | null, a: ActionDraft) => {
     await run(
       'add_meeting_action',
       {
         p_meeting: m.id,
-        p_data: { sales_person_id: personId, owner_id: a.owner_id, action: a.action, due_date: a.due_date, project_id: a.project_id, organization_id: a.organization_id, new_project: a.new_project, new_customer: a.new_customer },
+        p_data: {
+          kind: a.kind,
+          sales_person_id: personId,
+          owner_id: a.owner_id,
+          action: a.action,
+          due_date: a.due_date,
+          project_id: a.project_id,
+          organization_id: a.organization_id,
+          new_project: a.new_project,
+          new_customer: a.new_customer,
+          objective: a.objective,
+        },
       },
       'Action added',
     );
@@ -157,11 +172,14 @@ export default function MeetingPack() {
       {actionsFor(personId).map((a) => (
         <Row key={a.id} wrap gap={6} style={{ alignItems: 'center' }}>
           <Pill label={a.status === 'done' ? 'Done' : 'Open'} tone={a.status === 'done' ? colors.green : colors.amber} />
+          {a.kind !== 'task' ? <Pill label={kindLabel(a.kind)} tone={colors.blue} /> : null}
           <Text style={{ color: colors.ink, flexShrink: 1 }}>
             {a.action} · {people[a.owner_id]?.full_name ?? '—'}
+            {isTeamKind(a.kind) ? (a.assignee_id ? ` → ${people[a.assignee_id]?.full_name ?? ''}` : ' (to appoint)') : ''}
             {a.due_date ? ` · by ${fmtDate(a.due_date)}` : ''}
             {a.projects?.name || a.new_project ? ` · ${a.projects?.name ?? `${a.new_project} (new)`}` : ''}
             {a.organizations?.name || a.new_customer ? ` · ${a.organizations?.name ?? `${a.new_customer} (new)`}` : ''}
+            {a.status === 'done' && a.done_note ? ` · ${a.done_note}` : ''}
           </Text>
           {smp ? (
             <Button small variant="ghost" title={a.status === 'done' ? 'Re-open' : 'Mark done'} onPress={() => run('set_meeting_action_done', { p_id: a.id, p_done: a.status !== 'done' }, 'Updated')} />

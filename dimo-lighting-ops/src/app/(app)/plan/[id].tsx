@@ -4,6 +4,7 @@ import { Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { CustomerPicker, ProjectPicker } from '@/components/pickers';
 import { Button, Card, colors, ErrorBanner, Field, Grid, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section, Segmented, Select, Stat } from '@/components/ui';
+import type { MyAction } from '@/components/MeetingActions';
 import { ObjectivePicker } from '@/components/VisitBits';
 import { useMe } from '@/lib/auth';
 import { addDaysISO, fmtDate, fmtDateTime, todayISO } from '@/lib/format';
@@ -50,7 +51,15 @@ export default function PlanDetail() {
       .eq('sales_person_id', plan.sales_person_id)
       .eq('meeting_date', plan.week_start)
       .maybeSingle();
+    // Follow-up visits from the sales meeting not in a plan yet (the sales person's own plan only)
+    const followups =
+      plan.sales_person_id === me.id
+        ? (await rpc<MyAction[]>('my_meeting_actions').catch(() => [] as MyAction[])).filter(
+            (a) => a.kind === 'visit' && a.line_status !== 'planned' && a.line_status !== 'completed',
+          )
+        : [];
     return {
+      followups,
       plan: plan as VisitPlan,
       lines: (lines ?? []) as PlanLine[],
       pva: pva[0] ?? null,
@@ -59,12 +68,47 @@ export default function PlanDetail() {
   }, [id]);
 
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const { plan, lines, pva, exception } = data;
+  const { plan, lines, pva, exception, followups } = data;
   const mine = plan.sales_person_id === me.id;
   const editable = mine && ['draft', 'returned', 'approved'].includes(plan.status);
   const manager = me.role === 'sm_projects' || me.role === 'gm';
   // Only SM Projects approves or returns weekly plans
   const approver = me.role === 'sm_projects';
+
+  const dayOptions = DAYS.map((d, i) => ({ value: addDaysISO(plan.week_start, i), label: `${d} ${fmtDate(addDaysISO(plan.week_start, i))}` }));
+  const timeHint = 'e.g. 13:30 (Monday 08:30 – 12:00 is the sales meeting)';
+  // Sales meeting follow-up: only the day and time are set by the sales person
+  const setDayTime = async (l: PlanLine) => {
+    const r = await dialog.prompt({
+      title: 'Day and time of the visit',
+      message: `${l.organizations?.name ?? ''} · ${l.planned_objective} – a follow-up from the sales meeting (customer, project and objective are fixed)`,
+      fields: [
+        { key: 'd', label: 'Day', type: 'select', required: true, options: dayOptions, initial: l.planned_date },
+        { key: 't', label: 'Time', required: true, initial: l.time_slot ?? '', hint: timeHint },
+      ],
+    });
+    if (r)
+      await dialog.run(async () => {
+        const { error: e } = await supabase.from('visit_plan_lines').update({ planned_date: r.d, time_slot: r.t }).eq('id', l.id);
+        if (e) throw new Error(e.message);
+        await reload();
+      }, 'Saved');
+  };
+  const addFollowup = async (a: MyAction) => {
+    const r = await dialog.prompt({
+      title: 'Add the follow-up visit to this week',
+      message: `${[a.customer, a.project].filter(Boolean).join(' · ')} · ${a.objective ?? ''} · ${a.action}`,
+      fields: [
+        { key: 'd', label: 'Day', type: 'select', required: true, options: dayOptions },
+        { key: 't', label: 'Time', required: true, hint: timeHint },
+      ],
+    });
+    if (r)
+      await dialog.run(async () => {
+        await rpc('plan_meeting_visit', { p_action: a.id, p_plan: plan.id, p_date: r.d, p_time: r.t });
+        await reload();
+      }, 'Added to the plan');
+  };
 
   const lineAction = async (l: PlanLine, action: 'rescheduled' | 'cancelled' | 'missed' | 'delete') => {
     if (action === 'delete') {
@@ -232,6 +276,23 @@ export default function PlanDetail() {
         </Section>
       ) : null}
 
+      {editable && followups.length ? (
+        <Section title={`Follow-up visits from the sales meeting – to plan (${followups.length})`}>
+          <Card style={{ padding: 0, overflow: 'hidden' }}>
+            {followups.map((a) => (
+              <ListRow
+                key={a.id}
+                wrapRight
+                highlight={a.due_date && a.due_date < todayISO() ? colors.red : colors.amber}
+                title={`${a.customer ?? ''}${a.project ? ` · ${a.project}` : ''}`}
+                subtitle={`${a.objective ?? ''} · ${a.action}${a.due_date ? ` · visit by ${fmtDate(a.due_date)}` : ''} · meeting ${fmtDate(a.meeting_date)}`}
+                right={<Button small title="Add – set day & time" onPress={() => addFollowup(a)} />}
+              />
+            ))}
+          </Card>
+        </Section>
+      ) : null}
+
       <Section title="Planned visits" right={editable ? <Button small title="+ Add visit" onPress={() => setAdding(true)} /> : undefined}>
         {adding ? <AddLine planId={plan.id} weekStart={plan.week_start} onDone={() => { setAdding(false); reload(); }} /> : null}
         {DAYS.map((d, i) => {
@@ -253,16 +314,23 @@ export default function PlanDetail() {
                     right={
                       <Row gap={4} wrap>
                         {l.visit_type === 'tender' ? <Pill label="Tender" tone={colors.blue} /> : null}
+                        {l.meeting_action_id ? <Pill label="Sales meeting" tone={colors.brand} /> : null}
                         {l.added_after_approval ? <Pill label="Added" /> : null}
                         <Pill label={l.status} tone={l.status === 'completed' ? colors.green : l.status === 'missed' ? colors.red : colors.grey} />
                         {editable && plan.status === 'approved' && l.status === 'planned' ? (
                           <>
                             <Button small variant="ghost" title="Reschedule" onPress={() => lineAction(l, 'rescheduled')} />
-                            <Button small variant="ghost" title="Cancel" onPress={() => lineAction(l, 'cancelled')} />
+                            {l.meeting_action_id ? null : <Button small variant="ghost" title="Cancel" onPress={() => lineAction(l, 'cancelled')} />}
                             <Button small variant="ghost" title="Missed" onPress={() => lineAction(l, 'missed')} />
                           </>
                         ) : null}
-                        {editable && plan.status !== 'approved' ? <Button small variant="ghost" title="Remove" onPress={() => lineAction(l, 'delete')} /> : null}
+                        {editable && plan.status !== 'approved' ? (
+                          l.meeting_action_id ? (
+                            <Button small variant="secondary" title={l.time_slot ? 'Day & time' : 'Set the time'} onPress={() => setDayTime(l)} />
+                          ) : (
+                            <Button small variant="ghost" title="Remove" onPress={() => lineAction(l, 'delete')} />
+                          )
+                        ) : null}
                         {mine && l.status === 'planned' && plan.status === 'approved' ? (
                           <Button small title="Check in" onPress={() => router.push(`/visits/new?planLine=${l.id}`)} />
                         ) : null}
