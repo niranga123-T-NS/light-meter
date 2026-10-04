@@ -4,7 +4,7 @@ import { fmtDate, todayISO } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import { rpc } from '@/lib/supabase';
 
-type MyAction = { id: string; action: string; due_date: string | null; meeting_date: string; status: string };
+type MyAction = { id: string; action: string; due_date: string | null; meeting_date: string; status: string; project: string | null; customer: string | null };
 
 /** My Day: open actions given to me in published sales meetings; I mark them done. */
 export function MeetingActions() {
@@ -21,7 +21,7 @@ export function MeetingActions() {
             wrapRight
             highlight={a.due_date && a.due_date < today ? colors.red : undefined}
             title={a.action}
-            subtitle={`Meeting ${fmtDate(a.meeting_date)}${a.due_date ? ` · due ${fmtDate(a.due_date)}${a.due_date < today ? ' – overdue' : ''}` : ''}`}
+            subtitle={`${[a.project, a.customer].filter(Boolean).join(' · ')}${a.project || a.customer ? ' · ' : ''}Meeting ${fmtDate(a.meeting_date)}${a.due_date ? ` · due ${fmtDate(a.due_date)}${a.due_date < today ? ' – overdue' : ''}` : ''}`}
             right={
               <Button
                 small

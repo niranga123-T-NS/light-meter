@@ -6,7 +6,7 @@ import { addDaysISO, fmtDate, fmtDateTime, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 
-type Meeting = { id: string; meeting_date: string; status: 'draft' | 'published'; generated_at: string | null; published_at: string | null };
+type Meeting = { id: string; meeting_date: string; status: 'draft' | 'published'; generated_at: string | null; published_at: string | null; initiated_at: string | null };
 type Exception = { id: string; sales_person_id: string; meeting_date: string; reason: string; status: 'pending' | 'approved' | 'rejected'; decision_note: string | null };
 
 /** Monday of the week of a date (ISO), and the next Monday from today (today if it is Monday). */
@@ -28,7 +28,7 @@ export default function SalesMeetings() {
   const smp = me.role === 'sm_projects';
   const { data, error, reload } = useLoad(async () => {
     const [m, e] = await Promise.all([
-      supabase.from('sales_meetings').select('id, meeting_date, status, generated_at, published_at').order('meeting_date', { ascending: false }).limit(52),
+      supabase.from('sales_meetings').select('id, meeting_date, status, generated_at, published_at, initiated_at').order('meeting_date', { ascending: false }).limit(52),
       supabase.from('meeting_exceptions').select('*').gte('meeting_date', addDaysISO(todayISO(), -28)).order('meeting_date', { ascending: false }),
     ]);
     if (m.error) throw new Error(m.error.message);
@@ -55,7 +55,7 @@ export default function SalesMeetings() {
   };
   const decide = async (e: Exception, approve: boolean) => {
     const r = await dialog.prompt({
-      title: approve ? 'Approve the exception' : 'Do not approve',
+      title: approve ? 'Approve the leave' : 'Do not approve',
       message: `${people[e.sales_person_id]?.full_name ?? ''} · Monday ${fmtDate(e.meeting_date)} · ${e.reason}`,
       fields: [{ key: 'n', label: approve ? 'Note' : 'Reason', type: 'multiline', required: !approve }],
     });
@@ -70,12 +70,21 @@ export default function SalesMeetings() {
     <Screen maxWidth={1000}>
       <Stack.Screen options={{ title: 'Sales meeting' }} />
       <Card>
-        <Muted>Every Monday 08:30 – 12:00. Sales persons cannot plan visits in that time without an exception approved by SM Projects.</Muted>
+        <Muted>
+          Every Monday 08:30 – 12:00. Invite the team by Sunday 10:00 (GM / DGM are told if it is not done by 15:00). Invitees mark attendance and apply
+          for leave in Internal meetings; sales persons cannot plan visits in the meeting time without approved leave.
+        </Muted>
         {smp ? (
           <Row wrap gap={8} style={{ marginTop: 8 }}>
             <Button
-              title={thisWeek ? `Open the pack for Monday ${fmtDate(upcoming)}` : `Generate the pack for Monday ${fmtDate(upcoming)}`}
-              onPress={() => (thisWeek ? router.push(`/meeting/${thisWeek.id}`) : generate(upcoming))}
+              variant={thisWeek?.initiated_at ? 'secondary' : 'primary'}
+              title={thisWeek?.initiated_at ? `Invitees – Monday ${fmtDate(upcoming)}` : `Invite the team – Monday ${fmtDate(upcoming)}`}
+              onPress={() => router.push({ pathname: '/meeting/invite', params: { date: upcoming } })}
+            />
+            <Button
+              variant={thisWeek?.initiated_at ? 'primary' : 'secondary'}
+              title={thisWeek?.generated_at ? `Open the pack – Monday ${fmtDate(upcoming)}` : `Generate the pack – Monday ${fmtDate(upcoming)}`}
+              onPress={() => (thisWeek?.generated_at ? router.push(`/meeting/${thisWeek.id}`) : generate(upcoming))}
             />
             <Button
               variant="secondary"
@@ -92,7 +101,7 @@ export default function SalesMeetings() {
       </Card>
 
       {smp && pending.length ? (
-        <Section title={`Exceptions to approve (${pending.length})`}>
+        <Section title={`Leave requests to approve (${pending.length})`}>
           <Card style={{ padding: 0, overflow: 'hidden' }}>
             {pending.map((e) => (
               <ListRow
@@ -119,7 +128,7 @@ export default function SalesMeetings() {
               <ListRow
                 key={m.id}
                 title={`Monday ${fmtDate(m.meeting_date)}`}
-                subtitle={m.status === 'published' ? `Published ${fmtDateTime(m.published_at)}` : `Generated ${fmtDateTime(m.generated_at)} · draft`}
+                subtitle={m.status === 'published' ? `Published ${fmtDateTime(m.published_at)}` : m.generated_at ? `Generated ${fmtDateTime(m.generated_at)} · draft` : m.initiated_at ? 'Invited · pack not generated yet' : 'Draft'}
                 right={<Pill label={m.status === 'published' ? 'Published' : 'Draft'} tone={m.status === 'published' ? colors.green : colors.amber} />}
                 onPress={() => router.push(`/meeting/${m.id}`)}
               />
@@ -131,7 +140,7 @@ export default function SalesMeetings() {
       </Section>
 
       {smp && data.exceptions.some((e) => e.status !== 'pending') ? (
-        <Section title="Recent exceptions">
+        <Section title="Recent leave requests">
           <Card>
             {data.exceptions
               .filter((e) => e.status !== 'pending')
