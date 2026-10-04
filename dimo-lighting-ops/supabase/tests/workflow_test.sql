@@ -2148,5 +2148,26 @@ begin
 end $$;
 reset role;
 
+-- Secured counts at once: a win without a schedule counts its order value; with one, its invoices due this year ------
+select pg_temp.act_as('operations_exec'); set role authenticated;
+select public.add_secured_project(jsonb_build_object('project_name', 'Showroom relighting', 'business_line', 'LMS',
+  'sales_person_id', (select id from u where role = 'asm_infra'), 'won_on', current_date::text, 'order_value', '2,000,000.00'));
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ declare y int := app.fy_of(current_date); me jsonb; got numeric; expect numeric;
+begin
+  select x into me from jsonb_array_elements(public.finance_performance(y) -> 'people') x where x ->> 'id' = (select id::text from u where role = 'asm_infra');
+  select (m ->> 'secured')::numeric into got from jsonb_array_elements(me -> 'months') m where m ->> 'month' = app.month_of(current_date)::text;
+  select sum(case when exists (select 1 from public.invoice_lines l where l.secured_id = s.id)
+                  then (select coalesce(sum(l.amount), 0) from public.invoice_lines l where l.secured_id = s.id
+                         and l.original_month between app.fy_start(y) and app.fy_end(y))
+                  else s.order_value - s.billed_before end) into expect
+    from public.secured_projects s
+   where s.sales_person_id = (select id from u where role = 'asm_infra') and s.source = 'won' and s.status <> 'cancelled'
+     and app.month_of(s.won_on) = app.month_of(current_date);
+  assert got = expect and got >= 2000000, format('secured counted at once: %s vs %s', got, expect);
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

@@ -272,9 +272,11 @@ export function score(securedPct: number, invoicedPct: number) {
 }
 
 /** Year-to-date totals of a person up to (and including) a month */
-export function ytd(p: PerfPerson, upTo: string | null) {
+export function ytd(p: PerfPerson, upTo: string | null, securedUpTo: string = thisMonth()) {
+  // Invoiced is known up to the last OR file; secured (wins) up to today
   const ms = p.months.filter((m) => !upTo || m.month <= upTo);
-  const sum = (k: keyof PerfMonth) => ms.reduce((a, m) => a + Number(m[k] ?? 0), 0);
+  const msS = p.months.filter((m) => m.month <= securedUpTo);
+  const sum = (k: keyof PerfMonth) => (k === 'secured' || k === 'secured_target' ? msS : ms).reduce((a, m) => a + Number(m[k] ?? 0), 0);
   const fySum = (k: keyof PerfMonth) => p.months.reduce((a, m) => a + Number(m[k] ?? 0), 0);
   const st = sum('secured_target');
   const s = sum('secured');

@@ -6,7 +6,7 @@ import { useDialog } from '@/components/dialog';
 import { pctTone } from '@/components/financeTones';
 import { Button, Card, colors, ErrorBanner, Grid, Loading, Muted, Notice, NumberField, Pill, Progress, Row, Screen, Section, Select } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { fmtMonth, fmtMonthShort, fmtPct, fyLabel, fyMonths, fyOf, isReviewer, lineShort, mn, seesPnl, ytd, type Performance } from '@/lib/finance';
+import { fmtMonth, fmtMonthShort, fmtPct, fyLabel, fyMonths, fyOf, isReviewer, lineShort, mn, seesPnl, ytd, thisMonth, type Performance } from '@/lib/finance';
 import { fmtDateTime, todayISO } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import { isSales } from '@/lib/roles';
@@ -77,7 +77,7 @@ export default function Targets() {
   const fill = async () => {
     const ok = await dialog.confirm(
       'Fill targets from the budget list?',
-      'Every sales person’s targets for the year are replaced: invoicing = budget invoice months (+ opening secured invoices not in the budget), secured = this-year value of each budgeted project in its order month. You can then adjust them.',
+      'Every sales person’s budget targets for the year are replaced: to invoice = budget invoice months (+ earlier secured invoices not in the budget), to secure = this-year value of each budgeted project in its order month (no invoice months: spread from the order month to March). You can then adjust them.',
       { confirmLabel: 'Fill' },
     );
     if (!ok) return;
@@ -132,19 +132,19 @@ export default function Targets() {
 
       <Grid min={220}>
         <Card>
-          <Muted>Secured · Apr – {upTo ? fmtMonthShort(upTo) : '—'}</Muted>
+          <Muted>Secured (wins) · Apr – {fmtMonthShort(thisMonth())}</Muted>
           <Text style={{ fontSize: 22, fontWeight: '700', color: colors.ink }}>{mn(tot.s)} Mn</Text>
           <Progress pct={(tot.s / (tot.st || 1)) * 100} colour={pctTone((tot.s / (tot.st || 1)) * 100)} />
-          <Muted>{`Target ${mn(tot.st)} · ${fmtPct((tot.s / (tot.st || 1)) * 100)}`}</Muted>
+          <Muted>{`Budget ${mn(tot.st)} · ${fmtPct((tot.s / (tot.st || 1)) * 100)}`}</Muted>
         </Card>
         <Card>
-          <Muted>Invoiced · Apr – {upTo ? fmtMonthShort(upTo) : '—'}</Muted>
+          <Muted>Invoiced (OR file) · Apr – {upTo ? fmtMonthShort(upTo) : '—'}</Muted>
           <Text style={{ fontSize: 22, fontWeight: '700', color: colors.ink }}>{mn(tot.i)} Mn</Text>
           <Progress pct={(tot.i / (tot.it || 1)) * 100} colour={pctTone((tot.i / (tot.it || 1)) * 100)} />
-          <Muted>{`Target ${mn(tot.it)} · ${fmtPct((tot.i / (tot.it || 1)) * 100)}`}</Muted>
+          <Muted>{`Budget ${mn(tot.it)} · ${fmtPct((tot.i / (tot.it || 1)) * 100)}`}</Muted>
         </Card>
         <Card>
-          <Muted>Cover of the year’s invoicing target</Muted>
+          <Muted>Cover of the year’s invoicing budget</Muted>
           <Text style={{ fontSize: 22, fontWeight: '700', color: colors.ink }}>{fmtPct(((tot.fyi + tot.tb) / (tot.fy || 1)) * 100)}</Text>
           <Muted>{`Invoiced ${mn(tot.fyi)} + secured to bill ${mn(tot.tb)} of ${mn(tot.fy)} · still to win ${mn(Math.max(0, tot.fy - tot.fyi - tot.tb))}`}</Muted>
         </Card>
@@ -161,20 +161,22 @@ export default function Targets() {
           columns={[
             { h: 'Sales person', w: 170, v: (x) => x.p.name, bold: true },
             { h: 'Lines', w: 90, v: (x) => x.p.lines.map(lineShort).join(', ') || '—' },
-            { h: 'Secured target', w: 105, right: true, v: (x) => mn(x.y.securedTarget) },
+            { h: 'Budget to secure', w: 110, right: true, v: (x) => mn(x.y.securedTarget) },
             { h: 'Secured', w: 85, right: true, v: (x) => mn(x.y.secured) },
             { h: '%', w: 75, v: (x) => <Pill label={fmtPct(x.y.securedPct)} tone={pctTone(x.y.securedPct)} /> },
-            { h: 'Invoicing target', w: 110, right: true, v: (x) => mn(x.y.invoiceTarget) },
+            { h: 'Budget to invoice', w: 115, right: true, v: (x) => mn(x.y.invoiceTarget) },
             { h: 'Invoiced', w: 85, right: true, v: (x) => mn(x.y.invoiced) },
             { h: '% ', w: 75, v: (x) => <Pill label={fmtPct(x.y.invoicedPct)} tone={pctTone(x.y.invoicedPct)} /> },
             { h: 'Cover (FY)', w: 85, right: true, v: (x) => fmtPct(x.y.cover) },
             { h: 'Score', w: 70, right: true, v: (x) => x.y.score.toFixed(2), bold: true },
-            { h: 'Awaiting schedule', w: 140, v: (x) => (x.p.pending_n ? <Pill label={`${x.p.pending_n} won · ${mn(x.p.pending_value)}`} tone={colors.amber} /> : '—') },
+            { h: 'Schedule not approved', w: 160, v: (x) => (x.p.pending_n ? <Pill label={`${x.p.pending_n} won · ${mn(x.p.pending_value)}`} tone={colors.amber} /> : '—') },
           ]}
         />
         <Muted>
-          Secured = this-year value of each project won (counted once SM Projects approves its invoice schedule). Score = 40% secured + 60% invoiced. Cover = (invoiced + secured still to
-          bill this year) ÷ the year’s invoicing target.
+          Budget = from the budget list (to secure: this-year value of each budgeted project in its order month; to invoice: its invoice months). Secured = this-year value of each
+          project marked Won by sales or Mark secured by Operations, counted at once in the month won (the order value until its schedule is entered). Invoiced = OR file.
+          Secured to the current month; invoiced to the last OR month. Score = 40% secured + 60% invoiced. Cover = (invoiced + secured still to bill this year) ÷ the year’s
+          invoicing budget.
           {perf.unlinked_invoiced ? ` ${mn(perf.unlinked_invoiced)} Mn invoiced this year is on WBS codes not linked to a secured project – add the WBS on the project.` : ''}
         </Muted>
       </Section>
@@ -202,8 +204,8 @@ export default function Targets() {
               footer={['Year', mn(personTotals(person).s, 2), mn(personTotals(person).i, 2)]}
               columns={[
                 { h: 'Month', w: 110, v: (m) => fmtMonth(m) },
-                { h: 'Secured target', w: 130, right: true, v: (m) => mn(data.targets.find((t) => t.sales_person_id === person && t.month === m)?.secured_target ?? 0, 2) },
-                { h: 'Invoicing target', w: 130, right: true, v: (m) => mn(data.targets.find((t) => t.sales_person_id === person && t.month === m)?.invoice_target ?? 0, 2) },
+                { h: 'Budget to secure', w: 130, right: true, v: (m) => mn(data.targets.find((t) => t.sales_person_id === person && t.month === m)?.secured_target ?? 0, 2) },
+                { h: 'Budget to invoice', w: 130, right: true, v: (m) => mn(data.targets.find((t) => t.sales_person_id === person && t.month === m)?.invoice_target ?? 0, 2) },
               ]}
             />
           ) : null}
@@ -212,8 +214,8 @@ export default function Targets() {
               {months.map((m) => (
                 <Grid key={m} min={200}>
                   <Text style={{ fontWeight: '600', marginTop: 28, color: colors.ink }}>{fmtMonth(m)}</Text>
-                  <NumberField label="Secured target" suffix="LKR" value={edit[m].s} onChange={(v) => setEdit({ ...edit, [m]: { ...edit[m], s: v } })} />
-                  <NumberField label="Invoicing target" suffix="LKR" value={edit[m].i} onChange={(v) => setEdit({ ...edit, [m]: { ...edit[m], i: v } })} />
+                  <NumberField label="Budget to secure" suffix="LKR" value={edit[m].s} onChange={(v) => setEdit({ ...edit, [m]: { ...edit[m], s: v } })} />
+                  <NumberField label="Budget to invoice" suffix="LKR" value={edit[m].i} onChange={(v) => setEdit({ ...edit, [m]: { ...edit[m], i: v } })} />
                 </Grid>
               ))}
               <Text style={{ fontWeight: '600', color: colors.ink }}>
