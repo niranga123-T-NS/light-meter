@@ -2,8 +2,9 @@ import { router, Stack } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 import { DataTable } from '@/components/DataTable';
+import { useDialog } from '@/components/dialog';
 import { ListUpload } from '@/components/ListUpload';
-import { colors, ErrorBanner, Loading, Muted, Notice, Pill, Row, Screen, Section, Segmented, Select } from '@/components/ui';
+import { Button, colors, ErrorBanner, Loading, Muted, Notice, Pill, Row, Screen, Section, Segmented, Select } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import {
   amt,
@@ -38,6 +39,7 @@ export default function BudgetScreen() {
   const [fy, setFy] = useState(fyOf(todayISO()));
   const [line, setLine] = useState<string>('all');
   const desk = isFinanceDesk(me.role);
+  const dialog = useDialog();
   const { data, error, reload } = useLoad(async () => {
     const [b, s] = await Promise.all([
       supabase.from('budget_projects').select('*, budget_invoices(*)').eq('fy', fy).order('row_no'),
@@ -50,6 +52,31 @@ export default function BudgetScreen() {
     };
   }, [fy]);
 
+  // A budgeted project that has been won (or was won before the system): add it to the secured list
+  const markSecured = async (b: BudgetProject) => {
+    const r = await dialog.prompt({
+      title: `Mark as secured – ${b.project_name}`,
+      message:
+        'It joins the secured list (order book). Its budget invoice months become the draft invoice schedule – adjust it and send it to SM Projects. Won before 1 April: enter what was invoiced before.',
+      fields: [
+        { key: 'won', label: 'Won (PO) date', type: 'date', required: true },
+        { key: 'val', label: 'Order value (LKR)', required: true, initial: amt(b.budget_value) },
+        { key: 'po', label: 'PO / contract no.' },
+        { key: 'wbs', label: 'WBS (if SAP has created it)', initial: b.wbs ?? '' },
+        { key: 'before', label: 'Invoiced before 1 April (LKR) – only if won before this year', initial: '0.00' },
+      ],
+      confirmLabel: 'Mark secured',
+    });
+    if (!r) return;
+    await dialog.run(async () => {
+      const id = await rpc<string>('secure_budget_project', {
+        p_budget: b.id,
+        p_data: { won_on: r.won, order_value: r.val, po_no: r.po || null, wbs: r.wbs || null, billed_before: r.before || '0' },
+      });
+      await reload();
+      router.push(`/finance/secured/${id}`);
+    }, 'Added to the secured list');
+  };
   const securedOf = (b: BudgetProject) =>
     data?.secured.find((s) => s.budget_id === b.id || (b.project_id && s.project_id === b.project_id) || (b.wbs && s.wbs === b.wbs));
   const rows = (data?.rows ?? []).filter((r) => line === 'all' || r.business_line === line);
@@ -141,6 +168,19 @@ export default function BudgetScreen() {
               columns={[
                 { h: 'Line', w: 70, v: (r) => lineShort(r.business_line) },
                 { h: 'Project', w: 240, v: (r) => r.project_name, bold: true },
+                {
+                  h: 'Status',
+                  w: 140,
+                  v: (r) => {
+                    const s = securedOf(r);
+                    if (s) return <Pill label={s.source === 'opening' ? 'Secured earlier' : 'Secured'} tone={colors.green} />;
+                    return desk || r.sales_person_id === me.id ? (
+                      <Button small variant="secondary" title="Mark secured" onPress={() => markSecured(r)} />
+                    ) : (
+                      <Pill label="To win" tone={colors.amber} />
+                    );
+                  },
+                },
                 { h: 'Customer', w: 170, v: (r) => r.customer ?? '—' },
                 { h: 'Sales person', w: 150, v: (r) => people[r.sales_person_id ?? '']?.full_name ?? '—' },
                 { h: 'WBS', w: 95, v: (r) => r.wbs ?? '—' },
@@ -157,17 +197,9 @@ export default function BudgetScreen() {
                       .map((i) => `${fmtMonthShort(i.month)} ${mn(i.amount)}`)
                       .join(', ') || '—',
                 },
-                {
-                  h: 'Status',
-                  w: 120,
-                  v: (r) => {
-                    const s = securedOf(r);
-                    return s ? <Pill label={s.source === 'opening' ? 'Secured earlier' : 'Secured'} tone={colors.green} /> : <Pill label="To win" tone={colors.amber} />;
-                  },
-                },
               ]}
             />
-            <Muted>Amounts in LKR Mn. A project turns “Secured” when it is won in the system (or is in the opening secured list).</Muted>
+            <Muted>Amounts in LKR. A project turns “Secured” when it is won in the system, marked secured here (“Mark secured”), or is on the opening secured list.</Muted>
           </Section>
         </>
       )}
