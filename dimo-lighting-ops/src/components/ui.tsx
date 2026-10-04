@@ -304,6 +304,12 @@ function typingMoney(raw: string) {
   return `${neg ? '-' : ''}${grouped}${dec != null ? `.${dec}` : ''}`;
 }
 
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const pad2 = (n: number) => String(n).padStart(2, '0');
+const isoOf = (y: number, m: number, d: number) => `${y}-${pad2(m + 1)}-${pad2(d)}`;
+const showDate = (iso: string) => `${Number(iso.slice(8, 10))} ${MONTHS[Number(iso.slice(5, 7)) - 1].slice(0, 3)} ${iso.slice(0, 4)}`;
+
+/** Date input: tap to open a small calendar (month and year can be picked directly – useful for older dates). */
 export function DateField({
   label,
   value,
@@ -319,13 +325,8 @@ export function DateField({
   hint?: string;
   quick?: number[];
 }) {
-  const [text, setText] = useState(value ?? '');
-  const [prev, setPrev] = useState(value);
-  if (value !== prev) {
-    setPrev(value);
-    setText(value ?? '');
-  }
-  const bad = text !== '' && !isISODate(text);
+  const [open, setOpen] = useState(false);
+  const valid = !!value && isISODate(value);
   return (
     <View style={styles.field}>
       <Text style={styles.label}>
@@ -333,26 +334,146 @@ export function DateField({
         {required ? <Text style={{ color: colors.brand }}> *</Text> : null}
       </Text>
       <Row gap={6} wrap>
-        <TextInput
-          value={text}
-          placeholder="YYYY-MM-DD"
-          placeholderTextColor={colors.faint}
-          onChangeText={(t) => {
-            setText(t);
-            if (t === '') onChange(null);
-            else if (isISODate(t)) onChange(t);
-          }}
-          style={[styles.input, { minWidth: 140, flexGrow: 1 }, bad && { borderColor: colors.red }]}
-          inputMode="numeric"
-        />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${label}: ${valid ? showDate(value!) : 'choose a date'}`}
+          onPress={() => setOpen(true)}
+          style={[styles.input, { minWidth: 160, flexGrow: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
+        >
+          <Text style={{ fontSize: 15, color: valid ? colors.text : colors.faint }}>{valid ? showDate(value!) : 'Choose date'}</Text>
+          <Text style={{ color: colors.muted }}>📅</Text>
+        </Pressable>
         {quick.map((d) => (
           <Chip key={d} label={d === 0 ? 'Today' : `+${d}d`} onPress={() => onChange(addDaysISO(todayISO(), d))} />
         ))}
       </Row>
-      {bad ? <Text style={styles.error}>Use the format YYYY-MM-DD</Text> : hint ? <Text style={styles.hint}>{hint}</Text> : null}
+      {hint ? <Text style={styles.hint}>{hint}</Text> : null}
+      {open ? (
+        <CalendarPopup
+          value={valid ? value! : null}
+          onClose={() => setOpen(false)}
+          onPick={(v) => {
+            onChange(v);
+            setOpen(false);
+          }}
+          onClear={required ? undefined : () => {
+            onChange(null);
+            setOpen(false);
+          }}
+        />
+      ) : null}
     </View>
   );
 }
+
+function CalendarPopup({ value, onPick, onClose, onClear }: { value: string | null; onPick: (v: string) => void; onClose: () => void; onClear?: () => void }) {
+  const today = todayISO();
+  const start = value ?? today;
+  const [y, setY] = useState(Number(start.slice(0, 4)));
+  const [m, setM] = useState(Number(start.slice(5, 7)) - 1);
+  const [view, setView] = useState<'days' | 'months' | 'years'>('days');
+  const first = new Date(Date.UTC(y, m, 1)).getUTCDay(); // 0 = Sunday
+  const lead = (first + 6) % 7; // weeks start on Monday
+  const days = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  const cells = [...Array.from({ length: lead }, () => 0), ...Array.from({ length: days }, (_, i) => i + 1)];
+  const thisYear = Number(today.slice(0, 4));
+  const years = Array.from({ length: 41 }, (_, i) => thisYear + 5 - i);
+  const step = (n: number) => {
+    const t = m + n;
+    setY(y + Math.floor(t / 12));
+    setM(((t % 12) + 12) % 12);
+  };
+  const cell = { width: '14.28%' as const, alignItems: 'center' as const, paddingVertical: 4 };
+  return (
+    <Modal transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', alignItems: 'center', padding: 16 }} onPress={onClose}>
+        <Pressable style={{ width: '100%', maxWidth: 340, backgroundColor: '#fff', borderRadius: 14, padding: 14, gap: 8 }} onPress={() => undefined}>
+          <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+            <Pressable onPress={() => step(-1)} hitSlop={10} style={{ padding: 6 }} accessibilityLabel="Previous month">
+              <Text style={{ fontSize: 20, color: colors.text }}>‹</Text>
+            </Pressable>
+            <Row gap={6}>
+              <Pressable onPress={() => setView(view === 'months' ? 'days' : 'months')} style={calHead}>
+                <Text style={{ fontWeight: '700', color: colors.ink }}>{MONTHS[m]} ▾</Text>
+              </Pressable>
+              <Pressable onPress={() => setView(view === 'years' ? 'days' : 'years')} style={calHead}>
+                <Text style={{ fontWeight: '700', color: colors.ink }}>{y} ▾</Text>
+              </Pressable>
+            </Row>
+            <Pressable onPress={() => step(1)} hitSlop={10} style={{ padding: 6 }} accessibilityLabel="Next month">
+              <Text style={{ fontSize: 20, color: colors.text }}>›</Text>
+            </Pressable>
+          </Row>
+          {view === 'months' ? (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+              {MONTHS.map((name, i) => (
+                <Pressable key={name} onPress={() => { setM(i); setView('days'); }} style={{ width: '33.33%', padding: 4 }}>
+                  <View style={[calPill, i === m && { backgroundColor: colors.brand }]}>
+                    <Text style={{ color: i === m ? '#fff' : colors.text }}>{name.slice(0, 3)}</Text>
+                  </View>
+                </Pressable>
+              ))}
+            </View>
+          ) : view === 'years' ? (
+            <ScrollView style={{ maxHeight: 260 }}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                {years.map((yy) => (
+                  <Pressable key={yy} onPress={() => { setY(yy); setView('days'); }} style={{ width: '25%', padding: 4 }}>
+                    <View style={[calPill, yy === y && { backgroundColor: colors.brand }]}>
+                      <Text style={{ color: yy === y ? '#fff' : colors.text }}>{yy}</Text>
+                    </View>
+                  </Pressable>
+                ))}
+              </View>
+            </ScrollView>
+          ) : (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+              {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map((d) => (
+                <View key={d} style={cell}>
+                  <Text style={{ fontSize: 12, color: colors.muted, fontWeight: '600' }}>{d}</Text>
+                </View>
+              ))}
+              {cells.map((d, i) => {
+                if (!d) return <View key={`e${i}`} style={cell} />;
+                const iso = isoOf(y, m, d);
+                const on = iso === value;
+                const isToday = iso === today;
+                return (
+                  <Pressable key={iso} style={cell} onPress={() => onPick(iso)} accessibilityLabel={showDate(iso)}>
+                    <View
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 18,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: on ? colors.brand : 'transparent',
+                        borderWidth: isToday && !on ? 1 : 0,
+                        borderColor: colors.brand,
+                      }}
+                    >
+                      <Text style={{ color: on ? '#fff' : colors.text, fontWeight: on || isToday ? '700' : '400' }}>{d}</Text>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
+          <Row style={{ justifyContent: 'space-between' }}>
+            <Button small variant="ghost" title="Today" onPress={() => onPick(today)} />
+            <Row gap={6}>
+              {onClear ? <Button small variant="ghost" title="Clear" onPress={onClear} /> : null}
+              <Button small variant="secondary" title="Close" onPress={onClose} />
+            </Row>
+          </Row>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+const calHead = { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: colors.soft, borderWidth: 1, borderColor: colors.line };
+const calPill = { alignItems: 'center' as const, paddingVertical: 10, borderRadius: 8, backgroundColor: colors.soft };
 
 export type Option = { value: string; label: string; group?: string | null; hint?: string };
 
