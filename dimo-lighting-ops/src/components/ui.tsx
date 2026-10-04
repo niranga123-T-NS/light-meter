@@ -780,6 +780,7 @@ export function ListRow({
   left,
   onPress,
   highlight,
+  wrapRight,
 }: {
   title: ReactNode;
   subtitle?: ReactNode;
@@ -787,7 +788,11 @@ export function ListRow({
   left?: ReactNode;
   onPress?: () => void;
   highlight?: string;
+  /** On phones, show `right` (e.g. status pills) under the text instead of beside it */
+  wrapRight?: boolean;
 }) {
+  const wide = useWide();
+  const below = wrapRight && !wide;
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.listRow, highlight ? { borderLeftColor: highlight, borderLeftWidth: 4 } : null, pressed && onPress && { backgroundColor: colors.soft }]}>
       {left}
@@ -800,8 +805,9 @@ export function ListRow({
           title
         )}
         {subtitle ? typeof subtitle === 'string' ? <Muted>{subtitle}</Muted> : subtitle : null}
+        {below && right ? <View style={{ marginTop: 6, flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>{right}</View> : null}
       </View>
-      {right}
+      {below ? null : right}
     </Pressable>
   );
 }
