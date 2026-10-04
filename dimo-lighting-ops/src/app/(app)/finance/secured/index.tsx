@@ -193,7 +193,7 @@ export default function SecuredList() {
       {isFinanceDesk(me.role) ? (
         <Section title="Opening secured list (orders won before the system)">
           <ListUpload
-            intro="One row per project won before the system with invoicing still to do. Order value = invoiced before 1 April + the invoices still to do (up to six month / amount pairs). Rows are matched by WBS or project name: loading the file again updates them. Projects won through the system are not changed."
+            intro="One row per project won before the system with invoicing still to do. Invoice month / amount pairs are optional: with them, invoiced before 1 April + the invoices must equal the order value; without them the project loads as “Schedule missing” and the sales person enters its invoices. Rows are matched by WBS or project name: loading the file again updates them. Projects won through the system are not changed."
             read={readOpeningFile}
             check={(r) => rpc('check_opening_list', { p_rows: r })}
             save={(r) => rpc('save_opening_list', { p_rows: r })}
