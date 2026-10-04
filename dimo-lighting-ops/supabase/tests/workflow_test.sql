@@ -2696,5 +2696,31 @@ select pg_temp.act_as('gm'); set role authenticated;
 do $$ begin assert exists (select 1 from public.my_week_meetings() where team = 'estimation' and my_part = 'viewer'), 'GM sees the week'; end $$;
 reset role;
 
+-- Sales map: managers see the team, a sales person only their own, others not at all ------------------------------------
+update public.visits set checkin_lat = 6.9271, checkin_lng = 79.8612 where checkin_lat is null;
+update public.projects set status = 'active', lat = null, lng = null where id = '00000000-0000-0000-0000-00000000b001';
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert (select count(*) from public.map_visits(current_date - 400, current_date + 400)) >= 1, 'SM Projects sees visits';
+  assert (select loc_source from public.map_coverage() where kind = 'project' and id = '00000000-0000-0000-0000-00000000b001') = 'visit', 'project placed from its visit';
+  assert (select last_visit is not null from public.map_coverage() where kind = 'project' and id = '00000000-0000-0000-0000-00000000b001'), 'last visit known';
+  assert exists (select 1 from public.map_coverage() where kind = 'customer'), 'customers listed';
+end $$;
+reset role;
+select pg_temp.act_as('asm_infra'); set role authenticated;
+do $$ begin
+  assert not exists (select 1 from public.map_visits(current_date - 400, current_date + 400, (select id from u where role = 'asm_building'))
+                     where sales_person_id <> (select id from u where role = 'asm_infra')), 'sales person sees only own visits';
+  assert not exists (select 1 from public.map_coverage((select id from u where role = 'asm_building'))
+                     where owner_id is distinct from (select id from u where role = 'asm_infra')), 'only own accounts';
+end $$;
+reset role;
+select pg_temp.act_as('design_manager'); set role authenticated;
+do $$ begin
+  begin perform public.map_visits(current_date, current_date); assert false, 'not for design';
+  exception when others then assert sqlerrm like 'The sales map is for%', sqlerrm; end;
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

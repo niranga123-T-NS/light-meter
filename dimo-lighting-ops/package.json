@@ -32,6 +32,8 @@
     "expo-router": "~57.0.24",
     "expo-sharing": "~57.0.22",
     "expo-status-bar": "~57.0.1",
+    "leaflet": "^1.9.4",
+    "leaflet.heat": "^0.2.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
@@ -44,6 +46,7 @@
     "write-excel-file": "^4.1.1"
   },
   "devDependencies": {
+    "@types/leaflet": "^1.9.22",
     "@types/react": "~19.2.2",
     "eslint": "^9.39.5",
     "eslint-config-expo": "~57.0.2",
