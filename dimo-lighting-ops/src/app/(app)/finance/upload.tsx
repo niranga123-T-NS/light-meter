@@ -11,7 +11,7 @@ import { fmtDateTime } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 
-/** Monthly OR file (Finance's management P&L + trial balance): the P&L, and invoicing by WBS for the secured projects. */
+/** Monthly OR file (Finance's management P&L): feeds the P&L only. Invoicing is recorded on the secured projects. */
 export default function OrUploadScreen() {
   const me = useMe();
   const people = usePeople();
@@ -57,7 +57,7 @@ export default function OrUploadScreen() {
       await rpc('save_or_upload', { p_month: m, p_file_name: parsed.fileName, p_pnl: parsed.pnl, p_wbs: parsed.wbs });
       setParsed(null);
       await history.reload();
-    }, 'OR file loaded – P&L and invoicing updated');
+    }, 'OR file loaded – P&L updated');
   };
 
   const nt = parsed ? findLine(parsed.pnl.map((l) => ({ ...l, upload_id: '' })), 'Net Turnover', 'pnl') : null;
@@ -71,8 +71,8 @@ export default function OrUploadScreen() {
       <Card>
         <Text style={{ fontWeight: '700', color: colors.ink }}>Monthly OR file</Text>
         <Muted>
-          Upload Finance’s OR Excel each month as it is. The P&L sheet (e.g. “2230”) gives the P&L; the trial balance sheet (e.g. “TB-Aug”) gives
-          invoicing and cost by WBS. Sub-codes such as LS-000116-01-04 are added to LS-000116. Loading a month again replaces it.
+          Upload Finance’s OR Excel each month as it is. The P&L sheet (e.g. “2230”) gives the P&L. Invoicing is not taken from this file – it is
+          recorded on each secured project when the invoice is raised. Loading a month again replaces it.
         </Muted>
         <Row wrap gap={8}>
           <Button title="Choose OR file" icon="⇪" onPress={choose} />

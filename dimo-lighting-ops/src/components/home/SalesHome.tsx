@@ -48,7 +48,7 @@ export function SalesHome() {
     const { data: rows } = await supabase.from('retentions').select('*').eq('sales_person_id', me.id).in('status', ['held', 'claimed']);
     return (rows ?? []) as Retention[];
   }, [me.id]);
-  // My invoicing / secured against target (from the monthly OR file)
+  // My invoicing / secured against the budget (invoices recorded on the projects)
   const perf = useLoad(() => rpc<Performance>('finance_performance', { p_fy: fyOf(todayISO()) }).catch(() => null), []);
   const myPerf = perf.data?.people.find((x) => x.id === me.id);
   const retAction = (ret.data ?? [])

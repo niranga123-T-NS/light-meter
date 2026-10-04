@@ -115,7 +115,19 @@ export type LineChange = {
   decision_note: string | null;
 };
 
-export type Allocation = { id: number; upload_id: string; month: string; secured_id: string; line_id: string | null; amount: number; manual: boolean };
+export type Allocation = {
+  id: number;
+  upload_id: string | null;
+  month: string;
+  secured_id: string;
+  line_id: string | null;
+  amount: number;
+  manual: boolean;
+  invoice_no: string | null;
+  invoice_date: string | null;
+  note: string | null;
+  created_by: string | null;
+};
 
 export type OrUpload = {
   id: string;

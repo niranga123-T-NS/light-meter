@@ -24,6 +24,7 @@ import {
 } from "@/components/ui";
 import { useMe } from "@/lib/auth";
 import {
+  amt,
   addMonths,
   fmtMonth,
   fyEnd,
@@ -47,7 +48,7 @@ import {
   type SecuredProject,
   type Variation,
 } from "@/lib/finance";
-import { fmtDate, fmtDateTime, fmtMoney } from "@/lib/format";
+import { fmtDate, fmtDateTime, fmtMoney, todayISO } from "@/lib/format";
 import { useLoad, usePeople } from "@/lib/hooks";
 import { rpc, supabase } from "@/lib/supabase";
 
@@ -466,7 +467,7 @@ export default function SecuredDetail() {
           key: "wbs",
           label: "WBS (SAP project code)",
           initial: s.wbs ?? "",
-          hint: "e.g. LS-000176 – invoicing in the OR file is matched by it",
+          hint: "e.g. LS-000176 – the SAP project code",
         },
         { key: "po_no", label: "PO / contract no.", initial: s.po_no ?? "" },
         { key: "customer", label: "Customer", initial: s.customer ?? "" },
@@ -520,6 +521,57 @@ export default function SecuredDetail() {
       await rpc("set_secured_details", { p_secured: s.id, p_data: patch });
       await reload();
     }, "Saved");
+  };
+
+  const recordInvoice = async (l: InvoiceLine) => {
+    const r = await dialog.prompt({
+      title: `Record invoice – ${l.description ?? kindLabel(l.kind)}`,
+      message: `Still to invoice on this line: ${fmtMoney(l.remaining)}`,
+      fields: [
+        { key: "no", label: "Invoice number", required: true },
+        {
+          key: "date",
+          label: "Invoice date",
+          type: "date",
+          required: true,
+          initial: todayISO(),
+        },
+        {
+          key: "amt",
+          label: "Amount (LKR)",
+          required: true,
+          initial: amt(l.remaining),
+        },
+        { key: "note", label: "Note" },
+      ],
+      confirmLabel: "Record",
+    });
+    if (!r) return;
+    await dialog.run(async () => {
+      await rpc("record_invoice", {
+        p_line: l.id,
+        p_data: {
+          invoice_no: r.no,
+          invoice_date: r.date,
+          amount: r.amt,
+          note: r.note || null,
+        },
+      });
+      await reload();
+    }, "Invoice recorded");
+  };
+  const deleteInvoice = async (a: Allocation) => {
+    const r = await dialog.prompt({
+      title: `Delete invoice ${a.invoice_no ?? "(from the OR file)"} – ${fmtMoney(a.amount)}`,
+      fields: [{ key: "why", label: "Reason", type: "multiline", required: true }],
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!r) return;
+    await dialog.run(async () => {
+      await rpc("delete_invoice", { p_id: a.id, p_reason: r.why });
+      await reload();
+    }, "Deleted");
   };
 
   const reassign = async (a: Allocation) => {
@@ -766,7 +818,7 @@ export default function SecuredDetail() {
             />
           ) : null}
           <KeyValue
-            label="Invoiced (OR uploads)"
+            label="Invoiced"
             value={fmtMoney(invoicedAll)}
           />
           {s.source === "won" && s.schedule_status === "approved" ? (
@@ -1117,7 +1169,7 @@ export default function SecuredDetail() {
                 },
                 {
                   h: "",
-                  w: 165,
+                  w: 280,
                   v: (l) =>
                     l.pending_change_id && reviewer ? (
                       <Row gap={4}>
@@ -1135,16 +1187,23 @@ export default function SecuredDetail() {
                           }
                         />
                       </Row>
-                    ) : canEdit &&
-                      s.schedule_status === "approved" &&
-                      Number(l.remaining) > 0.5 &&
-                      !l.pending_change_id ? (
-                      <Button
-                        small
-                        variant="secondary"
-                        title="Move"
-                        onPress={() => move(l)}
-                      />
+                    ) : canEdit && Number(l.remaining) > 0.5 ? (
+                      <Row gap={4}>
+                        <Button
+                          small
+                          title="Record invoice"
+                          onPress={() => recordInvoice(l)}
+                        />
+                        {s.schedule_status === "approved" &&
+                        !l.pending_change_id ? (
+                          <Button
+                            small
+                            variant="secondary"
+                            title="Move"
+                            onPress={() => move(l)}
+                          />
+                        ) : null}
+                      </Row>
                     ) : null,
                 },
               ]}
@@ -1349,17 +1408,26 @@ export default function SecuredDetail() {
         </Section>
       ) : null}
 
-      <Section title="Invoicing received (from the OR file)">
+      <Section title="Invoices raised">
         <DataTable
           rows={data.allocs}
           keyOf={(a) => String(a.id)}
-          emptyTitle={
-            s.wbs
-              ? "Nothing invoiced on this WBS yet"
-              : "Add the WBS so invoicing in the OR file can be matched"
-          }
+          emptyTitle="No invoices recorded yet – use “Record invoice” on the schedule"
+          footer={[
+            "Total",
+            "",
+            fmtMoney(invoicedAll),
+            "",
+            "",
+            "",
+          ]}
           columns={[
-            { h: "Month", w: 100, v: (a) => fmtMonth(a.month) },
+            {
+              h: "Date",
+              w: 110,
+              v: (a) => (a.invoice_date ? fmtDate(a.invoice_date) : fmtMonth(a.month)),
+            },
+            { h: "Invoice no.", w: 130, v: (a) => a.invoice_no ?? "—", bold: true },
             {
               h: "Amount",
               w: 150,
@@ -1369,7 +1437,7 @@ export default function SecuredDetail() {
             },
             {
               h: "Against invoice",
-              w: 240,
+              w: 200,
               v: (a) =>
                 a.line_id
                   ? (lineOf(a.line_id)?.description ??
@@ -1377,29 +1445,44 @@ export default function SecuredDetail() {
                   : "Not against an invoice (extra / credit note)",
             },
             {
-              h: "",
-              w: 140,
-              v: (a) => (a.manual ? <Pill label="Re-assigned" /> : null),
+              h: "Recorded by",
+              w: 200,
+              v: (a) =>
+                a.note ??
+                people[a.created_by ?? ""]?.full_name ??
+                "—",
+              tone: (a) => (a.invoice_no ? undefined : colors.amber),
             },
             {
               h: "",
-              w: 120,
-              v: (a) =>
-                desk ? (
-                  <Button
-                    small
-                    variant="ghost"
-                    title="Re-assign"
-                    onPress={() => reassign(a)}
-                  />
-                ) : null,
+              w: 190,
+              v: (a) => (
+                <Row gap={4}>
+                  {desk ? (
+                    <Button
+                      small
+                      variant="ghost"
+                      title="Re-assign"
+                      onPress={() => reassign(a)}
+                    />
+                  ) : null}
+                  {desk || a.created_by === me.id ? (
+                    <Button
+                      small
+                      variant="ghost"
+                      title="Delete"
+                      onPress={() => deleteInvoice(a)}
+                    />
+                  ) : null}
+                </Row>
+              ),
             },
           ]}
         />
         <Muted>
-          Each month’s invoicing on the WBS is matched to the invoices oldest
-          first. Operations can re-assign an amount matched to the wrong
-          invoice.
+          Invoices are recorded here when they are raised (the OR file is used
+          for the P&L only). Amounts marked “From the OR file” were taken from
+          the August OR file – add the invoice or delete them.
         </Muted>
       </Section>
 
