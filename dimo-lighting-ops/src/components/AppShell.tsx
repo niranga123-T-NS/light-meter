@@ -8,6 +8,7 @@ import { showBrowserNotification } from '@/lib/push';
 import { navFor, NavItem, ROLE_SHORT } from '@/lib/roles';
 import { rpc, supabase } from '@/lib/supabase';
 import type { AppNotification } from '@/lib/types';
+import { BrandLogo } from './BrandLogo';
 import { Avatar, Badge, colors } from './ui';
 import { BUILD_ID, BUILD_TIME } from './UpdateBanner';
 
@@ -85,8 +86,8 @@ export function Sidebar() {
   return (
     <View style={{ width: 236, backgroundColor: '#15171C', paddingTop: 18 }}>
       <View style={{ paddingHorizontal: 18, marginBottom: 18 }}>
-        <Text style={{ color: colors.brand, fontWeight: '800', fontSize: 22, letterSpacing: 1 }}>DIMO</Text>
-        <Text style={{ color: '#9CA3AF', fontSize: 12 }}>Lighting Operations</Text>
+        <BrandLogo width={150} />
+        <Text style={{ color: '#9CA3AF', fontSize: 12, marginTop: 8 }}>Lighting Operations</Text>
       </View>
       <ScrollView style={{ flex: 1 }}>
         {nav.map((item) => (
