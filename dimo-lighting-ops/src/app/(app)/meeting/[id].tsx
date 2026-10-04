@@ -1,11 +1,15 @@
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { pctTone } from '@/components/financeTones';
 import { useDialog } from '@/components/dialog';
+import { MeetingActionForm, type ActionDraft } from '@/components/MeetingActionForm';
+import { captureLocation } from '@/components/VisitBits';
 import { Button, Card, colors, ErrorBanner, Grid, KeyValue, Loading, Muted, Notice, Pill, Progress, Row, Screen, Section, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { amt, fmtPct, mn } from '@/lib/finance';
-import { addDaysISO, fmtDate, fmtDateTime, todayISO } from '@/lib/format';
+import { fmtDate, fmtDateTime, todayISO } from '@/lib/format';
+import { ROLE_LABELS } from '@/lib/roles';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 
@@ -36,9 +40,37 @@ type Pack = {
   team: Record<string, number>;
   people: Person[];
 };
-type Meeting = { id: string; meeting_date: string; status: 'draft' | 'published'; pack: Pack | null; notes: string | null; generated_at: string | null; published_at: string | null };
+type Meeting = {
+  id: string;
+  meeting_date: string;
+  status: 'draft' | 'published';
+  pack: Pack | null;
+  notes: string | null;
+  generated_at: string | null;
+  published_at: string | null;
+  started_at: string | null;
+};
 type Note = { sales_person_id: string; note: string };
-type Action = { id: string; sales_person_id: string | null; owner_id: string; action: string; due_date: string | null; status: 'open' | 'done' };
+type Action = {
+  id: string;
+  sales_person_id: string | null;
+  owner_id: string;
+  action: string;
+  due_date: string | null;
+  status: 'open' | 'done';
+  new_project: string | null;
+  new_customer: string | null;
+  projects: { name: string } | null;
+  organizations: { name: string } | null;
+};
+type Invitee = { person_id: string; status: 'invited' | 'present' | 'location_check' | 'absent' | 'excused'; checkin_at: string | null; distance_m: number | null; note: string | null };
+const ATT: Record<Invitee['status'], { label: string; tone: string }> = {
+  invited: { label: 'Not marked yet', tone: colors.grey },
+  present: { label: 'Present', tone: colors.green },
+  location_check: { label: 'Location differs – approve', tone: colors.red },
+  absent: { label: 'Absent', tone: colors.red },
+  excused: { label: 'Leave approved', tone: colors.blue },
+};
 
 const bar = (label: string, done: number, target: number, value: number) => (
   <View style={{ gap: 3 }}>
@@ -59,14 +91,16 @@ export default function MeetingPack() {
   const people = usePeople();
   const dialog = useDialog();
   const { data, error, reload } = useLoad(async () => {
-    const [m, n, a] = await Promise.all([
+    const [m, n, a, i] = await Promise.all([
       supabase.from('sales_meetings').select('*').eq('id', id).single(),
       supabase.from('sales_meeting_notes').select('*').eq('meeting_id', id),
-      supabase.from('sales_meeting_actions').select('*').eq('meeting_id', id).order('created_at'),
+      supabase.from('sales_meeting_actions').select('*, projects(name), organizations(name)').eq('meeting_id', id).order('created_at'),
+      supabase.from('sales_meeting_invitees').select('*').eq('meeting_id', id),
     ]);
     if (m.error) throw new Error(m.error.message);
-    return { m: m.data as Meeting, notes: (n.data ?? []) as Note[], actions: (a.data ?? []) as Action[] };
+    return { m: m.data as Meeting, notes: (n.data ?? []) as Note[], actions: (a.data ?? []) as Action[], invitees: (i.data ?? []) as Invitee[] };
   }, [id]);
+  const [adding, setAdding] = useState<string | null>(null); // sales person id, 'general', or null
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const { m } = data;
   const smp = me.role === 'sm_projects';
@@ -87,19 +121,35 @@ export default function MeetingPack() {
     });
     if (r) await run('save_meeting_note', { p_meeting: m.id, p_sales_person: personId, p_note: r.n ?? '' }, 'Saved');
   };
-  const addAction = async (personId: string | null) => {
-    const owners = Object.values(people)
-      .filter((p) => ['asm_building', 'asm_infra', 'sm_projects', 'operations_exec'].includes(p.role))
-      .sort((a, b) => a.full_name.localeCompare(b.full_name));
+  // Anyone but GM / DGM can be given an action
+  const owners = Object.values(people)
+    .filter((p) => p.active !== false && p.role !== 'gm')
+    .sort((a, b) => a.full_name.localeCompare(b.full_name));
+  const saveAction = async (personId: string | null, a: ActionDraft) => {
+    await run(
+      'add_meeting_action',
+      {
+        p_meeting: m.id,
+        p_data: { sales_person_id: personId, owner_id: a.owner_id, action: a.action, due_date: a.due_date, project_id: a.project_id, organization_id: a.organization_id, new_project: a.new_project, new_customer: a.new_customer },
+      },
+      'Action added',
+    );
+    setAdding(null);
+  };
+  const today = todayISO();
+  const isToday = m.meeting_date === today;
+  const startMeeting = async () => {
+    const loc = await captureLocation();
+    if (!loc) return dialog.toast('Allow location access – the meeting location is where you start it', 'error');
+    await run('start_sales_meeting', { p_id: m.id, p_lat: loc.lat, p_lng: loc.lng }, 'Meeting started – invitees can mark attendance');
+  };
+  const decideAttendance = async (p: Invitee, present: boolean) => {
     const r = await dialog.prompt({
-      title: 'Action',
-      fields: [
-        { key: 'a', label: 'Action', type: 'multiline', required: true },
-        { key: 'o', label: 'Who', type: 'select', required: true, initial: personId ?? undefined, options: owners.map((p) => ({ value: p.id, label: p.full_name })) },
-        { key: 'd', label: 'Due', type: 'date', initial: addDaysISO(todayISO(), 7) },
-      ],
+      title: present ? `Accept ${people[p.person_id]?.full_name ?? ''} as present` : `Mark ${people[p.person_id]?.full_name ?? ''} absent`,
+      message: p.distance_m != null ? `Marked ${Math.round(p.distance_m)} m from the meeting location` : 'No location was shared',
+      fields: [{ key: 'n', label: present ? 'Note' : 'Reason', type: 'multiline', required: !present }],
     });
-    if (r) await run('add_meeting_action', { p_meeting: m.id, p_data: { sales_person_id: personId, owner_id: r.o, action: r.a, due_date: r.d || null } }, 'Action added');
+    if (r) await run('decide_attendance', { p_meeting: m.id, p_person: p.person_id, p_present: present, p_note: r.n || null }, 'Saved');
   };
   const actionsFor = (personId: string | null) => data.actions.filter((a) => a.sales_person_id === personId);
   const actionList = (personId: string | null) => (
@@ -110,6 +160,8 @@ export default function MeetingPack() {
           <Text style={{ color: colors.ink, flexShrink: 1 }}>
             {a.action} · {people[a.owner_id]?.full_name ?? '—'}
             {a.due_date ? ` · by ${fmtDate(a.due_date)}` : ''}
+            {a.projects?.name || a.new_project ? ` · ${a.projects?.name ?? `${a.new_project} (new)`}` : ''}
+            {a.organizations?.name || a.new_customer ? ` · ${a.organizations?.name ?? `${a.new_customer} (new)`}` : ''}
           </Text>
           {smp ? (
             <Button small variant="ghost" title={a.status === 'done' ? 'Re-open' : 'Mark done'} onPress={() => run('set_meeting_action_done', { p_id: a.id, p_done: a.status !== 'done' }, 'Updated')} />
@@ -117,9 +169,11 @@ export default function MeetingPack() {
           {edit ? <Button small variant="ghost" title="Delete" onPress={() => run('delete_meeting_action', { p_id: a.id }, 'Deleted')} /> : null}
         </Row>
       ))}
-      {edit ? (
+      {edit && adding === (personId ?? 'general') ? (
+        <MeetingActionForm owners={owners} defaultOwner={personId} onSave={(a) => saveAction(personId, a)} onCancel={() => setAdding(null)} />
+      ) : edit ? (
         <Row>
-          <Button small variant="secondary" title="+ Action" onPress={() => addAction(personId)} />
+          <Button small variant="secondary" title="+ Action" onPress={() => setAdding(personId ?? 'general')} />
         </Row>
       ) : null}
     </View>
@@ -156,6 +210,52 @@ export default function MeetingPack() {
         {!smp ? <Muted>Read only.</Muted> : null}
       </Card>
 
+      <Section
+        title={`Attendance (${data.invitees.filter((x) => x.status === 'present').length} of ${data.invitees.length} present)`}
+        right={
+          edit && !m.started_at ? (
+            <Row gap={6}>
+              <Button small variant="secondary" title="Invitees" onPress={() => router.push({ pathname: '/meeting/invite', params: { date: m.meeting_date } })} />
+              {isToday ? <Button small title="Start meeting here" onPress={startMeeting} /> : null}
+            </Row>
+          ) : undefined
+        }
+      >
+        <Card>
+          {m.started_at ? (
+            <Muted>{`Started ${fmtDateTime(m.started_at)} – invitees marking present more than 200 m from here need your approval.`}</Muted>
+          ) : (
+            <Muted>
+              {isToday && smp
+                ? 'Press “Start meeting here” at the meeting venue – its location is used for everyone’s attendance.'
+                : 'Invitees mark their attendance in Internal meetings once the meeting is started.'}
+            </Muted>
+          )}
+          {data.invitees.length ? (
+            data.invitees
+              .slice()
+              .sort((a, b) => (people[a.person_id]?.full_name ?? '').localeCompare(people[b.person_id]?.full_name ?? ''))
+              .map((x) => (
+                <Row key={x.person_id} wrap gap={8} style={{ alignItems: 'center', borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 6, marginTop: 6 }}>
+                  <Text style={{ fontWeight: '600', color: colors.ink, minWidth: 170 }}>{people[x.person_id]?.full_name ?? '—'}</Text>
+                  <Muted>{ROLE_LABELS[people[x.person_id]?.role as keyof typeof ROLE_LABELS] ?? ''}</Muted>
+                  <Pill label={ATT[x.status].label} tone={ATT[x.status].tone} />
+                  {x.checkin_at ? <Muted>{`${fmtDateTime(x.checkin_at)}${x.distance_m != null ? ` · ${Math.round(x.distance_m)} m` : ''}`}</Muted> : null}
+                  {x.note ? <Muted>{x.note}</Muted> : null}
+                  {smp && x.status === 'location_check' ? (
+                    <Row gap={4}>
+                      <Button small title="Accept present" onPress={() => decideAttendance(x, true)} />
+                      <Button small variant="secondary" title="Absent" onPress={() => decideAttendance(x, false)} />
+                    </Row>
+                  ) : null}
+                </Row>
+              ))
+          ) : (
+            <Muted>Nobody invited yet{edit ? ' – press Invitees' : ''}.</Muted>
+          )}
+        </Card>
+      </Section>
+
       {pack ? (
         <>
           <Section title="Team">
@@ -190,7 +290,7 @@ export default function MeetingPack() {
                 <Card>
                   {p.exception ? (
                     <Notice tone={p.exception.status === 'approved' ? colors.blue : colors.amber}>
-                      {`Meeting exception ${p.exception.status}: ${p.exception.reason}`}
+                      {`Leave from the meeting ${p.exception.status}: ${p.exception.reason}`}
                     </Notice>
                   ) : null}
                   <Row wrap gap={16} style={{ alignItems: 'center' }}>

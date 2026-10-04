@@ -40,6 +40,9 @@ export async function rpc<T = unknown>(fn: string, args?: Record<string, unknown
 }
 
 function cleanError(message: string) {
+  // The browser could not reach the server (no signal, Wi-Fi dropped, the request was cut off)
+  if (/load failed|failed to fetch|networkerror|network request failed/i.test(message))
+    return 'Connection problem – the request did not reach the server. Check the connection and try again.';
   // Database rule messages are already written for users; strip Postgres prefixes.
   return message.replace(/^(ERROR:\s*)/i, '').replace(/^new row violates row-level security policy.*/i, 'You do not have permission to do that.');
 }

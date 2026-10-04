@@ -2390,5 +2390,67 @@ do $$ begin
     'excused sales person not reminded';
 end $$;
 
+-- Sales meeting part 2: invitations, leave, attendance, actions with project / customer, Sunday reminders ----------------
+do $$ begin perform set_config('test.mon2', (current_setting('test.mon')::date + 7)::text, false); end $$;
+do $$ declare sun timestamptz := ((current_setting('test.mon2')::date - 1) + time '15:05') at time zone app.tz();
+begin
+  perform public.sales_meeting_tick(sun);
+  assert exists (select 1 from public.notifications where title = 'Sales meeting not initiated' and recipient_id = (select id from u where role = 'gm')), 'GM told at 15:00';
+  assert exists (select 1 from public.notifications where title like 'Invite the team%' and recipient_id = (select id from u where role = 'sm_projects')), 'SM Projects reminded';
+end $$;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ declare mid uuid;
+begin
+  begin
+    perform public.invite_sales_meeting(current_setting('test.mon2')::date, array[(select id from u where role = 'gm')]);
+    assert false, 'GM cannot be invited';
+  exception when others then assert sqlerrm like 'GM / DGM and inactive users cannot be invited%', sqlerrm; end;
+  mid := public.invite_sales_meeting(current_setting('test.mon2')::date,
+    array[(select id from u where role = 'asm_building'), (select id from u where role = 'asm_infra'), (select id from u where role = 'operations_exec')]);
+  perform set_config('test.m2', mid::text, false);
+  assert (select count(*) from public.sales_meeting_invitees where meeting_id = mid) = 3, 'three invited';
+  -- the pack covers the invited sales persons only
+  perform public.generate_sales_meeting(current_setting('test.mon2')::date);
+  assert (select jsonb_array_length(pack -> 'people') from public.sales_meetings where id = mid) = 2, 'invited sales persons';
+  perform public.add_meeting_action(mid, jsonb_build_object('sales_person_id', (select id from u where role = 'asm_building'), 'action', 'Visit ABC Hotels',
+    'project_id', '00000000-0000-0000-0000-00000000b001'));
+  perform public.add_meeting_action(mid, jsonb_build_object('owner_id', (select id from u where role = 'operations_exec'), 'action', 'Open customer file',
+    'new_project', 'Hilton Colombo refurbishment', 'new_customer', 'Hilton Colombo'));
+  assert (select organization_id is not null from public.sales_meeting_actions where meeting_id = mid and project_id is not null), 'customer taken from the project';
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'meeting_invite' and recipient_id = (select id from u where role = 'operations_exec')), 'invitee notified';
+  assert (select initiated_at is not null from public.sales_meetings where id = current_setting('test.m2')::uuid), 'initiated';
+  assert public.sales_meeting_tick(((current_setting('test.mon2')::date - 1) + time '15:20') at time zone app.tz()) = 0, 'no GM alert once initiated';
+end $$;
+-- Leave: the operations executive applies, SM Projects approves before the meeting → excused
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ begin
+  perform public.request_meeting_exception(current_setting('test.mon2')::date, 'Bank audit visit at 9:00');
+  assert (select my_status from public.my_meetings() where meeting_id = current_setting('test.m2')::uuid) = 'invited', 'sees the invitation';
+  begin perform public.attend_sales_meeting(current_setting('test.m2')::uuid, 6.9, 79.8); assert false, 'not the meeting day';
+  exception when others then assert sqlerrm like 'Attendance is marked on the meeting day%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+select public.decide_meeting_exception((select id from public.meeting_exceptions where status = 'pending' and meeting_date = current_setting('test.mon2')::date), true, null);
+reset role;
+-- A location that differs is approved (or not) by SM Projects
+update public.sales_meeting_invitees set status = 'location_check', distance_m = 1200, checkin_at = now()
+ where meeting_id = current_setting('test.m2')::uuid and person_id = (select id from u where role = 'asm_infra');
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.my_pending_approvals() where source = 'meeting_attendance'), 'attendance check in approvals';
+  perform public.decide_attendance(current_setting('test.m2')::uuid, (select id from u where role = 'asm_infra'), true, 'At the client next door – joined');
+end $$;
+reset role;
+do $$ begin
+  assert (select status from public.sales_meeting_invitees where meeting_id = current_setting('test.m2')::uuid and person_id = (select id from u where role = 'operations_exec')) = 'excused', 'leave → excused';
+  assert (select status from public.sales_meeting_invitees where meeting_id = current_setting('test.m2')::uuid and person_id = (select id from u where role = 'asm_infra')) = 'present', 'present after approval';
+  perform public.sales_meeting_tick((current_setting('test.mon2')::date + time '12:10') at time zone app.tz());
+  assert (select status from public.sales_meeting_invitees where meeting_id = current_setting('test.m2')::uuid and person_id = (select id from u where role = 'asm_building')) = 'absent', 'not marked by 12:00 → absent';
+end $$;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

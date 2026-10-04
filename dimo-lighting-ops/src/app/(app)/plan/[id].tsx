@@ -163,20 +163,20 @@ export default function PlanDetail() {
           <Row wrap gap={8} style={{ justifyContent: 'space-between', alignItems: 'center' }}>
             <Text style={{ flexShrink: 1, color: colors.ink }}>
               {exception?.status === 'approved'
-                ? `Monday ${fmtDate(plan.week_start)}: exception approved – you may plan visits during the sales meeting (08:30 – 12:00).`
+                ? `Monday ${fmtDate(plan.week_start)}: leave from the sales meeting approved – you may plan visits between 08:30 and 12:00.`
                 : exception?.status === 'pending'
-                  ? `Monday ${fmtDate(plan.week_start)} 08:30 – 12:00 is the sales meeting. Exception requested – waiting for SM Projects.`
-                  : `Monday ${fmtDate(plan.week_start)} 08:30 – 12:00 is the sales meeting – plan Monday visits from 12:00.${exception?.status === 'rejected' ? ` Exception not approved${exception.decision_note ? `: ${exception.decision_note}` : ''}.` : ''}`}
+                  ? `Monday ${fmtDate(plan.week_start)} 08:30 – 12:00 is the sales meeting. Leave requested – waiting for SM Projects.`
+                  : `Monday ${fmtDate(plan.week_start)} 08:30 – 12:00 is the sales meeting – plan Monday visits from 12:00.${exception?.status === 'rejected' ? ` Leave not approved${exception.decision_note ? `: ${exception.decision_note}` : ''}.` : ''}`}
             </Text>
             {!exception || exception.status === 'rejected' ? (
               <Button
                 small
                 variant="secondary"
-                title="Request exception"
+                title="Apply for leave"
                 onPress={async () => {
                   const r = await dialog.prompt({
                     title: `Visit during the sales meeting – Monday ${fmtDate(plan.week_start)}`,
-                    message: 'SM Projects decides. Once approved you can plan visits between 08:30 and 12:00 that Monday.',
+                    message: 'SM Projects must approve it before the meeting. Once approved you can plan visits between 08:30 and 12:00 that Monday.',
                     fields: [{ key: 'r', label: 'Reason', type: 'multiline', required: true }],
                   });
                   if (r)
