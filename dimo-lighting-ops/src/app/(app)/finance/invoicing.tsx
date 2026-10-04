@@ -7,6 +7,7 @@ import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, ErrorBanner, Grid, Loading, Muted, Pill, Row, Screen, Section, Segmented, Select, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import {
+  amt,
   addMonths,
   fmtMonth,
   fyLabel,
@@ -174,7 +175,7 @@ export default function Invoicing() {
               { name: 'Forecast', color: CHART.second, values: yForecast },
               { name: 'Invoiced', color: CHART.actual, values: yInvoiced },
             ]}
-            fmt={(v) => `${v.toFixed(1)} Mn`}
+            fmt={(v) => `${amt(v)} Mn`}
             fmtAxis={(v) => v.toFixed(0)}
             flags={(i) => (yInvoiced[i] != null && yInvoiced[i]! < 0.9 * yBudget[i] ? 'bad' : undefined)}
             note="▼ = month invoiced below 90% of budget. Forecast = invoice schedules as they stand now."
@@ -189,7 +190,7 @@ export default function Invoicing() {
               { name: 'Outlook (schedules)', color: CHART.second, dashed: true, values: outlook },
               { name: 'Invoiced', color: CHART.actual, values: cumInvoiced },
             ]}
-            fmt={(v) => `${v.toFixed(1)} Mn`}
+            fmt={(v) => `${amt(v)} Mn`}
             fmtAxis={(v) => v.toFixed(0)}
             flags={(i) => (cumInvoiced[i] != null && cumInvoiced[i]! < 0.9 * (cumBudget[i] ?? 0) ? 'bad' : undefined)}
             note={`Year-end: budget ${mn((cumBudget[11] ?? 0) * 1e6)} · outlook ${mn((outlook[11] ?? cumInvoiced[11] ?? 0) * 1e6)} · gap ${mn(((cumBudget[11] ?? 0) - (outlook[11] ?? cumInvoiced[11] ?? 0)) * 1e6)} Mn`}

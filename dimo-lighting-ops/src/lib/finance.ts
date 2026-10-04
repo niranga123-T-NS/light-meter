@@ -28,6 +28,7 @@ export type BudgetProject = {
   wbs: string | null;
   budget_value: number;
   budget_gp_pct: number | null;
+  budget_gp_value?: number | null;
   order_month: string | null;
   notes: string | null;
 };
@@ -253,14 +254,17 @@ export const inFy = (iso: string, fy: number) => iso >= fyStart(fy) && iso <= fy
 // ---------------------------------------------------------------------------
 // Money in millions for cards and tables
 // ---------------------------------------------------------------------------
-export function mn(n?: number | null, digits = 1) {
+export function mn(n?: number | null, digits = 2) {
   if (n == null || Number.isNaN(n)) return '—';
   const v = n / 1_000_000;
   const s = Math.abs(v).toFixed(digits).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   return `${v < 0 ? '–' : ''}${s}`;
 }
 export const pct = (a: number, b: number) => (b ? (a / b) * 100 : 0);
-export const fmtPct = (n: number | null | undefined, digits = 0) => (n == null || !Number.isFinite(n) ? '—' : `${n.toFixed(digits)}%`);
+/** Full amount, comma separated with two decimals (e.g. 62,000,000.00). */
+export const amt = (n: number | null | undefined) =>
+  n == null || !Number.isFinite(Number(n)) ? '—' : `${Number(n) < 0 ? '–' : ''}${Math.abs(Number(n)).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
+export const fmtPct = (n: number | null | undefined, digits = 2) => (n == null || !Number.isFinite(n) ? '—' : `${n.toFixed(digits)}%`);
 
 /** Score = 40 % secured + 60 % invoiced (each % of its year-to-date target) */
 export function score(securedPct: number, invoicedPct: number) {
@@ -345,6 +349,7 @@ export const BUDGET_TEMPLATE = [
   'Sales person',
   'WBS (optional)',
   'Budget value (LKR)',
+  'Budget GP value (LKR)',
   'Budget GP %',
   'Order month',
   ...invoiceHeaders(),
@@ -419,6 +424,7 @@ export async function readBudgetFile(file: PickedFile) {
       sales_person: ['sales person', 'salesperson', 'sales'],
       wbs: ['wbs', 'wbs element', 'wbs no'],
       budget_value: ['budget value', 'value', 'budget'],
+      budget_gp_value: ['budget gp value', 'gp value', 'budget gp amount', 'gp amount'],
       budget_gp_pct: ['budget gp %', 'gp %', 'budget gp'],
       order_month: ['order month', 'expected order month'],
       notes: ['notes', 'remarks'],
@@ -430,6 +436,7 @@ export async function readBudgetFile(file: PickedFile) {
     rows: rows.map((r) => ({
       ...r,
       budget_value: parseNum(r.budget_value) ?? r.budget_value,
+      budget_gp_value: parseNum(r.budget_gp_value),
       budget_gp_pct: parseNum(r.budget_gp_pct),
       order_month: parseMonth(r.order_month),
     })),

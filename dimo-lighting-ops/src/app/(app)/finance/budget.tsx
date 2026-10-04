@@ -6,6 +6,8 @@ import { ListUpload } from '@/components/ListUpload';
 import { colors, ErrorBanner, Loading, Muted, Notice, Pill, Row, Screen, Section, Segmented, Select } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import {
+  amt,
+  pct,
   BUDGET_TEMPLATE,
   downloadXlsx,
   fmtMonth,
@@ -52,6 +54,8 @@ export default function BudgetScreen() {
     data?.secured.find((s) => s.budget_id === b.id || (b.project_id && s.project_id === b.project_id) || (b.wbs && s.wbs === b.wbs));
   const rows = (data?.rows ?? []).filter((r) => line === 'all' || r.business_line === line);
   const fyInv = (r: { budget_invoices: BudgetInvoice[] }) => r.budget_invoices.filter((i) => inFy(i.month, fy)).reduce((a, i) => a + Number(i.amount), 0);
+  // GP value as given, or worked out from the GP % for lists saved before the GP value column
+  const gpv = (r: BudgetProject) => Number(r.budget_gp_value ?? (r.budget_gp_pct != null ? (Number(r.budget_value) * Number(r.budget_gp_pct)) / 100 : 0));
   const total = (k: (r: (typeof rows)[number]) => number, list = rows) => list.reduce((a, r) => a + k(r), 0);
   const years = [fyOf(todayISO()) - 1, fyOf(todayISO()), fyOf(todayISO()) + 1];
 
@@ -92,6 +96,8 @@ export default function BudgetScreen() {
                 'Total',
                 String(data.rows.length),
                 mn(total((r) => Number(r.budget_value), data.rows)),
+                mn(total(gpv, data.rows)),
+                fmtPct(pct(total(gpv, data.rows), total((r) => Number(r.budget_value), data.rows))),
                 mn(total(fyInv, data.rows)),
                 mn(total((r) => (securedOf(r) ? Number(r.budget_value) : 0), data.rows)),
                 fmtPct(
@@ -102,6 +108,8 @@ export default function BudgetScreen() {
                 { h: 'Business line', w: 220, v: (x) => x.l.label, bold: true },
                 { h: 'Projects', w: 80, right: true, v: (x) => String(x.list.length) },
                 { h: 'Budget value', w: 120, right: true, v: (x) => mn(total((r) => Number(r.budget_value), x.list)) },
+                { h: 'GP value', w: 110, right: true, v: (x) => mn(total(gpv, x.list)) },
+                { h: 'GP %', w: 80, right: true, v: (x) => fmtPct(pct(total(gpv, x.list), total((r) => Number(r.budget_value), x.list))) },
                 { h: 'To invoice this FY', w: 140, right: true, v: (x) => mn(total(fyInv, x.list)) },
                 { h: 'Secured so far', w: 120, right: true, v: (x) => mn(total((r) => (securedOf(r) ? Number(r.budget_value) : 0), x.list)) },
                 {
@@ -136,8 +144,9 @@ export default function BudgetScreen() {
                 { h: 'Customer', w: 170, v: (r) => r.customer ?? '—' },
                 { h: 'Sales person', w: 150, v: (r) => people[r.sales_person_id ?? '']?.full_name ?? '—' },
                 { h: 'WBS', w: 95, v: (r) => r.wbs ?? '—' },
-                { h: 'Budget value', w: 120, right: true, v: (r) => mn(r.budget_value, 2) },
-                { h: 'GP %', w: 70, right: true, v: (r) => (r.budget_gp_pct == null ? '—' : fmtPct(Number(r.budget_gp_pct), 1)) },
+                { h: 'Budget value (LKR)', w: 150, right: true, v: (r) => amt(r.budget_value) },
+                { h: 'GP value (LKR)', w: 140, right: true, v: (r) => amt(r.budget_gp_value) },
+                { h: 'GP %', w: 80, right: true, v: (r) => (r.budget_gp_pct == null ? '—' : fmtPct(Number(r.budget_gp_pct))) },
                 { h: 'Order month', w: 100, v: (r) => fmtMonth(r.order_month) },
                 {
                   h: 'Invoice months',

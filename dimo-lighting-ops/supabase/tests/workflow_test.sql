@@ -1659,6 +1659,11 @@ begin
   assert (select budget_id from public.secured_projects where id = current_setting('test.sec')::uuid) is not null, 'won project linked to its budget line';
   assert (select budget_gp_pct from public.budget_projects where wbs is null and fy = y) = 22, 'GP amount saved as a %';
   assert (select budget_gp_pct from public.budget_projects where wbs = 'LS-000170') = 18, 'GP from a %-formatted cell';
+  assert (select budget_gp_value from public.budget_projects where wbs is null and fy = y) = 13640000, 'GP value kept';
+  assert (select budget_gp_value from public.budget_projects where wbs = 'LS-000170') = 9900000, 'GP value worked out from the %';
+  assert (public.check_budget_list(y, jsonb_build_array(jsonb_build_object('row_no', 2, 'business_line', 'LMS', 'project_name', 'x',
+    'sales_person', 'Asm Building', 'budget_value', '1,000,000.00', 'budget_gp_value', '200,000.00', 'budget_gp_pct', '30'))) -> 0 -> 'warnings') ->> 0
+    like 'GP % and GP value do not agree%', 'GP % / value mismatch warned';
   assert (public.check_budget_list(y, jsonb_build_array(jsonb_build_object('row_no', 2, 'business_line', 'LMS', 'project_name', 'x',
     'sales_person', 'Asm Building', 'budget_value', '1000', 'budget_gp_pct', '5000000'))) -> 0 -> 'errors') ->> 0 like 'Budget GP%', 'impossible GP is a row error';
 end $$;
