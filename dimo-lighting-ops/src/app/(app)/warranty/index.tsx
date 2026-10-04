@@ -205,12 +205,13 @@ export default function WarrantyHome() {
             const open = (data?.claims ?? []).filter((c) => c.warranty_id === w.id && c.status === 'open').length;
             return (
               <ListRow
+                  wrapRight
                 key={w.id}
                 highlight={gaps ? colors.red : st === 'expiring' ? colors.amber : undefined}
                 title={`${w.project_name} · ${w.customer}`}
                 subtitle={`${w.code} · ${[w.invoice_no, w.contract_no].filter(Boolean).join(' · ')} · ${ls.length} line(s) · ${next ? `next end ${fmtDate(next)}` : 'all lines ended'}${sales ? '' : ` · ${people[w.owner_id ?? '']?.full_name ?? 'no owner'}`}`}
                 right={
-                  <Row gap={6}>
+                  <Row gap={6} wrap>
                     <Pill label={w.source === 'system' ? 'System' : 'Outside'} tone={w.source === 'system' ? colors.blue : colors.grey} />
                     {gaps ? <Pill label={`${gaps} supplier gap${gaps > 1 ? 's' : ''}`} tone={colors.red} /> : null}
                     {open ? <Pill label={`${open} open claim${open > 1 ? 's' : ''}`} tone={colors.amber} /> : null}
@@ -244,12 +245,13 @@ export default function WarrantyHome() {
               const days = claimDaysOpen(c, today);
               return (
                 <ListRow
+                  wrapRight
                   key={c.id}
                   highlight={c.status === 'open' && days >= 14 ? colors.red : st === 'inspect' || st === 'assign' || st === 'verify' ? colors.amber : undefined}
                   title={`${c.code} · ${w?.project_name ?? '—'} · ${w?.customer ?? ''}`}
                   subtitle={`${c.description}\n${viaLabel(c.reported_via)} · logged ${fmtDate(c.logged_at)}${c.status === 'open' ? ` · ${days} days open` : ''} · ${people[c.assignee_id ?? '']?.full_name ?? 'not assigned'}${w ? ` · ${[w.invoice_no, w.contract_no].filter(Boolean).join(' · ')}` : ''}`}
                   right={
-                    <Row gap={6}>
+                    <Row gap={6} wrap>
                       <Pill label={c.in_warranty ? 'In warranty' : 'Out of warranty'} tone={c.in_warranty ? colors.green : colors.red} />
                       <Pill label={CLAIM_STAGE_LABEL[st]} tone={C_TONE[st]} solid />
                     </Row>
@@ -267,12 +269,13 @@ export default function WarrantyHome() {
         <Card style={{ padding: 0, overflow: 'hidden', marginTop: 8 }}>
           {reports.map((r) => (
             <ListRow
+                  wrapRight
               key={r.id}
               highlight={r.status === 'reported' ? colors.amber : undefined}
               title={`${r.customer}${r.project_name ? ` · ${r.project_name}` : ''}`}
               subtitle={`${r.description}${r.quantity ? ` · qty ${r.quantity}` : ''}${r.location ? ` · ${r.location}` : ''}\n${r.code} · ${fmtDateTime(r.created_at)} · by ${people[r.sales_person_id]?.full_name ?? '—'}${r.dismiss_reason ? ` · closed: ${r.dismiss_reason}` : ''}`}
               right={
-                <Row gap={6}>
+                <Row gap={6} wrap>
                   {desk && r.status === 'reported' ? (
                     <>
                       <Button small title="Enter claim" onPress={() => router.push({ pathname: '/warranty/claims/new', params: { report: r.id } })} />
@@ -340,6 +343,7 @@ export default function WarrantyHome() {
               const its = (data?.rmaItems ?? []).filter((i) => i.rma_id === x.id);
               return (
                 <ListRow
+                  wrapRight
                   key={x.id}
                   highlight={st === 'rejected' ? colors.red : undefined}
                   title={`${x.code} · ${(data?.manufacturers ?? []).find((mm) => mm.id === x.manufacturer_id)?.name ?? '—'}${x.rma_no ? ` · RMA ${x.rma_no}` : ''}`}
@@ -371,6 +375,7 @@ export default function WarrantyHome() {
               const days = decided.filter((x) => x.returned_on && x.decided_on).map((x) => (Date.parse(x.decided_on as string) - Date.parse(x.returned_on as string)) / 86_400_000);
               return (
                 <ListRow
+                  wrapRight
                   key={mm.id}
                   title={`${mm.name}${mm.active ? '' : ' (inactive)'}${mm.registration_required ? ` · registration within ${mm.registration_days} days` : ''}`}
                   subtitle={`${rs.length} claim(s) · ${rs.filter((x) => x.status === 'open').length} open · accepted ${decided.length ? Math.round((accepted.length / decided.length) * 100) : 0}% · avg ${days.length ? Math.round(days.reduce((a, b) => a + b, 0) / days.length) : '–'} days to decision · claimed ${fmtMoney(claimedV, 'LKR')} · recovered ${fmtMoney(recovered, 'LKR')}${mm.warranty_terms ? `\n${mm.warranty_terms}` : ''}`}
