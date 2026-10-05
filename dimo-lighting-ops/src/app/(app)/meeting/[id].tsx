@@ -12,7 +12,9 @@ import { Button, Card, colors, ErrorBanner, Grid, KeyValue, Loading, Muted, Noti
 import { useMe } from '@/lib/auth';
 import { amt, fmtPct, mn } from '@/lib/finance';
 import { fmtDate, fmtDateTime, todayISO } from '@/lib/format';
-import { ROLE_LABELS } from '@/lib/roles';
+import { printHtml } from '@/lib/export';
+import { type MinutesAction, minutesHtml } from '@/lib/meetingMinutes';
+import { ROLE_LABELS, ROLE_SHORT } from '@/lib/roles';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 
@@ -176,6 +178,71 @@ export default function MeetingPack() {
     });
     if (r) await run('decide_attendance', { p_meeting: m.id, p_person: p.person_id, p_present: present, p_note: r.n || null }, 'Saved');
   };
+  // Published minutes as a PDF: GM / DGM and SM Projects
+  const canDownload = m.status === 'published' && (me.role === 'gm' || me.role === 'sm_projects');
+  const downloadMinutes = () =>
+    dialog.run(async () => {
+      const { data: logo } = await supabase.from('settings').select('value').eq('key', 'report_logo_url').maybeSingle();
+      const name = (pid: string | null) => (pid ? (people[pid]?.full_name ?? '—') : '—');
+      const toMin = (a: Action): MinutesAction => ({
+        action: a.action,
+        kind: a.kind,
+        status: a.status,
+        owner: name(a.owner_id),
+        assignee: a.assignee_id ? name(a.assignee_id) : null,
+        due_date: a.due_date,
+        subject:
+          [a.projects?.name ?? (a.new_project ? `${a.new_project} (new)` : null), a.organizations?.name ?? (a.new_customer ? `${a.new_customer} (new)` : null)]
+            .filter(Boolean)
+            .join(' · ') || null,
+        done_note: a.done_note,
+      });
+      const packPeople = (pack?.people ?? []) as unknown as ({ id: string; name: string } & Record<string, unknown>)[];
+      const summary = (p: Record<string, unknown>): string | null => {
+        if (m.team === 'sales') {
+          const s = p as unknown as Person;
+          return `Score ${s.target.score.toFixed(2)} · secured ${fmtPct(s.target.secured_pct)} · invoiced ${fmtPct(s.target.invoiced_pct)} of budget (YTD) · visits ${s.visits.completed} of ${s.visits.planned} planned`;
+        }
+        const n = (k: string) => Number(p[k] ?? 0);
+        const overdue = Array.isArray(p.overdue) ? p.overdue.length : 0;
+        return `In hand ${n('in_hand_n')} · released last week ${n('released_week_n')} · overdue ${overdue}`;
+      };
+      const inPack = new Set(packPeople.map((p) => p.id));
+      const others = [...new Set(data.actions.map((a) => a.sales_person_id).filter((x): x is string => !!x && !inPack.has(x)))];
+      const html = minutesHtml({
+        title: cfg.label,
+        date: m.meeting_date,
+        time: `${hhmm(m.starts_at)} – ${hhmm(m.ends_at)}`,
+        host: cfg.host,
+        startedAt: m.started_at,
+        publishedAt: m.published_at,
+        figuresAt: pack?.generated_at ?? null,
+        attendance: data.invitees
+          .filter((x) => x.status !== 'pending_approval')
+          .map((x) => ({
+            name: name(x.person_id),
+            role: ROLE_LABELS[people[x.person_id]?.role as keyof typeof ROLE_LABELS] ?? '',
+            status: x.status === 'invited' ? 'Not marked' : ATT[x.status].label,
+            at: x.checkin_at,
+            note: x.note,
+          }))
+          .sort((a, b) => a.name.localeCompare(b.name)),
+        notes: m.notes,
+        general: actionsFor(null).map(toMin),
+        people: [
+          ...packPeople.map((p) => ({
+            name: p.name,
+            summary: summary(p),
+            note: data.notes.find((n) => n.sales_person_id === p.id)?.note ?? '',
+            actions: actionsFor(p.id).map(toMin),
+          })),
+          ...others.map((pid) => ({ name: name(pid), summary: null, note: data.notes.find((n) => n.sales_person_id === pid)?.note ?? '', actions: actionsFor(pid).map(toMin) })),
+        ],
+        generatedBy: `${me.full_name} – ${ROLE_SHORT[me.role]}`,
+        logoUrl: (logo?.value as string | undefined) ?? null,
+      });
+      await printHtml(html, { key: `meeting_minutes_${m.team}`, filters: `${cfg.label} ${m.meeting_date}`, title: `Minutes – ${cfg.label} ${fmtDate(m.meeting_date)}` });
+    });
   const actionsFor = (personId: string | null) => data.actions.filter((a) => a.sales_person_id === personId);
   const actionList = (personId: string | null) => (
     <View style={{ gap: 4, marginTop: 6 }}>
@@ -236,6 +303,11 @@ export default function MeetingPack() {
                   await run('publish_sales_meeting', { p_id: m.id }, `Published – ${who} notified`);
               }}
             />
+          </Row>
+        ) : null}
+        {canDownload ? (
+          <Row style={{ marginTop: 8 }}>
+            <Button variant="secondary" title="Download minutes (PDF)" onPress={downloadMinutes} />
           </Row>
         ) : null}
         {!host ? <Muted>Read only.</Muted> : null}
