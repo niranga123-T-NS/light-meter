@@ -232,9 +232,13 @@ export default function Invoicing() {
         <Notice tone={colors.amber}>
           <Row wrap gap={8} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
             <Text style={{ color: colors.ink, flexShrink: 1 }}>
-              {`${tabs.slipped.length} scheduled invoice(s) from earlier months are not recorded. If they were raised, tick and confirm them together.`}
+              {`${tabs.slipped.length} scheduled invoice(s) from earlier months are not recorded. If they were raised, they are ticked and confirmed together.`}
             </Text>
-            <Button small title="Confirm past invoices" onPress={() => router.push('/finance/confirm-invoices')} />
+            {me.role === 'operations_exec' ? (
+              <Button small title="Confirm past invoices" onPress={() => router.push('/finance/confirm-invoices')} />
+            ) : (
+              <Muted>The Operations Executive confirms them.</Muted>
+            )}
           </Row>
         </Notice>
       ) : null}

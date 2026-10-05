@@ -2916,5 +2916,21 @@ do $$ begin
   assert exists (select 1 from public.invoice_allocations where invoice_no = 'INV-PAST-2'), 'number kept';
 end $$;
 
+-- Only the Operations Executive records / confirms invoices
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ begin
+  begin perform public.confirm_past_invoices(jsonb_build_array(jsonb_build_object('line_id', current_setting('test.pb')))); assert false, 'not GM';
+  exception when others then assert sqlerrm like 'Past invoices are confirmed by the Operations Executive%', sqlerrm; end;
+  begin perform public.record_invoice(current_setting('test.pb')::uuid, '{"invoice_no":"X-1","invoice_date":"2026-01-01","amount":10}'); assert false, 'not GM';
+  exception when others then assert sqlerrm like 'Invoices are recorded by the Operations Executive%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  begin perform public.confirm_past_invoices(jsonb_build_array(jsonb_build_object('line_id', current_setting('test.pb')))); assert false, 'not SM Projects';
+  exception when others then assert sqlerrm like 'Past invoices are confirmed by the Operations Executive%', sqlerrm; end;
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

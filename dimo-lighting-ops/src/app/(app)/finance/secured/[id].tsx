@@ -163,6 +163,8 @@ export default function SecuredDetail() {
   const fy = fyOf(s.won_on > thisMonth() ? s.won_on : thisMonth());
   const owner = s.sales_person_id === me.id;
   const desk = isFinanceDesk(me.role);
+  // Invoices are recorded, re-assigned and deleted by the Operations Executive only
+  const ops = me.role === "operations_exec";
   // Schedule, date changes and variations: SM Projects approves
   const reviewer = me.role === "sm_projects";
   const canEdit = (owner || desk) && s.status === "open";
@@ -1193,11 +1195,13 @@ export default function SecuredDetail() {
                       </Row>
                     ) : canEdit && Number(l.remaining) > 0.5 ? (
                       <Row gap={4}>
-                        <Button
-                          small
-                          title="Record invoice"
-                          onPress={() => recordInvoice(l)}
-                        />
+                        {ops ? (
+                          <Button
+                            small
+                            title="Record invoice"
+                            onPress={() => recordInvoice(l)}
+                          />
+                        ) : null}
                         {s.schedule_status === "approved" &&
                         !l.pending_change_id ? (
                           <Button
@@ -1416,7 +1420,7 @@ export default function SecuredDetail() {
         <DataTable
           rows={data.allocs}
           keyOf={(a) => String(a.id)}
-          emptyTitle="No invoices recorded yet – use “Record invoice” on the schedule"
+          emptyTitle="No invoices recorded yet – the Operations Executive records them from the schedule"
           footer={[
             "Total",
             "",
@@ -1462,7 +1466,7 @@ export default function SecuredDetail() {
               w: 190,
               v: (a) => (
                 <Row gap={4}>
-                  {desk ? (
+                  {ops ? (
                     <Button
                       small
                       variant="ghost"
@@ -1470,7 +1474,7 @@ export default function SecuredDetail() {
                       onPress={() => reassign(a)}
                     />
                   ) : null}
-                  {desk || a.created_by === me.id ? (
+                  {ops ? (
                     <Button
                       small
                       variant="ghost"
