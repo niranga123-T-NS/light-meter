@@ -2,9 +2,9 @@
 -- Safe to run more than once.
 
 insert into public.master_lists (list_name, value, grp, tags, sort_order) values
-('visit_objective', 'New Lead Identification', 'Business Development', array[]::text[], 1),
-('visit_objective', 'New Customer Introduction', 'Business Development', array[]::text[], 2),
-('visit_objective', 'Existing Customer Relationship', 'Business Development', array[]::text[], 3),
+('visit_objective', 'New Lead Identification', 'Business Development', array['networking']::text[], 1),
+('visit_objective', 'New Customer Introduction', 'Business Development', array['networking']::text[], 2),
+('visit_objective', 'Existing Customer Relationship', 'Business Development', array['networking']::text[], 3),
 ('visit_objective', 'Project Intelligence', 'Business Development', array[]::text[], 4),
 ('visit_objective', 'Project Qualification', 'Business Development', array[]::text[], 5),
 ('visit_objective', 'Consultant Relationship Development', 'Business Development', array['networking']::text[], 6),
@@ -29,7 +29,7 @@ insert into public.master_lists (list_name, value, grp, tags, sort_order) values
 ('visit_objective', 'Value Engineering Meeting', 'Design & Concept', array[]::text[], 25),
 ('visit_objective', 'Alternative Solution Proposal', 'Design & Concept', array[]::text[], 26),
 ('visit_objective', 'Product Presentation', 'Presentation & Samples', array[]::text[], 27),
-('visit_objective', 'Corporate / Capability Presentation', 'Presentation & Samples', array[]::text[], 28),
+('visit_objective', 'Corporate / Capability Presentation', 'Presentation & Samples', array['networking']::text[], 28),
 ('visit_objective', 'Product Demonstration', 'Presentation & Samples', array[]::text[], 29),
 ('visit_objective', 'Sample Submission', 'Presentation & Samples', array[]::text[], 30),
 ('visit_objective', 'Sample Evaluation', 'Presentation & Samples', array[]::text[], 31),
