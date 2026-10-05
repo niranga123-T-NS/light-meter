@@ -3067,5 +3067,12 @@ do $$ begin
 end $$;
 reset role;
 
+-- Estimation basis "Supply & commission"
+select pg_temp.act_as('asm_building'); set role authenticated;
+insert into public.inquiries (project_id, organization_id, unit_id, route, duty_status, customer_deadline, scope_description, estimation_scope, estimation_basis)
+values ('00000000-0000-0000-0000-00000000b001', '00000000-0000-0000-0000-00000000a001', '00000000-0000-0000-0000-00000000a002',
+        'B', 'duty_paid', current_date + 20, 'Control system – supply and commissioning', '{fixtures}', 'supply_commission') returning id;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

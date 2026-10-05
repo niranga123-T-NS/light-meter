@@ -2,6 +2,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { InquiryCard } from '@/components/InquiryBits';
+import { PlaceStatus } from '@/components/PlaceStatus';
 import { Button, Card, colors, ErrorBanner, KeyValue, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { MILESTONES } from '@/lib/constants';
@@ -263,6 +264,8 @@ export default function ProjectDetail() {
         ) : lastDecided && requester && lastDecided.status === 'rejected' && lastDecided.requested_by === me.id ? (
           <Notice tone={colors.red}>{`Your last change request was not approved${lastDecided.decision_note ? `: ${lastDecided.decision_note}` : ''}.`}</Notice>
         ) : null}
+        {/* Project site on the sales map: visits are GPS-checked against it; owner, SM Projects and GM / DGM can correct it */}
+        <PlaceStatus projectId={p.id} organizationId={p.organization_id} allowChange={p.owner_id === me.id || manager} />
         {requester ? (
           <Row wrap gap={6} style={{ marginTop: 8 }}>
             <Button
