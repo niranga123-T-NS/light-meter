@@ -60,6 +60,18 @@ type Draft = {
   amount: number | null;
   month: string | null;
 };
+type InvoiceRequest = {
+  id: number;
+  line_id: string;
+  amount: number;
+  invoice_no: string;
+  invoice_date: string;
+  note: string | null;
+  requested_by: string | null;
+  requested_at: string;
+  status: "pending" | "approved" | "rejected";
+  decision_note: string | null;
+};
 type LogRow = {
   id: number;
   action: string;
@@ -109,7 +121,7 @@ export default function SecuredDetail() {
     error: loadErr,
     reload,
   } = useLoad(async () => {
-    const [s, l, a, lg, vr] = await Promise.all([
+    const [s, l, a, lg, vr, rq] = await Promise.all([
       supabase.from("secured_projects").select("*").eq("id", id).single(),
       supabase
         .from("invoice_line_status")
@@ -131,6 +143,12 @@ export default function SecuredDetail() {
         .select("*")
         .eq("secured_id", id)
         .order("requested_at"),
+      supabase
+        .from("invoice_requests")
+        .select("*")
+        .eq("secured_id", id)
+        .eq("status", "pending")
+        .order("requested_at"),
     ]);
     if (s.error) throw new Error(s.error.message);
     const lines = (l.data ?? []) as InvoiceLine[];
@@ -151,6 +169,7 @@ export default function SecuredDetail() {
       changes: (ch ?? []) as LineChange[],
       log: (lg.data ?? []) as LogRow[],
       variations: (vr.data ?? []) as Variation[],
+      requests: (rq.data ?? []) as InvoiceRequest[],
     };
   }, [id]);
   if (!data)
@@ -525,10 +544,14 @@ export default function SecuredDetail() {
     }, "Saved");
   };
 
+  const waiting = (lid: string) =>
+    data.requests
+      .filter((q) => q.line_id === lid)
+      .reduce((t, q) => t + Number(q.amount), 0);
   const recordInvoice = async (l: InvoiceLine) => {
     const r = await dialog.prompt({
       title: `Record invoice – ${l.description ?? kindLabel(l.kind)}`,
-      message: `Still to invoice on this line: ${fmtMoney(l.remaining)}`,
+      message: `Still to invoice on this line: ${fmtMoney(l.remaining)}${waiting(l.id) > 0 ? ` (of which ${fmtMoney(waiting(l.id))} is waiting for SM Projects)` : ""}. SM Projects approves the invoice before it counts.`,
       fields: [
         { key: "no", label: "Invoice number", required: true },
         {
@@ -560,7 +583,49 @@ export default function SecuredDetail() {
         },
       });
       await reload();
-    }, "Invoice recorded");
+    }, "Sent to SM Projects for approval");
+  };
+  const decideRequest = async (q: InvoiceRequest, approve: boolean) => {
+    const r = await dialog.prompt({
+      title: approve
+        ? `Approve invoice ${q.invoice_no} – ${fmtMoney(q.amount)}`
+        : `Reject invoice ${q.invoice_no}`,
+      message: approve
+        ? "It is then counted as invoiced on this project."
+        : "The Operations Executive is told the reason.",
+      fields: [
+        {
+          key: "note",
+          label: approve ? "Note" : "Reason",
+          required: !approve,
+          type: "multiline",
+        },
+      ],
+      confirmLabel: approve ? "Approve" : "Reject",
+    });
+    if (!r) return;
+    await dialog.run(async () => {
+      await rpc("decide_invoice_request", {
+        p_id: q.id,
+        p_approve: approve,
+        p_note: r.note || null,
+      });
+      await reload();
+    }, approve ? "Invoice approved" : "Invoice rejected");
+  };
+  const withdrawRequest = async (q: InvoiceRequest) => {
+    if (
+      !(await dialog.confirm(
+        `Withdraw invoice ${q.invoice_no}?`,
+        "The request to SM Projects is removed.",
+        { confirmLabel: "Withdraw" },
+      ))
+    )
+      return;
+    await dialog.run(async () => {
+      await rpc("withdraw_invoice_request", { p_id: q.id });
+      await reload();
+    }, "Withdrawn");
   };
   const deleteInvoice = async (a: Allocation) => {
     const r = await dialog.prompt({
@@ -1413,6 +1478,72 @@ export default function SecuredDetail() {
               },
             ]}
           />
+        </Section>
+      ) : null}
+
+      {data.requests.length ? (
+        <Section title="Invoices waiting for SM Projects">
+          <DataTable
+            rows={data.requests}
+            keyOf={(q) => String(q.id)}
+            columns={[
+              { h: "Date", w: 110, v: (q) => fmtDate(q.invoice_date) },
+              { h: "Invoice no.", w: 130, v: (q) => q.invoice_no, bold: true },
+              {
+                h: "Amount",
+                w: 150,
+                right: true,
+                v: (q) => fmtMoney(q.amount),
+              },
+              {
+                h: "Against invoice",
+                w: 200,
+                v: (q) =>
+                  lineOf(q.line_id)?.description ??
+                  kindLabel(lineOf(q.line_id)?.kind),
+              },
+              {
+                h: "Sent by",
+                w: 200,
+                v: (q) =>
+                  [people[q.requested_by ?? ""]?.full_name, q.note]
+                    .filter(Boolean)
+                    .join(" · ") || "—",
+              },
+              {
+                h: "",
+                w: 190,
+                v: (q) =>
+                  reviewer ? (
+                    <Row gap={4}>
+                      <Button
+                        small
+                        title="Approve"
+                        onPress={() => decideRequest(q, true)}
+                      />
+                      <Button
+                        small
+                        variant="secondary"
+                        title="Reject"
+                        onPress={() => decideRequest(q, false)}
+                      />
+                    </Row>
+                  ) : ops ? (
+                    <Button
+                      small
+                      variant="ghost"
+                      title="Withdraw"
+                      onPress={() => withdrawRequest(q)}
+                    />
+                  ) : (
+                    <Muted>Waiting for SM Projects</Muted>
+                  ),
+              },
+            ]}
+          />
+          <Muted>
+            New invoices count as invoiced only after SM Projects approves them.
+          </Muted>
         </Section>
       ) : null}
 

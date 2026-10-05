@@ -1745,7 +1745,24 @@ begin
   exception when others then assert sqlerrm like 'This invoice number is already%', sqlerrm; end;
 end $$;
 reset role;
+-- New invoices count only once SM Projects approves them
 do $$ begin
+  assert (select invoiced from public.invoice_line_status where secured_id = current_setting('test.sec')::uuid and kind = 'advance') = 0, 'not counted before approval';
+end $$;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ declare r bigint;
+begin
+  assert (select count(*) from public.my_pending_approvals() where source = 'invoice_request') = 2, 'two invoices to approve';
+  for r in select id from public.invoice_requests where secured_id = current_setting('test.sec')::uuid and status = 'pending' loop
+    perform public.decide_invoice_request(r, true);
+  end loop;
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'invoice_request' and title like 'Invoice to approve%'
+                 and recipient_id = (select id from u where role = 'sm_projects')), 'SM Projects asked';
+  assert exists (select 1 from public.notifications where kind = 'invoice_request' and title like 'Invoice INV-26-0101 approved%'
+                 and recipient_id = (select id from u where role = 'operations_exec')), 'Operations told';
   assert (select invoiced from public.invoice_line_status where secured_id = current_setting('test.sec')::uuid and kind = 'advance') = 12400000, 'advance fully invoiced';
   assert (select invoiced from public.invoice_line_status where secured_id = current_setting('test.sec')::uuid and kind = 'delivery') = 7600000, 'delivery part invoiced';
   perform public.finance_tick(((app.month_of(current_date) + interval '1 month')::date + time '08:30') at time zone app.tz());
@@ -2259,7 +2276,7 @@ do $$ begin
   perform public.record_invoice((select id from public.invoice_lines where secured_id = current_setting('test.sec')::uuid and kind = 'delivery'),
     jsonb_build_object('invoice_no', 'X-1', 'invoice_date', current_date::text, 'amount', '1'));
   assert false, 'not their project';
-exception when others then assert sqlerrm like 'Only the sales person%' or sqlerrm like 'Invoice not found%', sqlerrm; end $$;
+exception when others then assert sqlerrm like 'Invoices are recorded by the Operations Executive%' or sqlerrm like 'Invoice not found%', sqlerrm; end $$;
 reset role;
 select pg_temp.act_as('operations_exec'); set role authenticated;
 do $$ declare aid bigint := (select id from public.invoice_allocations where invoice_no = 'INV-26-0102');
