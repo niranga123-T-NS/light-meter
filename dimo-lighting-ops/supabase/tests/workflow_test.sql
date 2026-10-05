@@ -2871,5 +2871,20 @@ select pg_temp.act_as('gm'); set role authenticated;
 do $$ begin assert not exists (select 1 from public.my_pending_approvals() where source in ('invoice_schedule', 'invoice_move')), 'not GM''s'; end $$;
 reset role;
 
+-- OR-file invoices are removed (unless given an invoice number); recorded invoices stay
+do $$ declare u uuid := (select id from public.or_uploads limit 1); s uuid := current_setting('test.gal')::uuid; n int;
+begin
+  if u is null then
+    insert into public.or_uploads (month, fy, file_name) values (date_trunc('month', current_date)::date, app.fy_of(current_date), 'test.xlsx') returning id into u;
+  end if;
+  insert into public.invoice_allocations (upload_id, month, secured_id, amount, manual) values (u, date_trunc('month', current_date)::date, s, 1000, true);
+  insert into public.invoice_allocations (upload_id, month, secured_id, amount, manual, invoice_no) values (u, date_trunc('month', current_date)::date, s, 500, true, 'INV-CONFIRMED');
+  n := app.remove_or_invoices();
+  assert n = 1, 'one OR amount removed';
+  assert not exists (select 1 from public.invoice_allocations where upload_id = u and invoice_no is null), 'OR amounts gone';
+  assert exists (select 1 from public.invoice_allocations where invoice_no = 'INV-CONFIRMED'), 'confirmed one kept';
+  assert exists (select 1 from public.secured_log where secured_id = s and note like '%from the OR file removed%'), 'logged on the project';
+end $$;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
