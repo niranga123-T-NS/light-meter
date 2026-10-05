@@ -2499,7 +2499,13 @@ begin
   exception when others then assert sqlerrm like 'Choose the visit objective%', sqlerrm; end;
   perform public.add_meeting_action(mid, jsonb_build_object('kind', 'visit', 'owner_id', (select id from u where role = 'asm_building'),
     'sales_person_id', (select id from u where role = 'asm_building'), 'action', 'Confirm lighting budget with the client',
-    'project_id', '00000000-0000-0000-0000-00000000b001', 'objective', 'Project Qualification', 'due_date', (current_setting('test.mon2')::date + 2)::text));
+    'project_id', '00000000-0000-0000-0000-00000000b001', 'unit_id', '00000000-0000-0000-0000-00000000a002',
+    'objective', 'Project Qualification', 'due_date', (current_setting('test.mon2')::date + 2)::text));
+  assert (select unit_id from public.sales_meeting_actions where meeting_id = mid and kind = 'visit') = '00000000-0000-0000-0000-00000000a002', 'unit kept on the action';
+  begin perform public.add_meeting_action(mid, jsonb_build_object('kind', 'task', 'owner_id', (select id from u where role = 'asm_building'), 'action', 'x',
+    'project_id', '00000000-0000-0000-0000-00000000b001', 'unit_id', '00000000-0000-0000-0000-00000000a0f2'));
+    assert false, 'unit of another customer';
+  exception when others then assert sqlerrm like 'The unit / department belongs to another customer%', sqlerrm; end;
   begin perform public.add_meeting_action(mid, jsonb_build_object('kind', 'design', 'owner_id', (select id from u where role = 'lighting_designer'), 'action', 'x'));
     assert false, 'design goes to the manager';
   exception when others then assert sqlerrm like 'A design task goes to its manager%', sqlerrm; end;
@@ -2531,6 +2537,9 @@ begin
   assert lid is not null, 'follow-up visit placed in the plan';
   assert (select planned_date from public.visit_plan_lines where id = lid) = current_setting('test.mon2')::date + 2, 'on the due date';
   assert (select planned_objective from public.visit_plan_lines where id = lid) = 'Project Qualification', 'objective kept';
+  assert (select unit_id from public.visit_plan_lines where id = lid) = '00000000-0000-0000-0000-00000000a002', 'unit carried into the plan';
+  begin update public.visit_plan_lines set unit_id = null where id = lid; assert false, 'unit fixed';
+  exception when others then assert sqlerrm like '%only the day and time can be changed%', sqlerrm; end;
   begin update public.visit_plan_lines set planned_objective = 'Initial Site Survey' where id = lid; assert false, 'objective fixed';
   exception when others then assert sqlerrm like '%only the day and time can be changed%', sqlerrm; end;
   begin delete from public.visit_plan_lines where id = lid; assert false, 'cannot remove';
@@ -2821,7 +2830,7 @@ begin
   begin perform public.request_project_change('00000000-0000-0000-0000-00000000b001', '{"owner_id":"x"}', 'x'); assert false, 'not allowed field';
   exception when others then assert sqlerrm like 'This detail cannot be changed here%', sqlerrm; end;
   rid := public.request_project_change('00000000-0000-0000-0000-00000000b001',
-    jsonb_build_object('city', 'Matara', 'lighting_value', 4500000, 'stage', (select stage from public.projects where id = '00000000-0000-0000-0000-00000000b001')),
+    jsonb_build_object('city', 'Matara', 'lighting_value', 4500000, 'unit_id', '00000000-0000-0000-0000-00000000a002', 'stage', (select stage from public.projects where id = '00000000-0000-0000-0000-00000000b001')),
     'Client moved the site to Matara and confirmed the lighting budget');
   assert (select changes ? 'city' and changes ? 'lighting_value' and not changes ? 'stage' from public.project_change_requests where id = rid), 'only real changes kept';
   assert (select city from public.projects where id = '00000000-0000-0000-0000-00000000b001') is distinct from 'Matara', 'not changed before approval';
@@ -2839,7 +2848,8 @@ do $$ begin
 end $$;
 reset role;
 do $$ begin
-  assert (select city = 'Matara' and lighting_value = 4500000 from public.projects where id = '00000000-0000-0000-0000-00000000b001'), 'applied';
+  assert (select city = 'Matara' and lighting_value = 4500000 and unit_id = '00000000-0000-0000-0000-00000000a002'
+            from public.projects where id = '00000000-0000-0000-0000-00000000b001'), 'applied (with the unit)';
   assert exists (select 1 from public.project_log where project_id = '00000000-0000-0000-0000-00000000b001' and field = 'lighting_value'), 'logged';
   assert exists (select 1 from public.notifications where kind = 'project_change' and title like 'Project change approved%'
                  and recipient_id = (select id from u where role = 'asm_building')), 'sales person told';

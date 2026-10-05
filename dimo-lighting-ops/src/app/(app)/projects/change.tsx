@@ -47,7 +47,12 @@ export default function RequestProjectChange() {
         <Card>
           <Field label="Project name" required value={f.name} onChangeText={(v) => set('name', v)} />
           <Select label="Project type" value={f.project_type} options={PROJECT_TYPES.map((t) => ({ value: t.value, label: t.label, hint: t.line }))} onChange={(v) => set('project_type', v as Draft['project_type'])} />
-          <CustomerPicker showContact={false} organizationId={f.organization_id} unitId={null} onChange={(c) => c.organizationId && set('organization_id', c.organizationId)} />
+          <CustomerPicker
+            showContact={false}
+            organizationId={f.organization_id}
+            unitId={f.unit_id}
+            onChange={(c) => c.organizationId && setD({ ...f, organization_id: c.organizationId, unit_id: c.unitId })}
+          />
           <Field label="City" value={f.city ?? ''} onChangeText={(v) => set('city', v)} />
           <Field label="Location / address" value={f.location ?? ''} onChangeText={(v) => set('location', v)} />
         </Card>

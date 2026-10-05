@@ -35,11 +35,15 @@ export default function ProjectDetail() {
       supabase.from('warranties').select('id, code, invoice_no, contract_no, start_date, status').eq('project_id', id).order('created_at', { ascending: false }),
     ]);
     const inquiries = (inq.data ?? []) as Inquiry[];
-    // Change requests (latest first) and the customer names they mention
+    // Change requests (latest first) and the customer and unit names they mention
     const cr = ((await supabase.from('project_change_requests').select('*').eq('project_id', id).order('requested_at', { ascending: false }).limit(5)).data ??
       []) as ChangeRequest[];
     const orgIds = [...new Set(cr.flatMap((r) => [r.changes.organization_id, r.previous.organization_id]).filter(Boolean) as string[])];
-    const orgs = orgIds.length ? ((await supabase.from('organizations').select('id, name').in('id', orgIds)).data ?? []) : [];
+    const unitIds = [...new Set(cr.flatMap((r) => [r.changes.unit_id, r.previous.unit_id]).filter(Boolean) as string[])];
+    const orgs = [
+      ...(orgIds.length ? ((await supabase.from('organizations').select('id, name').in('id', orgIds)).data ?? []) : []),
+      ...(unitIds.length ? ((await supabase.from('org_units').select('id, name').in('id', unitIds)).data ?? []) : []),
+    ];
     const q = inquiries.length ? await supabase.from('quotations').select('*').in('inquiry_id', inquiries.map((i) => i.id)) : { data: [] };
     return {
       project: p as Project,
