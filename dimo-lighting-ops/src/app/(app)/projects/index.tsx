@@ -48,7 +48,10 @@ export default function Projects() {
             { value: 'all', label: 'All' },
           ]}
         />
-        {canCreate ? <Button title="+ New project" onPress={() => router.push('/projects/new')} /> : null}
+        <Row gap={6}>
+          {me.role === 'sm_projects' || me.role === 'gm' ? <Button variant="secondary" title="Wizard trial" onPress={() => router.push('/projects/wizard-trial')} /> : null}
+          {canCreate ? <Button title="+ New project" onPress={() => router.push('/projects/new')} /> : null}
+        </Row>
       </Row>
       <TextInput value={q} onChangeText={setQ} placeholder="Filter by name, customer, city or code" placeholderTextColor={colors.faint} style={[styles.input, { marginVertical: 8 }]} />
       <Muted>

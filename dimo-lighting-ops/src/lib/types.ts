@@ -110,6 +110,7 @@ export type Project = {
   last_activity_at: string;
   last_probability_review_at: string;
   created_at: string;
+  use_wizard?: boolean;
   organizations?: { name: string } | null;
 };
 

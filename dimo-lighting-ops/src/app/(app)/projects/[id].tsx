@@ -2,7 +2,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { InquiryCard } from '@/components/InquiryBits';
-import { Button, Card, colors, ErrorBanner, KeyValue, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section } from '@/components/ui';
+import { Button, Card, colors, ErrorBanner, KeyValue, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section, Toggle } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { MILESTONES } from '@/lib/constants';
 import { type ChangeRequest, FIELD_LABEL, showValue } from '@/lib/projectChanges';
@@ -54,6 +54,9 @@ export default function ProjectDetail() {
       quotations: (q.data ?? []) as Quotation[],
       tenders: tenders.data ?? [],
       changeRequests: cr,
+      lastScore: ((await supabase.from('win_scores').select('wizard_pct, scored_at').eq('project_id', id).order('scored_at', { ascending: false }).limit(1)).data ?? [])[0] as
+        | { wizard_pct: number; scored_at: string }
+        | undefined,
       customers: Object.fromEntries((orgs as { id: string; name: string }[]).map((o) => [o.id, o.name])) as Record<string, string>,
       warranties: (war.data ?? []) as { id: string; code: string; invoice_no: string | null; contract_no: string | null; start_date: string; status: string }[],
     };
@@ -225,6 +228,27 @@ export default function ProjectDetail() {
           <KeyValue label="Expected tender" value={fmtDate(p.expected_tender_date)} />
           <KeyValue label="Last activity" value={fmtDateTime(p.last_activity_at)} />
         </Row>
+        {/* Win Probability Wizard (testing): a tick per project – manual entry or the wizard */}
+        {canEdit && !['won', 'lost', 'cancelled', 'completed'].includes(p.status) ? (
+          <Row wrap gap={10} style={{ marginTop: 6, alignItems: 'center' }}>
+            <Toggle
+              label="Use the Win Probability Wizard"
+              value={!!p.use_wizard}
+              onChange={(v) =>
+                dialog.run(async () => {
+                  await rpc('set_wizard_use', { p_project: p.id, p_on: v });
+                  await reload();
+                }, v ? 'Wizard on for this project' : 'Back to manual entry')
+              }
+            />
+            {p.use_wizard ? <Button small title="Open the wizard" onPress={() => router.push({ pathname: '/projects/wizard', params: { id: p.id } })} /> : null}
+            {data.lastScore ? <Muted>{`Last wizard score ${data.lastScore.wizard_pct}% · ${fmtDate(data.lastScore.scored_at)}`}</Muted> : null}
+          </Row>
+        ) : data.lastScore ? (
+          <Row style={{ marginTop: 6 }}>
+            <Button small variant="ghost" title={`Wizard score ${data.lastScore.wizard_pct}% ›`} onPress={() => router.push({ pathname: '/projects/wizard', params: { id: p.id } })} />
+          </Row>
+        ) : null}
         {pending ? (
           <Notice tone={colors.amber}>
             <View style={{ gap: 4 }}>
