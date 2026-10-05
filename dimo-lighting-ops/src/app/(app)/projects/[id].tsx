@@ -5,6 +5,7 @@ import { InquiryCard } from '@/components/InquiryBits';
 import { Button, Card, colors, ErrorBanner, KeyValue, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { MILESTONES } from '@/lib/constants';
+import { type ChangeRequest, FIELD_LABEL, showValue } from '@/lib/projectChanges';
 import { fmtDate, fmtDateTime, fmtMoney, human } from '@/lib/format';
 import { useLoad, useMasters, usePeople } from '@/lib/hooks';
 import { isSales, projectTypeLabel } from '@/lib/roles';
@@ -34,6 +35,11 @@ export default function ProjectDetail() {
       supabase.from('warranties').select('id, code, invoice_no, contract_no, start_date, status').eq('project_id', id).order('created_at', { ascending: false }),
     ]);
     const inquiries = (inq.data ?? []) as Inquiry[];
+    // Change requests (latest first) and the customer names they mention
+    const cr = ((await supabase.from('project_change_requests').select('*').eq('project_id', id).order('requested_at', { ascending: false }).limit(5)).data ??
+      []) as ChangeRequest[];
+    const orgIds = [...new Set(cr.flatMap((r) => [r.changes.organization_id, r.previous.organization_id]).filter(Boolean) as string[])];
+    const orgs = orgIds.length ? ((await supabase.from('organizations').select('id, name').in('id', orgIds)).data ?? []) : [];
     const q = inquiries.length ? await supabase.from('quotations').select('*').in('inquiry_id', inquiries.map((i) => i.id)) : { data: [] };
     return {
       project: p as Project,
@@ -43,12 +49,14 @@ export default function ProjectDetail() {
       stakeholders: (st.data ?? []) as unknown as { category: string; organizations: { name: string } | null }[],
       quotations: (q.data ?? []) as Quotation[],
       tenders: tenders.data ?? [],
+      changeRequests: cr,
+      customers: Object.fromEntries((orgs as { id: string; name: string }[]).map((o) => [o.id, o.name])) as Record<string, string>,
       warranties: (war.data ?? []) as { id: string; code: string; invoice_no: string | null; contract_no: string | null; start_date: string; status: string }[],
     };
   }, [id]);
 
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const { project: p, inquiries, visits, log, stakeholders, quotations, tenders, warranties } = data;
+  const { project: p, inquiries, visits, log, stakeholders, quotations, tenders, warranties, changeRequests, customers } = data;
   // Quoted value counts each offer once: the latest revision of each inquiry, and one (the highest) per tender quoted to several contractors
   const latestQuotes = inquiries
     .map((i) => quotations.filter((q) => q.inquiry_id === i.id).sort((a, b) => b.revision - a.revision)[0])
@@ -63,6 +71,22 @@ export default function ProjectDetail() {
   );
   const canEdit = p.owner_id === me.id || me.role === 'sm_projects' || me.role === 'gm';
   const manager = me.role === 'sm_projects' || me.role === 'gm';
+  // Sales persons change details by request to SM Projects; SM Projects / GM edit directly
+  const requester = canEdit && !manager;
+  const pending = changeRequests.find((r) => r.status === 'pending');
+  const lastDecided = changeRequests.find((r) => r.status === 'approved' || r.status === 'rejected');
+  const decideChange = async (r: ChangeRequest, approve: boolean) => {
+    const res = await dialog.prompt({
+      title: approve ? 'Approve the change' : 'Do not approve',
+      message: Object.keys(r.changes).map((k) => FIELD_LABEL[k] ?? k).join(', '),
+      fields: [{ key: 'n', label: approve ? 'Note to the sales person' : 'Reason (required)', type: 'multiline', required: !approve }],
+    });
+    if (!res) return;
+    await dialog.run(async () => {
+      await rpc('decide_project_change', { p_id: r.id, p_approve: approve, p_note: res.n || null });
+      await reload();
+    }, approve ? 'Approved – the project is updated' : 'Not approved – the sales person is told');
+  };
   const band = MILESTONES.find((m) => m.value === p.milestone);
   const met = new Set([...stakeholders.map((s) => s.category), ...visits.map((v) => v.visit_category)]);
 
@@ -197,7 +221,56 @@ export default function ProjectDetail() {
           <KeyValue label="Expected tender" value={fmtDate(p.expected_tender_date)} />
           <KeyValue label="Last activity" value={fmtDateTime(p.last_activity_at)} />
         </Row>
-        {canEdit ? (
+        {pending ? (
+          <Notice tone={colors.amber}>
+            <View style={{ gap: 4 }}>
+              <Text style={{ fontWeight: '700', color: colors.ink }}>
+                {`Change request – waiting for SM Projects · ${people[pending.requested_by]?.full_name ?? ''} · ${fmtDateTime(pending.requested_at)}`}
+              </Text>
+              {Object.keys(pending.changes).map((k) => (
+                <Text key={k} style={{ color: colors.ink }}>
+                  {`${FIELD_LABEL[k] ?? k}: ${showValue(k, pending.previous[k], p.currency, customers)} → ${showValue(k, pending.changes[k], p.currency, customers)}`}
+                </Text>
+              ))}
+              <Muted>{`Reason: ${pending.reason}`}</Muted>
+              <Row wrap gap={6} style={{ marginTop: 4 }}>
+                {me.role === 'sm_projects' ? (
+                  <>
+                    <Button small title="Approve" onPress={() => decideChange(pending, true)} />
+                    <Button small variant="secondary" title="Reject" onPress={() => decideChange(pending, false)} />
+                  </>
+                ) : null}
+                {pending.requested_by === me.id ? (
+                  <Button
+                    small
+                    variant="ghost"
+                    title="Withdraw"
+                    onPress={() =>
+                      dialog.run(async () => {
+                        await rpc('withdraw_project_change', { p_id: pending.id });
+                        await reload();
+                      }, 'Withdrawn')
+                    }
+                  />
+                ) : null}
+              </Row>
+            </View>
+          </Notice>
+        ) : lastDecided && requester && lastDecided.status === 'rejected' && lastDecided.requested_by === me.id ? (
+          <Notice tone={colors.red}>{`Your last change request was not approved${lastDecided.decision_note ? `: ${lastDecided.decision_note}` : ''}.`}</Notice>
+        ) : null}
+        {requester ? (
+          <Row wrap gap={6} style={{ marginTop: 8 }}>
+            <Button
+              small
+              title={pending ? 'Change request pending' : 'Request changes'}
+              disabled={!!pending}
+              onPress={() => router.push({ pathname: '/projects/change', params: { id: p.id } })}
+            />
+            <Button small variant="secondary" title="Review status" onPress={review} />
+          </Row>
+        ) : null}
+        {canEdit && manager ? (
           <Row wrap gap={6} style={{ marginTop: 8 }}>
             <Button small title="Win probability" onPress={changeProbability} />
             <Button small variant="secondary" title="Stage" onPress={() => editField('stage')} />

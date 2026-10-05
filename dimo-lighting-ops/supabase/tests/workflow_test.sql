@@ -87,7 +87,17 @@ do $$ begin
   end;
 end $$;
 
--- Probability outside the band needs a reason
+-- Probability outside the band needs a reason (a direct edit – SM Projects; sales persons send change requests)
+do $$ begin
+  begin
+    update public.projects set win_probability = 15 where id = '00000000-0000-0000-0000-00000000b001';
+    raise exception 'sales person edited directly';
+  exception when others then
+    if sqlerrm not like 'Project details are changed through a change request%' then raise; end if;
+  end;
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
 do $$ begin
   begin
     update public.projects set win_probability = 60 where id = '00000000-0000-0000-0000-00000000b001';
@@ -100,6 +110,8 @@ do $$ begin
   perform set_config('app.reason', '', true);
   assert (select count(*) from public.project_log where project_id = '00000000-0000-0000-0000-00000000b001' and field = 'win_probability') = 1, 'probability logged';
 end $$;
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
 
 insert into public.visits (id, organization_id, unit_id, contact_id, project_id, visit_category, primary_objective, checkin_lat, checkin_lng, summary, outcome, status)
 values ('00000000-0000-0000-0000-00000000c001', '00000000-0000-0000-0000-00000000a001', '00000000-0000-0000-0000-00000000a002',
@@ -2283,7 +2295,8 @@ reset role;
 do $$ begin assert (select schedule_status from public.secured_projects where id = current_setting('test.gal')::uuid) = 'approved', 'SM Projects approved'; end $$;
 
 -- Sales meeting: pack, notes, actions, publish → GM read only; Monday 08:30 – 12:00 kept free -------------------------------
-do $$ declare mon date := current_date + ((8 - extract(isodow from current_date)::int) % 7); plan uuid;
+-- (always the coming Monday by Colombo date – on a Monday the meeting may already have started)
+do $$ declare mon date := (now() at time zone 'Asia/Colombo')::date + (8 - extract(isodow from (now() at time zone 'Asia/Colombo')::date)::int); plan uuid;
 begin
   perform set_config('test.mon', mon::text, false);
   -- the visit plan of the week starting that Monday (made directly – the plan screens are tested elsewhere)
@@ -2779,6 +2792,75 @@ values ((select id from u where role = 'asm_building'), '00000000-0000-0000-0000
 do $$ begin
   assert (select lat from public.organizations where id = '00000000-0000-0000-0000-00000000a0c9') = 7.2906, 'not overwritten';
 end $$;
+
+-- Project change requests: the sales person asks, SM Projects approves -------------------------------------------------
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ declare rid uuid;
+begin
+  begin update public.projects set city = 'Matara' where id = '00000000-0000-0000-0000-00000000b001'; assert false, 'direct edit refused';
+  exception when others then assert sqlerrm like 'Project details are changed through a change request%', sqlerrm; end;
+  begin perform public.request_project_change('00000000-0000-0000-0000-00000000b001', '{"city":"Matara"}', ' '); assert false, 'reason needed';
+  exception when others then assert sqlerrm like 'Give the reason%', sqlerrm; end;
+  begin perform public.request_project_change('00000000-0000-0000-0000-00000000b001', '{"owner_id":"x"}', 'x'); assert false, 'not allowed field';
+  exception when others then assert sqlerrm like 'This detail cannot be changed here%', sqlerrm; end;
+  rid := public.request_project_change('00000000-0000-0000-0000-00000000b001',
+    jsonb_build_object('city', 'Matara', 'lighting_value', 4500000, 'stage', (select stage from public.projects where id = '00000000-0000-0000-0000-00000000b001')),
+    'Client moved the site to Matara and confirmed the lighting budget');
+  assert (select changes ? 'city' and changes ? 'lighting_value' and not changes ? 'stage' from public.project_change_requests where id = rid), 'only real changes kept';
+  assert (select city from public.projects where id = '00000000-0000-0000-0000-00000000b001') is distinct from 'Matara', 'not changed before approval';
+  begin perform public.request_project_change('00000000-0000-0000-0000-00000000b001', '{"city":"Galle"}', 'x'); assert false, 'one pending';
+  exception when others then assert sqlerrm like 'A change request for this project is already waiting%', sqlerrm; end;
+  begin perform public.decide_project_change(rid, true); assert false, 'not by sales';
+  exception when others then assert sqlerrm like 'Only SM Projects approves%', sqlerrm; end;
+  perform set_config('test.pcr', rid::text, false);
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.my_pending_approvals() where source = 'project_change'), 'in approvals';
+  perform public.decide_project_change(current_setting('test.pcr')::uuid, true, null);
+end $$;
+reset role;
+do $$ begin
+  assert (select city = 'Matara' and lighting_value = 4500000 from public.projects where id = '00000000-0000-0000-0000-00000000b001'), 'applied';
+  assert exists (select 1 from public.project_log where project_id = '00000000-0000-0000-0000-00000000b001' and field = 'lighting_value'), 'logged';
+  assert exists (select 1 from public.notifications where kind = 'project_change' and title like 'Project change approved%'
+                 and recipient_id = (select id from u where role = 'asm_building')), 'sales person told';
+end $$;
+-- Rejected needs a reason; withdraw
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ declare rid uuid;
+begin
+  rid := public.request_project_change('00000000-0000-0000-0000-00000000b001', '{"win_probability":15}', 'Consultant shortlisted us');
+  perform public.withdraw_project_change(rid);
+  assert (select status from public.project_change_requests where id = rid) = 'withdrawn', 'withdrawn';
+  rid := public.request_project_change('00000000-0000-0000-0000-00000000b001', '{"name":"ABC Hotels – Beach Resort – Matara"}', 'Renamed by the client');
+  perform set_config('test.pcr', rid::text, false);
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  begin perform public.decide_project_change(current_setting('test.pcr')::uuid, false, null); assert false, 'reason needed';
+  exception when others then assert sqlerrm like 'Give the reason%', sqlerrm; end;
+  perform public.decide_project_change(current_setting('test.pcr')::uuid, false, 'Keep the tender name');
+end $$;
+reset role;
+do $$ begin
+  assert (select name from public.projects where id = '00000000-0000-0000-0000-00000000b001') <> 'ABC Hotels – Beach Resort – Matara', 'not applied';
+end $$;
+-- The sales person still reviews the status (marking lost sets the milestone)
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  perform public.review_project('00000000-0000-0000-0000-00000000b001', 'lost', 'Client chose another supplier');
+  assert (select milestone = 'lost' and status = 'lost' from public.projects where id = '00000000-0000-0000-0000-00000000b001'), 'review still works';
+end $$;
+reset role;
+select pg_temp.act_as('asm_infra'); set role authenticated;
+do $$ begin
+  begin perform public.review_project('00000000-0000-0000-0000-00000000b001', 'active'); assert false, 'not yours';
+  exception when others then assert sqlerrm like 'Project not found or not yours%', sqlerrm; end;
+end $$;
+reset role;
 
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
