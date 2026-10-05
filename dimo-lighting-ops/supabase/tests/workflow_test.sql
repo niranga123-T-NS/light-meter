@@ -3113,5 +3113,31 @@ do $$ begin
 end $$;
 reset role;
 
+-- Pipeline forecast: own projects for sales, everyone for GM / SM Projects; award date passed → counted this month, flagged
+update public.projects set lighting_value = 4000000, currency = 'LKR', win_probability = 72, milestone = 'negotiating', status = 'active',
+       expected_award_date = current_date - 10 where id = '00000000-0000-0000-0000-00000000b001';
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ declare d jsonb := public.pipeline_forecast(app.fy_of(current_date)); x jsonb;
+begin
+  select e into x from jsonb_array_elements(d -> 'projects') e where e ->> 'id' = '00000000-0000-0000-0000-00000000b001';
+  assert x is not null, 'own project in the pipeline';
+  assert (x ->> 'weighted_lkr')::numeric = 2880000, 'weighted = value × probability';
+  assert (x ->> 'award_passed')::boolean, 'award date passed flagged';
+  assert (x ->> 'expected_month')::date = date_trunc('month', (now() at time zone app.tz())::date)::date, 'passed date counts this month';
+  assert not exists (select 1 from jsonb_array_elements(d -> 'projects') e where e ->> 'owner_id' <> (select id::text from u where role = 'asm_building')), 'only own projects';
+end $$;
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ begin
+  assert jsonb_array_length(public.pipeline_forecast(app.fy_of(current_date)) -> 'projects') >= 1, 'GM sees the pipeline';
+end $$;
+reset role;
+select pg_temp.act_as('estimation_exec'); set role authenticated;
+do $$ begin
+  begin perform public.pipeline_forecast(app.fy_of(current_date)); assert false, 'not for estimation';
+  exception when others then assert sqlerrm like 'The pipeline is for sales%', sqlerrm; end;
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
