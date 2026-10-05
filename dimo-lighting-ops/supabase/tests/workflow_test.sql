@@ -759,7 +759,31 @@ begin
   assert (p -> 'open' -> 'by_bucket' -> 0 ->> 'bucket') = '91-120', 'by ageing bracket';
   assert jsonb_array_length(p -> 'trend') = 2, 'outstanding per upload';
 end $$;
+-- Correct a confirmed debt (Operations Executive, with a reason); logged, and the latest snapshot follows
+do $$ declare d uuid := (select id from public.debts where invoice_no = 'INV-1');
+begin
+  begin perform public.edit_debt(d, '{"amount":"12"}', ' '); assert false, 'reason needed';
+  exception when others then assert sqlerrm like 'Give the reason%', sqlerrm; end;
+  begin perform public.edit_debt(d, '{"invoice_no":"INV-10452"}', 'x'); assert false, 'duplicate invoice';
+  exception when others then assert sqlerrm like 'Another debt already has invoice number%', sqlerrm; end;
+  begin perform public.edit_debt(d, '{"amount":"10"}', 'x'); assert false, 'nothing changed';
+  exception when others then assert sqlerrm like 'Nothing was changed%', sqlerrm; end;
+  perform public.edit_debt(d, '{"amount":"1,250.50","outstanding_days":"8","client_name":"ABC Hotels PLC","invoice_no":"INV-1A"}', 'Wrong line in the accounts extract');
+  assert (select amount = 1250.50 and outstanding_days = 8 and invoice_no = 'INV-1A' and organization_id = '00000000-0000-0000-0000-00000000a001'
+            from public.debts where id = d), 'corrected and linked to the customer';
+  assert (select amount from public.debt_snapshots where debt_id = d and upload_id = (select last_upload_id from public.debts where id = d)) = 1250.50, 'snapshot follows';
+  assert (select note from public.debt_log where debt_id = d and kind = 'edit') like '%amount%Wrong line in the accounts extract', 'logged with the reason';
+end $$;
 reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  begin perform public.edit_debt((select id from public.debts where invoice_no = 'INV-1A'), '{"amount":"1"}', 'x'); assert false, 'only operations';
+  exception when others then assert sqlerrm like 'Only the Operations Executive edits the debtors%', sqlerrm; end;
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'debt_edit' and recipient_id = (select id from u where role = 'asm_building')), 'sales person told';
+end $$;
 -- Legal case whose hearing date has passed: the Operations Executive is alerted every day until it is updated
 select pg_temp.act_as('operations_exec'); set role authenticated;
 do $$ declare d uuid := (select id from public.debts where invoice_no = 'INV-10452');

@@ -45,6 +45,41 @@ export default function DebtDetail() {
     }, 'Sales person assigned');
   };
 
+  // Correct an uploaded debt (Operations Executive, with a reason); the next upload still updates it from the file
+  const editDetails = async () => {
+    const r = await dialog.prompt({
+      title: `Edit debtor – ${d.invoice_no}`,
+      message: 'Correct what was uploaded. The change and reason go to the history; the next upload still updates it from the file.',
+      fields: [
+        { key: 'client_name', label: 'Client name', required: true, initial: d.client_name ?? '' },
+        { key: 'project_name', label: 'Project', initial: d.project_name ?? '' },
+        { key: 'invoice_no', label: 'Invoice number', required: true, initial: d.invoice_no },
+        { key: 'invoice_date', label: 'Invoice date', type: 'date', initial: d.invoice_date ?? undefined },
+        { key: 'amount', label: 'Outstanding amount', required: true, initial: String(d.amount) },
+        {
+          key: 'currency',
+          label: 'Currency',
+          type: 'select',
+          required: true,
+          initial: d.currency,
+          options: [
+            { value: 'LKR', label: 'LKR' },
+            { value: 'USD', label: 'USD' },
+          ],
+        },
+        { key: 'outstanding_days', label: 'Outstanding days', required: true, initial: String(d.outstanding_days) },
+        { key: 'reason', label: 'Reason for the change', type: 'multiline', required: true },
+      ],
+      confirmLabel: 'Save',
+    });
+    if (!r) return;
+    const { reason, ...rest } = r;
+    await dialog.run(async () => {
+      await rpc('edit_debt', { p_debt: d.id, p_data: { ...rest, invoice_date: rest.invoice_date || null }, p_reason: reason });
+      await reload();
+    }, 'Debtor updated');
+  };
+
   const updateStatus = async () => {
     const r = await dialog.prompt({
       title: 'Update debt status',
@@ -163,6 +198,7 @@ export default function DebtDetail() {
           {ops ? <Button variant={hearingOverdue ? 'primary' : 'secondary'} title={d.is_legal ? 'Update legal / next hearing' : 'Place under Legal'} onPress={() => legal(false)} /> : null}
           {ops && d.is_legal ? <Button variant="secondary" title="Close legal case" onPress={() => legal(true)} /> : null}
           {canAssign ? <Button variant="secondary" title={d.sales_person_id ? 'Change sales person' : 'Assign sales person'} onPress={assign} /> : null}
+          {ops && d.source !== 'sample' ? <Button variant="secondary" title="Edit details" onPress={editDetails} /> : null}
         </Row>
         {!ops && d.is_legal ? <Muted>Legal status is maintained by the Operations Executive.</Muted> : null}
       </Card>
@@ -170,7 +206,11 @@ export default function DebtDetail() {
         <Card>
           {data.log.map((l) => (
             <Muted key={l.id}>
-              {fmtDateTime(l.at)} · {people[l.user_id ?? '']?.full_name ?? 'Upload'} · {l.kind === 'legal' ? `Legal: ${l.legal_description ?? ''} ${l.next_hearing_date ? `(hearing ${fmtDate(l.next_hearing_date)})` : ''}` : `${human(l.from_status)} → ${human(l.to_status)}`}
+              {fmtDateTime(l.at)} · {people[l.user_id ?? '']?.full_name ?? 'Upload'} · {l.kind === 'legal'
+                ? `Legal: ${l.legal_description ?? ''} ${l.next_hearing_date ? `(hearing ${fmtDate(l.next_hearing_date)})` : ''}`
+                : l.kind === 'edit'
+                  ? 'Details corrected'
+                  : `${human(l.from_status)} → ${human(l.to_status)}`}
               {l.note ? ` · ${l.note}` : ''}
             </Muted>
           ))}
