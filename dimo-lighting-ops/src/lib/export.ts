@@ -86,12 +86,54 @@ export async function exportPdf<T>(meta: ReportMeta, columns: Column<T>[], secti
 export async function printHtml(html: string, o: { key: string; filters: string; title: string; landscape?: boolean }) {
   await logRun(o.key, o.filters, 'pdf');
   if (Platform.OS === 'web') {
-    // Opens the browser print dialog – choose "Save as PDF".
-    await Print.printAsync({ html });
+    // expo-print on the web ignores the html and prints the app screen (one page) – print the document itself instead.
+    await printWeb(html);
     return;
   }
   const { uri } = await Print.printToFileAsync({ html, width: o.landscape ? 842 : 595, height: o.landscape ? 595 : 842 });
   await Sharing.shareAsync(uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle: o.title });
+}
+
+/** Web: show the document instead of the app only while printing, then open the print dialog ("Save as PDF").
+ * Printing the page itself (not a frame) works the same in every browser, Safari on iPhone included. */
+function printWeb(html: string): Promise<void> {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const css = [...doc.querySelectorAll('style')].map((x) => x.textContent ?? '').join('\n');
+  document.getElementById('__print')?.remove();
+  document.getElementById('__print_css')?.remove();
+  const style = document.createElement('style');
+  style.id = '__print_css';
+  style.textContent = `@media screen { #__print { display: none !important; } }
+@media print {
+  html, body { height: auto !important; min-height: 0 !important; overflow: visible !important; position: static !important; background: #fff !important; }
+  body > *:not(#__print) { display: none !important; }
+  #__print { display: block !important; }
+  ${css.replace(/\bbody\b/g, '#__print')}
+}`;
+  const root = document.createElement('div');
+  root.id = '__print';
+  root.innerHTML = doc.body.innerHTML;
+  document.head.appendChild(style);
+  document.body.appendChild(root);
+  const cleanup = () => {
+    root.remove();
+    style.remove();
+    window.removeEventListener('afterprint', cleanup);
+  };
+  window.addEventListener('afterprint', cleanup);
+  return new Promise((resolve) => {
+    const imgs = [...root.querySelectorAll('img')].filter((im) => !im.complete);
+    let started = false;
+    const go = () => {
+      if (started) return;
+      started = true;
+      window.print();
+      resolve();
+    };
+    imgs.forEach((im) => im.addEventListener('load', () => imgs.every((x) => x.complete) && go()));
+    imgs.forEach((im) => im.addEventListener('error', go));
+    setTimeout(go, imgs.length ? 1500 : 50);
+  });
 }
 
 function blobToBase64(blob: Blob): Promise<string> {
