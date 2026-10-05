@@ -3074,5 +3074,44 @@ values ('00000000-0000-0000-0000-00000000b001', '00000000-0000-0000-0000-0000000
         'B', 'duty_paid', current_date + 20, 'Control system – supply and commissioning', '{fixtures}', 'supply_commission') returning id;
 reset role;
 
+-- Win Probability Wizard (testing): tick per project, scores kept; a sales person's result goes to SM Projects
+update public.projects set status = 'active', milestone = 'brand_specified', win_probability = 50 where id = '00000000-0000-0000-0000-00000000b001';
+delete from public.project_change_requests where project_id = '00000000-0000-0000-0000-00000000b001' and status = 'pending';
+select pg_temp.act_as('asm_infra'); set role authenticated;
+do $$ begin
+  begin perform public.set_wizard_use('00000000-0000-0000-0000-00000000b001', true); assert false, 'not the project owner';
+  exception when others then assert sqlerrm like 'Only the project''s sales person%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ declare sid bigint;
+begin
+  perform public.set_wizard_use('00000000-0000-0000-0000-00000000b001', true);
+  assert (select use_wizard from public.projects where id = '00000000-0000-0000-0000-00000000b001'), 'tick on';
+  sid := public.save_win_score('00000000-0000-0000-0000-00000000b001', '{"v":1,"type":"spec"}', '{"final":0.62}', 62, 70, 55, array['Gut feel 70% vs wizard 62%']);
+  assert (select manual_pct = 50 and wizard_pct = 62 and applied = 'saved' from public.win_scores where id = sid), 'score kept with the manual figure';
+  assert exists (select 1 from public.win_maps where project_id = '00000000-0000-0000-0000-00000000b001'), 'map kept';
+  assert public.apply_win_score(sid, 60, 'negotiating', 'Consultant confirmed our brand') = 'requested', 'sales → request';
+  assert (select win_probability from public.projects where id = '00000000-0000-0000-0000-00000000b001') = 50, 'not changed before approval';
+  assert (select changes ->> 'win_probability' = '60' and reason like 'Win Probability Wizard 62%%' from public.project_change_requests
+           where project_id = '00000000-0000-0000-0000-00000000b001' and status = 'pending'), 'change request with the wizard figure';
+  assert (select chosen_pct = 60 and applied = 'requested' from public.win_scores where id = sid), 'chosen kept';
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ declare sid bigint;
+begin
+  sid := public.save_win_score('00000000-0000-0000-0000-00000000b001', '{"v":1,"type":"spec"}', '{"final":0.72}', 72, 70, 60, '{}');
+  assert public.apply_win_score(sid, 72, 'negotiating', null) = 'set', 'SM Projects sets it';
+  assert (select win_probability = 72 and milestone = 'negotiating' from public.projects where id = '00000000-0000-0000-0000-00000000b001'), 'set';
+  assert (select count(*) from public.win_scores where project_id = '00000000-0000-0000-0000-00000000b001') = 2, 'history';
+end $$;
+reset role;
+select pg_temp.act_as('asm_infra'); set role authenticated;
+do $$ begin
+  assert (select count(*) from public.win_scores where project_id = '00000000-0000-0000-0000-00000000b001') = 0, 'other sales cannot read the scores';
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
