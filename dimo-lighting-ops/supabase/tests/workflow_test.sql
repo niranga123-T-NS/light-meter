@@ -3023,5 +3023,22 @@ do $$ begin
 end $$;
 reset role;
 
+-- Customer-level visits need no project; project visits still do
+select pg_temp.act_as('asm_building'); set role authenticated;
+insert into public.visits (organization_id, visit_category, primary_objective, checkin_lat, checkin_lng)
+values ('00000000-0000-0000-0000-00000000a001', (select visit_category from public.organizations where id = '00000000-0000-0000-0000-00000000a001'),
+        'Existing Customer Relationship', 6.9, 79.86);
+insert into public.visits (organization_id, visit_category, primary_objective, checkin_lat, checkin_lng)
+values ('00000000-0000-0000-0000-00000000a001', (select visit_category from public.organizations where id = '00000000-0000-0000-0000-00000000a001'),
+        'New Customer Introduction', 6.9, 79.86);
+do $$ begin
+  begin
+    insert into public.visits (organization_id, visit_category, primary_objective)
+    values ('00000000-0000-0000-0000-00000000a001', (select visit_category from public.organizations where id = '00000000-0000-0000-0000-00000000a001'), 'Project Qualification');
+    assert false, 'project visit needs a project';
+  exception when others then assert sqlerrm like 'Select a project%', sqlerrm; end;
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

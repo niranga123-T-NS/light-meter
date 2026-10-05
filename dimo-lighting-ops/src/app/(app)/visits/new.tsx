@@ -101,7 +101,7 @@ export default function NewVisit() {
     if (!v.organization_id) return setError('Select the organization');
     if (!v.visit_category) return setError('Select the visit category');
     if (!v.primary_objective) return setError('Select the visit objective');
-    if (!v.project_id && !networking) return setError('Select a project (only networking visits can be recorded without one)');
+    if (!v.project_id && !networking) return setError('Select a project – or, for a visit to the customer only, choose a customer objective such as New Customer Introduction, Existing Customer Relationship, New Lead Identification or Unplanned / Courtesy');
     if (close && v.summary.trim().length < 30) return setError('Discussion summary must be at least 30 characters');
     if (close && !v.outcome) return setError('Select the outcome');
     const payload = {
@@ -157,6 +157,13 @@ export default function NewVisit() {
             </>
           ) : null}
           <ProjectPicker value={v.project_id} onChange={onProject} required={!networking} onCreate={(q) => router.push({ pathname: '/projects/new', params: { pick: '1', name: q, organization: v.organization_id ?? '' } })} />
+          {!v.project_id ? (
+            <Muted>
+              {networking
+                ? 'No project needed for this objective – the visit is recorded against the customer.'
+                : 'Tap a project in the list. Visiting the customer only? Choose a customer objective below (New Customer Introduction, Existing Customer Relationship, New Lead Identification, Unplanned / Courtesy) – then no project is needed.'}
+            </Muted>
+          ) : null}
           <CustomerPicker
             organizationId={v.organization_id}
             unitId={v.unit_id}

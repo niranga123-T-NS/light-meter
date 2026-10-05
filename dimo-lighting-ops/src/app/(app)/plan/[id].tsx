@@ -424,6 +424,9 @@ function AddLine({ planId, weekStart, onDone }: { planId: string; weekStart: str
           onPress={() =>
             dialog.run(async () => {
               if (!f.organization_id || !f.visit_category || !f.planned_objective) throw new Error('Organization, category and objective are required');
+              // Same rule as check-in, so a planned visit can always be checked in
+              const noProject = masters.list('visit_objective').find((o) => o.value === f.planned_objective)?.tags.includes('networking');
+              if (!f.project_id && !noProject) throw new Error('Select a project – or, for a visit to the customer only, choose a customer objective such as New Customer Introduction, Existing Customer Relationship, New Lead Identification or Unplanned / Courtesy');
               const { error } = await supabase.from('visit_plan_lines').insert({ plan_id: planId, ...f, time_slot: f.time_slot || null, location: f.location || null });
               if (error) throw new Error(error.message);
               onDone();
