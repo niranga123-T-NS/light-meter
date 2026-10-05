@@ -2862,5 +2862,14 @@ do $$ begin
 end $$;
 reset role;
 
+-- Secured approvals appear in SM Projects' Approvals, not GM's
+update public.secured_projects set schedule_status = 'review', submitted_at = now() where id = current_setting('test.gal')::uuid;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin assert exists (select 1 from public.my_pending_approvals() where source = 'invoice_schedule'), 'schedule in SM Projects approvals'; end $$;
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ begin assert not exists (select 1 from public.my_pending_approvals() where source in ('invoice_schedule', 'invoice_move')), 'not GM''s'; end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

@@ -878,6 +878,10 @@ export default function SecuredDetail() {
         <Notice tone={colors.amber}>
           Check the invoices below and approve, or return them with a reason.
         </Notice>
+      ) : s.schedule_status === "review" ? (
+        <Notice tone={colors.amber}>
+          The invoice schedule is waiting for SM Projects to approve.
+        </Notice>
       ) : null}
 
       <Section
