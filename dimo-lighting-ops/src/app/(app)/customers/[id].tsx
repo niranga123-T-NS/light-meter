@@ -3,12 +3,14 @@ import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { InquiryCard } from '@/components/InquiryBits';
+import { PlaceStatus } from '@/components/PlaceStatus';
 import { Badge, Button, Card, colors, ErrorBanner, Grid, KeyValue, ListRow, Loading, Muted, Pill, Row, Screen, Section, Segmented, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { fmtDate, fmtDateTime, fmtMoney } from '@/lib/format';
+import { geocodeAddress } from '@/lib/geocode';
 import { useLoad, useMasters, usePeople } from '@/lib/hooks';
 import { projectTypeLabel } from '@/lib/roles';
-import { supabase } from '@/lib/supabase';
+import { rpc, supabase } from '@/lib/supabase';
 import type { Contact, Inquiry, Organization, OrgUnit, Project, Visit } from '@/lib/types';
 
 type Tab = 'ongoing' | 'completed' | 'lost' | 'hold';
@@ -22,6 +24,7 @@ export default function CustomerDetail() {
   const masters = useMasters();
   const [unitFilter, setUnitFilter] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('ongoing');
+  const [placeKey, setPlaceKey] = useState(0); // re-reads the map location after an address change
   const manager = me.role === 'sm_projects' || me.role === 'gm';
 
   const { data, error, reload } = useLoad(async () => {
@@ -156,7 +159,13 @@ export default function CustomerDetail() {
       const patch: Partial<Organization> = { name: r.name.trim(), visit_category: r.category, address: r.address || null, phone: r.phone || null, email: r.email || null };
       const { error: e } = await supabase.from('organizations').update(patch).eq('id', org.id);
       if (e) throw new Error(e.message);
+      // A new address with no map location yet: place the customer from it when it is found precisely
+      if (patch.address && patch.address !== org.address && (org as Organization & { lat?: number | null }).lat == null) {
+        const pt = await geocodeAddress(patch.address);
+        if (pt) await rpc('set_map_location', { p_kind: 'customer', p_id: org.id, p_lat: pt.lat, p_lng: pt.lng }).catch(() => undefined);
+      }
       await reload();
+      setPlaceKey((k) => k + 1);
     }, 'Customer updated – logged');
   };
 
@@ -221,6 +230,7 @@ export default function CustomerDetail() {
           <KeyValue label="Account owner" value={people[org.account_owner_id ?? '']?.full_name ?? '—'} />
           <KeyValue label="Last visit" value={fmtDateTime(data.visits[0]?.checkin_at)} />
         </Row>
+        <PlaceStatus key={placeKey} projectId={null} organizationId={org.id} allowChange={canEdit} />
         <Row wrap gap={6}>
           {canEdit ? <Button small variant="secondary" title="Edit details" onPress={editDetails} /> : null}
           {me.role === 'sm_projects' || me.role === 'gm' ? <Button small variant="secondary" title="Change owner" onPress={() => changeOwner()} /> : null}

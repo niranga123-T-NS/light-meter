@@ -3040,5 +3040,32 @@ do $$ begin
 end $$;
 reset role;
 
+-- Customer visits are GPS-checked against the customer's location; earlier unchecked visits are re-checked when it is set
+insert into public.organizations (id, name, visit_category, account_owner_id)
+values ('00000000-0000-0000-0000-00000000a0d1', 'Office Customer', (select visit_category from public.organizations where id = '00000000-0000-0000-0000-00000000a001'),
+        (select id from u where role = 'asm_building'));
+select pg_temp.act_as('asm_building'); set role authenticated;
+insert into public.visits (id, organization_id, visit_category, primary_objective, checkin_lat, checkin_lng)
+values ('00000000-0000-0000-0000-0000000e0d01', '00000000-0000-0000-0000-00000000a0d1',
+        (select visit_category from public.organizations where id = '00000000-0000-0000-0000-00000000a001'), 'Existing Customer Relationship', 6.9100, 79.8600);
+insert into public.visits (id, organization_id, visit_category, primary_objective, checkin_lat, checkin_lng)
+values ('00000000-0000-0000-0000-0000000e0d02', '00000000-0000-0000-0000-00000000a0d1',
+        (select visit_category from public.organizations where id = '00000000-0000-0000-0000-00000000a001'), 'New Customer Introduction', 6.9102, 79.8601);
+do $$ begin
+  -- The first check-in became the customer location; that visit is not checked against itself, the second one is
+  assert (select gps_verified from public.visits where id = '00000000-0000-0000-0000-0000000e0d01') is null, 'first visit: nothing to compare';
+  assert (select gps_verified from public.visits where id = '00000000-0000-0000-0000-0000000e0d02'), 'second visit verified against the customer';
+  -- The address is found 100 m away: the first visit is re-checked and verified; a far point flags it as away
+  perform public.set_map_location('customer', '00000000-0000-0000-0000-00000000a0d1', 6.9109, 79.8600);
+  assert (select gps_verified and distance_from_site_m between 50 and 150 from public.visits where id = '00000000-0000-0000-0000-0000000e0d01'), 're-checked on set';
+end $$;
+insert into public.visits (id, organization_id, visit_category, primary_objective, checkin_lat, checkin_lng)
+values ('00000000-0000-0000-0000-0000000e0d03', '00000000-0000-0000-0000-00000000a0d1',
+        (select visit_category from public.organizations where id = '00000000-0000-0000-0000-00000000a001'), 'Existing Customer Relationship', 6.95, 79.90);
+do $$ begin
+  assert (select gps_verified = false from public.visits where id = '00000000-0000-0000-0000-0000000e0d03'), 'far from the customer → away';
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
