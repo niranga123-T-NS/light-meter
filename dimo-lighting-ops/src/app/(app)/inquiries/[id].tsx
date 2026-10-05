@@ -91,6 +91,10 @@ export default function InquiryDetail() {
   const salesActions = () => {
     if (!mineAsSales) return null;
     const buttons: React.ReactNode[] = [];
+    // A project can have several inquiries (packages, areas, phases)
+    buttons.push(
+      <Button key="another" variant="secondary" title="+ Another inquiry for this project" onPress={() => router.push(`/inquiries/new?project=${i.project_id}`)} />,
+    );
     if (['draft', 'returned_for_info'].includes(i.status)) {
       buttons.push(<Button key="edit" variant="secondary" title="Edit request" onPress={() => router.push(`/inquiries/new?edit=${i.id}`)} />);
       buttons.push(<Button key="submit" title="Submit inquiry" onPress={() => act('submit_inquiry', { p_inquiry: i.id }, 'Submitted')} />);
