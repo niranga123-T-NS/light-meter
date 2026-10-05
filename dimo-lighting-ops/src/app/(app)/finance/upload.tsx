@@ -54,7 +54,7 @@ export default function OrUploadScreen() {
       if (!ok) return;
     }
     await dialog.run(async () => {
-      await rpc('save_or_upload', { p_month: m, p_file_name: parsed.fileName, p_pnl: parsed.pnl, p_wbs: parsed.wbs });
+      await rpc('save_or_upload', { p_month: m, p_file_name: parsed.fileName, p_pnl: parsed.pnl, p_wbs: [] }); // P&L only – transactions are not used
       setParsed(null);
       await history.reload();
     }, 'OR file loaded – P&L updated');
@@ -62,7 +62,6 @@ export default function OrUploadScreen() {
 
   const nt = parsed ? findLine(parsed.pnl.map((l) => ({ ...l, upload_id: '' })), 'Net Turnover', 'pnl') : null;
   const np = parsed ? findLine(parsed.pnl.map((l) => ({ ...l, upload_id: '' })), 'Net Profit', 'pnl') : null;
-  const invoiced = parsed?.wbs.reduce((a, w) => a + w.revenue, 0) ?? 0;
 
   return (
     <Screen maxWidth={1000}>
@@ -71,8 +70,9 @@ export default function OrUploadScreen() {
       <Card>
         <Text style={{ fontWeight: '700', color: colors.ink }}>Monthly OR file</Text>
         <Muted>
-          Upload Finance’s OR Excel each month as it is. The P&L sheet (e.g. “2230”) gives the P&L. Invoicing is not taken from this file – it is
-          recorded on each secured project when the invoice is raised. Loading a month again replaces it.
+          Upload Finance’s OR Excel each month – only its P&L sheet (e.g. “2230”) is used; any transaction / trial balance sheet is ignored.
+          Invoicing is never taken from this file – it is recorded on each secured project when the invoice is raised. Loading a month again
+          replaces it.
         </Muted>
         <Row wrap gap={8}>
           <Button title="Choose OR file" icon="⇪" onPress={choose} />
@@ -85,10 +85,8 @@ export default function OrUploadScreen() {
             <DateField label="Month of the file" value={month} onChange={setMonth} quick={[]} hint="Read from the file – change it if wrong (any day of the month)" />
             <Grid min={200}>
               <KeyValue label="P&L sheet" value={`${parsed.pnlSheet} · ${parsed.pnl.length} lines`} />
-              <KeyValue label="Trial balance sheet" value={parsed.tbSheet ? `${parsed.tbSheet} · ${parsed.tbLines} WBS lines` : 'Not found – no invoicing by WBS'} />
               <KeyValue label="Net turnover (month)" value={`LKR ${mn(nt?.m_act)} Mn`} />
               <KeyValue label="Net profit (month)" value={`LKR ${mn(np?.m_act)} Mn`} />
-              <KeyValue label="Invoiced on WBS (month)" value={`LKR ${mn(invoiced)} Mn · ${parsed.wbs.filter((w) => w.revenue).length} projects`} />
             </Grid>
             {!nt ? <Notice tone={colors.amber}>“Net Turnover” was not found in the P&L sheet – check that this is the OR file.</Notice> : null}
             <Row wrap gap={8}>
@@ -109,12 +107,11 @@ export default function OrUploadScreen() {
             { h: 'Month', w: 110, v: (u) => fmtMonth(u.month), bold: true },
             { h: 'Net turnover (Mn)', w: 130, right: true, v: (u) => mn(u.net_turnover) },
             { h: 'Net profit (Mn)', w: 120, right: true, v: (u) => mn(u.net_profit), tone: (u) => (Number(u.net_profit) < 0 ? colors.red : undefined) },
-            { h: 'Invoiced on WBS (Mn)', w: 150, right: true, v: (u) => mn(u.invoiced_wbs) },
             { h: 'File', w: 240, v: (u) => u.file_name ?? '—' },
             { h: 'Loaded', w: 200, v: (u) => `${fmtDateTime(u.created_at)} · ${people[u.uploaded_by ?? '']?.full_name ?? '—'}` },
           ]}
         />
-        <Muted>Load earlier months of this financial year too, so invoicing year-to-date is complete.</Muted>
+        <Muted>Load earlier months of this financial year too, so the P&L year-to-date is complete.</Muted>
       </Section>
     </Screen>
   );

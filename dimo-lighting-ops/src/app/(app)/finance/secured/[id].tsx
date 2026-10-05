@@ -1484,9 +1484,8 @@ export default function SecuredDetail() {
           ]}
         />
         <Muted>
-          Invoices are recorded here when they are raised (the OR file is used
-          for the P&L only). Amounts marked “From the OR file” were taken from
-          the August OR file – add the invoice or delete them.
+          Invoices are recorded here when they are raised – the OR file is
+          used for the P&L only.
         </Muted>
       </Section>
 
