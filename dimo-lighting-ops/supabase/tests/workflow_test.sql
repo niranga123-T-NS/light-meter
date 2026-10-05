@@ -2715,8 +2715,24 @@ do $$ begin
                      where owner_id is distinct from (select id from u where role = 'asm_infra')), 'only own accounts';
 end $$;
 reset role;
+-- Planned visits on the map: a sales person sees their own plans; managers see submitted / approved plans
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.map_plan_lines(current_date - 400, current_date + 400)), 'sales person sees own plan lines';
+  assert not exists (select 1 from public.map_plan_lines(current_date - 400, current_date + 400)
+                     where sales_person_id <> (select id from u where role = 'asm_building')), 'only own';
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert not exists (select 1 from public.map_plan_lines(current_date - 400, current_date + 400) where plan_status not in ('submitted', 'approved')),
+    'managers see submitted / approved plans only';
+end $$;
+reset role;
 select pg_temp.act_as('design_manager'); set role authenticated;
 do $$ begin
+  begin perform public.map_plan_lines(current_date, current_date); assert false, 'plans not for design';
+  exception when others then assert sqlerrm like 'The sales map is for%', sqlerrm; end;
   begin perform public.map_visits(current_date, current_date); assert false, 'not for design';
   exception when others then assert sqlerrm like 'The sales map is for%', sqlerrm; end;
 end $$;
