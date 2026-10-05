@@ -143,7 +143,7 @@ export function ExecDashboard() {
             </Card>
           </Section>
 
-          <Section title="Pipeline and results">
+          <Section title="Pipeline and results" right={<Button small variant="secondary" title="Pipeline forecast" onPress={() => router.push('/projects/pipeline')} />}>
             <Grid min={320}>
               <Card>
                 <Text style={{ fontWeight: '700', marginBottom: 8 }}>Active lighting value by project type (LKR equivalent)</Text>

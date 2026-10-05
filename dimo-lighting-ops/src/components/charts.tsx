@@ -17,7 +17,7 @@ export const CHART = {
   bad: '#c8102e',
 };
 
-export type Series = { name: string; color: string; values: (number | null)[]; dashed?: boolean; fill?: string };
+export type Series = { name: string; color: string; values: (number | null)[]; dashed?: boolean; fill?: string; marker?: boolean };
 
 const PAD = { l: 52, r: 16, t: 12, b: 28 };
 // SVG text does not inherit the page font on the web
@@ -205,6 +205,7 @@ export function BarChart({
   fmtAxis = fmt,
   flags,
   note,
+  stacked,
 }: {
   categories: string[];
   series: Series[];
@@ -213,10 +214,18 @@ export function BarChart({
   fmtAxis?: (n: number) => string;
   flags?: (i: number) => 'bad' | 'good' | undefined;
   note?: string;
+  /** One bar per category with the series stacked; `marker` series are drawn as a short line (e.g. the target) */
+  stacked?: boolean;
 }) {
   const { w, onLayout } = useWidth();
   const [sel, setSel] = useState<number | null>(null);
-  const all = series.flatMap((s) => s.values).filter((v): v is number => v != null);
+  const bars = series.filter((s) => !s.marker);
+  const all = stacked
+    ? [
+        ...categories.map((_, i) => bars.reduce((a, s) => a + Math.max(0, s.values[i] ?? 0), 0)),
+        ...series.filter((s) => s.marker).flatMap((s) => s.values).filter((v): v is number => v != null),
+      ]
+    : series.flatMap((s) => s.values).filter((v): v is number => v != null);
   const { lo, hi, ticks } = niceTicks(Math.min(0, ...all), Math.max(0, ...all));
   const f: Frame = { w, h: height, lo, hi, ticks, n: categories.length };
   const band = xBand(f);
@@ -231,7 +240,30 @@ export function BarChart({
             <Svg width={w} height={height}>
               <Axes f={f} categories={categories} fmtAxis={fmtAxis} flags={flags} />
               {sel != null ? <Rect x={xMid(f, sel) - band / 2} y={PAD.t} width={band} height={height - PAD.t - PAD.b} fill={colors.soft} /> : null}
-              {categories.map((c, i) =>
+              {stacked
+                ? categories.map((c, i) => {
+                    const bw = Math.min(band * 0.6, 34);
+                    const x = xMid(f, i) - bw / 2;
+                    let acc = 0;
+                    return (
+                      <G key={c + i}>
+                        {bars.map((s) => {
+                          const v = Math.max(0, s.values[i] ?? 0);
+                          if (!v) return null;
+                          const y0 = yOf(f, acc);
+                          acc += v;
+                          const y1 = yOf(f, acc);
+                          return <Rect key={s.name} x={x} y={y1} width={bw} height={Math.max(1, y0 - y1)} fill={s.fill ?? s.color} />;
+                        })}
+                        {series
+                          .filter((s) => s.marker && s.values[i] != null)
+                          .map((s) => (
+                            <Line key={s.name} x1={x - 5} x2={x + bw + 5} y1={yOf(f, s.values[i] as number)} y2={yOf(f, s.values[i] as number)} stroke={s.color} strokeWidth={3} />
+                          ))}
+                      </G>
+                    );
+                  })
+                : categories.map((c, i) =>
                 series.map((s, k) => {
                   const v = s.values[i];
                   if (v == null || v === 0) return null;

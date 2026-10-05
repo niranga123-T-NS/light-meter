@@ -49,6 +49,7 @@ export default function Projects() {
           ]}
         />
         <Row gap={6}>
+          {canCreate ? <Button variant="secondary" title="Pipeline" onPress={() => router.push('/projects/pipeline')} /> : null}
           {me.role === 'sm_projects' || me.role === 'gm' ? <Button variant="secondary" title="Wizard trial" onPress={() => router.push('/projects/wizard-trial')} /> : null}
           {canCreate ? <Button title="+ New project" onPress={() => router.push('/projects/new')} /> : null}
         </Row>
