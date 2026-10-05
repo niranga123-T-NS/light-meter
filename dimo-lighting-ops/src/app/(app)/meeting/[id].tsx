@@ -13,7 +13,7 @@ import { useMe } from '@/lib/auth';
 import { amt, fmtPct, mn } from '@/lib/finance';
 import { fmtDate, fmtDateTime, todayISO } from '@/lib/format';
 import { printHtml } from '@/lib/export';
-import { type MinutesAction, minutesHtml } from '@/lib/meetingMinutes';
+import { type MinutesAction, minutesHtml, salesPerson, salesTeam, teamPerson, teamTeam } from '@/lib/meetingMinutes';
 import { ROLE_LABELS, ROLE_SHORT } from '@/lib/roles';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
@@ -71,8 +71,11 @@ type Action = {
   kind: string;
   assignee_id: string | null;
   done_note: string | null;
+  done_at: string | null;
+  objective: string | null;
   projects: { name: string } | null;
   organizations: { name: string } | null;
+  org_units: { name: string } | null;
 };
 type Invitee = { person_id: string; status: 'pending_approval' | 'invited' | 'present' | 'location_check' | 'absent' | 'excused'; checkin_at: string | null; distance_m: number | null; note: string | null };
 const ATT: Record<Invitee['status'], { label: string; tone: string }> = {
@@ -107,7 +110,7 @@ export default function MeetingPack() {
     const [m, n, a, i] = await Promise.all([
       supabase.from('sales_meetings').select('*').eq('id', id).single(),
       supabase.from('sales_meeting_notes').select('*').eq('meeting_id', id),
-      supabase.from('sales_meeting_actions').select('*, projects(name), organizations(name)').eq('meeting_id', id).order('created_at'),
+      supabase.from('sales_meeting_actions').select('*, projects(name), organizations(name), org_units(name)').eq('meeting_id', id).order('created_at'),
       supabase.from('sales_meeting_invitees').select('*').eq('meeting_id', id),
     ]);
     if (m.error) throw new Error(m.error.message);
@@ -184,31 +187,53 @@ export default function MeetingPack() {
     dialog.run(async () => {
       const { data: logo } = await supabase.from('settings').select('value').eq('key', 'report_logo_url').maybeSingle();
       const name = (pid: string | null) => (pid ? (people[pid]?.full_name ?? '—') : '—');
+      const roleOf = (pid: string | null) => (pid ? (ROLE_LABELS[people[pid]?.role as keyof typeof ROLE_LABELS] ?? '') : '');
+      let no = 0;
       const toMin = (a: Action): MinutesAction => ({
+        no: ++no,
         action: a.action,
         kind: a.kind,
         status: a.status,
+        forWhom: a.sales_person_id ? name(a.sales_person_id) : null,
         owner: name(a.owner_id),
+        ownerRole: roleOf(a.owner_id),
         assignee: a.assignee_id ? name(a.assignee_id) : null,
         due_date: a.due_date,
         subject:
-          [a.projects?.name ?? (a.new_project ? `${a.new_project} (new)` : null), a.organizations?.name ?? (a.new_customer ? `${a.new_customer} (new)` : null)]
+          [
+            a.projects?.name ?? (a.new_project ? `${a.new_project} (new project)` : null),
+            a.organizations?.name ?? (a.new_customer ? `${a.new_customer} (new customer)` : null),
+            a.org_units?.name,
+          ]
             .filter(Boolean)
             .join(' · ') || null,
+        objective: a.objective,
+        done_at: a.done_at,
         done_note: a.done_note,
       });
+      const est = m.team === 'estimation';
       const packPeople = (pack?.people ?? []) as unknown as ({ id: string; name: string } & Record<string, unknown>)[];
-      const summary = (p: Record<string, unknown>): string | null => {
-        if (m.team === 'sales') {
-          const s = p as unknown as Person;
-          return `Score ${s.target.score.toFixed(2)} · secured ${fmtPct(s.target.secured_pct)} · invoiced ${fmtPct(s.target.invoiced_pct)} of budget (YTD) · visits ${s.visits.completed} of ${s.visits.planned} planned`;
-        }
-        const n = (k: string) => Number(p[k] ?? 0);
-        const overdue = Array.isArray(p.overdue) ? p.overdue.length : 0;
-        return `In hand ${n('in_hand_n')} · released last week ${n('released_week_n')} · overdue ${overdue}`;
-      };
+      const team = !pack ? { facts: [], lists: [] } : m.team === 'sales' ? salesTeam(pack.team) : teamTeam(est, pack.team as Record<string, unknown>);
+      const general = actionsFor(null).map(toMin);
       const inPack = new Set(packPeople.map((p) => p.id));
       const others = [...new Set(data.actions.map((a) => a.sales_person_id).filter((x): x is string => !!x && !inPack.has(x)))];
+      const noteOf = (pid: string) => data.notes.find((n) => n.sales_person_id === pid)?.note ?? '';
+      const persons = [
+        ...packPeople.map((p) => {
+          const f = m.team === 'sales' ? salesPerson(p) : teamPerson(est, p);
+          const ex = p.exception as { status: string; reason: string } | null;
+          return {
+            name: p.name,
+            leave: ex ? `Leave from the meeting ${ex.status}: ${ex.reason}` : null,
+            facts: f.facts,
+            lists: f.lists,
+            note: noteOf(p.id),
+            actions: actionsFor(p.id).map(toMin),
+          };
+        }),
+        ...others.map((pid) => ({ name: name(pid), leave: null, facts: [], lists: [], note: noteOf(pid), actions: actionsFor(pid).map(toMin) })),
+      ];
+      const invited = data.invitees.filter((x) => x.status !== 'pending_approval');
       const html = minutesHtml({
         title: cfg.label,
         date: m.meeting_date,
@@ -217,27 +242,22 @@ export default function MeetingPack() {
         startedAt: m.started_at,
         publishedAt: m.published_at,
         figuresAt: pack?.generated_at ?? null,
-        attendance: data.invitees
-          .filter((x) => x.status !== 'pending_approval')
+        period: pack ? `${fmtDate(pack.week_from)} – ${fmtDate(pack.week_to)}` : null,
+        attendance: invited
           .map((x) => ({
             name: name(x.person_id),
-            role: ROLE_LABELS[people[x.person_id]?.role as keyof typeof ROLE_LABELS] ?? '',
+            role: roleOf(x.person_id),
             status: x.status === 'invited' ? 'Not marked' : ATT[x.status].label,
             at: x.checkin_at,
             note: x.note,
           }))
           .sort((a, b) => a.name.localeCompare(b.name)),
+        teamFacts: team.facts,
+        teamLists: team.lists,
         notes: m.notes,
-        general: actionsFor(null).map(toMin),
-        people: [
-          ...packPeople.map((p) => ({
-            name: p.name,
-            summary: summary(p),
-            note: data.notes.find((n) => n.sales_person_id === p.id)?.note ?? '',
-            actions: actionsFor(p.id).map(toMin),
-          })),
-          ...others.map((pid) => ({ name: name(pid), summary: null, note: data.notes.find((n) => n.sales_person_id === pid)?.note ?? '', actions: actionsFor(pid).map(toMin) })),
-        ],
+        general,
+        people: persons,
+        distribution: [m.team === 'sales' ? 'GM / DGM' : 'GM / DGM, SM Projects', ...invited.map((x) => name(x.person_id)).sort()],
         generatedBy: `${me.full_name} – ${ROLE_SHORT[me.role]}`,
         logoUrl: (logo?.value as string | undefined) ?? null,
       });
