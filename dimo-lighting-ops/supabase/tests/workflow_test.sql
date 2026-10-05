@@ -2715,6 +2715,29 @@ do $$ begin
                      where owner_id is distinct from (select id from u where role = 'asm_infra')), 'only own accounts';
 end $$;
 reset role;
+-- Setting a location from the map: the owner or SM Projects; planned visits then use it
+select pg_temp.act_as('design_manager'); set role authenticated;
+do $$ begin
+  begin perform public.set_map_location('customer', '00000000-0000-0000-0000-00000000a001', 6.9, 79.85); assert false, 'not design';
+  exception when others then assert sqlerrm like 'Only the account owner%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  perform public.set_map_location('customer', '00000000-0000-0000-0000-00000000a001', 6.0329, 80.2168);
+  perform public.set_map_location('project', '00000000-0000-0000-0000-00000000b001', 6.0335, 80.2170);
+end $$;
+reset role;
+do $$ begin
+  assert (select lat from public.organizations where id = '00000000-0000-0000-0000-00000000a001') = 6.0329, 'customer location saved';
+  assert (select lat from public.projects where id = '00000000-0000-0000-0000-00000000b001') = 6.0335, 'project site saved';
+end $$;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  assert not exists (select 1 from public.map_plan_lines(current_date - 400, current_date + 400) where lat is null and organization_id = '00000000-0000-0000-0000-00000000a001'),
+    'planned visits to the customer are now placed';
+end $$;
+reset role;
 -- Planned visits on the map: a sales person sees their own plans; managers see submitted / approved plans
 select pg_temp.act_as('asm_building'); set role authenticated;
 do $$ begin
