@@ -24,6 +24,7 @@ export const ESTIMATION_SCOPE = [
 ];
 export const ESTIMATION_BASIS = [
   { value: 'supply', label: 'Supply only' },
+  { value: 'supply_commission', label: 'Supply & commission' },
   { value: 'supply_install', label: 'Supply & install' },
   { value: 'supply_install_commission', label: 'Supply, install & commission' },
 ];
