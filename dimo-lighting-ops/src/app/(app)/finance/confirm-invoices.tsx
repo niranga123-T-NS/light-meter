@@ -4,9 +4,8 @@ import { Pressable, Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, ErrorBanner, Field, Loading, Muted, Notice, Row, Screen, Section, Select } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { amt, fmtMonth, type InvoiceLine, isFinanceDesk, kindLabel, mn, thisMonth } from '@/lib/finance';
+import { amt, fmtMonth, type InvoiceLine, kindLabel, mn, thisMonth } from '@/lib/finance';
 import { useLoad, usePeople } from '@/lib/hooks';
-import { isSales } from '@/lib/roles';
 import { rpc, supabase } from '@/lib/supabase';
 
 type Entry = { amount: string; invoice_no: string; invoice_date: string };
@@ -35,7 +34,7 @@ export default function ConfirmPastInvoices() {
   const dialog = useDialog();
   const [person, setPerson] = useState<string | null>(null);
   const [picked, setPicked] = useState<Record<string, Entry>>({});
-  const allowed = isFinanceDesk(me.role) || isSales(me.role);
+  const allowed = me.role === 'operations_exec';
   const { data, error, reload } = useLoad(async () => {
     const { data: rows, error: e } = await supabase
       .from('invoice_line_status')
@@ -55,7 +54,7 @@ export default function ConfirmPastInvoices() {
   if (!allowed)
     return (
       <Screen>
-        <Notice>Invoices are confirmed by the sales person, Operations, SM Projects or GM / DGM.</Notice>
+        <Notice>Past invoices are confirmed by the Operations Executive.</Notice>
       </Screen>
     );
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
@@ -99,7 +98,7 @@ export default function ConfirmPastInvoices() {
           date if you have them (you can add the number later on the project). Leave unticked what was not invoiced – it stays as slipped.
         </Muted>
         <Row wrap gap={8} style={{ marginTop: 8, alignItems: 'flex-end' }}>
-          {isFinanceDesk(me.role) ? (
+          {allowed ? (
             <View style={{ minWidth: 240 }}>
               <Select
                 label="Sales person"
