@@ -2886,5 +2886,35 @@ begin
   assert exists (select 1 from public.secured_log where secured_id = s and note like '%from the OR file removed%'), 'logged on the project';
 end $$;
 
+-- Confirm past invoices from the schedule (ticked together)
+do $$ declare s uuid := current_setting('test.gal')::uuid; m date := app.month_of((now() at time zone app.tz())::date); a uuid; b uuid; f uuid;
+begin
+  insert into public.invoice_lines (secured_id, seq, kind, description, amount, original_month, forecast_month)
+  values (s, 91, 'progress', 'Past IPC A', 1000, (m - interval '2 months')::date, (m - interval '2 months')::date) returning id into a;
+  insert into public.invoice_lines (secured_id, seq, kind, description, amount, original_month, forecast_month)
+  values (s, 92, 'progress', 'Past IPC B', 2000, (m - interval '1 month')::date, (m - interval '1 month')::date) returning id into b;
+  insert into public.invoice_lines (secured_id, seq, kind, description, amount, original_month, forecast_month)
+  values (s, 93, 'progress', 'Future IPC', 500, (m + interval '1 month')::date, (m + interval '1 month')::date) returning id into f;
+  perform set_config('test.pa', a::text, false); perform set_config('test.pb', b::text, false); perform set_config('test.pf', f::text, false);
+end $$;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ begin
+  begin perform public.confirm_past_invoices(jsonb_build_array(jsonb_build_object('line_id', current_setting('test.pf')))); assert false, 'future refused';
+  exception when others then assert sqlerrm like '%is not a past invoice%', sqlerrm; end;
+  begin perform public.confirm_past_invoices(jsonb_build_array(jsonb_build_object('line_id', current_setting('test.pa'), 'amount', 5000))); assert false, 'too much';
+  exception when others then assert sqlerrm like '%only%is still to invoice%', sqlerrm; end;
+  assert public.confirm_past_invoices(jsonb_build_array(
+    jsonb_build_object('line_id', current_setting('test.pa')),
+    jsonb_build_object('line_id', current_setting('test.pb'), 'amount', 1500, 'invoice_no', 'INV-PAST-2'))) = 2, 'two confirmed';
+end $$;
+reset role;
+do $$ begin
+  assert (select remaining from public.invoice_line_status where id = current_setting('test.pa')::uuid) <= 0.5, 'A fully invoiced';
+  assert (select invoice_date from public.invoice_allocations where line_id = current_setting('test.pa')::uuid) =
+         (date_trunc('month', (select forecast_month from public.invoice_lines where id = current_setting('test.pa')::uuid)) + interval '1 month - 1 day')::date, 'dated in its month';
+  assert (select remaining from public.invoice_line_status where id = current_setting('test.pb')::uuid) = 500, 'B part invoiced';
+  assert exists (select 1 from public.invoice_allocations where invoice_no = 'INV-PAST-2'), 'number kept';
+end $$;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
