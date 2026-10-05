@@ -22,7 +22,7 @@ export type ReportMeta = {
   logoUrl?: string | null;   // maintained by the System Administrator (settings.report_logo_url)
 };
 
-const esc = (v: unknown) =>
+export const esc = (v: unknown) =>
   String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string);
 
 export type Section<T> = { heading?: string; rows: T[]; totals?: Partial<Record<string, string | number>>; colour?: string };
@@ -79,15 +79,19 @@ async function logRun(key: string, filters: string, format: 'pdf' | 'xlsx' | 'pr
 
 export async function exportPdf<T>(meta: ReportMeta, columns: Column<T>[], sections: Section<T>[], extraHtml = '') {
   const html = reportHtml(meta, columns, sections, extraHtml);
-  await logRun(meta.key, meta.filters, 'pdf');
+  await printHtml(html, { key: meta.key, filters: meta.filters, title: meta.title, landscape: meta.landscape ?? columns.length > 7 });
+}
+
+/** Any ready HTML page as a PDF: the print dialog on the web ("Save as PDF"), a shared PDF file on phones. Logged like reports. */
+export async function printHtml(html: string, o: { key: string; filters: string; title: string; landscape?: boolean }) {
+  await logRun(o.key, o.filters, 'pdf');
   if (Platform.OS === 'web') {
     // Opens the browser print dialog – choose "Save as PDF".
     await Print.printAsync({ html });
     return;
   }
-  const wide = meta.landscape ?? columns.length > 7;
-  const { uri } = await Print.printToFileAsync({ html, width: wide ? 842 : 595, height: wide ? 595 : 842 });
-  await Sharing.shareAsync(uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle: meta.title });
+  const { uri } = await Print.printToFileAsync({ html, width: o.landscape ? 842 : 595, height: o.landscape ? 595 : 842 });
+  await Sharing.shareAsync(uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle: o.title });
 }
 
 function blobToBase64(blob: Blob): Promise<string> {
