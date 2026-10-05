@@ -4,7 +4,7 @@ import { Text, View } from 'react-native';
 import { BarChart, CHART, LineChart } from '@/components/charts';
 import { DataTable } from '@/components/DataTable';
 import { useDialog } from '@/components/dialog';
-import { Button, Card, colors, ErrorBanner, Grid, Loading, Muted, Pill, Row, Screen, Section, Segmented, Select, Stat } from '@/components/ui';
+import { Button, Card, colors, ErrorBanner, Grid, Loading, Muted, Notice, Pill, Row, Screen, Section, Segmented, Select, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import {
   amt,
@@ -228,6 +228,16 @@ export default function Invoicing() {
         />
       </Section>
 
+      {tabs.slipped.length ? (
+        <Notice tone={colors.amber}>
+          <Row wrap gap={8} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={{ color: colors.ink, flexShrink: 1 }}>
+              {`${tabs.slipped.length} scheduled invoice(s) from earlier months are not recorded. If they were raised, tick and confirm them together.`}
+            </Text>
+            <Button small title="Confirm past invoices" onPress={() => router.push('/finance/confirm-invoices')} />
+          </Row>
+        </Notice>
+      ) : null}
       <Segmented
         value={tab}
         onChange={setTab}
