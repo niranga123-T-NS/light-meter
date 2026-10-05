@@ -139,7 +139,7 @@ export default function SecuredList() {
         options={[
           { value: 'book', label: 'Order book', badge: scoped.filter(filters.book).length },
           { value: 'missing', label: 'Schedule missing', badge: scoped.filter(filters.missing).length },
-          { value: 'review', label: 'To review', badge: scoped.filter(filters.review).length },
+          { value: 'review', label: me.role === 'sm_projects' ? 'To review' : 'Waiting for SM Projects', badge: scoped.filter(filters.review).length },
           { value: 'unbudgeted', label: 'Unbudgeted wins', badge: scoped.filter(filters.unbudgeted).length },
           { value: 'done', label: 'Fully invoiced' },
           { value: 'closed', label: 'Closed' },
