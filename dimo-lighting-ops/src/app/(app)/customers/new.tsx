@@ -4,9 +4,10 @@ import { useDialog } from '@/components/dialog';
 import { PersonPicker } from '@/components/pickers';
 import { Button, Card, colors, ErrorBanner, Field, ListRow, Muted, Notice, Row, Screen, Section, Select } from '@/components/ui';
 import { useMe } from '@/lib/auth';
+import { geocodeAddress } from '@/lib/geocode';
 import { useMasters } from '@/lib/hooks';
 import { isSales } from '@/lib/roles';
-import { supabase } from '@/lib/supabase';
+import { rpc, supabase } from '@/lib/supabase';
 import type { Organization } from '@/lib/types';
 
 /** New customer profile (Section 4.9) with a duplicate check on name, phone and email. */
@@ -54,7 +55,12 @@ export default function NewCustomer() {
         const { error: ce } = await supabase.from('contacts').insert({ organization_id: org.id, unit_id: unitId, ...contact });
         if (ce) throw new Error(ce.message);
       }
+      // The head office address becomes the customer's map location when it is found precisely – visits are checked against it
+      const pt = f.address.trim() ? await geocodeAddress(f.address) : null;
+      if (pt) await rpc('set_map_location', { p_kind: 'customer', p_id: org.id, p_lat: pt.lat, p_lng: pt.lng }).catch(() => undefined);
       router.replace(`/customers/${org.id}`);
+      if (f.address.trim())
+        dialog.toast(pt ? 'Location found from the address – check the pin on the customer page' : 'Address not found precisely on the map – set the location on the customer page');
     }, 'Customer created');
   };
 
