@@ -1,11 +1,12 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Text, View } from 'react-native';
+import { Platform, Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { CustomerPicker, ProjectPicker } from '@/components/pickers';
 import { Button, Card, colors, ErrorBanner, Field, Grid, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section, Segmented, Select, Stat } from '@/components/ui';
 import type { MyAction } from '@/components/MeetingActions';
-import { ObjectivePicker } from '@/components/VisitBits';
+import { LocationPicker } from '@/components/LocationPicker';
+import { captureLocation, ObjectivePicker } from '@/components/VisitBits';
 import { useMe } from '@/lib/auth';
 import { addDaysISO, fmtDate, fmtDateTime, todayISO } from '@/lib/format';
 import { useLoad, useMasters, usePeople } from '@/lib/hooks';
@@ -412,6 +413,7 @@ function AddLine({ planId, weekStart, onDone }: { planId: string; weekStart: str
         contactId={f.contact_id}
         onChange={(c) => setF((s) => ({ ...s, organization_id: c.organizationId, unit_id: c.unitId, contact_id: c.contactId, visit_category: s.visit_category ?? c.organization?.visit_category ?? null }))}
       />
+      <PlaceStatus projectId={f.project_id} organizationId={f.organization_id} />
       <Select label="Visit category" required value={f.visit_category} options={masters.values('visit_category').map((v) => ({ value: v, label: v }))} onChange={(v) => setF((s) => ({ ...s, visit_category: v }))} />
       <ObjectivePicker label="Planned objective" required value={f.planned_objective} onChange={(v) => setF((s) => ({ ...s, planned_objective: v }))} />
       <Field label="Location" value={f.location} onChangeText={(v) => setF((s) => ({ ...s, location: v }))} />
@@ -430,5 +432,68 @@ function AddLine({ planId, weekStart, onDone }: { planId: string; weekStart: str
         />
       </Row>
     </Card>
+  );
+}
+
+/** Planning: shows whether the customer / project is on the sales map, and sets its location if not (once – every
+ * later visit uses it). Web: search, click on the map or current position; phones: current position. */
+function PlaceStatus({ projectId, organizationId }: { projectId: string | null; organizationId: string | null }) {
+  const dialog = useDialog();
+  const [picking, setPicking] = useState(false);
+  const { data, reload } = useLoad(async () => {
+    if (!organizationId) return null;
+    const [o, p] = await Promise.all([
+      supabase.from('organizations').select('name, lat').eq('id', organizationId).maybeSingle(),
+      projectId ? supabase.from('projects').select('name, lat').eq('id', projectId).maybeSingle() : Promise.resolve({ data: null }),
+    ]);
+    const org = o.data as { name: string; lat: number | null } | null;
+    const prj = p.data as { name: string; lat: number | null } | null;
+    return { org, prj };
+  }, [projectId, organizationId]);
+  if (!organizationId || !data?.org) return null;
+  // A project visit is placed at the project site, else at the customer
+  const target = projectId && data.prj ? { kind: 'project' as const, id: projectId, name: data.prj.name } : { kind: 'customer' as const, id: organizationId, name: data.org.name };
+  const placed = (projectId && data.prj?.lat != null) || data.org.lat != null;
+  const save = async (pt: { lat: number; lng: number }) => {
+    await dialog.run(async () => {
+      await rpc('set_map_location', { p_kind: target.kind, p_id: target.id, p_lat: pt.lat, p_lng: pt.lng });
+      setPicking(false);
+      await reload();
+    }, target.kind === 'project' ? 'Project site saved' : 'Customer location saved');
+  };
+  return (
+    <Row wrap gap={8} style={{ alignItems: 'center', marginVertical: 4 }}>
+      <Pill
+        label={placed ? (projectId && data.prj?.lat != null ? '📍 Project site on the map' : '📍 Customer on the map') : 'No map location yet'}
+        tone={placed ? colors.green : colors.amber}
+      />
+      {!placed || (projectId && data.prj?.lat == null) ? (
+        <Button
+          small
+          variant="secondary"
+          title={target.kind === 'project' ? 'Set project site' : 'Set customer location'}
+          onPress={async () => {
+            if (Platform.OS === 'web') return setPicking(true);
+            const ok = await dialog.confirm(
+              target.kind === 'project' ? 'Use where you are now as the project site?' : 'Use where you are now as the customer location?',
+              'Only if you are at the place now. Otherwise set it later in the web app (Map), or it is set by your first GPS check-in there.',
+              { confirmLabel: 'Use my location' },
+            );
+            if (!ok) return;
+            const pos = await captureLocation().catch(() => null);
+            if (!pos) return dialog.toast('Location not available – allow location access', 'error');
+            await save(pos);
+          }}
+        />
+      ) : null}
+      {!placed ? <Muted>Or it is set automatically by the first GPS check-in there.</Muted> : null}
+      <LocationPicker
+        visible={picking}
+        title={`${target.kind === 'project' ? 'Project site' : 'Customer location'} – ${target.name}`}
+        query={target.kind === 'project' ? `${target.name} ${data.org.name}` : data.org.name}
+        onClose={() => setPicking(false)}
+        onSave={save}
+      />
+    </Row>
   );
 }

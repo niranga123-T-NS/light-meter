@@ -1,6 +1,7 @@
 import { router, Stack } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Platform, Text, View } from 'react-native';
+import { LocationPicker } from '@/components/LocationPicker';
 import { mapEscape as esc, SalesMap } from '@/components/SalesMap';
 import type { MapLine, MapPoint } from '@/components/SalesMap.types';
 import { Button, Card, colors, DateField, ErrorBanner, Grid, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section, Segmented, Select, Stat, Toggle } from '@/components/ui';
@@ -51,6 +52,7 @@ type Coverage = {
 type PlanLine = {
   id: string;
   plan_id: string;
+  organization_id: string;
   plan_status: string;
   sales_person_id: string;
   person: string;
@@ -64,7 +66,7 @@ type PlanLine = {
   category: string;
   lat: number | null;
   lng: number | null;
-  loc_source: 'plan' | 'site' | 'visit' | null;
+  loc_source: 'plan' | 'site' | 'customer' | 'visit' | null;
   visit_id: string | null;
   visit_lat: number | null;
   visit_lng: number | null;
@@ -117,6 +119,8 @@ export default function SalesMapScreen() {
   const [heatProjects, setHeatProjects] = useState(false);
   const [pFrom, setPFrom] = useState(mondayOf(todayISO()));
   const [pTo, setPTo] = useState(addDaysISO(mondayOf(todayISO()), 5));
+  // Setting a project site / customer location from the map
+  const [picking, setPicking] = useState<{ kind: 'project' | 'customer'; id: string; name: string; query: string } | null>(null);
 
   const routePerson = manager ? person : me.id;
   const visits = useLoad(async () => {
@@ -183,7 +187,7 @@ export default function SalesMapScreen() {
           label: `<b>${esc(x.customer)}</b>${x.project ? `<br/>${esc(x.project)}` : ''}<br/>${esc(x.person)} · ${esc(fmtDate(x.planned_date))}${x.time_slot ? ` ${esc(x.time_slot)}` : ''}<br/>${esc(x.objective)}<br/><b>${look.label}</b>${
             x.missed_reason ? ` – ${esc(x.missed_reason)}` : x.change_reason && x.status !== 'planned' ? ` – ${esc(x.change_reason)}` : ''
           }${x.from_meeting ? '<br/>Follow-up from the sales meeting' : ''}${x.plan_status !== 'approved' ? `<br/><i>Plan ${esc(x.plan_status)}</i>` : ''}${
-            x.loc_source === 'visit' ? '<br/><i>Position from the customer’s last visit</i>' : ''
+            x.loc_source === 'visit' ? '<br/><i>Position from the customer’s last visit</i>' : x.loc_source === 'customer' ? '<br/><i>Customer location</i>' : ''
           }`,
           href: x.visit_id ? `/visits/${x.visit_id}` : `/plan/${x.plan_id}`,
         });
@@ -273,6 +277,19 @@ export default function SalesMapScreen() {
     .sort((a, b) => (b.value_lkr ?? 0) - (a.value_lkr ?? 0))
     .slice(0, 15);
   const src = view === 'coverage' ? coverage : view === 'planned' ? plans : visits;
+  // Planned visits / accounts with no position, one row per project (or customer when there is no project)
+  const unplaced = [
+    ...new Map(
+      pl
+        .filter((x) => !has(x))
+        .map((x) => [
+          x.project_id ?? x.organization_id,
+          { key: x.project_id ?? x.organization_id, project_id: x.project_id, project: x.project, organization_id: x.organization_id, customer: x.customer, n: pl.filter((y) => !has(y) && (y.project_id ?? y.organization_id) === (x.project_id ?? x.organization_id)).length },
+        ]),
+    ).values(),
+  ];
+  const noLocation = c.filter((x) => !has(x) && (show === 'both' || x.kind === show));
+  const setLocation = (pick: { kind: 'project' | 'customer'; id: string; name: string; query: string }) => setPicking(pick);
   const loading = src.loading;
   const error = src.error;
   const pc = { planned: 0, done: 0, missed: 0, overdue: 0, moved: 0, none: 0 };
@@ -450,6 +467,39 @@ export default function SalesMapScreen() {
         <Muted style={{ paddingHorizontal: 6, marginTop: 4 }}>Shows recorded check-in points only – no live tracking.</Muted>
       </Card>
 
+      {view === 'planned' && unplaced.length ? (
+        <Section title={`Not on the map – no location yet (${pc.none} planned visits)`}>
+          <Notice tone={colors.amber}>
+            {
+              "A planned visit is placed from the project's site, else the customer's location, else the customer's last GPS visit. These have none yet – set the location once and every future visit to them shows on the map."
+            }
+          </Notice>
+          <Card style={{ padding: 0, overflow: 'hidden' }}>
+            {unplaced.map((x) => (
+              <ListRow
+                key={x.key}
+                wrapRight
+                title={x.project ? `${x.project} · ${x.customer}` : x.customer}
+                subtitle={`${x.n} planned visit${x.n === 1 ? '' : 's'} in these dates`}
+                right={
+                  <Row gap={6} wrap>
+                    {x.project_id ? (
+                      <Button small title="Set project site" onPress={() => setLocation({ kind: 'project', id: x.project_id as string, name: x.project ?? '', query: `${x.project ?? ''} ${x.customer}` })} />
+                    ) : null}
+                    <Button
+                      small
+                      variant={x.project_id ? 'secondary' : 'primary'}
+                      title="Set customer location"
+                      onPress={() => setLocation({ kind: 'customer', id: x.organization_id, name: x.customer, query: x.customer })}
+                    />
+                  </Row>
+                }
+              />
+            ))}
+          </Card>
+        </Section>
+      ) : null}
+
       {view === 'planned' && pl.length ? (
         <Section title={`Planned visits ${fmtDate(pFrom)} – ${fmtDate(pTo)}`}>
           <Card style={{ padding: 0, overflow: 'hidden' }}>
@@ -465,6 +515,28 @@ export default function SalesMapScreen() {
                 />
               );
             })}
+          </Card>
+        </Section>
+      ) : null}
+
+      {view === 'coverage' && noLocation.length ? (
+        <Section title={`No location yet (${noLocation.length})`}>
+          <Card style={{ padding: 0, overflow: 'hidden' }}>
+            {noLocation.slice(0, 40).map((x) => (
+              <ListRow
+                key={`${x.kind}-${x.id}`}
+                wrapRight
+                title={x.name}
+                subtitle={`${x.kind === 'project' ? `Project · ${x.customer ?? ''}` : 'Customer'} · ${x.owner ?? 'no owner'}`}
+                right={
+                  <Button
+                    small
+                    title={x.kind === 'project' ? 'Set project site' : 'Set customer location'}
+                    onPress={() => setLocation({ kind: x.kind, id: x.id, name: x.name, query: x.kind === 'project' ? `${x.name} ${x.customer ?? ''}` : x.name })}
+                  />
+                }
+              />
+            ))}
           </Card>
         </Section>
       ) : null}
@@ -506,6 +578,23 @@ export default function SalesMapScreen() {
           </Card>
         </Section>
       ) : null}
+      <LocationPicker
+        key={picking ? `${picking.kind}-${picking.id}` : 'none'}
+        visible={!!picking}
+        title={picking ? `${picking.kind === 'project' ? 'Project site' : 'Customer location'} – ${picking.name}` : ''}
+        query={picking?.query.trim() ?? ''}
+        onClose={() => setPicking(null)}
+        onSave={async (pt) => {
+          if (!picking) return;
+          try {
+            await rpc('set_map_location', { p_kind: picking.kind, p_id: picking.id, p_lat: pt.lat, p_lng: pt.lng });
+            setPicking(null);
+            await Promise.all([plans.reload(), coverage.reload()]);
+          } catch (e) {
+            window.alert(e instanceof Error ? e.message : String(e));
+          }
+        }}
+      />
     </Screen>
   );
 }
