@@ -7,6 +7,7 @@ import type { Currency } from './types';
 export const CHANGE_FIELDS = [
   'name',
   'organization_id',
+  'unit_id',
   'project_type',
   'city',
   'location',
@@ -27,6 +28,7 @@ export type ChangeField = (typeof CHANGE_FIELDS)[number];
 export const FIELD_LABEL: Record<string, string> = {
   name: 'Name',
   organization_id: 'Customer',
+  unit_id: 'Unit / department',
   project_type: 'Project type',
   city: 'City',
   location: 'Location',
@@ -58,12 +60,14 @@ export type ChangeRequest = {
   decision_note: string | null;
 };
 
-/** A value as people read it (customer names come from the lookup). */
+/** A value as people read it (customer and unit names come from the lookup). */
 export function showValue(field: string, v: unknown, currency: Currency, customers: Record<string, string> = {}): string {
   if (v == null || v === '') return '—';
   switch (field) {
     case 'organization_id':
       return customers[String(v)] ?? 'another customer';
+    case 'unit_id':
+      return customers[String(v)] ?? 'another unit';
     case 'project_type':
       return projectTypeLabel(String(v));
     case 'milestone':

@@ -151,6 +151,7 @@ export default function MeetingPack() {
           due_date: a.due_date,
           project_id: a.project_id,
           organization_id: a.organization_id,
+          unit_id: a.unit_id,
           new_project: a.new_project,
           new_customer: a.new_customer,
           objective: a.objective,

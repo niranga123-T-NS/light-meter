@@ -13,6 +13,7 @@ export type ActionDraft = {
   due_date: string | null;
   project_id: string | null;
   organization_id: string | null;
+  unit_id: string | null;
   new_project: string;
   new_customer: string;
   objective: string | null;
@@ -37,6 +38,7 @@ export function MeetingActionForm({
     due_date: addDaysISO(todayISO(), 7),
     project_id: null,
     organization_id: null,
+    unit_id: null,
     new_project: '',
     new_customer: '',
     objective: null,
@@ -83,7 +85,7 @@ export function MeetingActionForm({
           value={isNew}
           onChange={(v) => {
             setIsNew(v);
-            set({ project_id: null, organization_id: null, new_project: '', new_customer: '' });
+            set({ project_id: null, organization_id: null, unit_id: null, new_project: '', new_customer: '' });
           }}
         />
       )}
@@ -97,9 +99,17 @@ export function MeetingActionForm({
           <ProjectPicker
             label={visit ? 'Project (needed unless it is a networking visit)' : 'Project (optional)'}
             value={a.project_id}
-            onChange={(p) => set({ project_id: p?.id ?? null, organization_id: p?.organization_id ?? a.organization_id })}
+            onChange={(p) => {
+              const org = p?.organization_id ?? a.organization_id;
+              set({ project_id: p?.id ?? null, organization_id: org, unit_id: org === a.organization_id ? a.unit_id : null });
+            }}
           />
-          <CustomerPicker organizationId={a.organization_id} unitId={null} showContact={false} onChange={(v) => set({ organization_id: v.organizationId })} />
+          <CustomerPicker
+            organizationId={a.organization_id}
+            unitId={a.unit_id}
+            showContact={false}
+            onChange={(v) => set({ organization_id: v.organizationId, unit_id: v.unitId })}
+          />
         </>
       )}
       {visit ? (
