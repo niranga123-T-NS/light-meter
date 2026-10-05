@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { Attachments, KIND_LABELS } from '@/components/Attachments';
 import { BrandEditor } from '@/components/BrandEditor';
+import { DesignNotes } from '@/components/DesignNotes';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, ErrorBanner, KeyValue, ListRow, Loading, Muted, Notice, NumberField, Pill, Progress, Row, Screen, Section, Toggle } from '@/components/ui';
 import { useMe } from '@/lib/auth';
@@ -257,6 +258,8 @@ export default function DesignJobScreen() {
           ) : null}
         </Card>
       </Section>
+
+      <DesignNotes inquiryId={j.inquiry_id} jobId={j.id} canAdd={mine || dm} />
 
       <Section title="Clarifications from Estimation">
         <Card style={{ padding: 0, overflow: 'hidden' }}>

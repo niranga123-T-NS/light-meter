@@ -245,7 +245,29 @@ begin
   end;
   insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('design_job', j, 'design_pack', 'design_job/' || j || '/pack.pdf', 'pack.pdf');
   perform public.set_design_brands(j, '[{"group":"Downlights","brand":"TestBrand EU","origin":"european"}]');
+  begin perform public.add_design_note(j, '  '); assert false, 'empty note';
+  exception when others then assert sqlerrm like 'Write the note%', sqlerrm; end;
+  perform public.add_design_note(j, 'Lux levels assume ceiling height 3.2 m – recheck if the client changes it', true);
+  perform public.add_design_note(j, 'Emergency lighting excluded from this design');
   perform public.submit_design_for_review(j);
+end $$;
+reset role;
+do $$ begin
+  assert (select count(*) from public.design_notes where inquiry_id = '00000000-0000-0000-0000-00000000d001') = 2, 'two notes';
+  assert exists (select 1 from public.notifications where kind = 'design_note_important' and requires_open
+                 and recipient_id = (select id from u where role = 'asm_building')), 'sales person told, important pops up';
+  assert exists (select 1 from public.notifications where kind = 'design_note' and recipient_id = (select id from u where role = 'design_manager')), 'design manager told';
+end $$;
+select set_config('test.dj', (select design_job_id::text from public.design_notes limit 1), false);
+select pg_temp.act_as('estimation_exec'); set role authenticated;
+do $$ begin
+  begin perform public.add_design_note(current_setting('test.dj')::uuid, 'x'); assert false, 'not design';
+  exception when others then assert sqlerrm like 'Only the designer%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  assert (select count(*) from public.design_notes) = 2, 'sales reads the notes on the inquiry';
 end $$;
 reset role;
 

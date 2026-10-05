@@ -2,6 +2,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { Attachments, KIND_LABELS } from '@/components/Attachments';
+import { DesignNotes } from '@/components/DesignNotes';
 import { useDialog } from '@/components/dialog';
 import { InquiryTimeline, STAGE_COLOUR } from '@/components/InquiryBits';
 import { PersonPicker } from '@/components/pickers';
@@ -656,6 +657,8 @@ export default function InquiryDetail() {
           </Section>
         ) : null
       ) : null}
+
+      <DesignNotes inquiryId={i.id} />
 
       <Section title="Request">
         <Card>
