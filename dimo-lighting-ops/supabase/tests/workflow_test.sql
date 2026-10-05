@@ -3005,5 +3005,23 @@ do $$ begin
 end $$;
 reset role;
 
+-- Several inquiries under one project: by the project's sales person and by another sales person (as the app saves: INSERT … RETURNING)
+select pg_temp.act_as('asm_building'); set role authenticated;
+insert into public.inquiries (project_id, organization_id, unit_id, route, design_scope, customer_deadline, scope_description)
+values ('00000000-0000-0000-0000-00000000b001', '00000000-0000-0000-0000-00000000a001', '00000000-0000-0000-0000-00000000a002',
+        'C', 'lighting', current_date + 20, 'Second package – car park') returning id;
+reset role;
+select pg_temp.act_as('asm_infra'); set role authenticated;
+insert into public.inquiries (project_id, organization_id, unit_id, route, design_scope, customer_deadline, scope_description)
+values ('00000000-0000-0000-0000-00000000b001', '00000000-0000-0000-0000-00000000a001', '00000000-0000-0000-0000-00000000a002',
+        'C', 'lighting', current_date + 20, 'External works package') returning id;
+insert into public.inquiries (project_id, organization_id, unit_id, route, design_scope, customer_deadline, scope_description)
+values ('00000000-0000-0000-0000-00000000b001', '00000000-0000-0000-0000-00000000a001', '00000000-0000-0000-0000-00000000a002',
+        'C', 'lighting', current_date + 20, 'Street lighting package') returning id;
+do $$ begin
+  assert (select count(*) from public.inquiries where scope_description in ('External works package', 'Street lighting package')) = 2, 'two more on the same project';
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

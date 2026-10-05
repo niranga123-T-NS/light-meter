@@ -19,7 +19,8 @@ export default function NewInquiry() {
   const dialog = useDialog();
   const [error, setError] = useState<string | null>(null);
   const [hasUnits, setHasUnits] = useState(false);
-  const [f, setF] = useState({
+  const [saved, setSaved] = useState<string[]>([]); // drafts saved with "add another" on this screen
+  const blank = () => ({
     project_id: (params.project ?? null) as string | null,
     visit_id: (params.visit ?? null) as string | null,
     organization_id: null as string | null,
@@ -46,6 +47,7 @@ export default function NewInquiry() {
     manufacturing_origin: null as string | null,
     expectation_notes: '',
   });
+  const [f, setF] = useState(blank);
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((s) => ({ ...s, [k]: v }));
 
   // Prefill from the visit (convert to inquiry) or load a draft for editing
@@ -101,15 +103,23 @@ export default function NewInquiry() {
       const q = params.edit ? supabase.from('inquiries').update(row).eq('id', params.edit).select('id').single() : supabase.from('inquiries').insert(row).select('id').single();
       const { data, error: e } = await q;
       if (e) throw new Error(e.message);
-      if (addAnother) router.replace(`/inquiries/new?visit=${f.visit_id ?? ''}&project=${f.project_id}`);
-      else router.replace(`/inquiries/${data.id}`);
-    }, 'Draft saved – attach documents and submit');
+      if (addAnother) {
+        // Same project, customer, contact and duty; the request itself starts empty for the next package
+        setF({ ...blank(), project_id: f.project_id, visit_id: f.visit_id, organization_id: f.organization_id, unit_id: f.unit_id, contact_id: f.contact_id, duty_status: f.duty_status });
+        setSaved((n) => [...n, data.id]);
+      } else router.replace(`/inquiries/${data.id}`);
+    }, addAnother ? 'Draft saved – now enter the next inquiry for this project' : 'Draft saved – attach documents and submit');
   };
 
   return (
     <Screen maxWidth={820}>
       <Stack.Screen options={{ title: params.edit ? 'Edit inquiry' : 'New inquiry' }} />
       <ErrorBanner message={error} />
+      {saved.length ? (
+        <Notice tone={colors.green}>
+          {`${saved.length} draft inquir${saved.length === 1 ? 'y' : 'ies'} saved for this project – attach documents and submit each from Inquiries. Enter the next one below.`}
+        </Notice>
+      ) : null}
       <Section title="Project and customer">
         <Card>
           <ProjectPicker
@@ -239,7 +249,7 @@ export default function NewInquiry() {
 
       <Row wrap gap={8} style={{ marginTop: 16 }}>
         <Button title="Save draft and continue" onPress={() => save(false)} />
-        {!params.edit && f.visit_id ? <Button title="Save and add another inquiry" variant="secondary" onPress={() => save(true)} /> : null}
+        {!params.edit ? <Button title="Save and add another inquiry for this project" variant="secondary" onPress={() => save(true)} /> : null}
       </Row>
     </Screen>
   );
