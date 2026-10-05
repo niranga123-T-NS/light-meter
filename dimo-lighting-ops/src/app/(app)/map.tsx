@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { Platform, Text, View } from 'react-native';
 import { mapEscape as esc, SalesMap } from '@/components/SalesMap';
 import type { MapLine, MapPoint } from '@/components/SalesMap.types';
-import { Card, colors, DateField, ErrorBanner, Grid, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section, Segmented, Select, Stat, Toggle } from '@/components/ui';
+import { Button, Card, colors, DateField, ErrorBanner, Grid, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section, Segmented, Select, Stat, Toggle } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { mn } from '@/lib/finance';
 import { addDaysISO, fmtDate, fmtDateTime, todayISO } from '@/lib/format';
@@ -48,7 +48,32 @@ type Coverage = {
   value_lkr: number | null;
   status: string;
 };
-type View3 = 'visits' | 'coverage' | 'route' | 'heat';
+type PlanLine = {
+  id: string;
+  plan_id: string;
+  plan_status: string;
+  sales_person_id: string;
+  person: string;
+  planned_date: string;
+  time_slot: string | null;
+  status: 'planned' | 'completed' | 'rescheduled' | 'cancelled' | 'missed';
+  customer: string;
+  project: string | null;
+  project_id: string | null;
+  objective: string;
+  category: string;
+  lat: number | null;
+  lng: number | null;
+  loc_source: 'plan' | 'site' | 'visit' | null;
+  visit_id: string | null;
+  visit_lat: number | null;
+  visit_lng: number | null;
+  gps_verified: boolean | null;
+  from_meeting: boolean;
+  change_reason: string | null;
+  missed_reason: string | null;
+};
+type View3 = 'visits' | 'planned' | 'coverage' | 'route' | 'heat';
 
 const GREEN = '#16A34A';
 const AMBER = '#D97706';
@@ -58,6 +83,22 @@ const PERSON_COLOURS = ['#2563EB', '#DB2777', '#059669', '#7C3AED', '#EA580C', '
 
 const has = <T extends { lat: number | null; lng: number | null }>(x: T): x is T & { lat: number; lng: number } => x.lat != null && x.lng != null;
 const band = (d: number | null) => (d == null ? { colour: RED, label: 'Never visited' } : d <= 30 ? { colour: GREEN, label: '≤ 30 days' } : d <= 60 ? { colour: AMBER, label: '31 – 60 days' } : { colour: RED, label: 'Over 60 days' });
+const BLUE = '#2563EB';
+const mondayOf = (iso: string) => {
+  const d = new Date(`${iso}T00:00:00`).getDay();
+  return addDaysISO(iso, -((d + 6) % 7));
+};
+/** Planned visit colour: done, missed, due (blue), overdue but still open (amber), rescheduled / cancelled (grey). */
+const planLook = (x: PlanLine, today: string) =>
+  x.status === 'completed'
+    ? { colour: GREEN, label: 'Done' }
+    : x.status === 'missed'
+      ? { colour: RED, label: 'Missed' }
+      : x.status === 'planned'
+        ? x.planned_date < today
+          ? { colour: AMBER, label: 'Overdue – not checked in' }
+          : { colour: BLUE, label: 'Planned' }
+        : { colour: GREY, label: x.status === 'rescheduled' ? 'Rescheduled' : 'Cancelled' };
 const time = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
 /** Sales map (web app): where the team visits, which accounts are covered, a day's route, and where effort concentrates. */
@@ -74,16 +115,22 @@ export default function SalesMapScreen() {
   const [byPerson, setByPerson] = useState(false);
   const [show, setShow] = useState<'both' | 'project' | 'customer'>('both');
   const [heatProjects, setHeatProjects] = useState(false);
+  const [pFrom, setPFrom] = useState(mondayOf(todayISO()));
+  const [pTo, setPTo] = useState(addDaysISO(mondayOf(todayISO()), 5));
 
   const routePerson = manager ? person : me.id;
   const visits = useLoad(async () => {
-    if (!allowed || view === 'coverage') return [] as MapVisit[];
+    if (!allowed || view === 'coverage' || view === 'planned') return [] as MapVisit[];
     if (view === 'route') {
       if (!routePerson) return [] as MapVisit[];
       return rpc<MapVisit[]>('map_visits', { p_from: day, p_to: day, p_person: routePerson });
     }
     return rpc<MapVisit[]>('map_visits', { p_from: from, p_to: to, p_person: person });
   }, [view, from, to, day, person, allowed]);
+  const plans = useLoad(async () => {
+    if (!allowed || view !== 'planned') return [] as PlanLine[];
+    return rpc<PlanLine[]>('map_plan_lines', { p_from: pFrom, p_to: pTo, p_person: person });
+  }, [view, pFrom, pTo, person, allowed]);
   const coverage = useLoad(async () => {
     if (!allowed || (view !== 'coverage' && !(view === 'heat' && heatProjects))) return [] as Coverage[];
     return rpc<Coverage[]>('map_coverage', { p_person: person });
@@ -100,7 +147,9 @@ export default function SalesMapScreen() {
 
   const v = useMemo(() => visits.data ?? [], [visits.data]);
   const c = useMemo(() => coverage.data ?? [], [coverage.data]);
-  const fitKey = `${view}|${from}|${to}|${day}|${person}|${show}`;
+  const pl = useMemo(() => plans.data ?? [], [plans.data]);
+  const today = todayISO();
+  const fitKey = `${view}|${from}|${to}|${day}|${person}|${show}|${pFrom}|${pTo}`;
 
   const map = useMemo((): { points: MapPoint[]; lines: MapLine[]; heat?: [number, number, number][] } => {
     const visitLabel = (x: MapVisit) =>
@@ -119,6 +168,32 @@ export default function SalesMapScreen() {
           href: `/visits/${x.id}`,
         })),
       };
+    }
+    if (view === 'planned') {
+      const pts: MapPoint[] = [];
+      const lines: MapLine[] = [];
+      for (const x of pl.filter(has)) {
+        const look = planLook(x, today);
+        pts.push({
+          lat: x.lat,
+          lng: x.lng,
+          color: byPerson ? (colourOf[x.sales_person_id] ?? GREY) : look.colour,
+          hollow: x.status === 'rescheduled' || x.status === 'cancelled',
+          dashed: x.status === 'cancelled',
+          label: `<b>${esc(x.customer)}</b>${x.project ? `<br/>${esc(x.project)}` : ''}<br/>${esc(x.person)} · ${esc(fmtDate(x.planned_date))}${x.time_slot ? ` ${esc(x.time_slot)}` : ''}<br/>${esc(x.objective)}<br/><b>${look.label}</b>${
+            x.missed_reason ? ` – ${esc(x.missed_reason)}` : x.change_reason && x.status !== 'planned' ? ` – ${esc(x.change_reason)}` : ''
+          }${x.from_meeting ? '<br/>Follow-up from the sales meeting' : ''}${x.plan_status !== 'approved' ? `<br/><i>Plan ${esc(x.plan_status)}</i>` : ''}${
+            x.loc_source === 'visit' ? '<br/><i>Position from the customer’s last visit</i>' : ''
+          }`,
+          href: x.visit_id ? `/visits/${x.visit_id}` : `/plan/${x.plan_id}`,
+        });
+        // Done: planned position → where they actually checked in
+        if (x.visit_lat != null && x.visit_lng != null && (Math.abs(x.visit_lat - x.lat) > 0.0005 || Math.abs(x.visit_lng - x.lng) > 0.0005)) {
+          lines.push({ coords: [[x.lat, x.lng], [x.visit_lat, x.visit_lng]], color: GREY, weight: 2, dashed: true });
+          pts.push({ lat: x.visit_lat, lng: x.visit_lng, color: x.gps_verified ? GREEN : AMBER, radius: 4, label: `<b>Actual check-in</b><br/>${esc(x.customer)}`, href: `/visits/${x.visit_id}` });
+        }
+      }
+      return { points: pts, lines };
     }
     if (view === 'route') {
       const stops = v.filter(has);
@@ -167,7 +242,7 @@ export default function SalesMapScreen() {
           };
         }),
     };
-  }, [view, v, c, byPerson, colourOf, show, heatProjects]);
+  }, [view, v, c, pl, today, byPerson, colourOf, show, heatProjects]);
 
   if (Platform.OS !== 'web')
     return (
@@ -197,8 +272,20 @@ export default function SalesMapScreen() {
     .filter((x) => x.kind === 'project' && (x.days_since == null || x.days_since > 60))
     .sort((a, b) => (b.value_lkr ?? 0) - (a.value_lkr ?? 0))
     .slice(0, 15);
-  const loading = (view === 'coverage' ? coverage : visits).loading;
-  const error = (view === 'coverage' ? coverage : visits).error;
+  const src = view === 'coverage' ? coverage : view === 'planned' ? plans : visits;
+  const loading = src.loading;
+  const error = src.error;
+  const pc = { planned: 0, done: 0, missed: 0, overdue: 0, moved: 0, none: 0 };
+  for (const x of pl) {
+    if (!has(x)) pc.none++;
+    if (x.status === 'completed') pc.done++;
+    else if (x.status === 'missed') pc.missed++;
+    else if (x.status === 'planned') {
+      if (x.planned_date < today) pc.overdue++;
+      else pc.planned++;
+    } else pc.moved++;
+  }
+  const due = pc.done + pc.missed + pc.overdue;
 
   return (
     <Screen maxWidth={1400}>
@@ -208,6 +295,7 @@ export default function SalesMapScreen() {
         onChange={setView}
         options={[
           { value: 'visits', label: 'Visits' },
+          { value: 'planned', label: 'Planned' },
           { value: 'coverage', label: 'Coverage' },
           { value: 'route', label: 'Day route' },
           { value: 'heat', label: 'Heat map' },
@@ -236,6 +324,35 @@ export default function SalesMapScreen() {
               </View>
             </>
           ) : null}
+          {view === 'planned' ? (
+            <>
+              <View style={{ minWidth: 170 }}>
+                <DateField label="From" value={pFrom} onChange={(x) => x && setPFrom(x)} quick={[]} />
+              </View>
+              <View style={{ minWidth: 170 }}>
+                <DateField label="To" value={pTo} onChange={(x) => x && setPTo(x)} quick={[]} />
+              </View>
+              <Row gap={6} style={{ marginBottom: 8 }}>
+                {[
+                  ['This week', 0],
+                  ['Next week', 7],
+                  ['Last week', -7],
+                ].map(([label, shift]) => (
+                  <Button
+                    key={label as string}
+                    small
+                    title={label as string}
+                    variant={pFrom === addDaysISO(mondayOf(todayISO()), shift as number) ? 'primary' : 'secondary'}
+                    onPress={() => {
+                      const m = addDaysISO(mondayOf(todayISO()), shift as number);
+                      setPFrom(m);
+                      setPTo(addDaysISO(m, 5));
+                    }}
+                  />
+                ))}
+              </Row>
+            </>
+          ) : null}
           {view === 'route' ? (
             <View style={{ minWidth: 170 }}>
               <DateField label="Day" value={day} onChange={(x) => x && setDay(x)} quick={[0]} />
@@ -254,7 +371,7 @@ export default function SalesMapScreen() {
               />
             </View>
           ) : null}
-          {view === 'visits' && manager && !person ? <Toggle label="Colour by sales person" value={byPerson} onChange={setByPerson} /> : null}
+          {(view === 'visits' || view === 'planned') && manager && !person ? <Toggle label="Colour by sales person" value={byPerson} onChange={setByPerson} /> : null}
           {view === 'heat' ? <Toggle label="Show projects (coverage colours)" value={heatProjects} onChange={setHeatProjects} /> : null}
         </Row>
       </Card>
@@ -268,6 +385,18 @@ export default function SalesMapScreen() {
           <Stat label="GPS verified" value={located.length ? `${Math.round((verified / located.length) * 100)}%` : '—'} tone={located.length && verified / located.length < 0.7 ? 'amber' : undefined} />
           <Stat label="Unplanned" value={v.filter((x) => !x.planned).length} />
           <Stat label="No location" value={v.length - located.length} tone={v.length - located.length ? 'amber' : undefined} />
+        </Grid>
+      ) : null}
+      {view === 'planned' ? (
+        <Grid min={150}>
+          <Stat label="Planned visits" value={pl.length} />
+          <Stat label="Done" value={pc.done} tone="green" />
+          <Stat label="Missed" value={pc.missed} tone={pc.missed ? 'red' : undefined} />
+          <Stat label="Overdue – not checked in" value={pc.overdue} tone={pc.overdue ? 'amber' : undefined} />
+          <Stat label="Still to come" value={pc.planned} />
+          <Stat label="Done of those due" value={due ? `${Math.round((pc.done / due) * 100)}%` : '—'} tone={due && pc.done / due < 0.8 ? 'amber' : undefined} />
+          <Stat label="Rescheduled / cancelled" value={pc.moved} />
+          <Stat label="No location" value={pc.none} />
         </Grid>
       ) : null}
       {view === 'coverage' ? (
@@ -296,7 +425,17 @@ export default function SalesMapScreen() {
               <Muted>Hollow = unplanned visit</Muted>
             </>
           ) : null}
-          {view === 'visits' && byPerson ? salesPeople.map((p) => <Pill key={p.id} label={p.full_name} tone={colourOf[p.id]} />) : null}
+          {view === 'planned' && !byPerson ? (
+            <>
+              <Pill label="Done" tone={GREEN} />
+              <Pill label="Planned" tone={BLUE} />
+              <Pill label="Overdue – not checked in" tone={AMBER} />
+              <Pill label="Missed" tone={RED} />
+              <Pill label="Rescheduled / cancelled (hollow)" tone={GREY} />
+              <Muted>Grey dashed line = planned position → actual check-in</Muted>
+            </>
+          ) : null}
+          {(view === 'visits' || view === 'planned') && byPerson ? salesPeople.map((p) => <Pill key={p.id} label={p.full_name} tone={colourOf[p.id]} />) : null}
           {view === 'coverage' || (view === 'heat' && heatProjects) ? (
             <>
               <Pill label="Visited ≤ 30 days" tone={GREEN} />
@@ -310,6 +449,25 @@ export default function SalesMapScreen() {
         </Row>
         <Muted style={{ paddingHorizontal: 6, marginTop: 4 }}>Shows recorded check-in points only – no live tracking.</Muted>
       </Card>
+
+      {view === 'planned' && pl.length ? (
+        <Section title={`Planned visits ${fmtDate(pFrom)} – ${fmtDate(pTo)}`}>
+          <Card style={{ padding: 0, overflow: 'hidden' }}>
+            {pl.map((x) => {
+              const look = planLook(x, today);
+              return (
+                <ListRow
+                  key={x.id}
+                  title={`${new Date(`${x.planned_date}T00:00:00`).toLocaleDateString('en-GB', { weekday: 'short' })} ${fmtDate(x.planned_date)}${x.time_slot ? ` ${x.time_slot}` : ''} · ${x.customer}`}
+                  subtitle={`${manager ? `${x.person} · ` : ''}${x.project ? `${x.project} · ` : ''}${x.objective}${x.from_meeting ? ' · sales meeting follow-up' : ''}${x.lat == null ? ' · no location' : ''}`}
+                  right={<Pill label={look.label} tone={look.colour} />}
+                  onPress={() => router.push(x.visit_id ? `/visits/${x.visit_id}` : `/plan/${x.plan_id}`)}
+                />
+              );
+            })}
+          </Card>
+        </Section>
+      ) : null}
 
       {view === 'route' && routePerson ? (
         <Section title={`${people[routePerson]?.full_name ?? ''} · ${fmtDate(day)} · ${v.length} visits`}>
