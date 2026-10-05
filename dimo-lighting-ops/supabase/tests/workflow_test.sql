@@ -2761,5 +2761,24 @@ do $$ begin
 end $$;
 reset role;
 
+-- A first GPS check-in sets a missing project site / customer location (never overwrites)
+insert into public.organizations (id, name, visit_category, account_owner_id)
+values ('00000000-0000-0000-0000-00000000a0c9', 'New Customer for map', (select visit_category from public.organizations where id = '00000000-0000-0000-0000-00000000a001'),
+        (select id from u where role = 'asm_building'));
+insert into public.visits (sales_person_id, organization_id, visit_category, primary_objective, checkin_lat, checkin_lng)
+values ((select id from u where role = 'asm_building'), '00000000-0000-0000-0000-00000000a0c9',
+        (select visit_category from public.organizations where id = '00000000-0000-0000-0000-00000000a001'),
+        (select value from public.master_lists where list_name = 'visit_objective' and 'networking' = any (tags) limit 1), 7.2906, 80.6337);
+do $$ begin
+  assert (select lat from public.organizations where id = '00000000-0000-0000-0000-00000000a0c9') = 7.2906, 'customer location from the first check-in';
+end $$;
+insert into public.visits (sales_person_id, organization_id, visit_category, primary_objective, checkin_lat, checkin_lng)
+values ((select id from u where role = 'asm_building'), '00000000-0000-0000-0000-00000000a0c9',
+        (select visit_category from public.organizations where id = '00000000-0000-0000-0000-00000000a001'),
+        (select value from public.master_lists where list_name = 'visit_objective' and 'networking' = any (tags) limit 1), 6.9, 79.8);
+do $$ begin
+  assert (select lat from public.organizations where id = '00000000-0000-0000-0000-00000000a0c9') = 7.2906, 'not overwritten';
+end $$;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
