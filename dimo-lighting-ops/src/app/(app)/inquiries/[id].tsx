@@ -51,7 +51,11 @@ export default function InquiryDetail() {
       designJobs: (dj.data ?? []) as DesignJob[],
       estimationJobs: (ej.data ?? []) as EstimationJob[],
       quotations: (q.data ?? []) as Quotation[],
-      clocks: (clocks.data ?? []) as SlaClock[],
+      // Past the due time the "% used" is meaningless (a job returned after its due time restarts with a 1-minute target): show how late it is
+      clocks: ((clocks.data ?? []) as SlaClock[]).map((c) => {
+        const late = (Date.now() - Date.parse(c.revised_due_at ?? c.due_at)) / 36e5;
+        return { ...c, timing: late > 0 ? `overdue by ${late < 24 ? `${Math.max(1, Math.round(late))} h` : `${Math.round(late / 24)} d`}` : `${Math.round(Math.min(c.used_pct, 100))}% used` };
+      }),
       approvals: (approvals.data ?? []) as Approval[],
       files,
     };
@@ -507,7 +511,7 @@ export default function InquiryDetail() {
                 key={c.id}
                 left={<SlaDot colour={c.colour} />}
                 title={c.label}
-                subtitle={`${people[c.owner_id ?? '']?.full_name ?? human(c.owner_team)} · due ${fmtDateTime(c.revised_due_at ?? c.due_at)} · ${Math.round(c.used_pct)}% used${c.hold_reason ? ` · on hold: ${c.hold_reason}` : ''}${c.delay_reason ? ` · ${c.delay_reason}` : ''}`}
+                subtitle={`${people[c.owner_id ?? '']?.full_name ?? human(c.owner_team)} · due ${fmtDateTime(c.revised_due_at ?? c.due_at)} · ${c.timing}${c.hold_reason ? ` · on hold: ${c.hold_reason}` : ''}${c.delay_reason ? ` · ${c.delay_reason}` : ''}`}
                 right={
                   c.colour === 'red' && c.owner_id === me.id ? (
                     <Button
