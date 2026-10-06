@@ -37,6 +37,8 @@ export function EngineerHome() {
   const week = addDaysISO(today, 7);
   const mine = data.jobs.filter((j) => j.assignee_id === me.id);
   const scope = lead ? data.jobs : mine;
+  // Subcontractor supervisors see engineering-job counters only when a job is assigned to them
+  const showJobs = me.role !== 'sub_supervisor' || scope.length > 0;
   const toAccept = mine.filter((j) => j.status === 'assigned');
   const holds = scope.filter((j) => j.status === 'on_hold');
   const overdue = scope.filter(isOverdue);
@@ -55,6 +57,7 @@ export function EngineerHome() {
       <Text style={{ fontSize: 20, fontWeight: '700', color: colors.ink }}>{`${hello}, ${me.full_name.split(' ')[0]}`}</Text>
       <Muted>{lead ? 'Your team’s engineering jobs, holds to review and deadlines.' : 'Your jobs for today and this week.'}</Muted>
 
+      {showJobs ? (
       <Grid min={150}>
         {lead ? (
           <Stat label="Holds to review" value={holds.length} tone={holds.length ? 'red' : undefined} onPress={() => router.push({ pathname: '/engineering', params: { tab: 'on_hold' } })} />
@@ -67,6 +70,7 @@ export function EngineerHome() {
         <Stat label="Due in 7 days" value={weekList.length} />
         {me.role === 'sub_supervisor' || me.role === 'trainee' ? null : <Stat label={lead ? 'Claims not assigned' : 'Claims to inspect'} value={lead ? unassignedClaims.length : myClaims.length} tone={(lead ? unassignedClaims : myClaims).length ? 'amber' : undefined} onPress={() => router.push('/warranty')} />}
       </Grid>
+      ) : null}
 
       {lead ? (
         <Row wrap gap={6}>
@@ -115,6 +119,8 @@ export function EngineerHome() {
         </Section>
       ) : null}
 
+      {showJobs ? (
+      <>
       <Section title={`Today – due or overdue (${todayList.length})`}>
         <EngJobRows jobs={todayList} showEngineer={lead} empty="Nothing due today" />
       </Section>
@@ -129,6 +135,8 @@ export function EngineerHome() {
       <Section title={`Ongoing (${ongoing.length})`}>
         <EngJobRows jobs={ongoing} showEngineer={lead} empty="No ongoing jobs" />
       </Section>
+      </>
+      ) : null}
 
       {lead && engineers.length ? (
         <Section title="Team workload">

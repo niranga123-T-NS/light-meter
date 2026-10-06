@@ -8,6 +8,7 @@ import { HseTab } from '@/components/exec/HseTab';
 import { MaterialsTab } from '@/components/exec/MaterialsTab';
 import { OverviewTab } from '@/components/exec/OverviewTab';
 import { PlansTab } from '@/components/exec/PlansTab';
+import { ProgrammeTab } from '@/components/exec/ProgrammeTab';
 import { QaTab } from '@/components/exec/QaTab';
 import { ReportsTab } from '@/components/exec/ReportsTab';
 import { TeamTab } from '@/components/exec/TeamTab';
@@ -25,6 +26,7 @@ const INTERNAL: Role[] = ['senior_elec_engineer', 'sm_projects', 'gm', 'operatio
 const TABS: Tab[] = [
   { key: 'overview', label: 'Overview' },
   { key: 'team', label: 'Project team', roles: INTERNAL },
+  { key: 'programme', label: 'Programme', roles: INTERNAL },
   { key: 'plans', label: 'Plan', roles: INTERNAL },
   { key: 'reports', label: 'Daily reports' },
   { key: 'variations', label: 'Variations', roles: ['senior_elec_engineer', 'sm_projects', 'gm', 'operations_exec', 'assistant_engineer'] },
@@ -57,6 +59,7 @@ export default function ExecProjectScreen() {
       <Muted>{`Stage ${p.stage} – ${EXEC_STAGES[p.stage - 1]}${p.status === 'closed' ? ' · closed' : ''}`}</Muted>
       <Segmented value={t} onChange={setT} options={tabs.map((x) => ({ value: x.key, label: x.label }))} />
       {t === 'overview' ? <OverviewTab p={p} onTab={setT} /> : null}
+      {t === 'programme' ? <ProgrammeTab p={p} onChange={reload} /> : null}
       {t === 'plans' ? <PlansTab p={p} /> : null}
       {t === 'reports' ? <ReportsTab p={p} /> : null}
       {t === 'variations' ? <VariationsTab p={p} /> : null}
