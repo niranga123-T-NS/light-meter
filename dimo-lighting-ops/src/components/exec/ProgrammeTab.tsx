@@ -7,23 +7,28 @@ import { useMe } from '@/lib/auth';
 import type { ExecMember, ExecProject } from '@/lib/execution';
 import { fmtDate, fmtNumber, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
-import { byCode, PROG_STATUS, programmeRows, toDay, weeklyLoading, type Activity, type Dep, type Programme, type Resource, type Wbs } from '@/lib/programme';
+import { exportProgrammePdf } from '@/lib/programmePdf';
+import { ROLE_SHORT } from '@/lib/roles';
+import { byCode, PROG_STATUS, programmeRows, toDay, weeklyLoading, type Activity, type Dep, type Programme, type Resource, type Snapshot, type Wbs } from '@/lib/programme';
 import { rpc, supabase } from '@/lib/supabase';
 import { Gantt, ganttLegend } from './Gantt';
+import { SCurve } from './SCurve';
+import { TrackingTable } from './TrackingTable';
 
 /** The project programme: built by the SEE (WBS, activities, links, resources), approved by SM Projects, progressed by the AEs. */
 export function ProgrammeTab({ p, onChange }: { p: ExecProject; onChange: () => void }) {
   const me = useMe();
   const dialog = useDialog();
   const people = usePeople();
-  const [view, setView] = useState<'gantt' | 'list' | 'resources'>('gantt');
+  const [view, setView] = useState<'gantt' | 'tracking' | 'scurve' | 'list' | 'resources'>('gantt');
   const [scale, setScale] = useState<'day' | 'week' | 'month'>('week');
   const { data, reload } = useLoad(async () => {
-    const [pg, w, a, m] = await Promise.all([
+    const [pg, w, a, m, sn] = await Promise.all([
       supabase.from('exec_programmes').select('*').eq('exec_project_id', p.id).maybeSingle(),
       supabase.from('exec_wbs').select('*').eq('exec_project_id', p.id),
       supabase.from('exec_activities').select('*').eq('exec_project_id', p.id),
       supabase.from('exec_members').select('*').eq('exec_project_id', p.id).eq('active', true),
+      supabase.from('exec_progress_snapshots').select('*').eq('exec_project_id', p.id).order('snap_date'),
     ]);
     const acts = (a.data ?? []) as Activity[];
     const ids = acts.map((x) => x.id);
@@ -37,6 +42,7 @@ export function ProgrammeTab({ p, onChange }: { p: ExecProject; onChange: () => 
       deps: (d.data ?? []) as Dep[],
       res: (r.data ?? []) as Resource[],
       members: (m.data ?? []) as ExecMember[],
+      snaps: (sn.data ?? []) as Snapshot[],
     };
   }, [p.id]);
   if (!data) return null;
@@ -122,6 +128,47 @@ export function ProgrammeTab({ p, onChange }: { p: ExecProject; onChange: () => 
     if (r) await dialog.run(async () => { await rpc('decide_programme', { p_exec: p.id, p_approve: ok, p_note: r.n || null }); await refresh(); }, ok ? 'Approved' : 'Returned');
   };
 
+  const pdf = async () => {
+    if (!pg) return;
+    const r = await dialog.prompt({
+      title: 'Programme PDF',
+      message: 'For the site / client meeting or a submission. On the web the print window opens – choose "Save as PDF".',
+      fields: [
+        { key: 'purpose', label: 'Purpose', type: 'select', required: true, initial: 'Progress meeting', options: ['Progress meeting', 'Client submission', 'Consultant submission', 'Internal review'].map((v) => ({ value: v, label: v })) },
+        {
+          key: 'parts',
+          label: 'Include',
+          type: 'multiselect',
+          required: true,
+          initial: 'Gantt chart,S-curve,Tracking table',
+          options: ['Gantt chart', 'S-curve', 'Tracking table'].map((v) => ({ value: v, label: v })),
+        },
+        { key: 'paper', label: 'Paper', type: 'select', required: true, initial: 'A3', options: [{ value: 'A3', label: 'A3 landscape (recommended for the Gantt)' }, { value: 'A4', label: 'A4 landscape' }] },
+      ],
+      confirmLabel: 'Create PDF',
+    });
+    if (!r) return;
+    const parts = r.parts.split(',').map((x) => x.trim());
+    await dialog.run(async () => {
+      const { data: logo } = await supabase.from('settings').select('value').eq('key', 'report_logo_url').maybeSingle();
+      await exportProgrammePdf({
+        project: { name: p.name, code: p.code, client_name: p.client_name, end_date: p.end_date },
+        pg,
+        wbs,
+        acts,
+        deps,
+        snaps: data.snaps,
+        people,
+        today: todayISO(),
+        generatedBy: `${me.full_name} – ${ROLE_SHORT[me.role]}`,
+        logoUrl: (logo?.value as string | undefined) ?? null,
+        parts: { gantt: parts.includes('Gantt chart'), scurve: parts.includes('S-curve'), table: parts.includes('Tracking table') },
+        paper: r.paper === 'A4' ? 'A4' : 'A3',
+        purpose: r.purpose,
+      });
+    });
+  };
+
   // Build guide for the SEE: each step with its button, the Gantt chart appears from the first activity
   const noRes = acts.filter((a) => a.duration > 0 && !res.some((r) => r.activity_id === a.id)).length;
   const noEng = acts.filter((a) => a.duration > 0 && !a.responsible_id).length;
@@ -187,6 +234,7 @@ export function ProgrammeTab({ p, onChange }: { p: ExecProject; onChange: () => 
               {canEdit ? <Button small variant="secondary" title="+ WBS" onPress={addWbs} /> : null}
               {canEdit && wbs.length ? <Button small variant="secondary" title="+ Activity" onPress={addActivity} /> : null}
               {canEdit && pg.status === 'draft' && acts.length ? <Button small title={pg.version ? 'Submit revision' : 'Submit to SM Projects'} onPress={submit} /> : null}
+              {acts.length ? <Button small variant="secondary" title="PDF" onPress={pdf} /> : null}
               {smp && pg.status === 'submitted' ? <Button small title="Approve" onPress={() => decide(true)} /> : null}
               {smp && pg.status === 'submitted' ? <Button small variant="secondary" title="Return" onPress={() => decide(false)} /> : null}
             </Row>
@@ -213,6 +261,8 @@ export function ProgrammeTab({ p, onChange }: { p: ExecProject; onChange: () => 
           onChange={setView}
           options={[
             { value: 'gantt', label: 'Gantt' },
+            { value: 'tracking', label: 'Tracking' },
+            { value: 'scurve', label: 'S-curve' },
             { value: 'list', label: 'Activities' },
             { value: 'resources', label: 'Resources' },
           ]}
@@ -237,6 +287,10 @@ export function ProgrammeTab({ p, onChange }: { p: ExecProject; onChange: () => 
           <Gantt wbs={wbs} acts={acts} deps={deps} scale={scale} today={today} contractEnd={p.end_date} />
           <Muted>{ganttLegend}</Muted>
         </>
+      ) : view === 'tracking' ? (
+        pg.version ? <TrackingTable wbs={wbs} acts={acts} today={today} /> : <Empty title="Tracking starts when SM Projects approves the programme" hint="The approved dates become the baseline that progress is compared with." />
+      ) : view === 'scurve' ? (
+        <SCurve acts={acts} snaps={data.snaps} today={today} />
       ) : view === 'list' ? (
         <Card style={{ padding: 0, overflow: 'hidden' }}>
           {programmeRows(wbs, acts).map((r) =>

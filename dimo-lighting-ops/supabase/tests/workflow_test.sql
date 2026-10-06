@@ -3778,5 +3778,12 @@ begin
   assert bad is null, 'UPDATE/DELETE without WHERE in: ' || bad;
 end $$;
 
+
+-- Programme tracking: snapshots of planned vs actual
+do $$ begin
+  assert exists (select 1 from public.exec_progress_snapshots where exec_project_id = current_setting('test.exlegacy')::uuid and snap_date = current_date
+                 and pct_actual > 0 and pct_planned >= 0), 'snapshot recorded';
+end $$;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
