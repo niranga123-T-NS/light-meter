@@ -20,8 +20,12 @@ export default function Materials() {
   });
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const pname = (id: string) => data.projects.find((p) => p.id === id)?.name ?? '';
+  // Approvers see what waits for their step; Assistant Engineers see their own open requests (to follow up and receive)
   const mine = (m: MaterialRequest) =>
-    (m.status === 'submitted' && me.role === 'senior_elec_engineer') || (m.status === 'pending_smp' && me.role === 'sm_projects') || (m.status === 'approved' && me.role === 'operations_exec');
+    (m.status === 'submitted' && me.role === 'senior_elec_engineer') ||
+    (m.status === 'pending_smp' && me.role === 'sm_projects') ||
+    (m.status === 'approved' && me.role === 'operations_exec') ||
+    (me.role === 'assistant_engineer' && m.requested_by === me.id && !['received', 'rejected', 'cancelled'].includes(m.status));
   const action = data.rows.filter(mine);
   const transit = data.rows.filter((m) => m.status === 'ordered' || m.status === 'part_received');
   const late = transit.filter((m) => (m.expected_date ?? m.required_date) < todayISO());
@@ -30,7 +34,7 @@ export default function Materials() {
       <Stack.Screen options={{ title: 'Materials & stores' }} />
       <TestingBanner what="Materials and stores" />
       <Grid min={150}>
-        <Stat label="Waiting for you" value={action.length} tone={action.length ? 'amber' : undefined} />
+        <Stat label={me.role === 'assistant_engineer' ? 'My open requests' : 'Waiting for you'} value={action.length} tone={action.length ? 'amber' : undefined} />
         <Stat label="On order" value={transit.length} />
         <Stat label="Deliveries late" value={late.length} tone={late.length ? 'red' : undefined} />
       </Grid>
