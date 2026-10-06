@@ -211,8 +211,15 @@ export default function EstimationJobScreen() {
                 variant="danger"
                 title="Return"
                 onPress={async () => {
-                  const r = await dialog.prompt({ title: 'Return quotation', fields: [{ key: 'c', label: 'Comments', type: 'multiline', required: true }] });
-                  if (r) await run('review_estimate', { p_job: j.id, p_approve: false, p_comment: r.c }, 'Returned');
+                  const r = await dialog.prompt({
+                    title: 'Return quotation',
+                    message: inq?.customer_deadline ? `The new due date cannot be after the customer deadline (${fmtDate(inq.customer_deadline)}).` : undefined,
+                    fields: [
+                      { key: 'c', label: 'Comments', type: 'multiline', required: true },
+                      { key: 'd', label: 'Revision due by', type: 'date', required: true, initial: inq?.customer_deadline ?? undefined },
+                    ],
+                  });
+                  if (r) await run('review_estimate', { p_job: j.id, p_approve: false, p_comment: r.c, p_due: r.d }, 'Returned – the estimator is told the new due date');
                 }}
               />
             </>
