@@ -9,7 +9,6 @@ import { fmtDate, fmtDateTime, fmtMoney, fmtNumber } from '@/lib/format';
 import { useLoad, useMasters, usePeople } from '@/lib/hooks';
 import { isSales } from '@/lib/roles';
 import { rpc, supabase } from '@/lib/supabase';
-import { MILESTONES } from '@/lib/constants';
 import type { Project, Visit } from '@/lib/types';
 
 
@@ -65,21 +64,22 @@ export default function VisitDetail() {
       message: `${project.name} is at ${project.win_probability}%. Keep it or change it.`,
       confirmLabel: 'Save',
       fields: [
-        { key: 'milestone', label: 'Stage / milestone', type: 'select', initial: project.milestone, options: MILESTONES.map((m) => ({ value: m.value, label: `${m.label} (${m.lo}–${m.hi}%)` })) },
         { key: 'probability', label: 'Win probability %', initial: String(project.win_probability), required: true },
-        { key: 'reason', label: 'Reason (needed outside the band)', type: 'multiline' },
+        { key: 'reason', label: 'Reason', type: 'multiline' },
       ],
     });
     if (!res) return;
-    if (Number(res.probability) === project.win_probability && res.milestone === project.milestone) return;
+    const pct = Number(res.probability);
+    if (pct === project.win_probability) return;
+    if (!(pct >= 0 && pct <= 100)) return dialog.toast('Win probability is 0 – 100', 'error');
     // A sales person's change goes to SM Projects for approval, like every other project detail
     await dialog.run(
       () =>
         manager
-          ? rpc('set_project_probability', { p_project: project.id, p_milestone: res.milestone, p_probability: Number(res.probability), p_reason: res.reason || null })
+          ? rpc('set_project_probability', { p_project: project.id, p_milestone: project.milestone, p_probability: pct, p_reason: res.reason || null })
           : rpc('request_project_change', {
               p_project: project.id,
-              p_changes: { milestone: res.milestone, win_probability: Number(res.probability) },
+              p_changes: { win_probability: pct },
               p_reason: res.reason?.trim() || `After visit ${v.code ?? ''}`.trim(),
             }),
       manager ? 'Probability updated' : 'Sent to SM Projects for approval',

@@ -218,26 +218,19 @@ export default function WinWizard() {
     if (!canScore) return;
     for (const Q of PEOPLE_PILLARS)
       if (map.pillars[Q.k].state === 'absent' && !map.pillars[Q.k].reason.trim()) return dialog.toast(`Give the reason the ${Q.l.toLowerCase()} pillar is not on this project`, 'error');
-    let applyArgs: { pct: number; milestone: string; reason: string } | null = null;
+    let applyArgs: { pct: number; reason: string } | null = null;
     if (apply) {
       const r = await dialog.prompt({
         title: manager ? 'Set the win probability' : 'Send the win probability to SM Projects',
-        message: `The wizard gives ${wiz}%. The project is at ${p.win_probability}%. Choose the stage and the % to use.`,
+        message: `The wizard gives ${wiz}%. The project is at ${p.win_probability}%. Choose the % to use.`,
         fields: [
-          {
-            key: 'milestone',
-            label: 'Stage / milestone',
-            type: 'select',
-            initial: p.milestone,
-            options: MILESTONES.filter((x) => x.value !== 'won' && x.value !== 'lost').map((x) => ({ value: x.value, label: `${x.label} (${x.lo}–${x.hi}%)` })),
-          },
           { key: 'pct', label: 'Win probability %', initial: String(wiz), required: true },
           { key: 'reason', label: 'Comment', type: 'multiline' },
         ],
         confirmLabel: manager ? 'Set' : 'Send for approval',
       });
       if (!r) return;
-      applyArgs = { pct: Number(r.pct), milestone: r.milestone || p.milestone, reason: r.reason ?? '' };
+      applyArgs = { pct: Number(r.pct), reason: r.reason ?? '' };
       if (!(applyArgs.pct >= 0 && applyArgs.pct <= 100)) return dialog.toast('Win probability is 0 – 100', 'error');
     }
     await dialog.run(
@@ -251,7 +244,7 @@ export default function WinWizard() {
           p_confidence: Math.round(R.conf * 100),
           p_flags: flagsOf(map, R, p.win_probability),
         });
-        if (applyArgs) await rpc('apply_win_score', { p_score: sid, p_pct: applyArgs.pct, p_milestone: applyArgs.milestone, p_reason: applyArgs.reason || null });
+        if (applyArgs) await rpc('apply_win_score', { p_score: sid, p_pct: applyArgs.pct, p_milestone: p.milestone, p_reason: applyArgs.reason || null });
         setM(null);
         await reload();
       },

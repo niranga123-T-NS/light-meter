@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Text } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { CustomerPicker, handOffProject, PersonPicker } from '@/components/pickers';
-import { Button, Card, colors, DateField, ErrorBanner, Field, ListRow, Muted, Notice, NumberField, Row, Screen, Section, Select } from '@/components/ui';
+import { Button, Card, colors, DateField, ErrorBanner, Field, ListRow, Muted, Notice, NumberField, Row, Screen, Section, Select, Toggle } from '@/components/ui';
 import { captureLocation } from '@/components/VisitBits';
 import { useMe } from '@/lib/auth';
 import { useMasters } from '@/lib/hooks';
@@ -23,11 +23,12 @@ export default function NewProject() {
   const sales = isSales(me.role);
   // Opened from a visit or inquiry form: go back to it with the project selected
   const params = useLocalSearchParams<{ pick?: string; name?: string; organization?: string }>();
-  const done = (id: string) => {
+  const done = (id: string, wizard: boolean) => {
     if (params.pick && router.canGoBack()) {
       handOffProject(id);
       router.back();
-    } else router.replace(`/projects/${id}`);
+    } else if (wizard) router.replace({ pathname: '/projects/wizard', params: { id } });
+    else router.replace(`/projects/${id}`);
   };
   const [error, setError] = useState<string | null>(null);
   const [matches, setMatches] = useState<Match[] | null>(null);
@@ -51,6 +52,8 @@ export default function NewProject() {
     expected_tender_date: null as string | null,
     owner_id: null as string | null,
     first_visit_due: null as string | null,
+    win_probability: null as number | null,
+    use_wizard: false,
   });
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((s) => ({ ...s, [k]: v }));
   const suggested = termFor(f.expected_duration_months);
@@ -67,6 +70,7 @@ export default function NewProject() {
     if (!f.name.trim() || !f.project_type || !f.organization_id) return setError('Name, project type and customer are required');
     if (!f.expected_duration_months) return setError('Expected duration (months) is mandatory');
     if (!sales && !f.owner_id) return setError('Assign a sales person before saving');
+    if (f.win_probability == null || f.win_probability < 0 || f.win_probability > 100) return setError('Enter the win probability (0–100%)');
     if (term !== suggested && !f.term_reason.trim()) return setError('Give a reason for changing the suggested project term');
     const res = matches ?? (await rpc<Match[]>('find_similar_projects', { p_name: f.name, p_organization_id: f.organization_id, p_lat: f.lat, p_lng: f.lng }).catch(() => []));
     if (!matches) setMatches(res);
@@ -86,7 +90,7 @@ export default function NewProject() {
         p_reason: term !== suggested ? f.term_reason : null,
         p_duplicate_reason: res.length ? differentReason : null,
       });
-      done(id);
+      done(id, f.use_wizard);
     }, 'Project created');
   };
 
@@ -140,7 +144,7 @@ export default function NewProject() {
                 title={m.name}
                 subtitle={`${m.code} · ${m.customer} · ${m.stage} · ${m.owner} · ${m.open_inquiries} open inquiries${m.distance_m != null ? ` · ${Math.round(m.distance_m)} m away` : ''}`}
                 highlight={m.exact ? colors.red : colors.amber}
-                right={<Button small title="Use this project" onPress={() => done(m.id)} />}
+                right={<Button small title="Use this project" onPress={() => done(m.id, false)} />}
               />
             ))}
           </Card>
@@ -188,6 +192,21 @@ export default function NewProject() {
           />
           {term && suggested && term !== suggested ? <Field label="Reason for changing the term" required value={f.term_reason} onChangeText={(v) => set('term_reason', v)} /> : null}
           <Muted>Expected award date is calculated from today + duration and can be edited on the project.</Muted>
+        </Card>
+      </Section>
+
+      <Section title="Win probability (mandatory)">
+        <Card>
+          <NumberField
+            label="Win probability"
+            suffix="%"
+            required
+            value={f.win_probability}
+            onChange={(v) => set('win_probability', v)}
+            hint="The sales person's own estimate of winning this project – it does not follow the internal milestone or stage"
+          />
+          <Toggle label="Use the Win Probability Wizard for this project" value={f.use_wizard} onChange={(v) => set('use_wizard', v)} />
+          {f.use_wizard ? <Muted>The wizard opens after saving – its result can replace the starting % above.</Muted> : null}
         </Card>
       </Section>
 

@@ -53,13 +53,24 @@ end $$;
 savepoint rpc_project;
 do $$ begin
   assert (select public.create_project(jsonb_build_object('name', 'ABC Hotels – City Hotel – Kandy', 'project_type', 'hospitality',
-    'organization_id', '00000000-0000-0000-0000-00000000a001', 'expected_duration_months', 1, 'project_term', 'short'))) is not null, 'create_project as sales';
+    'organization_id', '00000000-0000-0000-0000-00000000a001', 'expected_duration_months', 1, 'project_term', 'short',
+    'win_probability', 35, 'use_wizard', true))) is not null, 'create_project as sales';
+  assert (select win_probability = 35 and use_wizard and milestone = 'lead_identified' from public.projects where name = 'ABC Hotels – City Hotel – Kandy'),
+    'the sales person''s own % is kept (the lead milestone does not reset it)';
+  -- The % is required when the project is created
+  begin
+    perform public.create_project(jsonb_build_object('name', 'ABC Hotels – No percent – Kandy', 'project_type', 'hospitality',
+      'organization_id', '00000000-0000-0000-0000-00000000a001', 'expected_duration_months', 1, 'project_term', 'short'));
+    raise exception 'created without a win probability';
+  exception when others then
+    if sqlerrm not like 'Enter the win probability%' then raise; end if;
+  end;
 end $$;
 -- A similar name confirmed as a different project (reason logged) – sales has no direct insert on project_log
 do $$ declare pid uuid;
 begin
   pid := public.create_project(jsonb_build_object('name', 'ABC Hotels – City Hotel – Kandy Annex', 'project_type', 'hospitality', 'stage', 'Award',
-    'organization_id', '00000000-0000-0000-0000-00000000a001', 'expected_duration_months', 3, 'project_term', 'short'), null, 'This is a different project');
+    'organization_id', '00000000-0000-0000-0000-00000000a001', 'expected_duration_months', 3, 'project_term', 'short', 'win_probability', 20), null, 'This is a different project');
   assert exists (select 1 from public.project_log where project_id = pid and field = 'duplicate_override'), 'duplicate reason logged';
 end $$;
 rollback to savepoint rpc_project;
@@ -87,7 +98,7 @@ do $$ begin
   end;
 end $$;
 
--- Probability outside the band needs a reason (a direct edit – SM Projects; sales persons send change requests)
+-- Win probability edits (a direct edit – SM Projects; sales persons send change requests)
 do $$ begin
   begin
     update public.projects set win_probability = 15 where id = '00000000-0000-0000-0000-00000000b001';
@@ -99,16 +110,15 @@ end $$;
 reset role;
 select pg_temp.act_as('sm_projects'); set role authenticated;
 do $$ begin
-  begin
-    update public.projects set win_probability = 60 where id = '00000000-0000-0000-0000-00000000b001';
-    raise exception 'band not enforced';
-  exception when others then
-    if sqlerrm not like '%outside%' then raise; end if;
-  end;
+  -- No milestone band: any 0–100% is accepted without a reason, and a milestone change leaves the % alone
+  update public.projects set win_probability = 60 where id = '00000000-0000-0000-0000-00000000b001';
+  update public.projects set milestone = 'brand_specified' where id = '00000000-0000-0000-0000-00000000b001';
+  assert (select win_probability from public.projects where id = '00000000-0000-0000-0000-00000000b001') = 60, 'milestone does not move the %';
   perform set_config('app.reason', 'Consultant confirmed our spec informally', true);
-  update public.projects set win_probability = 30 where id = '00000000-0000-0000-0000-00000000b001';
+  update public.projects set win_probability = 30, milestone = 'lead_identified' where id = '00000000-0000-0000-0000-00000000b001';
   perform set_config('app.reason', '', true);
-  assert (select count(*) from public.project_log where project_id = '00000000-0000-0000-0000-00000000b001' and field = 'win_probability') = 1, 'probability logged';
+  assert (select win_probability from public.projects where id = '00000000-0000-0000-0000-00000000b001') = 30, 'own % kept';
+  assert (select count(*) from public.project_log where project_id = '00000000-0000-0000-0000-00000000b001' and field = 'win_probability') = 2, 'probability logged';
 end $$;
 reset role;
 select pg_temp.act_as('asm_building'); set role authenticated;
