@@ -284,7 +284,17 @@ reset role;
 -- Rejected once: the resubmission is Design Rev 1, numbered on screen, in alerts and in the file names
 select pg_temp.act_as('design_manager');
 set role authenticated;
-select public.review_design((select id from public.design_jobs), false, 'Increase lux in the lobby');
+do $$ declare jid uuid := (select id from public.design_jobs); cd date := (select i.customer_deadline from public.inquiries i join public.design_jobs j on j.inquiry_id = i.id limit 1);
+begin
+  begin perform public.review_design(jid, false, 'Increase lux in the lobby'); assert false, 'due date needed';
+  exception when others then assert sqlerrm = 'Set the new due date for the revision', sqlerrm; end;
+  if cd is not null then
+    begin perform public.review_design(jid, false, 'Increase lux in the lobby', cd + 1); assert false, 'beyond the customer deadline';
+    exception when others then assert sqlerrm like 'The revision must be due by the customer deadline%', sqlerrm; end;
+  end if;
+  perform public.review_design(jid, false, 'Increase lux in the lobby', coalesce(cd, current_date + 3));
+  assert (select (due_at at time zone app.tz())::date = coalesce(cd, current_date + 3) from public.design_jobs where id = jid), 'new due date set by the Design Manager';
+end $$;
 reset role;
 select pg_temp.act_as('lighting_designer');
 set role authenticated;
@@ -298,7 +308,7 @@ begin
 end $$;
 reset role;
 do $$ begin
-  assert exists (select 1 from public.notifications where kind = 'design_returned' and title like '%prepare Rev 1'), 'designer told the next Rev';
+  assert exists (select 1 from public.notifications where kind = 'design_returned' and title like '%prepare Rev 1 by %'), 'designer told the next Rev and the new due date';
   assert exists (select 1 from public.notifications where kind = 'design_submitted' and title like '%Rev 1'), 'Design Manager sees Rev 1';
 end $$;
 select pg_temp.act_as('design_manager');
