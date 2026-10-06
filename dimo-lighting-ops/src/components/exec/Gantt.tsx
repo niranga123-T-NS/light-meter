@@ -113,6 +113,8 @@ export function Gantt({
     }
     const x1 = x(a.es);
     const w = x(a.ef) + px - x1;
+    // Finish later than the approved baseline (calendar days)
+    const fv = a.bl_finish ? toDay(a.ef) - toDay(a.bl_finish) : null;
     return (
       <G key={a.id}>
         {bl}
@@ -121,7 +123,9 @@ export function Gantt({
         {a.total_float != null && a.total_float > 0 && !a.actual_finish ? (
           <Rect x={x1 + w} y={y + 12} width={a.total_float * px * (7 / 5)} height={2} fill="#94A3B8" />
         ) : null}
-        <SvgText fontFamily={FONT} x={x1 + w + 4} y={y + 17} fontSize={10} fill={colors.text}>{Number(a.pct) ? `${Math.round(Number(a.pct))}%` : ''}</SvgText>
+        <SvgText fontFamily={FONT} x={x1 + w + 4} y={y + 17} fontSize={10} fill={colors.text}>
+          {[Number(a.pct) ? `${Math.round(Number(a.pct))}%` : '', fv && fv > 0 ? `+${fv} d` : ''].filter(Boolean).join('  ')}
+        </SvgText>
       </G>
     );
   });

@@ -20,6 +20,7 @@ export type ReportMeta = {
   generatedBy: string;       // "Name – Role"
   landscape?: boolean;
   logoUrl?: string | null;   // maintained by the System Administrator (settings.report_logo_url)
+  paper?: 'A4' | 'A3';
 };
 
 export const esc = (v: unknown) =>
@@ -44,7 +45,7 @@ export function reportHtml<T>(meta: ReportMeta, columns: Column<T>[], sections: 
     </table>`;
   return `<!doctype html><html><head><meta charset="utf-8" />
 <style>
-  @page { size: A4 ${wide ? 'landscape' : 'portrait'}; margin: 18mm 12mm 16mm 12mm;
+  @page { size: ${meta.paper ?? 'A4'} ${wide ? 'landscape' : 'portrait'}; margin: 18mm 12mm 16mm 12mm;
     @bottom-left { content: "Confidential – for internal use · DIMO Lighting Operations System"; font: 8px Arial; color: #666; }
     @bottom-right { content: "Page " counter(page) " of " counter(pages); font: 8px Arial; color: #666; } }
   body { font: 10px Arial, Helvetica, sans-serif; color: #111; }
@@ -83,14 +84,15 @@ export async function exportPdf<T>(meta: ReportMeta, columns: Column<T>[], secti
 }
 
 /** Any ready HTML page as a PDF: the print dialog on the web ("Save as PDF"), a shared PDF file on phones. Logged like reports. */
-export async function printHtml(html: string, o: { key: string; filters: string; title: string; landscape?: boolean }) {
+export async function printHtml(html: string, o: { key: string; filters: string; title: string; landscape?: boolean; paper?: 'A4' | 'A3' }) {
   await logRun(o.key, o.filters, 'pdf');
   if (Platform.OS === 'web') {
     // expo-print on the web ignores the html and prints the app screen (one page) – print the document itself instead.
     await printWeb(html);
     return;
   }
-  const { uri } = await Print.printToFileAsync({ html, width: o.landscape ? 842 : 595, height: o.landscape ? 595 : 842 });
+  const [w, h] = o.paper === 'A3' ? [842, 1191] : [595, 842];
+  const { uri } = await Print.printToFileAsync({ html, width: o.landscape ? h : w, height: o.landscape ? w : h });
   await Sharing.shareAsync(uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle: o.title });
 }
 

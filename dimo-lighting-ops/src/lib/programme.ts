@@ -150,3 +150,45 @@ export async function loadProgramme(project: string) {
   ]);
   return { live: ((pg.data as { version: number } | null)?.version ?? 0) > 0, acts: (a.data ?? []) as Activity[] };
 }
+
+// ---- Tracking ----
+export type Snapshot = { exec_project_id: string; snap_date: string; pct_planned: number; pct_actual: number; forecast_finish: string | null; critical_open: number };
+
+const dd = (a: string | null, b: string | null) => (a && b ? toDay(a) - toDay(b) : null);
+
+/** Per activity: baseline vs actual / forecast, with start and finish variance in calendar days (+ = later than baseline) */
+export function trackingRow(a: Activity, today: string) {
+  const start = a.actual_start ?? a.es;
+  const finish = a.actual_finish ?? a.ef;
+  const startVar = dd(start, a.bl_start);
+  const finishVar = dd(finish, a.bl_finish);
+  const status = a.actual_finish
+    ? 'Done'
+    : a.actual_start
+      ? (finishVar ?? 0) > 0
+        ? 'In progress – behind'
+        : 'In progress'
+      : a.bl_start && a.bl_start < today
+        ? 'Late to start'
+        : 'Not started';
+  return { start, finish, startVar, finishVar, status };
+}
+export const varText = (v: number | null) => (v == null ? '—' : v === 0 ? '0' : v > 0 ? `+${v} d` : `${v} d`);
+
+/** Planned % on a date from the baseline (same rule as the server's app.planned_pct) */
+export function plannedPct(acts: Activity[], on: string) {
+  let w = 0;
+  let s = 0;
+  for (const a of acts) {
+    const wt = Math.max(a.duration, 1);
+    w += wt;
+    if (!a.bl_start || !a.bl_finish) continue;
+    const f = on >= a.bl_finish ? 1 : on < a.bl_start ? 0 : (toDay(on) - toDay(a.bl_start) + 1) / Math.max(toDay(a.bl_finish) - toDay(a.bl_start) + 1, 1);
+    s += wt * f;
+  }
+  return w ? (s / w) * 100 : 0;
+}
+export function actualPct(acts: Activity[]) {
+  const w = acts.reduce((t, a) => t + Math.max(a.duration, 1), 0);
+  return w ? acts.reduce((t, a) => t + Math.max(a.duration, 1) * Number(a.pct), 0) / w : 0;
+}
