@@ -29,10 +29,15 @@ export const EXEC_STAGES = ['Sales handover', 'Mobilise & plan', 'Install', 'Tes
 
 export type ExecProject = {
   id: string;
-  project_id: string;
+  project_id: string | null;
   code: string | null;
   name: string;
   areas: string[];
+  legacy: boolean;
+  client_name: string | null;
+  contract_value_lkr: number | null;
+  contract_ref: string | null;
+  request_id: string | null;
   stage: number;
   status: 'active' | 'closed';
   see_id: string | null;
@@ -512,3 +517,29 @@ export const CERT_STATUS: Record<SubCert['status'], string> = {
   paid: 'Paid',
   returned: 'Returned',
 };
+
+// ---- Hand-over to execution (Operations requests a won project / SEE enters a pre-system project; SM Projects approves) ----
+export type ExecRequest = {
+  id: string;
+  code: string;
+  kind: 'won' | 'legacy';
+  project_id: string | null;
+  name: string;
+  client_name: string | null;
+  contract_value_lkr: number | null;
+  contract_ref: string | null;
+  site_address: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  areas: string[];
+  see_id: string | null;
+  note: string | null;
+  requested_by: string;
+  requested_at: string;
+  status: 'pending_smp' | 'approved' | 'rejected' | 'cancelled';
+  decided_by: string | null;
+  decided_at: string | null;
+  decision_note: string | null;
+  exec_project_id: string | null;
+};
+export const EXR_STATUS: Record<ExecRequest['status'], string> = { pending_smp: 'SM Projects to approve', approved: 'With the execution team', rejected: 'Not approved', cancelled: 'Cancelled' };

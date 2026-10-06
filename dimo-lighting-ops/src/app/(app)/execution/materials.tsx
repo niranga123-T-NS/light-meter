@@ -1,8 +1,8 @@
-import { Stack } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { useState } from 'react';
 import { MaterialRows } from '@/components/exec/MaterialRows';
 import { TestingBanner } from '@/components/Testing';
-import { ErrorBanner, Grid, Loading, Screen, Segmented, Stat } from '@/components/ui';
+import { Button, ErrorBanner, Grid, Loading, Row, Screen, Segmented, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import type { ExecProject, MaterialRequest } from '@/lib/execution';
 import { todayISO } from '@/lib/format';
@@ -34,15 +34,18 @@ export default function Materials() {
         <Stat label="On order" value={transit.length} />
         <Stat label="Deliveries late" value={late.length} tone={late.length ? 'red' : undefined} />
       </Grid>
-      <Segmented
-        value={tab}
-        onChange={setTab}
-        options={[
-          { value: 'action', label: 'For me', badge: action.length },
-          { value: 'transit', label: 'On order', badge: transit.length },
-          { value: 'all', label: 'All' },
-        ]}
-      />
+      <Row wrap gap={8} style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+        <Segmented
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: 'action', label: 'For me', badge: action.length },
+            { value: 'transit', label: 'On order', badge: transit.length },
+            { value: 'all', label: 'All' },
+          ]}
+        />
+        {me.role === 'senior_elec_engineer' || me.role === 'assistant_engineer' ? <Button title="+ Material request" onPress={() => router.push('/execution/material/new')} /> : null}
+      </Row>
       <MaterialRows rows={tab === 'action' ? action : tab === 'transit' ? transit : data.rows} projectName={pname} />
     </Screen>
   );

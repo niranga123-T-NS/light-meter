@@ -3231,20 +3231,43 @@ end $$;
 
 -- Execution step 1: execution project, temporary staff (SEE → SM Projects → GM), supervisor appointment, isolation, deletion
 reset role;
-update public.projects set status = 'active' where id = '00000000-0000-0000-0000-00000000b001';
-select pg_temp.act_as('assistant_engineer'); set role authenticated;
+update public.projects set status = 'won' where id = '00000000-0000-0000-0000-00000000b001';
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
 do $$ begin
-  begin perform public.start_execution('00000000-0000-0000-0000-00000000b001', '{"areas":["indoor"]}'); assert false, 'AE cannot start';
-  exception when others then assert sqlerrm like 'Only the Senior Electrical Engineer or SM Projects%', sqlerrm; end;
+  begin perform public.start_execution('00000000-0000-0000-0000-00000000b001', '{"areas":["indoor"]}'); assert false, 'no direct start';
+  exception when others then assert sqlerrm like 'Projects reach execution through a hand-over request%', sqlerrm; end;
+  begin perform public.request_execution('{"kind":"won","project_id":"00000000-0000-0000-0000-00000000b001"}'); assert false, 'Ops requests';
+  exception when others then assert sqlerrm like 'The Operations Executive requests%', sqlerrm; end;
+  -- Project won before the system: entered by the SEE
+  perform set_config('test.legacy', public.request_execution('{"kind":"legacy","name":"Old Harbour Lighting","client_name":"Ports Authority","contract_value":"45000000","contract_ref":"PA/2025/17","areas":["outdoor"]}')::text, false);
+end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare rid uuid;
+begin
+  begin perform public.request_execution('{"kind":"won","project_id":"00000000-0000-0000-0000-00000000b001","areas":["kitchen"]}'); assert false, 'bad area';
+  exception when others then assert sqlerrm = 'Unknown project area', sqlerrm; end;
+  rid := public.request_execution('{"kind":"won","project_id":"00000000-0000-0000-0000-00000000b001","areas":["indoor","facade","emergency"],"note":"PO received"}');
+  perform set_config('test.exr', rid::text, false);
+  begin perform public.request_execution('{"kind":"won","project_id":"00000000-0000-0000-0000-00000000b001"}'); assert false, 'one open request';
+  exception when others then assert sqlerrm like 'A hand-over request is already waiting%', sqlerrm; end;
+  assert not exists (select 1 from public.exec_projects where project_id = '00000000-0000-0000-0000-00000000b001'), 'not in execution until approved';
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ declare e uuid;
+begin
+  assert (select count(*) from public.my_pending_approvals() where source = 'exec_request') = 2, 'both requests with SM Projects';
+  e := public.decide_execution_request(current_setting('test.exr')::uuid, true, (select id from u where role = 'senior_elec_engineer'));
+  perform set_config('test.ex', e::text, false);
+  e := public.decide_execution_request(current_setting('test.legacy')::uuid, true);
+  assert (select legacy and project_id is null and client_name = 'Ports Authority' from public.exec_projects where id = e), 'legacy project';
+  perform set_config('test.exlegacy', e::text, false);
 end $$;
 reset role;
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
-do $$ declare e uuid; rid uuid;
+do $$ declare e uuid := current_setting('test.ex')::uuid; rid uuid;
 begin
-  begin perform public.start_execution('00000000-0000-0000-0000-00000000b001', '{"areas":["kitchen"]}'); assert false, 'bad area';
-  exception when others then assert sqlerrm = 'Unknown project area', sqlerrm; end;
-  e := public.start_execution('00000000-0000-0000-0000-00000000b001', '{"areas":["indoor","facade","emergency"]}');
-  perform set_config('test.ex', e::text, false);
   assert (select see_id = (select id from u where role = 'senior_elec_engineer') from public.exec_projects where id = e), 'SEE set';
   perform public.add_exec_member(e, (select id from u where role = 'assistant_engineer'), 'Floors 1–3');
   rid := public.request_temp_staff(jsonb_build_object('role_type', 'trainee', 'person_name', 'Kamal Trainee', 'id_no', 'TR-01', 'phone', '0771234567',
@@ -3620,6 +3643,19 @@ end $$;
 reset role;
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
 select public.close_ncr((select id from public.ncrs where test_record_id = current_setting('test.tr')::uuid), 'Moisture in junction box', 'Box resealed and retested 200 MΩ', null);
+reset role;
+
+
+-- Hand-over: a project won before the system prices variations at contract rates only
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare v uuid;
+begin
+  v := public.raise_variation(current_setting('test.exlegacy')::uuid, '{"vtype":"addition","reason":"client_instruction","title":"Extra poles","description":"4 more poles at the gate"}');
+  begin perform public.screen_variation(v, 'B', jsonb_build_object('required_by', current_date + 10, 'estimation_scope', jsonb_build_array('fixtures'), 'estimation_basis', 'supply_install'));
+    assert false, 'route B needs a sales project';
+  exception when others then assert sqlerrm like 'This project was won before the system%', sqlerrm; end;
+  assert public.screen_variation(v, 'C', '{"value":"800000"}') = 'pending_smp', 'route C';
+end $$;
 reset role;
 
 \echo 'ALL WORKFLOW TESTS PASSED'

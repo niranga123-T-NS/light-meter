@@ -9,7 +9,6 @@ import { fmtDate } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 import { QueryRows } from './QueryRows';
-import { raiseQuery } from './raiseQuery';
 
 const REGISTER_ROLES = ['senior_elec_engineer', 'assistant_engineer', 'operations_exec', 'design_manager', 'lighting_designer', 'lighting_engineer'];
 
@@ -107,15 +106,7 @@ export function DocumentsTab({ p, queries = true }: { p: ExecProject; queries?: 
           title="Design queries"
           right={
             canQuery && p.status === 'active' ? (
-              <Button
-                small
-                variant="secondary"
-                title="+ Design query"
-                onPress={async () => {
-                  const id = await raiseQuery(dialog, [p], p.id);
-                  if (id) router.push(`/execution/query/${id}`);
-                }}
-              />
+              <Button small variant="secondary" title="+ Design query" onPress={() => router.push({ pathname: '/execution/query/new', params: { project: p.id } })} />
             ) : null
           }
         >

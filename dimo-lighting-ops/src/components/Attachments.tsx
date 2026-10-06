@@ -47,6 +47,7 @@ export const KIND_LABELS: Record<string, string> = {
   snag_after: 'After',
   dossier_doc: 'Document',
   test_sheet: 'Test sheet',
+  handover_doc: 'Contract document',
 };
 
 /**
