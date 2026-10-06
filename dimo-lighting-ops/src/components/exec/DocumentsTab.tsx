@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Attachments } from '@/components/Attachments';
 import { useDialog } from '@/components/dialog';
-import { Button, Card, colors, Empty, ListRow, Pill, Row, Section, Toggle } from '@/components/ui';
+import { Button, Card, colors, Empty, ListRow, Muted, Pill, Row, Section, Toggle } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { DOC_STATUS, DOC_TYPES, type DesignQuery, type ExecDoc, type ExecProject } from '@/lib/execution';
 import { fmtDate } from '@/lib/format';
@@ -79,7 +79,7 @@ export function DocumentsTab({ p, queries = true }: { p: ExecProject; queries?: 
                 title={`${d.doc_no} rev ${d.revision} – ${d.title}`}
                 subtitle={
                   <>
-                    {`${DOC_TYPES.find((t) => t.value === d.doc_type)?.label ?? d.doc_type} · ${fmtDate(d.uploaded_at)}${d.issued_to_subs ? ' · issued to subcontractors' : ''}${d.note ? ` · ${d.note}` : ''}`}
+                    <Muted>{`${DOC_TYPES.find((t) => t.value === d.doc_type)?.label ?? d.doc_type} · ${fmtDate(d.uploaded_at)}${d.issued_to_subs ? ' · issued to subcontractors' : ''}${d.note ? ` · ${d.note}` : ''}`}</Muted>
                     {open === d.id ? (
                       <>
                         <Attachments entityType="exec_doc" entityId={d.id} kinds={['doc_file']} title="File" canUpload={d.uploaded_by === me.id} />

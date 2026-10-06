@@ -157,7 +157,7 @@ export function HandoverTab({ p, onChange }: { p: ExecProject; onChange: () => v
                 title={`${s.location} – ${s.description}`}
                 subtitle={
                   <>
-                    {[s.responsible, s.due_date ? `due ${fmtDate(s.due_date)}` : null, s.closed_at ? `closed ${fmtDate(s.closed_at)}` : null].filter(Boolean).join(' · ')}
+                    <Muted>{[s.responsible, s.due_date ? `due ${fmtDate(s.due_date)}` : null, s.closed_at ? `closed ${fmtDate(s.closed_at)}` : null].filter(Boolean).join(' · ')}</Muted>
                     {openSnag === s.id ? (
                       <>
                         <Attachments entityType="snag" entityId={s.id} kinds={['snag_before', 'snag_after']} title="Before / after photos" allowCamera canUpload={s.status === 'open' && (isSee || isAe)} />
@@ -198,7 +198,7 @@ export function HandoverTab({ p, onChange }: { p: ExecProject; onChange: () => v
                     title={d.item}
                     subtitle={
                       <>
-                        {d.done ? `${people[d.done_by ?? '']?.full_name ?? ''} · ${fmtDate(d.done_at)}` : d.mandatory ? 'Mandatory' : 'Optional'}
+                        <Muted>{d.done ? `${people[d.done_by ?? '']?.full_name ?? ''} · ${fmtDate(d.done_at)}` : d.mandatory ? 'Mandatory' : 'Optional'}</Muted>
                         {openItem === d.id ? (
                           <>
                             <Attachments entityType="dossier_item" entityId={d.id} kinds={['dossier_doc']} title="Document" canUpload={!d.done && me.role !== 'gm' && me.role !== 'sm_projects'} />

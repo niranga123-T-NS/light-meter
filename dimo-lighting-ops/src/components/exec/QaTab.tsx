@@ -91,7 +91,7 @@ export function QaTab({ p }: { p: ExecProject }) {
                 title={`${t.code} · ${t.test_type} – ${t.system}`}
                 subtitle={
                   <>
-                    {[people[t.performed_by]?.full_name, fmtDateTime(t.performed_at), t.witness ? `witness ${t.witness}` : null, t.note].filter(Boolean).join(' · ')}
+                    <Muted>{[people[t.performed_by]?.full_name, fmtDateTime(t.performed_at), t.witness ? `witness ${t.witness}` : null, t.note].filter(Boolean).join(' · ')}</Muted>
                     {open === t.id ? (
                       <>
                         {t.rows.map((r, i) => (
