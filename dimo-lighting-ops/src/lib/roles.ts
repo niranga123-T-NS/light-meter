@@ -71,6 +71,10 @@ export const EXEC_NAV = {
   hse: { href: '/execution/hse', label: 'HSE', icon: '⚠', testing: true } as NavItem,
   variations: { href: '/execution/variations', label: 'Variations', icon: '±', testing: true } as NavItem,
   access: { href: '/execution/team', label: 'Execution access', icon: '☺', testing: true } as NavItem,
+  materials: { href: '/execution/materials', label: 'Materials & stores', icon: '⛟', testing: true } as NavItem,
+  documents: { href: '/execution/documents', label: 'Documents', icon: '❏', testing: true } as NavItem,
+  queries: { href: '/execution/queries', label: 'Design queries', icon: '?', testing: true } as NavItem,
+  certs: { href: '/execution/certs', label: 'Subcontractor invoices', icon: '⧉', testing: true } as NavItem,
 };
 
 
@@ -130,6 +134,8 @@ function baseNav(role: Role): NavItem[] {
         { href: '/engineering', label: 'Engineering jobs', icon: '▣' },
         EXEC_NAV.portfolio,
         EXEC_NAV.hse,
+        EXEC_NAV.materials,
+        EXEC_NAV.certs,
         EXEC_NAV.access,
         { href: '/samples', label: 'Samples', icon: '⬚' },
         { href: '/finance/pnl', label: 'P&L', icon: '▥' },
@@ -174,12 +180,14 @@ function baseNav(role: Role): NavItem[] {
         approvals,
         { href: '/inquiries', label: 'Inquiries', icon: '⧗' },
         { href: '/jobs', label: 'Jobs', icon: '▣' },
+        EXEC_NAV.queries,
+        EXEC_NAV.documents,
         brands,
         reports,
       ];
     case 'lighting_designer':
     case 'lighting_engineer':
-      return [{ href: '/', label: 'My Jobs', icon: '⌂' }, { href: '/jobs', label: 'All my jobs', icon: '▣' }, brands, reports];
+      return [{ href: '/', label: 'My Jobs', icon: '⌂' }, { href: '/jobs', label: 'All my jobs', icon: '▣' }, EXEC_NAV.queries, brands, reports];
     case 'sm_estimation':
       return [
         { href: '/', label: 'Estimation Board', icon: '⌂' },
@@ -211,6 +219,10 @@ function baseNav(role: Role): NavItem[] {
         { href: '/finance/budget', label: 'Budget list', icon: '◫' },
         { href: '/finance/secured', label: 'Secured', icon: '◇' },
         { href: '/finance/invoicing', label: 'Invoicing', icon: '⧉' },
+        EXEC_NAV.portfolio,
+        EXEC_NAV.materials,
+        EXEC_NAV.documents,
+        EXEC_NAV.certs,
         approvals,
         reports,
       ];
@@ -223,6 +235,9 @@ function baseNav(role: Role): NavItem[] {
         EXEC_NAV.reports,
         EXEC_NAV.variations,
         EXEC_NAV.hse,
+        EXEC_NAV.materials,
+        EXEC_NAV.queries,
+        EXEC_NAV.certs,
         approvals,
         EXEC_NAV.team,
         { href: '/warranty', label: 'Warranty', icon: '⛉' },
@@ -238,6 +253,8 @@ function baseNav(role: Role): NavItem[] {
         EXEC_NAV.reports,
         EXEC_NAV.variations,
         EXEC_NAV.hse,
+        EXEC_NAV.materials,
+        EXEC_NAV.queries,
         { href: '/warranty', label: 'Warranty', icon: '⛉' },
       ];
     case 'trainee':

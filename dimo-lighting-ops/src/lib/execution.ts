@@ -301,3 +301,214 @@ export const VAR_STATUS: Record<Variation['status'], string> = {
   cancelled: 'Cancelled',
 };
 export const VAR_ROUTES: Record<string, string> = { A: 'Design + estimation', B: 'Estimation only', C: 'Contract rates' };
+
+// ---- Materials, documents, design queries (step 7a) ----
+export type MaterialRequest = {
+  id: string;
+  code: string;
+  exec_project_id: string;
+  requested_by: string;
+  requested_at: string;
+  required_date: string;
+  purpose: string | null;
+  est_value_lkr: number | null;
+  status: 'submitted' | 'pending_smp' | 'approved' | 'ordered' | 'part_received' | 'received' | 'rejected' | 'cancelled';
+  decision_note: string | null;
+  po_no: string | null;
+  supplier: string | null;
+  expected_date: string | null;
+};
+export type MrLine = { id: string; mr_id: string; item: string; unit: string; qty: number; received_qty: number };
+export type StoreMove = { id: string; exec_project_id: string; kind: string; item: string; unit: string; qty: number; ref: string | null; note: string | null; by_id: string; at: string };
+export const MR_STATUS: Record<MaterialRequest['status'], string> = {
+  submitted: 'SEE to approve',
+  pending_smp: 'SM Projects to approve',
+  approved: 'Approved – Operations to order',
+  ordered: 'Ordered',
+  part_received: 'Part received',
+  received: 'Received',
+  rejected: 'Rejected',
+  cancelled: 'Cancelled',
+};
+export const STORE_KINDS = [
+  { value: 'issue', label: 'Issue to work' },
+  { value: 'return', label: 'Return to store' },
+  { value: 'transfer_out', label: 'Transfer out' },
+  { value: 'transfer_in', label: 'Transfer in' },
+];
+/** Balance per item in the site store from the movements */
+export function storeBalance(moves: StoreMove[]) {
+  const m = new Map<string, { item: string; unit: string; qty: number }>();
+  for (const x of moves) {
+    const k = x.item.toLowerCase();
+    const cur = m.get(k) ?? { item: x.item, unit: x.unit, qty: 0 };
+    cur.qty += ['receipt', 'return', 'transfer_in'].includes(x.kind) ? Number(x.qty) : -Number(x.qty);
+    m.set(k, cur);
+  }
+  return [...m.values()].sort((a, b) => a.item.localeCompare(b.item));
+}
+
+export type ExecDoc = {
+  id: string;
+  exec_project_id: string;
+  doc_no: string;
+  title: string;
+  doc_type: string;
+  revision: string;
+  status: 'for_construction' | 'for_approval' | 'superseded';
+  approval_code: 'A' | 'B' | 'C' | 'rejected' | null;
+  issued_to_subs: boolean;
+  uploaded_by: string;
+  uploaded_at: string;
+  note: string | null;
+};
+export const DOC_TYPES = [
+  { value: 'drawing', label: 'Drawing' },
+  { value: 'specification', label: 'Specification' },
+  { value: 'method_statement', label: 'Method statement' },
+  { value: 'submittal', label: 'Submittal' },
+  { value: 'calculation', label: 'Calculation' },
+  { value: 'other', label: 'Other' },
+];
+export const DOC_STATUS: Record<ExecDoc['status'], string> = { for_construction: 'For construction', for_approval: 'For approval', superseded: 'Superseded' };
+
+export type DesignQuery = {
+  id: string;
+  code: string;
+  exec_project_id: string;
+  question: string;
+  drawing_ref: string | null;
+  blocks: string | null;
+  raised_by: string;
+  raised_at: string;
+  status: 'raised' | 'forwarded' | 'answered' | 'closed' | 'rejected';
+  target_date: string | null;
+  assignee_id: string | null;
+  answer: string | null;
+  answered_by: string | null;
+  answered_at: string | null;
+  note: string | null;
+};
+export const DQ_STATUS: Record<DesignQuery['status'], string> = {
+  raised: 'SEE to screen',
+  forwarded: 'With Design',
+  answered: 'Answered',
+  closed: 'Closed',
+  rejected: 'Answered by SEE',
+};
+
+// ---- QA / QC, handover, cost (step 7b) ----
+export type Instrument = { id: string; name: string; model: string | null; serial_no: string; calibration_due: string; active: boolean };
+export type TestRow = { param: string; unit: string | null; min: number | null; max: number | null; value: number; pass: boolean };
+export type TestRecord = {
+  id: string;
+  code: string;
+  exec_project_id: string;
+  area: string | null;
+  system: string;
+  test_type: string;
+  instrument_id: string | null;
+  rows: TestRow[];
+  result: 'pass' | 'fail';
+  witness: string | null;
+  performed_by: string;
+  performed_at: string;
+  status: 'submitted' | 'verified' | 'returned';
+  note: string | null;
+};
+export type Ncr = {
+  id: string;
+  code: string;
+  exec_project_id: string;
+  test_record_id: string | null;
+  description: string;
+  severity: 'minor' | 'major' | 'critical';
+  root_cause: string | null;
+  corrective_action: string | null;
+  owner_id: string | null;
+  due_date: string | null;
+  status: 'open' | 'closed';
+  raised_at: string;
+  closed_at: string | null;
+  close_note: string | null;
+};
+export type Snag = {
+  id: string;
+  exec_project_id: string;
+  location: string;
+  description: string;
+  responsible: string;
+  priority: 'low' | 'normal' | 'high';
+  due_date: string | null;
+  status: 'open' | 'closed';
+  raised_at: string;
+  closed_at: string | null;
+};
+export type GateCheck = { check: string; ok: boolean; detail: string };
+export type ExecGate = {
+  id: string;
+  exec_project_id: string;
+  gate: number;
+  checklist: Record<string, boolean>;
+  checks: GateCheck[];
+  requested_by: string;
+  requested_at: string;
+  status: 'pending' | 'approved' | 'rejected';
+  decided_by: string | null;
+  decided_at: string | null;
+  override: boolean;
+  note: string | null;
+};
+/** Manual confirmations the SEE ticks when requesting each gate (the data checks run on the server) */
+export const GATE_CHECKLIST: Record<number, string[]> = {
+  1: ['Contract and scope reviewed', 'Team and supervisors in place', 'Programme agreed with the client'],
+  2: ['Shop drawings approved', 'Method statements approved', 'Long-lead materials ordered'],
+  3: ['First-fix inspected', 'Containment and cabling complete'],
+  4: ['Second-fix complete', 'Testing and commissioning complete', 'Client witness obtained'],
+  5: ['As-built drawings submitted', 'O&M manuals submitted', 'Client training done'],
+  6: ['Handover certificate signed', 'Final account agreed', 'Warranty registered'],
+};
+export type DossierItem = { id: string; exec_project_id: string; area: string; item: string; mandatory: boolean; done: boolean; done_by: string | null; done_at: string | null };
+export type CostLine = {
+  id: string;
+  exec_project_id: string;
+  cost_code: 'material' | 'labour' | 'subcontract' | 'equipment' | 'overheads';
+  description: string;
+  budget: number;
+  committed: number;
+  actual: number;
+  updated_at: string;
+};
+export const COST_CODES = [
+  { value: 'material', label: 'Material' },
+  { value: 'labour', label: 'Labour' },
+  { value: 'subcontract', label: 'Subcontract' },
+  { value: 'equipment', label: 'Equipment' },
+  { value: 'overheads', label: 'Overheads' },
+];
+export type SubCert = {
+  id: string;
+  code: string;
+  exec_project_id: string;
+  subcontractor: string;
+  period: string;
+  gross: number;
+  previous: number;
+  retention_pct: number;
+  deductions: number;
+  net: number;
+  note: string | null;
+  status: 'prepared' | 'verified' | 'approved' | 'paid' | 'returned';
+  prepared_by: string;
+  prepared_at: string;
+  paid_ref: string | null;
+  paid_at: string | null;
+  return_note: string | null;
+};
+export const CERT_STATUS: Record<SubCert['status'], string> = {
+  prepared: 'SEE to verify',
+  verified: 'SM Projects to approve',
+  approved: 'Operations to pay',
+  paid: 'Paid',
+  returned: 'Returned',
+};

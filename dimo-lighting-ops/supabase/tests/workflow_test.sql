@@ -3506,5 +3506,121 @@ do $$ begin
 end $$;
 reset role;
 
+-- Execution step 7a: material request → SEE → SMP above limit → Ops orders → received into the site store; documents; design query
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare m uuid;
+begin
+  m := public.raise_material_request(current_setting('test.ex')::uuid, jsonb_build_object('required_date', current_date + 5, 'est_value', 1500000,
+    'lines', jsonb_build_array(jsonb_build_object('item', 'LED downlight 12W', 'unit', 'nos', 'qty', 40))));
+  perform set_config('test.mr', m::text, false);
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin assert public.decide_material_request(current_setting('test.mr')::uuid, true) = 'pending_smp', 'above limit → SMP'; end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+select public.decide_material_request(current_setting('test.mr')::uuid, true);
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+select public.order_material_request(current_setting('test.mr')::uuid, 'PO-5521', 'Philips', current_date + 4);
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare l uuid;
+begin
+  select id into l from public.material_request_lines where mr_id = current_setting('test.mr')::uuid;
+  perform public.receive_material(current_setting('test.mr')::uuid, jsonb_build_array(jsonb_build_object('line_id', l, 'qty', 30)), '2 cartons damaged');
+  assert (select status from public.material_requests where id = current_setting('test.mr')::uuid) = 'part_received', 'part received';
+  perform public.store_move(current_setting('test.ex')::uuid, 'issue', 'LED downlight 12W', 'nos', 20, 'Level 2');
+  begin perform public.store_move(current_setting('test.ex')::uuid, 'issue', 'LED downlight 12W', 'nos', 20); assert false, 'stock check';
+  exception when others then assert sqlerrm like 'Only 10 in the site store', sqlerrm; end;
+  perform public.register_doc(current_setting('test.ex')::uuid, '{"doc_no":"E-101","title":"Lighting layout L2","revision":"A","issued_to_subs":true}');
+  perform public.register_doc(current_setting('test.ex')::uuid, '{"doc_no":"E-101","title":"Lighting layout L2","revision":"B","issued_to_subs":true}');
+  assert (select count(*) from public.exec_docs where doc_no = 'E-101') = 1 and (select revision from public.exec_docs where doc_no = 'E-101') = 'B', 'field sees only the current revision';
+  perform set_config('test.dq', public.raise_design_query(current_setting('test.ex')::uuid, 'Downlight clashes with duct at grid C4 – relocate?', 'E-101 rev B', 'Level 2 ceiling closing')::text, false);
+end $$;
+reset role;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ begin
+  assert (select count(*) from public.exec_docs) = 1, 'supervisor sees only the current issued revision';
+  assert not exists (select 1 from public.material_requests), 'supervisor does not see material requests';
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select public.forward_design_query(current_setting('test.dq')::uuid, true, null);
+reset role;
+select pg_temp.act_as('design_manager'); set role authenticated;
+select public.answer_design_query(current_setting('test.dq')::uuid, 'Shift 300 mm east – see revised E-101 rev C');
+reset role;
+
+
+-- Execution step 7b: tests with instruments, NCRs, snags, dossier, stage gates with override, cost and subcontractor certificates
+reset role;
+do $$ begin
+  insert into public.test_instruments (name, serial_no, calibration_due) values ('Megger MIT420', 'MG-OLD', current_date - 1), ('Fluke 1664', 'FL-01', current_date + 90);
+end $$;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare t uuid;
+begin
+  begin perform public.record_test(current_setting('test.ex')::uuid, jsonb_build_object('system', 'DB-2', 'test_type', 'Insulation resistance',
+      'instrument_id', (select id from public.test_instruments where serial_no = 'MG-OLD'), 'rows', jsonb_build_array(jsonb_build_object('param', 'L-E', 'unit', 'MΩ', 'min', 1, 'value', 50))));
+    assert false, 'expired calibration';
+  exception when others then assert sqlerrm like 'Calibration of Megger MIT420%expired%', sqlerrm; end;
+  t := public.record_test(current_setting('test.ex')::uuid, jsonb_build_object('system', 'DB-2', 'test_type', 'Insulation resistance',
+      'instrument_id', (select id from public.test_instruments where serial_no = 'FL-01'),
+      'rows', jsonb_build_array(jsonb_build_object('param', 'L-E', 'unit', 'MΩ', 'min', 1, 'value', 50), jsonb_build_object('param', 'N-E', 'unit', 'MΩ', 'min', 1, 'value', 0.4))));
+  perform set_config('test.tr', t::text, false);
+  assert (select result from public.test_records where id = t) = 'fail', 'auto fail';
+  assert exists (select 1 from public.ncrs where test_record_id = t and status = 'open'), 'NCR raised';
+  perform set_config('test.snag', public.raise_snag(current_setting('test.ex')::uuid, '{"location":"Lobby","description":"Scratched diffuser","responsible":"Subcontractor","priority":"high"}')::text, false);
+  begin perform public.close_snag(current_setting('test.snag')::uuid); assert false, 'after photo needed';
+  exception when others then assert sqlerrm = 'Attach the after photo first', sqlerrm; end;
+  perform set_config('test.spc', public.prepare_sub_cert(current_setting('test.ex')::uuid, '{"subcontractor":"Lanka Electricals","period":"Sep 2026","gross":"1000000","previous":"200000","retention_pct":"10","deductions":"20000"}')::text, false);
+  assert (select net from public.sub_certs where id = current_setting('test.spc')::uuid) = 700000, 'net value';
+  assert not exists (select 1 from public.exec_cost_lines), 'AE does not read costs';
+end $$;
+reset role;
+insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name, uploaded_by)
+values ('snag', current_setting('test.snag')::uuid, 'snag_after', 'snag/test/after.jpg', 'after.jpg', (select id from u where role = 'assistant_engineer'));
+update public.exec_projects set stage = 5 where id = current_setting('test.ex')::uuid;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+select public.close_snag(current_setting('test.snag')::uuid);
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin
+  assert public.ensure_dossier(current_setting('test.ex')::uuid) > 0, 'dossier items created';
+  begin perform public.complete_dossier_item((select id from public.exec_dossier limit 1), true); assert false, 'document needed';
+  exception when others then assert sqlerrm = 'Attach the document first', sqlerrm; end;
+  perform public.verify_test(current_setting('test.tr')::uuid, true);
+  assert exists (select 1 from jsonb_array_elements(public.preview_gate(current_setting('test.ex')::uuid) -> 'checks') x where x ->> 'check' = 'No open NCR' and not (x ->> 'ok')::boolean), 'NCR blocks gate';
+  perform set_config('test.gate', public.request_gate(current_setting('test.ex')::uuid, '{"as_built":true}', 'Ready for handover')::text, false);
+  perform public.save_cost_line(current_setting('test.ex')::uuid, null, '{"cost_code":"material","description":"Fixtures","budget":"1000000","committed":"900000","actual":"300000"}');
+  perform public.advance_sub_cert(current_setting('test.spc')::uuid, true);
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'exec_cost' and title = 'Project cost above budget' and recipient_id = (select id from u where role = 'sm_projects')), 'over budget told';
+end $$;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.my_pending_approvals() where source = 'exec_gate'), 'gate in SMP approvals';
+  begin perform public.decide_gate(current_setting('test.gate')::uuid, true); assert false, 'override reason';
+  exception when others then assert sqlerrm like 'Items are open%', sqlerrm; end;
+  perform public.decide_gate(current_setting('test.gate')::uuid, true, 'Client accepted partial dossier; NCR closes next week');
+  assert (select override from public.exec_gates where id = current_setting('test.gate')::uuid), 'override recorded';
+  assert (select stage from public.exec_projects where id = current_setting('test.ex')::uuid) = 6, 'stage 6';
+  assert public.advance_sub_cert(current_setting('test.spc')::uuid, true) = 'approved', 'approved';
+end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ begin
+  begin perform public.advance_sub_cert(current_setting('test.spc')::uuid, true); assert false, 'ref needed';
+  exception when others then assert sqlerrm = 'Enter the payment reference', sqlerrm; end;
+  assert public.advance_sub_cert(current_setting('test.spc')::uuid, true, 'CHQ-88123') = 'paid', 'paid';
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select public.close_ncr((select id from public.ncrs where test_record_id = current_setting('test.tr')::uuid), 'Moisture in junction box', 'Box resealed and retested 200 MΩ', null);
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

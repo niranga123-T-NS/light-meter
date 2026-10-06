@@ -20,7 +20,7 @@ export default function ExecProjects() {
     return rows as ExecProject[];
   });
   const title =
-    me.role === 'gm' || me.role === 'sm_projects' ? 'Execution portfolio' : me.role === 'senior_elec_engineer' ? 'Execution projects' : me.role === 'sub_supervisor' ? 'My work' : 'My projects';
+    me.role === 'gm' || me.role === 'sm_projects' || me.role === 'operations_exec' ? 'Execution portfolio' : me.role === 'senior_elec_engineer' ? 'Execution projects' : me.role === 'sub_supervisor' ? 'My work' : 'My projects';
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const rows = data.filter((p) => p.status === tab && (!q || `${p.code} ${p.name}`.toLowerCase().includes(q.toLowerCase())));
   return (
