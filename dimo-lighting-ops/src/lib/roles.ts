@@ -69,6 +69,7 @@ export const EXEC_NAV = {
   reports: { href: '/execution/reports', label: 'Daily reports', icon: '✎', testing: true } as NavItem,
   report: { href: '/execution/reports', label: 'Daily report', icon: '✎', testing: true } as NavItem,
   hse: { href: '/execution/hse', label: 'HSE', icon: '⚠', testing: true } as NavItem,
+  variations: { href: '/execution/variations', label: 'Variations', icon: '±', testing: true } as NavItem,
   access: { href: '/execution/team', label: 'Execution access', icon: '☺', testing: true } as NavItem,
 };
 
@@ -220,6 +221,7 @@ function baseNav(role: Role): NavItem[] {
         { href: '/engineering', label: 'Tasks & instructions', icon: '▣' },
         EXEC_NAV.plans,
         EXEC_NAV.reports,
+        EXEC_NAV.variations,
         EXEC_NAV.hse,
         approvals,
         EXEC_NAV.team,
@@ -234,6 +236,7 @@ function baseNav(role: Role): NavItem[] {
         { href: '/engineering', label: 'Tasks & instructions', icon: '▣' },
         EXEC_NAV.plans,
         EXEC_NAV.reports,
+        EXEC_NAV.variations,
         EXEC_NAV.hse,
         { href: '/warranty', label: 'Warranty', icon: '⛉' },
       ];

@@ -37,6 +37,8 @@ export const KIND_LABELS: Record<string, string> = {
   daily_photo: 'Site photo',
   daily_doc: 'Document',
   hse_photo: 'HSE photo',
+  var_doc: 'Variation order / client letter',
+  var_photo: 'Photo',
 };
 
 /**

@@ -3460,5 +3460,51 @@ select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
 select public.close_hse_report(current_setting('test.hse')::uuid, 'Root cause: ladder on wet floor; rule added to toolbox talks');
 reset role;
 
+-- Execution step 6: variations – route C (contract rates) to SM Projects → GM above the limit; client acceptance; route B inquiry
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare v uuid;
+begin
+  v := public.raise_variation(current_setting('test.ex')::uuid, '{"vtype":"addition","reason":"client_instruction","title":"Extra facade uplights","description":"Client asked for 12 more uplights on the east wing","quantities":"12 nos"}');
+  perform set_config('test.var', v::text, false);
+  v := public.raise_variation(current_setting('test.ex')::uuid, '{"vtype":"addition","reason":"design_change","title":"Lobby feature lighting","description":"New chandelier zone per revised interior design"}');
+  perform set_config('test.var2', v::text, false);
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.my_pending_approvals() where source = 'variation'), 'SEE screens';
+  assert public.screen_variation(current_setting('test.var')::uuid, 'C', '{"value":"12500000","cost":"9000000","time_days":"5"}') = 'pending_smp', 'route C';
+  perform public.screen_variation(current_setting('test.var2')::uuid, 'B', jsonb_build_object('required_by', current_date + 10,
+    'estimation_scope', jsonb_build_array('fixtures'), 'estimation_basis', 'supply_install'));
+  assert (select inquiry_id is not null and status = 'pricing' from public.variations where id = current_setting('test.var2')::uuid), 'variation inquiry';
+end $$;
+reset role;
+do $$ begin
+  assert (select variation_id = current_setting('test.var2')::uuid and route = 'B' and status <> 'draft' from public.inquiries
+          where id = (select inquiry_id from public.variations where id = current_setting('test.var2')::uuid)), 'inquiry submitted for estimation';
+end $$;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert public.decide_exec_variation(current_setting('test.var')::uuid, true, 'Agreed') = 'pending_gm', 'above 10 Mn → GM';
+end $$;
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+select public.decide_exec_variation(current_setting('test.var')::uuid, true);
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin
+  begin perform public.record_variation_client(current_setting('test.var')::uuid, true, '{"vo_no":"VO-07"}'); assert false, 'VO document needed';
+  exception when others then assert sqlerrm like 'Attach the signed variation order%', sqlerrm; end;
+end $$;
+reset role;
+insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name, uploaded_by)
+values ('variation', current_setting('test.var')::uuid, 'var_doc', 'variation/test/vo.pdf', 'vo.pdf', (select id from u where role = 'senior_elec_engineer'));
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin
+  perform public.record_variation_client(current_setting('test.var')::uuid, true, '{"vo_no":"VO-07"}');
+  assert (select status from public.variations where id = current_setting('test.var')::uuid) = 'client_accepted', 'accepted';
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

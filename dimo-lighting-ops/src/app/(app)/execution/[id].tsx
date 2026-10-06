@@ -6,6 +6,7 @@ import { OverviewTab } from '@/components/exec/OverviewTab';
 import { PlansTab } from '@/components/exec/PlansTab';
 import { ReportsTab } from '@/components/exec/ReportsTab';
 import { TeamTab } from '@/components/exec/TeamTab';
+import { VariationsTab } from '@/components/exec/VariationsTab';
 import { TestingBanner } from '@/components/Testing';
 import { colors, ErrorBanner, Loading, Muted, Screen, Segmented } from '@/components/ui';
 import { useMe } from '@/lib/auth';
@@ -20,6 +21,7 @@ const TABS: Tab[] = [
   { key: 'overview', label: 'Overview' },
   { key: 'plans', label: 'Plan', roles: INTERNAL },
   { key: 'reports', label: 'Daily reports' },
+  { key: 'variations', label: 'Variations', roles: ['senior_elec_engineer', 'sm_projects', 'gm', 'operations_exec', 'assistant_engineer'] },
   { key: 'hse', label: 'HSE' },
   { key: 'team', label: 'Team', roles: INTERNAL },
 ];
@@ -47,6 +49,7 @@ export default function ExecProjectScreen() {
       {t === 'overview' ? <OverviewTab p={p} /> : null}
       {t === 'plans' ? <PlansTab p={p} /> : null}
       {t === 'reports' ? <ReportsTab p={p} /> : null}
+      {t === 'variations' ? <VariationsTab p={p} /> : null}
       {t === 'hse' ? <HseTab p={p} /> : null}
       {t === 'team' ? <TeamTab p={p} /> : null}
     </Screen>

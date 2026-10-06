@@ -244,3 +244,60 @@ export const HSE_SEVERITY = [
   { value: 'critical', label: 'Critical' },
 ];
 export const hseKind = (k: string) => HSE_KINDS.find((x) => x.value === k)?.label ?? k;
+
+// ---- Variations (step 6) ----
+export type Variation = {
+  id: string;
+  code: string;
+  exec_project_id: string;
+  vtype: 'addition' | 'omission' | 'substitution';
+  reason: string;
+  title: string;
+  description: string;
+  quantities: string | null;
+  client_ref: string | null;
+  raised_by: string;
+  raised_at: string;
+  status: 'raised' | 'pricing' | 'pending_smp' | 'pending_gm' | 'approved' | 'rejected' | 'client_accepted' | 'client_rejected' | 'cancelled';
+  route: 'A' | 'B' | 'C' | null;
+  inquiry_id: string | null;
+  inquiry_status: string | null;
+  value_lkr: number | null;
+  cost_lkr: number | null;
+  margin_pct: number | null;
+  time_days: number | null;
+  smp_by: string | null;
+  smp_at: string | null;
+  smp_note: string | null;
+  gm_by: string | null;
+  gm_at: string | null;
+  gm_note: string | null;
+  decision_note: string | null;
+  vo_no: string | null;
+  client_at: string | null;
+  client_note: string | null;
+};
+export const VAR_TYPES = [
+  { value: 'addition', label: 'Addition' },
+  { value: 'omission', label: 'Omission' },
+  { value: 'substitution', label: 'Substitution' },
+];
+export const VAR_REASONS = [
+  { value: 'client_instruction', label: 'Client instruction' },
+  { value: 'site_condition', label: 'Site condition' },
+  { value: 'design_change', label: 'Design change' },
+  { value: 'missed_item', label: 'Missed item' },
+  { value: 'other', label: 'Other' },
+];
+export const VAR_STATUS: Record<Variation['status'], string> = {
+  raised: 'Raised – SEE to screen',
+  pricing: 'With Design / Estimation',
+  pending_smp: 'SM Projects to approve',
+  pending_gm: 'DGM / GM to approve',
+  approved: 'Approved – send to client',
+  rejected: 'Rejected',
+  client_accepted: 'Accepted by client',
+  client_rejected: 'Rejected by client',
+  cancelled: 'Cancelled',
+};
+export const VAR_ROUTES: Record<string, string> = { A: 'Design + estimation', B: 'Estimation only', C: 'Contract rates' };
