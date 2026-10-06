@@ -22,7 +22,13 @@ export function EngineerHome() {
     if (jobs.error) throw new Error(jobs.error.message);
     return { jobs: (jobs.data ?? []) as EngJob[], claims: (claims.data ?? []) as { id: string; assignee_id: string | null; inspected_on: string | null }[] };
   });
-  if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
+  if (!data)
+    return (
+      <Screen>
+        <Stack.Screen options={{ title: 'My Day' }} />
+        {error ? <ErrorBanner message={error} /> : <Loading />}
+      </Screen>
+    );
 
   const today = todayISO();
   const week = addDaysISO(today, 7);
