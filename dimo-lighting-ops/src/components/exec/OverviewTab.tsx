@@ -14,12 +14,13 @@ export function OverviewTab({ p, onTab }: { p: ExecProject; onTab: (t: string) =
   const people = usePeople();
   const lead = me.role === 'senior_elec_engineer' || me.role === 'sm_projects';
   const { data: st } = useLoad(async () => {
-    const [m, g] = await Promise.all([
+    const [m, g, pg] = await Promise.all([
       supabase.from('exec_members').select('member_role').eq('exec_project_id', p.id).eq('active', true),
       supabase.from('exec_gates').select('gate').eq('exec_project_id', p.id).eq('status', 'pending'),
+      supabase.from('exec_programmes').select('status, version').eq('exec_project_id', p.id).maybeSingle(),
     ]);
     const roles = (m.data ?? []).map((x) => x.member_role as string);
-    return { engineers: roles.filter((r) => r !== 'sub_supervisor').length, supervisors: roles.filter((r) => r === 'sub_supervisor').length, gatePending: (g.data ?? []).length > 0 };
+    return { engineers: roles.filter((r) => r !== 'sub_supervisor').length, supervisors: roles.filter((r) => r === 'sub_supervisor').length, gatePending: (g.data ?? []).length > 0, programme: pg.data as { status: string; version: number } | null };
   }, [p.id, p.stage]);
   const step = (done: boolean, text: string, action?: { title: string; onPress: () => void }) => (
     <Row key={text} wrap gap={8} style={{ justifyContent: 'space-between', alignItems: 'center', paddingVertical: 4 }}>
@@ -41,6 +42,17 @@ export function OverviewTab({ p, onTab }: { p: ExecProject; onTab: (t: string) =
             {step(p.areas.length > 0, 'Project areas, site and dates set', me.role === 'senior_elec_engineer' || me.role === 'sm_projects' ? { title: 'Edit', onPress: () => router.push({ pathname: '/execution/start', params: { id: p.id } }) } : undefined)}
             {step(st.engineers > 0, st.engineers ? `${st.engineers} engineer(s) / trainee(s) on the project` : 'Add the Assistant Engineers (and trainees)', { title: '+ Add engineer / trainee', onPress: () => onTab('team') })}
             {step(st.supervisors > 0, st.supervisors ? `${st.supervisors} subcontractor supervisor(s)` : 'Nominate the subcontractor supervisor (if any) – SM Projects approves', { title: 'Nominate', onPress: () => onTab('team') })}
+            {step(
+              !!st.programme?.version,
+              !st.programme
+                ? 'Build the programme – WBS, activities, links and resources (required before work starts)'
+                : st.programme.status === 'submitted'
+                  ? 'Programme waiting for SM Projects'
+                  : st.programme.version
+                    ? `Programme approved (baseline ${st.programme.version})${st.programme.status === 'draft' ? ' – revision in progress' : ''}`
+                    : 'Complete the programme and submit it to SM Projects',
+              { title: me.role === 'sm_projects' && st.programme?.status === 'submitted' ? 'Approve programme' : 'Open programme', onPress: () => onTab('programme') },
+            )}
             {step(st.gatePending, st.gatePending ? `Gate ${p.stage} waiting for SM Projects` : `Request gate ${p.stage} to move to stage ${Math.min(6, p.stage + 1)}`, {
               title: me.role === 'sm_projects' && st.gatePending ? 'Decide the gate' : 'Open stage gate',
               onPress: () => onTab('handover'),

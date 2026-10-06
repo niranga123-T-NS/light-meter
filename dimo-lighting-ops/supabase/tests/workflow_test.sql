@@ -3658,5 +3658,81 @@ begin
 end $$;
 reset role;
 
+
+-- Programme: WBS, activities, links, resources; critical path; SM Projects baseline; AE progress; revision
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare e uuid := current_setting('test.exlegacy')::uuid; w1 uuid; w2 uuid; a uuid; b uuid; c uuid; d uuid; m uuid; usr uuid := (select id from u where role = 'senior_elec_engineer');
+begin
+  perform public.add_exec_member(e, (select id from u where role = 'assistant_engineer'), 'All');
+  begin perform public.save_wbs(e, null, null, '1', 'Civil'); assert false, 'start first';
+  exception when others then assert sqlerrm = 'Set the programme start date first', sqlerrm; end;
+  perform public.save_programme(e, current_date - 14);
+  w1 := public.save_wbs(e, null, null, '1', 'Civil works');
+  w2 := public.save_wbs(e, null, null, '2', 'Electrical works');
+  a := public.save_activity(e, null, jsonb_build_object('wbs_id', w1, 'code', 'A10', 'name', 'Mast foundations', 'duration', 5, 'responsible_id', usr));
+  b := public.save_activity(e, null, jsonb_build_object('wbs_id', w1, 'code', 'A20', 'name', 'Mast erection', 'duration', 3, 'responsible_id', usr));
+  c := public.save_activity(e, null, jsonb_build_object('wbs_id', w2, 'code', 'A30', 'name', 'Cable laying', 'duration', 2, 'responsible_id', usr));
+  d := public.save_activity(e, null, jsonb_build_object('wbs_id', w2, 'code', 'A40', 'name', 'Luminaire fixing', 'duration', 1, 'responsible_id', usr));
+  m := public.save_activity(e, null, jsonb_build_object('wbs_id', w2, 'code', 'M50', 'name', 'Energisation', 'duration', 0));
+  perform public.set_dependency(b, a); perform public.set_dependency(c, a); perform public.set_dependency(d, b); perform public.set_dependency(d, c); perform public.set_dependency(m, d);
+  begin perform public.set_dependency(a, m); assert false, 'loop';
+  exception when others then assert sqlerrm like 'This link would make a loop%', sqlerrm; end;
+  assert (select critical from public.exec_activities where id = a) and (select critical from public.exec_activities where id = b)
+     and (select critical from public.exec_activities where id = d) and not (select critical from public.exec_activities where id = c), 'critical path A-B-D';
+  assert (select total_float from public.exec_activities where id = c) = 1, 'float of C';
+  assert (select es from public.exec_activities where id = b) > (select ef from public.exec_activities where id = a), 'B after A';
+  assert (select es from public.exec_activities where id = m) = (select ef from public.exec_activities where id = d) + 1
+      or (select es from public.exec_activities where id = m) > (select ef from public.exec_activities where id = d), 'milestone after D';
+  -- start-to-start with lag: C may start 2 days after A starts
+  perform public.set_dependency(c, a, 'SS', 2);
+  assert (select es from public.exec_activities where id = c) < (select ef from public.exec_activities where id = a), 'SS overlap';
+  begin perform public.submit_programme(e); assert false, 'resources needed';
+  exception when others then assert sqlerrm like '4 activities without resources%', sqlerrm; end;
+  perform public.save_activity_resource(a, null, '{"kind":"labour","name":"Masons","qty":"4","unit":"workers"}');
+  perform public.save_activity_resource(b, null, '{"kind":"equipment","name":"Crane 25 t","qty":"1"}');
+  perform public.save_activity_resource(c, null, '{"kind":"subcontractor","name":"Lanka Electricals","qty":"6","unit":"workers"}');
+  perform public.save_activity_resource(d, null, jsonb_build_object('kind', 'staff', 'profile_id', (select id from u where role = 'assistant_engineer')));
+  perform public.submit_programme(e, null);
+  perform set_config('test.act_a', a::text, false);
+  perform set_config('test.act_c', c::text, false);
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ declare e uuid := current_setting('test.exlegacy')::uuid;
+begin
+  assert exists (select 1 from public.my_pending_approvals() where source = 'exec_programme'), 'programme with SM Projects';
+  assert exists (select 1 from jsonb_array_elements(app.gate_checks(e, 2)) x where x ->> 'check' like 'Programme%' and not (x ->> 'ok')::boolean), 'gate 2 blocked before approval';
+  assert public.decide_programme(e, true) = 1, 'baseline 1';
+  assert (select bl_start is not null from public.exec_activities where id = current_setting('test.act_a')::uuid), 'baseline dates';
+  assert exists (select 1 from jsonb_array_elements(app.gate_checks(e, 2)) x where x ->> 'check' like 'Programme%' and (x ->> 'ok')::boolean), 'gate 2 programme ok';
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin
+  begin perform public.update_activity_progress(current_setting('test.act_a')::uuid, 40, null, null); assert false, 'start needed';
+  exception when others then assert sqlerrm = 'Enter the actual start date', sqlerrm; end;
+  perform public.update_activity_progress(current_setting('test.act_a')::uuid, 40, current_date - 3, null, 'Two bases cast');
+  assert (select pct from public.exec_activities where id = current_setting('test.act_a')::uuid) = 40, 'progress saved';
+  begin perform public.save_activity(current_setting('test.exlegacy')::uuid, null, '{}'); assert false, 'AE cannot edit';
+  exception when others then assert sqlerrm like 'The Senior Electrical Engineer prepares%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare e uuid := current_setting('test.exlegacy')::uuid;
+begin
+  perform public.save_activity(e, current_setting('test.act_c')::uuid, jsonb_build_object('wbs_id', (select wbs_id from public.exec_activities where id = current_setting('test.act_c')::uuid),
+    'code', 'A30', 'name', 'Cable laying', 'duration', 4, 'responsible_id', (select id from u where role = 'senior_elec_engineer')));
+  assert (select status = 'draft' and version = 1 from public.exec_programmes where exec_project_id = e), 'revision keeps baseline 1';
+  begin perform public.submit_programme(e, null); assert false, 'reason';
+  exception when others then assert sqlerrm = 'Give the reason for the revised programme', sqlerrm; end;
+  perform public.submit_programme(e, 'Cable route longer after the drainage clash');
+end $$;
+reset role;
+
+do $$ begin
+  assert public.programme_tick(now() + interval '20 days') >= 0, 'programme tick runs';
+  assert (select forecast_finish is not null from public.exec_programmes where exec_project_id = current_setting('test.exlegacy')::uuid), 'forecast finish';
+end $$;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
