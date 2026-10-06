@@ -1,0 +1,244 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Win Probability Wizard</title><style>
+  @page { size: A4; margin: 18mm 16mm 18mm 16mm; }
+  :root {
+    --brand: #C8102E; --ink: #111827; --text: #1f2937; --muted: #6b7280; --line: #e5e7eb; --soft: #f6f7f9;
+    --green: #1E8E3E; --amber: #E8A317; --red: #C62828; --grey: #8A8F98; --blue: #1D4ED8;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: "Liberation Sans", Arial, Helvetica, sans-serif; font-size: 10.2pt; line-height: 1.45; color: var(--text); margin: 0; }
+  h1 { font-size: 21pt; color: var(--ink); margin: 0 0 4mm; }
+  h2 { font-size: 13.5pt; color: var(--ink); margin: 7mm 0 2.5mm; border-bottom: 1.5px solid var(--line); padding-bottom: 1.5mm; }
+  h3 { font-size: 11pt; color: var(--ink); margin: 5mm 0 1.5mm; }
+  p { margin: 0 0 2.5mm; }
+  ul, ol { margin: 0 0 3mm; padding-left: 6mm; }
+  li { margin-bottom: 1.2mm; }
+  .chapter { page-break-before: always; }
+  .chapter-head { display: flex; align-items: center; gap: 5mm; border-left: 6px solid var(--brand); padding: 3mm 0 3mm 5mm; margin-bottom: 5mm; background: var(--soft); }
+  .chapter-head .num { font-size: 26pt; font-weight: 700; color: var(--brand); }
+  .chapter-head .title { font-size: 17pt; font-weight: 700; color: var(--ink); }
+  .chapter-head .sub { color: var(--muted); font-size: 9.5pt; }
+  .btn { display: inline-block; font-weight: 700; color: var(--ink); background: #fff; border: 1px solid #cfd3da; border-radius: 4px; padding: 0 1.6mm; font-size: 9pt; white-space: nowrap; }
+  .btn.red { background: var(--brand); color: #fff; border-color: var(--brand); }
+  .path { font-weight: 700; color: var(--blue); }
+  .box { border: 1px solid var(--line); border-radius: 6px; padding: 3mm 4mm; margin: 3mm 0; background: #fff; page-break-inside: avoid; }
+  .tip { border-left: 4px solid var(--blue); background: #eef3ff; }
+  .warn { border-left: 4px solid var(--amber); background: #fff8e8; }
+  .rule { border-left: 4px solid var(--brand); background: #fdf0f2; }
+  .box b.label { display: block; font-size: 8.5pt; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin-bottom: 1mm; }
+  table { width: 100%; border-collapse: collapse; margin: 2mm 0 4mm; font-size: 9.3pt; page-break-inside: auto; }
+  thead { display: table-header-group; }
+  tr { page-break-inside: avoid; }
+  th { background: var(--ink); color: #fff; text-align: left; padding: 1.6mm 2mm; font-weight: 700; }
+  td { border-bottom: 1px solid var(--line); padding: 1.6mm 2mm; vertical-align: top; }
+  tr:nth-child(even) td { background: #fafafa; }
+  .steps { counter-reset: s; list-style: none; padding-left: 0; }
+  .steps > li { counter-increment: s; position: relative; padding-left: 9mm; margin-bottom: 2mm; }
+  .steps > li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 6mm; height: 6mm; border-radius: 50%; background: var(--brand); color: #fff; font-weight: 700; font-size: 8.5pt; text-align: center; line-height: 6mm; }
+  .dot { display: inline-block; width: 3mm; height: 3mm; border-radius: 50%; vertical-align: -0.3mm; margin-right: 1mm; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+  .flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 1.5mm; margin: 3mm 0 4mm; }
+  .flow .node { flex: 1 1 0; min-width: 24mm; border: 1.5px solid var(--ink); border-radius: 5px; padding: 2mm; font-size: 8.6pt; text-align: center; background: #fff; }
+  .flow .node b { display: block; font-size: 9pt; color: var(--brand); margin-bottom: .6mm; }
+  .flow .arrow { align-self: center; font-weight: 700; color: var(--muted); }
+  .toc td { border: none; padding: 1mm 0; }
+  .toc td.n { width: 10mm; color: var(--brand); font-weight: 700; }
+  .cover { height: 255mm; display: flex; flex-direction: column; justify-content: space-between; }
+  .cover .top { border-bottom: 3px solid var(--brand); padding-bottom: 6mm; }
+  .logo { font-size: 44pt; font-weight: 800; color: var(--brand); letter-spacing: 3px; }
+  .cover h1 { font-size: 26pt; margin-top: 10mm; }
+  .cover .lead { font-size: 12.5pt; color: var(--muted); }
+  .linkbox { font-size: 14pt; font-weight: 700; color: var(--ink); border: 2px solid var(--brand); border-radius: 8px; padding: 4mm 6mm; display: inline-block; margin: 6mm 0; }
+  .muted { color: var(--muted); }
+  .small { font-size: 8.8pt; }
+  .kbd { font-family: "Liberation Mono", monospace; font-size: 9pt; background: var(--soft); border: 1px solid var(--line); border-radius: 3px; padding: 0 1mm; }
+  .hdr { border-bottom: 3px solid var(--brand); padding-bottom: 3mm; margin-bottom: 4mm; display:flex; justify-content:space-between; align-items:flex-end; }
+  .hdr .logo { font-size: 26pt; }
+  h2 .n { display:inline-block; background: var(--brand); color:#fff; border-radius:4px; padding:0 2mm; margin-right:2mm; font-size:11pt; }
+  section { page-break-inside: avoid; }
+  body { font-size: 9.8pt; }
+  h2 { margin: 5mm 0 2mm; }
+  .steps > li { margin-bottom: 1.4mm; }
+  figure { margin: 3mm 0 4mm; page-break-inside: avoid; text-align: center; }
+  figure img { max-width: 100%; max-height: 120mm; border: 1px solid #d5d9e0; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  figure.narrow img { max-width: 62%; }
+  figure.phone img { max-height: 150mm; }
+  figcaption { font-size: 8.6pt; color: var(--muted); margin-top: 1.5mm; }
+  .side { display: grid; grid-template-columns: 58mm 1fr; gap: 5mm; align-items: start; }
+  .chip { display:inline-block; border-radius: 10px; padding: 0 2mm; font-size: 8.6pt; font-weight: 700; border: 1px solid #cfd3da; }
+  .chip.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .formula { font-family: "Liberation Mono", monospace; font-size: 9.2pt; background: var(--soft); border: 1px solid var(--line); border-radius: 5px; padding: 2.5mm 4mm; margin: 2mm 0 3mm; }
+</style>
+</head><body>
+<div class="hdr">
+  <div><div class="logo">DIMO</div><div class="muted">Lighting Operations System</div></div>
+  <div style="text-align:right"><div style="font-size:17pt;font-weight:700;color:var(--ink)">Win Probability Wizard – Tutorial</div>
+  <div class="muted">For sales people, SM Projects and GM / DGM · testing stage · https://dimo-lighting-ops.vercel.app</div></div>
+</div>
+
+<div class="box tip"><b class="label">What it does</b>The wizard builds the win probability of a project from <b>who decides</b>, <b>how strong our product is</b> and <b>where the competitors stand</b>, instead of a single number typed by hand. It shows how the number is built, warns when something is missing and tells you what to do next. Button names look like <span class="btn">this</span>; menu paths like <span class="path">Projects → project → Open the wizard</span>.</div>
+
+<div class="box rule"><b class="label">Testing stage</b>For now each sales person chooses <b>per project</b> whether to enter the win probability by hand or with the wizard. Both figures are kept, so SM Projects and the GM can compare which one predicts the result better before the wizard becomes the standard.</div>
+
+<section>
+<h2><span class="n">1</span>The formula in one line</h2>
+<div class="formula">Win probability = Go (the project goes ahead) × Get (we win it if it goes ahead)</div>
+<ul>
+<li><b>Go</b> comes from funding, approvals and the project stage (step 1).</li>
+<li><b>Get</b> compares us with each competitor across four <b>pillars</b> – <b>Contractor</b>, <b>Consultant</b>, <b>Product</b> and <b>Client</b>. The decision type sets how much each pillar weighs (step 1); the people map (step 2), product scores (step 3) and competitor scores (step 4) fill them in.</li>
+<li>Get is then reduced if we have no <b>control</b> of the people, if a <b>veto</b> holder is not with us, or a <b>hard cap</b> applies (e.g. the final approver is against us → max 10%).</li>
+<li><b>Confidence</b> shows how much of the map is verified rather than assumed or unknown.</li>
+</ul>
+</section>
+
+<section class="chapter">
+<h2><span class="n">2</span>Switch the wizard on for a project</h2>
+<ol class="steps">
+<li>Open <span class="path">Projects</span> → tap the project.</li>
+<li>Tick <span class="btn">✓ Use the Win Probability Wizard</span>. The tick is per project – use it for your <b>top 3–5 projects</b> first.</li>
+<li>Tap <span class="btn red">Open the wizard</span>. The last wizard score and its date are shown beside the button.</li>
+</ol>
+<figure><img src="img/win/t1-project.jpg"><figcaption>Project page – the wizard tick, “Open the wizard” and the last wizard score.</figcaption></figure>
+<div class="box tip"><b class="label">After a visit</b>When you finish a visit on a project that has the tick on, the app asks <i>“Update the win probability?”</i> and offers <span class="btn red">Open the wizard</span> instead of the manual % box.</div>
+</section>
+
+<section class="chapter">
+<h2><span class="n">3</span>The wizard screen and the live picture</h2>
+<p>The card at the top stays visible on every step and updates as you tap:</p>
+<ul>
+<li><b>Wizard win</b> – the final %. <b>Go</b> and <b>Get</b> – its two parts. <b>Confidence</b> – green when well verified, amber or red when much is assumed. <b>Expected value</b> – lighting value × wizard %.</li>
+<li><b>Ring</b> – the wizard %; the black tick marks the project’s current % (manual or approved).</li>
+<li><b>As you change it</b> – a small line of how the % moved with each change in this session, with “▲ +2 pts last change”.</li>
+<li><b>Pillars</b> – for each pillar, our strength (blue) against the best competitor (orange) and its weight. A pillar not yet known is faded; a pillar not on the project shows “not on this project”.</li>
+</ul>
+<figure><img src="img/win/t13-live.jpg"><figcaption>After two changes (project stage moved to Tender, then Construction) the wizard rose from 26% to 30%.</figcaption></figure>
+<p>The six steps are along the tabs: <span class="chip on">1 Project</span> <span class="chip">2 People</span> <span class="chip">3 Product</span> <span class="chip">4 Competitors</span> <span class="chip">5 Gut feel</span> <span class="chip">6 Result</span>. You can jump between them at any time. The map is kept when you save a score, so next time you only update what changed.</p>
+</section>
+
+<section class="chapter">
+<h2><span class="n">4</span>Step 1 – Project: how the decision is made</h2>
+<figure><img src="img/win/t2-step1.jpg"><figcaption>Step 1 – decision type, pillar weights and the Go factors.</figcaption></figure>
+<ol class="steps">
+<li><b>Decision type</b> – pick who really decides the lighting package. It sets the pillar weights (you may adjust them; they should add to 100):
+<table><thead><tr><th>Decision type</th><th>Contractor</th><th>Consultant</th><th>Product</th><th>Client</th></tr></thead><tbody>
+<tr><td>Not yet known</td><td>25</td><td>25</td><td>25</td><td>25</td></tr>
+<tr><td>Specification-driven (consultant specifies)</td><td>10</td><td>35</td><td>35</td><td>20</td></tr>
+<tr><td>Price-driven or tender</td><td>20</td><td>15</td><td>35</td><td>30</td></tr>
+<tr><td>Owner-driven</td><td>15</td><td>15</td><td>20</td><td>50</td></tr>
+<tr><td>Design and build (contractor designs and buys)</td><td>40</td><td>15</td><td>25</td><td>20</td></tr>
+</tbody></table></li>
+<li><b>Will the project go ahead?</b> – Funding (Confirmed / Likely / Uncertain), Approvals (Received / Pending / Not started) and Project stage (Construction / Tender / Detailed design / Concept). These give the <b>Go</b> %.</li>
+</ol>
+</section>
+
+<section class="chapter">
+<h2><span class="n">5</span>Step 2 – People: map who decides</h2>
+<p>For each people pillar (Contractor, Consultant, Client) list everyone who can affect the decision on <b>our package</b>. The wizard pre-fills people from the project’s stakeholders, contacts and visits.</p>
+<figure><img src="img/win/t3-people.jpg"><figcaption>Contractor pillar with two people. Every field changes the score.</figcaption></figure>
+<table><thead><tr><th style="width:38mm">Field</th><th>What to enter</th></tr></thead><tbody>
+<tr><td>Role / Organization / Name</td><td>The position (e.g. “MEP consultant – Electrical Engineer”), the company, and the name if known.</td></tr>
+<tr><td>Authority on our package</td><td><b>4 · Final approval</b>, <b>3 · Decides or specifies</b>, <b>2 · Recommends</b>, <b>1 · Influences</b>. Higher authority weighs more.</td></tr>
+<tr><td>Our control</td><td><b>Controlled</b> (we can get them to act), <b>Contact only</b>, <b>No access</b>. Low control lowers the result.</td></tr>
+<tr><td>What drives their view</td><td>Price, Technical, Past experience or Relationship – used for the “What to do next” advice.</td></tr>
+<tr><td>Evidence</td><td><b>Verified</b> (they said or did it) or <b>Assumed</b>. Assumed lowers confidence.</td></tr>
+<tr><td>Days since last contact</td><td>Over 30 days for a decision-maker triggers a “Visit …” action.</td></tr>
+<tr><td>Reports to / Influenced by</td><td>Links people together – a supporter’s boss or influencer pulls their score.</td></tr>
+<tr><td>Support for us (0–10)</td><td>0 = backs a rival, 5 = neutral, 10 = champion. “Used after adjustments” shows the value after evidence, access and influence.</td></tr>
+<tr><td>Veto / competitor close</td><td>Tick <b>veto</b> if they can accept or reject alone. Tick <b>a competitor is close</b> if a rival has a relationship with them.</td></tr>
+</tbody></table>
+
+<h3>Pillar state – not every project has every pillar</h3>
+<p>Each pillar has three choices: <span class="chip on">On this project</span> <span class="chip">Not yet known</span> <span class="chip">Not on this project</span>.</p>
+<ul>
+<li><b>Not yet known</b> – nobody identified yet. The pillar counts as neutral (50%) and confidence drops.</li>
+<li><b>Not on this project</b> – e.g. a supply-only order with no contractor. The weight is shared among the other pillars. A <b>reason is required</b>; SM Projects sees it.</li>
+</ul>
+<figure><img src="img/win/t12-absent.jpg"><figcaption>Contractor marked “not on this project” – its weight is shared out and a reason is asked for.</figcaption></figure>
+
+<h3>Add, rename or remove roles</h3>
+<div class="side">
+<figure style="margin:0"><img src="img/win/t9-addrole.jpg"><figcaption>+ Add a role</figcaption></figure>
+<div><ol class="steps">
+<li>Tap <span class="btn">+ Add a role</span> under a pillar. Pick a <b>standard role</b> or type your own (e.g. a sub-role like “Site engineer – lighting”), then the organization and name.</li>
+<li>Rename any role by editing its <b>Role</b> field.</li>
+<li><span class="btn">Remove</span> drops a role. Removing someone with authority 3 or 4 asks for a reason – it appears in the review for SM Projects.</li>
+</ol></div></div>
+</section>
+
+<section class="chapter">
+<h2><span class="n">6</span>Step 3 – Product against the best competing product</h2>
+<figure><img src="img/win/t4-product.jpg"><figcaption>Step 3 – product scores, specification, product-side teams and deal-breakers.</figcaption></figure>
+<ol class="steps">
+<li>Score <b>Technical fit</b> (60%), <b>Price</b> (25%) and <b>Commercial terms</b> – lead time, stock, payment, warranty (15%) – from 0 to 10.</li>
+<li><b>How is our product specified?</b> <i>Named brand only</i> is strongest; <i>Named “or equal”</i> and <i>Open</i> leave room for substitution at contractor stage.</li>
+<li><b>Product-side teams</b> – add our application engineer, the manufacturer’s support, a rival’s local agent, with strength 0–10. A strong team lifts that side by up to 15%.</li>
+<li><b>Deal-breakers</b> – tick only if true: failing a mandatory spec item or being above the confirmed budget without approval sets the result to <b>0%</b>.</li>
+</ol>
+</section>
+
+<section>
+<h2><span class="n">7</span>Step 4 – Competitors</h2>
+<p>Add each competing brand and score its position in each pillar from 0 to 10. If you don’t know, leave <b>6</b> – assume they are working the people you can’t reach. Use <span class="btn">+ Add a competitor</span> or <span class="btn">Remove</span>.</p>
+<figure><img src="img/win/t5-comps.jpg"><figcaption>Competitor 1 scored per pillar.</figcaption></figure>
+</section>
+
+<section>
+<h2><span class="n">8</span>Step 5 – Gut feel</h2>
+<p><b>Before</b> looking at the result, tap the % you would give this deal. It does not change the wizard – it is kept for comparison, and a gap of 20 points or more is flagged so you re-check the map. Then tap <span class="btn red">See result</span>.</p>
+<figure><img src="img/win/t6-gut.jpg"><figcaption>Step 5 – your gut feel.</figcaption></figure>
+</section>
+
+<section class="chapter">
+<h2><span class="n">9</span>Step 6 – Result</h2>
+<figure><img src="img/win/t7-result.jpg"><figcaption>Result – warnings, how the number is built, pillars and what to do next.</figcaption></figure>
+<ul>
+<li><b>Red / amber notes</b> – caps and warnings. In this example the owner (final approval) is in the client pillar where we have <b>no control</b>, so Get is <b>capped at 30%</b>; and the gut feel is 29 points above the wizard.</li>
+<li><b>How the number is built</b> – head-to-head chance against all competitors × control factor × veto factor, the cap, then × Go.</li>
+<li><b>Pillars</b> – our score, our control and weight in each.</li>
+<li><b>What to do next</b> – up to three actions from the map (e.g. senior meeting with the architect; review the offer for the price-driven contractor; get the brand named in the specification). Put them in your next weekly plan.</li>
+</ul>
+<div class="box warn"><b class="label">Reading this example</b>The fastest way up is not a better price – it is getting <b>access to the owner</b>. Once we have contact or control in the client pillar, the 30% cap is lifted.</div>
+</section>
+
+<section class="chapter">
+<h2><span class="n">10</span>Use the result</h2>
+<div class="side">
+<figure style="margin:0"><img src="img/win/t8-apply.jpg"><figcaption>Sales: send to SM Projects</figcaption></figure>
+<div>
+<ol class="steps">
+<li><b>Sales people</b> – tap <span class="btn red">Send 26% for approval …</span>. Choose the stage/milestone, keep or adjust the %, add a comment and tap <span class="btn red">Send for approval</span>. It goes to SM Projects as a project change request.</li>
+<li><b>SM Projects / GM</b> – the button reads <span class="btn red">Set 26% …</span> and updates the project directly.</li>
+<li><span class="btn">Save score only</span> keeps the score for the trial without changing the project %.</li>
+<li><b>Score history</b> at the bottom lists every score – wizard %, the % at the time, chosen %, and whether it was sent or set.</li>
+</ol>
+</div></div>
+<div class="box rule"><b class="label">SM Projects reviewing a request</b>The request shows the wizard %, the reason, and any flags: pillars marked not on the project (with reason), removed decision-makers (with reason), low confidence, and big gaps between wizard, gut feel and the current %.</div>
+</section>
+
+<section>
+<h2><span class="n">11</span>Wizard trial page (SM Projects and GM / DGM)</h2>
+<p><span class="path">Projects → Wizard trial</span> compares the two methods:</p>
+<ul>
+<li>Projects scored, scores in total, the average gap wizard vs manual, and how many scored projects are now won or lost.</li>
+<li><b>Which was closer to the result</b> – by band (under 40%, 40–69%, 70% and over). A good forecast wins about as often as its %. Reliable after about 30 decided projects.</li>
+<li><b>Projects (latest score)</b> – wizard, manual then, gut, confidence, now, and how it was used. Tap a row to open the project.</li>
+</ul>
+<figure><img src="img/win/t10-trial.jpg"><figcaption>Wizard trial page.</figcaption></figure>
+</section>
+
+<section class="chapter">
+<h2><span class="n">12</span>On the phone</h2>
+<div class="side">
+<figure class="phone" style="margin:0"><img src="img/win/t11-mobile.jpg"><figcaption>Wizard on a phone</figcaption></figure>
+<div>
+<p>The wizard works the same on the Android app and the phone browser. The live card stacks above the steps; scroll the tab row sideways to reach Gut feel and Result.</p>
+<h3>Good practice</h3>
+<ul>
+<li>Start with your <b>top 3–5 projects</b>, and update them after each important visit.</li>
+<li>Use <b>Not yet known</b> when you haven’t found the person yet; use <b>Not on this project</b> only when that pillar really doesn’t exist.</li>
+<li>Mark <b>Verified</b> only when the person said or did something that shows it.</li>
+<li>Don’t move numbers to reach a % you want – the gut-feel gap and the trial page show it. Fix the map with facts instead.</li>
+<li>Act on <b>What to do next</b> – it is the shortest route to a higher %.</li>
+</ul>
+</div></div>
+</section>
+</body></html>
