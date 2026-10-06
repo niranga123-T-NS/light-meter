@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useDialog } from '@/components/dialog';
 import { TestingBanner } from '@/components/Testing';
 import { Button, Card, DateField, ErrorBanner, Field, Muted, NumberField, Row, Screen, Section, Select } from '@/components/ui';
+import { useMe } from '@/lib/auth';
 import type { ExecProject } from '@/lib/execution';
 import { useLoad } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
@@ -12,6 +13,8 @@ type Line = { item: string; unit: string; qty: number | null };
 /** Material request from site: items, quantities and the date needed – SEE approves (SM Projects too above the limit), Operations orders. */
 export default function NewMaterialRequest() {
   const dialog = useDialog();
+  const me = useMe();
+  const sub = me.role === 'sub_supervisor';
   const params = useLocalSearchParams<{ project?: string }>();
   const [error, setError] = useState<string | null>(null);
   const [project, setProject] = useState<string | null>(params.project ?? null);
@@ -35,7 +38,7 @@ export default function NewMaterialRequest() {
         p: { required_date: required, purpose, est_value: value ?? '', lines: lines.map((l) => ({ ...l, qty: l.qty ?? '' })) },
       });
       router.replace(`/execution/material/${id}`);
-    }, 'Requested – the Senior Electrical Engineer approves it');
+    }, sub ? 'Sent to the Assistant Engineer' : 'Requested – the Senior Electrical Engineer approves it');
   };
   return (
     <Screen maxWidth={760}>
@@ -47,8 +50,14 @@ export default function NewMaterialRequest() {
           <Select label="Project" required value={proj} onChange={setProject} options={(projects ?? []).map((p) => ({ value: p.id, label: `${p.code ?? ''} ${p.name}` }))} />
           <DateField label="Needed on site by" required value={required} onChange={setRequired} quick={[3, 7, 14]} />
           <Field label="For (area / activity)" value={purpose} onChangeText={setPurpose} />
-          <NumberField label="Estimated value (LKR)" value={value} onChange={setValue} />
-          <Muted>Above LKR 1 Mn SM Projects approves too.</Muted>
+          {sub ? (
+            <Muted>The Assistant Engineer checks your request and sends it for approval.</Muted>
+          ) : (
+            <>
+              <NumberField label="Estimated value (LKR)" value={value} onChange={setValue} />
+              <Muted>Above LKR 1 Mn SM Projects approves too.</Muted>
+            </>
+          )}
         </Card>
       </Section>
       <Section title="Items" right={<Button small variant="secondary" title="+ Item" onPress={() => setLines((s) => [...s, { item: '', unit: 'nos', qty: null }])} />}>

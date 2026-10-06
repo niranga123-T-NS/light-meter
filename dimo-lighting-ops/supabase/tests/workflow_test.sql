@@ -3811,5 +3811,54 @@ begin
 end $$;
 reset role;
 
+
+-- Material request from a subcontractor supervisor → AE → SEE → Operations; deliveries acknowledged by both sides
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare m uuid;
+begin
+  m := public.raise_material_request(current_setting('test.ex')::uuid, jsonb_build_object('required_date', current_date + 4,
+    'lines', jsonb_build_array(jsonb_build_object('item', 'Cable ties 300 mm', 'unit', 'pkt', 'qty', 10))));
+  perform set_config('test.smr', m::text, false);
+  assert (select status from public.material_requests where id = m) = 'ae_review', 'AE checks first';
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'exec_material' and recipient_id = (select id from u where role = 'assistant_engineer')
+                 and title like 'Material request from the subcontractor%'), 'AE told';
+end $$;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+select public.ae_review_material_request(current_setting('test.smr')::uuid, true, 'Needed for tray work', 45000);
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select public.decide_material_request(current_setting('test.smr')::uuid, true);
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+select public.order_material_request(current_setting('test.smr')::uuid, 'PO-6001', 'Hardware Mart', current_date + 2);
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare r uuid; l uuid := (select id from public.material_request_lines where mr_id = current_setting('test.smr')::uuid);
+begin
+  r := public.receive_material(current_setting('test.smr')::uuid, jsonb_build_array(jsonb_build_object('line_id', l, 'qty', 4)));
+  perform set_config('test.rc1', r::text, false);
+  assert (select status from public.material_receipts where id = r) = 'pending', 'waits for the supervisor';
+  assert not exists (select 1 from public.store_moves where mr_id = current_setting('test.smr')::uuid), 'not in the store yet';
+end $$;
+reset role;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare r uuid; l uuid := (select id from public.material_request_lines where mr_id = current_setting('test.smr')::uuid);
+begin
+  assert public.acknowledge_delivery(current_setting('test.rc1')::uuid, false, 'Only 3 packets arrived') = 'disputed', 'disputed';
+  r := public.receive_material(current_setting('test.smr')::uuid, jsonb_build_array(jsonb_build_object('line_id', l, 'qty', 3)), null);
+  perform set_config('test.rc2', r::text, false);
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin
+  assert public.acknowledge_delivery(current_setting('test.rc2')::uuid, true) = 'accepted', 'both acknowledged';
+  assert (select status from public.material_requests where id = current_setting('test.smr')::uuid) = 'part_received', 'booked';
+  assert (select sum(qty) from public.store_moves where mr_id = current_setting('test.smr')::uuid) = 3, 'only the acknowledged quantity in the store';
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
