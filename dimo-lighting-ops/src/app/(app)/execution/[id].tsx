@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Text } from 'react-native';
 import { OverviewTab } from '@/components/exec/OverviewTab';
 import { PlansTab } from '@/components/exec/PlansTab';
+import { ReportsTab } from '@/components/exec/ReportsTab';
 import { TeamTab } from '@/components/exec/TeamTab';
 import { TestingBanner } from '@/components/Testing';
 import { colors, ErrorBanner, Loading, Muted, Screen, Segmented } from '@/components/ui';
@@ -17,6 +18,7 @@ const INTERNAL: Role[] = ['senior_elec_engineer', 'sm_projects', 'gm', 'operatio
 const TABS: Tab[] = [
   { key: 'overview', label: 'Overview' },
   { key: 'plans', label: 'Plan', roles: INTERNAL },
+  { key: 'reports', label: 'Daily reports' },
   { key: 'team', label: 'Team', roles: INTERNAL },
 ];
 
@@ -42,6 +44,7 @@ export default function ExecProjectScreen() {
       <Segmented value={t} onChange={setT} options={tabs.map((x) => ({ value: x.key, label: x.label }))} />
       {t === 'overview' ? <OverviewTab p={p} /> : null}
       {t === 'plans' ? <PlansTab p={p} /> : null}
+      {t === 'reports' ? <ReportsTab p={p} /> : null}
       {t === 'team' ? <TeamTab p={p} /> : null}
     </Screen>
   );

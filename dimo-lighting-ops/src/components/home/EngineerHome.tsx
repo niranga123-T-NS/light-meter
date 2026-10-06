@@ -76,6 +76,13 @@ export function EngineerHome() {
         </Row>
       ) : null}
 
+      {me.role === 'sub_supervisor' || me.role === 'assistant_engineer' ? (
+        <Row wrap gap={6}>
+          <Button title="Daily report" onPress={() => router.push('/execution/reports')} />
+          {me.role === 'assistant_engineer' ? <Button variant="secondary" title="Weekly plan" onPress={() => router.push('/execution/plans')} /> : null}
+          <Button variant="secondary" title={me.role === 'sub_supervisor' ? 'My work' : 'My projects'} onPress={() => router.push('/execution')} />
+        </Row>
+      ) : null}
       <TodayPlan />
 
       {!lead && toAccept.length ? (

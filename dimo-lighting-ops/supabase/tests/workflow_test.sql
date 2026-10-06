@@ -3396,5 +3396,43 @@ select pg_temp.act_as('sub_supervisor'); set role authenticated;
 select public.update_plan_item(current_setting('test.sx')::uuid, 'done');
 reset role;
 
+-- Execution step 4: supervisor report → AE verifies; AE report → SEE; late / missing alerts and SM Projects after 3 days
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare r uuid;
+begin
+  begin perform public.submit_exec_report(current_setting('test.ex')::uuid, current_date, '{"work_done":"Mounted 12 downlights"}'); assert false, 'crew needed';
+  exception when others then assert sqlerrm = 'Enter the crew on site', sqlerrm; end;
+  r := public.submit_exec_report(current_setting('test.ex')::uuid, current_date,
+    '{"crew_count":6,"work_done":"Mounted 12 downlights level 2","toolbox_talk":true,"toolbox_topic":"Ladder safety","safety_check":true}');
+  perform set_config('test.sr1', r::text, false);
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare r uuid;
+begin
+  perform public.review_exec_report(current_setting('test.sr1')::uuid, true);
+  r := public.submit_exec_report(current_setting('test.ex')::uuid, current_date, '{"work_done":"Verified supervisor report; IR test DB-2 passed"}');
+  perform set_config('test.ar1', r::text, false);
+  begin perform public.review_exec_report(r, true); assert false, 'AE cannot review own';
+  exception when others then assert sqlerrm like 'The Senior Electrical Engineer reviews it', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select public.review_exec_report(current_setting('test.ar1')::uuid, true);
+reset role;
+-- Missing reports: three working days without a report → SM Projects told
+do $$ declare d date := current_date + 1; k int := 0;
+begin
+  while k < 3 loop
+    if app.is_working_day(d) then
+      perform public.exec_report_tick(((d + time '21:30') at time zone app.tz()));
+      k := k + 1;
+    end if;
+    d := d + 1;
+  end loop;
+  assert (select count(*) from public.exec_report_lateness where user_id = (select id from u where role = 'sub_supervisor')) >= 3, 'missing days recorded';
+  assert exists (select 1 from public.notifications where kind = 'exec_report_late' and recipient_id = (select id from u where role = 'sm_projects')), 'SM Projects told';
+end $$;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

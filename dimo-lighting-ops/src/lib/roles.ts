@@ -66,6 +66,8 @@ export const EXEC_NAV = {
   myWork: { href: '/execution', label: 'My work', icon: '◧', testing: true } as NavItem,
   team: { href: '/execution/team', label: 'Team & access', icon: '☺', testing: true } as NavItem,
   plans: { href: '/execution/plans', label: 'Plans', icon: '▦', testing: true } as NavItem,
+  reports: { href: '/execution/reports', label: 'Daily reports', icon: '✎', testing: true } as NavItem,
+  report: { href: '/execution/reports', label: 'Daily report', icon: '✎', testing: true } as NavItem,
   access: { href: '/execution/team', label: 'Execution access', icon: '☺', testing: true } as NavItem,
 };
 
@@ -215,6 +217,7 @@ function baseNav(role: Role): NavItem[] {
         EXEC_NAV.projects,
         { href: '/engineering', label: 'Tasks & instructions', icon: '▣' },
         EXEC_NAV.plans,
+        EXEC_NAV.reports,
         approvals,
         EXEC_NAV.team,
         { href: '/warranty', label: 'Warranty', icon: '⛉' },
@@ -227,12 +230,13 @@ function baseNav(role: Role): NavItem[] {
         EXEC_NAV.mine,
         { href: '/engineering', label: 'Tasks & instructions', icon: '▣' },
         EXEC_NAV.plans,
+        EXEC_NAV.reports,
         { href: '/warranty', label: 'Warranty', icon: '⛉' },
       ];
     case 'trainee':
       return [{ href: '/', label: 'My Day', icon: '⌂' }, EXEC_NAV.mine, { href: '/engineering', label: 'Tasks & instructions', icon: '▣' }];
     case 'sub_supervisor':
-      return [{ href: '/', label: 'My Day', icon: '⌂' }, EXEC_NAV.myWork];
+      return [{ href: '/', label: 'My Day', icon: '⌂' }, EXEC_NAV.myWork, EXEC_NAV.report];
     case 'sys_admin':
       return [{ href: '/', label: 'Home', icon: '⌂' }, { href: '/admin', label: 'Administration', icon: '⚙' }];
   }

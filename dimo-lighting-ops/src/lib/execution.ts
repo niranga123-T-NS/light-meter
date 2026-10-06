@@ -168,3 +168,32 @@ export function weekOf(iso: string) {
   d.setDate(d.getDate() - (dow - 1));
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
+
+// ---- Daily reports (step 4) ----
+export type ExecReport = {
+  id: string;
+  exec_project_id: string;
+  report_date: string;
+  author_id: string;
+  level: 'supervisor' | 'ae';
+  status: 'submitted' | 'verified' | 'returned';
+  crew_count: number | null;
+  crew: string | null;
+  work_done: string;
+  work_next: string | null;
+  delays: string | null;
+  inspections: string | null;
+  issues: string | null;
+  hse_notes: string | null;
+  toolbox_talk: boolean;
+  toolbox_topic: string | null;
+  safety_check: boolean;
+  weather: string | null;
+  visitors: string | null;
+  submitted_at: string;
+  is_late: boolean;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  review_note: string | null;
+};
+export const REPORT_STATUS: Record<ExecReport['status'], string> = { submitted: 'Waiting for review', verified: 'Verified', returned: 'Returned' };
