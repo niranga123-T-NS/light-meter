@@ -1,6 +1,7 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Text } from 'react-native';
+import { HseTab } from '@/components/exec/HseTab';
 import { OverviewTab } from '@/components/exec/OverviewTab';
 import { PlansTab } from '@/components/exec/PlansTab';
 import { ReportsTab } from '@/components/exec/ReportsTab';
@@ -19,6 +20,7 @@ const TABS: Tab[] = [
   { key: 'overview', label: 'Overview' },
   { key: 'plans', label: 'Plan', roles: INTERNAL },
   { key: 'reports', label: 'Daily reports' },
+  { key: 'hse', label: 'HSE' },
   { key: 'team', label: 'Team', roles: INTERNAL },
 ];
 
@@ -45,6 +47,7 @@ export default function ExecProjectScreen() {
       {t === 'overview' ? <OverviewTab p={p} /> : null}
       {t === 'plans' ? <PlansTab p={p} /> : null}
       {t === 'reports' ? <ReportsTab p={p} /> : null}
+      {t === 'hse' ? <HseTab p={p} /> : null}
       {t === 'team' ? <TeamTab p={p} /> : null}
     </Screen>
   );

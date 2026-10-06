@@ -197,3 +197,50 @@ export type ExecReport = {
   review_note: string | null;
 };
 export const REPORT_STATUS: Record<ExecReport['status'], string> = { submitted: 'Waiting for review', verified: 'Verified', returned: 'Returned' };
+
+// ---- HSE (step 5) ----
+export type HseReport = {
+  id: string;
+  code: string;
+  exec_project_id: string;
+  kind: 'incident' | 'near_miss' | 'unsafe_act' | 'unsafe_condition';
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  occurred_at: string;
+  location: string;
+  lat: number | null;
+  lng: number | null;
+  description: string;
+  immediate_action: string | null;
+  injured: number;
+  lost_time: boolean;
+  reported_by: string;
+  reported_at: string;
+  status: 'open' | 'closed';
+  closed_by: string | null;
+  closed_at: string | null;
+  close_note: string | null;
+};
+export type HseAction = {
+  id: string;
+  report_id: string;
+  action: string;
+  assignee_id: string;
+  due_date: string;
+  status: 'open' | 'done';
+  done_note: string | null;
+  done_at: string | null;
+  created_by: string | null;
+};
+export const HSE_KINDS = [
+  { value: 'incident', label: 'Incident' },
+  { value: 'near_miss', label: 'Near miss' },
+  { value: 'unsafe_act', label: 'Unsafe act' },
+  { value: 'unsafe_condition', label: 'Unsafe condition' },
+];
+export const HSE_SEVERITY = [
+  { value: 'low', label: 'Low' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'high', label: 'High' },
+  { value: 'critical', label: 'Critical' },
+];
+export const hseKind = (k: string) => HSE_KINDS.find((x) => x.value === k)?.label ?? k;

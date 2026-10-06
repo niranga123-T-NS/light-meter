@@ -68,6 +68,7 @@ export const EXEC_NAV = {
   plans: { href: '/execution/plans', label: 'Plans', icon: '▦', testing: true } as NavItem,
   reports: { href: '/execution/reports', label: 'Daily reports', icon: '✎', testing: true } as NavItem,
   report: { href: '/execution/reports', label: 'Daily report', icon: '✎', testing: true } as NavItem,
+  hse: { href: '/execution/hse', label: 'HSE', icon: '⚠', testing: true } as NavItem,
   access: { href: '/execution/team', label: 'Execution access', icon: '☺', testing: true } as NavItem,
 };
 
@@ -127,6 +128,7 @@ function baseNav(role: Role): NavItem[] {
         { href: '/warranty', label: 'Warranty', icon: '⛉' },
         { href: '/engineering', label: 'Engineering jobs', icon: '▣' },
         EXEC_NAV.portfolio,
+        EXEC_NAV.hse,
         EXEC_NAV.access,
         { href: '/samples', label: 'Samples', icon: '⬚' },
         { href: '/finance/pnl', label: 'P&L', icon: '▥' },
@@ -218,6 +220,7 @@ function baseNav(role: Role): NavItem[] {
         { href: '/engineering', label: 'Tasks & instructions', icon: '▣' },
         EXEC_NAV.plans,
         EXEC_NAV.reports,
+        EXEC_NAV.hse,
         approvals,
         EXEC_NAV.team,
         { href: '/warranty', label: 'Warranty', icon: '⛉' },
@@ -231,12 +234,13 @@ function baseNav(role: Role): NavItem[] {
         { href: '/engineering', label: 'Tasks & instructions', icon: '▣' },
         EXEC_NAV.plans,
         EXEC_NAV.reports,
+        EXEC_NAV.hse,
         { href: '/warranty', label: 'Warranty', icon: '⛉' },
       ];
     case 'trainee':
-      return [{ href: '/', label: 'My Day', icon: '⌂' }, EXEC_NAV.mine, { href: '/engineering', label: 'Tasks & instructions', icon: '▣' }];
+      return [{ href: '/', label: 'My Day', icon: '⌂' }, EXEC_NAV.mine, { href: '/engineering', label: 'Tasks & instructions', icon: '▣' }, EXEC_NAV.hse];
     case 'sub_supervisor':
-      return [{ href: '/', label: 'My Day', icon: '⌂' }, EXEC_NAV.myWork, EXEC_NAV.report];
+      return [{ href: '/', label: 'My Day', icon: '⌂' }, EXEC_NAV.myWork, EXEC_NAV.report, EXEC_NAV.hse];
     case 'sys_admin':
       return [{ href: '/', label: 'Home', icon: '⌂' }, { href: '/admin', label: 'Administration', icon: '⚙' }];
   }

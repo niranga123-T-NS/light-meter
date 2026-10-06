@@ -3434,5 +3434,31 @@ begin
   assert exists (select 1 from public.notifications where kind = 'exec_report_late' and recipient_id = (select id from u where role = 'sm_projects')), 'SM Projects told';
 end $$;
 
+-- Execution step 5: HSE report by a supervisor → SEE + SM Projects at once; action to closure
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare r uuid;
+begin
+  r := public.report_hse(current_setting('test.ex')::uuid, '{"kind":"near_miss","severity":"high","location":"Level 2 east stair","description":"Ladder slipped – no injury","immediate_action":"Area cordoned"}');
+  perform set_config('test.hse', r::text, false);
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'hse_report' and priority = 'critical' and recipient_id = (select id from u where role = 'sm_projects')), 'SMP told (critical)';
+  assert exists (select 1 from public.notifications where kind = 'hse_report' and recipient_id = (select id from u where role = 'senior_elec_engineer')), 'SEE told';
+end $$;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin
+  perform public.add_hse_action(current_setting('test.hse')::uuid, 'Provide ladder stabilisers and re-brief the crew', (select id from u where role = 'sub_supervisor'), current_date + 2);
+  begin perform public.close_hse_report(current_setting('test.hse')::uuid, 'done'); assert false, 'open action';
+  exception when others then assert sqlerrm = 'Complete every corrective action first', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+select public.complete_hse_action((select id from public.hse_actions limit 1), 'Stabilisers fitted, toolbox talk held');
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select public.close_hse_report(current_setting('test.hse')::uuid, 'Root cause: ladder on wet floor; rule added to toolbox talks');
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

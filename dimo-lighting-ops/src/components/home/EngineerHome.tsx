@@ -16,12 +16,14 @@ export function EngineerHome() {
   const people = usePeople();
   const lead = me.role === 'senior_elec_engineer';
   const { data, error, reload } = useLoad(async () => {
-    const [jobs, claims] = await Promise.all([
+    const [jobs, claims, hse] = await Promise.all([
       supabase.from('eng_jobs').select(ENG_SELECT).in('status', ['assigned', 'in_progress', 'on_hold']).order('due_date').limit(2000),
       supabase.from('warranty_claims').select('id, assignee_id, inspected_on, status').eq('status', 'open').limit(3000),
+      supabase.from('hse_actions').select('id, report_id, action, due_date, assignee_id').eq('status', 'open').eq('assignee_id', me.id),
     ]);
     if (jobs.error) throw new Error(jobs.error.message);
-    return { jobs: (jobs.data ?? []) as EngJob[], claims: (claims.data ?? []) as { id: string; assignee_id: string | null; inspected_on: string | null }[] };
+    return { jobs: (jobs.data ?? []) as EngJob[], claims: (claims.data ?? []) as { id: string; assignee_id: string | null; inspected_on: string | null }[],
+      hse: (hse.data ?? []) as { id: string; report_id: string; action: string; due_date: string }[] };
   });
   if (!data)
     return (
@@ -84,6 +86,16 @@ export function EngineerHome() {
         </Row>
       ) : null}
       <TodayPlan />
+
+      {data.hse.length ? (
+        <Section title={`HSE actions for you (${data.hse.length})`}>
+          <Card style={{ padding: 0, overflow: 'hidden' }}>
+            {data.hse.map((h) => (
+              <ListRow key={h.id} onPress={() => router.push(`/execution/hse/${h.report_id}`)} highlight={h.due_date < today ? colors.red : colors.amber} title={h.action} subtitle={`due ${h.due_date}`} />
+            ))}
+          </Card>
+        </Section>
+      ) : null}
 
       {!lead && toAccept.length ? (
         <Section title={`To accept (${toAccept.length})`}>
