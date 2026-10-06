@@ -30,7 +30,6 @@ export default function RequestProjectChange() {
   const p = data;
   const f: Draft = d ?? (Object.fromEntries(CHANGE_FIELDS.map((k) => [k, p[k]])) as Draft);
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD({ ...f, [k]: v });
-  const band = MILESTONES.find((m) => m.value === f.milestone);
   const changed = CHANGE_FIELDS.filter((k) => (f[k] ?? null) !== (p[k] ?? null) && !(f[k] === '' && p[k] == null));
   const manager = me.role === 'sm_projects' || me.role === 'gm';
   const cur = f.duty_status === 'duty_free' ? 'USD' : 'LKR';
@@ -63,18 +62,15 @@ export default function RequestProjectChange() {
           <Select
             label="Milestone"
             value={f.milestone}
-            options={MILESTONES.map((m) => ({ value: m.value, label: `${m.label} – default ${m.def}% (${m.lo}–${m.hi}%)` }))}
-            onChange={(v) => {
-              const m = MILESTONES.find((x) => x.value === v);
-              setD({ ...f, milestone: v as Draft['milestone'], win_probability: m && (f.win_probability < m.lo || f.win_probability > m.hi) ? m.def : f.win_probability });
-            }}
+            options={MILESTONES.map((m) => ({ value: m.value, label: m.label }))}
+            onChange={(v) => set('milestone', v as Draft['milestone'])}
           />
           <NumberField
             label="Win probability"
             suffix="%"
             value={f.win_probability}
             onChange={(v) => set('win_probability', v ?? 0)}
-            hint={band ? `Band for this milestone ${band.lo}–${band.hi}% (outside it, say why in the reason)` : undefined}
+            hint="Your own estimate of winning (0–100%) – not tied to the milestone"
           />
           <Select
             label="Specification"

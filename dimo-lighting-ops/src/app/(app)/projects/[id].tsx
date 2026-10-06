@@ -94,24 +94,42 @@ export default function ProjectDetail() {
       await reload();
     }, approve ? 'Approved – the project is updated' : 'Not approved – the sales person is told');
   };
-  const band = MILESTONES.find((m) => m.value === p.milestone);
+  const ms = MILESTONES.find((m) => m.value === p.milestone);
   const met = new Set([...stakeholders.map((s) => s.category), ...visits.map((v) => v.visit_category)]);
 
+  // The win probability is the sales person's own estimate – independent of the milestone
   const changeProbability = async () => {
     const r = await dialog.prompt({
       title: 'Win probability',
-      message: 'The stage proposes a default; going outside the band needs a reason.',
+      message: 'Your own estimate of winning this project (0–100%), by hand – or tick the wizard and score it there.',
       fields: [
-        { key: 'milestone', label: 'Stage / milestone', type: 'select', initial: p.milestone, options: MILESTONES.map((m) => ({ value: m.value, label: `${m.label} – default ${m.def}% (${m.lo}–${m.hi}%)` })) },
         { key: 'probability', label: 'Win probability %', initial: String(p.win_probability), required: true },
-        { key: 'reason', label: manager && p.owner_id !== me.id ? 'Comment (the sales person is notified)' : 'Reason (needed outside the band)', type: 'multiline' },
+        { key: 'reason', label: manager && p.owner_id !== me.id ? 'Comment (the sales person is notified)' : 'Reason', type: 'multiline' },
       ],
     });
     if (!r) return;
+    const pct = Number(r.probability);
+    if (!(pct >= 0 && pct <= 100)) return dialog.toast('Win probability is 0 – 100', 'error');
     await dialog.run(async () => {
-      await rpc('set_project_probability', { p_project: p.id, p_milestone: r.milestone, p_probability: Number(r.probability), p_reason: r.reason || null });
+      await rpc('set_project_probability', { p_project: p.id, p_milestone: p.milestone, p_probability: pct, p_reason: r.reason || null });
       await reload();
     }, 'Probability updated');
+  };
+
+  const changeMilestone = async () => {
+    const r = await dialog.prompt({
+      title: 'Milestone',
+      message: 'The milestone does not change the win probability (except Won = 100% and Lost = 0%).',
+      fields: [
+        { key: 'milestone', label: 'Milestone', type: 'select', initial: p.milestone, options: MILESTONES.map((m) => ({ value: m.value, label: m.label })) },
+        { key: 'reason', label: 'Reason', type: 'multiline' },
+      ],
+    });
+    if (!r || r.milestone === p.milestone) return;
+    await dialog.run(async () => {
+      await rpc('set_project_probability', { p_project: p.id, p_milestone: r.milestone, p_probability: p.win_probability, p_reason: r.reason || null });
+      await reload();
+    }, 'Milestone updated');
   };
 
   const review = async () => {
@@ -217,8 +235,8 @@ export default function ProjectDetail() {
         <Row wrap style={{ marginTop: 8 }}>
           <KeyValue label="Sales person" value={people[p.owner_id]?.full_name ?? '—'} />
           <KeyValue label="Stage" value={p.stage} />
-          <KeyValue label="Milestone" value={band?.label ?? p.milestone} />
-          <KeyValue label="Win probability" value={`${p.win_probability}% (band ${band?.lo}–${band?.hi}%)`} />
+          <KeyValue label="Milestone" value={ms?.label ?? p.milestone} />
+          <KeyValue label="Win probability" value={`${p.win_probability}% · ${p.use_wizard ? 'Win Probability Wizard' : 'entered by the sales person'}`} />
           <KeyValue label="Lighting value" value={fmtMoney(p.lighting_value, p.currency)} />
           <KeyValue label="Weighted" value={fmtMoney(p.lighting_value == null ? null : (p.lighting_value * p.win_probability) / 100, p.currency)} />
           <KeyValue label="Project value" value={fmtMoney(p.project_value, p.currency)} />
@@ -301,6 +319,7 @@ export default function ProjectDetail() {
         {canEdit && manager ? (
           <Row wrap gap={6} style={{ marginTop: 8 }}>
             <Button small title="Win probability" onPress={changeProbability} />
+            <Button small variant="secondary" title="Milestone" onPress={changeMilestone} />
             <Button small variant="secondary" title="Stage" onPress={() => editField('stage')} />
             <Button small variant="secondary" title="Specification" onPress={() => editField('spec_status')} />
             <Button small variant="secondary" title="Lighting value" onPress={() => editField('lighting_value')} />

@@ -5,7 +5,7 @@ import { fmtDate, fmtDateTime, todayISO } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import { kindLabel } from '@/lib/meetingActions';
 import { ROLE_SHORT } from '@/lib/roles';
-import { rpc } from '@/lib/supabase';
+import { rpc, supabase } from '@/lib/supabase';
 import type { Role } from '@/lib/types';
 
 export type MyAction = {
@@ -43,7 +43,15 @@ const PARTS: { part: MyAction['my_part']; title: string }[] = [
 /** My Day and Meetings: every meeting follow-up I do, appoint or track. */
 export function MeetingActions() {
   const dialog = useDialog();
-  const { data, reload } = useLoad(() => rpc<MyAction[]>('my_meeting_actions').catch(() => [] as MyAction[]));
+  const { data: loaded, reload } = useLoad(async () => {
+    const list = await rpc<MyAction[]>('my_meeting_actions').catch(() => [] as MyAction[]);
+    // Project execution tasks are carried out as engineering jobs (deadline, site location, accept / hold, updates, GPS visit)
+    const ids = list.filter((a) => a.kind === 'execution').map((a) => a.id);
+    const { data: jobs } = ids.length ? await supabase.from('eng_jobs').select('id, meeting_action_id').in('meeting_action_id', ids).neq('status', 'cancelled') : { data: [] };
+    return { list, jobOf: Object.fromEntries((jobs ?? []).map((j: { id: string; meeting_action_id: string }) => [j.meeting_action_id, j.id])) as Record<string, string> };
+  });
+  const data = loaded?.list;
+  const jobOf = loaded?.jobOf ?? {};
   if (!data?.length) return null;
   const today = todayISO();
   const now = new Date().toISOString();
@@ -138,9 +146,17 @@ export function MeetingActions() {
                             onPress={() => router.push(a.plan_id && a.line_status ? `/plan/${a.plan_id}` : '/plan')}
                           />
                         ) : null}
-                        {part === 'assign' ? <Button small title="Appoint" onPress={() => appoint(a)} /> : null}
-                        {part === 'track' ? <Button small variant="ghost" title="Reassign" onPress={() => appoint(a)} /> : null}
-                        {part === 'do' ? <Button small title="Confirm done" onPress={() => confirmDone(a)} /> : null}
+                        {a.kind === 'execution' && jobOf[a.id] ? (
+                          <Button small title="Open job" onPress={() => router.push(`/engineering/${jobOf[a.id]}`)} />
+                        ) : a.kind === 'execution' && (part === 'assign' || part === 'track') ? (
+                          <Button small title="Assign job" onPress={() => router.push({ pathname: '/engineering/new', params: { action: a.id } })} />
+                        ) : (
+                          <>
+                            {part === 'assign' ? <Button small title="Appoint" onPress={() => appoint(a)} /> : null}
+                            {part === 'track' ? <Button small variant="ghost" title="Reassign" onPress={() => appoint(a)} /> : null}
+                            {part === 'do' ? <Button small title="Confirm done" onPress={() => confirmDone(a)} /> : null}
+                          </>
+                        )}
                       </Row>
                     }
                   />

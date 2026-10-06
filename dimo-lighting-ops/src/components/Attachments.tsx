@@ -32,6 +32,8 @@ export const KIND_LABELS: Record<string, string> = {
   claim_photo: 'Claim photo / document',
   report_photo: 'Photo from visit',
   rma_doc: 'Manufacturer claim document',
+  job_photo: 'Site photo',
+  job_doc: 'Job document / test sheet',
 };
 
 /**

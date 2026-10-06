@@ -1,10 +1,10 @@
 import { AdminHome, OpsHome } from '@/components/home/OtherHomes';
 import { ExecDashboard } from '@/components/home/ExecDashboard';
+import { EngineerHome } from '@/components/home/EngineerHome';
 import { DesignBoard, EstimationBoard } from '@/components/home/JobBoards';
 import { SalesHome } from '@/components/home/SalesHome';
 import { MyDayMeetings } from '@/components/WeekMeetings';
 import { useMe } from '@/lib/auth';
-import WarrantyHome from './warranty';
 
 /** Each role opens to its own dashboard (Section 9). */
 export default function Home() {
@@ -28,7 +28,7 @@ export default function Home() {
       return <OpsHome />;
     case 'senior_elec_engineer':
     case 'assistant_engineer':
-      return <WarrantyHome myDay />;
+      return <EngineerHome />;
     default:
       return <AdminHome />;
   }
