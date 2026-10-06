@@ -3765,5 +3765,18 @@ do $$ begin
 end $$;
 reset role;
 
+
+-- Supabase (safeupdate) rejects UPDATE / DELETE without WHERE, also inside functions: none may exist
+do $$ declare bad text;
+begin
+  select string_agg(distinct p.proname, ', ') into bad
+  from pg_proc p join pg_namespace n on n.oid = p.pronamespace,
+       lateral regexp_split_to_table(p.prosrc, ';') st
+  where n.nspname in ('app', 'public') and p.prolang = (select oid from pg_language where lanname = 'plpgsql')
+    and st ~* '(^|\s)(update\s+[a-z_\.]+\s+(as\s+)?(\w+\s+)?set\s|delete\s+from\s+[a-z_\.]+)'
+    and st !~* '\swhere\s';
+  assert bad is null, 'UPDATE/DELETE without WHERE in: ' || bad;
+end $$;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
