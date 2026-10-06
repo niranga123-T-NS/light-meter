@@ -3149,5 +3149,85 @@ do $$ begin
 end $$;
 reset role;
 
+-- Engineering jobs: assign with deadline + location, accept / hold with reason, review, updates by job type, GPS visit, complete
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin
+  begin perform public.create_eng_job('{"job_type":"installation","title":"x"}'); assert false, 'engineer cannot assign';
+  exception when others then assert sqlerrm like 'Only the Senior Electrical Engineer%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare jid uuid;
+begin
+  begin
+    perform public.create_eng_job(jsonb_build_object('job_type', 'installation', 'title', 'Install façade lights', 'assignee_id', (select id from u where role = 'assistant_engineer'),
+      'due_date', current_date + 5, 'site_address', 'Galle'));
+    assert false, 'location needed';
+  exception when others then assert sqlerrm like 'Set the site location%', sqlerrm; end;
+  jid := public.create_eng_job(jsonb_build_object('job_type', 'installation', 'title', 'Install façade lights', 'project_id', '00000000-0000-0000-0000-00000000b001',
+    'assignee_id', (select id from u where role = 'assistant_engineer'), 'due_date', current_date + 5, 'site_address', 'Beach Road, Galle',
+    'lat', 6.0535, 'lng', 80.2210, 'instructions', 'Coordinate with the MEP contractor'));
+  perform set_config('test.ej', jid::text, false);
+  assert (select status = 'assigned' and code like 'ENG-%' from public.eng_jobs where id = jid), 'assigned';
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'eng_job' and recipient_id = (select id from u where role = 'assistant_engineer')), 'engineer told';
+end $$;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare jid uuid := current_setting('test.ej')::uuid; r jsonb;
+begin
+  begin perform public.add_eng_update(jid, '{"kind":"activity","note":"x"}'); assert false, 'accept first';
+  exception when others then assert sqlerrm = 'Accept the job first', sqlerrm; end;
+  begin perform public.hold_eng_job(jid, ' '); assert false, 'hold needs a reason';
+  exception when others then assert sqlerrm like 'A hold always needs the reason%', sqlerrm; end;
+  perform public.accept_eng_job(jid);
+  assert (select status from public.eng_jobs where id = jid) = 'in_progress', 'accepted';
+  begin perform public.add_eng_update(jid, '{"kind":"progress","note":"Cabling done"}'); assert false, 'installation stage needed';
+  exception when others then assert sqlerrm = 'Choose the installation stage', sqlerrm; end;
+  perform public.add_eng_update(jid, '{"kind":"progress","note":"Cabling done on level 1","work_stage":"Cabling / conduit","progress":30,"qty_installed":0,"issues":"Scaffolding late"}');
+  assert (select progress from public.eng_jobs where id = jid) = 30, 'progress kept';
+  begin perform public.complete_eng_job(jid, 'Finished'); assert false, 'site visit needed';
+  exception when others then assert sqlerrm like 'Mark your site visit first%', sqlerrm; end;
+  r := public.eng_site_checkin(jid, 6.9271, 79.8612);  -- Colombo, not Galle
+  assert not (r ->> 'verified')::boolean, 'far away – not verified';
+  r := public.eng_site_checkin(jid, 6.0537, 80.2212);
+  assert (r ->> 'verified')::boolean, 'at site – verified';
+  perform public.hold_eng_job(jid, 'Ceiling not ready – waiting for the contractor');
+  assert (select status = 'on_hold' and hold_reason like 'Ceiling%' from public.eng_jobs where id = jid), 'on hold with reason';
+  begin perform public.review_eng_hold(jid, 'resume', 'go'); assert false, 'engineer cannot review';
+  exception when others then assert sqlerrm like 'Only the Senior Electrical Engineer reviews%', sqlerrm; end;
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'eng_job_hold' and recipient_id = (select id from u where role = 'senior_elec_engineer')), 'hold to the senior';
+end $$;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare jid uuid := current_setting('test.ej')::uuid;
+begin
+  perform public.review_eng_hold(jid, 'resume', 'Discussed with the contractor – resume on Monday', current_date + 9);
+  assert (select status = 'in_progress' and due_date = current_date + 9 from public.eng_jobs where id = jid), 'resumed with a revised deadline';
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare jid uuid := current_setting('test.ej')::uuid;
+begin
+  perform public.complete_eng_job(jid, 'All 40 fixtures installed and tested');
+  assert (select status = 'done' and progress = 100 from public.eng_jobs where id = jid), 'done';
+  assert (select count(*) from public.eng_job_updates where job_id = jid) >= 8, 'history kept';
+end $$;
+reset role;
+-- Alerts: not accepted → engineer + senior, then SM Projects; overdue → all three
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select set_config('test.ej2', public.create_eng_job(jsonb_build_object('job_type', 'inspection', 'title', 'Inspect site', 'assignee_id', (select id from u where role = 'assistant_engineer'),
+  'due_date', current_date, 'site_address', 'Galle', 'lat', 6.05, 'lng', 80.22))::text, false);
+reset role;
+update public.eng_jobs set assigned_at = now() - interval '10 days', due_date = current_date - 2 where id = current_setting('test.ej2')::uuid;
+do $$ begin
+  assert public.eng_tick() >= 2, 'alerts raised';
+  assert (select accept_alert_level from public.eng_jobs where id = current_setting('test.ej2')::uuid) = 2, 'escalated';
+  assert exists (select 1 from public.notifications where kind = 'eng_job_alert' and recipient_id = (select id from u where role = 'sm_projects')), 'SM Projects told';
+end $$;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

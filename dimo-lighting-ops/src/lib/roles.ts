@@ -107,6 +107,7 @@ function baseNav(role: Role): NavItem[] {
         { href: '/retentions', label: 'Retentions', icon: '⛁' },
         { href: '/bonds', label: 'Bonds', icon: '⛨' },
         { href: '/warranty', label: 'Warranty', icon: '⛉' },
+        { href: '/engineering', label: 'Engineering jobs', icon: '▣' },
         { href: '/samples', label: 'Samples', icon: '⬚' },
         { href: '/finance/pnl', label: 'P&L', icon: '▥' },
         { href: '/finance/invoicing', label: 'Invoicing', icon: '⧉' },
@@ -131,6 +132,7 @@ function baseNav(role: Role): NavItem[] {
         { href: '/retentions', label: 'Retentions', icon: '⛁' },
         { href: '/bonds', label: 'Bonds', icon: '⛨' },
         { href: '/warranty', label: 'Warranty', icon: '⛉' },
+        { href: '/engineering', label: 'Engineering jobs', icon: '▣' },
         { href: '/samples', label: 'Samples', icon: '⬚' },
         { href: '/finance/pnl', label: 'P&L', icon: '▥' },
         { href: '/finance/invoicing', label: 'Invoicing', icon: '⧉' },
@@ -188,9 +190,20 @@ function baseNav(role: Role): NavItem[] {
         reports,
       ];
     case 'senior_elec_engineer':
-      return [{ href: '/', label: 'Warranty', icon: '⛉' }, approvals, { href: '/projects', label: 'Projects', icon: '◆' }, reports];
+      return [
+        { href: '/', label: 'My Day', icon: '⌂' },
+        { href: '/engineering', label: 'Jobs', icon: '▣' },
+        { href: '/warranty', label: 'Warranty', icon: '⛉' },
+        approvals,
+        { href: '/projects', label: 'Projects', icon: '◆' },
+        reports,
+      ];
     case 'assistant_engineer':
-      return [{ href: '/', label: 'Warranty', icon: '⛉' }];
+      return [
+        { href: '/', label: 'My Day', icon: '⌂' },
+        { href: '/engineering', label: 'Jobs', icon: '▣' },
+        { href: '/warranty', label: 'Warranty', icon: '⛉' },
+      ];
     case 'sys_admin':
       return [{ href: '/', label: 'Home', icon: '⌂' }, { href: '/admin', label: 'Administration', icon: '⚙' }];
   }
