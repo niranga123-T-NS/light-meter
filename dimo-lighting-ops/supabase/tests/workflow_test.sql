@@ -3328,5 +3328,20 @@ do $$ begin
   assert (select not active and revoke_pending from public.profiles where id = (select id from u where role = 'sub_supervisor')), 'supervisor login blocked';
 end $$;
 
+-- Execution step 2: the Senior Electrical Engineer runs an execution team meeting; outsiders need SM Projects
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare mid uuid; d date := current_date + 3;
+begin
+  while extract(isodow from d) = 7 loop d := d + 1; end loop;
+  mid := public.invite_team_meeting('execution', d, '09:00', '10:00',
+    array[(select id from u where role = 'assistant_engineer'), (select id from u where role = 'asm_building')]);
+  assert (select status from public.sales_meeting_invitees where meeting_id = mid and person_id = (select id from u where role = 'assistant_engineer')) = 'invited', 'own team invited';
+  assert (select status from public.sales_meeting_invitees where meeting_id = mid and person_id = (select id from u where role = 'asm_building')) = 'pending_approval', 'sales needs SMP';
+  perform public.generate_team_meeting('execution', d);
+  assert (select pack ->> 'team_kind' from public.sales_meetings where id = mid) = 'execution', 'execution pack';
+  assert (select jsonb_array_length(pack -> 'people') from public.sales_meetings where id = mid) >= 1, 'engineer in the pack';
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

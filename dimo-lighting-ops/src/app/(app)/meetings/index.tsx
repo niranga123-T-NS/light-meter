@@ -10,6 +10,7 @@ import { useMe } from '@/lib/auth';
 import { fmtDate, fmtDateTime, todayISO } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import { hhmm, isTeam, type Team, TEAMS, teamsFor } from '@/lib/meetings';
+import { TESTING_FEATURES } from '@/components/Testing';
 import { rpc } from '@/lib/supabase';
 
 type MyMeeting = {
@@ -51,7 +52,7 @@ export default function Meetings() {
         <Segmented
           value={tab}
           onChange={(v) => router.setParams({ team: v === 'mine' ? undefined : v })}
-          options={[{ value: 'mine', label: 'Mine' }, ...teams.map((t) => ({ value: t.team, label: TEAMS[t.team].short }))]}
+          options={[{ value: 'mine', label: 'Mine' }, ...teams.map((t) => ({ value: t.team, label: `${TEAMS[t.team].short}${t.team === 'execution' && TESTING_FEATURES ? ' · testing' : ''}` }))]}
         />
       ) : null}
       {tab === 'mine' ? <Mine /> : <TeamMeetingsPanel key={tab} team={tab} />}

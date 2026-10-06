@@ -6,6 +6,7 @@ import { useDialog } from '@/components/dialog';
 import { MeetingActionForm, type ActionDraft } from '@/components/MeetingActionForm';
 import { isTeamKind, kindLabel } from '@/lib/meetingActions';
 import { hhmm, type Team, TEAMS } from '@/lib/meetings';
+import { ExecPackView } from '@/components/ExecPackView';
 import { TeamPackView, type TeamPack } from '@/components/TeamPackView';
 import { captureLocation } from '@/components/VisitBits';
 import { Button, Card, colors, ErrorBanner, Grid, KeyValue, Loading, Muted, Notice, Pill, Progress, Row, Screen, Section, Stat } from '@/components/ui';
@@ -13,7 +14,7 @@ import { useMe } from '@/lib/auth';
 import { amt, fmtPct, mn } from '@/lib/finance';
 import { fmtDate, fmtDateTime, todayISO } from '@/lib/format';
 import { printHtml } from '@/lib/export';
-import { type MinutesAction, minutesHtml, salesPerson, salesTeam, teamPerson, teamTeam } from '@/lib/meetingMinutes';
+import { execPerson, execTeam, type MinutesAction, minutesHtml, salesPerson, salesTeam, teamPerson, teamTeam } from '@/lib/meetingMinutes';
 import { ROLE_LABELS, ROLE_SHORT } from '@/lib/roles';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
@@ -120,6 +121,7 @@ export default function MeetingPack() {
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const { m } = data;
   const cfg = TEAMS[m.team ?? 'sales'];
+  const PackView = m.team === 'execution' ? ExecPackView : TeamPackView;
   // The host runs the meeting: SM Projects (sales), SM Estimation, Design Manager
   const host = me.role === cfg.hostRole;
   const edit = host && m.status === 'draft';
@@ -213,14 +215,20 @@ export default function MeetingPack() {
       });
       const est = m.team === 'estimation';
       const packPeople = (pack?.people ?? []) as unknown as ({ id: string; name: string } & Record<string, unknown>)[];
-      const team = !pack ? { facts: [], lists: [] } : m.team === 'sales' ? salesTeam(pack.team) : teamTeam(est, pack.team as Record<string, unknown>);
+      const team = !pack
+        ? { facts: [], lists: [] }
+        : m.team === 'sales'
+          ? salesTeam(pack.team)
+          : m.team === 'execution'
+            ? execTeam(pack.team as Record<string, unknown>)
+            : teamTeam(est, pack.team as Record<string, unknown>);
       const general = actionsFor(null).map(toMin);
       const inPack = new Set(packPeople.map((p) => p.id));
       const others = [...new Set(data.actions.map((a) => a.sales_person_id).filter((x): x is string => !!x && !inPack.has(x)))];
       const noteOf = (pid: string) => data.notes.find((n) => n.sales_person_id === pid)?.note ?? '';
       const persons = [
         ...packPeople.map((p) => {
-          const f = m.team === 'sales' ? salesPerson(p) : teamPerson(est, p);
+          const f = m.team === 'sales' ? salesPerson(p) : m.team === 'execution' ? execPerson(p) : teamPerson(est, p);
           const ex = p.exception as { status: string; reason: string } | null;
           return {
             name: p.name,
@@ -380,7 +388,7 @@ export default function MeetingPack() {
       </Section>
 
       {pack && m.team !== 'sales' ? (
-        <TeamPackView
+        <PackView
           team={m.team}
           pack={pack as unknown as TeamPack}
           general={
