@@ -4,6 +4,8 @@
 -- checks row-level security and SLA clocks, the debtors upload and a sample request, then rolls back.
 
 begin;
+-- Dates in the tests follow the app time zone, so current_date matches app.tz() at any hour.
+select set_config('TimeZone', app.tz(), true);
 
 -- Test users (one per role) ---------------------------------------------------
 create temp table u (role text primary key, id uuid) on commit drop;
@@ -3869,6 +3871,150 @@ do $$ begin
   assert app.can_write_attachment('material_request', current_setting('test.smr')::uuid, null), 'file storage upload check (no kind)';
 end $$;
 reset role;
+
+-- Invoicing plan → execution --------------------------------------------------
+-- A won project is linked automatically through its sales project
+do $$ begin
+  assert (select s.project_id = '00000000-0000-0000-0000-00000000b001' from public.exec_projects e join public.secured_projects s on s.id = e.secured_id
+          where e.id = current_setting('test.ex')::uuid), 'won project linked to its secured project';
+end $$;
+-- A project won before the system: secured project with its invoicing plan
+do $$ declare sid uuid; m date := app.month_of((now() at time zone app.tz())::date); nm date := (app.month_of((now() at time zone app.tz())::date) + interval '1 month')::date;
+begin
+  insert into public.secured_projects (project_name, customer, sales_person_id, order_value, won_on, source, schedule_status)
+  values ('Old Harbour Lighting', 'Ports Authority', (select id from u where role = 'asm_building'), 45000000, current_date - 200, 'opening', 'approved') returning id into sid;
+  insert into public.invoice_lines (secured_id, seq, kind, description, amount, original_month, forecast_month) values
+    (sid, 1, 'delivery', 'Poles delivered', 10000000, m, m),
+    (sid, 2, 'progress', 'Foundations complete', 5000000, m, m),
+    (sid, 3, 'progress', 'Cabling complete', 5000000, m, m),
+    (sid, 4, 'progress', 'Monthly progress claim', 15000000, m, m),
+    (sid, 5, 'handover', 'Handover', 5000000, m, m),
+    (sid, 6, 'tc', 'Testing and commissioning', 3000000, nm, nm),
+    (sid, 7, 'retention', 'Retention', 2000000, nm, nm);
+  perform set_config('test.bsec', sid::text, false);
+  update public.exec_projects set see_id = (select id from u where role = 'senior_elec_engineer') where id = current_setting('test.exlegacy')::uuid;
+end $$;
+create temp table bl on commit drop as select seq, id from public.invoice_lines where secured_id = current_setting('test.bsec')::uuid;
+grant select on bl to authenticated;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin
+  begin perform public.link_secured_project(current_setting('test.exlegacy')::uuid, current_setting('test.bsec')::uuid); assert false, 'SEE cannot link';
+  exception when others then assert sqlerrm = 'SM Projects or Operations link the secured project', sqlerrm; end;
+  begin perform public.set_invoice_trigger(current_setting('test.exlegacy')::uuid, (select id from bl where seq = 1), 'gate', 2); assert false, 'not linked yet';
+  exception when others then assert sqlerrm = 'Invoice line of another project', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ begin
+  begin perform public.link_secured_project(current_setting('test.exlegacy')::uuid, (select secured_id from public.exec_projects where id = current_setting('test.ex')::uuid));
+    assert false, 'already linked';
+  exception when others then assert sqlerrm = 'That secured project is already linked to another execution project', sqlerrm; end;
+  perform public.link_secured_project(current_setting('test.exlegacy')::uuid, current_setting('test.bsec')::uuid);
+end $$;
+reset role;
+-- SEE sets the triggers; SM Projects approves them
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare e uuid := current_setting('test.exlegacy')::uuid;
+begin
+  assert exists (select 1 from public.secured_projects where id = current_setting('test.bsec')::uuid), 'SEE reads the linked secured project';
+  assert (select count(*) from public.invoice_lines where secured_id = current_setting('test.bsec')::uuid) = 7, 'and its invoice lines';
+  begin perform public.set_invoice_trigger(e, (select id from bl where seq = 2), 'activity', null, gen_random_uuid()); assert false, 'activity of the project';
+  exception when others then assert sqlerrm = 'Choose a programme activity', sqlerrm; end;
+  perform public.set_invoice_trigger(e, (select id from bl where seq = 1), 'gate', 2);
+  perform public.set_invoice_trigger(e, (select id from bl where seq = 2), 'activity', null, current_setting('test.act_a')::uuid);
+  perform public.set_invoice_trigger(e, (select id from bl where seq = 3), 'activity', null, current_setting('test.act_c')::uuid);
+  perform public.set_invoice_trigger(e, (select id from bl where seq = 4), 'ipc');
+  assert (select count(*) from public.exec_invoice_triggers where exec_project_id = e and not approved) = 4, 'waiting for SM Projects';
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin
+  assert not exists (select 1 from public.exec_invoice_triggers), 'AE does not see the invoice triggers';
+  assert not exists (select 1 from public.secured_projects where id = current_setting('test.bsec')::uuid), 'nor the amounts';
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'exec_billing' and recipient_id = auth.uid()), 'SM Projects told (after the baseline)';
+  assert public.approve_invoice_triggers(current_setting('test.exlegacy')::uuid) = 4, 'four approved';
+end $$;
+reset role;
+-- Activity finished / gate passed → ready to invoice
+update public.exec_activities set pct = 100, actual_start = coalesce(actual_start, current_date - 5), actual_finish = current_date where id = current_setting('test.act_a')::uuid;
+do $$ declare l1 uuid := (select id from bl where seq = 1); l2 uuid := (select id from bl where seq = 2);
+begin
+  assert (select approved from public.exec_invoice_triggers where line_id = l1), 'approved';
+  assert (select ready_at is not null from public.exec_invoice_triggers where line_id = l2), 'activity finished → ready';
+  assert exists (select 1 from public.notifications where kind = 'invoice_ready' and recipient_id = (select id from u where role = 'operations_exec') and dedupe_key like 'ready:' || l2 || ':%'), 'Operations told';
+  assert exists (select 1 from public.notifications where kind = 'invoice_ready' and recipient_id = (select id from u where role = 'asm_building')), 'sales person told';
+  assert exists (select 1 from public.secured_log where secured_id = current_setting('test.bsec')::uuid and action = 'ready_to_invoice'), 'logged on the secured project';
+  assert (select ready_at is null from public.exec_invoice_triggers where line_id = l1), 'gate not passed yet';
+end $$;
+insert into public.exec_gates (exec_project_id, gate, status) values (current_setting('test.exlegacy')::uuid, 2, 'pending');
+update public.exec_gates set status = 'approved' where exec_project_id = current_setting('test.exlegacy')::uuid and gate = 2;
+do $$ begin assert (select ready_at is not null from public.exec_invoice_triggers where line_id = (select id from bl where seq = 1)), 'gate passed → ready'; end $$;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin
+  begin perform public.set_invoice_trigger(current_setting('test.exlegacy')::uuid, (select id from bl where seq = 2), 'manual'); assert false, 'ready lines are fixed';
+  exception when others then assert sqlerrm like 'This invoice is already marked ready%', sqlerrm; end;
+end $$;
+reset role;
+-- Activity forecast past the invoice month → date change proposed to SM Projects, sales person told
+update public.exec_activities set ef = current_date + 70 where id = current_setting('test.act_c')::uuid;
+do $$ declare l3 uuid := (select id from bl where seq = 3);
+begin
+  assert public.billing_tick() >= 1, 'proposal made';
+  assert (select to_month from public.invoice_line_changes where line_id = l3 and status = 'pending') = app.month_of(current_date + 70), 'proposed month';
+  assert (select forecast_month from public.invoice_lines where id = l3) = app.month_of(current_date), 'not moved until approved';
+  assert exists (select 1 from public.notifications where kind = 'invoice_move' and recipient_id = (select id from u where role = 'asm_building')), 'sales person told';
+  perform public.billing_tick();
+  assert (select count(*) from public.invoice_line_changes where line_id = l3) = 1, 'proposed once';
+end $$;
+-- Monthly check by the SEE
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare e uuid := current_setting('test.exlegacy')::uuid;
+begin
+  begin perform public.check_invoice_line(e, (select id from bl where seq = 5), 'ready'); assert false, 'evidence';
+  exception when others then assert sqlerrm = 'Say what makes it ready (evidence)', sqlerrm; end;
+  assert public.check_invoice_line(e, (select id from bl where seq = 5), 'ready', null, 'Handover certificate signed') = 'ready', 'ready';
+  assert (select ready_at is not null and kind = 'manual' from public.exec_invoice_triggers where line_id = (select id from bl where seq = 5)), 'manual ready';
+  begin perform public.check_invoice_line(e, (select id from bl where seq = 6), 'slipping', current_date + 40); assert false, 'reason';
+  exception when others then assert sqlerrm = 'Give the expected month and the reason', sqlerrm; end;
+  assert public.check_invoice_line(e, (select id from bl where seq = 6), 'slipping', current_date + 62, 'Client test witness delayed') = 'proposed', 'proposed';
+  assert exists (select 1 from public.invoice_line_changes where line_id = (select id from bl where seq = 6) and status = 'pending'), 'with SM Projects';
+end $$;
+reset role;
+-- Progress claim: AE measures (no money), SEE records the certified amount
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin
+  perform set_config('test.ipc', public.prepare_ipc(current_setting('test.exlegacy')::uuid, current_date, 40, 'Poles 1–16 erected, 1.2 km cable')::text, false);
+  assert exists (select 1 from public.exec_ipcs where id = current_setting('test.ipc')::uuid), 'AE sees the measurement';
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare c uuid := current_setting('test.ipc')::uuid; l4 uuid := (select id from bl where seq = 4);
+begin
+  assert exists (select 1 from public.notifications where kind = 'exec_ipc' and recipient_id = (select id from u where role = 'senior_elec_engineer')), 'SEE told';
+  assert public.certify_ipc(c, false, null, null, 'Pole 16 not erected') = 'returned', 'returned';
+  perform set_config('test.ipc', public.prepare_ipc(current_setting('test.exlegacy')::uuid, current_date, 38, 'Poles 1–15')::text, false);
+  c := current_setting('test.ipc')::uuid;
+  begin perform public.certify_ipc(c, true, l4, 20000000); assert false, 'more than the line';
+  exception when others then assert sqlerrm like 'Only % is still to invoice on that line', sqlerrm; end;
+  assert public.certify_ipc(c, true, l4, 5700000, 'IPC 3 certified by the consultant') = 'certified', 'certified';
+  assert (select ready_at is not null from public.exec_invoice_triggers where line_id = l4), 'claim ready to invoice';
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin
+  assert not exists (select 1 from public.exec_ipcs where id = current_setting('test.ipc')::uuid), 'certified amount hidden from the AE';
+  assert exists (select 1 from public.exec_ipcs where status = 'returned'), 'returned one still visible to correct';
+end $$;
+reset role;
+-- Last week of the month → SEE asked to confirm next month's invoices
+do $$ begin
+  perform public.billing_tick((app.month_of((now() at time zone app.tz())::date) + 25)::timestamp at time zone app.tz());
+  assert exists (select 1 from public.notifications where kind = 'exec_billing' and recipient_id = (select id from u where role = 'senior_elec_engineer')), 'monthly check reminder';
+end $$;
 
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

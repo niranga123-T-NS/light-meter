@@ -48,6 +48,7 @@ import {
   type Variation,
 } from "@/lib/finance";
 import { fmtDate, fmtDateTime, fmtMoney, todayISO } from "@/lib/format";
+import type { InvoiceTrigger } from "@/lib/billing";
 import { useLoad, usePeople } from "@/lib/hooks";
 import { rpc, supabase } from "@/lib/supabase";
 
@@ -162,7 +163,23 @@ export default function SecuredDetail() {
           )
           .order("requested_at", { ascending: false })
       : { data: [] };
+    // Execution: lines whose trigger is met (Operations, SM Projects, GM)
+    const { data: tr } = lines.length
+      ? await supabase
+          .from("exec_invoice_triggers")
+          .select("line_id, ready_at")
+          .in(
+            "line_id",
+            lines.map((x) => x.id),
+          )
+          .not("ready_at", "is", null)
+      : { data: [] };
     return {
+      ready: Object.fromEntries(
+        ((tr ?? []) as Pick<InvoiceTrigger, "line_id" | "ready_at">[]).map(
+          (t) => [t.line_id, t],
+        ),
+      ),
       s: s.data as SecuredProject,
       lines,
       allocs: (a.data ?? []) as Allocation[],
@@ -1231,12 +1248,19 @@ export default function SecuredDetail() {
                 {
                   h: "Status",
                   w: 205,
-                  v: (l) => (
-                    <Pill
-                      label={lineStatus(l, fy).label}
-                      tone={lineStatus(l, fy).tone}
-                    />
-                  ),
+                  v: (l) =>
+                    data.ready[l.id] && Number(l.remaining) > 0.5 ? (
+                      <Pill
+                        label="Ready to invoice"
+                        tone={colors.green}
+                        solid
+                      />
+                    ) : (
+                      <Pill
+                        label={lineStatus(l, fy).label}
+                        tone={lineStatus(l, fy).tone}
+                      />
+                    ),
                 },
                 {
                   h: "",
