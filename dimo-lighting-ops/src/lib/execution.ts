@@ -319,15 +319,31 @@ export type MaterialRequest = {
   required_date: string;
   purpose: string | null;
   est_value_lkr: number | null;
-  status: 'submitted' | 'pending_smp' | 'approved' | 'ordered' | 'part_received' | 'received' | 'rejected' | 'cancelled';
+  status: 'ae_review' | 'submitted' | 'pending_smp' | 'approved' | 'ordered' | 'part_received' | 'received' | 'rejected' | 'cancelled';
   decision_note: string | null;
   po_no: string | null;
   supplier: string | null;
   expected_date: string | null;
 };
+export type MaterialReceipt = {
+  id: string;
+  mr_id: string;
+  lines: { line_id: string; item: string; unit: string; qty: number }[];
+  note: string | null;
+  recorded_by: string;
+  recorded_at: string;
+  supervisor_id: string | null;
+  ae_ack_by: string | null;
+  ae_ack_at: string | null;
+  sub_ack_at: string | null;
+  status: 'pending' | 'accepted' | 'disputed';
+  dispute_by: string | null;
+  dispute_note: string | null;
+};
 export type MrLine = { id: string; mr_id: string; item: string; unit: string; qty: number; received_qty: number };
 export type StoreMove = { id: string; exec_project_id: string; kind: string; item: string; unit: string; qty: number; ref: string | null; note: string | null; by_id: string; at: string };
 export const MR_STATUS: Record<MaterialRequest['status'], string> = {
+  ae_review: 'AE to check',
   submitted: 'SEE to approve',
   pending_smp: 'SM Projects to approve',
   approved: 'Approved – Operations to order',
