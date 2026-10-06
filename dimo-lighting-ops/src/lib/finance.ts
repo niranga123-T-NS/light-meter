@@ -317,7 +317,7 @@ export function ytd(p: PerfPerson, upTo: string | null, securedUpTo: string = th
 // ---------------------------------------------------------------------------
 // Excel
 // ---------------------------------------------------------------------------
-async function bytesOf(file: PickedFile): Promise<ArrayBuffer> {
+export async function bytesOf(file: PickedFile): Promise<ArrayBuffer> {
   if (file.webFile) return file.webFile.arrayBuffer();
   if (Platform.OS === 'web') return (await fetch(file.uri)).arrayBuffer();
   return new FsFile(file.uri).arrayBuffer();

@@ -1,6 +1,7 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Text } from 'react-native';
+import { BillingTab } from '@/components/exec/BillingTab';
 import { CostTab } from '@/components/exec/CostTab';
 import { DocumentsTab } from '@/components/exec/DocumentsTab';
 import { HandoverTab } from '@/components/exec/HandoverTab';
@@ -36,6 +37,7 @@ const TABS: Tab[] = [
   { key: 'documents', label: 'Documents' },
   { key: 'handover', label: 'Handover', roles: INTERNAL },
   { key: 'cost', label: 'Cost', roles: ['senior_elec_engineer', 'sm_projects', 'gm', 'operations_exec', 'assistant_engineer'] },
+  { key: 'billing', label: 'Billing', roles: ['senior_elec_engineer', 'sm_projects', 'gm', 'operations_exec', 'assistant_engineer'] },
 ];
 
 /** One execution project: the workspace every execution screen hangs off. Each role sees the tabs it is allowed. */
@@ -69,6 +71,7 @@ export default function ExecProjectScreen() {
       {t === 'documents' ? <DocumentsTab p={p} queries={me.role !== 'sub_supervisor'} /> : null}
       {t === 'handover' ? <HandoverTab p={p} onChange={reload} /> : null}
       {t === 'cost' ? <CostTab p={p} /> : null}
+      {t === 'billing' ? <BillingTab key={p.secured_id ?? 'none'} p={p} onChange={reload} /> : null}
       {t === 'team' ? <TeamTab p={p} /> : null}
     </Screen>
   );

@@ -36,6 +36,7 @@ export type ExecProject = {
   legacy: boolean;
   client_name: string | null;
   contract_value_lkr: number | null;
+  secured_id: string | null;
   contract_ref: string | null;
   request_id: string | null;
   stage: number;
