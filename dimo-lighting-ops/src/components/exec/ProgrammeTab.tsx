@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, Empty, Grid, ListRow, Muted, Notice, Pill, Row, Section, Segmented, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
@@ -83,6 +83,39 @@ export function ProgrammeTab({ p, onChange }: { p: ExecProject; onChange: () => 
       confirmLabel: 'Add',
     });
     if (r) await dialog.run(async () => { await rpc('save_wbs', { p_exec: p.id, p_id: null, p_parent: r.parent || null, p_code: r.code, p_name: r.name }); await reload(); }, 'Added');
+  };
+  // Rename, move under another element, or delete a WBS element (delete only when it has no activities or sub-elements)
+  const editWbs = async (w: Wbs) => {
+    const below = new Set<string>([w.id]);
+    let grew = true;
+    while (grew) {
+      grew = false;
+      for (const x of wbs) {
+        if (x.parent_id && below.has(x.parent_id) && !below.has(x.id)) {
+          below.add(x.id);
+          grew = true;
+        }
+      }
+    }
+    const empty = !acts.some((a) => a.wbs_id === w.id) && !wbs.some((x) => x.parent_id === w.id);
+    const r = await dialog.prompt({
+      title: `WBS ${w.code}`,
+      message: empty ? 'To delete it, choose "Delete this element" below.' : 'It has activities or sub-elements – move or delete those first to delete it.',
+      fields: [
+        { key: 'parent', label: 'Under (empty = top level)', type: 'select', initial: w.parent_id ?? '', options: [{ value: '', label: '— Top level —' }, ...wbsOptions.filter((o) => !below.has(o.value))] },
+        { key: 'code', label: 'Code', required: true, initial: w.code },
+        { key: 'name', label: 'Name', required: true, initial: w.name },
+        ...(empty ? [{ key: 'del', label: 'Delete', type: 'select' as const, initial: 'no', options: [{ value: 'no', label: 'Keep' }, { value: 'yes', label: 'Delete this element' }] }] : []),
+      ],
+      confirmLabel: 'Save',
+    });
+    if (!r) return;
+    if (r.del === 'yes') {
+      if (await dialog.confirm(`Delete WBS ${w.code} ${w.name}?`, undefined, { danger: true, confirmLabel: 'Delete' }))
+        await dialog.run(async () => { await rpc('delete_wbs', { p_id: w.id }); await reload(); }, 'Deleted');
+      return;
+    }
+    await dialog.run(async () => { await rpc('save_wbs', { p_exec: p.id, p_id: w.id, p_parent: r.parent || null, p_code: r.code, p_name: r.name }); await reload(); }, 'Saved');
   };
   const addActivity = async () => {
     const r = await dialog.prompt({
@@ -174,7 +207,7 @@ export function ProgrammeTab({ p, onChange }: { p: ExecProject; onChange: () => 
   const noEng = acts.filter((a) => a.duration > 0 && !a.responsible_id).length;
   const steps: { done: boolean; text: string; button?: { title: string; onPress: () => void } }[] = [
     { done: !!pg, text: pg ? `Start date ${fmtDate(pg.start_date)}` : 'Set the start date (first day of work on site)', button: { title: pg ? 'Change' : 'Set start date', onPress: setStart } },
-    { done: wbs.length > 0, text: wbs.length ? `${wbs.length} WBS element(s)` : 'Add the WBS – the work packages (e.g. 1 Civil works, 2 Electrical works)', button: pg ? { title: '+ WBS', onPress: addWbs } : undefined },
+    { done: wbs.length > 0, text: wbs.length ? `${wbs.length} WBS element(s) – tap one in the Gantt or Activities list (✎) to rename, move or delete it` : 'Add the WBS – the work packages (e.g. 1 Civil works, 2 Electrical works)', button: pg ? { title: '+ WBS', onPress: addWbs } : undefined },
     {
       done: acts.length > 0,
       text: acts.length ? `${acts.length} activit${acts.length === 1 ? 'y' : 'ies'} – the Gantt chart is below` : 'Add the activities under each WBS element, with duration and what each one follows – the Gantt chart appears from the first activity',
@@ -284,7 +317,7 @@ export function ProgrammeTab({ p, onChange }: { p: ExecProject; onChange: () => 
         <Empty title={wbs.length ? 'Add the activities' : 'Add the WBS'} hint="WBS elements first, then the activities under them, then link them and allocate the resources." />
       ) : view === 'gantt' ? (
         <>
-          <Gantt wbs={wbs} acts={acts} deps={deps} scale={scale} today={today} contractEnd={p.end_date} />
+          <Gantt wbs={wbs} acts={acts} deps={deps} scale={scale} today={today} contractEnd={p.end_date} onWbsPress={canEdit ? editWbs : undefined} />
           <Muted>{ganttLegend}</Muted>
         </>
       ) : view === 'tracking' ? (
@@ -295,9 +328,14 @@ export function ProgrammeTab({ p, onChange }: { p: ExecProject; onChange: () => 
         <Card style={{ padding: 0, overflow: 'hidden' }}>
           {programmeRows(wbs, acts).map((r) =>
             r.kind === 'wbs' ? (
-              <View key={r.wbs.id} style={{ paddingVertical: 8, paddingLeft: 12 + r.depth * 12, backgroundColor: colors.soft }}>
-                <Text style={{ fontWeight: '700', color: colors.ink }}>{`${r.wbs.code}  ${r.wbs.name}`}</Text>
-              </View>
+              <Pressable
+                key={r.wbs.id}
+                disabled={!canEdit}
+                onPress={() => editWbs(r.wbs)}
+                style={{ paddingVertical: 8, paddingLeft: 12 + r.depth * 12, backgroundColor: colors.soft }}
+              >
+                <Text style={{ fontWeight: '700', color: colors.ink }}>{`${r.wbs.code}  ${r.wbs.name}${canEdit ? '  ✎' : ''}`}</Text>
+              </Pressable>
             ) : (
               <ListRow
                 key={r.act.id}

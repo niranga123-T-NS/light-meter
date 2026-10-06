@@ -21,6 +21,7 @@ export function Gantt({
   scale,
   today,
   contractEnd,
+  onWbsPress,
 }: {
   wbs: Wbs[];
   acts: Activity[];
@@ -28,6 +29,8 @@ export function Gantt({
   scale: 'day' | 'week' | 'month';
   today: string;
   contractEnd: string | null;
+  /** When set (the SEE while the programme can be edited), tapping a WBS row opens it for editing */
+  onWbsPress?: (w: Wbs) => void;
 }) {
   const wide = useWide();
   const rows = programmeRows(wbs, acts);
@@ -139,9 +142,13 @@ export function Gantt({
         {rows.map((r) => (
           <Fragment key={r.kind === 'wbs' ? r.wbs.id : r.act.id}>
             {r.kind === 'wbs' ? (
-              <View style={{ height: ROW, justifyContent: 'center', paddingLeft: 8 + r.depth * 12, backgroundColor: colors.soft }}>
-                <Text numberOfLines={1} style={{ fontWeight: '700', color: colors.ink, fontSize: 12 }}>{`${r.wbs.code}  ${r.wbs.name}`}</Text>
-              </View>
+              <Pressable
+                disabled={!onWbsPress}
+                onPress={() => onWbsPress?.(r.wbs)}
+                style={{ height: ROW, justifyContent: 'center', paddingLeft: 8 + r.depth * 12, backgroundColor: colors.soft }}
+              >
+                <Text numberOfLines={1} style={{ fontWeight: '700', color: colors.ink, fontSize: 12 }}>{`${r.wbs.code}  ${r.wbs.name}${onWbsPress ? '  ✎' : ''}`}</Text>
+              </Pressable>
             ) : (
               <Pressable onPress={() => router.push(`/execution/activity/${r.act.id}`)} style={{ height: ROW, justifyContent: 'center', paddingLeft: 8 + r.depth * 12, paddingRight: 6 }}>
                 <Text numberOfLines={1} style={{ fontSize: 12, color: r.act.critical ? colors.red : colors.text }}>
