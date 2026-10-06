@@ -2,6 +2,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
+import { WinGraphic } from '@/components/WinGraphic';
 import { Button, Card, colors, ErrorBanner, Field, Grid, Loading, Muted, Notice, Pill, Row, Screen, Section, Segmented, Select, Toggle } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { MILESTONES } from '@/lib/constants';
@@ -152,6 +153,10 @@ export default function WinWizard() {
   }, [id]);
   const map = m ?? data?.map ?? null;
   const R = useMemo(() => (map ? compute(map) : null), [map]);
+  // How the % moved with each change in this session (for the live picture)
+  const [trail, setTrail] = useState<number[]>([]);
+  const now = R ? Math.round(R.final * 100) : null;
+  if (now != null && trail[trail.length - 1] !== now) setTrail([...trail, now].slice(-60));
   if (!data || !map || !R) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const p = data.project;
   const canScore = p.owner_id === me.id || me.role === 'sm_projects' || me.role === 'gm';
@@ -355,6 +360,20 @@ export default function WinWizard() {
             </View>
           ))}
         </Row>
+        <View style={{ borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 10, marginTop: 4 }}>
+          <WinGraphic
+            pct={R.final * 100}
+            manual={p.win_probability}
+            trail={trail}
+            pillars={PILLARS.map((q, i) => ({
+              label: q.l,
+              us: R.pil[q.k].x,
+              rival: Math.max(0, ...map.comps.map((c) => c[q.k] / 10)),
+              weight: R.w[i],
+              state: q.k === 'product' ? 'scored' : map.pillars[q.k].state === 'absent' ? 'absent' : R.pil[q.k].state === 'scored' ? 'scored' : 'unknown',
+            }))}
+          />
+        </View>
       </Card>
 
       <Segmented value={String(step)} onChange={(v) => setStep(Number(v))} options={STEPS.map((s, i) => ({ value: String(i), label: `${i + 1} ${s}` }))} />
