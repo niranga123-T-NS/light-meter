@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDialog } from '@/components/dialog';
 import { useMe } from '@/lib/auth';
 import { showBrowserNotification } from '@/lib/push';
+import { TestingTag } from './Testing';
 import { navFor, NavItem, ROLE_SHORT } from '@/lib/roles';
 import { rpc, supabase } from '@/lib/supabase';
 import type { AppNotification } from '@/lib/types';
@@ -128,6 +129,7 @@ function SideLink({ item, active, badge }: { item: NavItem; active: boolean; bad
       >
         <Text style={{ color: active ? '#fff' : '#9CA3AF', width: 18, textAlign: 'center' }}>{item.icon}</Text>
         <Text style={{ color: active ? '#fff' : '#D1D5DB', flex: 1, fontWeight: active ? '600' : '400' }}>{item.label}</Text>
+        {item.testing ? <TestingTag dark /> : null}
         <Badge count={badge} />
       </Pressable>
     </Link>

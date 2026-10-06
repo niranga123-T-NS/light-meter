@@ -3229,5 +3229,104 @@ do $$ begin
   assert exists (select 1 from public.notifications where kind = 'eng_job_alert' and recipient_id = (select id from u where role = 'sm_projects')), 'SM Projects told';
 end $$;
 
+-- Execution step 1: execution project, temporary staff (SEE → SM Projects → GM), supervisor appointment, isolation, deletion
+reset role;
+update public.projects set status = 'active' where id = '00000000-0000-0000-0000-00000000b001';
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin
+  begin perform public.start_execution('00000000-0000-0000-0000-00000000b001', '{"areas":["indoor"]}'); assert false, 'AE cannot start';
+  exception when others then assert sqlerrm like 'Only the Senior Electrical Engineer or SM Projects%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare e uuid; rid uuid;
+begin
+  begin perform public.start_execution('00000000-0000-0000-0000-00000000b001', '{"areas":["kitchen"]}'); assert false, 'bad area';
+  exception when others then assert sqlerrm = 'Unknown project area', sqlerrm; end;
+  e := public.start_execution('00000000-0000-0000-0000-00000000b001', '{"areas":["indoor","facade","emergency"]}');
+  perform set_config('test.ex', e::text, false);
+  assert (select see_id = (select id from u where role = 'senior_elec_engineer') from public.exec_projects where id = e), 'SEE set';
+  perform public.add_exec_member(e, (select id from u where role = 'assistant_engineer'), 'Floors 1–3');
+  rid := public.request_temp_staff(jsonb_build_object('role_type', 'trainee', 'person_name', 'Kamal Trainee', 'id_no', 'TR-01', 'phone', '0771234567',
+    'project_ids', jsonb_build_array(e), 'start_date', current_date, 'end_date', current_date + 60, 'reason', 'Peak installation'));
+  perform set_config('test.tr', rid::text, false);
+  assert (select phone = '94771234567' and status = 'pending_smp' from public.access_requests where id = rid), 'requested, phone normalised';
+  rid := public.nominate_supervisor(e, jsonb_build_object('person_name', 'Sunil Sup', 'company', 'ABC Electricals', 'phone', '0712223334', 'id_no', 'NIC123',
+    'zones', 'Facade', 'start_date', current_date, 'end_date', current_date + 30));
+  perform set_config('test.sr', rid::text, false);
+end $$;
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ begin
+  begin perform public.decide_access_request(current_setting('test.tr')::uuid, true); assert false, 'GM before SMP';
+  exception when others then assert sqlerrm = 'Waiting for SM Projects', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.my_pending_approvals() where source = 'access_request'), 'in SMP approvals';
+  assert public.decide_access_request(current_setting('test.tr')::uuid, true) = 'pending_gm', 'trainee → GM';
+  assert public.decide_access_request(current_setting('test.sr')::uuid, true, 'OK for facade') = 'approved', 'supervisor approved';
+end $$;
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ begin
+  assert public.decide_access_request(current_setting('test.tr')::uuid, true) = 'approved', 'trainee approved by GM';
+end $$;
+reset role;
+-- The admin-users function creates the logins (service role) and completes the requests
+insert into u values ('trainee', gen_random_uuid()), ('sub_supervisor', gen_random_uuid()), ('sub_other', gen_random_uuid());
+insert into auth.users (id, email) select id, role || '@test.local' from u where role in ('trainee', 'sub_supervisor', 'sub_other');
+insert into public.profiles (id, full_name, role, phone) values
+  ((select id from u where role = 'trainee'), 'Kamal Trainee', 'trainee', '94771234567'),
+  ((select id from u where role = 'sub_supervisor'), 'Sunil Sup', 'sub_supervisor', '94712223334'),
+  ((select id from u where role = 'sub_other'), 'Other Sub', 'sub_supervisor', '94700000000');
+select public.complete_access_provision(current_setting('test.tr')::uuid, (select id from u where role = 'trainee'));
+select public.complete_access_provision(current_setting('test.sr')::uuid, (select id from u where role = 'sub_supervisor'));
+do $$ begin
+  assert (select count(*) from public.exec_members where exec_project_id = current_setting('test.ex')::uuid and active) = 3, 'AE, trainee, supervisor on the project';
+  assert (select status from public.access_requests where id = current_setting('test.sr')::uuid) = 'done', 'provisioned';
+end $$;
+-- Isolation: the supervisor sees the project, its own profile and the internal team – not other subcontractors, settings or sales data
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ begin
+  assert (select count(*) from public.exec_projects) = 1, 'own project only';
+  assert not exists (select 1 from public.profiles where full_name = 'Other Sub'), 'no other subcontractors';
+  assert exists (select 1 from public.profiles where role = 'senior_elec_engineer'), 'sees the SEE';
+  assert not exists (select 1 from public.settings), 'no settings';
+  assert not exists (select 1 from public.projects), 'no sales projects';
+  assert not exists (select 1 from public.organizations), 'no customers';
+end $$;
+reset role;
+-- Deleting the trainee: open items first reassigned, then SMP → GM; access ends
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare j uuid;
+begin
+  j := public.create_eng_job(jsonb_build_object('job_type', 'other', 'title', 'Label DBs', 'assignee_id', (select id from u where role = 'trainee'),
+    'due_date', current_date + 2, 'site_address', 'Galle', 'lat', 6.05, 'lng', 80.22));
+  begin perform public.request_temp_delete((select id from u where role = 'trainee'), 'Peak over'); assert false, 'open items';
+  exception when others then assert sqlerrm like 'Reassign the 1 open items first', sqlerrm; end;
+  assert public.reassign_open_items((select id from u where role = 'trainee'), (select id from u where role = 'assistant_engineer')) = 1, 'reassigned';
+  perform set_config('test.td', public.request_temp_delete((select id from u where role = 'trainee'), 'Peak over')::text, false);
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+select public.decide_access_request(current_setting('test.td')::uuid, true);
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ begin assert public.decide_access_request(current_setting('test.td')::uuid, true) = 'deleted', 'deleted'; end $$;
+reset role;
+do $$ begin
+  assert (select not active and revoke_pending from public.profiles where id = (select id from u where role = 'trainee')), 'login to be blocked';
+  assert not exists (select 1 from public.exec_members where user_id = (select id from u where role = 'trainee') and active), 'off the projects';
+end $$;
+-- Supervisor removed by the SEE → login blocked (no other project)
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select public.remove_exec_member((select id from public.exec_members where user_id = (select id from u where role = 'sub_supervisor') and active), 'Facade work complete');
+reset role;
+do $$ begin
+  assert (select not active and revoke_pending from public.profiles where id = (select id from u where role = 'sub_supervisor')), 'supervisor login blocked';
+end $$;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

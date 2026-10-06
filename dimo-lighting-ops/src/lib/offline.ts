@@ -92,3 +92,13 @@ export function useOfflineSync() {
 
   return { online: net.isInternetReachable !== false, pending, lastSync, sync, refresh };
 }
+
+/** Access ended (removed supervisor, deleted temporary role): wipe everything this app cached on the device */
+export async function clearDeviceData() {
+  try {
+    const keys = await AsyncStorage.getAllKeys();
+    await AsyncStorage.multiRemove(keys.filter((k) => k.startsWith('dimo.')));
+  } catch {
+    // nothing cached
+  }
+}

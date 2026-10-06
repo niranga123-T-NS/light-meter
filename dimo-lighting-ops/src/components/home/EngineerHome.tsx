@@ -62,13 +62,15 @@ export function EngineerHome() {
         <Stat label="Ongoing" value={ongoing.length} onPress={() => router.push({ pathname: '/engineering', params: { tab: 'in_progress' } })} />
         <Stat label="Overdue" value={overdue.length} tone={overdue.length ? 'red' : 'green'} onPress={() => router.push({ pathname: '/engineering', params: { tab: 'overdue' } })} />
         <Stat label="Due in 7 days" value={weekList.length} />
-        <Stat label={lead ? 'Claims not assigned' : 'Claims to inspect'} value={lead ? unassignedClaims.length : myClaims.length} tone={(lead ? unassignedClaims : myClaims).length ? 'amber' : undefined} onPress={() => router.push('/warranty')} />
+        {me.role === 'sub_supervisor' || me.role === 'trainee' ? null : <Stat label={lead ? 'Claims not assigned' : 'Claims to inspect'} value={lead ? unassignedClaims.length : myClaims.length} tone={(lead ? unassignedClaims : myClaims).length ? 'amber' : undefined} onPress={() => router.push('/warranty')} />}
       </Grid>
 
       {lead ? (
         <Row wrap gap={6}>
           <Button title="+ Assign a job" onPress={() => router.push('/engineering/new')} />
           <Button variant="secondary" title="All jobs" onPress={() => router.push('/engineering')} />
+          <Button variant="secondary" title="Execution projects" onPress={() => router.push('/execution')} />
+          <Button variant="secondary" title="Team & access" onPress={() => router.push('/execution/team')} />
           <Button variant="secondary" title="Warranty" onPress={() => router.push('/warranty')} />
         </Row>
       ) : null}

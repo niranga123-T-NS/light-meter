@@ -37,6 +37,22 @@ Deno.serve(async (req) => {
     auth: { persistSession: false },
   });
 
+  // Execution access: block the login of removed supervisors and deleted temporary staff; unblock a supervisor appointed again
+  try {
+    const { data: block } = await db.from('profiles').select('id').eq('revoke_pending', true).limit(50);
+    for (const u of block ?? []) {
+      const { error: be } = await db.auth.admin.updateUserById(u.id, { ban_duration: '876000h' });
+      if (!be) await db.rpc('mark_banned', { p_user: u.id });
+    }
+    const { data: unblock } = await db.from('profiles').select('id').eq('active', true).not('banned_at', 'is', null).limit(50);
+    for (const u of unblock ?? []) {
+      const { error: ue } = await db.auth.admin.updateUserById(u.id, { ban_duration: 'none' });
+      if (!ue) await db.rpc('mark_unbanned', { p_user: u.id });
+    }
+  } catch (e) {
+    console.error('access sweep', e);
+  }
+
   const { data: due, error } = await db
     .from('notifications')
     .select('id, recipient_id, title, body, priority, url, resent_at')

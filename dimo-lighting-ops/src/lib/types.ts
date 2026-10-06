@@ -15,6 +15,8 @@ export type Role =
   | 'operations_exec'
   | 'senior_elec_engineer'
   | 'assistant_engineer'
+  | 'trainee'
+  | 'sub_supervisor'
   | 'sys_admin';
 
 export type ProjectType = 'hospitality' | 'retail' | 'institutions' | 'commercial' | 'infrastructure' | 'industrial';

@@ -1,4 +1,5 @@
 import { router, Stack } from 'expo-router';
+import { TestingTag } from '@/components/Testing';
 import { useShellCounts } from '@/components/AppShell';
 import { Avatar, Badge, Card, ListRow, Muted, Screen, Section } from '@/components/ui';
 import { useAuth, useMe } from '@/lib/auth';
@@ -19,7 +20,7 @@ export default function More() {
       <Section title="Menu">
         <Card style={{ padding: 0, overflow: 'hidden' }}>
           {nav.map((n) => (
-            <ListRow key={n.href} left={<Muted>{n.icon}</Muted>} title={n.label} right={n.badgeKey ? <Badge count={counts[n.badgeKey]} /> : undefined} onPress={() => router.push(n.href as never)} />
+            <ListRow key={n.href} left={<Muted>{n.icon}</Muted>} title={n.label} right={n.badgeKey ? <Badge count={counts[n.badgeKey]} /> : n.testing ? <TestingTag /> : undefined} onPress={() => router.push(n.href as never)} />
           ))}
           <ListRow left={<Muted>🔔</Muted>} title="Notifications" right={<Badge count={counts.notifications} />} onPress={() => router.push('/notifications')} />
           <ListRow left={<Muted>⌕</Muted>} title="Search" onPress={() => router.push('/search')} />
