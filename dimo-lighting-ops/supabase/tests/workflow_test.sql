@@ -3229,5 +3229,398 @@ do $$ begin
   assert exists (select 1 from public.notifications where kind = 'eng_job_alert' and recipient_id = (select id from u where role = 'sm_projects')), 'SM Projects told';
 end $$;
 
+-- Execution step 1: execution project, temporary staff (SEE → SM Projects → GM), supervisor appointment, isolation, deletion
+reset role;
+update public.projects set status = 'active' where id = '00000000-0000-0000-0000-00000000b001';
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin
+  begin perform public.start_execution('00000000-0000-0000-0000-00000000b001', '{"areas":["indoor"]}'); assert false, 'AE cannot start';
+  exception when others then assert sqlerrm like 'Only the Senior Electrical Engineer or SM Projects%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare e uuid; rid uuid;
+begin
+  begin perform public.start_execution('00000000-0000-0000-0000-00000000b001', '{"areas":["kitchen"]}'); assert false, 'bad area';
+  exception when others then assert sqlerrm = 'Unknown project area', sqlerrm; end;
+  e := public.start_execution('00000000-0000-0000-0000-00000000b001', '{"areas":["indoor","facade","emergency"]}');
+  perform set_config('test.ex', e::text, false);
+  assert (select see_id = (select id from u where role = 'senior_elec_engineer') from public.exec_projects where id = e), 'SEE set';
+  perform public.add_exec_member(e, (select id from u where role = 'assistant_engineer'), 'Floors 1–3');
+  rid := public.request_temp_staff(jsonb_build_object('role_type', 'trainee', 'person_name', 'Kamal Trainee', 'id_no', 'TR-01', 'phone', '0771234567',
+    'project_ids', jsonb_build_array(e), 'start_date', current_date, 'end_date', current_date + 60, 'reason', 'Peak installation'));
+  perform set_config('test.tr', rid::text, false);
+  assert (select phone = '94771234567' and status = 'pending_smp' from public.access_requests where id = rid), 'requested, phone normalised';
+  rid := public.nominate_supervisor(e, jsonb_build_object('person_name', 'Sunil Sup', 'company', 'ABC Electricals', 'phone', '0712223334', 'id_no', 'NIC123',
+    'zones', 'Facade', 'start_date', current_date, 'end_date', current_date + 30));
+  perform set_config('test.sr', rid::text, false);
+end $$;
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ begin
+  begin perform public.decide_access_request(current_setting('test.tr')::uuid, true); assert false, 'GM before SMP';
+  exception when others then assert sqlerrm = 'Waiting for SM Projects', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.my_pending_approvals() where source = 'access_request'), 'in SMP approvals';
+  assert public.decide_access_request(current_setting('test.tr')::uuid, true) = 'pending_gm', 'trainee → GM';
+  assert public.decide_access_request(current_setting('test.sr')::uuid, true, 'OK for facade') = 'approved', 'supervisor approved';
+end $$;
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ begin
+  assert public.decide_access_request(current_setting('test.tr')::uuid, true) = 'approved', 'trainee approved by GM';
+end $$;
+reset role;
+-- The admin-users function creates the logins (service role) and completes the requests
+insert into u values ('trainee', gen_random_uuid()), ('sub_supervisor', gen_random_uuid()), ('sub_other', gen_random_uuid());
+insert into auth.users (id, email) select id, role || '@test.local' from u where role in ('trainee', 'sub_supervisor', 'sub_other');
+insert into public.profiles (id, full_name, role, phone) values
+  ((select id from u where role = 'trainee'), 'Kamal Trainee', 'trainee', '94771234567'),
+  ((select id from u where role = 'sub_supervisor'), 'Sunil Sup', 'sub_supervisor', '94712223334'),
+  ((select id from u where role = 'sub_other'), 'Other Sub', 'sub_supervisor', '94700000000');
+select public.complete_access_provision(current_setting('test.tr')::uuid, (select id from u where role = 'trainee'));
+select public.complete_access_provision(current_setting('test.sr')::uuid, (select id from u where role = 'sub_supervisor'));
+do $$ begin
+  assert (select count(*) from public.exec_members where exec_project_id = current_setting('test.ex')::uuid and active) = 3, 'AE, trainee, supervisor on the project';
+  assert (select status from public.access_requests where id = current_setting('test.sr')::uuid) = 'done', 'provisioned';
+end $$;
+-- Isolation: the supervisor sees the project, its own profile and the internal team – not other subcontractors, settings or sales data
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ begin
+  assert (select count(*) from public.exec_projects) = 1, 'own project only';
+  assert not exists (select 1 from public.profiles where full_name = 'Other Sub'), 'no other subcontractors';
+  assert exists (select 1 from public.profiles where role = 'senior_elec_engineer'), 'sees the SEE';
+  assert not exists (select 1 from public.settings), 'no settings';
+  assert not exists (select 1 from public.projects), 'no sales projects';
+  assert not exists (select 1 from public.organizations), 'no customers';
+end $$;
+reset role;
+-- Deleting the trainee: open items first reassigned, then SMP → GM; access ends
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare j uuid;
+begin
+  j := public.create_eng_job(jsonb_build_object('job_type', 'other', 'title', 'Label DBs', 'assignee_id', (select id from u where role = 'trainee'),
+    'due_date', current_date + 2, 'site_address', 'Galle', 'lat', 6.05, 'lng', 80.22));
+  begin perform public.request_temp_delete((select id from u where role = 'trainee'), 'Peak over'); assert false, 'open items';
+  exception when others then assert sqlerrm like 'Reassign the 1 open items first', sqlerrm; end;
+  assert public.reassign_open_items((select id from u where role = 'trainee'), (select id from u where role = 'assistant_engineer')) = 1, 'reassigned';
+  perform set_config('test.td', public.request_temp_delete((select id from u where role = 'trainee'), 'Peak over')::text, false);
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+select public.decide_access_request(current_setting('test.td')::uuid, true);
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ begin assert public.decide_access_request(current_setting('test.td')::uuid, true) = 'deleted', 'deleted'; end $$;
+reset role;
+do $$ begin
+  assert (select not active and revoke_pending from public.profiles where id = (select id from u where role = 'trainee')), 'login to be blocked';
+  assert not exists (select 1 from public.exec_members where user_id = (select id from u where role = 'trainee') and active), 'off the projects';
+end $$;
+-- Supervisor removed by the SEE → login blocked (no other project)
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select public.remove_exec_member((select id from public.exec_members where user_id = (select id from u where role = 'sub_supervisor') and active), 'Facade work complete');
+reset role;
+do $$ begin
+  assert (select not active and revoke_pending from public.profiles where id = (select id from u where role = 'sub_supervisor')), 'supervisor login blocked';
+end $$;
+
+-- Execution step 2: the Senior Electrical Engineer runs an execution team meeting; outsiders need SM Projects
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare mid uuid; d date := current_date + 3;
+begin
+  while extract(isodow from d) = 7 loop d := d + 1; end loop;
+  mid := public.invite_team_meeting('execution', d, '09:00', '10:00',
+    array[(select id from u where role = 'assistant_engineer'), (select id from u where role = 'asm_building')]);
+  assert (select status from public.sales_meeting_invitees where meeting_id = mid and person_id = (select id from u where role = 'assistant_engineer')) = 'invited', 'own team invited';
+  assert (select status from public.sales_meeting_invitees where meeting_id = mid and person_id = (select id from u where role = 'asm_building')) = 'pending_approval', 'sales needs SMP';
+  perform public.generate_team_meeting('execution', d);
+  assert (select pack ->> 'team_kind' from public.sales_meetings where id = mid) = 'execution', 'execution pack';
+  assert (select jsonb_array_length(pack -> 'people') from public.sales_meetings where id = mid) >= 1, 'engineer in the pack';
+end $$;
+reset role;
+
+-- Execution step 3: AE plans the week, SEE approves; supervisor completes; supervisor additions need AE acceptance
+reset role;
+update public.profiles set active = true, revoke_pending = false where id = (select id from u where role = 'sub_supervisor');
+insert into public.exec_members (exec_project_id, user_id, member_role) values (current_setting('test.ex')::uuid, (select id from u where role = 'sub_supervisor'), 'sub_supervisor');
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare wk date := (current_date - (extract(isodow from current_date)::int - 1)); iid uuid; pid uuid;
+begin
+  perform set_config('test.wk', wk::text, false);
+  iid := public.save_plan_item(current_setting('test.ex')::uuid, wk, jsonb_build_object('day', current_date, 'title', 'Mount 20 downlights level 2',
+    'qty', 20, 'unit', 'nos', 'supervisor_id', (select id from u where role = 'sub_supervisor')));
+  perform set_config('test.pi', iid::text, false);
+  select plan_id into pid from public.exec_plan_items where id = iid;
+  perform set_config('test.pl', pid::text, false);
+  perform public.submit_plan(pid);
+  assert (select status from public.exec_plans where id = pid) = 'submitted', 'submitted';
+end $$;
+reset role;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ begin
+  begin perform public.update_plan_item(current_setting('test.pi')::uuid, 'done'); assert false, 'not approved yet';
+  exception when others then assert sqlerrm = 'The plan is not approved yet', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.my_pending_approvals() where source = 'exec_plan'), 'plan in SEE approvals';
+  perform public.decide_plan(current_setting('test.pl')::uuid, true);
+end $$;
+reset role;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare x uuid;
+begin
+  assert (select count(*) from public.exec_plan_items) = 1, 'supervisor sees own item';
+  assert not exists (select 1 from public.exec_plans), 'supervisor does not read plans';
+  begin perform public.update_plan_item(current_setting('test.pi')::uuid, 'partial', 12); assert false, 'reason needed';
+  exception when others then assert sqlerrm = 'Give the reason', sqlerrm; end;
+  perform public.update_plan_item(current_setting('test.pi')::uuid, 'partial', 12, 'Ceiling grid not ready in zone B');
+  x := public.supervisor_add_item(current_setting('test.ex')::uuid, jsonb_build_object('day', current_date, 'title', 'Clear debris before ceiling closing'));
+  perform set_config('test.sx', x::text, false);
+  begin perform public.update_plan_item(x, 'done'); assert false, 'needs acceptance';
+  exception when others then assert sqlerrm like 'Wait until an Assistant Engineer accepts%', sqlerrm; end;
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'exec_plan_addition' and recipient_id = (select id from u where role = 'assistant_engineer')), 'AE told of the addition';
+end $$;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+select public.decide_supervisor_item(current_setting('test.sx')::uuid, true);
+reset role;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+select public.update_plan_item(current_setting('test.sx')::uuid, 'done');
+reset role;
+
+-- Execution step 4: supervisor report → AE verifies; AE report → SEE; late / missing alerts and SM Projects after 3 days
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare r uuid;
+begin
+  begin perform public.submit_exec_report(current_setting('test.ex')::uuid, current_date, '{"work_done":"Mounted 12 downlights"}'); assert false, 'crew needed';
+  exception when others then assert sqlerrm = 'Enter the crew on site', sqlerrm; end;
+  r := public.submit_exec_report(current_setting('test.ex')::uuid, current_date,
+    '{"crew_count":6,"work_done":"Mounted 12 downlights level 2","toolbox_talk":true,"toolbox_topic":"Ladder safety","safety_check":true}');
+  perform set_config('test.sr1', r::text, false);
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare r uuid;
+begin
+  perform public.review_exec_report(current_setting('test.sr1')::uuid, true);
+  r := public.submit_exec_report(current_setting('test.ex')::uuid, current_date, '{"work_done":"Verified supervisor report; IR test DB-2 passed"}');
+  perform set_config('test.ar1', r::text, false);
+  begin perform public.review_exec_report(r, true); assert false, 'AE cannot review own';
+  exception when others then assert sqlerrm like 'The Senior Electrical Engineer reviews it', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select public.review_exec_report(current_setting('test.ar1')::uuid, true);
+reset role;
+-- Missing reports: three working days without a report → SM Projects told
+do $$ declare d date := current_date + 1; k int := 0;
+begin
+  while k < 3 loop
+    if app.is_working_day(d) then
+      perform public.exec_report_tick(((d + time '21:30') at time zone app.tz()));
+      k := k + 1;
+    end if;
+    d := d + 1;
+  end loop;
+  assert (select count(*) from public.exec_report_lateness where user_id = (select id from u where role = 'sub_supervisor')) >= 3, 'missing days recorded';
+  assert exists (select 1 from public.notifications where kind = 'exec_report_late' and recipient_id = (select id from u where role = 'sm_projects')), 'SM Projects told';
+end $$;
+
+-- Execution step 5: HSE report by a supervisor → SEE + SM Projects at once; action to closure
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare r uuid;
+begin
+  r := public.report_hse(current_setting('test.ex')::uuid, '{"kind":"near_miss","severity":"high","location":"Level 2 east stair","description":"Ladder slipped – no injury","immediate_action":"Area cordoned"}');
+  perform set_config('test.hse', r::text, false);
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'hse_report' and priority = 'critical' and recipient_id = (select id from u where role = 'sm_projects')), 'SMP told (critical)';
+  assert exists (select 1 from public.notifications where kind = 'hse_report' and recipient_id = (select id from u where role = 'senior_elec_engineer')), 'SEE told';
+end $$;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin
+  perform public.add_hse_action(current_setting('test.hse')::uuid, 'Provide ladder stabilisers and re-brief the crew', (select id from u where role = 'sub_supervisor'), current_date + 2);
+  begin perform public.close_hse_report(current_setting('test.hse')::uuid, 'done'); assert false, 'open action';
+  exception when others then assert sqlerrm = 'Complete every corrective action first', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+select public.complete_hse_action((select id from public.hse_actions limit 1), 'Stabilisers fitted, toolbox talk held');
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select public.close_hse_report(current_setting('test.hse')::uuid, 'Root cause: ladder on wet floor; rule added to toolbox talks');
+reset role;
+
+-- Execution step 6: variations – route C (contract rates) to SM Projects → GM above the limit; client acceptance; route B inquiry
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare v uuid;
+begin
+  v := public.raise_variation(current_setting('test.ex')::uuid, '{"vtype":"addition","reason":"client_instruction","title":"Extra facade uplights","description":"Client asked for 12 more uplights on the east wing","quantities":"12 nos"}');
+  perform set_config('test.var', v::text, false);
+  v := public.raise_variation(current_setting('test.ex')::uuid, '{"vtype":"addition","reason":"design_change","title":"Lobby feature lighting","description":"New chandelier zone per revised interior design"}');
+  perform set_config('test.var2', v::text, false);
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.my_pending_approvals() where source = 'variation'), 'SEE screens';
+  assert public.screen_variation(current_setting('test.var')::uuid, 'C', '{"value":"12500000","cost":"9000000","time_days":"5"}') = 'pending_smp', 'route C';
+  perform public.screen_variation(current_setting('test.var2')::uuid, 'B', jsonb_build_object('required_by', current_date + 10,
+    'estimation_scope', jsonb_build_array('fixtures'), 'estimation_basis', 'supply_install'));
+  assert (select inquiry_id is not null and status = 'pricing' from public.variations where id = current_setting('test.var2')::uuid), 'variation inquiry';
+end $$;
+reset role;
+do $$ begin
+  assert (select variation_id = current_setting('test.var2')::uuid and route = 'B' and status <> 'draft' from public.inquiries
+          where id = (select inquiry_id from public.variations where id = current_setting('test.var2')::uuid)), 'inquiry submitted for estimation';
+end $$;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert public.decide_exec_variation(current_setting('test.var')::uuid, true, 'Agreed') = 'pending_gm', 'above 10 Mn → GM';
+end $$;
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+select public.decide_exec_variation(current_setting('test.var')::uuid, true);
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin
+  begin perform public.record_variation_client(current_setting('test.var')::uuid, true, '{"vo_no":"VO-07"}'); assert false, 'VO document needed';
+  exception when others then assert sqlerrm like 'Attach the signed variation order%', sqlerrm; end;
+end $$;
+reset role;
+insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name, uploaded_by)
+values ('variation', current_setting('test.var')::uuid, 'var_doc', 'variation/test/vo.pdf', 'vo.pdf', (select id from u where role = 'senior_elec_engineer'));
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin
+  perform public.record_variation_client(current_setting('test.var')::uuid, true, '{"vo_no":"VO-07"}');
+  assert (select status from public.variations where id = current_setting('test.var')::uuid) = 'client_accepted', 'accepted';
+end $$;
+reset role;
+
+-- Execution step 7a: material request → SEE → SMP above limit → Ops orders → received into the site store; documents; design query
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare m uuid;
+begin
+  m := public.raise_material_request(current_setting('test.ex')::uuid, jsonb_build_object('required_date', current_date + 5, 'est_value', 1500000,
+    'lines', jsonb_build_array(jsonb_build_object('item', 'LED downlight 12W', 'unit', 'nos', 'qty', 40))));
+  perform set_config('test.mr', m::text, false);
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin assert public.decide_material_request(current_setting('test.mr')::uuid, true) = 'pending_smp', 'above limit → SMP'; end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+select public.decide_material_request(current_setting('test.mr')::uuid, true);
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+select public.order_material_request(current_setting('test.mr')::uuid, 'PO-5521', 'Philips', current_date + 4);
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare l uuid;
+begin
+  select id into l from public.material_request_lines where mr_id = current_setting('test.mr')::uuid;
+  perform public.receive_material(current_setting('test.mr')::uuid, jsonb_build_array(jsonb_build_object('line_id', l, 'qty', 30)), '2 cartons damaged');
+  assert (select status from public.material_requests where id = current_setting('test.mr')::uuid) = 'part_received', 'part received';
+  perform public.store_move(current_setting('test.ex')::uuid, 'issue', 'LED downlight 12W', 'nos', 20, 'Level 2');
+  begin perform public.store_move(current_setting('test.ex')::uuid, 'issue', 'LED downlight 12W', 'nos', 20); assert false, 'stock check';
+  exception when others then assert sqlerrm like 'Only 10 in the site store', sqlerrm; end;
+  perform public.register_doc(current_setting('test.ex')::uuid, '{"doc_no":"E-101","title":"Lighting layout L2","revision":"A","issued_to_subs":true}');
+  perform public.register_doc(current_setting('test.ex')::uuid, '{"doc_no":"E-101","title":"Lighting layout L2","revision":"B","issued_to_subs":true}');
+  assert (select count(*) from public.exec_docs where doc_no = 'E-101') = 1 and (select revision from public.exec_docs where doc_no = 'E-101') = 'B', 'field sees only the current revision';
+  perform set_config('test.dq', public.raise_design_query(current_setting('test.ex')::uuid, 'Downlight clashes with duct at grid C4 – relocate?', 'E-101 rev B', 'Level 2 ceiling closing')::text, false);
+end $$;
+reset role;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ begin
+  assert (select count(*) from public.exec_docs) = 1, 'supervisor sees only the current issued revision';
+  assert not exists (select 1 from public.material_requests), 'supervisor does not see material requests';
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select public.forward_design_query(current_setting('test.dq')::uuid, true, null);
+reset role;
+select pg_temp.act_as('design_manager'); set role authenticated;
+select public.answer_design_query(current_setting('test.dq')::uuid, 'Shift 300 mm east – see revised E-101 rev C');
+reset role;
+
+
+-- Execution step 7b: tests with instruments, NCRs, snags, dossier, stage gates with override, cost and subcontractor certificates
+reset role;
+do $$ begin
+  insert into public.test_instruments (name, serial_no, calibration_due) values ('Megger MIT420', 'MG-OLD', current_date - 1), ('Fluke 1664', 'FL-01', current_date + 90);
+end $$;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare t uuid;
+begin
+  begin perform public.record_test(current_setting('test.ex')::uuid, jsonb_build_object('system', 'DB-2', 'test_type', 'Insulation resistance',
+      'instrument_id', (select id from public.test_instruments where serial_no = 'MG-OLD'), 'rows', jsonb_build_array(jsonb_build_object('param', 'L-E', 'unit', 'MΩ', 'min', 1, 'value', 50))));
+    assert false, 'expired calibration';
+  exception when others then assert sqlerrm like 'Calibration of Megger MIT420%expired%', sqlerrm; end;
+  t := public.record_test(current_setting('test.ex')::uuid, jsonb_build_object('system', 'DB-2', 'test_type', 'Insulation resistance',
+      'instrument_id', (select id from public.test_instruments where serial_no = 'FL-01'),
+      'rows', jsonb_build_array(jsonb_build_object('param', 'L-E', 'unit', 'MΩ', 'min', 1, 'value', 50), jsonb_build_object('param', 'N-E', 'unit', 'MΩ', 'min', 1, 'value', 0.4))));
+  perform set_config('test.tr', t::text, false);
+  assert (select result from public.test_records where id = t) = 'fail', 'auto fail';
+  assert exists (select 1 from public.ncrs where test_record_id = t and status = 'open'), 'NCR raised';
+  perform set_config('test.snag', public.raise_snag(current_setting('test.ex')::uuid, '{"location":"Lobby","description":"Scratched diffuser","responsible":"Subcontractor","priority":"high"}')::text, false);
+  begin perform public.close_snag(current_setting('test.snag')::uuid); assert false, 'after photo needed';
+  exception when others then assert sqlerrm = 'Attach the after photo first', sqlerrm; end;
+  perform set_config('test.spc', public.prepare_sub_cert(current_setting('test.ex')::uuid, '{"subcontractor":"Lanka Electricals","period":"Sep 2026","gross":"1000000","previous":"200000","retention_pct":"10","deductions":"20000"}')::text, false);
+  assert (select net from public.sub_certs where id = current_setting('test.spc')::uuid) = 700000, 'net value';
+  assert not exists (select 1 from public.exec_cost_lines), 'AE does not read costs';
+end $$;
+reset role;
+insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name, uploaded_by)
+values ('snag', current_setting('test.snag')::uuid, 'snag_after', 'snag/test/after.jpg', 'after.jpg', (select id from u where role = 'assistant_engineer'));
+update public.exec_projects set stage = 5 where id = current_setting('test.ex')::uuid;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+select public.close_snag(current_setting('test.snag')::uuid);
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin
+  assert public.ensure_dossier(current_setting('test.ex')::uuid) > 0, 'dossier items created';
+  begin perform public.complete_dossier_item((select id from public.exec_dossier limit 1), true); assert false, 'document needed';
+  exception when others then assert sqlerrm = 'Attach the document first', sqlerrm; end;
+  perform public.verify_test(current_setting('test.tr')::uuid, true);
+  assert exists (select 1 from jsonb_array_elements(public.preview_gate(current_setting('test.ex')::uuid) -> 'checks') x where x ->> 'check' = 'No open NCR' and not (x ->> 'ok')::boolean), 'NCR blocks gate';
+  perform set_config('test.gate', public.request_gate(current_setting('test.ex')::uuid, '{"as_built":true}', 'Ready for handover')::text, false);
+  perform public.save_cost_line(current_setting('test.ex')::uuid, null, '{"cost_code":"material","description":"Fixtures","budget":"1000000","committed":"900000","actual":"300000"}');
+  perform public.advance_sub_cert(current_setting('test.spc')::uuid, true);
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'exec_cost' and title = 'Project cost above budget' and recipient_id = (select id from u where role = 'sm_projects')), 'over budget told';
+end $$;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.my_pending_approvals() where source = 'exec_gate'), 'gate in SMP approvals';
+  begin perform public.decide_gate(current_setting('test.gate')::uuid, true); assert false, 'override reason';
+  exception when others then assert sqlerrm like 'Items are open%', sqlerrm; end;
+  perform public.decide_gate(current_setting('test.gate')::uuid, true, 'Client accepted partial dossier; NCR closes next week');
+  assert (select override from public.exec_gates where id = current_setting('test.gate')::uuid), 'override recorded';
+  assert (select stage from public.exec_projects where id = current_setting('test.ex')::uuid) = 6, 'stage 6';
+  assert public.advance_sub_cert(current_setting('test.spc')::uuid, true) = 'approved', 'approved';
+end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ begin
+  begin perform public.advance_sub_cert(current_setting('test.spc')::uuid, true); assert false, 'ref needed';
+  exception when others then assert sqlerrm = 'Enter the payment reference', sqlerrm; end;
+  assert public.advance_sub_cert(current_setting('test.spc')::uuid, true, 'CHQ-88123') = 'paid', 'paid';
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select public.close_ncr((select id from public.ncrs where test_record_id = current_setting('test.tr')::uuid), 'Moisture in junction box', 'Box resealed and retested 200 MΩ', null);
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

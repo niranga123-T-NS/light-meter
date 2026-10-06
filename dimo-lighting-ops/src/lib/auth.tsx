@@ -1,5 +1,7 @@
 import type { Session } from '@supabase/supabase-js';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { normPhone } from './execution';
+import { clearDeviceData } from './offline';
 import { supabase } from './supabase';
 import type { Profile, Role } from './types';
 
@@ -31,7 +33,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data, error: e } = await supabase.from('profiles').select('*').eq('id', s.user.id).maybeSingle();
     if (e) setError(e.message);
     else if (!data) setError('Your account has no profile yet. Ask the System Administrator to assign your role.');
-    else if (!data.active) setError('Your account has been deactivated.');
+    else if (!data.active) {
+      setError('Your access has ended. Ask the Senior Electrical Engineer or the System Administrator if this is wrong.');
+      // Access removed: clear data kept on this device and end the session
+      await clearDeviceData();
+      await supabase.auth.signOut();
+    }
     else setError(null);
     setProfile(data && data.active ? (data as Profile) : null);
   }, []);
@@ -57,7 +64,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       error,
       signIn: async (email, password) => {
-        const { error: e } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+        // Subcontractor supervisors sign in with their mobile number
+        const id = email.trim();
+        const login = id.includes('@') ? id : `${normPhone(id)}@users.dimo-lighting-ops.app`;
+        const { error: e } = await supabase.auth.signInWithPassword({ email: login, password });
         if (e) throw new Error(e.message);
       },
       signOut: async () => {

@@ -195,6 +195,47 @@ export function teamPerson(est: boolean, p: Dict): { facts: Facts; lists: List[]
   };
 }
 
+/** Execution team meeting pack (engineering jobs) */
+export function execTeam(t: Dict): { facts: Facts; lists: List[] } {
+  const j = (t.jobs ?? {}) as Dict;
+  const done = num(t.done_week_n);
+  return {
+    facts: [
+      ['Jobs in hand', String(num(j.total))],
+      ['Awaiting acceptance', String(num(j.assigned))],
+      ['Ongoing', String(num(j.in_progress))],
+      ['On hold', String(num(j.on_hold))],
+      ['Done last week', String(done)],
+      ['Done on time', done ? `${Math.round((num(t.done_on_time_n) / done) * 100)}%` : '—'],
+      ['Overdue', String(num(t.overdue_n))],
+      ['Due in 7 days', String(num(t.due_soon_n))],
+    ],
+    lists: [
+      { title: 'Overdue', items: arr(t.overdue).map((x) => job(x, ` (${s(x.person) || '—'}, ${num(x.days)} days late)`)), tone: 'red' },
+      { title: 'On hold', items: arr(t.on_hold).map((x) => job(x, ` (${s(x.person) || '—'} – ${s(x.reason) || 'no reason'})`)), tone: 'amber' },
+      { title: 'Not accepted yet', items: arr(t.not_accepted).map((x) => job(x, ` (${s(x.person) || '—'})`)), tone: 'amber' },
+      { title: 'Due in 7 days', items: arr(t.due_soon).map((x) => job(x, ` (${s(x.person) || '—'}, due ${d(x.due)})`)) },
+      { title: 'Active projects', items: arr(t.projects).map((x) => `${s(x.code)} ${s(x.name)} (stage ${num(x.stage)})`) },
+    ],
+  };
+}
+
+export function execPerson(p: Dict): { facts: Facts; lists: List[] } {
+  return {
+    facts: [
+      ['Jobs in hand', String(num(p.in_hand_n))],
+      ['On hold', String(num(p.on_hold_n))],
+      ['Done last week', String(num(p.done_week_n))],
+      ['Overdue', String(arr(p.overdue).length)],
+    ],
+    lists: [
+      { title: 'Overdue', items: arr(p.overdue).map((x) => job(x, ` (${num(x.days)} days late)`)), tone: 'red' },
+      { title: 'Due soon', items: arr(p.due_soon).map((x) => job(x, ` (due ${d(x.due)})`)) },
+      openActions(p),
+    ],
+  };
+}
+
 // ---------------------------------------------------------------------------------------------------------------------
 // HTML
 // ---------------------------------------------------------------------------------------------------------------------

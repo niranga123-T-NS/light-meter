@@ -43,7 +43,7 @@ export function DesignBoard({ header }: { header?: ReactNode } = {}) {
   const manager = !isDesigner(me.role);
   const [weekAhead] = useState(() => Date.now() + 7 * 86400000);
   const { data, error, loading, reload } = useLoad(async () => {
-    let q = supabase.from('design_jobs').select('*, inquiries(code, project_name, customer_name, customer_deadline, route, status, revision)').order('due_at');
+    let q = supabase.from('design_jobs').select('*, inquiries(code, project_name, customer_name, customer_deadline, route, status, revision, variation_id)').order('due_at');
     if (!manager) q = q.eq('assignee_id', me.id);
     const [{ data: jobs, error: e }, queue] = await Promise.all([
       q,
@@ -168,6 +168,7 @@ function JobCard({
         )}
       </Row>
       <Muted numberOfLines={1}>{inq?.project_name}</Muted>
+      {inq && 'variation_id' in inq && inq.variation_id ? <Pill label="Variation" tone={colors.amber} solid /> : null}
       {pct != null ? (
         <View style={{ marginVertical: 6 }}>
           <Progress pct={pct} colour={STAGE_COLOUR[colour]} />
@@ -193,7 +194,7 @@ export function EstimationBoard({ header }: { header?: ReactNode } = {}) {
   const { data, error, loading, reload } = useLoad(async () => {
     let q = supabase
       .from('estimation_jobs')
-      .select('*, inquiries(code, project_name, customer_name, customer_deadline, route, status, duty_status, currency, project_type, revision, debtor_flag)')
+      .select('*, inquiries(code, project_name, customer_name, customer_deadline, route, status, duty_status, currency, project_type, revision, debtor_flag, variation_id)')
       .order('due_at', { nullsFirst: true });
     if (!manager) q = q.eq('assignee_id', me.id);
     const [{ data: jobs, error: e }, direct] = await Promise.all([

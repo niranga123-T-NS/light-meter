@@ -28,6 +28,8 @@ export default function Home() {
       return <OpsHome />;
     case 'senior_elec_engineer':
     case 'assistant_engineer':
+    case 'trainee':
+    case 'sub_supervisor':
       return <EngineerHome />;
     default:
       return <AdminHome />;

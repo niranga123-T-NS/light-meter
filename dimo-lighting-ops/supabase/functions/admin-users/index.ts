@@ -9,7 +9,7 @@ const cors = {
 };
 
 const ROLES = [
-  'gm', 'sm_projects', 'asm_building', 'asm_infra', 'design_manager', 'lighting_designer', 'lighting_engineer', 'senior_elec_engineer', 'assistant_engineer',
+  'gm', 'sm_projects', 'asm_building', 'asm_infra', 'design_manager', 'lighting_designer', 'lighting_engineer', 'senior_elec_engineer', 'assistant_engineer', 'trainee', 'sub_supervisor',
   'sm_estimation', 'am_estimation', 'estimation_exec', 'operations_exec', 'sys_admin',
 ];
 
@@ -25,9 +25,43 @@ Deno.serve(async (req) => {
   const { data: caller, error: authError } = await admin.auth.getUser(jwt);
   if (!caller?.user) return json({ error: `Not signed in${authError ? `: ${authError.message}` : ''}` }, 401);
   const { data: me } = await admin.from('profiles').select('role, active').eq('id', caller.user.id).single();
-  if (!me || !me.active || me.role !== 'sys_admin') return json({ error: 'Only the System Administrator can manage users' }, 403);
-
   const body = await req.json().catch(() => ({}));
+
+  // Execution access: the login of an approved temporary staff member or subcontractor supervisor, created by the
+  // Senior Electrical Engineer, SM Projects or DGM / GM. The approval is checked in the database.
+  if (body.action === 'provision') {
+    if (!me || !me.active || !['senior_elec_engineer', 'sm_projects', 'gm', 'sys_admin'].includes(me.role)) {
+      return json({ error: 'Only the Senior Electrical Engineer, SM Projects or DGM / GM create these logins' }, 403);
+    }
+    const { data: r } = await admin.from('access_requests').select('*').eq('id', body.request_id).maybeSingle();
+    if (!r || r.status !== 'approved' || !['temp_add', 'sub_appoint'].includes(r.kind)) return json({ error: 'The request is not approved yet or already done' }, 400);
+    const phone = String(r.phone ?? '').replace(/[^0-9]/g, '');
+    const email = r.email ? String(r.email).toLowerCase() : phone ? `${phone}@users.dimo-lighting-ops.app` : '';
+    if (!email) return json({ error: 'The request has no email or mobile number' }, 400);
+    const password = Array.from(crypto.getRandomValues(new Uint8Array(9)), (b) => 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789'[b % 56]).join('') + '7';
+    const res = await admin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { full_name: r.person_name } });
+    if (res.error) return json({ error: res.error.message }, 400);
+    const uid = res.data.user.id;
+    const { error: pe } = await admin.from('profiles').insert({
+      id: uid,
+      email,
+      full_name: r.person_name,
+      role: r.role_type,
+      manager_id: r.requested_by,
+      phone: r.phone,
+    });
+    if (pe) {
+      await admin.auth.admin.deleteUser(uid);
+      return json({ error: pe.message }, 400);
+    }
+    const { error: ce } = await admin.rpc('complete_access_provision', { p_request: r.id, p_user: uid });
+    if (ce) return json({ error: ce.message }, 400);
+    await admin.from('audit_log').insert({ user_id: caller.user.id, table_name: 'users', record_id: uid, action: 'PROVISION', new_data: { role: r.role_type, request: r.code } });
+    // The temporary password is shown once to the person creating the login, to hand over
+    return json({ id: uid, login: r.email ? email : phone, password });
+  }
+
+  if (!me || !me.active || me.role !== 'sys_admin') return json({ error: 'Only the System Administrator can manage users' }, 403);
   try {
     switch (body.action) {
       case 'invite': {

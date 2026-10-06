@@ -1,6 +1,7 @@
 import { router, Stack } from 'expo-router';
 import { Text } from 'react-native';
 import { EngJobRows } from '@/components/EngJobRows';
+import { TodayPlan } from '@/components/exec/TodayPlan';
 import { Button, Card, colors, ErrorBanner, Grid, ListRow, Loading, Muted, Notice, Row, Screen, Section, Stat } from '@/components/ui';
 import { MyDayMeetings } from '@/components/WeekMeetings';
 import { useMe } from '@/lib/auth';
@@ -15,14 +16,22 @@ export function EngineerHome() {
   const people = usePeople();
   const lead = me.role === 'senior_elec_engineer';
   const { data, error, reload } = useLoad(async () => {
-    const [jobs, claims] = await Promise.all([
+    const [jobs, claims, hse] = await Promise.all([
       supabase.from('eng_jobs').select(ENG_SELECT).in('status', ['assigned', 'in_progress', 'on_hold']).order('due_date').limit(2000),
       supabase.from('warranty_claims').select('id, assignee_id, inspected_on, status').eq('status', 'open').limit(3000),
+      supabase.from('hse_actions').select('id, report_id, action, due_date, assignee_id').eq('status', 'open').eq('assignee_id', me.id),
     ]);
     if (jobs.error) throw new Error(jobs.error.message);
-    return { jobs: (jobs.data ?? []) as EngJob[], claims: (claims.data ?? []) as { id: string; assignee_id: string | null; inspected_on: string | null }[] };
+    return { jobs: (jobs.data ?? []) as EngJob[], claims: (claims.data ?? []) as { id: string; assignee_id: string | null; inspected_on: string | null }[],
+      hse: (hse.data ?? []) as { id: string; report_id: string; action: string; due_date: string }[] };
   });
-  if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
+  if (!data)
+    return (
+      <Screen>
+        <Stack.Screen options={{ title: 'My Day' }} />
+        {error ? <ErrorBanner message={error} /> : <Loading />}
+      </Screen>
+    );
 
   const today = todayISO();
   const week = addDaysISO(today, 7);
@@ -56,15 +65,36 @@ export function EngineerHome() {
         <Stat label="Ongoing" value={ongoing.length} onPress={() => router.push({ pathname: '/engineering', params: { tab: 'in_progress' } })} />
         <Stat label="Overdue" value={overdue.length} tone={overdue.length ? 'red' : 'green'} onPress={() => router.push({ pathname: '/engineering', params: { tab: 'overdue' } })} />
         <Stat label="Due in 7 days" value={weekList.length} />
-        <Stat label={lead ? 'Claims not assigned' : 'Claims to inspect'} value={lead ? unassignedClaims.length : myClaims.length} tone={(lead ? unassignedClaims : myClaims).length ? 'amber' : undefined} onPress={() => router.push('/warranty')} />
+        {me.role === 'sub_supervisor' || me.role === 'trainee' ? null : <Stat label={lead ? 'Claims not assigned' : 'Claims to inspect'} value={lead ? unassignedClaims.length : myClaims.length} tone={(lead ? unassignedClaims : myClaims).length ? 'amber' : undefined} onPress={() => router.push('/warranty')} />}
       </Grid>
 
       {lead ? (
         <Row wrap gap={6}>
           <Button title="+ Assign a job" onPress={() => router.push('/engineering/new')} />
           <Button variant="secondary" title="All jobs" onPress={() => router.push('/engineering')} />
+          <Button variant="secondary" title="Execution projects" onPress={() => router.push('/execution')} />
+          <Button variant="secondary" title="Team & access" onPress={() => router.push('/execution/team')} />
           <Button variant="secondary" title="Warranty" onPress={() => router.push('/warranty')} />
         </Row>
+      ) : null}
+
+      {me.role === 'sub_supervisor' || me.role === 'assistant_engineer' ? (
+        <Row wrap gap={6}>
+          <Button title="Daily report" onPress={() => router.push('/execution/reports')} />
+          {me.role === 'assistant_engineer' ? <Button variant="secondary" title="Weekly plan" onPress={() => router.push('/execution/plans')} /> : null}
+          <Button variant="secondary" title={me.role === 'sub_supervisor' ? 'My work' : 'My projects'} onPress={() => router.push('/execution')} />
+        </Row>
+      ) : null}
+      <TodayPlan />
+
+      {data.hse.length ? (
+        <Section title={`HSE actions for you (${data.hse.length})`}>
+          <Card style={{ padding: 0, overflow: 'hidden' }}>
+            {data.hse.map((h) => (
+              <ListRow key={h.id} onPress={() => router.push(`/execution/hse/${h.report_id}`)} highlight={h.due_date < today ? colors.red : colors.amber} title={h.action} subtitle={`due ${h.due_date}`} />
+            ))}
+          </Card>
+        </Section>
       ) : null}
 
       {!lead && toAccept.length ? (

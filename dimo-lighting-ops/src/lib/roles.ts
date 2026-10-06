@@ -15,6 +15,8 @@ export const ROLE_LABELS: Record<Role, string> = {
   operations_exec: 'Operations Executive',
   senior_elec_engineer: 'Senior Electrical Engineer – Project Execution',
   assistant_engineer: 'Assistant Engineer – Project Execution',
+  trainee: 'Trainee – Project Execution',
+  sub_supervisor: 'Subcontractor Supervisor',
   sys_admin: 'System Administrator',
 };
 
@@ -32,6 +34,8 @@ export const ROLE_SHORT: Record<Role, string> = {
   operations_exec: 'Operations Exec.',
   senior_elec_engineer: 'Senior Elec. Engineer',
   assistant_engineer: 'Asst. Engineer',
+  trainee: 'Trainee',
+  sub_supervisor: 'Sub. Supervisor',
   sys_admin: 'System Admin',
 };
 
@@ -52,7 +56,27 @@ export const isEstimator = (r?: Role | null) => r === 'am_estimation' || r === '
 export const isManager = (r?: Role | null) =>
   r === 'gm' || r === 'sm_projects' || r === 'design_manager' || r === 'sm_estimation';
 
-export type NavItem = { href: string; label: string; icon: string; badgeKey?: 'approvals' | 'notifications' | 'delayed' };
+export type NavItem = { href: string; label: string; icon: string; badgeKey?: 'approvals' | 'notifications' | 'delayed'; testing?: boolean };
+
+/** Execution-module menu items – marked Testing until confirmed */
+export const EXEC_NAV = {
+  portfolio: { href: '/execution', label: 'Execution portfolio', icon: '◧', testing: true } as NavItem,
+  projects: { href: '/execution', label: 'Execution projects', icon: '◧', testing: true } as NavItem,
+  mine: { href: '/execution', label: 'My projects', icon: '◧', testing: true } as NavItem,
+  myWork: { href: '/execution', label: 'My work', icon: '◧', testing: true } as NavItem,
+  team: { href: '/execution/team', label: 'Team & access', icon: '☺', testing: true } as NavItem,
+  plans: { href: '/execution/plans', label: 'Plans', icon: '▦', testing: true } as NavItem,
+  reports: { href: '/execution/reports', label: 'Daily reports', icon: '✎', testing: true } as NavItem,
+  report: { href: '/execution/reports', label: 'Daily report', icon: '✎', testing: true } as NavItem,
+  hse: { href: '/execution/hse', label: 'HSE', icon: '⚠', testing: true } as NavItem,
+  variations: { href: '/execution/variations', label: 'Variations', icon: '±', testing: true } as NavItem,
+  access: { href: '/execution/team', label: 'Execution access', icon: '☺', testing: true } as NavItem,
+  materials: { href: '/execution/materials', label: 'Materials & stores', icon: '⛟', testing: true } as NavItem,
+  documents: { href: '/execution/documents', label: 'Documents', icon: '❏', testing: true } as NavItem,
+  queries: { href: '/execution/queries', label: 'Design queries', icon: '?', testing: true } as NavItem,
+  certs: { href: '/execution/certs', label: 'Subcontractor invoices', icon: '⧉', testing: true } as NavItem,
+};
+
 
 /** Navigation per role (Section 2 visibility rule and Section 10.2 dashboards). Everyone gets Meetings: the sales,
  * estimation and design meetings in one place (invitations, attendance, leave, packs and actions). */
@@ -108,6 +132,11 @@ function baseNav(role: Role): NavItem[] {
         { href: '/bonds', label: 'Bonds', icon: '⛨' },
         { href: '/warranty', label: 'Warranty', icon: '⛉' },
         { href: '/engineering', label: 'Engineering jobs', icon: '▣' },
+        EXEC_NAV.portfolio,
+        EXEC_NAV.hse,
+        EXEC_NAV.materials,
+        EXEC_NAV.certs,
+        EXEC_NAV.access,
         { href: '/samples', label: 'Samples', icon: '⬚' },
         { href: '/finance/pnl', label: 'P&L', icon: '▥' },
         { href: '/finance/invoicing', label: 'Invoicing', icon: '⧉' },
@@ -133,6 +162,8 @@ function baseNav(role: Role): NavItem[] {
         { href: '/bonds', label: 'Bonds', icon: '⛨' },
         { href: '/warranty', label: 'Warranty', icon: '⛉' },
         { href: '/engineering', label: 'Engineering jobs', icon: '▣' },
+        EXEC_NAV.portfolio,
+        EXEC_NAV.access,
         { href: '/samples', label: 'Samples', icon: '⬚' },
         { href: '/finance/pnl', label: 'P&L', icon: '▥' },
         { href: '/finance/invoicing', label: 'Invoicing', icon: '⧉' },
@@ -149,12 +180,14 @@ function baseNav(role: Role): NavItem[] {
         approvals,
         { href: '/inquiries', label: 'Inquiries', icon: '⧗' },
         { href: '/jobs', label: 'Jobs', icon: '▣' },
+        EXEC_NAV.queries,
+        EXEC_NAV.documents,
         brands,
         reports,
       ];
     case 'lighting_designer':
     case 'lighting_engineer':
-      return [{ href: '/', label: 'My Jobs', icon: '⌂' }, { href: '/jobs', label: 'All my jobs', icon: '▣' }, brands, reports];
+      return [{ href: '/', label: 'My Jobs', icon: '⌂' }, { href: '/jobs', label: 'All my jobs', icon: '▣' }, EXEC_NAV.queries, brands, reports];
     case 'sm_estimation':
       return [
         { href: '/', label: 'Estimation Board', icon: '⌂' },
@@ -186,24 +219,48 @@ function baseNav(role: Role): NavItem[] {
         { href: '/finance/budget', label: 'Budget list', icon: '◫' },
         { href: '/finance/secured', label: 'Secured', icon: '◇' },
         { href: '/finance/invoicing', label: 'Invoicing', icon: '⧉' },
+        EXEC_NAV.portfolio,
+        EXEC_NAV.materials,
+        EXEC_NAV.documents,
+        EXEC_NAV.certs,
         approvals,
         reports,
       ];
     case 'senior_elec_engineer':
       return [
         { href: '/', label: 'My Day', icon: '⌂' },
-        { href: '/engineering', label: 'Jobs', icon: '▣' },
-        { href: '/warranty', label: 'Warranty', icon: '⛉' },
+        EXEC_NAV.projects,
+        { href: '/engineering', label: 'Tasks & instructions', icon: '▣' },
+        EXEC_NAV.plans,
+        EXEC_NAV.reports,
+        EXEC_NAV.variations,
+        EXEC_NAV.hse,
+        EXEC_NAV.materials,
+        EXEC_NAV.queries,
+        EXEC_NAV.certs,
         approvals,
+        EXEC_NAV.team,
+        { href: '/warranty', label: 'Warranty', icon: '⛉' },
         { href: '/projects', label: 'Projects', icon: '◆' },
         reports,
       ];
     case 'assistant_engineer':
       return [
         { href: '/', label: 'My Day', icon: '⌂' },
-        { href: '/engineering', label: 'Jobs', icon: '▣' },
+        EXEC_NAV.mine,
+        { href: '/engineering', label: 'Tasks & instructions', icon: '▣' },
+        EXEC_NAV.plans,
+        EXEC_NAV.reports,
+        EXEC_NAV.variations,
+        EXEC_NAV.hse,
+        EXEC_NAV.materials,
+        EXEC_NAV.queries,
         { href: '/warranty', label: 'Warranty', icon: '⛉' },
       ];
+    case 'trainee':
+      return [{ href: '/', label: 'My Day', icon: '⌂' }, EXEC_NAV.mine, { href: '/engineering', label: 'Tasks & instructions', icon: '▣' }, EXEC_NAV.hse];
+    case 'sub_supervisor':
+      return [{ href: '/', label: 'My Day', icon: '⌂' }, EXEC_NAV.myWork, EXEC_NAV.report, EXEC_NAV.hse];
     case 'sys_admin':
       return [{ href: '/', label: 'Home', icon: '⌂' }, { href: '/admin', label: 'Administration', icon: '⚙' }];
   }
@@ -250,6 +307,8 @@ const COL: Record<Role, Col | null> = {
   operations_exec: 'ops',
   senior_elec_engineer: null,
   assistant_engineer: null,
+  trainee: null,
+  sub_supervisor: null,
   sys_admin: null,
 };
 

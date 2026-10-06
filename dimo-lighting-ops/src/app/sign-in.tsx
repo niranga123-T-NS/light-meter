@@ -25,7 +25,7 @@ export default function SignIn() {
           ) : null}
           <ErrorBanner message={error ?? authError} />
           {info ? <Notice>{info}</Notice> : null}
-          <Field label="Work email" autoCapitalize="none" autoComplete="email" keyboardType="email-address" value={email} onChangeText={setEmail} />
+          <Field label="Work email (supervisors: mobile number)" autoCapitalize="none" autoComplete="email" keyboardType="email-address" value={email} onChangeText={setEmail} />
           <Field label="Password" secureTextEntry autoComplete="password" value={password} onChangeText={setPassword} onSubmitEditing={() => signIn(email, password).catch((e) => setError(e.message))} />
           <Button
             title="Sign in"
