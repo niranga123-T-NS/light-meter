@@ -112,3 +112,59 @@ export function normPhone(p: string) {
   return /^0[0-9]{9}$/.test(d) ? `94${d.slice(1)}` : d;
 }
 export const phoneLoginEmail = (p: string) => `${normPhone(p)}@users.dimo-lighting-ops.app`;
+
+// ---- Plans (step 3) ----
+export type ExecPlan = {
+  id: string;
+  exec_project_id: string;
+  ae_id: string;
+  week_start: string;
+  status: 'draft' | 'submitted' | 'approved' | 'returned';
+  submitted_at: string | null;
+  is_late: boolean;
+  decided_by: string | null;
+  decided_at: string | null;
+  decision_note: string | null;
+};
+export type PlanItem = {
+  id: string;
+  plan_id: string | null;
+  exec_project_id: string;
+  day: string;
+  kind: string;
+  title: string;
+  zone: string | null;
+  qty: number | null;
+  unit: string | null;
+  supervisor_id: string | null;
+  source: 'plan' | 'supervisor';
+  acceptance: 'pending' | 'accepted' | 'rejected' | null;
+  reject_reason: string | null;
+  status: 'planned' | 'done' | 'partial' | 'not_done';
+  done_qty: number | null;
+  result_note: string | null;
+  added_by: string | null;
+};
+export const PLAN_KINDS = [
+  { value: 'task', label: 'Task' },
+  { value: 'inspection', label: 'Inspection' },
+  { value: 'test', label: 'Test' },
+  { value: 'delivery', label: 'Delivery' },
+  { value: 'meeting', label: 'Site meeting' },
+  { value: 'other', label: 'Other' },
+];
+export const PLAN_STATUS: Record<ExecPlan['status'], string> = {
+  draft: 'Draft',
+  submitted: 'Waiting for approval',
+  approved: 'Approved',
+  returned: 'Returned – revise',
+};
+export const ITEM_STATUS: Record<PlanItem['status'], string> = { planned: 'Planned', done: 'Done', partial: 'Partly done', not_done: 'Not done' };
+
+/** Monday of the week of an ISO date */
+export function weekOf(iso: string) {
+  const d = new Date(`${iso}T00:00:00`);
+  const dow = d.getDay() === 0 ? 7 : d.getDay();
+  d.setDate(d.getDate() - (dow - 1));
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}

@@ -65,6 +65,7 @@ export const EXEC_NAV = {
   mine: { href: '/execution', label: 'My projects', icon: '◧', testing: true } as NavItem,
   myWork: { href: '/execution', label: 'My work', icon: '◧', testing: true } as NavItem,
   team: { href: '/execution/team', label: 'Team & access', icon: '☺', testing: true } as NavItem,
+  plans: { href: '/execution/plans', label: 'Plans', icon: '▦', testing: true } as NavItem,
   access: { href: '/execution/team', label: 'Execution access', icon: '☺', testing: true } as NavItem,
 };
 
@@ -213,6 +214,7 @@ function baseNav(role: Role): NavItem[] {
         { href: '/', label: 'My Day', icon: '⌂' },
         EXEC_NAV.projects,
         { href: '/engineering', label: 'Tasks & instructions', icon: '▣' },
+        EXEC_NAV.plans,
         approvals,
         EXEC_NAV.team,
         { href: '/warranty', label: 'Warranty', icon: '⛉' },
@@ -224,6 +226,7 @@ function baseNav(role: Role): NavItem[] {
         { href: '/', label: 'My Day', icon: '⌂' },
         EXEC_NAV.mine,
         { href: '/engineering', label: 'Tasks & instructions', icon: '▣' },
+        EXEC_NAV.plans,
         { href: '/warranty', label: 'Warranty', icon: '⛉' },
       ];
     case 'trainee':

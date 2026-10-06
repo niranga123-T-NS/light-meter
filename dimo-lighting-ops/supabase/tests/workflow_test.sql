@@ -3343,5 +3343,58 @@ begin
 end $$;
 reset role;
 
+-- Execution step 3: AE plans the week, SEE approves; supervisor completes; supervisor additions need AE acceptance
+reset role;
+update public.profiles set active = true, revoke_pending = false where id = (select id from u where role = 'sub_supervisor');
+insert into public.exec_members (exec_project_id, user_id, member_role) values (current_setting('test.ex')::uuid, (select id from u where role = 'sub_supervisor'), 'sub_supervisor');
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare wk date := (current_date - (extract(isodow from current_date)::int - 1)); iid uuid; pid uuid;
+begin
+  perform set_config('test.wk', wk::text, false);
+  iid := public.save_plan_item(current_setting('test.ex')::uuid, wk, jsonb_build_object('day', current_date, 'title', 'Mount 20 downlights level 2',
+    'qty', 20, 'unit', 'nos', 'supervisor_id', (select id from u where role = 'sub_supervisor')));
+  perform set_config('test.pi', iid::text, false);
+  select plan_id into pid from public.exec_plan_items where id = iid;
+  perform set_config('test.pl', pid::text, false);
+  perform public.submit_plan(pid);
+  assert (select status from public.exec_plans where id = pid) = 'submitted', 'submitted';
+end $$;
+reset role;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ begin
+  begin perform public.update_plan_item(current_setting('test.pi')::uuid, 'done'); assert false, 'not approved yet';
+  exception when others then assert sqlerrm = 'The plan is not approved yet', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.my_pending_approvals() where source = 'exec_plan'), 'plan in SEE approvals';
+  perform public.decide_plan(current_setting('test.pl')::uuid, true);
+end $$;
+reset role;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare x uuid;
+begin
+  assert (select count(*) from public.exec_plan_items) = 1, 'supervisor sees own item';
+  assert not exists (select 1 from public.exec_plans), 'supervisor does not read plans';
+  begin perform public.update_plan_item(current_setting('test.pi')::uuid, 'partial', 12); assert false, 'reason needed';
+  exception when others then assert sqlerrm = 'Give the reason', sqlerrm; end;
+  perform public.update_plan_item(current_setting('test.pi')::uuid, 'partial', 12, 'Ceiling grid not ready in zone B');
+  x := public.supervisor_add_item(current_setting('test.ex')::uuid, jsonb_build_object('day', current_date, 'title', 'Clear debris before ceiling closing'));
+  perform set_config('test.sx', x::text, false);
+  begin perform public.update_plan_item(x, 'done'); assert false, 'needs acceptance';
+  exception when others then assert sqlerrm like 'Wait until an Assistant Engineer accepts%', sqlerrm; end;
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'exec_plan_addition' and recipient_id = (select id from u where role = 'assistant_engineer')), 'AE told of the addition';
+end $$;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+select public.decide_supervisor_item(current_setting('test.sx')::uuid, true);
+reset role;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+select public.update_plan_item(current_setting('test.sx')::uuid, 'done');
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

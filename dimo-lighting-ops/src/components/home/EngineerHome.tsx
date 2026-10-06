@@ -1,6 +1,7 @@
 import { router, Stack } from 'expo-router';
 import { Text } from 'react-native';
 import { EngJobRows } from '@/components/EngJobRows';
+import { TodayPlan } from '@/components/exec/TodayPlan';
 import { Button, Card, colors, ErrorBanner, Grid, ListRow, Loading, Muted, Notice, Row, Screen, Section, Stat } from '@/components/ui';
 import { MyDayMeetings } from '@/components/WeekMeetings';
 import { useMe } from '@/lib/auth';
@@ -74,6 +75,8 @@ export function EngineerHome() {
           <Button variant="secondary" title="Warranty" onPress={() => router.push('/warranty')} />
         </Row>
       ) : null}
+
+      <TodayPlan />
 
       {!lead && toAccept.length ? (
         <Section title={`To accept (${toAccept.length})`}>
