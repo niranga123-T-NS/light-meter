@@ -4,7 +4,7 @@ import { useDialog } from '@/components/dialog';
 import { TestingBanner } from '@/components/Testing';
 import { Button, Card, colors, ErrorBanner, Grid, KeyValue, ListRow, Loading, Muted, Notice, Pill, Progress, Row, Screen, Section } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import type { ExecMember } from '@/lib/execution';
+import { ITEM_STATUS, type ExecMember, type PlanItem } from '@/lib/execution';
 import { fmtDate, fmtDateTime, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { byCode, DEP_TYPES, programmeRows, RES_KINDS, type Activity, type Dep, type Programme, type Resource, type Wbs } from '@/lib/programme';
@@ -31,6 +31,7 @@ export default function ActivityScreen() {
       supabase.from('exec_members').select('*').eq('exec_project_id', act.exec_project_id).eq('active', true),
       supabase.from('exec_projects').select('name, status').eq('id', act.exec_project_id).single(),
     ]);
+    const { data: items } = await supabase.from('exec_plan_items').select('*').eq('activity_id', id).order('day', { ascending: false });
     return {
       a: act,
       all: (all.data ?? []) as Activity[],
@@ -40,6 +41,7 @@ export default function ActivityScreen() {
       pg: pg.data as Programme,
       members: (m.data ?? []) as ExecMember[],
       project: pj.data as { name: string; status: string } | null,
+      items: (items ?? []) as PlanItem[],
     };
   }, [id]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
@@ -141,7 +143,7 @@ export default function ActivityScreen() {
           </Row>
         </Row>
         <Muted>{`${data.project?.name ?? ''} · ${wbs.find((w) => w.id === a.wbs_id)?.code ?? ''} ${wbs.find((w) => w.id === a.wbs_id)?.name ?? ''}`}</Muted>
-        <Grid min={240}>
+        <Grid min={320}>
           <KeyValue label="Duration" value={a.duration ? `${a.duration} working days` : 'Milestone'} />
           <KeyValue label="Planned" value={`${fmtDate(a.es)} → ${fmtDate(a.ef)}`} />
           <KeyValue label="Latest (without delaying the finish)" value={`${fmtDate(a.ls)} → ${fmtDate(a.lf)}`} />
@@ -166,9 +168,31 @@ export default function ActivityScreen() {
           <KeyValue label="Complete" value={`${Math.round(Number(a.pct))}%`} />
           <KeyValue label="Actual" value={a.actual_start ? `${fmtDate(a.actual_start)} → ${a.actual_finish ? fmtDate(a.actual_finish) : 'in progress'}` : 'Not started'} />
           {a.progress_at ? <Muted>{`${people[a.progress_by ?? '']?.full_name ?? ''} · ${fmtDateTime(a.progress_at)}${a.progress_note ? ` · ${a.progress_note}` : ''}`}</Muted> : null}
+          {a.pct_auto != null ? (
+            <Muted>{`From the site results: ${Math.round(Number(a.pct_auto))}%${a.qty ? ` (quantities)` : ' (working days done)'} – updated automatically; the engineer corrects it with Update progress.`}</Muted>
+          ) : null}
           {!pg.version ? <Muted>Progress is entered once SM Projects approves the programme.</Muted> : null}
         </Card>
       </Section>
+
+      {data.items.length ? (
+        <Section title={`Site results (${data.items.length})`}>
+          <Card style={{ padding: 0, overflow: 'hidden' }}>
+            {data.items.map((i) => (
+              <ListRow
+                key={i.id}
+                wrapRight
+                highlight={i.status === 'not_done' ? colors.red : undefined}
+                title={`${fmtDate(i.day)} · ${i.title}`}
+                subtitle={[i.zone, i.qty != null ? `${i.done_qty != null ? `${i.done_qty} / ` : ''}${i.qty} ${i.unit ?? ''}` : null, i.supervisor_id ? people[i.supervisor_id]?.full_name : null, i.result_note]
+                  .filter(Boolean)
+                  .join(' · ')}
+                right={<Pill label={ITEM_STATUS[i.status]} tone={i.status === 'done' ? colors.green : i.status === 'partial' ? colors.amber : i.status === 'not_done' ? colors.red : colors.grey} />}
+              />
+            ))}
+          </Card>
+        </Section>
+      ) : null}
 
       <Section title={`Predecessors (${preds.length})`} right={canEdit ? <Button small variant="secondary" title="+ Predecessor" onPress={addPred} /> : null}>
         <Card style={{ padding: 0, overflow: 'hidden' }}>

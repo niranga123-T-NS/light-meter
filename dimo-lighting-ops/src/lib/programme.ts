@@ -1,3 +1,5 @@
+import { supabase } from './supabase';
+
 // Project programme: WBS, activities, links, resources (dates and float come from the server's critical-path scheduling)
 export type Programme = {
   exec_project_id: string;
@@ -41,6 +43,8 @@ export type Activity = {
   critical: boolean;
   bl_start: string | null;
   bl_finish: string | null;
+  pct_auto: number | null;
+  auto_at: string | null;
 };
 export type Dep = { id: string; pred_id: string; succ_id: string; dep_type: 'FS' | 'SS' | 'FF' | 'SF'; lag: number };
 export type Resource = { id: string; activity_id: string; kind: 'staff' | 'labour' | 'equipment' | 'subcontractor'; profile_id: string | null; name: string; qty: number; unit: string | null };
@@ -124,4 +128,25 @@ export function weeklyLoading(acts: Activity[], res: Resource[]) {
     }
   }
   return { weeks: [...cells.keys()].sort(), cells, names };
+}
+
+/** Activities offered when planning a week: those running or due in the week first (critical marked), finished ones left out */
+export function activityOptions(acts: Activity[], week: string) {
+  const end = fromDay(toDay(week) + 6);
+  const open = acts.filter((a) => !a.actual_finish).sort(byCode);
+  const due = (a: Activity) => !!a.es && !!a.ef && a.es <= end && a.ef >= week;
+  const label = (a: Activity) => `${a.critical ? '⚠ ' : ''}${a.code} ${a.name}`;
+  return [
+    ...open.filter(due).map((a) => ({ value: a.id, label: label(a), group: 'Due this week' })),
+    ...open.filter((a) => !due(a)).map((a) => ({ value: a.id, label: label(a), group: 'Other activities' })),
+  ];
+}
+
+/** The project's programme activities, and whether the programme is approved (plan items must then be linked) */
+export async function loadProgramme(project: string) {
+  const [pg, a] = await Promise.all([
+    supabase.from('exec_programmes').select('version').eq('exec_project_id', project).maybeSingle(),
+    supabase.from('exec_activities').select('*').eq('exec_project_id', project),
+  ]);
+  return { live: ((pg.data as { version: number } | null)?.version ?? 0) > 0, acts: (a.data ?? []) as Activity[] };
 }

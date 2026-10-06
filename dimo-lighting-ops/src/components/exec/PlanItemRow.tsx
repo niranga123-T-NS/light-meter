@@ -3,13 +3,29 @@ import { Button, colors, ListRow, Pill, Row } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { ITEM_STATUS, PLAN_KINDS, type PlanItem } from '@/lib/execution';
 import { fmtDate, todayISO } from '@/lib/format';
+import { weekOf } from '@/lib/execution';
 import { usePeople } from '@/lib/hooks';
+import { activityOptions, loadProgramme, type Activity } from '@/lib/programme';
 import { rpc } from '@/lib/supabase';
 
 const tone = (s: PlanItem['status']) => (s === 'done' ? colors.green : s === 'partial' ? colors.amber : s === 'not_done' ? colors.red : colors.grey);
 
 /** One plan item with its result, and – where allowed – the buttons to record the result or decide a supervisor addition. */
-export function PlanItemRow({ it, onChange, canResult, showDay, extra }: { it: PlanItem; onChange: () => void; canResult: boolean; showDay?: boolean; extra?: React.ReactNode }) {
+export function PlanItemRow({
+  it,
+  onChange,
+  canResult,
+  showDay,
+  extra,
+  activity,
+}: {
+  it: PlanItem;
+  onChange: () => void;
+  canResult: boolean;
+  showDay?: boolean;
+  extra?: React.ReactNode;
+  activity?: Activity;
+}) {
   const me = useMe();
   const dialog = useDialog();
   const people = usePeople();
@@ -43,12 +59,27 @@ export function PlanItemRow({ it, onChange, canResult, showDay, extra }: { it: P
 
   const decide = async (accept: boolean) => {
     let reason: string | null = null;
+    let act: string | null = null;
+    if (accept) {
+      // Once the programme is approved, the accepted task joins a programme activity
+      const pg = await loadProgramme(it.exec_project_id);
+      if (pg.live) {
+        const r = await dialog.prompt({
+          title: 'Accept the added task',
+          message: it.title,
+          fields: [{ key: 'a', label: 'Programme activity (⚠ = critical)', type: 'select', required: true, options: activityOptions(pg.acts, weekOf(it.day)) }],
+          confirmLabel: 'Accept',
+        });
+        if (!r) return;
+        act = r.a;
+      }
+    }
     if (!accept) {
       const r = await dialog.prompt({ title: 'Reject the added task', fields: [{ key: 'r', label: 'Reason', type: 'multiline', required: true }], confirmLabel: 'Reject', danger: true });
       if (!r) return;
       reason = r.r;
     }
-    await dialog.run(async () => { await rpc('decide_supervisor_item', { p_id: it.id, p_accept: accept, p_reason: reason }); onChange(); }, accept ? 'Accepted – the supervisor is told' : 'Rejected');
+    await dialog.run(async () => { await rpc('decide_supervisor_item', { p_id: it.id, p_accept: accept, p_reason: reason, p_activity: act }); onChange(); }, accept ? 'Accepted – the supervisor is told' : 'Rejected');
   };
 
   return (
@@ -57,6 +88,7 @@ export function PlanItemRow({ it, onChange, canResult, showDay, extra }: { it: P
       highlight={pending ? colors.amber : it.status === 'not_done' ? colors.red : undefined}
       title={`${it.title}${it.source === 'supervisor' ? ' · added by supervisor' : ''}`}
       subtitle={[
+        activity ? `${activity.critical && !activity.actual_finish ? '⚠ ' : ''}${activity.code}` : null,
         showDay ? fmtDate(it.day) : null,
         PLAN_KINDS.find((k) => k.value === it.kind)?.label,
         it.zone,

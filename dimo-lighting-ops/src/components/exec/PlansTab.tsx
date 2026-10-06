@@ -6,6 +6,7 @@ import { weekOf, type ExecMember, type ExecProject, type PlanItem } from '@/lib/
 import { addDaysISO, fmtDate, todayISO } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import { supabase } from '@/lib/supabase';
+import { loadProgramme } from '@/lib/programme';
 import { PlanWeek } from './PlanWeek';
 
 /** The project's week: every engineer's plan items and supervisor additions, with results. */
@@ -17,7 +18,7 @@ export function PlansTab({ p }: { p: ExecProject }) {
       supabase.from('exec_plan_items').select('*').eq('exec_project_id', p.id).gte('day', week).lte('day', addDaysISO(week, 6)).order('day'),
       supabase.from('exec_members').select('*').eq('exec_project_id', p.id).eq('active', true),
     ]);
-    return { items: (its.data ?? []) as PlanItem[], members: (mem.data ?? []) as ExecMember[] };
+    return { items: (its.data ?? []) as PlanItem[], members: (mem.data ?? []) as ExecMember[], programme: await loadProgramme(p.id) };
   }, [p.id, week]);
   return (
     <Section title="Plan">
@@ -28,7 +29,7 @@ export function PlansTab({ p }: { p: ExecProject }) {
         {me.role === 'assistant_engineer' ? <Button small title="My plan" onPress={() => router.push({ pathname: '/execution/plans', params: { project: p.id, week } })} /> : null}
       </Row>
       {data ? (
-        <PlanWeek week={week} items={data.items} project={p.id} supervisors={data.members.filter((m) => m.member_role === 'sub_supervisor')} canResult={me.role !== 'trainee'} onChange={reload} />
+        <PlanWeek week={week} items={data.items} project={p.id} supervisors={data.members.filter((m) => m.member_role === 'sub_supervisor')} canResult={me.role !== 'trainee'} onChange={reload} programme={data.programme} />
       ) : null}
     </Section>
   );
