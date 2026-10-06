@@ -3795,5 +3795,21 @@ do $$ begin
                  and pct_actual > 0 and pct_planned >= 0), 'snapshot recorded';
 end $$;
 
+
+-- WBS edit by the SEE: rename, and no move under its own sub-element
+update public.exec_programmes set status = 'draft' where exec_project_id = current_setting('test.exlegacy')::uuid and status = 'submitted';
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare e uuid := current_setting('test.exlegacy')::uuid; top uuid; sub uuid;
+begin
+  top := (select id from public.exec_wbs where exec_project_id = e and code = '1');
+  sub := public.save_wbs(e, null, top, '1.1', 'Foundations');
+  perform public.save_wbs(e, top, null, '1', 'Civil and structural works');
+  assert (select name from public.exec_wbs where id = top) = 'Civil and structural works', 'renamed';
+  begin perform public.save_wbs(e, top, sub, '1', 'Civil and structural works'); assert false, 'loop';
+  exception when others then assert sqlerrm = 'A WBS element cannot be moved under its own sub-element', sqlerrm; end;
+  perform public.delete_wbs(sub);
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
