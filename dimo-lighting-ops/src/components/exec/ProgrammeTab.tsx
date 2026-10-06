@@ -122,14 +122,44 @@ export function ProgrammeTab({ p, onChange }: { p: ExecProject; onChange: () => 
     if (r) await dialog.run(async () => { await rpc('decide_programme', { p_exec: p.id, p_approve: ok, p_note: r.n || null }); await refresh(); }, ok ? 'Approved' : 'Returned');
   };
 
+  // Build guide for the SEE: each step with its button, the Gantt chart appears from the first activity
+  const noRes = acts.filter((a) => a.duration > 0 && !res.some((r) => r.activity_id === a.id)).length;
+  const noEng = acts.filter((a) => a.duration > 0 && !a.responsible_id).length;
+  const steps: { done: boolean; text: string; button?: { title: string; onPress: () => void } }[] = [
+    { done: !!pg, text: pg ? `Start date ${fmtDate(pg.start_date)}` : 'Set the start date (first day of work on site)', button: { title: pg ? 'Change' : 'Set start date', onPress: setStart } },
+    { done: wbs.length > 0, text: wbs.length ? `${wbs.length} WBS element(s)` : 'Add the WBS – the work packages (e.g. 1 Civil works, 2 Electrical works)', button: pg ? { title: '+ WBS', onPress: addWbs } : undefined },
+    {
+      done: acts.length > 0,
+      text: acts.length ? `${acts.length} activit${acts.length === 1 ? 'y' : 'ies'} – the Gantt chart is below` : 'Add the activities under each WBS element, with duration and what each one follows – the Gantt chart appears from the first activity',
+      button: wbs.length ? { title: '+ Activity', onPress: addActivity } : undefined,
+    },
+    {
+      done: acts.length > 0 && noRes === 0,
+      text: noRes ? `Allocate resources – ${noRes} activit${noRes === 1 ? 'y has' : 'ies have'} none (open the activity → + Resource)` : acts.length ? 'Resources allocated to every activity' : 'Allocate the resources of each activity (open the activity → + Resource)',
+      button: noRes ? { title: 'Show list', onPress: () => setView('list') } : undefined,
+    },
+    { done: acts.length > 0 && noEng === 0, text: noEng ? `${noEng} activit${noEng === 1 ? 'y has' : 'ies have'} no responsible engineer (open the activity → Edit)` : acts.length ? 'Responsible engineer on every activity' : 'Give each activity its responsible engineer' },
+    { done: !!pg?.version || pg?.status === 'submitted', text: pg?.status === 'submitted' ? 'Submitted – waiting for SM Projects' : pg?.version ? 'Approved by SM Projects' : 'Submit to SM Projects for approval', button: pg && pg.status === 'draft' && acts.length ? { title: pg.version ? 'Submit revision' : 'Submit', onPress: submit } : undefined },
+  ];
+  const guide =
+    see && p.status === 'active' && (!pg || pg.status === 'draft') ? (
+      <Card>
+        <Text style={{ fontWeight: '700', color: colors.ink, marginBottom: 4 }}>{pg?.version ? 'Revising the programme' : 'Build the programme – step by step'}</Text>
+        {steps.map((st, i) => (
+          <Row key={i} wrap gap={8} style={{ justifyContent: 'space-between', alignItems: 'center', paddingVertical: 5, borderTopWidth: i ? 1 : 0, borderTopColor: colors.line }}>
+            <Text style={{ flex: 1, minWidth: 220, color: st.done ? colors.green : colors.ink }}>{`${st.done ? '✓' : `${i + 1}.`} ${st.text}`}</Text>
+            {st.button ? <Button small variant={st.done ? 'secondary' : 'primary'} title={st.button.title} onPress={st.button.onPress} /> : null}
+          </Row>
+        ))}
+      </Card>
+    ) : null;
+
   if (!pg) {
     return (
       <Section title="Programme">
-        <Empty
-          title="No programme yet"
-          hint="The Senior Electrical Engineer builds the WBS, activities, links and resources; SM Projects approves it before work starts (gate 2)."
-          action={see && p.status === 'active' ? <Button title="Start the programme" onPress={setStart} /> : undefined}
-        />
+        {guide ?? (
+          <Empty title="No programme yet" hint="The Senior Electrical Engineer builds the WBS, activities, links and resources; SM Projects approves it before work starts (gate 2)." />
+        )}
       </Section>
     );
   }
@@ -165,6 +195,7 @@ export function ProgrammeTab({ p, onChange }: { p: ExecProject; onChange: () => 
           {pg.status === 'submitted' && pg.submit_note ? <Notice>{pg.submit_note}</Notice> : null}
           {!pg.version ? <Muted>Work cannot commence (gate 2) until SM Projects approves the programme.</Muted> : null}
         </Card>
+        {guide}
         <Grid min={150}>
           <Stat label="Start" value={fmtDate(pg.start_date)} />
           <Stat label="Forecast finish" value={fmtDate(pg.forecast_finish)} tone={late != null && late > 0 ? 'red' : undefined} />
