@@ -3860,5 +3860,15 @@ do $$ begin
 end $$;
 reset role;
 
+
+-- Supervisor attaches a delivery photo to their request
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ begin
+  assert app.can_write_attachment('material_request', current_setting('test.smr')::uuid, 'grn_photo'), 'supervisor can attach the delivery photo';
+  assert not app.can_write_attachment('material_request', current_setting('test.mr')::uuid, 'grn_photo'), 'not to other requests';
+  assert app.can_write_attachment('material_request', current_setting('test.smr')::uuid, null), 'file storage upload check (no kind)';
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

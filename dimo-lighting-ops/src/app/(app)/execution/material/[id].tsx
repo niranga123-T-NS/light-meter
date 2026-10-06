@@ -217,7 +217,7 @@ export default function MaterialScreen() {
           </Card>
         </Section>
       ) : null}
-      <Attachments entityType="material_request" entityId={m.id} kinds={['mr_doc', 'grn_photo']} title="Delivery notes and photos" allowCamera canUpload={me.role !== 'gm' && !isSub} />
+      <Attachments entityType="material_request" entityId={m.id} kinds={['mr_doc', 'grn_photo']} title="Delivery notes and photos" allowCamera canUpload={me.role !== 'gm'} />
     </Screen>
   );
 }
