@@ -31,6 +31,14 @@ export function TeamTab({ p }: { p: ExecProject }) {
 
   const add = async () => {
     const candidates = data.profiles.filter((x) => (x.role === 'assistant_engineer' || x.role === 'trainee') && !active.some((m) => m.user_id === x.id));
+    if (!candidates.length) {
+      await dialog.confirm(
+        'No Assistant Engineer available',
+        'Only people with an Assistant Engineer or Trainee login can be added. Ask the System Administrator to create the login (permanent staff), or use Team & access → Request temporary staff.',
+        { confirmLabel: 'OK' },
+      );
+      return;
+    }
     const r = await dialog.prompt({
       title: 'Add a team member',
       message: 'Assistant Engineers (permanent or temporary) and Trainees. Subcontractor supervisors are nominated for SM Projects approval.',

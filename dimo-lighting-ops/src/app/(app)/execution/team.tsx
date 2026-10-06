@@ -18,13 +18,15 @@ export default function TeamAccess() {
   const people = usePeople();
   const see = me.role === 'senior_elec_engineer';
   const { data, error, reload, loading } = useLoad(async () => {
-    const [r, t, m] = await Promise.all([
+    const [r, t, m, ep] = await Promise.all([
       supabase.from('access_requests').select('*').order('requested_at', { ascending: false }).limit(300),
       supabase.from('profiles').select('id, full_name, role, is_temporary, access_until, id_no, active').or('is_temporary.eq.true,role.eq.trainee').eq('active', true),
       supabase.from('exec_members').select('*, exec_projects(name, code)').eq('active', true),
+      supabase.from('exec_projects').select('id, code, name').eq('status', 'active').order('name'),
     ]);
     if (r.error) throw new Error(r.error.message);
-    return { requests: (r.data ?? []) as AccessRequest[], temps: (t.data ?? []) as Temp[], members: (m.data ?? []) as (ExecMember & { exec_projects: { name: string; code: string } | null })[] };
+    return { requests: (r.data ?? []) as AccessRequest[], temps: (t.data ?? []) as Temp[], members: (m.data ?? []) as (ExecMember & { exec_projects: { name: string; code: string } | null })[],
+      projects: (ep.data ?? []) as { id: string; code: string | null; name: string }[] };
   });
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const open = data.requests.filter((r) => ['pending_smp', 'pending_gm', 'approved'].includes(r.status));
@@ -73,6 +75,31 @@ export default function TeamAccess() {
           <Button title="+ Request temporary staff" onPress={() => router.push('/execution/request')} />
           <Muted>{"Subcontractor supervisors are nominated from each project's Team tab."}</Muted>
         </Row>
+      ) : null}
+      {see || me.role === 'sm_projects' ? (
+        <Section title={`Project teams (${data.projects.length})`}>
+          <Muted>Assistant Engineers and trainees are added – and subcontractor supervisors nominated – in each project.</Muted>
+          {data.projects.length ? (
+            <Card style={{ padding: 0, overflow: 'hidden', marginTop: 6 }}>
+              {data.projects.map((p) => {
+                const team = data.members.filter((m) => m.exec_project_id === p.id);
+                return (
+                  <ListRow
+                    key={p.id}
+                    wrapRight
+                    onPress={() => router.push({ pathname: '/execution/[id]', params: { id: p.id, tab: 'team' } })}
+                    highlight={team.some((m) => m.member_role !== 'sub_supervisor') ? undefined : colors.amber}
+                    title={`${p.code ?? ''} ${p.name}`}
+                    subtitle={team.length ? team.map((m) => `${people[m.user_id]?.full_name ?? '—'}${m.member_role === 'sub_supervisor' ? ' (supervisor)' : ''}`).join(' · ') : 'No engineers yet'}
+                    right={<Button small title="+ Add engineer / trainee" onPress={() => router.push({ pathname: '/execution/[id]', params: { id: p.id, tab: 'team' } })} />}
+                  />
+                );
+              })}
+            </Card>
+          ) : (
+            <Empty title="No active execution projects" />
+          )}
+        </Section>
       ) : null}
       <Section title={`In progress (${open.length})`}>
         {open.length ? <Card style={{ padding: 0, overflow: 'hidden' }}>{open.map(reqRow)}</Card> : <Empty title="No open requests" />}

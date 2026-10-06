@@ -24,6 +24,7 @@ type Tab = { key: string; label: string; roles?: Role[] };
 const INTERNAL: Role[] = ['senior_elec_engineer', 'sm_projects', 'gm', 'operations_exec', 'assistant_engineer', 'trainee'];
 const TABS: Tab[] = [
   { key: 'overview', label: 'Overview' },
+  { key: 'team', label: 'Project team', roles: INTERNAL },
   { key: 'plans', label: 'Plan', roles: INTERNAL },
   { key: 'reports', label: 'Daily reports' },
   { key: 'variations', label: 'Variations', roles: ['senior_elec_engineer', 'sm_projects', 'gm', 'operations_exec', 'assistant_engineer'] },
@@ -33,7 +34,6 @@ const TABS: Tab[] = [
   { key: 'documents', label: 'Documents' },
   { key: 'handover', label: 'Handover', roles: INTERNAL },
   { key: 'cost', label: 'Cost', roles: ['senior_elec_engineer', 'sm_projects', 'gm', 'operations_exec', 'assistant_engineer'] },
-  { key: 'team', label: 'Team', roles: INTERNAL },
 ];
 
 /** One execution project: the workspace every execution screen hangs off. Each role sees the tabs it is allowed. */
@@ -56,7 +56,7 @@ export default function ExecProjectScreen() {
       <Text style={{ fontSize: 20, fontWeight: '700', color: colors.ink }}>{p.name}</Text>
       <Muted>{`Stage ${p.stage} – ${EXEC_STAGES[p.stage - 1]}${p.status === 'closed' ? ' · closed' : ''}`}</Muted>
       <Segmented value={t} onChange={setT} options={tabs.map((x) => ({ value: x.key, label: x.label }))} />
-      {t === 'overview' ? <OverviewTab p={p} /> : null}
+      {t === 'overview' ? <OverviewTab p={p} onTab={setT} /> : null}
       {t === 'plans' ? <PlansTab p={p} /> : null}
       {t === 'reports' ? <ReportsTab p={p} /> : null}
       {t === 'variations' ? <VariationsTab p={p} /> : null}
