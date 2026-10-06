@@ -9,6 +9,7 @@ import { useMe } from '@/lib/auth';
 import { PLAN_STATUS, weekOf, type ExecMember, type ExecPlan, type ExecProject, type PlanItem } from '@/lib/execution';
 import { addDaysISO, fmtDate, fmtDateTime, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
+import { loadProgramme } from '@/lib/programme';
 import { rpc, supabase } from '@/lib/supabase';
 
 /** Weekly plans: Assistant Engineers plan each project week (due Saturday 17:00); the Senior Electrical Engineer approves. */
@@ -37,7 +38,7 @@ export default function Plans() {
     if (!ae || !proj) return null;
     const { data: pl } = await supabase.from('exec_plans').select('*').eq('exec_project_id', proj).eq('ae_id', me.id).eq('week_start', week).maybeSingle();
     const { data: its } = pl ? await supabase.from('exec_plan_items').select('*').eq('plan_id', pl.id).order('day') : { data: [] };
-    return { plan: pl as ExecPlan | null, items: (its ?? []) as PlanItem[] };
+    return { plan: pl as ExecPlan | null, items: (its ?? []) as PlanItem[], programme: await loadProgramme(proj) };
   }, [proj, week, ae]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const refresh = async () => {
@@ -50,6 +51,23 @@ export default function Plans() {
   const plan = weekData?.plan ?? null;
   const editable = !plan || plan.status === 'draft' || plan.status === 'returned' || plan.status === 'approved';
   const deadline = addDaysISO(week, -2);
+  // Critical activities due this week must be planned, or the reason given (shown to the SEE)
+  const submit = async () => {
+    if (!plan) return;
+    const missing = await rpc<{ activity_id: string; code: string; name: string; es: string; ef: string }[]>('plan_missing_critical', { p_plan: plan.id });
+    let reasons: Record<string, string> = {};
+    if (missing.length) {
+      const r = await dialog.prompt({
+        title: 'Critical activities not in this plan',
+        message: 'These critical activities are due this week. Cancel and plan them, or give the reason for each – the Senior Electrical Engineer sees it.',
+        fields: missing.map((m) => ({ key: m.activity_id, label: `${m.code} ${m.name} (${fmtDate(m.es)} → ${fmtDate(m.ef)})`, type: 'multiline' as const, required: true })),
+        confirmLabel: 'Submit with reasons',
+      });
+      if (!r) return;
+      reasons = r;
+    }
+    await dialog.run(async () => { await rpc('submit_plan', { p_plan: plan.id, p_reasons: reasons }); await refresh(); }, 'Submitted to the Senior Electrical Engineer');
+  };
 
   return (
     <Screen refreshing={loading} onRefresh={refresh}>
@@ -97,13 +115,13 @@ export default function Plans() {
             <Muted>{`Submit by Saturday ${fmtDate(deadline)} 17:00 – the Senior Electrical Engineer approves. Supervisors see their items each day.`}</Muted>
           </Card>
           {proj ? (
-            <PlanWeek week={week} items={weekData?.items ?? []} edit={editable} project={proj} supervisors={supervisors} canResult onChange={refresh} />
+            <PlanWeek week={week} items={weekData?.items ?? []} edit={editable} project={proj} supervisors={supervisors} canResult onChange={refresh} programme={weekData?.programme} />
           ) : (
             <Empty title="You are not on any execution project" />
           )}
           {plan && (plan.status === 'draft' || plan.status === 'returned') && weekData?.items.length ? (
             <Row style={{ justifyContent: 'flex-end' }}>
-              <Button title="Submit for approval" onPress={() => dialog.run(async () => { await rpc('submit_plan', { p_plan: plan.id }); await refresh(); }, 'Submitted to the Senior Electrical Engineer')} />
+              <Button title="Submit for approval" onPress={submit} />
             </Row>
           ) : null}
         </Section>

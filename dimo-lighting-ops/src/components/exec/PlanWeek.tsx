@@ -2,6 +2,7 @@ import { Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, Muted, Row } from '@/components/ui';
 import { PLAN_KINDS, type ExecMember, type PlanItem } from '@/lib/execution';
+import { activityOptions, type Activity } from '@/lib/programme';
 import { addDaysISO, fmtDate } from '@/lib/format';
 import { usePeople } from '@/lib/hooks';
 import { rpc } from '@/lib/supabase';
@@ -16,6 +17,7 @@ export function PlanWeek({
   supervisors,
   canResult,
   onChange,
+  programme,
 }: {
   week: string;
   items: PlanItem[];
@@ -24,6 +26,8 @@ export function PlanWeek({
   supervisors: ExecMember[];
   canResult: boolean;
   onChange: () => void;
+  /** The project's programme: when approved, every item is linked to an activity */
+  programme?: { live: boolean; acts: Activity[] } | null;
 }) {
   const dialog = useDialog();
   const people = usePeople();
@@ -35,7 +39,19 @@ export function PlanWeek({
       fields: [
         { key: 'day', label: 'Day', type: 'select', required: true, initial: it?.day ?? day, options: days.map((d) => ({ value: d, label: fmtDate(d) })) },
         { key: 'kind', label: 'Type', type: 'select', required: true, initial: it?.kind ?? 'task', options: PLAN_KINDS },
-        { key: 'title', label: 'Work / activity', required: true, initial: it?.title },
+        ...(programme?.acts.length
+          ? [
+              {
+                key: 'act',
+                label: programme.live ? 'Programme activity (⚠ = critical)' : 'Programme activity (optional until the programme is approved)',
+                type: 'select' as const,
+                required: programme.live,
+                initial: it?.activity_id ?? undefined,
+                options: activityOptions(programme.acts, week),
+              },
+            ]
+          : []),
+        { key: 'title', label: programme?.acts.length ? 'Work this day (empty = the activity name)' : 'Work / activity', required: !programme?.acts.length, initial: it?.title },
         { key: 'zone', label: 'Zone / area', initial: it?.zone ?? '' },
         { key: 'qty', label: 'Quantity (optional)', initial: it?.qty != null ? String(it.qty) : '' },
         { key: 'unit', label: 'Unit (m, nos, points…)', initial: it?.unit ?? '' },
@@ -51,7 +67,12 @@ export function PlanWeek({
     });
     if (r)
       await dialog.run(async () => {
-        await rpc('save_plan_item', { p_exec: project, p_week: week, p: { id: it?.id ?? '', day: r.day, kind: r.kind, title: r.title, zone: r.zone, qty: r.qty, unit: r.unit, supervisor_id: r.sup } });
+        const act = programme?.acts.find((a) => a.id === r.act);
+        await rpc('save_plan_item', {
+          p_exec: project,
+          p_week: week,
+          p: { id: it?.id ?? '', day: r.day, kind: r.kind, title: r.title || act?.name || '', zone: r.zone, qty: r.qty, unit: r.unit, supervisor_id: r.sup, activity_id: r.act ?? '' },
+        });
         onChange();
       }, 'Saved');
   };
@@ -76,6 +97,7 @@ export function PlanWeek({
               <PlanItemRow
                 key={it.id}
                 it={it}
+                activity={programme?.acts.find((a) => a.id === it.activity_id)}
                 onChange={onChange}
                 canResult={canResult}
                 extra={

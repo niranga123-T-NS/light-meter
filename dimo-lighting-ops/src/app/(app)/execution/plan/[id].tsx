@@ -9,6 +9,7 @@ import { useMe } from '@/lib/auth';
 import { PLAN_STATUS, type ExecMember, type ExecPlan, type PlanItem } from '@/lib/execution';
 import { fmtDate, fmtDateTime } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
+import { loadProgramme, type Dep } from '@/lib/programme';
 import { rpc, supabase } from '@/lib/supabase';
 
 /** One weekly plan: the Senior Electrical Engineer approves or returns it; the owner edits it on the Plans page. */
@@ -26,10 +27,23 @@ export default function PlanScreen() {
       supabase.from('exec_plan_items').select('*').eq('plan_id', id).order('day'),
       supabase.from('exec_members').select('*').eq('exec_project_id', plan.exec_project_id).eq('active', true),
     ]);
-    return { plan, items: (its.data ?? []) as PlanItem[], members: (mem.data ?? []) as ExecMember[] };
+    const programme = await loadProgramme(plan.exec_project_id);
+    const ids = programme.acts.map((a) => a.id);
+    const { data: dp } = ids.length ? await supabase.from('exec_activity_deps').select('*').in('succ_id', ids) : { data: [] };
+    return { plan, items: (its.data ?? []) as PlanItem[], members: (mem.data ?? []) as ExecMember[], programme, deps: (dp ?? []) as Dep[] };
   }, [id]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const { plan } = data;
+  const { plan, programme, deps } = data;
+  const act = (aid: string) => programme.acts.find((a) => a.id === aid);
+  const skipped = Object.entries(plan.skip_reasons ?? {});
+  // Planned work on an activity whose finish-to-start predecessor is not finished yet
+  const blocked = [...new Set(data.items.map((i) => i.activity_id).filter(Boolean) as string[])]
+    .map((aid) => ({
+      a: act(aid),
+      open: deps.filter((d) => d.succ_id === aid && d.dep_type === 'FS').map((d) => act(d.pred_id)).filter((pr) => pr && !pr.actual_finish),
+    }))
+    .filter((x) => x.a && !x.a.actual_start && x.open.length);
+  const unlinked = programme.live ? data.items.filter((i) => !i.activity_id).length : 0;
   const decide = async (approve: boolean) => {
     const r = await dialog.prompt({
       title: approve ? 'Approve the plan' : 'Return the plan',
@@ -54,6 +68,17 @@ export default function PlanScreen() {
         </Row>
         <Muted>{`${people[plan.ae_id]?.full_name ?? ''}${plan.submitted_at ? ` · submitted ${fmtDateTime(plan.submitted_at)}` : ''}${plan.is_late ? ' · late (after Saturday 17:00)' : ''}`}</Muted>
         {plan.decision_note ? <Notice tone={plan.status === 'returned' ? colors.red : colors.blue}>{plan.decision_note}</Notice> : null}
+        {skipped.length ? (
+          <Notice tone={colors.red}>
+            {`Critical activities due this week but not planned:\n${skipped.map(([aid, why]) => `• ${act(aid)?.code ?? ''} ${act(aid)?.name ?? ''} – ${why}`).join('\n')}`}
+          </Notice>
+        ) : null}
+        {blocked.length ? (
+          <Notice tone={colors.amber}>
+            {`Planned before the preceding work is finished:\n${blocked.map((b) => `• ${b.a?.code} ${b.a?.name} – waits for ${b.open.map((o) => `${o?.code} (${Math.round(Number(o?.pct ?? 0))}%)`).join(', ')}`).join('\n')}`}
+          </Notice>
+        ) : null}
+        {unlinked ? <Notice tone={colors.amber}>{`${unlinked} item(s) not linked to a programme activity`}</Notice> : null}
         <Row wrap gap={6} style={{ marginTop: 8 }}>
           {plan.status === 'submitted' && me.role === 'senior_elec_engineer' ? (
             <>
@@ -73,6 +98,7 @@ export default function PlanScreen() {
         supervisors={data.members.filter((m) => m.member_role === 'sub_supervisor')}
         canResult={plan.ae_id === me.id || me.role === 'senior_elec_engineer'}
         onChange={reload}
+        programme={programme}
       />
     </Screen>
   );

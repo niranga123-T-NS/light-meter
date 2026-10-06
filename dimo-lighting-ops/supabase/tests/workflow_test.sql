@@ -3734,5 +3734,36 @@ do $$ begin
   assert (select forecast_finish is not null from public.exec_programmes where exec_project_id = current_setting('test.exlegacy')::uuid), 'forecast finish';
 end $$;
 
+
+-- Weekly plan linked to the programme: link required, critical activities planned or explained, site results drive progress
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare e uuid := current_setting('test.exlegacy')::uuid; wk date := date_trunc('week', current_date)::date; it uuid; pl uuid; miss int; r jsonb := '{}'; m record;
+begin
+  begin perform public.save_plan_item(e, wk, jsonb_build_object('day', current_date, 'title', 'Cast bases M3–M4')); assert false, 'activity needed';
+  exception when others then assert sqlerrm = 'Choose the programme activity this work belongs to', sqlerrm; end;
+  it := public.save_plan_item(e, wk, jsonb_build_object('day', current_date, 'title', 'Cast bases M3–M4', 'activity_id', current_setting('test.act_a')));
+  perform set_config('test.pli', it::text, false);
+  select plan_id into pl from public.exec_plan_items where id = it;
+  perform set_config('test.plp', pl::text, false);
+  select count(*) into miss from public.plan_missing_critical(pl);
+  if miss > 0 then
+    begin perform public.submit_plan(pl); assert false, 'critical missing';
+    exception when others then assert sqlerrm like 'Critical activities due this week are not planned%', sqlerrm; end;
+    for m in select * from public.plan_missing_critical(pl) loop r := r || jsonb_build_object(m.activity_id::text, 'Crane available only next week'); end loop;
+  end if;
+  perform public.submit_plan(pl, r);
+  assert (select skip_reasons from public.exec_plans where id = pl) = r, 'reasons kept for the SEE';
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select public.decide_plan(current_setting('test.plp')::uuid, true);
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin
+  perform public.update_plan_item(current_setting('test.pli')::uuid, 'done');
+  assert (select pct_auto = 20 and pct >= 40 and actual_start is not null from public.exec_activities where id = current_setting('test.act_a')::uuid), 'auto progress never lowers the AE figure';
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

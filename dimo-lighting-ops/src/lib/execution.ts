@@ -130,6 +130,7 @@ export type ExecPlan = {
   decided_by: string | null;
   decided_at: string | null;
   decision_note: string | null;
+  skip_reasons: Record<string, string>;
 };
 export type PlanItem = {
   id: string;
@@ -142,6 +143,7 @@ export type PlanItem = {
   qty: number | null;
   unit: string | null;
   supervisor_id: string | null;
+  activity_id: string | null;
   source: 'plan' | 'supervisor';
   acceptance: 'pending' | 'accepted' | 'rejected' | null;
   reject_reason: string | null;
