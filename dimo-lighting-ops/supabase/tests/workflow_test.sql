@@ -4016,5 +4016,134 @@ do $$ begin
   assert exists (select 1 from public.notifications where kind = 'exec_billing' and recipient_id = (select id from u where role = 'senior_elec_engineer')), 'monthly check reminder';
 end $$;
 
+-- Contract BOQ, measurement by quantity, Material on Site ------------------------
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare e uuid := current_setting('test.exlegacy')::uuid; r jsonb;
+begin
+  begin perform public.save_boq(e, '[{"section":"Bill 1","description":"Preliminaries"}]'); assert false, 'priced items';
+  exception when others then assert sqlerrm = 'The BOQ has no priced items', sqlerrm; end;
+  r := public.save_boq(e, '[
+    {"section":"Bill 1 – Preliminaries","description":"Preliminaries"},
+    {"section":"Bill 1 – Preliminaries","item_no":"1.1","description":"Mobilisation","unit":"sum","qty":1,"rate":500000},
+    {"section":"Bill 2 – Electrical","item_no":"2.1","description":"12 m mast","unit":"nos","qty":16,"rate":450000},
+    {"section":"Bill 2 – Electrical","item_no":"2.2","description":"Armoured cable 4C 16 mm²","unit":"m","qty":2000,"rate":1500,"amount":3000000},
+    {"section":"Bill 2 – Electrical","item_no":"2.3","description":"Floodlight 1500W","unit":"nos","qty":64,"rate":250000}]'::jsonb,
+    'Harbour BOQ.xlsx', array['Bill 1', 'Bill 2'], 80);
+  assert (r ->> 'total')::numeric = 26700000, 'total ' || r;
+  assert (select status = 'submitted' and version = 0 and mos_pct = 80 from public.exec_boqs where exec_project_id = e), 'with SM Projects';
+  assert (select count(*) from public.exec_boq_items where exec_project_id = e and heading) = 1, 'sub-heading kept';
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare e uuid := current_setting('test.exlegacy')::uuid;
+begin
+  assert not exists (select 1 from public.exec_boq_items), 'AE does not see the rates';
+  assert jsonb_array_length(public.claim_context(e) -> 'items') = 0, 'no items until approved';
+  begin perform public.prepare_ipc(e, current_date, null, null, '[{"boq_item_id":"00000000-0000-0000-0000-000000000000","qty_to_date":1}]'); assert false, 'not approved';
+  exception when others then assert sqlerrm like 'The contract BOQ is not approved yet%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.my_pending_approvals() where source = 'exec_boq'), 'BOQ in approvals';
+  assert public.decide_boq(current_setting('test.exlegacy')::uuid, true) = 'approved', 'approved';
+end $$;
+reset role;
+-- 20 floodlights delivered, 4 already installed
+insert into public.store_moves (exec_project_id, kind, item, unit, qty) values
+  (current_setting('test.exlegacy')::uuid, 'receipt', 'Floodlight 1500W', 'nos', 20), (current_setting('test.exlegacy')::uuid, 'issue', 'Floodlight 1500W', 'nos', 4);
+create temp table bq on commit drop as select item_no, id from public.exec_boq_items where exec_project_id = current_setting('test.exlegacy')::uuid and item_no is not null;
+grant select on bq to authenticated;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare e uuid := current_setting('test.exlegacy')::uuid; c jsonb; iid uuid; d jsonb;
+begin
+  c := public.claim_context(e);
+  assert jsonb_array_length(c -> 'items') = 5 and not (c -> 'items' -> 1 ? 'rate'), 'items without rates';
+  assert (select (x ->> 'balance')::numeric from jsonb_array_elements(c -> 'store') x where x ->> 'item' = 'Floodlight 1500W') = 16, 'site store balance';
+  begin perform public.prepare_ipc(e, current_date, null, null, jsonb_build_array(jsonb_build_object('boq_item_id', (select id from bq where item_no = '2.1'), 'qty_to_date', 8)),
+      jsonb_build_array(jsonb_build_object('item', 'Floodlight 1500W', 'unit', 'nos', 'qty', 20, 'boq_item_id', (select id from bq where item_no = '2.3')))); assert false, 'store';
+  exception when others then assert sqlerrm like 'Only 16 nos of Floodlight 1500W is in the site store', sqlerrm; end;
+  iid := public.prepare_ipc(e, current_date, null, null,
+    jsonb_build_array(jsonb_build_object('boq_item_id', (select id from bq where item_no = '2.1'), 'qty_to_date', 8),
+                      jsonb_build_object('boq_item_id', (select id from bq where item_no = '2.2'), 'qty_to_date', 1000)),
+    jsonb_build_array(jsonb_build_object('item', 'Floodlight 1500W', 'unit', 'nos', 'qty', 16, 'boq_item_id', (select id from bq where item_no = '2.3'))));
+  perform set_config('test.ipcq', iid::text, false);
+  assert (select measured_pct from public.exec_ipcs where id = iid) = 19.10, 'percent from the BOQ';
+  d := public.ipc_detail(iid);
+  assert jsonb_array_length(d -> 'lines') = 2 and not (d -> 'lines' -> 0 ? 'rate') and not (d ? 'values') and not (d -> 'mos' -> 0 ? 'value'), 'AE sees quantities only';
+  assert not exists (select 1 from public.exec_ipc_values), 'no money for the AE';
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare iid uuid := current_setting('test.ipcq')::uuid; v jsonb;
+begin
+  v := public.ipc_detail(iid) -> 'values';
+  assert (v ->> 'work_value')::numeric = 5100000 and (v ->> 'mos_value')::numeric = 3200000 and (v ->> 'gross_value')::numeric = 8300000, 'valuation ' || v::text;
+  assert (v ->> 'previous_certified')::numeric = 5700000 and (v ->> 'suggested')::numeric = 2600000, 'less certified before ' || v::text;
+  assert public.certify_ipc(iid, true, (select id from bl where seq = 4), 2600000, 'IPC 4') = 'certified', 'certified';
+end $$;
+reset role;
+-- Next month: the floodlights are installed → measured as work, material on site recovered
+insert into public.store_moves (exec_project_id, kind, item, unit, qty) values (current_setting('test.exlegacy')::uuid, 'issue', 'Floodlight 1500W', 'nos', 16);
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare e uuid := current_setting('test.exlegacy')::uuid; c jsonb;
+begin
+  c := public.claim_context(e);
+  assert (select (x ->> 'last_qty')::numeric from jsonb_array_elements(c -> 'items') x where x ->> 'item_no' = '2.1') = 8, 'last quantity shown';
+  perform set_config('test.ipcq2', public.prepare_ipc(e, current_date + 31, null, null,
+    jsonb_build_array(jsonb_build_object('boq_item_id', (select id from bq where item_no = '2.3'), 'qty_to_date', 16)))::text, false);
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare v jsonb := public.ipc_detail(current_setting('test.ipcq2')::uuid) -> 'values';
+begin
+  assert (v ->> 'work_value')::numeric = 9100000 and (v ->> 'mos_value')::numeric = 0, 'earlier quantities carried, MOS now installed ' || v::text;
+  assert (v ->> 'previous_mos')::numeric = 3200000 and (v ->> 'suggested')::numeric = 800000, 'material on site recovered ' || v::text;
+end $$;
+-- Variation priced from the BOQ (route C) → BOQ items when the client accepts
+do $$ declare v uuid;
+begin
+  v := public.raise_variation(current_setting('test.exlegacy')::uuid, '{"vtype":"addition","reason":"client_instruction","title":"Two more masts","description":"Masts at the new gate"}');
+  perform set_config('test.varb', v::text, false);
+  assert public.screen_variation(v, 'C', jsonb_build_object('boq_lines', jsonb_build_array(jsonb_build_object('boq_item_id', (select id from bq where item_no = '2.1'), 'qty', 2)))) = 'pending_smp', 'route C';
+  assert (select value_lkr from public.variations where id = v) = 900000, 'priced at the BOQ rate';
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+select public.decide_exec_variation(current_setting('test.varb')::uuid, true);
+reset role;
+insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name, uploaded_by)
+values ('variation', current_setting('test.varb')::uuid, 'var_doc', 'variation/test/vo2.pdf', 'vo2.pdf', (select id from u where role = 'senior_elec_engineer'));
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare e uuid := current_setting('test.exlegacy')::uuid; ov numeric := (select order_value from public.secured_projects where id = current_setting('test.bsec')::uuid);
+begin
+  assert public.record_variation_client(current_setting('test.varb')::uuid, true, '{"vo_no":"VO-11"}') = 'secured_updated', 'legacy project: linked secured project updated';
+  assert (select order_value from public.secured_projects where id = current_setting('test.bsec')::uuid) = ov + 900000, 'order value';
+  assert (select qty = 2 and rate = 450000 and section = 'Variations' from public.exec_boq_items where exec_project_id = e and source = 'variation'), 'in the BOQ';
+  assert (select total from public.exec_boqs where exec_project_id = e) = 27600000, 'BOQ total';
+end $$;
+-- Revised upload keeps measured items (rates changed, item dropped)
+do $$ declare e uuid := current_setting('test.exlegacy')::uuid;
+begin
+  begin perform public.save_boq(e, '[{"item_no":"2.1","section":"Bill 2 – Electrical","description":"12 m mast","unit":"nos","qty":16,"rate":450000}]'); assert false, 'reason';
+  exception when others then assert sqlerrm = 'Give the reason for the revised BOQ', sqlerrm; end;
+  perform public.save_boq(e, '[{"item_no":"2.1","section":"Bill 2 – Electrical","description":"12 m mast","unit":"nos","qty":18,"rate":450000}]', null, null, null, 'Client re-measure');
+  assert (select qty from public.exec_boq_items where id = (select id from bq where item_no = '2.1')) = 18, 'same item updated';
+  assert (select removed from public.exec_boq_items where id = (select id from bq where item_no = '2.3')), 'measured item kept as removed';
+  assert not exists (select 1 from public.exec_boq_items where id = (select id from bq where item_no = '1.1')), 'unmeasured item deleted';
+  assert (select status from public.exec_boqs where exec_project_id = e) = 'submitted', 'back to SM Projects';
+end $$;
+reset role;
+-- Delivery trigger: invoice ready when the material requests are fully received
+do $$ declare e uuid := current_setting('test.ex')::uuid; l uuid; mr uuid := current_setting('test.smr')::uuid;
+begin
+  select id into l from public.invoice_lines where secured_id = (select secured_id from public.exec_projects where id = e) order by seq limit 1;
+  delete from public.invoice_allocations where line_id = l;
+  delete from public.exec_invoice_triggers where line_id = l;
+  insert into public.exec_invoice_triggers (line_id, exec_project_id, kind, mr_ids, approved) values (l, e, 'delivery', array[mr], true);
+  update public.material_requests set status = 'received' where id = mr;
+  assert (select ready_at is not null and ready_note like 'Delivered to site%' from public.exec_invoice_triggers where line_id = l), 'delivered → ready';
+end $$;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

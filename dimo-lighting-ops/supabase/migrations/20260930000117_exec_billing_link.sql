@@ -1,8 +1,8 @@
 -- Invoicing plan → execution
 --  * The execution project is linked to its secured project (automatically through the sales project; projects won
 --    before the system are linked by SM Projects / Operations).
---  * The SEE sets the trigger of each invoice line: a stage gate, a programme activity / milestone, a monthly progress
---    claim (IPC) or manual. SM Projects approves the triggers with the programme baseline.
+--  * The SEE sets the trigger of each invoice line: a stage gate, a programme activity / milestone, materials delivered to
+--    site (material requests fully received and acknowledged), a monthly progress claim (IPC) or manual. SM Projects approves the triggers with the programme baseline.
 --  * Trigger met → "Ready to invoice" to Operations (and SM Projects) with the evidence; Operations raises the invoice as today.
 --  * A linked activity forecast slipping past the invoice month → a date change is proposed to SM Projects (existing
 --    invoice-date approval) with the programme as the reason; the sales person is told.
@@ -27,16 +27,18 @@ $$;
 create table public.exec_invoice_triggers (
   line_id uuid primary key references public.invoice_lines (id) on delete cascade,
   exec_project_id uuid not null references public.exec_projects (id) on delete cascade,
-  kind text not null check (kind in ('gate', 'activity', 'ipc', 'manual')),
+  kind text not null check (kind in ('gate', 'activity', 'delivery', 'ipc', 'manual')),
   gate int check (gate between 1 and 6),
   activity_id uuid references public.exec_activities (id) on delete set null,
+  mr_ids uuid[],                                   -- delivery: the material requests that must be fully received
   approved boolean not null default false,
   set_by uuid default auth.uid() references public.profiles (id),
   set_at timestamptz not null default now(),
   ready_at timestamptz,
   ready_note text,
   check (kind <> 'gate' or gate is not null),
-  check (kind <> 'activity' or activity_id is not null)
+  check (kind <> 'activity' or activity_id is not null),
+  check (kind <> 'delivery' or cardinality(mr_ids) > 0)
 );
 create table public.exec_invoice_checks (
   id uuid primary key default gen_random_uuid(),
@@ -94,19 +96,24 @@ begin
 end $$;
 
 -- SEE sets the trigger of an invoice line (approval resets; SM Projects approves with the programme)
-create or replace function public.set_invoice_trigger(p_exec uuid, p_line uuid, p_kind text, p_gate int default null, p_activity uuid default null) returns void
+create or replace function public.set_invoice_trigger(p_exec uuid, p_line uuid, p_kind text, p_gate int default null, p_activity uuid default null,
+                                                      p_mrs uuid[] default null) returns void
 language plpgsql security definer set search_path = public as $$
 declare e public.exec_projects;
 begin
   perform app.require(app.has_role('senior_elec_engineer'), 'The Senior Electrical Engineer sets the invoice triggers');
   select * into e from public.exec_projects where id = p_exec;
   perform app.require(e.secured_id is not null and exists (select 1 from public.invoice_lines where id = p_line and secured_id = e.secured_id), 'Invoice line of another project');
-  perform app.require(p_kind in ('gate', 'activity', 'ipc', 'manual'), 'Choose the trigger');
+  perform app.require(p_kind in ('gate', 'activity', 'delivery', 'ipc', 'manual'), 'Choose the trigger');
   perform app.require(p_kind <> 'gate' or p_gate between 1 and 6, 'Choose the stage gate');
   perform app.require(p_kind <> 'activity' or exists (select 1 from public.exec_activities where id = p_activity and exec_project_id = p_exec), 'Choose a programme activity');
-  insert into public.exec_invoice_triggers (line_id, exec_project_id, kind, gate, activity_id)
-  values (p_line, p_exec, p_kind, case when p_kind = 'gate' then p_gate end, case when p_kind = 'activity' then p_activity end)
-  on conflict (line_id) do update set kind = excluded.kind, gate = excluded.gate, activity_id = excluded.activity_id, approved = false,
+  perform app.require(p_kind <> 'delivery' or (cardinality(p_mrs) > 0 and not exists (select 1 from unnest(p_mrs) x where not exists (
+    select 1 from public.material_requests m where m.id = x and m.exec_project_id = p_exec and m.status not in ('rejected', 'cancelled')))),
+    'Choose the material requests of this project');
+  insert into public.exec_invoice_triggers (line_id, exec_project_id, kind, gate, activity_id, mr_ids)
+  values (p_line, p_exec, p_kind, case when p_kind = 'gate' then p_gate end, case when p_kind = 'activity' then p_activity end,
+          case when p_kind = 'delivery' then p_mrs end)
+  on conflict (line_id) do update set kind = excluded.kind, gate = excluded.gate, activity_id = excluded.activity_id, mr_ids = excluded.mr_ids, approved = false,
     set_by = auth.uid(), set_at = now()
   where exec_invoice_triggers.ready_at is null;
   perform app.require(found, 'This invoice is already marked ready – the trigger cannot change');
@@ -145,6 +152,9 @@ begin
       perform app.mark_invoice_ready(t.line_id, format('Gate %s passed', t.gate)); n := n + 1;
     elsif t.kind = 'activity' and t.actual_finish is not null then
       perform app.mark_invoice_ready(t.line_id, format('%s %s finished %s', t.code, t.name, to_char(t.actual_finish, 'DD Mon'))); n := n + 1;
+    elsif t.kind = 'delivery' and not exists (select 1 from public.material_requests m where m.id = any (t.mr_ids) and m.status <> 'received') then
+      perform app.mark_invoice_ready(t.line_id, 'Delivered to site and acknowledged: ' ||
+        (select string_agg(m.code, ', ' order by m.code) from public.material_requests m where m.id = any (t.mr_ids))); n := n + 1;
     end if;
   end loop;
   return n;
@@ -162,6 +172,12 @@ begin
   return new;
 end $$;
 create trigger exec_activities_billing after update of actual_finish on public.exec_activities for each row execute function app.billing_after_activity();
+create or replace function app.billing_after_material() returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if new.status = 'received' and old.status is distinct from 'received' then perform app.check_invoice_triggers(new.exec_project_id); end if;
+  return new;
+end $$;
+create trigger material_requests_billing after update of status on public.material_requests for each row execute function app.billing_after_material();
 
 -- Programme approved by SM Projects → the triggers set by then are approved with it
 create or replace function app.billing_after_programme() returns trigger language plpgsql security definer set search_path = public as $$
@@ -278,6 +294,13 @@ begin
              and app.month_of(a.ef) > l.forecast_month loop
     if app.propose_invoice_month(r.line_id, r.ef, 'Execution – programme forecast', format('%s %s forecast to finish %s', r.code, r.name, to_char(r.ef, 'DD Mon YYYY'))) then n := n + 1; end if;
   end loop;
+  -- Deliveries expected after the invoice month
+  for r in select t.line_id, l.forecast_month, x.due, x.codes from public.exec_invoice_triggers t join public.invoice_lines l on l.id = t.line_id
+           cross join lateral (select max(coalesce(m.expected_date, m.required_date)) due, string_agg(m.code, ', ' order by m.code) codes
+                               from public.material_requests m where m.id = any (t.mr_ids) and m.status <> 'received') x
+           where t.kind = 'delivery' and t.approved and t.ready_at is null and x.due is not null and app.month_of(x.due) > l.forecast_month loop
+    if app.propose_invoice_month(r.line_id, r.due, 'Execution – delivery expected later', format('%s expected %s', r.codes, to_char(r.due, 'DD Mon YYYY'))) then n := n + 1; end if;
+  end loop;
   if extract(day from d) >= 24 then
     for r in select e.id, e.see_id, count(*) c from public.exec_projects e join public.invoice_lines l on l.secured_id = e.secured_id
              left join public.exec_invoice_triggers t on t.line_id = l.id
@@ -310,7 +333,7 @@ begin
 end $$;
 create trigger exec_projects_link_secured before insert on public.exec_projects for each row execute function app.exec_link_secured();
 
-revoke execute on function public.link_secured_project(uuid, uuid), public.set_invoice_trigger(uuid, uuid, text, int, uuid), public.approve_invoice_triggers(uuid),
+revoke execute on function public.link_secured_project(uuid, uuid), public.set_invoice_trigger(uuid, uuid, text, int, uuid, uuid[]), public.approve_invoice_triggers(uuid),
   public.check_invoice_line(uuid, uuid, text, date, text), public.prepare_ipc(uuid, date, numeric, text), public.certify_ipc(uuid, boolean, uuid, numeric, text) from public, anon;
-grant execute on function public.link_secured_project(uuid, uuid), public.set_invoice_trigger(uuid, uuid, text, int, uuid), public.approve_invoice_triggers(uuid),
+grant execute on function public.link_secured_project(uuid, uuid), public.set_invoice_trigger(uuid, uuid, text, int, uuid, uuid[]), public.approve_invoice_triggers(uuid),
   public.check_invoice_line(uuid, uuid, text, date, text), public.prepare_ipc(uuid, date, numeric, text), public.certify_ipc(uuid, boolean, uuid, numeric, text) to authenticated;

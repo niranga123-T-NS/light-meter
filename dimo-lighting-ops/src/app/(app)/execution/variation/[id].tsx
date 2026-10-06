@@ -59,6 +59,52 @@ export default function VariationScreen() {
       return;
     }
     if (r.d === 'C') {
+      // With an approved contract BOQ: pick the items and quantities – priced at the BOQ rates
+      const { data: bi } = await supabase
+        .from('exec_boq_items')
+        .select('id, item_no, description, unit, rate, section')
+        .eq('exec_project_id', v.exec_project_id)
+        .eq('heading', false)
+        .eq('removed', false)
+        .eq('source', 'boq')
+        .not('rate', 'is', null)
+        .order('seq');
+      const items = (bi ?? []) as { id: string; item_no: string | null; description: string; unit: string | null; rate: number; section: string | null }[];
+      if (items.length) {
+        const pick = await dialog.prompt({
+          title: 'Price from the contract BOQ',
+          message: 'Choose the BOQ items this variation adds (or omits). The value is worked out at the BOQ rates.',
+          fields: [
+            {
+              key: 'items',
+              label: 'BOQ items',
+              type: 'multiselect',
+              required: true,
+              options: items.map((i) => ({ value: i.id, label: `${i.item_no ? `${i.item_no} ` : ''}${i.description}`, group: i.section, hint: `${fmtMoney(i.rate, 'LKR')} / ${i.unit ?? 'unit'}` })),
+            },
+          ],
+          confirmLabel: 'Next',
+        });
+        if (!pick) return;
+        const chosen = items.filter((i) => pick.items.split(',').includes(i.id));
+        const x = await dialog.prompt({
+          title: 'Quantities',
+          fields: [
+            ...chosen.map((i) => ({ key: `q_${i.id}`, label: `${i.item_no ? `${i.item_no} ` : ''}${i.description} (${i.unit ?? 'qty'})`, required: true })),
+            { key: 'cost', label: 'Cost (LKR, optional – gives the margin)' },
+            { key: 'time_days', label: 'Time impact (days)' },
+            { key: 'note', label: 'Note', type: 'multiline' as const },
+          ],
+          confirmLabel: 'Send to SM Projects',
+        });
+        if (x)
+          await dialog.run(async () => {
+            const boq_lines = chosen.map((i) => ({ boq_item_id: i.id, qty: Number(x[`q_${i.id}`]) }));
+            await rpc('screen_variation', { p_id: v.id, p_decision: 'C', p: { boq_lines, cost: x.cost, time_days: x.time_days, note: x.note } });
+            await after();
+          }, 'Sent to SM Projects');
+        return;
+      }
       const x = await dialog.prompt({
         title: 'Price from the contract rates',
         fields: [

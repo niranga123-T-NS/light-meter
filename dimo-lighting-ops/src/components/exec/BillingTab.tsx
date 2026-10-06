@@ -3,7 +3,8 @@ import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, Empty, Grid, ListRow, Muted, Notice, Pill, Row, Section, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { BILLING_ROLES, CHECK_STATUS, IPC_STATUS, TRIGGER_KINDS, type InvoiceCheck, type InvoiceTrigger, type Ipc } from '@/lib/billing';
-import { EXEC_STAGES, type ExecProject } from '@/lib/execution';
+import { BOQ_STATUS, type Boq, type IpcValues } from '@/lib/boq';
+import { EXEC_STAGES, MR_STATUS, type ExecProject, type MaterialRequest } from '@/lib/execution';
 import { fmtMonth, kindLabel, monthOf, type InvoiceLine, type SecuredProject } from '@/lib/finance';
 import { fmtDate, fmtMoney, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
@@ -30,20 +31,27 @@ export function BillingTab({ p, onChange }: { p: ExecProject; onChange: () => vo
   const { data, reload } = useLoad(async () => {
     const ipcQ = supabase.from('exec_ipcs').select('*').eq('exec_project_id', p.id).order('prepared_at', { ascending: false });
     if (!full) return { ipcs: ((await ipcQ).data ?? []) as Ipc[] };
-    const [s, l, t, k, c, a] = await Promise.all([
+    const [s, l, t, k, c, a, b, m] = await Promise.all([
       p.secured_id ? supabase.from('secured_projects').select('*').eq('id', p.secured_id).maybeSingle() : Promise.resolve({ data: null }),
       p.secured_id ? supabase.from('invoice_line_status').select('*').eq('secured_id', p.secured_id).order('seq') : Promise.resolve({ data: [] }),
       supabase.from('exec_invoice_triggers').select('*').eq('exec_project_id', p.id),
       supabase.from('exec_invoice_checks').select('*').eq('exec_project_id', p.id).eq('check_month', thisMonth).order('at', { ascending: false }),
       ipcQ,
       supabase.from('exec_activities').select('*').eq('exec_project_id', p.id).order('code'),
+      supabase.from('exec_boqs').select('*').eq('exec_project_id', p.id).maybeSingle(),
+      supabase.from('material_requests').select('*').eq('exec_project_id', p.id).order('requested_at', { ascending: false }),
     ]);
+    const ipcs = (c.data ?? []) as Ipc[];
+    const v = ipcs.length ? await supabase.from('exec_ipc_values').select('*').in('ipc_id', ipcs.map((x) => x.id)) : { data: [] };
     return {
+      boq: b.data as Boq | null,
+      mrs: (m.data ?? []) as MaterialRequest[],
+      values: (v.data ?? []) as IpcValues[],
       secured: s.data as SecuredProject | null,
       lines: (l.data ?? []) as InvoiceLine[],
       triggers: (t.data ?? []) as InvoiceTrigger[],
       checks: (k.data ?? []) as InvoiceCheck[],
-      ipcs: (c.data ?? []) as Ipc[],
+      ipcs,
       acts: (a.data ?? []) as Activity[],
     };
   }, [p.id, p.secured_id, full]);
@@ -51,23 +59,7 @@ export function BillingTab({ p, onChange }: { p: ExecProject; onChange: () => vo
   const ipcs = data?.ipcs ?? [];
   const canMeasure = (me.role === 'assistant_engineer' || see) && p.status === 'active';
 
-  const measure = async () => {
-    const res = await dialog.prompt({
-      title: 'Progress claim – measurement',
-      message: 'The % of the contract work done to date, and what was measured. The Senior Electrical Engineer records the amount the client certifies.',
-      fields: [
-        { key: 'period', label: 'Month of the claim', type: 'date', required: true, initial: todayISO() },
-        { key: 'pct', label: '% of the work done to date', required: true },
-        { key: 'm', label: 'Measured work (quantities, areas, poles …)', type: 'multiline', required: true },
-      ],
-      confirmLabel: 'Send to the SEE',
-    });
-    if (res)
-      await dialog.run(async () => {
-        await rpc('prepare_ipc', { p_exec: p.id, p_period: res.period, p_pct: Number(res.pct.replace('%', '')), p_measurement: res.m });
-        await reload();
-      }, 'Sent to the Senior Electrical Engineer');
-  };
+  const measure = () => router.push(`/execution/claim/new?project=${p.id}`);
 
   const ipcSection = (
     <Section title="Progress claims (IPC)" right={canMeasure ? <Button small variant="secondary" title="+ Measurement" onPress={measure} /> : null}>
@@ -78,7 +70,7 @@ export function BillingTab({ p, onChange }: { p: ExecProject; onChange: () => vo
               key={c.id}
               wrapRight
               highlight={ipcTone(c)}
-              onPress={see && c.status === 'prepared' ? () => certify(c) : undefined}
+              onPress={() => router.push(`/execution/claim/${c.id}`)}
               title={`${c.code ?? 'IPC'} · ${fmtMonth(c.period)} · ${Number(c.measured_pct)}% measured`}
               subtitle={[c.measurement, `by ${people[c.prepared_by]?.full_name ?? ''} · ${fmtDate(c.prepared_at)}`, c.note].filter(Boolean).join(' · ')}
               right={
@@ -114,8 +106,12 @@ export function BillingTab({ p, onChange }: { p: ExecProject; onChange: () => vo
 
   const order = Number(secured?.order_value ?? p.contract_value_lkr ?? 0);
   const invoiced = lines.reduce((s, l) => s + Number(l.invoiced), 0) + Number(secured?.billed_before ?? 0);
-  const pct = actualPct(acts);
-  const earned = (order * pct) / 100;
+  const boq = data?.boq ?? null;
+  const valueOf = Object.fromEntries((data?.values ?? []).map((v) => [v.ipc_id, v]));
+  const measured = ipcs.find((c) => c.status !== 'returned' && valueOf[c.id] && (boq?.version ?? 0) > 0);
+  const pct = measured ? Number(measured.measured_pct) : actualPct(acts);
+  const earned = measured ? Number(valueOf[measured.id].work_value) : (order * pct) / 100;
+  const hasEarned = !!measured || acts.length > 0;
   const ready = lines.filter((l) => triggers[l.id]?.ready_at && Number(l.remaining) > 0).reduce((s, l) => s + Number(l.remaining), 0);
   const gap = invoiced - earned;
 
@@ -139,6 +135,10 @@ export function BillingTab({ p, onChange }: { p: ExecProject; onChange: () => vo
   };
 
   const actOpts = acts.map((a) => ({ value: a.id, label: `${a.code} ${a.name}`, hint: a.ef ? `forecast finish ${fmtDate(a.ef)}` : undefined }));
+  const mrById = Object.fromEntries((data?.mrs ?? []).map((m) => [m.id, m]));
+  const mrOpts = (data?.mrs ?? [])
+    .filter((m) => !['rejected', 'cancelled'].includes(m.status))
+    .map((m) => ({ value: m.id, label: `${m.code ?? 'MR'}${m.purpose ? ` · ${m.purpose}` : ''}`, hint: MR_STATUS[m.status] ?? m.status }));
   const setTrigger = async (l: InvoiceLine) => {
     const t = triggers[l.id];
     const res = await dialog.prompt({
@@ -148,12 +148,20 @@ export function BillingTab({ p, onChange }: { p: ExecProject; onChange: () => vo
         { key: 'kind', label: 'Invoice when', type: 'select', options: TRIGGER_KINDS, required: true, initial: t?.kind ?? 'activity' },
         { key: 'gate', label: 'Stage gate (if a gate)', type: 'select', options: GATES, initial: t?.gate ? String(t.gate) : undefined },
         { key: 'act', label: 'Activity / milestone (if an activity)', type: 'select', options: actOpts, initial: t?.activity_id ?? undefined },
+        { key: 'mrs', label: 'Material requests (if materials delivered)', type: 'multiselect', options: mrOpts, initial: t?.mr_ids?.join(',') },
       ],
       confirmLabel: 'Save',
     });
     if (res)
       await dialog.run(async () => {
-        await rpc('set_invoice_trigger', { p_exec: p.id, p_line: l.id, p_kind: res.kind, p_gate: res.gate ? Number(res.gate) : null, p_activity: res.act || null });
+        await rpc('set_invoice_trigger', {
+          p_exec: p.id,
+          p_line: l.id,
+          p_kind: res.kind,
+          p_gate: res.gate ? Number(res.gate) : null,
+          p_activity: res.act || null,
+          p_mrs: res.mrs ? res.mrs.split(',').filter(Boolean) : null,
+        });
         await reload();
       }, 'Saved – waiting for SM Projects');
   };
@@ -179,29 +187,6 @@ export function BillingTab({ p, onChange }: { p: ExecProject; onChange: () => vo
       );
   };
 
-  async function certify(c: Ipc) {
-    const open = lines.filter((l) => Number(l.remaining) > 0 && (triggers[l.id]?.kind === 'ipc' || l.kind === 'progress'));
-    const res = await dialog.prompt({
-      title: `${c.code ?? 'Progress claim'} – ${fmtMonth(c.period)} · ${Number(c.measured_pct)}%`,
-      message: c.measurement ?? undefined,
-      fields: [
-        { key: 'ok', label: 'Decision', type: 'select', options: [{ value: 'y', label: 'Certified by the client' }, { value: 'n', label: 'Return to correct the measurement' }], required: true, initial: 'y' },
-        { key: 'line', label: 'Invoice line', type: 'select', options: open.map((l) => ({ value: l.id, label: `${kindLabel(l.kind)}${l.description ? ` · ${l.description}` : ''}`, hint: `${fmtMoney(l.remaining, 'LKR')} open · ${fmtMonth(l.forecast_month)}` })), initial: open[0]?.id },
-        { key: 'v', label: 'Amount certified by the client (LKR)' },
-        { key: 'n', label: 'Note (what to correct, if returned)', type: 'multiline' },
-      ],
-      confirmLabel: 'Save',
-    });
-    if (res)
-      await dialog.run(
-        async () => {
-          await rpc('certify_ipc', { p_id: c.id, p_ok: res.ok === 'y', p_line: res.line || null, p_value: res.v ? Number(res.v.replace(/,/g, '')) : null, p_note: res.n || null });
-          await reload();
-        },
-        res.ok === 'y' ? 'Certified – Operations told to invoice' : 'Returned to the Assistant Engineer',
-      );
-  }
-
   const triggerText = (t?: InvoiceTrigger) => {
     if (!t) return 'Trigger not set';
     if (t.kind === 'gate') return `Gate ${t.gate} – end of “${EXEC_STAGES[(t.gate ?? 1) - 1]}”`;
@@ -209,6 +194,10 @@ export function BillingTab({ p, onChange }: { p: ExecProject; onChange: () => vo
       const a = t.activity_id ? actById[t.activity_id] : undefined;
       if (!a) return 'Activity removed – set again';
       return `${a.code} ${a.name} · ${a.actual_finish ? `finished ${fmtDate(a.actual_finish)}` : `forecast ${fmtDate(a.ef)}`}`;
+    }
+    if (t.kind === 'delivery') {
+      const ms = (t.mr_ids ?? []).map((x) => mrById[x]).filter(Boolean);
+      return `Delivered: ${ms.map((m) => `${m.code} (${MR_STATUS[m.status] ?? m.status})`).join(', ') || 'material requests'}`;
     }
     return t.kind === 'ipc' ? 'Monthly progress claim' : 'Confirmed by the SEE';
   };
@@ -236,11 +225,11 @@ export function BillingTab({ p, onChange }: { p: ExecProject; onChange: () => vo
             <Grid min={150}>
               <Stat label="Order value" value={fmtMoney(order, 'LKR')} />
               <Stat label="Invoiced" value={fmtMoney(invoiced, 'LKR')} />
-              <Stat label={`Earned (${Math.round(pct)}% done)`} value={acts.length ? fmtMoney(earned, 'LKR') : '—'} />
+              <Stat label={`Earned (${Math.round(pct)}% ${measured ? `measured, ${measured.code}` : 'done – programme'})`} value={hasEarned ? fmtMoney(earned, 'LKR') : '—'} />
               <Stat
                 label={gap >= 0 ? 'Billed ahead of work' : 'Work not yet billed'}
-                value={acts.length ? fmtMoney(Math.abs(gap), 'LKR') : '—'}
-                tone={acts.length && gap < -order * 0.05 ? 'amber' : undefined}
+                value={hasEarned ? fmtMoney(Math.abs(gap), 'LKR') : '—'}
+                tone={hasEarned && gap < -order * 0.05 ? 'amber' : undefined}
               />
               <Stat label="Ready to invoice" value={fmtMoney(ready, 'LKR')} tone={ready > 0 ? 'green' : undefined} />
             </Grid>
@@ -261,6 +250,20 @@ export function BillingTab({ p, onChange }: { p: ExecProject; onChange: () => vo
             onPress={() => dialog.run(async () => { await rpc('approve_invoice_triggers', { p_exec: p.id }); await reload(); }, 'Approved')}
           />
         ) : null}
+      </Section>
+
+      <Section
+        title="Contract BOQ"
+        right={<Button small variant="secondary" title={boq ? 'Open BOQ' : see || me.role === 'operations_exec' ? 'Upload BOQ' : 'Open'} onPress={() => router.push(`/execution/boq/${p.id}`)} />}
+      >
+        {boq ? (
+          <Row gap={6} wrap style={{ alignItems: 'center' }}>
+            <Pill label={BOQ_STATUS[boq.status].label} tone={{ amber: colors.amber, green: colors.green, red: colors.red }[BOQ_STATUS[boq.status].tone]} solid={boq.status === 'approved'} />
+            <Muted>{`${fmtMoney(boq.total, 'LKR')}${order ? ` · order value ${fmtMoney(order, 'LKR')}` : ''} · ${boq.mos_pct > 0 ? `Material on Site ${Number(boq.mos_pct)}%` : 'Material on Site not paid'}`}</Muted>
+          </Row>
+        ) : (
+          <Muted>No BOQ yet – upload the priced BOQ (Excel, one sheet or one per bill). Claims are then measured by quantity and priced at the BOQ rates.</Muted>
+        )}
       </Section>
 
       {p.secured_id ? (

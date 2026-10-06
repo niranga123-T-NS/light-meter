@@ -1,6 +1,6 @@
 // Invoicing plan ↔ execution: invoice triggers, monthly checks and progress claims (IPCs)
 
-export type TriggerKind = 'gate' | 'activity' | 'ipc' | 'manual';
+export type TriggerKind = 'gate' | 'activity' | 'delivery' | 'ipc' | 'manual';
 
 export type InvoiceTrigger = {
   line_id: string;
@@ -8,6 +8,7 @@ export type InvoiceTrigger = {
   kind: TriggerKind;
   gate: number | null;
   activity_id: string | null;
+  mr_ids: string[] | null;
   approved: boolean;
   set_by: string | null;
   set_at: string;
@@ -45,6 +46,7 @@ export type Ipc = {
 export const TRIGGER_KINDS: { value: TriggerKind; label: string }[] = [
   { value: 'gate', label: 'Stage gate passed' },
   { value: 'activity', label: 'Programme activity / milestone finished' },
+  { value: 'delivery', label: 'Materials delivered to site (requests fully received)' },
   { value: 'ipc', label: 'Monthly progress claim (IPC)' },
   { value: 'manual', label: 'Manual – SEE confirms' },
 ];
