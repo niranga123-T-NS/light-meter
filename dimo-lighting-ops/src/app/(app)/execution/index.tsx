@@ -15,14 +15,18 @@ export default function ExecProjects() {
   const [tab, setTab] = useState<'active' | 'closed'>('active');
   const [q, setQ] = useState('');
   const { data, error, reload, loading } = useLoad(async () => {
-    const { data: rows, error: e } = await supabase.from('exec_projects').select('*').order('created_at', { ascending: false });
+    const [{ data: rows, error: e }, r] = await Promise.all([
+      supabase.from('exec_projects').select('*').order('created_at', { ascending: false }),
+      supabase.from('exec_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending_smp'),
+    ]);
     if (e) throw new Error(e.message);
-    return rows as ExecProject[];
+    return { rows: rows as ExecProject[], pending: r.count ?? 0 };
   });
   const title =
     me.role === 'gm' || me.role === 'sm_projects' || me.role === 'operations_exec' ? 'Execution portfolio' : me.role === 'senior_elec_engineer' ? 'Execution projects' : me.role === 'sub_supervisor' ? 'My work' : 'My projects';
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const rows = data.filter((p) => p.status === tab && (!q || `${p.code} ${p.name}`.toLowerCase().includes(q.toLowerCase())));
+  const handover = ['sm_projects', 'gm', 'operations_exec', 'senior_elec_engineer'].includes(me.role);
+  const rows = data.rows.filter((p) => p.status === tab && (!q || `${p.code} ${p.name}`.toLowerCase().includes(q.toLowerCase())));
   return (
     <Screen refreshing={loading} onRefresh={reload}>
       <Stack.Screen options={{ title }} />
@@ -32,11 +36,19 @@ export default function ExecProjects() {
           value={tab}
           onChange={setTab}
           options={[
-            { value: 'active', label: 'Active', badge: data.filter((p) => p.status === 'active').length },
+            { value: 'active', label: 'Active', badge: data.rows.filter((p) => p.status === 'active').length },
             { value: 'closed', label: 'Closed' },
           ]}
         />
-        {me.role === 'senior_elec_engineer' || me.role === 'sm_projects' ? <Button title="+ Start execution" onPress={() => router.push('/execution/start')} /> : null}
+        <Row wrap gap={6}>
+          {me.role === 'operations_exec' ? <Button title="+ Hand over a won project" onPress={() => router.push('/execution/handover/new')} /> : null}
+          {me.role === 'senior_elec_engineer' ? (
+            <Button title="+ Project won before the system" onPress={() => router.push({ pathname: '/execution/handover/new', params: { kind: 'legacy' } })} />
+          ) : null}
+          {handover ? (
+            <Button variant="secondary" title={`Hand-over requests${data.pending ? ` (${data.pending} waiting)` : ''}`} onPress={() => router.push('/execution/handover')} />
+          ) : null}
+        </Row>
       </Row>
       <Field label="Search" value={q} onChangeText={setQ} placeholder="Project name or code" />
       {rows.length ? (
@@ -47,7 +59,8 @@ export default function ExecProjects() {
               wrapRight
               onPress={() => router.push(`/execution/${p.id}`)}
               title={p.name}
-              subtitle={[p.code, p.areas.map(areaLabel).join(', '), p.see_id ? `SEE ${people[p.see_id]?.full_name ?? ''}` : null, p.end_date ? `finish ${fmtDate(p.end_date)}` : null]
+              highlight={!p.areas.length ? colors.amber : undefined}
+              subtitle={[p.code, p.areas.length ? p.areas.map(areaLabel).join(', ') : 'areas not set yet', p.legacy ? 'won before the system' : null, p.see_id ? `SEE ${people[p.see_id]?.full_name ?? ''}` : null, p.end_date ? `finish ${fmtDate(p.end_date)}` : null]
                 .filter(Boolean)
                 .join(' · ')}
               right={<Pill label={`${p.stage} ${EXEC_STAGES[p.stage - 1]}`} tone={colors.blue} />}

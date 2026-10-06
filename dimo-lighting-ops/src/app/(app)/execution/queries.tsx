@@ -1,8 +1,6 @@
 import { router, Stack } from 'expo-router';
 import { useState } from 'react';
-import { useDialog } from '@/components/dialog';
 import { QueryRows } from '@/components/exec/QueryRows';
-import { raiseQuery } from '@/components/exec/raiseQuery';
 import { TestingBanner } from '@/components/Testing';
 import { Button, ErrorBanner, Grid, Loading, Row, Screen, Segmented, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
@@ -14,7 +12,6 @@ import { supabase } from '@/lib/supabase';
 /** Design queries (RFIs) from site: screened by the SEE, answered by the design team by the target date. */
 export default function Queries() {
   const me = useMe();
-  const dialog = useDialog();
   const [tab, setTab] = useState<'open' | 'answered' | 'all'>('open');
   const { data, error, reload, loading } = useLoad(async () => {
     const [q, p] = await Promise.all([supabase.from('design_queries').select('*').order('raised_at', { ascending: false }), supabase.from('exec_projects').select('*').order('name')]);
@@ -47,13 +44,7 @@ export default function Queries() {
           ]}
         />
         {canRaise ? (
-          <Button
-            title="+ Design query"
-            onPress={async () => {
-              const id = await raiseQuery(dialog, data.projects.filter((p) => p.status === 'active'));
-              if (id) router.push(`/execution/query/${id}`);
-            }}
-          />
+          <Button title="+ Design query" onPress={() => router.push('/execution/query/new')} />
         ) : null}
       </Row>
       <QueryRows rows={tab === 'open' ? open : tab === 'answered' ? answered : data.rows} projectName={pname} />
