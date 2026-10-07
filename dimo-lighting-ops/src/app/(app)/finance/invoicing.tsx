@@ -95,6 +95,13 @@ export default function Invoicing() {
   const ym = fyMonths(fy);
   const latest = data.latest && fyOf(data.latest) === fy ? data.latest : data.latest && data.latest > ym[11] ? ym[11] : null;
   const yBudget = ym.map((m) => budgetFor(m) / 1e6);
+  // Why the budget bars are empty: no budget list for the year, or a list without invoice months / amounts
+  const fyBudgetInvoices = data.budget.reduce((n, r) => n + r.budget_invoices.filter((i) => ym.includes(i.month) && Number(i.amount) > 0).length, 0);
+  const budgetNote = !data.budget.length
+    ? `No budget list is loaded for ${fyLabel(fy)}, so there are no budget bars. Upload it in Finance → Budget list.`
+    : !fyBudgetInvoices
+      ? `The budget list for ${fyLabel(fy)} has ${data.budget.length} project(s) but no invoice months / amounts in the year, so there are no budget bars. Add the “Invoice month / amount” columns and upload the list again.`
+      : null;
   const yForecast = ym.map((m) => forecastFor(m) / 1e6);
   const yInvoiced = ym.map((m) => (latest && m <= latest ? invoicedFor(m) / 1e6 : null));
   const cum = (xs: (number | null)[]) => {
@@ -163,6 +170,12 @@ export default function Invoicing() {
         <Stat label="Invoiced (recorded invoices)" value={`${mn(inv)} Mn`} />
         <Stat label="Slipped – not invoiced in the planned month" value={String(tabs.slipped.length)} tone={tabs.slipped.length ? 'red' : undefined} onPress={() => setTab('slipped')} />
       </Grid>
+      {budgetNote ? (
+        <Notice tone={colors.amber}>
+          {budgetNote}
+          {seesFinance(me.role) ? <Text style={{ color: colors.blue, fontWeight: '600' }} onPress={() => router.push('/finance/budget')}>{'  Open the Budget list →'}</Text> : null}
+        </Notice>
+      ) : null}
 
       <Grid min={430}>
         <Card>
