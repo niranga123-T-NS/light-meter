@@ -116,7 +116,9 @@ export default function MaterialScreen() {
           <Text style={{ fontSize: 18, fontWeight: '700', color: colors.ink }}>{`${m.code} · ${m.exec_projects?.name ?? ''}`}</Text>
           <Pill label={MR_STATUS[m.status]} tone={mrTone(m.status)} solid />
         </Row>
-        <KeyValue label="Needed on site by" value={fmtDate(m.required_date)} />
+        <KeyValue label="Needed on site by" value={`${fmtDate(m.required_date)}${m.priority === 'urgent' ? ' · URGENT' : ''}`} />
+        {m.deliver_to ? <KeyValue label="Deliver to" value={m.deliver_to} /> : null}
+        {m.site_contact ? <KeyValue label="Site contact" value={m.site_contact} /> : null}
         {m.purpose ? <KeyValue label="For" value={m.purpose} /> : null}
         {m.est_value_lkr ? <KeyValue label="Estimated value" value={fmtMoney(m.est_value_lkr, 'LKR')} /> : null}
         <KeyValue label="Requested by" value={`${people[m.requested_by]?.full_name ?? ''} · ${fmtDateTime(m.requested_at)}`} />
@@ -146,8 +148,17 @@ export default function MaterialScreen() {
             <ListRow
               key={l.id}
               wrapRight
-              title={l.item}
-              subtitle={`${fmtNumber(l.qty)} ${l.unit} requested · ${fmtNumber(l.received_qty)} received`}
+              title={`${l.item}${l.custom ? '  (custom item)' : ''}`}
+              subtitle={[
+                `${fmtNumber(l.qty)} ${l.unit} requested · ${fmtNumber(l.received_qty)} received`,
+                l.category,
+                l.spec ? `Spec: ${l.spec}` : null,
+                l.brand ? `Make: ${l.brand}` : null,
+                l.est_rate != null && me.role !== 'sub_supervisor' ? `Est. ${fmtMoney(l.est_rate, 'LKR')} / ${l.unit}` : null,
+                l.note,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
               right={
                 recv ? (
                   <NumberField label="Received now" value={recv[l.id] ?? null} onChange={(v) => setRecv((s) => ({ ...(s ?? {}), [l.id]: v }))} />
