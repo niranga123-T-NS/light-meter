@@ -4165,5 +4165,17 @@ select pg_temp.act_as('sm_projects'); set role authenticated;
 do $$ begin assert not exists (select 1 from public.mgmt_reports), 'others do not see it'; end $$;
 reset role;
 
+-- USD rate: GM / DGM may set it, others may not ------------------------------------
+select pg_temp.act_as('gm'); set role authenticated;
+insert into public.exchange_rates (month, usd_to_lkr) values ('2031-01-01', 301.25);
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  begin insert into public.exchange_rates (month, usd_to_lkr) values ('2031-02-01', 299); assert false, 'only GM / admin';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+do $$ begin assert (select usd_to_lkr from public.exchange_rates where month = '2031-01-01') = 301.25, 'GM rate saved'; end $$;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
