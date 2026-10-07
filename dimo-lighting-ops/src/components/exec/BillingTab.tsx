@@ -4,14 +4,14 @@ import { Button, Card, colors, Empty, Grid, ListRow, Muted, Notice, Pill, Row, S
 import { useMe } from '@/lib/auth';
 import { BILLING_ROLES, CHECK_STATUS, IPC_STATUS, TRIGGER_KINDS, type InvoiceCheck, type InvoiceTrigger, type Ipc } from '@/lib/billing';
 import { BOQ_STATUS, type Boq, type IpcValues } from '@/lib/boq';
-import { EXEC_STAGES, MR_STATUS, type ExecProject, type MaterialRequest } from '@/lib/execution';
+import { CHECKPOINTS, MR_STATUS, type ExecProject, type MaterialRequest } from '@/lib/execution';
 import { fmtMonth, kindLabel, monthOf, type InvoiceLine, type SecuredProject } from '@/lib/finance';
 import { fmtDate, fmtMoney, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { actualPct, type Activity } from '@/lib/programme';
 import { rpc, supabase } from '@/lib/supabase';
 
-const GATES = [1, 2, 3, 4, 5, 6].map((g) => ({ value: String(g), label: `Gate ${g} – end of “${EXEC_STAGES[g - 1]}”` }));
+const GATES = [1, 2, 3].map((g) => ({ value: String(g), label: `Checkpoint “${CHECKPOINTS[g - 1]}” approved` }));
 const ipcTone = (c: Ipc) => (c.status === 'certified' ? colors.green : c.status === 'returned' ? colors.red : colors.amber);
 
 /**
@@ -189,7 +189,7 @@ export function BillingTab({ p, onChange }: { p: ExecProject; onChange: () => vo
 
   const triggerText = (t?: InvoiceTrigger) => {
     if (!t) return 'Trigger not set';
-    if (t.kind === 'gate') return `Gate ${t.gate} – end of “${EXEC_STAGES[(t.gate ?? 1) - 1]}”`;
+    if (t.kind === 'gate') return `Checkpoint “${CHECKPOINTS[(t.gate ?? 1) - 1]}” approved`;
     if (t.kind === 'activity') {
       const a = t.activity_id ? actById[t.activity_id] : undefined;
       if (!a) return 'Activity removed – set again';

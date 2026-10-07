@@ -324,7 +324,7 @@ export function ProgrammeTab({ p, onChange }: { p: ExecProject; onChange: () => 
     return (
       <Section title="Programme">
         {guide ?? (
-          <Empty title="No programme yet" hint="The Senior Electrical Engineer builds the WBS, activities, links and resources; SM Projects approves it before work starts (gate 2)." />
+          <Empty title="No programme yet" hint="The Senior Electrical Engineer builds the WBS, activities, links and resources; SM Projects approves it before work starts (checkpoint “Ready to start”)." />
         )}
       </Section>
     );
@@ -381,7 +381,7 @@ export function ProgrammeTab({ p, onChange }: { p: ExecProject; onChange: () => 
           {see && pg.status !== 'draft' && !pg.edit_requested_at ? (
             <Muted>{pg.status === 'submitted' ? 'Submitted – to change it before SM Projects decides, ask to edit.' : 'The programme is finalised – to change dates or activities, ask SM Projects for permission to edit.'}</Muted>
           ) : null}
-          {!pg.version ? <Muted>Work cannot commence (gate 2) until SM Projects approves the programme.</Muted> : null}
+          {!pg.version ? <Muted>Work cannot start (checkpoint “Ready to start”) until SM Projects approves the programme.</Muted> : null}
         </Card>
         {guide}
         <Grid min={150}>

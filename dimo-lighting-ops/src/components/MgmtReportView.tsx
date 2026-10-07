@@ -1,3 +1,4 @@
+import { EXEC_STAGES } from '@/lib/execution';
 import { Text, View } from 'react-native';
 import { DataTable } from '@/components/DataTable';
 import { Card, colors, Grid, Muted, Notice, Pill, Row, Section, Stat } from '@/components/ui';
@@ -170,7 +171,7 @@ export function MgmtReportView({ r }: { r: MgmtReport }) {
             edge={(x) => (x.planned != null && x.actual != null && x.planned - x.actual > 10 ? colors.red : (x.late ?? 0) > 0 ? colors.amber : undefined)}
             columns={[
               { h: 'Project', w: 260, v: (x) => `${x.code} ${x.name}`, bold: true },
-              { h: 'Stage', w: 55, right: true, v: (x) => String(x.stage) },
+              { h: 'Stage', w: 110, v: (x) => EXEC_STAGES[x.stage - 1] ?? String(x.stage) },
               { h: 'Planned', w: 75, right: true, v: (x) => (x.planned == null ? '—' : `${x.planned}%`) },
               { h: 'Done', w: 65, right: true, v: (x) => (x.actual == null ? '—' : `${x.actual}%`) },
               { h: 'Finish vs baseline', w: 130, right: true, v: (x) => (x.late == null ? '—' : x.late > 0 ? `${x.late} days late` : 'On time'), tone: (x) => ((x.late ?? 0) > 0 ? colors.amber : undefined) },

@@ -25,7 +25,10 @@ export const EXEC_AREAS: { value: string; label: string; family: ExecFamily }[] 
 ];
 export const areaLabel = (v: string) => EXEC_AREAS.find((a) => a.value === v)?.label ?? v;
 
-export const EXEC_STAGES = ['Sales handover', 'Mobilise & plan', 'Install', 'Test & commission', 'Handover', 'DLP & closure'];
+export const EXEC_STAGES = ['Mobilising', 'In progress', 'Handed over (DLP)'];
+/** The checkpoint at the end of each stage (SEE requests, SM Projects approves) */
+export const CHECKPOINTS = ['Ready to start', 'Handover', 'Close-out'];
+export const stageLabel = (p: { stage: number; status: string }) => (p.status === 'closed' ? 'Closed' : (EXEC_STAGES[p.stage - 1] ?? '—'));
 
 export type ExecProject = {
   id: string;
@@ -482,15 +485,13 @@ export type ExecGate = {
   decided_at: string | null;
   override: boolean;
   note: string | null;
+  legacy?: boolean;
 };
 /** Manual confirmations the SEE ticks when requesting each gate (the data checks run on the server) */
 export const GATE_CHECKLIST: Record<number, string[]> = {
-  1: ['Contract and scope reviewed', 'Team and supervisors in place', 'Programme agreed with the client'],
-  2: ['Shop drawings approved', 'Method statements approved', 'Long-lead materials ordered'],
-  3: ['First-fix inspected', 'Containment and cabling complete'],
-  4: ['Second-fix complete', 'Testing and commissioning complete', 'Client witness obtained'],
-  5: ['As-built drawings submitted', 'O&M manuals submitted', 'Client training done'],
-  6: ['Handover certificate signed', 'Final account agreed', 'Warranty registered'],
+  1: ['Site mobilised – stores, site office, HSE induction and permits', 'Contract, scope and programme agreed with the client'],
+  2: ['Testing and commissioning complete, witnessed by the client', 'As-built drawings and O&M manuals submitted', 'Client training done', 'Handover certificate signed by the client'],
+  3: ['Defects liability period ended – defects closed', 'Final account agreed', 'Warranty registered', 'Retention release requested'],
 };
 export type DossierItem = { id: string; exec_project_id: string; area: string; item: string; mandatory: boolean; done: boolean; done_by: string | null; done_at: string | null };
 export type CostLine = {

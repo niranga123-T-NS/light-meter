@@ -1,3 +1,4 @@
+import { EXEC_STAGES } from '@/lib/execution';
 import { esc, printHtml, reportHtml } from './export';
 import { fmtMonth, fyLabel } from './finance';
 import type { MgmtReport } from './mgmtReport';
@@ -110,14 +111,14 @@ ${
         ['Project', 'Stage', 'Planned', 'Done', 'Finish vs baseline', 'Cost vs budget', 'HSE open'],
         r.execution.projects.map((x) => [
           `${x.code} ${x.name}`,
-          x.stage,
+          EXEC_STAGES[x.stage - 1] ?? String(x.stage),
           x.planned == null ? '—' : `${x.planned}%`,
           x.actual == null ? '—' : `${x.actual}%`,
           x.late == null ? '—' : x.late > 0 ? `${x.late} days late` : 'On time',
           x.costPct == null ? '—' : `${x.costPct}%`,
           x.hseOpen,
         ]),
-        right(1, 2, 3, 4, 5, 6),
+        right(2, 3, 4, 5, 6),
       )
     : ''
 }

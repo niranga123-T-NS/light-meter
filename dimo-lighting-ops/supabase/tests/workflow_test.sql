@@ -3643,7 +3643,7 @@ end $$;
 reset role;
 insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name, uploaded_by)
 values ('snag', current_setting('test.snag')::uuid, 'snag_after', 'snag/test/after.jpg', 'after.jpg', (select id from u where role = 'assistant_engineer'));
-update public.exec_projects set stage = 5 where id = current_setting('test.ex')::uuid;
+update public.exec_projects set stage = 2 where id = current_setting('test.ex')::uuid;
 select pg_temp.act_as('assistant_engineer'); set role authenticated;
 select public.close_snag(current_setting('test.snag')::uuid);
 reset role;
@@ -3669,7 +3669,7 @@ do $$ begin
   exception when others then assert sqlerrm like 'Items are open%', sqlerrm; end;
   perform public.decide_gate(current_setting('test.gate')::uuid, true, 'Client accepted partial dossier; NCR closes next week');
   assert (select override from public.exec_gates where id = current_setting('test.gate')::uuid), 'override recorded';
-  assert (select stage from public.exec_projects where id = current_setting('test.ex')::uuid) = 6, 'stage 6';
+  assert (select stage from public.exec_projects where id = current_setting('test.ex')::uuid) = 3, 'stage 3 – handed over';
   assert public.advance_sub_cert(current_setting('test.spc')::uuid, true) = 'approved', 'approved';
 end $$;
 reset role;
@@ -3748,10 +3748,10 @@ select pg_temp.act_as('sm_projects'); set role authenticated;
 do $$ declare e uuid := current_setting('test.exlegacy')::uuid;
 begin
   assert exists (select 1 from public.my_pending_approvals() where source = 'exec_programme'), 'programme with SM Projects';
-  assert exists (select 1 from jsonb_array_elements(app.gate_checks(e, 2)) x where x ->> 'check' like 'Programme%' and not (x ->> 'ok')::boolean), 'gate 2 blocked before approval';
+  assert exists (select 1 from jsonb_array_elements(app.gate_checks(e, 1)) x where x ->> 'check' like 'Programme%' and not (x ->> 'ok')::boolean), 'ready to start blocked before approval';
   assert public.decide_programme(e, true) = 1, 'baseline 1';
   assert (select bl_start is not null from public.exec_activities where id = current_setting('test.act_a')::uuid), 'baseline dates';
-  assert exists (select 1 from jsonb_array_elements(app.gate_checks(e, 2)) x where x ->> 'check' like 'Programme%' and (x ->> 'ok')::boolean), 'gate 2 programme ok';
+  assert exists (select 1 from jsonb_array_elements(app.gate_checks(e, 1)) x where x ->> 'check' like 'Programme%' and (x ->> 'ok')::boolean), 'ready to start: programme ok';
 end $$;
 reset role;
 select pg_temp.act_as('assistant_engineer'); set role authenticated;

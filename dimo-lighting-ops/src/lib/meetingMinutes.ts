@@ -1,3 +1,4 @@
+import { EXEC_STAGES } from '@/lib/execution';
 import { esc } from './export';
 import { fmtDate, fmtDateTime } from './format';
 import { isTeamKind, kindLabel } from './meetingActions';
@@ -215,7 +216,7 @@ export function execTeam(t: Dict): { facts: Facts; lists: List[] } {
       { title: 'On hold', items: arr(t.on_hold).map((x) => job(x, ` (${s(x.person) || '—'} – ${s(x.reason) || 'no reason'})`)), tone: 'amber' },
       { title: 'Not accepted yet', items: arr(t.not_accepted).map((x) => job(x, ` (${s(x.person) || '—'})`)), tone: 'amber' },
       { title: 'Due in 7 days', items: arr(t.due_soon).map((x) => job(x, ` (${s(x.person) || '—'}, due ${d(x.due)})`)) },
-      { title: 'Active projects', items: arr(t.projects).map((x) => `${s(x.code)} ${s(x.name)} (stage ${num(x.stage)})`) },
+      { title: 'Active projects', items: arr(t.projects).map((x) => `${s(x.code)} ${s(x.name)} (${EXEC_STAGES[Number(x.stage) - 1] ?? `stage ${num(x.stage)}`})`) },
     ],
   };
 }

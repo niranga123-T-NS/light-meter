@@ -3,7 +3,7 @@ import { Attachments } from '@/components/Attachments';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, Chip, colors, Empty, ListRow, Muted, Notice, Pill, Row, Section } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { EXEC_AREAS, EXEC_STAGES, GATE_CHECKLIST, type DossierItem, type ExecGate, type ExecProject, type GateCheck, type Snag } from '@/lib/execution';
+import { CHECKPOINTS, EXEC_AREAS, EXEC_STAGES, GATE_CHECKLIST, type DossierItem, type ExecGate, type ExecProject, type GateCheck, type Snag } from '@/lib/execution';
 import { fmtDate, fmtDateTime, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
@@ -11,7 +11,7 @@ import { rpc, supabase } from '@/lib/supabase';
 const areaLabel = (a: string) => EXEC_AREAS.find((x) => x.value === a)?.label ?? a;
 
 function Checks({ checks }: { checks: GateCheck[] }) {
-  if (!checks.length) return <Muted>No data checks at this gate – the checklist is confirmed by the Senior Electrical Engineer.</Muted>;
+  if (!checks.length) return <Muted>No data checks here – the checklist is confirmed by the Senior Electrical Engineer.</Muted>;
   return (
     <>
       {checks.map((c) => (
@@ -48,19 +48,19 @@ export function HandoverTab({ p, onChange }: { p: ExecProject; onChange: () => v
   };
 
   const request = async () => {
-    const res = await dialog.prompt({ title: `Request gate ${p.stage}`, message: `End of “${EXEC_STAGES[p.stage - 1]}” – SM Projects approves.`, fields: [{ key: 'n', label: 'Note to SM Projects', type: 'multiline' }], confirmLabel: 'Request' });
+    const res = await dialog.prompt({ title: `Request “${CHECKPOINTS[p.stage - 1]}”`, message: `End of “${EXEC_STAGES[p.stage - 1]}” – SM Projects approves.`, fields: [{ key: 'n', label: 'Note to SM Projects', type: 'multiline' }], confirmLabel: 'Request' });
     if (res) await dialog.run(async () => { await rpc('request_gate', { p_exec: p.id, p_checklist: tick, p_note: res.n || null }); setTick({}); await refresh(); }, 'Sent to SM Projects');
   };
   const decide = async (g: ExecGate, ok: boolean) => {
     const failing = (data?.preview?.checks ?? g.checks).filter((c) => !c.ok).length;
     const res = await dialog.prompt({
-      title: ok ? `Pass gate ${g.gate}` : `Do not pass gate ${g.gate}`,
+      title: ok ? `Approve “${CHECKPOINTS[g.gate - 1]}”` : `Do not approve “${CHECKPOINTS[g.gate - 1]}”`,
       message: ok && failing ? `${failing} check(s) are not met – passing is an override and needs the reason.` : undefined,
       fields: [{ key: 'n', label: ok ? (failing ? 'Reason for the override' : 'Note') : 'Reason', type: 'multiline', required: !ok || failing > 0 }],
-      confirmLabel: ok ? 'Pass' : 'Do not pass',
+      confirmLabel: ok ? 'Approve' : 'Do not approve',
       danger: !ok,
     });
-    if (res) await dialog.run(async () => { await rpc('decide_gate', { p_id: g.id, p_approve: ok, p_note: res.n || null }); await refresh(); }, ok ? 'Gate passed' : 'Returned to the SEE');
+    if (res) await dialog.run(async () => { await rpc('decide_gate', { p_id: g.id, p_approve: ok, p_note: res.n || null }); await refresh(); }, ok ? 'Approved' : 'Returned to the SEE');
   };
   const raiseSnag = async () => {
     const res = await dialog.prompt({
@@ -96,26 +96,26 @@ export function HandoverTab({ p, onChange }: { p: ExecProject; onChange: () => v
 
   return (
     <>
-      <Section title="Stage gate">
+      <Section title="Checkpoint">
         <Card>
           {p.status === 'closed' ? (
-            <Notice tone={colors.green}>Gate 6 passed – the project is closed.</Notice>
+            <Notice tone={colors.green}>Close-out approved – the project is closed.</Notice>
           ) : pending ? (
             <>
-              <Notice tone={colors.amber}>{`Gate ${pending.gate} waiting for SM Projects · requested ${fmtDateTime(pending.requested_at)} by ${people[pending.requested_by]?.full_name ?? ''}`}</Notice>
+              <Notice tone={colors.amber}>{`${CHECKPOINTS[pending.gate - 1]} waiting for SM Projects · requested ${fmtDateTime(pending.requested_at)} by ${people[pending.requested_by]?.full_name ?? ''}`}</Notice>
               {pending.note ? <Muted>{pending.note}</Muted> : null}
               {Object.keys(pending.checklist).length ? <Muted>{`Confirmed: ${Object.entries(pending.checklist).filter(([, v]) => v).map(([k]) => k).join(' · ') || '—'}`}</Muted> : null}
               <Checks checks={data?.preview?.checks ?? pending.checks} />
               {me.role === 'sm_projects' ? (
                 <Row gap={6} style={{ marginTop: 6 }}>
-                  <Button title="Pass the gate" onPress={() => decide(pending, true)} />
-                  <Button variant="secondary" title="Do not pass" onPress={() => decide(pending, false)} />
+                  <Button title="Approve" onPress={() => decide(pending, true)} />
+                  <Button variant="secondary" title="Do not approve" onPress={() => decide(pending, false)} />
                 </Row>
               ) : null}
             </>
           ) : (
             <>
-              <Muted>{`Gate ${p.stage} – end of “${EXEC_STAGES[p.stage - 1]}”`}</Muted>
+              <Muted>{`“${CHECKPOINTS[p.stage - 1]}” – end of “${EXEC_STAGES[p.stage - 1]}”`}</Muted>
               <Checks checks={data?.preview?.checks ?? []} />
               {isSee ? (
                 <>
@@ -125,7 +125,7 @@ export function HandoverTab({ p, onChange }: { p: ExecProject; onChange: () => v
                     ))}
                   </Row>
                   <Row style={{ marginTop: 6 }}>
-                    <Button title={`Request gate ${p.stage}`} onPress={request} />
+                    <Button title={`Request “${CHECKPOINTS[p.stage - 1]}”`} onPress={request} />
                   </Row>
                 </>
               ) : null}
@@ -138,7 +138,7 @@ export function HandoverTab({ p, onChange }: { p: ExecProject; onChange: () => v
               .filter((g) => g.status !== 'pending')
               .map((g) => (
                 <Muted key={g.id}>
-                  {`Gate ${g.gate} ${g.status === 'approved' ? 'passed' : 'not passed'}${g.override ? ' (override)' : ''} · ${people[g.decided_by ?? '']?.full_name ?? ''} · ${fmtDateTime(g.decided_at)}${g.note ? ` · ${g.note}` : ''}`}
+                  {`${g.legacy ? `Old stage gate ${g.gate}` : CHECKPOINTS[g.gate - 1]} ${g.status === 'approved' ? 'approved' : 'not approved'}${g.override ? ' (override)' : ''} · ${people[g.decided_by ?? '']?.full_name ?? ''} · ${fmtDateTime(g.decided_at)}${g.note ? ` · ${g.note}` : ''}`}
                 </Muted>
               ))}
           </Card>
