@@ -1,3 +1,4 @@
+import { EXEC_STAGES } from '@/lib/execution';
 import { Text, View } from 'react-native';
 import { DataTable } from '@/components/DataTable';
 import { Card, colors, Grid, Muted, Notice, Pill, Row, Section, Stat } from '@/components/ui';
@@ -92,8 +93,18 @@ export function MgmtReportView({ r }: { r: MgmtReport }) {
           <Stat label="Invoiced" value={mn(r.invoicing.month.invoiced)} tone={tone(r.invoicing.month.invoiced, r.invoicing.month.budget)} />
           <Stat label={`Year-end outlook vs ${mn(r.invoicing.fyBudget)} budget`} value={mn(r.invoicing.outlook)} tone={tone(r.invoicing.outlook, r.invoicing.fyBudget)} />
           <Stat label={`Slipped (${r.invoicing.slipped.count})`} value={mn(r.invoicing.slipped.value)} tone={r.invoicing.slipped.count ? 'red' : undefined} />
-          <Stat label="Ready to invoice (execution)" value={mn(r.invoicing.ready)} />
+          <Stat label="Payment certificate approved – to invoice" value={mn(r.invoicing.ready)} />
+          {r.invoicing.moves ? (
+            <Stat
+              label={`Moved to a later month YTD (${r.invoicing.moves.count}) · DIMO execution ${mn(r.invoicing.moves.dimoValue)}`}
+              value={mn(r.invoicing.moves.value)}
+              tone={r.invoicing.moves.dimoValue ? 'amber' : undefined}
+            />
+          ) : null}
         </Grid>
+        {r.invoicing.moves?.byReason.length ? (
+          <Muted>{`Invoices moved by cause (YTD, LKR Mn): ${r.invoicing.moves.byReason.map((x) => `${x.reason} ${mn(x.value)} (${x.count})`).join(' · ')}`}</Muted>
+        ) : null}
         <DataTable
           rows={r.invoicing.byLine}
           keyOf={(x) => x.line}
@@ -170,7 +181,7 @@ export function MgmtReportView({ r }: { r: MgmtReport }) {
             edge={(x) => (x.planned != null && x.actual != null && x.planned - x.actual > 10 ? colors.red : (x.late ?? 0) > 0 ? colors.amber : undefined)}
             columns={[
               { h: 'Project', w: 260, v: (x) => `${x.code} ${x.name}`, bold: true },
-              { h: 'Stage', w: 55, right: true, v: (x) => String(x.stage) },
+              { h: 'Stage', w: 110, v: (x) => EXEC_STAGES[x.stage - 1] ?? String(x.stage) },
               { h: 'Planned', w: 75, right: true, v: (x) => (x.planned == null ? '—' : `${x.planned}%`) },
               { h: 'Done', w: 65, right: true, v: (x) => (x.actual == null ? '—' : `${x.actual}%`) },
               { h: 'Finish vs baseline', w: 130, right: true, v: (x) => (x.late == null ? '—' : x.late > 0 ? `${x.late} days late` : 'On time'), tone: (x) => ((x.late ?? 0) > 0 ? colors.amber : undefined) },

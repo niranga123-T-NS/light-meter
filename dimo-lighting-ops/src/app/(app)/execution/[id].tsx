@@ -17,7 +17,7 @@ import { VariationsTab } from '@/components/exec/VariationsTab';
 import { TestingBanner } from '@/components/Testing';
 import { colors, ErrorBanner, Loading, Muted, Screen, Segmented } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { EXEC_STAGES, type ExecProject } from '@/lib/execution';
+import { stageLabel, type ExecProject } from '@/lib/execution';
 import { useLoad } from '@/lib/hooks';
 import { supabase } from '@/lib/supabase';
 import type { Role } from '@/lib/types';
@@ -58,7 +58,7 @@ export default function ExecProjectScreen() {
       <Stack.Screen options={{ title: p.code ?? 'Execution' }} />
       <TestingBanner what="The execution module" />
       <Text style={{ fontSize: 20, fontWeight: '700', color: colors.ink }}>{p.name}</Text>
-      <Muted>{`Stage ${p.stage} – ${EXEC_STAGES[p.stage - 1]}${p.status === 'closed' ? ' · closed' : ''}`}</Muted>
+      <Muted>{stageLabel(p)}</Muted>
       <Segmented value={t} onChange={setT} options={tabs.map((x) => ({ value: x.key, label: x.label }))} />
       {t === 'overview' ? <OverviewTab p={p} onTab={setT} /> : null}
       {t === 'programme' ? <ProgrammeTab p={p} onChange={reload} /> : null}

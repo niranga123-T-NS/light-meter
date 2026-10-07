@@ -61,6 +61,8 @@ export type MgmtReport = {
     outlook: Money;
     slipped: { count: number; value: Money };
     pending: number;
+    /** Invoices moved to a later month this year, by cause (DIMO execution vs external) */
+    moves?: { count: number; value: Money; dimoValue: Money; byReason: { reason: string; count: number; value: Money }[] };
     byLine: { line: string; budget: Money; forecast: Money; invoiced: Money; ytdBudget: Money; ytdInvoiced: Money }[];
     ready: Money; // execution: ready to invoice, not yet invoiced
     noBudget: boolean;
@@ -140,13 +142,14 @@ export async function buildManagementReport(month: string): Promise<MgmtReport> 
     all('variations', 'status, value_lkr, smp_at, gm_at, raised_at', 'id'),
     all('exec_invoice_triggers', 'line_id, ready_at', 'line_id', (x) => x.not('ready_at', 'is', null)),
     all('warranty_claims', 'status, logged_at, cost_amount, recovered_amount', 'id'),
+    all('invoice_line_changes', 'id, line_id, from_month, to_month, reason, status, requested_at, decided_at', 'id', (x) => x.in('status', ['approved', 'recorded'])),
     supabase.from('exchange_rates').select('usd_to_lkr, month').order('month', { ascending: false }).limit(1),
   ]);
   // Sales people: the same figures as Finance → Targets (secured = this year's part of each win, invoiced = recorded invoices)
   const perf = await rpc<Performance>('finance_performance', { p_fy: fy });
   const err = q.find((r) => r.error);
   if (err?.error) throw new Error(err.error.message);
-  const [upR, linesR, allocR, budR, secR, quoR, debtR, retR, bondR, exR, pgR, actR, costR, hseR, varR, trigR, wcR, rateR] = q.map((r) => (r.data ?? []) as unknown[]);
+  const [upR, linesR, allocR, budR, secR, quoR, debtR, retR, bondR, exR, pgR, actR, costR, hseR, varR, trigR, wcR, movR, rateR] = q.map((r) => (r.data ?? []) as unknown[]);
   const usdRate = n((rateR[0] as { usd_to_lkr?: number } | undefined)?.usd_to_lkr);
   let usdMissing = false;
   const lkr = (v: unknown, cur: unknown) => {
@@ -197,6 +200,22 @@ export async function buildManagementReport(month: string): Promise<MgmtReport> 
   const slippedL = lines.filter((l) => l.forecast_month < now && n(l.remaining) > 0.5);
   const ytdInvoiced = invFor(ytdMonths);
   const outlook = ytdInvoiced + sum(lines.filter((l) => l.forecast_month > month && l.forecast_month <= ym[11]), (l) => Math.max(0, n(l.remaining))) + sum(lines.filter((l) => l.forecast_month <= month), (l) => Math.max(0, n(l.remaining)));
+  // Invoices moved to a later month this year (approved or recorded), by cause
+  const lineById = new Map(allLines.map((l) => [l.id, l]));
+  const movedYtd = (movR as { line_id: string; from_month: string; to_month: string; reason: string; requested_at: string; decided_at: string | null }[]).filter((c) => {
+    const d = (c.decided_at ?? c.requested_at).slice(0, 10);
+    return c.to_month > c.from_month && d >= ym[0] && d.slice(0, 7) <= month.slice(0, 7);
+  });
+  const dimo = (r: string) => r === 'DIMO execution delay' || r.startsWith('Execution');
+  const mvVal = (c: { line_id: string }) => n(lineById.get(c.line_id)?.amount);
+  const moves = {
+    count: movedYtd.length,
+    value: sum(movedYtd, mvVal),
+    dimoValue: sum(movedYtd.filter((c) => dimo(c.reason)), mvVal),
+    byReason: [...new Set(movedYtd.map((c) => c.reason))]
+      .map((reason) => ({ reason, count: movedYtd.filter((c) => c.reason === reason).length, value: sum(movedYtd.filter((c) => c.reason === reason), mvVal) }))
+      .sort((a, b) => b.value - a.value),
+  };
   const readyIds = new Set((trigR as { line_id: string }[]).map((t) => t.line_id));
   const invoicing: MgmtReport['invoicing'] = {
     month: { budget: budFor([month]), forecast: fcFor(month), invoiced: invFor([month]) },
@@ -205,6 +224,7 @@ export async function buildManagementReport(month: string): Promise<MgmtReport> 
     outlook,
     slipped: { count: slippedL.length, value: sum(slippedL, (l) => n(l.remaining)) },
     pending: lines.filter((l) => l.pending_change_id).length,
+    moves,
     byLine: LINES.map((x) => ({
       line: x.label,
       budget: budFor([month], x.value),
@@ -365,6 +385,7 @@ export async function buildManagementReport(month: string): Promise<MgmtReport> 
     if (invoicing.outlook < invoicing.fyBudget * THRESHOLDS.invoicingBelowBudget)
       flags.push({ area: 'Invoicing', level: 'amber', text: `Year-end outlook ${mn(invoicing.outlook)} is ${mn(invoicing.fyBudget - invoicing.outlook)} short of the ${fyLabel(fy)} budget.` });
   }
+  if (invoicing.moves?.dimoValue) flags.push({ area: 'Invoicing', level: 'amber', text: `${mn(invoicing.moves.dimoValue)} of invoices moved to a later month this year because of DIMO execution delays.` });
   if (invoicing.slipped.count) flags.push({ area: 'Invoicing', level: 'red', text: `${invoicing.slipped.count} invoice(s) slipped – ${mn(invoicing.slipped.value)} not invoiced in the planned month.` });
   if (invoicing.ready > 0) flags.push({ area: 'Invoicing', level: 'amber', text: `${mn(invoicing.ready)} is ready to invoice from execution but not invoiced yet.` });
 

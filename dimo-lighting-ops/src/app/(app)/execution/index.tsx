@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { TestingBanner } from '@/components/Testing';
 import { Button, Card, colors, Empty, ErrorBanner, Field, ListRow, Loading, Pill, Row, Screen, Segmented } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { areaLabel, EXEC_STAGES, type ExecProject } from '@/lib/execution';
+import { areaLabel, stageLabel, type ExecProject } from '@/lib/execution';
 import { fmtDate } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { supabase } from '@/lib/supabase';
@@ -63,7 +63,7 @@ export default function ExecProjects() {
               subtitle={[p.code, p.areas.length ? p.areas.map(areaLabel).join(', ') : 'areas not set yet', p.legacy ? 'won before the system' : null, p.see_id ? `SEE ${people[p.see_id]?.full_name ?? ''}` : null, p.end_date ? `finish ${fmtDate(p.end_date)}` : null]
                 .filter(Boolean)
                 .join(' · ')}
-              right={<Pill label={`${p.stage} ${EXEC_STAGES[p.stage - 1]}`} tone={colors.blue} />}
+              right={<Pill label={stageLabel(p)} tone={colors.blue} />}
             />
           ))}
         </Card>

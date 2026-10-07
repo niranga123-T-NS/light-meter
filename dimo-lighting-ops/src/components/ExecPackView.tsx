@@ -1,3 +1,4 @@
+import { EXEC_STAGES } from '@/lib/execution';
 import type { ReactNode } from 'react';
 import { Card, colors, Grid, KeyValue, Muted, Notice, Section, Stat } from '@/components/ui';
 import { fmtDate } from '@/lib/format';
@@ -46,7 +47,7 @@ export function ExecPackView({ pack, general, personFooter }: { team: string; pa
           {line('Not accepted yet', list<Job>(t.not_accepted), (x) => ` (${x.person ?? '—'})`)}
           {line('Due in 7 days', list<Job>(t.due_soon), (x) => ` (${x.person ?? '—'}, due ${fmtDate(x.due)})`, colors.blue)}
           {list<{ code: string; name: string; stage: number }>(t.projects).length ? (
-            <Muted>{`Active projects: ${list<{ code: string; name: string; stage: number }>(t.projects).map((x) => `${x.code} ${x.name} (stage ${x.stage})`).join(' · ')}`}</Muted>
+            <Muted>{`Active projects: ${list<{ code: string; name: string; stage: number }>(t.projects).map((x) => `${x.code} ${x.name} (${EXEC_STAGES[x.stage - 1] ?? `stage ${x.stage}`})`).join(' · ')}`}</Muted>
           ) : null}
         </Card>
         {general}

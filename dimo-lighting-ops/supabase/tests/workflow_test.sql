@@ -3643,7 +3643,7 @@ end $$;
 reset role;
 insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name, uploaded_by)
 values ('snag', current_setting('test.snag')::uuid, 'snag_after', 'snag/test/after.jpg', 'after.jpg', (select id from u where role = 'assistant_engineer'));
-update public.exec_projects set stage = 5 where id = current_setting('test.ex')::uuid;
+update public.exec_projects set stage = 2 where id = current_setting('test.ex')::uuid;
 select pg_temp.act_as('assistant_engineer'); set role authenticated;
 select public.close_snag(current_setting('test.snag')::uuid);
 reset role;
@@ -3669,7 +3669,7 @@ do $$ begin
   exception when others then assert sqlerrm like 'Items are open%', sqlerrm; end;
   perform public.decide_gate(current_setting('test.gate')::uuid, true, 'Client accepted partial dossier; NCR closes next week');
   assert (select override from public.exec_gates where id = current_setting('test.gate')::uuid), 'override recorded';
-  assert (select stage from public.exec_projects where id = current_setting('test.ex')::uuid) = 6, 'stage 6';
+  assert (select stage from public.exec_projects where id = current_setting('test.ex')::uuid) = 3, 'stage 3 – handed over';
   assert public.advance_sub_cert(current_setting('test.spc')::uuid, true) = 'approved', 'approved';
 end $$;
 reset role;
@@ -3748,10 +3748,10 @@ select pg_temp.act_as('sm_projects'); set role authenticated;
 do $$ declare e uuid := current_setting('test.exlegacy')::uuid;
 begin
   assert exists (select 1 from public.my_pending_approvals() where source = 'exec_programme'), 'programme with SM Projects';
-  assert exists (select 1 from jsonb_array_elements(app.gate_checks(e, 2)) x where x ->> 'check' like 'Programme%' and not (x ->> 'ok')::boolean), 'gate 2 blocked before approval';
+  assert exists (select 1 from jsonb_array_elements(app.gate_checks(e, 1)) x where x ->> 'check' like 'Programme%' and not (x ->> 'ok')::boolean), 'ready to start blocked before approval';
   assert public.decide_programme(e, true) = 1, 'baseline 1';
   assert (select bl_start is not null from public.exec_activities where id = current_setting('test.act_a')::uuid), 'baseline dates';
-  assert exists (select 1 from jsonb_array_elements(app.gate_checks(e, 2)) x where x ->> 'check' like 'Programme%' and (x ->> 'ok')::boolean), 'gate 2 programme ok';
+  assert exists (select 1 from jsonb_array_elements(app.gate_checks(e, 1)) x where x ->> 'check' like 'Programme%' and (x ->> 'ok')::boolean), 'ready to start: programme ok';
 end $$;
 reset role;
 select pg_temp.act_as('assistant_engineer'); set role authenticated;
@@ -3992,49 +3992,106 @@ do $$ begin
   assert public.approve_invoice_triggers(current_setting('test.exlegacy')::uuid) = 4, 'four approved';
 end $$;
 reset role;
--- Activity finished / gate passed → ready to invoice
+-- Activity finished / checkpoint approved → claimable; the SEE submits the payment certificate and records the client's approval → ready
 update public.exec_activities set pct = 100, actual_start = coalesce(actual_start, current_date - 5), actual_finish = current_date where id = current_setting('test.act_a')::uuid;
 do $$ declare l1 uuid := (select id from bl where seq = 1); l2 uuid := (select id from bl where seq = 2);
 begin
   assert (select approved from public.exec_invoice_triggers where line_id = l1), 'approved';
-  assert (select ready_at is not null from public.exec_invoice_triggers where line_id = l2), 'activity finished → ready';
-  assert exists (select 1 from public.notifications where kind = 'invoice_ready' and recipient_id = (select id from u where role = 'operations_exec') and dedupe_key like 'ready:' || l2 || ':%'), 'Operations told';
-  assert exists (select 1 from public.notifications where kind = 'invoice_ready' and recipient_id = (select id from u where role = 'asm_building')), 'sales person told';
-  assert exists (select 1 from public.secured_log where secured_id = current_setting('test.bsec')::uuid and action = 'ready_to_invoice'), 'logged on the secured project';
-  assert (select ready_at is null from public.exec_invoice_triggers where line_id = l1), 'gate not passed yet';
+  assert (select claimable_at is not null and ready_at is null from public.exec_invoice_triggers where line_id = l2), 'activity finished → claimable, not yet ready';
+  assert exists (select 1 from public.notifications where kind = 'exec_billing' and title like 'Work done%' and recipient_id = (select id from u where role = 'senior_elec_engineer')), 'SEE asked for the certificate';
+  assert (select status from app.billing_rows(current_setting('test.exlegacy')::uuid) where line_id = l2) in ('amber', 'red'), 'certificate stage at risk until approved';
+  assert (select ready_at is null and claimable_at is null from public.exec_invoice_triggers where line_id = l1), 'checkpoint not approved yet';
 end $$;
 insert into public.exec_gates (exec_project_id, gate, status) values (current_setting('test.exlegacy')::uuid, 2, 'pending');
 update public.exec_gates set status = 'approved' where exec_project_id = current_setting('test.exlegacy')::uuid and gate = 2;
-do $$ begin assert (select ready_at is not null from public.exec_invoice_triggers where line_id = (select id from bl where seq = 1)), 'gate passed → ready'; end $$;
+do $$ begin assert (select claimable_at is not null from public.exec_invoice_triggers where line_id = (select id from bl where seq = 1)), 'checkpoint approved → claimable'; end $$;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare e uuid := current_setting('test.exlegacy')::uuid; l2 uuid := (select id from bl where seq = 2); c uuid;
+begin
+  begin perform public.submit_payment_cert(e, l2, '{"amount":"999999999","date":"2020-01-01"}'); assert false, 'amount above the line';
+  exception when others then assert sqlerrm like 'Enter the amount claimed%', sqlerrm; end;
+  c := public.submit_payment_cert(e, l2, jsonb_build_object('amount', app.line_open(l2), 'date', current_date, 'ref', 'PC-CLIENT-07'));
+  begin perform public.submit_payment_cert(e, l2, jsonb_build_object('amount', 1000, 'date', current_date)); assert false, 'one open certificate';
+  exception when others then assert sqlerrm like 'A certificate for this invoice is already with the client%', sqlerrm; end;
+  assert public.decide_payment_cert(c, false, '{"note":"Add the test sheets"}') = 'returned', 'client returned it';
+  c := public.submit_payment_cert(e, l2, jsonb_build_object('amount', app.line_open(l2), 'date', current_date));
+  assert public.decide_payment_cert(c, true, jsonb_build_object('amount', app.line_open(l2), 'date', current_date, 'client_ref', 'CONS/123')) = 'approved', 'approved';
+  assert (select ready_at is not null from public.exec_invoice_triggers where line_id = l2), 'certificate approved → ready to invoice';
+  perform set_config('test.l2', l2::text, false);
+end $$;
+reset role;
+do $$ declare l2 uuid := current_setting('test.l2')::uuid;
+begin
+  assert exists (select 1 from public.notifications where kind = 'invoice_ready' and recipient_id = (select id from u where role = 'operations_exec') and dedupe_key like 'ready:' || l2 || ':%'), 'Operations told';
+  assert not exists (select 1 from public.notifications where kind = 'invoice_ready' and recipient_id = (select id from u where role = 'asm_building')), 'sales person told only when invoiced';
+  assert exists (select 1 from public.secured_log where secured_id = current_setting('test.bsec')::uuid and action = 'ready_to_invoice'), 'logged on the secured project';
+end $$;
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
 do $$ begin
   begin perform public.set_invoice_trigger(current_setting('test.exlegacy')::uuid, (select id from bl where seq = 2), 'manual'); assert false, 'ready lines are fixed';
   exception when others then assert sqlerrm like 'This invoice is already marked ready%', sqlerrm; end;
 end $$;
 reset role;
--- Activity forecast past the invoice month → date change proposed to SM Projects, sales person told
+-- Operations raises the invoice against the approved certificate: recorded at once, the sales person told
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare l2 uuid := current_setting('test.l2')::uuid;
+begin
+  assert public.record_invoice(l2, jsonb_build_object('invoice_no', 'INV-PC-1', 'invoice_date', current_date, 'amount', app.line_open(l2))) < 0, 'recorded directly';
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.invoice_allocations where invoice_no = 'INV-PC-1'), 'allocation made';
+  assert exists (select 1 from public.notifications where kind = 'invoice_recorded' and recipient_id = (select id from u where role = 'asm_building')), 'sales person told';
+end $$;
+-- Activity forecast past the invoice deadline → red, SEE and SM Projects told (no automatic date change); recovery action
 update public.exec_activities set ef = current_date + 70 where id = current_setting('test.act_c')::uuid;
 do $$ declare l3 uuid := (select id from bl where seq = 3);
 begin
-  assert public.billing_tick() >= 1, 'proposal made';
-  assert (select to_month from public.invoice_line_changes where line_id = l3 and status = 'pending') = app.month_of(current_date + 70), 'proposed month';
-  assert (select forecast_month from public.invoice_lines where id = l3) = app.month_of(current_date), 'not moved until approved';
-  assert exists (select 1 from public.notifications where kind = 'invoice_move' and recipient_id = (select id from u where role = 'asm_building')), 'sales person told';
+  assert (select status from app.billing_rows(current_setting('test.exlegacy')::uuid) where line_id = l3) = 'red', 'red';
   perform public.billing_tick();
-  assert (select count(*) from public.invoice_line_changes where line_id = l3) = 1, 'proposed once';
+  assert not exists (select 1 from public.invoice_line_changes where line_id = l3), 'no automatic date change';
+  assert (select risk from public.exec_invoice_triggers where line_id = l3) = 'red', 'risk stored';
+  assert exists (select 1 from public.notifications where title like 'Invoice will miss its month%' and recipient_id = (select id from u where role = 'sm_projects')), 'SM Projects told';
 end $$;
--- Monthly check by the SEE
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare e uuid := current_setting('test.exlegacy')::uuid; l3 uuid := (select id from bl where seq = 3); a uuid;
+begin
+  assert exists (select 1 from public.billing_risk(e) where line_id = l3 and status = 'red'), 'SEE sees the risk';
+  a := public.save_billing_action(e, l3, 'Second crew from Monday', (select id from u where role = 'assistant_engineer'), current_date + 7);
+  assert (select open_actions from public.billing_risk(e) where line_id = l3) = 1, 'action open';
+  begin perform public.close_billing_action(a, ''); assert false, 'result'; exception when others then assert sqlerrm = 'Say what was done', sqlerrm; end;
+  perform public.close_billing_action(a, 'Crew added');
+end $$;
+reset role;
+-- Monthly check by the SEE: work done → claimable; slipping → proposed (another quarter / year → SM Projects then DGM / GM)
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
 do $$ declare e uuid := current_setting('test.exlegacy')::uuid;
 begin
   begin perform public.check_invoice_line(e, (select id from bl where seq = 5), 'ready'); assert false, 'evidence';
-  exception when others then assert sqlerrm = 'Say what makes it ready (evidence)', sqlerrm; end;
-  assert public.check_invoice_line(e, (select id from bl where seq = 5), 'ready', null, 'Handover certificate signed') = 'ready', 'ready';
-  assert (select ready_at is not null and kind = 'manual' from public.exec_invoice_triggers where line_id = (select id from bl where seq = 5)), 'manual ready';
+  exception when others then assert sqlerrm = 'Say what work is done (evidence)', sqlerrm; end;
+  assert public.check_invoice_line(e, (select id from bl where seq = 5), 'ready', null, 'Handover certificate signed') = 'claimable', 'claimable';
+  assert (select claimable_at is not null and ready_at is null and kind = 'manual' from public.exec_invoice_triggers where line_id = (select id from bl where seq = 5)), 'manual claimable';
   begin perform public.check_invoice_line(e, (select id from bl where seq = 6), 'slipping', current_date + 40); assert false, 'reason';
   exception when others then assert sqlerrm = 'Give the expected month and the reason', sqlerrm; end;
-  assert public.check_invoice_line(e, (select id from bl where seq = 6), 'slipping', current_date + 62, 'Client test witness delayed') = 'proposed', 'proposed';
-  assert exists (select 1 from public.invoice_line_changes where line_id = (select id from bl where seq = 6) and status = 'pending'), 'with SM Projects';
+  assert public.check_invoice_line(e, (select id from bl where seq = 6), 'slipping', (select forecast_month from public.invoice_lines where id = (select id from bl where seq = 6)) + 190, 'Client test witness delayed') = 'proposed', 'proposed';
+  assert (select needs_gm from public.invoice_line_changes where line_id = (select id from bl where seq = 6) and status = 'pending'), 'another quarter → DGM / GM too';
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ declare c bigint := (select id from public.invoice_line_changes where line_id = (select id from bl where seq = 6) and status = 'pending');
+begin
+  perform public.decide_invoice_move(c, true, 'Client witness');
+  assert (select status = 'pending' and smp_at is not null from public.invoice_line_changes where id = c), 'waits for DGM / GM';
+  assert not exists (select 1 from public.my_pending_approvals() where source = 'invoice_move' and title like '%another quarter%'), 'no longer with SM Projects';
+  begin perform public.decide_invoice_move(c, true); assert false, 'GM step'; exception when others then assert sqlerrm like 'DGM / GM approves%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ declare c bigint := (select id from public.invoice_line_changes where line_id = (select id from bl where seq = 6) and status = 'pending');
+begin
+  assert exists (select 1 from public.my_pending_approvals() where source = 'invoice_move' and title like '%another quarter%'), 'with DGM / GM';
+  perform public.decide_invoice_move(c, true, 'Agreed');
+  assert (select status from public.invoice_line_changes where id = c) = 'approved', 'moved';
 end $$;
 reset role;
 -- Progress claim: AE measures (no money), SEE records the certified amount
@@ -4195,7 +4252,7 @@ begin
   delete from public.exec_invoice_triggers where line_id = l;
   insert into public.exec_invoice_triggers (line_id, exec_project_id, kind, mr_ids, approved) values (l, e, 'delivery', array[mr], true);
   update public.material_requests set status = 'received' where id = mr;
-  assert (select ready_at is not null and ready_note like 'Delivered to site%' from public.exec_invoice_triggers where line_id = l), 'delivered → ready';
+  assert (select claimable_at is not null and claimable_note like 'Delivered to site%' and ready_at is null from public.exec_invoice_triggers where line_id = l), 'delivered → claimable';
 end $$;
 
 -- Management report: GM / DGM only ---------------------------------------------
@@ -4362,7 +4419,16 @@ begin
   st := current_date + 21 + ((8 - extract(isodow from current_date + 21)::int) % 7);
   r := public.set_activity_dates(c, st, st + 4);
   assert (select bl_start = st and bl_finish = st + 4 from public.exec_activities where id = c), 'baseline follows the draft ' || r::text;
-  perform public.submit_programme(e, 'New site access dates');
+  -- billing check: every invoice line needs a trigger; lines that would miss their month need the reason
+  begin perform public.submit_programme(e, 'New site access dates'); assert false, 'untriggered lines';
+  exception when others then assert sqlerrm like '% have no trigger%', sqlerrm; end;
+  perform public.set_invoice_trigger(e, x.line_id, 'manual') from app.billing_rows(e) x where x.status = 'no_trigger';
+  if exists (select 1 from app.billing_rows(e) where status = 'red') then
+    begin perform public.submit_programme(e, 'New site access dates'); assert false, 'billing reason';
+    exception when others then assert sqlerrm like '%would miss their planned month%', sqlerrm; end;
+  end if;
+  perform public.submit_programme(e, 'New site access dates', 'Night shifts on the cable route to recover');
+  assert (select billing_check is not null from public.exec_programmes where exec_project_id = e), 'billing check stored';
 end $$;
 reset role;
 do $$ declare c uuid := current_setting('test.act_c')::uuid;

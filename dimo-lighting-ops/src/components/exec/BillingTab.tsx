@@ -2,16 +2,16 @@ import { router } from 'expo-router';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, Empty, Grid, ListRow, Muted, Notice, Pill, Row, Section, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { BILLING_ROLES, CHECK_STATUS, IPC_STATUS, TRIGGER_KINDS, type InvoiceCheck, type InvoiceTrigger, type Ipc } from '@/lib/billing';
+import { BILLING_ROLES, billingStep, CERT_STATUS, CHECK_STATUS, IPC_STATUS, RISK, TRIGGER_KINDS, type BillingAction, type BillingRow, type InvoiceCheck, type InvoiceTrigger, type Ipc, type PaymentCert } from '@/lib/billing';
 import { BOQ_STATUS, type Boq, type IpcValues } from '@/lib/boq';
-import { EXEC_STAGES, MR_STATUS, type ExecProject, type MaterialRequest } from '@/lib/execution';
+import { CHECKPOINTS, MR_STATUS, type ExecProject, type MaterialRequest } from '@/lib/execution';
 import { fmtMonth, kindLabel, monthOf, type InvoiceLine, type SecuredProject } from '@/lib/finance';
 import { fmtDate, fmtMoney, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { actualPct, type Activity } from '@/lib/programme';
 import { rpc, supabase } from '@/lib/supabase';
 
-const GATES = [1, 2, 3, 4, 5, 6].map((g) => ({ value: String(g), label: `Gate ${g} – end of “${EXEC_STAGES[g - 1]}”` }));
+const GATES = [1, 2, 3].map((g) => ({ value: String(g), label: `Checkpoint “${CHECKPOINTS[g - 1]}” approved` }));
 const ipcTone = (c: Ipc) => (c.status === 'certified' ? colors.green : c.status === 'returned' ? colors.red : colors.amber);
 
 /**
@@ -31,7 +31,7 @@ export function BillingTab({ p, onChange }: { p: ExecProject; onChange: () => vo
   const { data, reload } = useLoad(async () => {
     const ipcQ = supabase.from('exec_ipcs').select('*').eq('exec_project_id', p.id).order('prepared_at', { ascending: false });
     if (!full) return { ipcs: ((await ipcQ).data ?? []) as Ipc[] };
-    const [s, l, t, k, c, a, b, m] = await Promise.all([
+    const [s, l, t, k, c, a, b, m, r, pc, ba] = await Promise.all([
       p.secured_id ? supabase.from('secured_projects').select('*').eq('id', p.secured_id).maybeSingle() : Promise.resolve({ data: null }),
       p.secured_id ? supabase.from('invoice_line_status').select('*').eq('secured_id', p.secured_id).order('seq') : Promise.resolve({ data: [] }),
       supabase.from('exec_invoice_triggers').select('*').eq('exec_project_id', p.id),
@@ -40,6 +40,9 @@ export function BillingTab({ p, onChange }: { p: ExecProject; onChange: () => vo
       supabase.from('exec_activities').select('*').eq('exec_project_id', p.id).order('code'),
       supabase.from('exec_boqs').select('*').eq('exec_project_id', p.id).maybeSingle(),
       supabase.from('material_requests').select('*').eq('exec_project_id', p.id).order('requested_at', { ascending: false }),
+      p.secured_id && p.status === 'active' ? supabase.rpc('billing_risk', { p_exec: p.id }) : Promise.resolve({ data: [] }),
+      supabase.from('exec_payment_certs').select('*').eq('exec_project_id', p.id).order('created_at', { ascending: false }),
+      supabase.from('exec_billing_actions').select('*').eq('exec_project_id', p.id).order('created_at', { ascending: false }),
     ]);
     const ipcs = (c.data ?? []) as Ipc[];
     const v = ipcs.length ? await supabase.from('exec_ipc_values').select('*').in('ipc_id', ipcs.map((x) => x.id)) : { data: [] };
@@ -53,6 +56,9 @@ export function BillingTab({ p, onChange }: { p: ExecProject; onChange: () => vo
       checks: (k.data ?? []) as InvoiceCheck[],
       ipcs,
       acts: (a.data ?? []) as Activity[],
+      risk: (r.data ?? []) as BillingRow[],
+      certs: (pc.data ?? []) as PaymentCert[],
+      actions: (ba.data ?? []) as BillingAction[],
     };
   }, [p.id, p.secured_id, full]);
 
@@ -113,6 +119,13 @@ export function BillingTab({ p, onChange }: { p: ExecProject; onChange: () => vo
   const earned = measured ? Number(valueOf[measured.id].work_value) : (order * pct) / 100;
   const hasEarned = !!measured || acts.length > 0;
   const ready = lines.filter((l) => triggers[l.id]?.ready_at && Number(l.remaining) > 0).reduce((s, l) => s + Number(l.remaining), 0);
+  const risk = Object.fromEntries((data?.risk ?? []).map((r) => [r.line_id, r]));
+  const atRisk = (data?.risk ?? []).filter((r) => ['amber', 'red', 'no_trigger'].includes(r.status)).reduce((s, r) => s + Number(r.open_amount), 0);
+  const certsOf = (id: string) => (data?.certs ?? []).filter((c) => c.line_id === id);
+  const actionsOf = (id: string) => (data?.actions ?? []).filter((x) => x.line_id === id);
+  const teamOpts = Object.values(people)
+    .filter((x) => x.active && ['senior_elec_engineer', 'assistant_engineer', 'sm_projects', 'operations_exec'].includes(x.role))
+    .map((x) => ({ value: x.id, label: x.full_name }));
   const gap = invoiced - earned;
 
   const link = async () => {
@@ -183,13 +196,62 @@ export function BillingTab({ p, onChange }: { p: ExecProject; onChange: () => vo
           await rpc('check_invoice_line', { p_exec: p.id, p_line: l.id, p_status: res.st, p_month: res.m || null, p_note: res.n || null });
           await reload();
         },
-        res.st === 'ready' ? 'Operations told – ready to invoice' : res.st === 'slipping' ? 'New month proposed to SM Projects' : 'Saved',
+        res.st === 'ready' ? 'Work done – now submit the payment certificate' : res.st === 'slipping' ? 'New month proposed to SM Projects' : 'Saved',
       );
+  };
+
+  const submitCert = async (l: InvoiceLine) => {
+    const res = await dialog.prompt({
+      title: `Payment certificate – ${kindLabel(l.kind)}${l.description ? ` · ${l.description}` : ''}`,
+      message: `Submitted to the client for ${fmtMonth(l.forecast_month)} · ${fmtMoney(l.remaining, 'LKR')} still to invoice on this line.`,
+      fields: [
+        { key: 'amount', label: 'Amount claimed (LKR)', required: true, initial: String(Number(l.remaining)) },
+        { key: 'date', label: 'Submitted on', type: 'date', required: true, initial: todayISO() },
+        { key: 'ref', label: 'Certificate / letter reference' },
+        { key: 'note', label: 'Note', type: 'multiline' },
+      ],
+      confirmLabel: 'Submitted',
+    });
+    if (res) await dialog.run(async () => { await rpc('submit_payment_cert', { p_exec: p.id, p_line: l.id, p: res }); await reload(); }, 'Recorded – now with the client');
+  };
+  const decideCert = async (c: PaymentCert, ok: boolean) => {
+    const res = await dialog.prompt({
+      title: ok ? `Approved by the client – ${c.code ?? ''}` : `Returned by the client – ${c.code ?? ''}`,
+      message: ok ? 'Operations is told to raise the invoice.' : 'Submit a corrected certificate afterwards.',
+      fields: ok
+        ? [
+            { key: 'amount', label: 'Amount approved (LKR)', required: true, initial: String(Number(c.claimed_amount)) },
+            { key: 'date', label: 'Approved on', type: 'date', required: true, initial: todayISO() },
+            { key: 'client_ref', label: 'Client / consultant reference' },
+            { key: 'note', label: 'Note', type: 'multiline' },
+          ]
+        : [{ key: 'note', label: 'What the client asked to change', type: 'multiline', required: true }],
+      confirmLabel: ok ? 'Approved' : 'Returned',
+      danger: !ok,
+    });
+    if (res) await dialog.run(async () => { await rpc('decide_payment_cert', { p_id: c.id, p_approved: ok, p: res }); await reload(); }, ok ? 'Operations told – raise the invoice' : 'Recorded');
+  };
+  const addAction = async (l: InvoiceLine) => {
+    const res = await dialog.prompt({
+      title: 'Recovery action',
+      message: 'What will bring this invoice back into its month – extra crew, re-sequencing, part certificate …',
+      fields: [
+        { key: 'a', label: 'Action', type: 'multiline', required: true },
+        { key: 'o', label: 'Owner', type: 'select', options: teamOpts, required: true, initial: me.id },
+        { key: 'd', label: 'By', type: 'date', required: true },
+      ],
+      confirmLabel: 'Add',
+    });
+    if (res) await dialog.run(async () => { await rpc('save_billing_action', { p_exec: p.id, p_line: l.id, p_action: res.a, p_owner: res.o, p_due: res.d }); await reload(); }, 'Added');
+  };
+  const closeAction = async (x: BillingAction) => {
+    const res = await dialog.prompt({ title: 'Close the action', message: x.action, fields: [{ key: 'r', label: 'What was done', type: 'multiline', required: true }], confirmLabel: 'Close' });
+    if (res) await dialog.run(async () => { await rpc('close_billing_action', { p_id: x.id, p_result: res.r }); await reload(); }, 'Closed');
   };
 
   const triggerText = (t?: InvoiceTrigger) => {
     if (!t) return 'Trigger not set';
-    if (t.kind === 'gate') return `Gate ${t.gate} – end of “${EXEC_STAGES[(t.gate ?? 1) - 1]}”`;
+    if (t.kind === 'gate') return `Checkpoint “${CHECKPOINTS[(t.gate ?? 1) - 1]}” approved`;
     if (t.kind === 'activity') {
       const a = t.activity_id ? actById[t.activity_id] : undefined;
       if (!a) return 'Activity removed – set again';
@@ -231,7 +293,8 @@ export function BillingTab({ p, onChange }: { p: ExecProject; onChange: () => vo
                 value={hasEarned ? fmtMoney(Math.abs(gap), 'LKR') : '—'}
                 tone={hasEarned && gap < -order * 0.05 ? 'amber' : undefined}
               />
-              <Stat label="Ready to invoice" value={fmtMoney(ready, 'LKR')} tone={ready > 0 ? 'green' : undefined} />
+              <Stat label="Certificate approved – to invoice" value={fmtMoney(ready, 'LKR')} tone={ready > 0 ? 'green' : undefined} />
+              <Stat label="At risk of missing its month" value={fmtMoney(atRisk, 'LKR')} tone={atRisk > 0 ? 'red' : undefined} />
             </Grid>
             {secured.schedule_status !== 'approved' ? <Notice tone={colors.amber}>The invoicing plan is not approved yet in Finance – lines may still change.</Notice> : null}
           </>
@@ -272,11 +335,14 @@ export function BillingTab({ p, onChange }: { p: ExecProject; onChange: () => vo
             <Card style={{ padding: 0, overflow: 'hidden' }}>
               {lines.map((l) => {
                 const t = triggers[l.id];
+                const r = risk[l.id];
                 const done = Number(l.remaining) <= 0;
-                const a = t?.kind === 'activity' && t.activity_id ? actById[t.activity_id] : undefined;
-                const late = !!a && !a.actual_finish && !!a.ef && monthOf(a.ef) > l.forecast_month;
                 const k = checks[l.id];
-                const tone = done ? colors.grey : t?.ready_at ? colors.green : late || l.pending_month ? colors.amber : l.forecast_month < thisMonth ? colors.red : undefined;
+                const openCert = certsOf(l.id).find((c) => c.status === 'submitted');
+                const lastCert = certsOf(l.id)[0];
+                const acts2 = actionsOf(l.id);
+                const rk = r ? RISK[r.status] : null;
+                const tone = done ? colors.grey : rk ? colors[rk.tone] : undefined;
                 return (
                   <ListRow
                     key={l.id}
@@ -284,21 +350,28 @@ export function BillingTab({ p, onChange }: { p: ExecProject; onChange: () => vo
                     highlight={tone}
                     title={`${l.seq}. ${kindLabel(l.kind)}${l.description ? ` · ${l.description}` : ''} · ${fmtMoney(l.amount, 'LKR')}`}
                     subtitle={[
-                      `${fmtMonth(l.forecast_month)}${l.forecast_month !== l.original_month ? ` (was ${fmtMonth(l.original_month)})` : ''}`,
+                      `${fmtMonth(l.forecast_month)}${l.forecast_month !== l.original_month ? ` (planned ${fmtMonth(l.original_month)})` : ''}`,
                       Number(l.invoiced) > 0 ? `${fmtMoney(l.invoiced, 'LKR')} invoiced` : null,
-                      triggerText(t),
-                      t?.ready_note && t.ready_at ? `Ready ${fmtDate(t.ready_at)} – ${t.ready_note}` : null,
+                      done ? null : r ? billingStep(r, fmtDate) : triggerText(t),
+                      lastCert && lastCert.status !== 'submitted' ? `${lastCert.code}: ${CERT_STATUS[lastCert.status]}${lastCert.approved_amount != null ? ` ${fmtMoney(lastCert.approved_amount, 'LKR')}` : ` ${fmtMoney(lastCert.claimed_amount, 'LKR')}`}${lastCert.status === 'returned' && lastCert.note ? ` – ${lastCert.note}` : ''}` : null,
+                      ...acts2.map((x) => `${x.status === 'open' ? 'Action' : 'Done'}: ${x.action} – ${people[x.owner_id ?? '']?.full_name ?? ''}${x.due_date ? ` by ${fmtDate(x.due_date)}` : ''}${x.result ? ` → ${x.result}` : ''}`),
                       k ? `Checked ${fmtDate(k.at)}: ${CHECK_STATUS.find((x) => x.value === k.status)?.label}${k.note ? ` – ${k.note}` : ''}` : null,
                     ]
                       .filter(Boolean)
                       .join(' · ')}
                     right={
                       <Row gap={6} wrap>
-                        {done ? <Pill label="Invoiced" /> : t?.ready_at ? <Pill label="Ready to invoice" tone={colors.green} solid /> : null}
+                        {done ? <Pill label="Invoiced" /> : rk ? <Pill label={rk.label} tone={tone} solid={r?.status === 'red' || r?.status === 'ready'} /> : null}
                         {t && !t.approved && !t.ready_at ? <Pill label="Trigger to approve" tone={colors.amber} /> : null}
-                        {l.pending_month ? <Pill label={`Move to ${fmtMonth(l.pending_month)} – with SM Projects`} tone={colors.amber} /> : null}
-                        {late && !l.pending_month ? <Pill label={`Forecast ${fmtMonth(monthOf(a!.ef!))}`} tone={colors.amber} /> : null}
-                        {see && !done && !t?.ready_at ? <Button small variant="secondary" title="Trigger" onPress={() => setTrigger(l)} /> : null}
+                        {l.pending_month ? <Pill label={`Move to ${fmtMonth(l.pending_month)} – waiting for approval`} tone={colors.amber} /> : null}
+                        {see && !done && !t?.claimable_at && !t?.ready_at ? <Button small variant="secondary" title="Trigger" onPress={() => setTrigger(l)} /> : null}
+                        {see && !done && !t?.ready_at && !openCert && t?.claimable_at ? <Button small title="Submit certificate" onPress={() => submitCert(l)} /> : null}
+                        {see && openCert ? <Button small title="Client approved" onPress={() => decideCert(openCert, true)} /> : null}
+                        {see && openCert ? <Button small variant="secondary" title="Returned" onPress={() => decideCert(openCert, false)} /> : null}
+                        {(see || me.role === 'sm_projects') && !done && r && ['amber', 'red'].includes(r.status) ? <Button small variant="secondary" title="+ Action" onPress={() => addAction(l)} /> : null}
+                        {acts2.filter((x) => x.status === 'open' && (see || me.role === 'sm_projects' || x.owner_id === me.id)).map((x) => (
+                          <Button key={x.id} small variant="ghost" title="Close action" onPress={() => closeAction(x)} />
+                        ))}
                         {see && !done && !t?.ready_at ? <Button small variant="secondary" title="Check" onPress={() => check(l)} /> : null}
                       </Row>
                     }
@@ -310,8 +383,9 @@ export function BillingTab({ p, onChange }: { p: ExecProject; onChange: () => vo
             <Empty title="No invoice lines" hint="The sales person enters the invoicing plan on the secured project (Finance)" />
           )}
           <Muted>
-            Trigger met → Operations, SM Projects and the sales person are told “Ready to invoice”. If the programme forecast passes the invoice month, a later month is
-            proposed to SM Projects. In the last week of each month, check next month’s lines.
+            Each invoice: the work trigger must be met 10 working days before the end of its month (amber within 15 working days, red when it will miss). Then the SEE
+            submits the payment certificate to the client and records the approval → Operations raises the invoice → the sales person is told. Red lines need a recovery
+            action; a later month is asked with “Check” (another quarter or year: SM Projects, then DGM / GM).
           </Muted>
         </Section>
       ) : null}

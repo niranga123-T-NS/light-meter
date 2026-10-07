@@ -56,6 +56,7 @@ export function Gantt({
   onResize,
   onLink,
   onDepPress,
+  billing,
 }: {
   wbs: Wbs[];
   acts: Activity[];
@@ -77,12 +78,14 @@ export function Gantt({
   onLink?: (pred: Activity, succ: Activity) => void;
   /** Tap a link arrow (e.g. to remove it) */
   onDepPress?: (d: Dep) => void;
+  /** Invoice deadlines on their trigger activities (₹ flag coloured by status) – SEE, SM Projects, GM only */
+  billing?: { activityId: string; deadline: string; status: string; label: string }[];
 }) {
   const wide = useWide();
   const [drag, setDrag] = useState<Drag | null>(null);
   const rows = programmeRows(wbs, acts);
   const px = scale === 'day' ? 22 : scale === 'week' ? 7 : 2.4;
-  const dates = acts.flatMap((a) => [a.es, a.ef, a.bl_start, a.bl_finish]).filter(Boolean) as string[];
+  const dates = [...acts.flatMap((a) => [a.es, a.ef, a.bl_start, a.bl_finish]), ...(billing ?? []).map((b) => b.deadline)].filter(Boolean) as string[];
   if (!dates.length) return null;
   const first = Math.min(...dates.map(toDay), toDay(today)) - 3;
   const last = Math.max(...dates.map(toDay), contractEnd ? toDay(contractEnd) : 0, toDay(today)) + 10;
@@ -189,6 +192,23 @@ export function Gantt({
         <SvgText fontFamily={FONT} x={x1 + w + 4} y={y + 17} fontSize={10} fill={colors.text}>
           {[Number(a.pct) ? `${Math.round(Number(a.pct))}%` : '', fv && fv > 0 ? `+${fv} d` : ''].filter(Boolean).join('  ')}
         </SvgText>
+      </G>
+    );
+  });
+
+  // Invoice deadlines: the trigger activity must finish by the flag
+  const billTone: Record<string, string> = { green: colors.green, amber: colors.amber, red: colors.red };
+  const flags = (billing ?? []).map((b, k) => {
+    const i = rowOf.get(b.activityId);
+    if (i == null) return null;
+    const y = HEAD + i * ROW;
+    const fx = x(b.deadline) + px;
+    const c = billTone[b.status] ?? colors.muted;
+    return (
+      <G key={`bill${k}`}>
+        <Line x1={fx} y1={y + 3} x2={fx} y2={y + ROW - 3} stroke={c} strokeWidth={2} />
+        <Path d={`M${fx} ${y + 3} l12 4 l-12 4 z`} fill={c} />
+        <SvgText fontFamily={FONT} x={fx + 3} y={y + 25} fontSize={9} fontWeight="700" fill={c}>{b.label}</SvgText>
       </G>
     );
   });
@@ -348,6 +368,7 @@ export function Gantt({
           {rows.map((r, i) => (r.kind === 'wbs' ? <Rect key={`bg${i}`} x={0} y={HEAD + i * ROW} width={width} height={ROW} fill={colors.soft} opacity={0.7} /> : null))}
           {arrows}
           {bars}
+          {flags}
           {contractEnd ? <Line x1={x(contractEnd) + px} x2={x(contractEnd) + px} y1={HEAD - 10} y2={height} stroke={colors.ink} strokeDasharray="4 3" strokeWidth={1} /> : null}
           <Line x1={x(today)} x2={x(today)} y1={HEAD - 10} y2={height} stroke={colors.brand} strokeWidth={1.5} />
           <SvgText fontFamily={FONT} x={x(today) + 3} y={HEAD - 14} fontSize={9} fill={colors.brand}>today</SvgText>
@@ -360,4 +381,4 @@ export function Gantt({
   );
 }
 
-export const ganttLegend = 'Red = critical path · blue = has float (grey tail) · green = finished · thin grey bar = approved baseline · ◆ milestone · red line = today · dashed = contract finish';
+export const ganttLegend = 'Red = critical path · blue = has float (grey tail) · green = finished · thin grey bar = approved baseline · ◆ milestone · red line = today · dashed = contract finish · flag = invoice deadline (green on track, amber at risk, red will miss)';

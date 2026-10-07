@@ -3,7 +3,7 @@ import { Text, View } from 'react-native';
 import { Attachments } from '@/components/Attachments';
 import { Button, Card, colors, KeyValue, Muted, Notice, Row, Section } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { areaLabel, EXEC_AREAS, EXEC_STAGES, type ExecProject } from '@/lib/execution';
+import { areaLabel, CHECKPOINTS, EXEC_AREAS, EXEC_STAGES, type ExecProject } from '@/lib/execution';
 import { fmtDate, fmtMoney } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { supabase } from '@/lib/supabase';
@@ -53,8 +53,8 @@ export function OverviewTab({ p, onTab }: { p: ExecProject; onTab: (t: string) =
                     : 'Complete the programme and submit it to SM Projects',
               { title: me.role === 'sm_projects' && st.programme?.status === 'submitted' ? 'Approve programme' : 'Open programme', onPress: () => onTab('programme') },
             )}
-            {step(st.gatePending, st.gatePending ? `Gate ${p.stage} waiting for SM Projects` : `Request gate ${p.stage} to move to stage ${Math.min(6, p.stage + 1)}`, {
-              title: me.role === 'sm_projects' && st.gatePending ? 'Decide the gate' : 'Open stage gate',
+            {step(st.gatePending, st.gatePending ? `${CHECKPOINTS[p.stage - 1]} waiting for SM Projects` : `Request “${CHECKPOINTS[p.stage - 1]}” – SM Projects approves`, {
+              title: me.role === 'sm_projects' && st.gatePending ? 'Decide' : 'Open checkpoint',
               onPress: () => onTab('handover'),
             })}
           </Card>
@@ -78,10 +78,11 @@ export function OverviewTab({ p, onTab }: { p: ExecProject; onTab: (t: string) =
               >
                 <Text style={{ fontSize: 11, color: colors.muted }}>{`Stage ${i + 1}`}</Text>
                 <Text style={{ fontWeight: i + 1 === p.stage ? '700' : '500', color: colors.ink }}>{s}</Text>
+                <Text style={{ fontSize: 11, color: colors.muted }}>{`ends with “${CHECKPOINTS[i]}”`}</Text>
               </View>
             ))}
           </Row>
-          <Muted>Stage gates are requested by the SEE and approved by SM Projects in the Handover tab.</Muted>
+          <Muted>Progress between the checkpoints comes from the programme. The SEE requests each checkpoint and SM Projects approves it in the Handover tab; “Close-out” closes the project.</Muted>
         </Card>
       </Section>
       <Section title="Project">
