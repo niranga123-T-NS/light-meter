@@ -4314,5 +4314,30 @@ do $$ begin
 end $$;
 reset role;
 
+-- Baseline follows the dates while the programme is a draft, fixed once submitted -------------
+do $$ declare e uuid := current_setting('test.exlegacy')::uuid;
+begin
+  if (select status from public.exec_programmes where exec_project_id = e) <> 'draft' then
+    update public.exec_programmes set status = 'draft' where exec_project_id = e;
+  end if;
+end $$;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare e uuid := current_setting('test.exlegacy')::uuid; c uuid := current_setting('test.act_c')::uuid; st date; r jsonb;
+begin
+  st := current_date + 21 + ((8 - extract(isodow from current_date + 21)::int) % 7);
+  r := public.set_activity_dates(c, st, st + 4);
+  assert (select bl_start = st and bl_finish = st + 4 from public.exec_activities where id = c), 'baseline follows the draft ' || r::text;
+  perform public.submit_programme(e, 'New site access dates');
+end $$;
+reset role;
+do $$ declare c uuid := current_setting('test.act_c')::uuid;
+begin
+  -- after submission the plan can move (progress) but the baseline stays
+  update public.exec_programmes set status = 'approved' where exec_project_id = current_setting('test.exlegacy')::uuid;
+  update public.exec_activities set not_before = current_date + 60 where id = c;
+  perform app.schedule(current_setting('test.exlegacy')::uuid);
+  assert (select bl_start < es from public.exec_activities where id = c), 'baseline fixed after submission';
+end $$;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
