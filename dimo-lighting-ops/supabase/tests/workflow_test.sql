@@ -4298,5 +4298,21 @@ begin
 end $$;
 reset role;
 
+-- Mark secured with the WBS of an unlinked secured project → linked, not duplicated -----------
+do $$ declare y int := app.fy_of(current_date); b uuid; sid uuid;
+begin
+  insert into public.secured_projects (project_name, sales_person_id, order_value, won_on, source, schedule_status, wbs)
+  values ('Stadium IPC 01', (select id from u where role = 'asm_infra'), 345000000, current_date - 30, 'won', 'approved', 'LS-000999') returning id into sid;
+  insert into public.budget_projects (fy, business_line, project_name, sales_person_id, budget_value) values (y, 'infrastructure', 'Stadium (merged)', (select id from u where role = 'asm_infra'), 1500000000) returning id into b;
+  perform set_config('test.wb', b::text, false); perform set_config('test.ws', sid::text, false);
+end $$;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ begin
+  assert public.secure_budget_project(current_setting('test.wb')::uuid, jsonb_build_object('won_on', current_date::text, 'wbs', 'LS-000999')) = current_setting('test.ws')::uuid, 'linked to the existing project';
+  assert (select budget_id from public.secured_projects where id = current_setting('test.ws')::uuid) = current_setting('test.wb')::uuid, 'budget line set';
+  assert (select count(*) from public.secured_projects where wbs = 'LS-000999') = 1, 'no duplicate';
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
