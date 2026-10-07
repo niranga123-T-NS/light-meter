@@ -110,8 +110,9 @@ export function MgmtReportView({ r }: { r: MgmtReport }) {
 
       <Section title="Sales (LKR Mn)">
         <Grid min={170}>
-          <Stat label={`Secured ${fmtMonth(r.month)}`} value={mn(r.sales.secured.month)} />
-          <Stat label={`Secured YTD (${r.sales.secured.count})`} value={mn(r.sales.secured.ytd)} />
+          <Stat label={`Secured ${fmtMonth(r.month)} (this FY's part)`} value={mn(r.sales.secured.month)} />
+          <Stat label="Secured YTD (this FY's part)" value={mn(r.sales.secured.ytd)} />
+          <Stat label={`Orders won YTD (${r.sales.secured.count}) – order value`} value={mn(r.sales.secured.orderValueYtd)} />
           <Stat label="Order book to invoice" value={mn(r.sales.orderBook)} />
           <Stat label="Win rate YTD" value={r.sales.quotes.winRate == null ? '—' : `${Math.round(r.sales.quotes.winRate)}%`} />
           <Stat label={`Open quotations (${r.sales.quotes.open})`} value={mn(r.sales.quotes.openValue)} />
