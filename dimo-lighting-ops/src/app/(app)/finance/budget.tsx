@@ -149,7 +149,7 @@ export default function BudgetScreen() {
             />
           </Section>
 
-          <Section title="Projects">
+          <Section title="Projects" right={desk ? <Button small title="+ Project" onPress={() => router.push(`/finance/budget-item/new?fy=${fy}`)} /> : undefined}>
             <Segmented
               value={line}
               onChange={setLine}
@@ -166,6 +166,7 @@ export default function BudgetScreen() {
               }}
               emptyTitle={seesFinance(me.role) ? 'No budget list for this year yet' : 'No budgeted projects for you this year'}
               columns={[
+                ...(desk ? [{ h: '', w: 70, v: (r: (typeof rows)[number]) => <Button small variant="secondary" title="Edit" onPress={() => router.push(`/finance/budget-item/${r.id}`)} /> }] : []),
                 { h: 'Line', w: 70, v: (r) => lineShort(r.business_line) },
                 { h: 'Project', w: 240, v: (r) => r.project_name, bold: true },
                 {

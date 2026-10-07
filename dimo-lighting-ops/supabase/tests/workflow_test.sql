@@ -4177,5 +4177,34 @@ end $$;
 reset role;
 do $$ begin assert (select usd_to_lkr from public.exchange_rates where month = '2031-01-01') = 301.25, 'GM rate saved'; end $$;
 
+-- Budget list: edit one project with its invoice months ------------------------------
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare y int := app.fy_of(current_date); b uuid;
+begin
+  begin perform public.save_budget_project(y, null, '{"business_line":"Street","project_name":"X","sales_person":"Asm Infra","budget_value":"1"}'); assert false, 'line checked';
+  exception when others then assert sqlerrm like 'Business line%', sqlerrm; end;
+  b := public.save_budget_project(y, null, jsonb_build_object('business_line', 'Infrastructure', 'project_name', 'Harbour approach lighting', 'sales_person', 'Asm Infra',
+    'budget_value', '20000000', 'budget_gp_pct', '18'));
+  assert (select budget_gp_value from public.budget_projects where id = b) = 3600000, 'added';
+  perform public.save_budget_project(y, b, jsonb_build_object('business_line', 'Infrastructure', 'project_name', 'Harbour approach lighting', 'sales_person', 'Asm Infra',
+    'budget_value', '20000000', 'budget_gp_pct', '18', 'invoices', jsonb_build_array(jsonb_build_object('month', current_date::text, 'amount', '8000000'),
+      jsonb_build_object('month', (current_date + 31)::text, 'amount', '12000000'))));
+  assert (select sum(amount) from public.budget_invoices where budget_id = b) = 20000000, 'invoice months saved';
+  begin perform public.save_budget_project(y, b, jsonb_build_object('business_line', 'Infrastructure', 'project_name', 'Harbour approach lighting', 'sales_person', 'Asm Infra',
+      'budget_value', '1000', 'invoices', jsonb_build_array(jsonb_build_object('month', current_date::text, 'amount', '8000000')))); assert false, 'more than value';
+  exception when others then assert sqlerrm like 'Invoice amounts add up to more%', sqlerrm; end;
+  perform set_config('test.bud1', b::text, false);
+end $$;
+reset role;
+select pg_temp.act_as('asm_infra'); set role authenticated;
+do $$ begin
+  begin perform public.delete_budget_project(current_setting('test.bud1')::uuid); assert false, 'sales cannot';
+  exception when others then assert sqlerrm like 'Only Operations%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+select public.delete_budget_project(current_setting('test.bud1')::uuid);
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
