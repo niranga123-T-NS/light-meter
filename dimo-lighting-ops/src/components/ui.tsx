@@ -103,9 +103,9 @@ export function Row({ children, gap = 8, wrap, style }: { children: ReactNode; g
 }
 
 /** Two-column grid on wide screens, single column on phones. */
-export function Grid({ children, min = 280 }: { children: ReactNode; min?: number }) {
+export function Grid({ children, min = 280, max = 4 }: { children: ReactNode; min?: number; max?: number }) {
   const { width } = useWindowDimensions();
-  const cols = Math.max(1, Math.min(4, Math.floor(Math.min(width, 1200) / min)));
+  const cols = Math.max(1, Math.min(max, Math.floor(Math.min(width, 1200) / min)));
   return <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -6 }}>{wrapCols(children, cols)}</View>;
 }
 
@@ -150,11 +150,12 @@ export function KeyValue({ label, value, wide }: { label: string; value: ReactNo
   );
 }
 
-export function Stat({ label, value, tone, onPress }: { label: string; value: ReactNode; tone?: 'red' | 'amber' | 'green'; onPress?: () => void }) {
+export function Stat({ label, value, tone, onPress, sub }: { label: string; value: ReactNode; tone?: 'red' | 'amber' | 'green'; onPress?: () => void; sub?: string }) {
   return (
-    <Card onPress={onPress} style={{ minHeight: 84 }}>
+    <Card onPress={onPress} style={{ minHeight: 84, flexGrow: 1 }}>
       <Text style={[styles.statValue, tone && { color: colors[tone] }]}>{value}</Text>
       <Text style={styles.muted}>{label}</Text>
+      {sub ? <Text style={[styles.muted, { fontSize: 12, marginTop: 2 }]}>{sub}</Text> : null}
     </Card>
   );
 }

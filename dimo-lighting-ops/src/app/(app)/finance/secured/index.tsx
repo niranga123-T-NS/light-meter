@@ -123,14 +123,16 @@ export default function SecuredList() {
   return (
     <Screen maxWidth={1250}>
       <Stack.Screen options={{ title: 'Secured projects' }} />
-      <Grid min={210}>
-        <Stat label={`Opening order book – due ${fyLabel(fy)}`} value={`${mn(opening)} Mn`} />
+      <Grid min={200} max={5}>
+        <Stat label="Opening order book" sub={`Due ${fyLabel(fy)}`} value={`${mn(opening)} Mn`} />
         <Stat
-          label={`Secured this year – ${wonFy.length} win${wonFy.length === 1 ? '' : 's'}, order value ${mn(wonFy.reduce((a, s) => a + Number(s.order_value), 0))} Mn (to invoice this year shown)`}
+          label="Secured this year (this FY)"
+          sub={`${wonFy.length} win${wonFy.length === 1 ? '' : 's'} · order ${mn(wonFy.reduce((a, s) => a + Number(s.order_value), 0))} Mn`}
           value={`${mn(securedFy)} Mn`}
         />
         <Stat
-          label={`Budgeted projects secured – ${budgetedRows.length} of ${budgetScoped.length} on the ${fyLabel(fy)} budget list · budget value ${mn(budgetedBudget)} Mn of ${mn(budgetScoped.reduce((a, b) => a + Number(b.budget_value), 0))} Mn (order value shown)`}
+          label="Budgeted projects secured"
+          sub={`${budgetedRows.length} of ${budgetScoped.length} lines · budget ${mn(budgetedBudget)} / ${mn(budgetScoped.reduce((a, b) => a + Number(b.budget_value), 0))} Mn`}
           value={`${mn(budgetedOrder)} Mn`}
           onPress={() => setTab('budgeted')}
         />
