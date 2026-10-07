@@ -64,15 +64,15 @@ ${table(
 )}
 ${h2('Sales (LKR Mn)')}
 ${kv([
-  [`Secured ${fmtMonth(r.month)}`, mn(r.sales.secured.month)],
-  [`Secured YTD (${r.sales.secured.count})`, mn(r.sales.secured.ytd)],
+  [`Secured ${fmtMonth(r.month)} (this FY's part)`, mn(r.sales.secured.month)],
+  ["Secured YTD (this FY's part)", mn(r.sales.secured.ytd)],
+  [`Orders won YTD (${r.sales.secured.count}) – order value`, mn(r.sales.secured.orderValueYtd ?? r.sales.secured.ytd)],
   ['Order book to invoice', mn(r.sales.orderBook)],
   ['Win rate YTD', r.sales.quotes.winRate == null ? '—' : `${Math.round(r.sales.quotes.winRate)}% (${r.sales.quotes.won} won / ${r.sales.quotes.lost} lost)`],
   [`Open quotations (${r.sales.quotes.open})`, mn(r.sales.quotes.openValue)],
-  [`Quotations released YTD (${r.sales.quotes.releasedYtd})`, mn(r.sales.quotes.releasedValue)],
 ])}
 ${table(
-  ['Business line', `Secured ${fmtMonth(r.month)}`, 'Secured YTD'],
+  ['Business line – orders won (order value)', fmtMonth(r.month), 'YTD'],
   r.sales.byLine.map((x) => [x.line, mn(x.month), mn(x.ytd)]),
   right(1, 2),
 )}

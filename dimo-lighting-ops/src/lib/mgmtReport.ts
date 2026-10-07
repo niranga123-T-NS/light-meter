@@ -16,10 +16,11 @@ import {
   type InvoiceLine,
   type OrUpload,
   type PnlLine,
+  type Performance,
   type SecuredProject,
 } from './finance';
 import { todayISO } from './format';
-import { supabase } from './supabase';
+import { rpc, supabase } from './supabase';
 
 // Management report (GM / DGM): the whole business for a month and the year to date, built from the data in the app.
 // Figures only – the highlights and exceptions come from fixed rules (THRESHOLDS), not from AI.
@@ -65,11 +66,11 @@ export type MgmtReport = {
     noBudget: boolean;
   };
   sales: {
-    secured: { month: Money; ytd: Money; count: number };
-    byLine: { line: string; month: Money; ytd: Money }[];
+    secured: { month: Money; ytd: Money; count: number; orderValueYtd: Money }; // secured as on Targets: this year's part of each win
+    byLine: { line: string; month: Money; ytd: Money }[]; // orders won (full order value)
     people: { name: string; securedYtd: Money; securedTarget: Money; invoicedYtd: Money; invoiceTarget: Money }[];
     orderBook: Money; // still to invoice on open secured projects
-    quotes: { releasedYtd: number; releasedValue: Money; won: number; lost: number; winRate: number | null; openValue: Money; open: number };
+    quotes: { won: number; lost: number; winRate: number | null; openValue: Money; open: number };
   };
   cash: {
     debtors: Money;
@@ -97,6 +98,19 @@ const mn = (v: number) => `${(v / 1e6).toFixed(2)} Mn`;
 const pctTxt = (a: number, b: number) => (b ? `${Math.round((a / b) * 100)}%` : '—');
 const days = (a: string, b: string) => Math.round((Date.parse(b) - Date.parse(a)) / 86400000);
 
+/** Every row of a query – the server returns at most 1,000 rows per request, so read page by page. */
+async function all(table: string, select: string, order: string, filter?: (q: any) => any): Promise<{ data: unknown[]; error: { message: string } | null }> {
+  const out: unknown[] = [];
+  for (let from = 0; ; from += 1000) {
+    let q = supabase.from(table).select(select);
+    if (filter) q = filter(q);
+    const { data, error } = await q.order(order).range(from, from + 999);
+    if (error) return { data: [], error };
+    out.push(...(data ?? []));
+    if (!data || data.length < 1000) return { data: out, error: null };
+  }
+}
+
 export async function buildManagementReport(month: string): Promise<MgmtReport> {
   const fy = fyOf(month);
   const ym = fyMonths(fy);
@@ -106,32 +120,39 @@ export async function buildManagementReport(month: string): Promise<MgmtReport> 
 
   const q = await Promise.all([
     supabase.from('or_uploads').select('*').lte('month', month).order('month', { ascending: false }).limit(1),
-    supabase.from('invoice_line_status').select('*'),
-    supabase.from('invoice_allocations').select('*'),
-    supabase.from('budget_projects').select('*, budget_invoices(*)').eq('fy', fy),
-    supabase.from('secured_projects').select('*'),
-    supabase.from('sales_targets').select('*').eq('fy', fy),
-    supabase.from('quotations').select('id, quoted_value, currency, released_at, result, validity_date, revision, quotation_no'),
-    supabase.from('debts').select('*').neq('status', 'collected'),
-    supabase.from('retentions').select('*').in('status', ['held', 'claimed']),
-    supabase.from('bonds').select('*').eq('status', 'active'),
-    supabase.from('exec_projects').select('*').eq('status', 'active'),
-    supabase.from('exec_programmes').select('*'),
-    supabase.from('exec_activities').select('exec_project_id, duration, pct, bl_start, bl_finish'),
-    supabase.from('exec_cost_lines').select('exec_project_id, budget, committed, actual'),
-    supabase.from('hse_reports').select('exec_project_id, kind, status, lost_time, occurred_at'),
-    supabase.from('variations').select('status, value_lkr, smp_at, gm_at, raised_at'),
-    supabase.from('exec_invoice_triggers').select('line_id, ready_at').not('ready_at', 'is', null),
-    supabase.from('warranty_claims').select('status, logged_at, cost_amount, recovered_amount'),
+    all('invoice_line_status', '*', 'id'),
+    all('invoice_allocations', '*', 'id'),
+    all('budget_projects', '*, budget_invoices(*)', 'id', (x) => x.eq('fy', fy)),
+    all('secured_projects', '*', 'id'),
+    // won / lost and open quotations follow the inquiries (as on the dashboards); a tender group counts once
+    all('inquiries', 'id, status, order_value, currency, order_date, updated_at, tender_group_id, variation_id, quotations(quoted_value, currency, revision)', 'id', (x) =>
+      x.in('status', ['won', 'lost', 'quotation_released', 'returned_to_sales', 'submitted_to_client', 'awaiting_client_approval', 'client_approved']).is('variation_id', null),
+    ),
+    // open debtors – as on the Debtors screen (amount = outstanding as per the latest upload)
+    all('debts', '*', 'id', (x) => x.not('status', 'in', '(collected_confirmed,cleared)')),
+    all('retentions', '*', 'id', (x) => x.in('status', ['held', 'claimed'])),
+    all('bonds', '*', 'id', (x) => x.eq('status', 'active')),
+    all('exec_projects', '*', 'id', (x) => x.eq('status', 'active')),
+    all('exec_programmes', '*', 'exec_project_id'),
+    all('exec_activities', 'id, exec_project_id, duration, pct, bl_start, bl_finish', 'id'),
+    all('exec_cost_lines', 'exec_project_id, budget, committed, actual', 'id'),
+    all('hse_reports', 'exec_project_id, kind, status, lost_time, occurred_at', 'id'),
+    all('variations', 'status, value_lkr, smp_at, gm_at, raised_at', 'id'),
+    all('exec_invoice_triggers', 'line_id, ready_at', 'line_id', (x) => x.not('ready_at', 'is', null)),
+    all('warranty_claims', 'status, logged_at, cost_amount, recovered_amount', 'id'),
     supabase.from('exchange_rates').select('usd_to_lkr, month').order('month', { ascending: false }).limit(1),
-    supabase.from('profiles').select('id, full_name'),
   ]);
+  // Sales people: the same figures as Finance → Targets (secured = this year's part of each win, invoiced = recorded invoices)
+  const perf = await rpc<Performance>('finance_performance', { p_fy: fy });
   const err = q.find((r) => r.error);
   if (err?.error) throw new Error(err.error.message);
-  const [upR, linesR, allocR, budR, secR, tgtR, quoR, debtR, retR, bondR, exR, pgR, actR, costR, hseR, varR, trigR, wcR, rateR, peopleR] = q.map((r) => (r.data ?? []) as unknown[]);
+  const [upR, linesR, allocR, budR, secR, quoR, debtR, retR, bondR, exR, pgR, actR, costR, hseR, varR, trigR, wcR, rateR] = q.map((r) => (r.data ?? []) as unknown[]);
   const usdRate = n((rateR[0] as { usd_to_lkr?: number } | undefined)?.usd_to_lkr);
-  const lkr = (v: unknown, cur: unknown) => n(v) * (cur === 'USD' ? usdRate || 0 : 1);
-  const name = Object.fromEntries((peopleR as { id: string; full_name: string }[]).map((p) => [p.id, p.full_name]));
+  let usdMissing = false;
+  const lkr = (v: unknown, cur: unknown) => {
+    if (cur === 'USD' && !usdRate && n(v)) usdMissing = true;
+    return n(v) * (cur === 'USD' ? usdRate || 0 : 1);
+  };
 
   // ---- P&L (OR file of the month, or the latest before it)
   const up = upR[0] as OrUpload | undefined;
@@ -199,37 +220,44 @@ export async function buildManagementReport(month: string): Promise<MgmtReport> 
   // ---- Sales
   const secured = (secR as SecuredProject[]).filter((s) => s.source === 'won' && s.status !== 'cancelled');
   const wonIn = (ms: string[], bl?: string) => secured.filter((s) => ms.includes(s.won_on.slice(0, 7) + '-01') && (!bl || s.business_line === bl));
-  const tgts = tgtR as { sales_person_id: string; month: string; secured_target: number; invoice_target: number }[];
-  const peopleIds = [...new Set([...tgts.map((t) => t.sales_person_id), ...wonIn(ytdMonths).map((s) => s.sales_person_id).filter(Boolean)])] as string[];
-  const invBy = (pid: string) => sum(allocs.filter((a) => ytdMonths.includes(a.month) && (secR as SecuredProject[]).find((s) => s.id === a.secured_id)?.sales_person_id === pid), (a) => n(a.amount));
-  const quotes = (quoR as { quoted_value: number; currency: string; released_at: string; result: string | null; validity_date: string; quotation_no: string; revision: number }[]).filter(
-    // latest revision of each quotation
-    (x, _, all) => !all.some((y) => y.quotation_no === x.quotation_no && y.revision > x.revision),
-  );
-  const qYtd = quotes.filter((x) => ytdMonths.includes(x.released_at.slice(0, 7) + '-01'));
-  const won = qYtd.filter((x) => x.result === 'won').length;
-  const lost = qYtd.filter((x) => x.result === 'lost').length;
-  const openQ = quotes.filter((x) => !x.result && x.validity_date >= today);
+  const ytdOf = (p: Performance['people'][number], k: 'secured' | 'secured_target' | 'invoiced' | 'invoice_target', ms = ytdMonths) =>
+    sum(p.months.filter((m) => ms.includes(m.month)), (m) => n(m[k]));
+  type Inq = { id: string; status: string; order_value: number | null; currency: string; order_date: string | null; updated_at: string; tender_group_id: string | null;
+    quotations: { quoted_value: number; currency: string; revision: number }[] };
+  // a tender group (one tender sent to several contractors) counts once
+  const inqs = [...new Map((quoR as Inq[]).map((x) => [x.tender_group_id ?? x.id, x])).values()];
+  const inYtd = (d: string | null) => !!d && ytdMonths.includes(d.slice(0, 7) + '-01');
+  const won = inqs.filter((x) => x.status === 'won' && inYtd(x.order_date ?? x.updated_at)).length;
+  const lost = inqs.filter((x) => x.status === 'lost' && inYtd(x.updated_at)).length;
+  const quoted = (x: Inq) => {
+    const q = [...(x.quotations ?? [])].sort((a, b) => b.revision - a.revision)[0];
+    return q ? lkr(q.quoted_value, q.currency) : 0;
+  };
+  const openQ = inqs.filter((x) => !['won', 'lost'].includes(x.status));
   const sales: MgmtReport['sales'] = {
-    secured: { month: sum(wonIn([month]), (s) => n(s.order_value)), ytd: sum(wonIn(ytdMonths), (s) => n(s.order_value)), count: wonIn(ytdMonths).length },
+    secured: {
+      month: sum(perf.people, (p) => ytdOf(p, 'secured', [month])),
+      ytd: sum(perf.people, (p) => ytdOf(p, 'secured')),
+      count: wonIn(ytdMonths).length,
+      orderValueYtd: sum(wonIn(ytdMonths), (s) => n(s.order_value)),
+    },
     byLine: LINES.map((x) => ({ line: x.label, month: sum(wonIn([month], x.value), (s) => n(s.order_value)), ytd: sum(wonIn(ytdMonths, x.value), (s) => n(s.order_value)) })),
-    people: peopleIds
-      .map((pid) => ({
-        name: name[pid] ?? '—',
-        securedYtd: sum(wonIn(ytdMonths).filter((s) => s.sales_person_id === pid), (s) => n(s.order_value)),
-        securedTarget: sum(tgts.filter((t) => t.sales_person_id === pid && ytdMonths.includes(t.month)), (t) => n(t.secured_target)),
-        invoicedYtd: invBy(pid),
-        invoiceTarget: sum(tgts.filter((t) => t.sales_person_id === pid && ytdMonths.includes(t.month)), (t) => n(t.invoice_target)),
+    people: perf.people
+      .map((p) => ({
+        name: p.name,
+        securedYtd: ytdOf(p, 'secured'),
+        securedTarget: ytdOf(p, 'secured_target'),
+        invoicedYtd: ytdOf(p, 'invoiced'),
+        invoiceTarget: ytdOf(p, 'invoice_target'),
       }))
+      .filter((p) => p.securedYtd || p.securedTarget || p.invoicedYtd || p.invoiceTarget)
       .sort((a, b) => b.securedYtd - a.securedYtd),
     orderBook: sum(allLines.filter((l) => l.project_status === 'open'), (l) => Math.max(0, n(l.remaining))),
     quotes: {
-      releasedYtd: qYtd.length,
-      releasedValue: sum(qYtd, (x) => lkr(x.quoted_value, x.currency)),
       won,
       lost,
       winRate: won + lost ? (won / (won + lost)) * 100 : null,
-      openValue: sum(openQ, (x) => lkr(x.quoted_value, x.currency)),
+      openValue: sum(openQ, quoted),
       open: openQ.length,
     },
   };
@@ -237,7 +265,7 @@ export async function buildManagementReport(month: string): Promise<MgmtReport> 
   // ---- Cash
   const debts = (debtR as { client_name: string | null; project_name: string | null; amount: number; collected_amount: number | null; currency: string; outstanding_days: number; ageing_bucket: string; is_legal: boolean }[]).map((d) => ({
     ...d,
-    due: lkr(n(d.amount) - n(d.collected_amount), d.currency),
+    due: lkr(d.amount, d.currency),
   }));
   const BUCKETS = ['1-30', '31-60', '61-90', '91-120', '121-150', '151-180', 'over-180', 'over-365'];
   const byClient = new Map<string, { value: number; days: number }>();
@@ -340,7 +368,7 @@ export async function buildManagementReport(month: string): Promise<MgmtReport> 
   if (invoicing.slipped.count) flags.push({ area: 'Invoicing', level: 'red', text: `${invoicing.slipped.count} invoice(s) slipped – ${mn(invoicing.slipped.value)} not invoiced in the planned month.` });
   if (invoicing.ready > 0) flags.push({ area: 'Invoicing', level: 'amber', text: `${mn(invoicing.ready)} is ready to invoice from execution but not invoiced yet.` });
 
-  headlines.push(`Secured ${mn(sales.secured.month)} in ${fmtMonth(month)} and ${mn(sales.secured.ytd)} YTD (${sales.secured.count} project(s)); order book to invoice ${mn(sales.orderBook)}.`);
+  headlines.push(`Secured ${mn(sales.secured.month)} in ${fmtMonth(month)} and ${mn(sales.secured.ytd)} YTD for this year's invoicing (${sales.secured.count} project(s) won, order value ${mn(sales.secured.orderValueYtd)}); order book to invoice ${mn(sales.orderBook)}.`);
   sales.people
     .filter((p) => p.securedTarget > 0 && p.securedYtd < p.securedTarget * THRESHOLDS.salesBelowTarget)
     .forEach((p) => flags.push({ area: 'Sales', level: 'amber', text: `${p.name}: secured ${mn(p.securedYtd)} YTD – ${pctTxt(p.securedYtd, p.securedTarget)} of target.` }));
@@ -365,6 +393,7 @@ export async function buildManagementReport(month: string): Promise<MgmtReport> 
 
   if (warranty.open) flags.push({ area: 'Warranty', level: warranty.open > 10 ? 'amber' : 'green', text: `${warranty.open} warranty claim(s) open; ${warranty.loggedMonth} logged in ${fmtMonth(month)}.` });
 
+  if (usdMissing) flags.push({ area: 'Cash', level: 'red', text: 'No USD exchange rate is set – USD debtors, retentions, bonds and quotations are left out. Set the rate in Settings.' });
   const lvl = (area: string): Level => (flags.some((f) => f.area === area && f.level === 'red') ? 'red' : flags.some((f) => f.area === area && f.level === 'amber') ? 'amber' : 'green');
   const order = { red: 0, amber: 1, green: 2 };
   return {
