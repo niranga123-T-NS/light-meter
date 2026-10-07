@@ -55,6 +55,9 @@ export type SecuredProject = {
   review_note: string | null;
   status: 'open' | 'closed' | 'cancelled';
   notes: string | null;
+  removal_reason?: string | null;
+  removal_requested_by?: string | null;
+  removal_requested_at?: string | null;
   created_at: string;
   original_value?: number | null;
   final_at?: string | null;

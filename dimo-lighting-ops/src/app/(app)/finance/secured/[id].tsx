@@ -690,6 +690,41 @@ export default function SecuredDetail() {
     }, "Re-assigned");
   };
 
+  // Remove a project entered by mistake: Operations asks, SM Projects approves (SM Projects removes directly)
+  const askRemove = async () => {
+    const r = await dialog.prompt({
+      title: "Remove from the secured list",
+      message:
+        me.role === "sm_projects"
+          ? "The project, its invoicing plan and history are removed from the order book. To stop a real order, close or cancel it instead."
+          : "For a project entered by mistake (duplicate, never won). SM Projects approves; the project and its invoicing plan are then removed. To stop a real order, close or cancel it instead.",
+      fields: [{ key: "n", label: "Reason", type: "multiline", required: true }],
+      confirmLabel: me.role === "sm_projects" ? "Remove" : "Send to SM Projects",
+      danger: true,
+    });
+    if (!r) return;
+    await dialog.run(async () => {
+      const res = await rpc<string>("request_secured_removal", { p_secured: s.id, p_reason: r.n });
+      if (res === "removed") router.replace("/finance/secured");
+      else await reload();
+    }, me.role === "sm_projects" ? "Removed" : "Sent to SM Projects");
+  };
+  const decideRemove = async (ok: boolean) => {
+    const r = await dialog.prompt({
+      title: ok ? "Remove this project?" : "Keep the project",
+      message: ok ? `${s.project_name} and its invoicing plan are removed from the order book.` : undefined,
+      fields: [{ key: "n", label: ok ? "Note" : "Reason", type: "multiline", required: !ok }],
+      confirmLabel: ok ? "Remove" : "Keep",
+      danger: ok,
+    });
+    if (!r) return;
+    await dialog.run(async () => {
+      const res = await rpc<string>("decide_secured_removal", { p_secured: s.id, p_approve: ok, p_note: r.n || null });
+      if (res === "removed") router.replace("/finance/secured");
+      else await reload();
+    }, ok ? "Removed" : "Kept – Operations told");
+  };
+
   const closeProject = async () => {
     const r = await dialog.prompt({
       title: "Close or cancel this secured project",
@@ -918,6 +953,25 @@ export default function SecuredDetail() {
           >{`Returned by SM Projects: ${s.review_note}`}</Notice>
         ) : null}
         {s.notes ? <Muted>{s.notes}</Muted> : null}
+        {s.removal_requested_at ? (
+          <Notice tone={colors.red}>
+            {`Removal from the secured list asked by ${people[s.removal_requested_by ?? ""]?.full_name ?? ""} – ${s.removal_reason ?? ""}. Waiting for SM Projects.`}
+          </Notice>
+        ) : null}
+        {s.removal_requested_at && reviewer ? (
+          <Row gap={8}>
+            <Button small title="Approve removal" onPress={() => decideRemove(true)} />
+            <Button small variant="secondary" title="Keep the project" onPress={() => decideRemove(false)} />
+          </Row>
+        ) : null}
+        {s.removal_requested_at && !reviewer && s.removal_requested_by === me.id ? (
+          <Button
+            small
+            variant="secondary"
+            title="Withdraw the removal"
+            onPress={() => dialog.run(async () => { await rpc("decide_secured_removal", { p_secured: s.id, p_approve: false }); await reload(); }, "Withdrawn")}
+          />
+        ) : null}
         <Row wrap gap={8}>
           {canEdit ? (
             <Button
@@ -934,6 +988,9 @@ export default function SecuredDetail() {
               title="Open project"
               onPress={() => router.push(`/projects/${s.project_id}`)}
             />
+          ) : null}
+          {(me.role === "operations_exec" || me.role === "sm_projects") && !s.removal_requested_at ? (
+            <Button small variant="ghost" title="Remove from list" onPress={askRemove} />
           ) : null}
           {desk ? (
             <Button

@@ -4245,5 +4245,40 @@ begin
 end $$;
 reset role;
 
+-- Secured list: removal by Operations with SM Projects approval ----------------------
+do $$ declare sid uuid;
+begin
+  insert into public.secured_projects (project_name, customer, sales_person_id, order_value, won_on, source, schedule_status)
+  values ('Duplicate entry', 'X', (select id from u where role = 'asm_infra'), 1000000, current_date, 'won', 'missing') returning id into sid;
+  insert into public.invoice_lines (secured_id, seq, kind, amount, original_month, forecast_month) values (sid, 1, 'other', 1000000, app.month_of(current_date), app.month_of(current_date));
+  perform set_config('test.secrm', sid::text, false);
+end $$;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ begin
+  begin perform public.request_secured_removal(current_setting('test.secrm')::uuid, ''); assert false, 'reason';
+  exception when others then assert sqlerrm = 'Give the reason', sqlerrm; end;
+  assert public.request_secured_removal(current_setting('test.secrm')::uuid, 'Entered twice') = 'pending', 'waits for SM Projects';
+  begin perform public.request_secured_removal(current_setting('test.bsec')::uuid, 'x'); perform public.decide_secured_removal(current_setting('test.bsec')::uuid, false); 
+  exception when others then null; end;
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.my_pending_approvals() where source = 'secured_removal' and id = current_setting('test.secrm')::uuid), 'in approvals';
+  assert public.decide_secured_removal(current_setting('test.secrm')::uuid, true) = 'removed', 'removed';
+  assert not exists (select 1 from public.secured_projects where id = current_setting('test.secrm')::uuid), 'gone';
+  assert not exists (select 1 from public.invoice_lines where secured_id = current_setting('test.secrm')::uuid), 'its invoicing plan too';
+end $$;
+reset role;
+do $$ begin assert exists (select 1 from public.audit_log where table_name = 'secured_projects' and record_id = current_setting('test.secrm') and action = 'removed'), 'kept in the audit log'; end $$;
+-- with invoices recorded: close or cancel instead
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare sid uuid := (select secured_id from public.invoice_allocations limit 1);
+begin
+  begin perform public.request_secured_removal(sid, 'mistake'); assert false, 'invoiced';
+  exception when others then assert sqlerrm like 'Invoices are recorded%', sqlerrm; end;
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
