@@ -126,3 +126,7 @@ export function fmtWorkDays(hours: number | null | undefined) {
   const v = d >= 10 ? d.toFixed(0) : d.toFixed(1).replace(/\.0$/, '');
   return `${v} ${v === '1' ? 'day' : 'days'}`;
 }
+
+/** An inquiry's heading: the project name, then the inquiry name when the project has several inquiries. */
+export const inquiryTitle = (i: { project_name?: string | null; inquiry_name?: string | null } | null | undefined) =>
+  [i?.project_name, i?.inquiry_name].filter(Boolean).join(' – ');

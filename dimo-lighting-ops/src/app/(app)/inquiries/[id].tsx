@@ -10,7 +10,7 @@ import { DESIGN_SCOPE, designScopeText, ESTIMATION_BASIS, ESTIMATION_SCOPE, esti
 import { Button, Card, colors, DateField, ErrorBanner, KeyValue, ListRow, Loading, Muted, Notice, Pill, Progress, Row, Screen, Section, Select, SlaDot } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { openAttachment } from '@/lib/files';
-import { daysBetween, endOfWorkDay, fmtDate, fmtDateISO, fmtDateTime, fmtMoney, human, INQUIRY_STATUS_LABEL, todayISO } from '@/lib/format';
+import { daysBetween, endOfWorkDay, fmtDate, fmtDateISO, fmtDateTime, fmtMoney, human, INQUIRY_STATUS_LABEL, todayISO, inquiryTitle } from '@/lib/format';
 import { useLoad, useMasters, usePeople } from '@/lib/hooks';
 import { isDesigner, isEstimator, isSales, projectTypeLabel } from '@/lib/roles';
 import { rpc, supabase } from '@/lib/supabase';
@@ -453,7 +453,7 @@ export default function InquiryDetail() {
       <Card style={{ borderLeftWidth: 5, borderLeftColor: STAGE_COLOUR[colour] }}>
         <Row wrap style={{ justifyContent: 'space-between' }}>
           <View style={{ flex: 1, minWidth: 240 }}>
-            <Text style={{ fontSize: 20, fontWeight: '700' }}>{i.project_name}</Text>
+            <Text style={{ fontSize: 20, fontWeight: '700' }}>{inquiryTitle(i)}</Text>
             <Muted>
               {i.customer_name} · {projectTypeLabel(i.project_type)}
             </Muted>

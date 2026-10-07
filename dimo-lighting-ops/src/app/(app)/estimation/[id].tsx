@@ -9,7 +9,7 @@ import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, DateField, ErrorBanner, Field, KeyValue, ListRow, Loading, Muted, Notice, NumberField, Pill, Row, Screen, Section, Select } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { openAttachment } from '@/lib/files';
-import { endOfWorkDay, fmtDate, fmtDateISO, fmtDateTime, fmtMoney, human } from '@/lib/format';
+import { endOfWorkDay, fmtDate, fmtDateISO, fmtDateTime, fmtMoney, human, inquiryTitle } from '@/lib/format';
 import { useLoad, useMasters, usePeople } from '@/lib/hooks';
 import { projectTypeLabel } from '@/lib/roles';
 import { rpc, supabase } from '@/lib/supabase';
@@ -31,7 +31,7 @@ export default function EstimationJobScreen() {
   const { data, error, reload } = useLoad(async () => {
     const { data: j, error: e } = await supabase
       .from('estimation_jobs')
-      .select('*, inquiries(code, project_name, customer_name, customer_deadline, route, status, duty_status, currency, project_type, solution_level, manufacturing_origin, expectation_notes, scope_description, design_scope, estimation_scope, estimation_basis, quotation_required_by, debtor_flag, revision)')
+      .select('*, inquiries(code, project_name, inquiry_name, customer_name, customer_deadline, route, status, duty_status, currency, project_type, solution_level, manufacturing_origin, expectation_notes, scope_description, design_scope, estimation_scope, estimation_basis, quotation_required_by, debtor_flag, revision)')
       .eq('id', id)
       .single();
     if (e) throw new Error(e.message);
@@ -130,7 +130,7 @@ export default function EstimationJobScreen() {
       <Card>
         <Row wrap style={{ justifyContent: 'space-between' }}>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 18, fontWeight: '700' }}>{inq?.project_name}</Text>
+            <Text style={{ fontSize: 18, fontWeight: '700' }}>{inquiryTitle(inq)}</Text>
             <Muted>
               {inq?.customer_name} · {projectTypeLabel(inq?.project_type)} · source {j.source} · R{j.revision}
             </Muted>

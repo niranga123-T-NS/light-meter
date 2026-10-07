@@ -187,6 +187,7 @@ export type Inquiry = {
   visit_id: string | null;
   sales_person_id: string;
   project_name: string | null;
+  inquiry_name?: string | null;
   customer_name: string | null;
   project_type: ProjectType | null;
   organization_id: string;
@@ -265,7 +266,7 @@ export type DesignJob = {
   submitted_at: string | null;
   approved_at: string | null;
   released_at: string | null;
-  inquiries?: Pick<Inquiry, 'code' | 'project_name' | 'customer_name' | 'customer_deadline' | 'route' | 'status' | 'solution_level' | 'manufacturing_origin' | 'expectation_notes' | 'scope_description' | 'design_scope' | 'estimation_scope' | 'estimation_basis' | 'design_required_by' | 'revision'> & { variation_id?: string | null } | null;
+  inquiries?: Pick<Inquiry, 'code' | 'project_name' | 'inquiry_name' | 'customer_name' | 'customer_deadline' | 'route' | 'status' | 'solution_level' | 'manufacturing_origin' | 'expectation_notes' | 'scope_description' | 'design_scope' | 'estimation_scope' | 'estimation_basis' | 'design_required_by' | 'revision'> & { variation_id?: string | null } | null;
 };
 
 export type BrandLine = { group: string; brand: string; origin?: string };
@@ -298,7 +299,7 @@ export type EstimationJob = {
   sm_projects_revisions?: number;
   submitted_at: string | null;
   released_at: string | null;
-  inquiries?: Pick<Inquiry, 'code' | 'project_name' | 'customer_name' | 'customer_deadline' | 'route' | 'status' | 'duty_status' | 'currency' | 'project_type' | 'solution_level' | 'manufacturing_origin' | 'expectation_notes' | 'scope_description' | 'design_scope' | 'estimation_scope' | 'estimation_basis' | 'quotation_required_by' | 'debtor_flag' | 'revision'> & { variation_id?: string | null } | null;
+  inquiries?: Pick<Inquiry, 'code' | 'project_name' | 'inquiry_name' | 'customer_name' | 'customer_deadline' | 'route' | 'status' | 'duty_status' | 'currency' | 'project_type' | 'solution_level' | 'manufacturing_origin' | 'expectation_notes' | 'scope_description' | 'design_scope' | 'estimation_scope' | 'estimation_basis' | 'quotation_required_by' | 'debtor_flag' | 'revision'> & { variation_id?: string | null } | null;
 };
 
 export type Quotation = {

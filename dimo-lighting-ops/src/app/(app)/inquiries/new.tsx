@@ -23,6 +23,7 @@ export default function NewInquiry() {
   const blank = () => ({
     project_id: (params.project ?? null) as string | null,
     visit_id: (params.visit ?? null) as string | null,
+    inquiry_name: '',
     organization_id: null as string | null,
     unit_id: null as string | null,
     contact_id: null as string | null,
@@ -81,6 +82,7 @@ export default function NewInquiry() {
   const save = async (addAnother = false) => {
     setError(null);
     if (!f.project_id || !f.organization_id) return setError('Select the project and customer');
+    if (!f.inquiry_name?.trim()) return setError('Enter the inquiry name – what this inquiry is for (e.g. Street lighting – Package 2)');
     if (hasUnits && !f.unit_id) return setError('Select the unit / department – this customer has units defined');
     if (!f.customer_deadline) return setError('Customer deadline is mandatory');
     if (needsDuty && !f.duty_status) return setError('Duty status is mandatory when estimation is in scope');
@@ -88,6 +90,7 @@ export default function NewInquiry() {
     if (needsDuty && !f.estimation_basis) return setError('Select the estimation basis – supply only, supply & install, or supply, install & commission');
     const row = {
       ...f,
+      inquiry_name: f.inquiry_name.trim(),
       design_scope: f.route === 'B' ? null : f.design_scope,
       estimation_scope: needsDuty ? f.estimation_scope : [],
       estimation_basis: needsDuty ? f.estimation_basis : null,
@@ -127,6 +130,14 @@ export default function NewInquiry() {
             value={f.project_id}
             onChange={(p: Project | null) => setF((s) => ({ ...s, project_id: p?.id ?? null, organization_id: p?.organization_id ?? s.organization_id, unit_id: p?.unit_id ?? s.unit_id, duty_status: s.duty_status ?? p?.duty_status ?? null }))}
             onCreate={(q) => router.push({ pathname: '/projects/new', params: { pick: '1', name: q, organization: f.organization_id ?? '' } })}
+          />
+          <Field
+            label="Inquiry name"
+            required
+            value={f.inquiry_name ?? ''}
+            onChangeText={(v) => set('inquiry_name', v)}
+            placeholder="What this inquiry is for – e.g. Street lighting – Package 2, Car park, Phase 1 interior"
+            hint="A project can have several inquiries – the name tells them apart"
           />
           <CustomerPicker organizationId={f.organization_id} unitId={f.unit_id} contactId={f.contact_id} requireUnit={hasUnits} onChange={(c) => setF((s) => ({ ...s, organization_id: c.organizationId, unit_id: c.unitId, contact_id: c.contactId }))} />
         </Card>

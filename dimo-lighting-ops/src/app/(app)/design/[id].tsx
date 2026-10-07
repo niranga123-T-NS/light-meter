@@ -9,7 +9,7 @@ import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, ErrorBanner, KeyValue, ListRow, Loading, Muted, Notice, NumberField, Pill, Progress, Row, Screen, Section, Toggle } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { openAttachment } from '@/lib/files';
-import { endOfWorkDay, fmtDate, fmtDateTime, fmtWorkDays, human, WORKING_HOURS_PER_DAY } from '@/lib/format';
+import { endOfWorkDay, fmtDate, fmtDateTime, fmtWorkDays, human, WORKING_HOURS_PER_DAY, inquiryTitle } from '@/lib/format';
 import { useLoad, useMasters, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 import type { Attachment, BrandLine, DesignJob } from '@/lib/types';
@@ -40,7 +40,7 @@ export default function DesignJobScreen() {
   const { data, error, reload } = useLoad(async () => {
     const { data: j, error: e } = await supabase
       .from('design_jobs')
-      .select('*, inquiries(code, project_name, customer_name, customer_deadline, route, status, solution_level, manufacturing_origin, expectation_notes, scope_description, design_scope, estimation_scope, estimation_basis, design_required_by, revision)')
+      .select('*, inquiries(code, project_name, inquiry_name, customer_name, customer_deadline, route, status, solution_level, manufacturing_origin, expectation_notes, scope_description, design_scope, estimation_scope, estimation_basis, design_required_by, revision)')
       .eq('id', id)
       .single();
     if (e) throw new Error(e.message);
@@ -84,7 +84,7 @@ export default function DesignJobScreen() {
       <Card>
         <Row wrap style={{ justifyContent: 'space-between' }}>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 18, fontWeight: '700' }}>{inq?.project_name}</Text>
+            <Text style={{ fontSize: 18, fontWeight: '700' }}>{inquiryTitle(inq)}</Text>
             <Muted>
               {inq?.customer_name} · {j.task_type} design · R{j.revision} · Design Rev {j.review_cycles} · {j.job_size} job
             </Muted>
