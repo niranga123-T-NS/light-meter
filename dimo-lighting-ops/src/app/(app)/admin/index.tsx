@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useDialog } from '@/components/dialog';
 import { Avatar, Button, Card, colors, ErrorBanner, ListRow, Muted, Notice, Pill, Row, Screen, Section, Segmented } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { fmtDate, fmtWorkDays, WORKING_HOURS_PER_DAY } from '@/lib/format';
+import { fmtDate, fmtWorkDays, todayISO, WORKING_HOURS_PER_DAY } from '@/lib/format';
 import { clearPeopleCache, loadMasters, useLoad } from '@/lib/hooks';
 import { PROJECT_TYPES, ROLE_LABELS, ROLE_SHORT } from '@/lib/roles';
 import { callFunction, rpc, supabase } from '@/lib/supabase';
@@ -33,7 +33,9 @@ export default function Admin() {
           { value: 'competitors', label: 'Competitors' },
         ]}
       />
-      {me.role !== 'sys_admin' && tab !== 'users' && tab !== 'competitors' ? (
+      {me.role === 'gm' && tab === 'calendar' ? (
+        <Notice>You can set the monthly USD → LKR exchange rate here. Holidays are entered by the System Administrator.</Notice>
+      ) : me.role !== 'sys_admin' && tab !== 'users' && tab !== 'competitors' ? (
         <Notice>Changes to SLA settings and master data are made by the System Administrator and approved by GM / DGM.</Notice>
       ) : null}
       {tab === 'users' ? <Users /> : null}
@@ -289,6 +291,24 @@ function Calendar() {
   const me = useMe();
   const dialog = useDialog();
   const admin = me.role === 'sys_admin';
+  const canRate = admin || me.role === 'gm';
+  const setRate = async (cur?: { month: string; usd_to_lkr: number }) => {
+    const r = await dialog.prompt({
+      title: cur ? `Exchange rate – ${cur.month.slice(0, 7)}` : 'Exchange rate',
+      fields: [
+        { key: 'm', label: 'Month', type: 'date', required: true, initial: cur?.month ?? `${todayISO().slice(0, 7)}-01` },
+        { key: 'r', label: '1 USD = LKR', required: true, initial: cur ? String(cur.usd_to_lkr) : '' },
+      ],
+    });
+    if (!r) return;
+    const rate = Number(r.r.replace(/,/g, ''));
+    if (!(rate > 0)) return dialog.toast('Enter the rate, e.g. 298.50', 'error');
+    await dialog.run(async () => {
+      const { error } = await supabase.from('exchange_rates').upsert({ month: `${r.m.slice(0, 7)}-01`, usd_to_lkr: rate, updated_by: me.id, updated_at: new Date().toISOString() });
+      if (error) throw new Error(error.message);
+      await reload();
+    }, 'Saved');
+  };
   const { data, reload } = useLoad(async () => {
     const [h, r] = await Promise.all([supabase.from('holidays').select('*').order('day'), supabase.from('exchange_rates').select('*').order('month', { ascending: false })]);
     return { holidays: (h.data ?? []) as { day: string; name: string }[], rates: (r.data ?? []) as { month: string; usd_to_lkr: number }[] };
@@ -306,13 +326,10 @@ function Calendar() {
           {!data?.holidays.length ? <Notice tone={colors.amber}>No holidays entered – add this year&apos;s Sri Lanka public, bank and mercantile holidays (including Poya days).</Notice> : null}
         </Card>
       </Section>
-      <Section title="Monthly exchange rate (USD → LKR, used for consolidated totals)" right={admin ? <Button small title="+ Rate" onPress={async () => {
-        const r = await dialog.prompt({ title: 'Exchange rate', fields: [{ key: 'm', label: 'Month (first day, YYYY-MM-01)', type: 'date', required: true }, { key: 'r', label: '1 USD = LKR', required: true }] });
-        if (r) await dialog.run(async () => { const { error } = await supabase.from('exchange_rates').upsert({ month: `${r.m.slice(0, 7)}-01`, usd_to_lkr: Number(r.r), updated_by: me.id }); if (error) throw new Error(error.message); await reload(); }, 'Saved');
-      }} /> : undefined}>
+      <Section title="Monthly exchange rate (USD → LKR, used for consolidated totals)" right={canRate ? <Button small title="+ Rate" onPress={() => setRate()} /> : undefined}>
         <Card style={{ padding: 0, overflow: 'hidden' }}>
           {(data?.rates ?? []).map((r) => (
-            <ListRow key={r.month} title={r.month.slice(0, 7)} right={<Pill label={`1 USD = ${r.usd_to_lkr} LKR`} />} />
+            <ListRow key={r.month} title={r.month.slice(0, 7)} onPress={canRate ? () => setRate(r) : undefined} right={<Pill label={`1 USD = ${r.usd_to_lkr} LKR`} />} />
           ))}
           {!data?.rates.length ? <Notice tone={colors.amber}>No exchange rate set – consolidated LKR totals fall back to 300.</Notice> : null}
         </Card>
