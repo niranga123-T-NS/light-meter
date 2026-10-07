@@ -2325,6 +2325,13 @@ begin
   res := public.check_opening_list(jsonb_build_array(row || jsonb_build_object('billed_before', '1,000,000')));
   assert (res -> 0 -> 'errors' ->> 0) like 'Invoiced before 1 April is more%', 'billed before above the value';
 end $$;
+-- A project on the opening list won this financial year counts as this year's win
+do $$ declare won date := app.fy_start(app.fy_of((now() at time zone app.tz())::date));
+begin
+  assert public.save_opening_list(jsonb_build_array(jsonb_build_object('row_no', 2, 'project_name', 'Yard lights this year', 'business_line', 'Infrastructure',
+    'sales_person', 'Asm Infra', 'order_value', '500,000.00', 'won_on', won::text, 'wbs', 'LS-000772'))) = 1, 'saved';
+  assert (select source from public.secured_projects where wbs = 'LS-000772') = 'won', 'won this year';
+end $$;
 reset role;
 
 -- Opening list: the same WBS twice in the file is a row error -----------------------------------------------------------
