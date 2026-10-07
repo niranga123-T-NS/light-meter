@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
-import { Fragment } from 'react';
-import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { Fragment, useEffect, useRef, useState } from 'react';
+import { PanResponder, Platform, Pressable, ScrollView, Text, View, type ViewStyle } from 'react-native';
 import Svg, { G, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
 import { colors, useWide } from '@/components/ui';
 import { dayMs, programmeRows, toDay, wbsSummary, type Activity, type Dep, type Wbs } from '@/lib/programme';
@@ -8,6 +8,33 @@ import { dayMs, programmeRows, toDay, wbsSummary, type Activity, type Dep, type 
 const ROW = 30;
 const HEAD = 34;
 const FONT = Platform.OS === 'web' ? 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif' : undefined;
+/** A transparent area that reports a drag (dx, dy in pixels); a release without movement is a tap */
+function DragZone({ style, cursor, onStart, onMove, onEnd }: { style: ViewStyle; cursor: string; onStart: () => void; onMove: (dx: number, dy: number) => void; onEnd: (dx: number, dy: number) => void }) {
+  // the latest handlers, read when the gesture happens (not while rendering)
+  const cb = useRef({ onStart, onMove, onEnd });
+  useEffect(() => {
+    cb.current = { onStart, onMove, onEnd };
+  });
+  // The responder reads cb.current only when a gesture event fires, never while rendering
+  const [handlers] = useState(
+    // eslint-disable-next-line react-hooks/refs
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onStartShouldSetPanResponderCapture: () => true,
+        onMoveShouldSetPanResponderCapture: () => true,
+        onPanResponderTerminationRequest: () => false,
+        onPanResponderGrant: () => cb.current.onStart(),
+        onPanResponderMove: (_, g) => cb.current.onMove(g.dx, g.dy),
+        onPanResponderRelease: (_, g) => cb.current.onEnd(g.dx, g.dy),
+        onPanResponderTerminate: (_, g) => cb.current.onEnd(g.dx, g.dy),
+      }).panHandlers,
+  );
+  return <View {...handlers} style={[{ position: 'absolute' }, style, Platform.OS === 'web' ? ({ cursor } as ViewStyle) : null]} />;
+}
+
+type Drag = { mode: 'move' | 'resize' | 'link'; act: Activity; dx: number; dy: number };
+
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 /**
@@ -25,6 +52,10 @@ export function Gantt({
   onDatesPress,
   onAddActivity,
   onActivityEdit,
+  onMove,
+  onResize,
+  onLink,
+  onDepPress,
 }: {
   wbs: Wbs[];
   acts: Activity[];
@@ -40,8 +71,15 @@ export function Gantt({
   onAddActivity?: (w: Wbs) => void;
   /** When set, tapping an activity name edits it ("›" opens the activity) */
   onActivityEdit?: (a: Activity) => void;
+  /** When set (editable programme), bars can be dragged: move (days), stretch the finish (days), link to another activity */
+  onMove?: (a: Activity, days: number) => void;
+  onResize?: (a: Activity, days: number) => void;
+  onLink?: (pred: Activity, succ: Activity) => void;
+  /** Tap a link arrow (e.g. to remove it) */
+  onDepPress?: (d: Dep) => void;
 }) {
   const wide = useWide();
+  const [drag, setDrag] = useState<Drag | null>(null);
   const rows = programmeRows(wbs, acts);
   const px = scale === 'day' ? 22 : scale === 'week' ? 7 : 2.4;
   const dates = acts.flatMap((a) => [a.es, a.ef, a.bl_start, a.bl_finish]).filter(Boolean) as string[];
@@ -100,7 +138,8 @@ export function Gantt({
     const tone = p.critical && s.critical ? colors.red : '#94A3B8';
     const dir = toEnd ? -1 : 1;
     return (
-      <G key={d.id}>
+      <G key={d.id} onPress={onDepPress ? () => onDepPress(d) : undefined}>
+        {onDepPress ? <Path d={`M${x1} ${y1} H${mid} V${y2} H${x2}`} stroke="#000" strokeOpacity={0.001} strokeWidth={10} fill="none" /> : null}
         <Path d={`M${x1} ${y1} H${mid} V${y2} H${x2 - dir * 4}`} stroke={tone} strokeWidth={1} fill="none" />
         <Path d={`M${x2} ${y2} l${-dir * 5} -3 v6 z`} fill={tone} />
       </G>
@@ -153,6 +192,78 @@ export function Gantt({
       </G>
     );
   });
+
+  // Editing on the chart: drag the bar (move), its right end (finish) or the dot after it (link to another activity)
+  const editable = !!(onMove || onResize || onLink);
+  const snap = (dx: number) => Math.round(dx / px);
+  const rowAt = (yy: number) => {
+    const i = Math.floor((yy - HEAD) / ROW);
+    const r = rows[i];
+    return r && r.kind === 'act' ? r.act : null;
+  };
+  const zones: React.ReactNode[] = [];
+  if (editable)
+    rows.forEach((r, i) => {
+      if (r.kind !== 'act') return;
+      const a = r.act;
+      const es = a.es;
+      const ef = a.ef;
+      if (!es || !ef) return;
+      const y = HEAD + i * ROW;
+      const x1 = x(es);
+      const w = a.duration === 0 ? 14 : x(ef) + px - x1;
+      const bx = a.duration === 0 ? x1 - 7 : x1;
+      const begin = (mode: Drag['mode']) => () => setDrag({ mode, act: a, dx: 0, dy: 0 });
+      const move = (mode: Drag['mode']) => (dx: number, dy: number) => setDrag({ mode, act: a, dx, dy });
+      const end = (mode: Drag['mode']) => (dx: number, dy: number) => {
+        setDrag(null);
+        if (mode === 'link') {
+          const target = rowAt(y + ROW / 2 + dy);
+          if (target && target.id !== a.id) onLink?.(a, target);
+          return;
+        }
+        const days = snap(dx);
+        if (Math.abs(dx) < 3) onDatesPress?.(a);
+        else if (days && mode === 'move') onMove?.(a, days);
+        else if (days && mode === 'resize') onResize?.(a, days);
+      };
+      if (onMove) zones.push(<DragZone key={`m${a.id}`} cursor="grab" style={{ left: bx, top: y + 4, width: Math.max(w - (a.duration ? 8 : 0), 8), height: ROW - 8 }} onStart={begin('move')} onMove={move('move')} onEnd={end('move')} />);
+      if (onResize && a.duration > 0) zones.push(<DragZone key={`r${a.id}`} cursor="ew-resize" style={{ left: x1 + w - 8, top: y + 4, width: 12, height: ROW - 8 }} onStart={begin('resize')} onMove={move('resize')} onEnd={end('resize')} />);
+      if (onLink)
+        zones.push(
+          <DragZone key={`l${a.id}`} cursor="crosshair" style={{ left: bx + w + 4, top: y + ROW / 2 - 7, width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: colors.blue, backgroundColor: '#fff' }} onStart={begin('link')} onMove={move('link')} onEnd={end('link')} />,
+        );
+    });
+  let ghost: React.ReactNode = null;
+  if (drag && drag.act.es && drag.act.ef) {
+    const i = rows.findIndex((r) => r.kind === 'act' && r.act.id === drag.act.id);
+    const y = HEAD + i * ROW;
+    const x1 = x(drag.act.es);
+    const w = drag.act.duration === 0 ? 14 : x(drag.act.ef) + px - x1;
+    const d = snap(drag.dx) * px;
+    if (drag.mode === 'link') {
+      const sx = (drag.act.duration === 0 ? x1 - 7 : x1) + w + 11;
+      const target = rowAt(y + ROW / 2 + drag.dy);
+      ghost = (
+        <G>
+          {target && target.id !== drag.act.id ? <Rect x={0} y={HEAD + rows.findIndex((r) => r.kind === 'act' && r.act.id === target.id) * ROW} width={width} height={ROW} fill={colors.blue} opacity={0.08} /> : null}
+          <Line x1={sx} y1={y + ROW / 2} x2={sx + drag.dx} y2={y + ROW / 2 + drag.dy} stroke={colors.blue} strokeWidth={1.5} strokeDasharray="4 3" />
+        </G>
+      );
+    } else {
+      const gx = drag.mode === 'move' ? x1 + d : x1;
+      const gw = drag.mode === 'resize' ? Math.max(px, w + d) : w;
+      const days = snap(drag.dx);
+      ghost = (
+        <G>
+          <Rect x={gx} y={y + 5} width={gw} height={16} rx={3} fill="none" stroke={colors.blue} strokeWidth={1.5} strokeDasharray="4 2" />
+          <SvgText fontFamily={FONT} x={gx + gw + 18} y={y + 17} fontSize={10} fontWeight="700" fill={colors.blue}>
+            {days ? `${days > 0 ? '+' : ''}${days} d` : ''}
+          </SvgText>
+        </G>
+      );
+    }
+  }
 
   return (
     <View style={{ flexDirection: 'row', borderWidth: 1, borderColor: colors.line, borderRadius: 8, backgroundColor: '#fff', overflow: 'hidden' }}>
@@ -229,7 +340,8 @@ export function Gantt({
           </Fragment>
         ))}
       </View>
-      <ScrollView horizontal style={{ flex: 1 }} contentOffset={{ x: Math.max(0, x(today) - 120), y: 0 }}>
+      <ScrollView horizontal scrollEnabled={!drag} style={{ flex: 1 }} contentOffset={{ x: Math.max(0, x(today) - 120), y: 0 }}>
+        <View style={{ width, height }}>
         <Svg width={width} height={height}>
           <Line x1={0} x2={width} y1={HEAD} y2={HEAD} stroke={colors.line} />
           {head}
@@ -239,7 +351,10 @@ export function Gantt({
           {contractEnd ? <Line x1={x(contractEnd) + px} x2={x(contractEnd) + px} y1={HEAD - 10} y2={height} stroke={colors.ink} strokeDasharray="4 3" strokeWidth={1} /> : null}
           <Line x1={x(today)} x2={x(today)} y1={HEAD - 10} y2={height} stroke={colors.brand} strokeWidth={1.5} />
           <SvgText fontFamily={FONT} x={x(today) + 3} y={HEAD - 14} fontSize={9} fill={colors.brand}>today</SvgText>
+          {ghost}
         </Svg>
+        {editable ? <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, top: 0, width, height }}>{zones}</View> : null}
+        </View>
       </ScrollView>
     </View>
   );
