@@ -124,7 +124,7 @@ export function QaTab({ p }: { p: ExecProject }) {
         )}
       </Section>
       <Section title={`NCRs (${openNcrs.length} open)`} right={canRecord || me.role === 'sm_projects' ? <Button small variant="secondary" title="+ NCR" onPress={raiseNcr} /> : null}>
-        {openNcrs.some((n) => n.severity === 'critical') ? <Notice tone={colors.red}>An NCR is open – the “Handover” checkpoint will not pass until it is closed.</Notice> : null}
+        {openNcrs.some((n) => n.severity === 'critical') ? <Notice tone={colors.red}>An NCR is open – the handover to the client is not approved until it is closed.</Notice> : null}
         {ncrs.length ? (
           <Card style={{ padding: 0, overflow: 'hidden' }}>
             {ncrs.map((n) => (

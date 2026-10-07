@@ -4,14 +4,15 @@ import { Button, Card, colors, Empty, Grid, ListRow, Muted, Notice, Pill, Row, S
 import { useMe } from '@/lib/auth';
 import { BILLING_ROLES, billingStep, CERT_STATUS, CHECK_STATUS, IPC_STATUS, RISK, TRIGGER_KINDS, type BillingAction, type BillingRow, type InvoiceCheck, type InvoiceTrigger, type Ipc, type PaymentCert } from '@/lib/billing';
 import { BOQ_STATUS, type Boq, type IpcValues } from '@/lib/boq';
-import { CHECKPOINTS, MR_STATUS, type ExecProject, type MaterialRequest } from '@/lib/execution';
+import { MR_STATUS, type ExecProject, type MaterialRequest } from '@/lib/execution';
 import { fmtMonth, kindLabel, monthOf, type InvoiceLine, type SecuredProject } from '@/lib/finance';
 import { fmtDate, fmtMoney, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { actualPct, type Activity } from '@/lib/programme';
 import { rpc, supabase } from '@/lib/supabase';
 
-const GATES = [1, 2, 3].map((g) => ({ value: String(g), label: `Checkpoint “${CHECKPOINTS[g - 1]}” approved` }));
+const GATE_EVENTS = ['Programme approved (work starts)', 'Handed over to the client', 'Project closed'];
+const GATES = [1, 2, 3].map((g) => ({ value: String(g), label: GATE_EVENTS[g - 1] }));
 const ipcTone = (c: Ipc) => (c.status === 'certified' ? colors.green : c.status === 'returned' ? colors.red : colors.amber);
 
 /**
@@ -159,7 +160,7 @@ export function BillingTab({ p, onChange }: { p: ExecProject; onChange: () => vo
       message: `${fmtMoney(l.amount, 'LKR')} planned for ${fmtMonth(l.forecast_month)}${l.trigger_note ? ` · sales note: ${l.trigger_note}` : ''}. SM Projects approves the triggers.`,
       fields: [
         { key: 'kind', label: 'Invoice when', type: 'select', options: TRIGGER_KINDS, required: true, initial: t?.kind ?? 'activity' },
-        { key: 'gate', label: 'Stage gate (if a gate)', type: 'select', options: GATES, initial: t?.gate ? String(t.gate) : undefined },
+        { key: 'gate', label: 'Event (if a project event)', type: 'select', options: GATES, initial: t?.gate ? String(t.gate) : undefined },
         { key: 'act', label: 'Activity / milestone (if an activity)', type: 'select', options: actOpts, initial: t?.activity_id ?? undefined },
         { key: 'mrs', label: 'Material requests (if materials delivered)', type: 'multiselect', options: mrOpts, initial: t?.mr_ids?.join(',') },
       ],
@@ -251,7 +252,7 @@ export function BillingTab({ p, onChange }: { p: ExecProject; onChange: () => vo
 
   const triggerText = (t?: InvoiceTrigger) => {
     if (!t) return 'Trigger not set';
-    if (t.kind === 'gate') return `Checkpoint “${CHECKPOINTS[(t.gate ?? 1) - 1]}” approved`;
+    if (t.kind === 'gate') return GATE_EVENTS[(t.gate ?? 1) - 1];
     if (t.kind === 'activity') {
       const a = t.activity_id ? actById[t.activity_id] : undefined;
       if (!a) return 'Activity removed – set again';

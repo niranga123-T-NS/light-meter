@@ -3,13 +3,14 @@ import { Text, View } from 'react-native';
 import { Attachments } from '@/components/Attachments';
 import { Button, Card, colors, KeyValue, Muted, Notice, Row, Section } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { areaLabel, CHECKPOINTS, EXEC_AREAS, EXEC_STAGES, type ExecProject } from '@/lib/execution';
+import { areaLabel, EXEC_AREAS, EXEC_STAGES, type ExecProject } from '@/lib/execution';
 import { fmtDate, fmtMoney } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { supabase } from '@/lib/supabase';
+import { GateCard } from './GateCard';
 
 /** Stage strip, project areas, site and dates. */
-export function OverviewTab({ p, onTab }: { p: ExecProject; onTab: (t: string) => void }) {
+export function OverviewTab({ p, onTab, onChange }: { p: ExecProject; onTab: (t: string) => void; onChange?: () => void }) {
   const me = useMe();
   const people = usePeople();
   const lead = me.role === 'senior_elec_engineer' || me.role === 'sm_projects';
@@ -53,38 +54,49 @@ export function OverviewTab({ p, onTab }: { p: ExecProject; onTab: (t: string) =
                     : 'Complete the programme and submit it to SM Projects',
               { title: me.role === 'sm_projects' && st.programme?.status === 'submitted' ? 'Approve programme' : 'Open programme', onPress: () => onTab('programme') },
             )}
-            {step(st.gatePending, st.gatePending ? `${CHECKPOINTS[p.stage - 1]} waiting for SM Projects` : `Request “${CHECKPOINTS[p.stage - 1]}” – SM Projects approves`, {
-              title: me.role === 'sm_projects' && st.gatePending ? 'Decide' : 'Open checkpoint',
-              onPress: () => onTab('handover'),
-            })}
+            {p.stage === 1
+              ? step(false, 'Work starts when SM Projects approves the programme')
+              : p.stage === 2
+                ? step(st.gatePending, st.gatePending ? 'Handover to the client waiting for SM Projects' : 'When the works are complete – hand over to the client', {
+                    title: me.role === 'sm_projects' && st.gatePending ? 'Decide' : 'Handover',
+                    onPress: () => onTab('handover'),
+                  })
+                : step(st.gatePending, st.gatePending ? 'Project closure waiting for SM Projects' : 'After the defects liability period – close the project (below)')}
           </Card>
         </Section>
       ) : null}
-      <Section title="Stage">
+      <Section title="Status">
         <Card>
           <Row wrap gap={6}>
-            {EXEC_STAGES.map((s, i) => (
-              <View
-                key={s}
-                style={{
-                  flexGrow: 1,
-                  minWidth: 110,
-                  padding: 8,
-                  borderRadius: 8,
-                  borderWidth: 1,
-                  borderColor: i + 1 === p.stage ? colors.brand : colors.line,
-                  backgroundColor: i + 1 < p.stage ? colors.soft : i + 1 === p.stage ? '#FDECEE' : '#fff',
-                }}
-              >
-                <Text style={{ fontSize: 11, color: colors.muted }}>{`Stage ${i + 1}`}</Text>
-                <Text style={{ fontWeight: i + 1 === p.stage ? '700' : '500', color: colors.ink }}>{s}</Text>
-                <Text style={{ fontSize: 11, color: colors.muted }}>{`ends with “${CHECKPOINTS[i]}”`}</Text>
-              </View>
-            ))}
+            {[...EXEC_STAGES, 'Closed'].map((s, i) => {
+              const at = p.status === 'closed' ? 4 : p.stage;
+              return (
+                <View
+                  key={s}
+                  style={{
+                    flexGrow: 1,
+                    minWidth: 110,
+                    padding: 8,
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderColor: i + 1 === at ? colors.brand : colors.line,
+                    backgroundColor: i + 1 < at ? colors.soft : i + 1 === at ? '#FDECEE' : '#fff',
+                  }}
+                >
+                  <Text style={{ fontWeight: i + 1 === at ? '700' : '500', color: colors.ink }}>{s}</Text>
+                  <Text style={{ fontSize: 11, color: colors.muted }}>{['until the programme is approved', 'until handover to the client', 'defects liability period', 'after SM Projects approves the closure'][i]}</Text>
+                </View>
+              );
+            })}
           </Row>
-          <Muted>Progress between the checkpoints comes from the programme. The SEE requests each checkpoint and SM Projects approves it in the Handover tab; “Close-out” closes the project.</Muted>
+          <Muted>Progress and invoicing follow the programme. The SEE hands over to the client (Handover tab) and closes the project after the DLP (below); SM Projects approves both.</Muted>
         </Card>
       </Section>
+      {p.stage === 3 || p.status === 'closed' ? (
+        <Section title="Close the project">
+          <GateCard p={p} gate={3} onChange={onChange ?? (() => undefined)} />
+        </Section>
+      ) : null}
       <Section title="Project">
         <Card>
           {p.client_name ? <KeyValue label="Client" value={p.client_name} /> : null}

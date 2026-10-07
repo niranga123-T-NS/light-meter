@@ -47,7 +47,7 @@ export type Ipc = {
 };
 
 export const TRIGGER_KINDS: { value: TriggerKind; label: string }[] = [
-  { value: 'gate', label: 'Checkpoint approved' },
+  { value: 'gate', label: 'Project event – programme approved / handed over / closed' },
   { value: 'activity', label: 'Programme activity / milestone finished' },
   { value: 'delivery', label: 'Materials delivered to site (requests fully received)' },
   { value: 'ipc', label: 'Monthly progress claim (IPC) certified by the client' },

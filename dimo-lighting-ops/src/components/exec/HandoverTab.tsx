@@ -1,67 +1,32 @@
 import { useState } from 'react';
 import { Attachments } from '@/components/Attachments';
 import { useDialog } from '@/components/dialog';
-import { Button, Card, Chip, colors, Empty, ListRow, Muted, Notice, Pill, Row, Section } from '@/components/ui';
+import { Button, Card, colors, Empty, ListRow, Muted, Pill, Row, Section } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { CHECKPOINTS, EXEC_AREAS, EXEC_STAGES, GATE_CHECKLIST, type DossierItem, type ExecGate, type ExecProject, type GateCheck, type Snag } from '@/lib/execution';
-import { fmtDate, fmtDateTime, todayISO } from '@/lib/format';
+import { EXEC_AREAS, type DossierItem, type ExecProject, type Snag } from '@/lib/execution';
+import { fmtDate, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
+import { GateCard } from './GateCard';
 
 const areaLabel = (a: string) => EXEC_AREAS.find((x) => x.value === a)?.label ?? a;
 
-function Checks({ checks }: { checks: GateCheck[] }) {
-  if (!checks.length) return <Muted>No data checks here – the checklist is confirmed by the Senior Electrical Engineer.</Muted>;
-  return (
-    <>
-      {checks.map((c) => (
-        <Muted key={c.check} style={{ color: c.ok ? colors.green : colors.red }}>{`${c.ok ? '✓' : '✕'} ${c.check}${c.ok ? '' : ` – ${c.detail}`}`}</Muted>
-      ))}
-    </>
-  );
-}
-
-/** Stage gates (SEE requests, SM Projects approves with the live checks), snags with before / after photos, and the handover dossier per area. */
+/** Handover to the client (SEE requests, SM Projects approves with the live checks), snags with before / after photos, and the handover dossier per area. */
 export function HandoverTab({ p, onChange }: { p: ExecProject; onChange: () => void }) {
   const me = useMe();
   const dialog = useDialog();
   const people = usePeople();
-  const [tick, setTick] = useState<Record<string, boolean>>({});
   const [openSnag, setOpenSnag] = useState<string | null>(null);
   const [openItem, setOpenItem] = useState<string | null>(null);
   const { data, reload } = useLoad(async () => {
-    const [g, s, d, pv] = await Promise.all([
-      supabase.from('exec_gates').select('*').eq('exec_project_id', p.id).order('requested_at', { ascending: false }),
+    const [s, d] = await Promise.all([
       supabase.from('snags').select('*').eq('exec_project_id', p.id).order('raised_at', { ascending: false }),
       supabase.from('exec_dossier').select('*').eq('exec_project_id', p.id).order('area').order('item'),
-      p.status === 'active' ? rpc<{ gate: number; checks: GateCheck[] }>('preview_gate', { p_exec: p.id }).catch(() => null) : Promise.resolve(null),
     ]);
-    return { gates: (g.data ?? []) as ExecGate[], snags: (s.data ?? []) as Snag[], dossier: (d.data ?? []) as DossierItem[], preview: pv };
+    return { snags: (s.data ?? []) as Snag[], dossier: (d.data ?? []) as DossierItem[] };
   }, [p.id, p.stage, p.status]);
   const isSee = me.role === 'senior_elec_engineer';
   const isAe = me.role === 'assistant_engineer';
-  const pending = data?.gates.find((g) => g.status === 'pending');
-  const list = GATE_CHECKLIST[p.stage] ?? [];
-  const refresh = async () => {
-    await reload();
-    onChange();
-  };
-
-  const request = async () => {
-    const res = await dialog.prompt({ title: `Request “${CHECKPOINTS[p.stage - 1]}”`, message: `End of “${EXEC_STAGES[p.stage - 1]}” – SM Projects approves.`, fields: [{ key: 'n', label: 'Note to SM Projects', type: 'multiline' }], confirmLabel: 'Request' });
-    if (res) await dialog.run(async () => { await rpc('request_gate', { p_exec: p.id, p_checklist: tick, p_note: res.n || null }); setTick({}); await refresh(); }, 'Sent to SM Projects');
-  };
-  const decide = async (g: ExecGate, ok: boolean) => {
-    const failing = (data?.preview?.checks ?? g.checks).filter((c) => !c.ok).length;
-    const res = await dialog.prompt({
-      title: ok ? `Approve “${CHECKPOINTS[g.gate - 1]}”` : `Do not approve “${CHECKPOINTS[g.gate - 1]}”`,
-      message: ok && failing ? `${failing} check(s) are not met – passing is an override and needs the reason.` : undefined,
-      fields: [{ key: 'n', label: ok ? (failing ? 'Reason for the override' : 'Note') : 'Reason', type: 'multiline', required: !ok || failing > 0 }],
-      confirmLabel: ok ? 'Approve' : 'Do not approve',
-      danger: !ok,
-    });
-    if (res) await dialog.run(async () => { await rpc('decide_gate', { p_id: g.id, p_approve: ok, p_note: res.n || null }); await refresh(); }, ok ? 'Approved' : 'Returned to the SEE');
-  };
   const raiseSnag = async () => {
     const res = await dialog.prompt({
       title: 'Snag',
@@ -96,53 +61,8 @@ export function HandoverTab({ p, onChange }: { p: ExecProject; onChange: () => v
 
   return (
     <>
-      <Section title="Checkpoint">
-        <Card>
-          {p.status === 'closed' ? (
-            <Notice tone={colors.green}>Close-out approved – the project is closed.</Notice>
-          ) : pending ? (
-            <>
-              <Notice tone={colors.amber}>{`${CHECKPOINTS[pending.gate - 1]} waiting for SM Projects · requested ${fmtDateTime(pending.requested_at)} by ${people[pending.requested_by]?.full_name ?? ''}`}</Notice>
-              {pending.note ? <Muted>{pending.note}</Muted> : null}
-              {Object.keys(pending.checklist).length ? <Muted>{`Confirmed: ${Object.entries(pending.checklist).filter(([, v]) => v).map(([k]) => k).join(' · ') || '—'}`}</Muted> : null}
-              <Checks checks={data?.preview?.checks ?? pending.checks} />
-              {me.role === 'sm_projects' ? (
-                <Row gap={6} style={{ marginTop: 6 }}>
-                  <Button title="Approve" onPress={() => decide(pending, true)} />
-                  <Button variant="secondary" title="Do not approve" onPress={() => decide(pending, false)} />
-                </Row>
-              ) : null}
-            </>
-          ) : (
-            <>
-              <Muted>{`“${CHECKPOINTS[p.stage - 1]}” – end of “${EXEC_STAGES[p.stage - 1]}”`}</Muted>
-              <Checks checks={data?.preview?.checks ?? []} />
-              {isSee ? (
-                <>
-                  <Row wrap gap={6} style={{ marginTop: 6 }}>
-                    {list.map((x) => (
-                      <Chip key={x} label={`${tick[x] ? '✓ ' : ''}${x}`} on={!!tick[x]} onPress={() => setTick((s) => ({ ...s, [x]: !s[x] }))} />
-                    ))}
-                  </Row>
-                  <Row style={{ marginTop: 6 }}>
-                    <Button title={`Request “${CHECKPOINTS[p.stage - 1]}”`} onPress={request} />
-                  </Row>
-                </>
-              ) : null}
-            </>
-          )}
-        </Card>
-        {data?.gates.filter((g) => g.status !== 'pending').length ? (
-          <Card style={{ marginTop: 8 }}>
-            {data.gates
-              .filter((g) => g.status !== 'pending')
-              .map((g) => (
-                <Muted key={g.id}>
-                  {`${g.legacy ? `Old stage gate ${g.gate}` : CHECKPOINTS[g.gate - 1]} ${g.status === 'approved' ? 'approved' : 'not approved'}${g.override ? ' (override)' : ''} · ${people[g.decided_by ?? '']?.full_name ?? ''} · ${fmtDateTime(g.decided_at)}${g.note ? ` · ${g.note}` : ''}`}
-                </Muted>
-              ))}
-          </Card>
-        ) : null}
+      <Section title="Hand over to the client">
+        <GateCard p={p} gate={2} onChange={onChange} />
       </Section>
 
       <Section title={`Snags (${openSnags.length} open)`} right={(isSee || isAe || me.role === 'sm_projects') && p.status === 'active' ? <Button small title="+ Snag" onPress={raiseSnag} /> : null}>

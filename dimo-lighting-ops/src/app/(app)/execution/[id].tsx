@@ -60,7 +60,7 @@ export default function ExecProjectScreen() {
       <Text style={{ fontSize: 20, fontWeight: '700', color: colors.ink }}>{p.name}</Text>
       <Muted>{stageLabel(p)}</Muted>
       <Segmented value={t} onChange={setT} options={tabs.map((x) => ({ value: x.key, label: x.label }))} />
-      {t === 'overview' ? <OverviewTab p={p} onTab={setT} /> : null}
+      {t === 'overview' ? <OverviewTab p={p} onTab={setT} onChange={reload} /> : null}
       {t === 'programme' ? <ProgrammeTab p={p} onChange={reload} /> : null}
       {t === 'plans' ? <PlansTab p={p} /> : null}
       {t === 'reports' ? <ReportsTab p={p} /> : null}
