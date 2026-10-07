@@ -5,7 +5,7 @@ import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, Empty, Grid, ListRow, Muted, Notice, Pill, Row, Section, Segmented, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import type { ExecMember, ExecProject } from '@/lib/execution';
-import { fmtDate, fmtNumber, todayISO } from '@/lib/format';
+import { addDaysISO, fmtDate, fmtNumber, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { exportProgrammePdf } from '@/lib/programmePdf';
 import { ROLE_SHORT } from '@/lib/roles';
@@ -105,6 +105,33 @@ export function ProgrammeTab({ p, onChange }: { p: ExecProject; onChange: () => 
     if (r) await dialog.run(async () => { await rpc('save_wbs', { p_exec: p.id, p_id: null, p_parent: r.parent || null, p_code: null, p_name: r.name }); await reload(); }, 'Added');
   };
   // Rename, move under another element, or delete a WBS element (delete only when it has no activities or sub-elements)
+  // Gantt drag and drop: the server re-schedules, so the following activities move with it
+  const afterDates = (r: { es: string; ef: string; duration: number; moved: boolean }) =>
+    dialog.toast(r.moved ? `Start moved to ${fmtDate(r.es)} – it follows its preceding activities` : `${fmtDate(r.es)} – ${fmtDate(r.ef)} · ${r.duration} working day(s)`);
+  const moveActivity = (a: Activity, days: number) =>
+    dialog.run(async () => {
+      const r = await rpc<{ es: string; ef: string; duration: number; moved: boolean }>('set_activity_dates', { p_id: a.id, p_start: addDaysISO(a.es!, days), p_finish: null });
+      await refresh();
+      afterDates(r);
+    });
+  const resizeActivity = (a: Activity, days: number) =>
+    dialog.run(async () => {
+      const f = addDaysISO(a.ef!, days);
+      const r = await rpc<{ es: string; ef: string; duration: number; moved: boolean }>('set_activity_dates', { p_id: a.id, p_start: null, p_finish: f < a.es! ? a.es! : f });
+      await refresh();
+      afterDates(r);
+    });
+  const linkActivities = (pred: Activity, succ: Activity) =>
+    dialog.run(async () => {
+      await rpc('set_dependency', { p_succ: succ.id, p_pred: pred.id, p_type: 'FS', p_lag: 0 });
+      await refresh();
+    }, `${succ.code} now starts after ${pred.code} finishes – the following activities were rescheduled`);
+  const removeLink = async (d: Dep) => {
+    const pa = acts.find((x) => x.id === d.pred_id);
+    const sa = acts.find((x) => x.id === d.succ_id);
+    if (!(await dialog.confirm('Remove this link?', `${sa?.code} ${sa?.name} will no longer wait for ${pa?.code} ${pa?.name}.`, { confirmLabel: 'Remove', danger: true }))) return;
+    await dialog.run(async () => { await rpc('remove_dependency', { p_id: d.id }); await refresh(); }, 'Link removed – dates recalculated');
+  };
   // Gantt: rename an activity
   const renameActivity = async (a: Activity) => {
     const r = await dialog.prompt({
@@ -401,7 +428,14 @@ export function ProgrammeTab({ p, onChange }: { p: ExecProject; onChange: () => 
             onDatesPress={canEdit ? setDates : undefined}
             onAddActivity={canEdit ? addActivity : undefined}
             onActivityEdit={canEdit ? renameActivity : undefined}
+            onMove={canEdit ? moveActivity : undefined}
+            onResize={canEdit ? resizeActivity : undefined}
+            onLink={canEdit ? linkActivities : undefined}
+            onDepPress={canEdit ? removeLink : undefined}
           />
+          {canEdit ? (
+            <Muted>Drag a bar to move it · drag its right end to change the finish · drag the ○ after a bar onto another activity to link them (it then starts after this one finishes) · tap a link line to remove it. The activities that follow move automatically.</Muted>
+          ) : null}
           <Muted>{ganttLegend}</Muted>
         </>
       ) : view === 'tracking' ? (
