@@ -85,6 +85,35 @@ export function ProgrammeTab({ p, onChange }: { p: ExecProject; onChange: () => 
     if (r) await dialog.run(async () => { await rpc('save_wbs', { p_exec: p.id, p_id: null, p_parent: r.parent || null, p_code: r.code, p_name: r.name }); await reload(); }, 'Added');
   };
   // Rename, move under another element, or delete a WBS element (delete only when it has no activities or sub-elements)
+  // Gantt: set an activity's start / finish – the duration (working days) is worked out from them
+  const setDates = async (a: Activity) => {
+    const res = await dialog.prompt({
+      title: `${a.code} ${a.name}`,
+      message:
+        `Now ${fmtDate(a.es)} – ${fmtDate(a.ef)} · ${a.duration} working day(s). The duration is worked out from the dates (weekends and holidays left out). ` +
+        'A start before its preceding activities finish moves to the first possible day.' +
+        (pg?.status === 'approved' ? ' Changing the approved programme starts a revision for SM Projects.' : ''),
+      fields: [
+        { key: 's', label: 'Start', type: 'date', required: true, initial: a.es ?? undefined },
+        { key: 'f', label: 'Finish', type: 'date', required: true, initial: a.ef ?? undefined },
+      ],
+      confirmLabel: 'Save dates',
+    });
+    if (!res) return;
+    await dialog.run(async () => {
+      const r = await rpc<{ es: string; ef: string; duration: number; moved: boolean }>('set_activity_dates', {
+        p_id: a.id,
+        p_start: res.s !== a.es ? res.s : null,
+        p_finish: res.f !== a.ef || res.s !== a.es ? res.f : null,
+      });
+      await refresh();
+      dialog.toast(
+        r.moved
+          ? `${r.duration} working day(s) – the start moved to ${fmtDate(r.es)} after its preceding activities`
+          : `${fmtDate(r.es)} – ${fmtDate(r.ef)} · ${r.duration} working day(s)`,
+      );
+    });
+  };
   const editWbs = async (w: Wbs) => {
     const below = new Set<string>([w.id]);
     let grew = true;
@@ -317,7 +346,7 @@ export function ProgrammeTab({ p, onChange }: { p: ExecProject; onChange: () => 
         <Empty title={wbs.length ? 'Add the activities' : 'Add the WBS'} hint="WBS elements first, then the activities under them, then link them and allocate the resources." />
       ) : view === 'gantt' ? (
         <>
-          <Gantt wbs={wbs} acts={acts} deps={deps} scale={scale} today={today} contractEnd={p.end_date} onWbsPress={canEdit ? editWbs : undefined} />
+          <Gantt wbs={wbs} acts={acts} deps={deps} scale={scale} today={today} contractEnd={p.end_date} onWbsPress={canEdit ? editWbs : undefined} onDatesPress={canEdit ? setDates : undefined} />
           <Muted>{ganttLegend}</Muted>
         </>
       ) : view === 'tracking' ? (
