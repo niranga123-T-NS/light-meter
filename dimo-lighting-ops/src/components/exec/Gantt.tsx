@@ -22,6 +22,7 @@ export function Gantt({
   today,
   contractEnd,
   onWbsPress,
+  onDatesPress,
 }: {
   wbs: Wbs[];
   acts: Activity[];
@@ -31,6 +32,8 @@ export function Gantt({
   contractEnd: string | null;
   /** When set (the SEE while the programme can be edited), tapping a WBS row opens it for editing */
   onWbsPress?: (w: Wbs) => void;
+  /** When set (the SEE while the programme can be edited), tapping an activity's start / finish / duration sets its dates */
+  onDatesPress?: (a: Activity) => void;
 }) {
   const wide = useWide();
   const rows = programmeRows(wbs, acts);
@@ -45,7 +48,19 @@ export function Gantt({
   const x = (iso: string) => (toDay(iso) - start) * px;
   const rowOf = new Map<string, number>();
   rows.forEach((r, i) => r.kind === 'act' && rowOf.set(r.act.id, i));
-  const labelW = wide ? 300 : 150;
+  const nameW = wide ? 260 : 150;
+  // Start / finish / duration columns (tablet and computer)
+  const cols = wide;
+  const COL = { s: 66, f: 66, d: 44 };
+  const labelW = nameW + (cols ? COL.s + COL.f + COL.d : 0);
+  const dm = (iso?: string | null) => (iso ? `${String(new Date(iso).getUTCDate()).padStart(2, '0')} ${MONTHS[new Date(iso).getUTCMonth()]}` : '—');
+  const cell = (w: number, text: string, opts: { bold?: boolean; right?: boolean; edit?: boolean } = {}) => (
+    <View style={{ width: w, paddingHorizontal: 4, justifyContent: 'center', alignItems: opts.right ? 'flex-end' : 'flex-start', borderLeftWidth: 1, borderLeftColor: '#F0F1F3' }}>
+      <Text numberOfLines={1} style={{ fontSize: 11, fontWeight: opts.bold ? '700' : '400', color: opts.edit ? colors.blue : colors.text, textDecorationLine: opts.edit ? 'underline' : 'none' }}>
+        {text}
+      </Text>
+    </View>
+  );
 
   // Timeline header: months, and weeks / days below
   const head: React.ReactNode[] = [];
@@ -136,26 +151,56 @@ export function Gantt({
   return (
     <View style={{ flexDirection: 'row', borderWidth: 1, borderColor: colors.line, borderRadius: 8, backgroundColor: '#fff', overflow: 'hidden' }}>
       <View style={{ width: labelW, borderRightWidth: 1, borderRightColor: colors.line }}>
-        <View style={{ height: HEAD, justifyContent: 'flex-end', paddingHorizontal: 8, paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: colors.line }}>
-          <Text style={{ fontSize: 11, fontWeight: '700', color: colors.muted }}>WBS / ACTIVITY</Text>
+        <View style={{ height: HEAD, flexDirection: 'row', alignItems: 'flex-end', paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: colors.line }}>
+          <Text style={{ width: nameW, paddingHorizontal: 8, fontSize: 11, fontWeight: '700', color: colors.muted }}>WBS / ACTIVITY</Text>
+          {cols ? (
+            <>
+              <Text style={{ width: COL.s, paddingHorizontal: 4, fontSize: 11, fontWeight: '700', color: colors.muted }}>START</Text>
+              <Text style={{ width: COL.f, paddingHorizontal: 4, fontSize: 11, fontWeight: '700', color: colors.muted }}>FINISH</Text>
+              <Text style={{ width: COL.d, paddingHorizontal: 4, fontSize: 11, fontWeight: '700', color: colors.muted, textAlign: 'right' }}>DAYS</Text>
+            </>
+          ) : null}
         </View>
         {rows.map((r) => (
           <Fragment key={r.kind === 'wbs' ? r.wbs.id : r.act.id}>
             {r.kind === 'wbs' ? (
-              <Pressable
-                disabled={!onWbsPress}
-                onPress={() => onWbsPress?.(r.wbs)}
-                style={{ height: ROW, justifyContent: 'center', paddingLeft: 8 + r.depth * 12, backgroundColor: colors.soft }}
-              >
-                <Text numberOfLines={1} style={{ fontWeight: '700', color: colors.ink, fontSize: 12 }}>{`${r.wbs.code}  ${r.wbs.name}${onWbsPress ? '  ✎' : ''}`}</Text>
-              </Pressable>
+              <View style={{ height: ROW, flexDirection: 'row', backgroundColor: colors.soft }}>
+                <Pressable
+                  disabled={!onWbsPress}
+                  onPress={() => onWbsPress?.(r.wbs)}
+                  style={{ width: nameW, justifyContent: 'center', paddingLeft: 8 + r.depth * 12, paddingRight: 6 }}
+                >
+                  <Text numberOfLines={1} style={{ fontWeight: '700', color: colors.ink, fontSize: 12 }}>{`${r.wbs.code}  ${r.wbs.name}${onWbsPress ? '  ✎' : ''}`}</Text>
+                </Pressable>
+                {cols
+                  ? (() => {
+                      const sm = wbsSummary(r.wbs, wbs, acts);
+                      return (
+                        <>
+                          {cell(COL.s, dm(sm?.start), { bold: true })}
+                          {cell(COL.f, dm(sm?.finish), { bold: true })}
+                          {cell(COL.d, '', { right: true })}
+                        </>
+                      );
+                    })()
+                  : null}
+              </View>
             ) : (
-              <Pressable onPress={() => router.push(`/execution/activity/${r.act.id}`)} style={{ height: ROW, justifyContent: 'center', paddingLeft: 8 + r.depth * 12, paddingRight: 6 }}>
-                <Text numberOfLines={1} style={{ fontSize: 12, color: r.act.critical ? colors.red : colors.text }}>
-                  <Text style={{ color: colors.muted }}>{`${r.act.code}  `}</Text>
-                  {r.act.name}
-                </Text>
-              </Pressable>
+              <View style={{ height: ROW, flexDirection: 'row' }}>
+                <Pressable onPress={() => router.push(`/execution/activity/${r.act.id}`)} style={{ width: nameW, justifyContent: 'center', paddingLeft: 8 + r.depth * 12, paddingRight: 6 }}>
+                  <Text numberOfLines={1} style={{ fontSize: 12, color: r.act.critical ? colors.red : colors.text }}>
+                    <Text style={{ color: colors.muted }}>{`${r.act.code}  `}</Text>
+                    {r.act.name}
+                  </Text>
+                </Pressable>
+                {cols ? (
+                  <Pressable disabled={!onDatesPress} onPress={() => onDatesPress?.(r.act)} style={{ flexDirection: 'row' }}>
+                    {cell(COL.s, dm(r.act.es), { edit: !!onDatesPress })}
+                    {cell(COL.f, dm(r.act.ef), { edit: !!onDatesPress })}
+                    {cell(COL.d, r.act.duration === 0 ? '◆' : `${r.act.duration} d`, { right: true })}
+                  </Pressable>
+                ) : null}
+              </View>
             )}
           </Fragment>
         ))}
