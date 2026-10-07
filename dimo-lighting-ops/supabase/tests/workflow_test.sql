@@ -3573,7 +3573,7 @@ select pg_temp.act_as('assistant_engineer'); set role authenticated;
 do $$ declare m uuid;
 begin
   m := public.raise_material_request(current_setting('test.ex')::uuid, jsonb_build_object('required_date', current_date + 5, 'est_value', 1500000,
-    'lines', jsonb_build_array(jsonb_build_object('item', 'LED downlight 12W', 'unit', 'nos', 'qty', 40))));
+    'lines', jsonb_build_array(jsonb_build_object('custom', true, 'item', 'LED downlight 12W', 'unit', 'nos', 'qty', 40))));
   perform set_config('test.mr', m::text, false);
 end $$;
 reset role;
@@ -3872,7 +3872,7 @@ select pg_temp.act_as('sub_supervisor'); set role authenticated;
 do $$ declare m uuid;
 begin
   m := public.raise_material_request(current_setting('test.ex')::uuid, jsonb_build_object('required_date', current_date + 4,
-    'lines', jsonb_build_array(jsonb_build_object('item', 'Cable ties 300 mm', 'unit', 'pkt', 'qty', 10))));
+    'lines', jsonb_build_array(jsonb_build_object('custom', true, 'item', 'Cable ties 300 mm', 'unit', 'pkt', 'qty', 10))));
   perform set_config('test.smr', m::text, false);
   assert (select status from public.material_requests where id = m) = 'ae_review', 'AE checks first';
 end $$;
@@ -4439,6 +4439,32 @@ begin
   perform app.schedule(current_setting('test.exlegacy')::uuid);
   assert (select bl_start < es from public.exec_activities where id = c), 'baseline fixed after submission';
 end $$;
+
+-- Materials catalogue and the fuller request -------------------------------------------------
+do $$ begin
+  assert (select count(*) from public.material_catalog) >= 10000, 'catalogue has 10,000+ items';
+  assert (select count(*) from public.material_catalog where code is null) = 0, 'every item has a code';
+end $$;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare e uuid := current_setting('test.exlegacy')::uuid; c int; mr uuid;
+begin
+  assert exists (select 1 from public.search_material_catalog('street 60W type II', array['road'])), 'search finds street lights';
+  assert (select suits from public.search_material_catalog('cable', array['road']) limit 1), 'items for the project areas first';
+  assert not exists (select 1 from public.search_material_catalog('zzzz-not-an-item')), 'no match';
+  select id into c from public.search_material_catalog('XLPE/SWA 4-core 16 mm² Cu') limit 1;
+  assert c is not null, 'cable found';
+  begin perform public.raise_material_request(e, jsonb_build_object('required_date', current_date + 7, 'lines', jsonb_build_array(jsonb_build_object('item', 'Something', 'unit', 'nos', 'qty', 2))));
+    assert false, 'custom must be ticked';
+  exception when others then assert sqlerrm like 'Choose the item from the catalogue%', sqlerrm; end;
+  mr := public.raise_material_request(e, jsonb_build_object('required_date', current_date + 7, 'priority', 'urgent', 'deliver_to', 'Zone A store', 'activity_id', current_setting('test.act_a'),
+    'lines', jsonb_build_array(jsonb_build_object('catalog_id', c, 'qty', 250, 'spec', 'Drum lengths 250 m', 'brand', 'ACL / Kelani'),
+                               jsonb_build_object('custom', true, 'item', 'Special bracket for mast M3', 'category', 'Fixings & hardware', 'unit', 'nos', 'qty', 4, 'spec', 'Per drawing L-12'))));
+  assert (select priority from public.material_requests where id = mr) = 'urgent', 'priority';
+  assert (select count(*) from public.material_request_lines where mr_id = mr) = 2, 'two lines';
+  assert (select unit = 'm' and spec = 'Drum lengths 250 m' and not custom from public.material_request_lines where mr_id = mr and catalog_id = c), 'catalogue line with unit and spec';
+  assert (select custom from public.material_request_lines where mr_id = mr and catalog_id is null), 'custom line';
+end $$;
+reset role;
 
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

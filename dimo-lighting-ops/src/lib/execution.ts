@@ -328,6 +328,10 @@ export type MaterialRequest = {
   po_no: string | null;
   supplier: string | null;
   expected_date: string | null;
+  priority?: 'normal' | 'urgent';
+  activity_id?: string | null;
+  deliver_to?: string | null;
+  site_contact?: string | null;
 };
 export type MaterialReceipt = {
   id: string;
@@ -344,7 +348,21 @@ export type MaterialReceipt = {
   dispute_by: string | null;
   dispute_note: string | null;
 };
-export type MrLine = { id: string; mr_id: string; item: string; unit: string; qty: number; received_qty: number };
+export type MrLine = {
+  id: string;
+  mr_id: string;
+  item: string;
+  unit: string;
+  qty: number;
+  received_qty: number;
+  catalog_id?: number | null;
+  category?: string | null;
+  spec?: string | null;
+  brand?: string | null;
+  custom?: boolean;
+  est_rate?: number | null;
+  note?: string | null;
+};
 export type StoreMove = { id: string; exec_project_id: string; kind: string; item: string; unit: string; qty: number; ref: string | null; note: string | null; by_id: string; at: string };
 export const MR_STATUS: Record<MaterialRequest['status'], string> = {
   ae_review: 'AE to check',
