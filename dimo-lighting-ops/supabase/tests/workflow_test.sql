@@ -4225,5 +4225,25 @@ begin
 end $$;
 reset role;
 
+-- Programme: automatic numbering ---------------------------------------------------
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare e uuid := current_setting('test.exlegacy')::uuid; w2 uuid; sub uuid; a uuid;
+begin
+  select id into w2 from public.exec_wbs where exec_project_id = e and parent_id is null order by sort offset 1 limit 1;
+  assert (select array_agg(code order by sort) from public.exec_wbs where exec_project_id = e and parent_id is null) = array['1', '2'], 'WBS 1, 2';
+  assert (select code from public.exec_activities where id = current_setting('test.act_a')::uuid) = '1.1', 'activity A is 1.1';
+  sub := public.save_wbs(e, null, w2, null, 'Earthing');
+  assert (select code from public.exec_wbs where id = sub) = '2.1', 'sub-element first under its element';
+  assert (select array_agg(code order by sort) from public.exec_activities where wbs_id = w2) = array['2.2', '2.3', '2.4'], 'activities follow the sub-elements';
+  a := public.save_activity(e, null, jsonb_build_object('wbs_id', sub, 'name', 'Earth pits', 'duration', 2));
+  assert (select code from public.exec_activities where id = a) = '2.1.1', 'activity under the sub-element';
+  perform public.rename_activity(a, 'Earth pits and test');
+  assert (select name from public.exec_activities where id = a) = 'Earth pits and test', 'renamed';
+  perform public.delete_activity(a);
+  perform public.delete_wbs(sub);
+  assert (select array_agg(code order by sort) from public.exec_activities where wbs_id = w2) = array['2.1', '2.2', '2.3'], 'renumbered after delete';
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

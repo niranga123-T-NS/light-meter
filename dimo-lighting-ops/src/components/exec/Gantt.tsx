@@ -23,6 +23,8 @@ export function Gantt({
   contractEnd,
   onWbsPress,
   onDatesPress,
+  onAddActivity,
+  onActivityEdit,
 }: {
   wbs: Wbs[];
   acts: Activity[];
@@ -34,6 +36,10 @@ export function Gantt({
   onWbsPress?: (w: Wbs) => void;
   /** When set (the SEE while the programme can be edited), tapping an activity's start / finish / duration sets its dates */
   onDatesPress?: (a: Activity) => void;
+  /** When set, a "+" on each WBS row adds an activity under it */
+  onAddActivity?: (w: Wbs) => void;
+  /** When set, tapping an activity name edits it ("›" opens the activity) */
+  onActivityEdit?: (a: Activity) => void;
 }) {
   const wide = useWide();
   const rows = programmeRows(wbs, acts);
@@ -165,13 +171,20 @@ export function Gantt({
           <Fragment key={r.kind === 'wbs' ? r.wbs.id : r.act.id}>
             {r.kind === 'wbs' ? (
               <View style={{ height: ROW, flexDirection: 'row', backgroundColor: colors.soft }}>
-                <Pressable
-                  disabled={!onWbsPress}
-                  onPress={() => onWbsPress?.(r.wbs)}
-                  style={{ width: nameW, justifyContent: 'center', paddingLeft: 8 + r.depth * 12, paddingRight: 6 }}
-                >
-                  <Text numberOfLines={1} style={{ fontWeight: '700', color: colors.ink, fontSize: 12 }}>{`${r.wbs.code}  ${r.wbs.name}${onWbsPress ? '  ✎' : ''}`}</Text>
-                </Pressable>
+                <View style={{ width: nameW, flexDirection: 'row', alignItems: 'center' }}>
+                  <Pressable
+                    disabled={!onWbsPress}
+                    onPress={() => onWbsPress?.(r.wbs)}
+                    style={{ flex: 1, minWidth: 0, justifyContent: 'center', paddingLeft: 8 + r.depth * 12, paddingRight: 4 }}
+                  >
+                    <Text numberOfLines={1} style={{ fontWeight: '700', color: colors.ink, fontSize: 12 }}>{`${r.wbs.code}  ${r.wbs.name}${onWbsPress ? '  ✎' : ''}`}</Text>
+                  </Pressable>
+                  {onAddActivity ? (
+                    <Pressable onPress={() => onAddActivity(r.wbs)} accessibilityLabel={`Add an activity under ${r.wbs.code}`} style={{ paddingHorizontal: 8, height: ROW, justifyContent: 'center' }}>
+                      <Text style={{ color: colors.blue, fontWeight: '700', fontSize: 14 }}>+</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
                 {cols
                   ? (() => {
                       const sm = wbsSummary(r.wbs, wbs, acts);
@@ -187,12 +200,23 @@ export function Gantt({
               </View>
             ) : (
               <View style={{ height: ROW, flexDirection: 'row' }}>
-                <Pressable onPress={() => router.push(`/execution/activity/${r.act.id}`)} style={{ width: nameW, justifyContent: 'center', paddingLeft: 8 + r.depth * 12, paddingRight: 6 }}>
-                  <Text numberOfLines={1} style={{ fontSize: 12, color: r.act.critical ? colors.red : colors.text }}>
-                    <Text style={{ color: colors.muted }}>{`${r.act.code}  `}</Text>
-                    {r.act.name}
-                  </Text>
-                </Pressable>
+                <View style={{ width: nameW, flexDirection: 'row', alignItems: 'center' }}>
+                  <Pressable
+                    onPress={() => (onActivityEdit ? onActivityEdit(r.act) : router.push(`/execution/activity/${r.act.id}`))}
+                    style={{ flex: 1, minWidth: 0, justifyContent: 'center', paddingLeft: 8 + r.depth * 12, paddingRight: 4 }}
+                  >
+                    <Text numberOfLines={1} style={{ fontSize: 12, color: r.act.critical ? colors.red : colors.text }}>
+                      <Text style={{ color: colors.muted }}>{`${r.act.code}  `}</Text>
+                      {r.act.name}
+                      {onActivityEdit ? <Text style={{ color: colors.muted }}>{'  ✎'}</Text> : null}
+                    </Text>
+                  </Pressable>
+                  {onActivityEdit ? (
+                    <Pressable onPress={() => router.push(`/execution/activity/${r.act.id}`)} accessibilityLabel="Open the activity" style={{ paddingHorizontal: 8, height: ROW, justifyContent: 'center' }}>
+                      <Text style={{ color: colors.blue, fontWeight: '700', fontSize: 14 }}>›</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
                 {cols ? (
                   <Pressable disabled={!onDatesPress} onPress={() => onDatesPress?.(r.act)} style={{ flexDirection: 'row' }}>
                     {cell(COL.s, dm(r.act.es), { edit: !!onDatesPress })}
