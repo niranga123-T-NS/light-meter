@@ -166,19 +166,26 @@ export default function BudgetScreen() {
               }}
               emptyTitle={seesFinance(me.role) ? 'No budget list for this year yet' : 'No budgeted projects for you this year'}
               columns={[
-                ...(desk ? [{ h: '', w: 70, v: (r: (typeof rows)[number]) => <Button small variant="secondary" title="Edit" onPress={() => router.push(`/finance/budget-item/${r.id}`)} /> }] : []),
                 { h: 'Line', w: 70, v: (r) => lineShort(r.business_line) },
                 { h: 'Project', w: 240, v: (r) => r.project_name, bold: true },
                 {
                   h: 'Status',
-                  w: 140,
+                  w: desk ? 210 : 140,
                   v: (r) => {
                     const s = securedOf(r);
-                    if (s) return <Pill label={s.source === 'opening' ? 'Secured earlier' : 'Secured'} tone={colors.green} />;
-                    return desk || r.sales_person_id === me.id ? (
+                    const edit = desk ? <Button small variant="secondary" title="Edit" onPress={() => router.push(`/finance/budget-item/${r.id}`)} /> : null;
+                    const status = s ? (
+                      <Pill label={s.source === 'opening' ? 'Secured earlier' : 'Secured'} tone={colors.green} />
+                    ) : desk || r.sales_person_id === me.id ? (
                       <Button small variant="secondary" title="Mark secured" onPress={() => markSecured(r)} />
                     ) : (
                       <Pill label="To win" tone={colors.amber} />
+                    );
+                    return (
+                      <Row gap={6} style={{ alignItems: 'center' }}>
+                        {edit}
+                        {status}
+                      </Row>
                     );
                   },
                 },
