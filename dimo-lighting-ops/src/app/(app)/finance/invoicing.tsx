@@ -118,6 +118,38 @@ export default function Invoicing() {
   );
   const base = startIdx >= 0 ? cumInvoiced[startIdx] ?? 0 : 0;
   const outlook = ym.map((_, i) => (i < startIdx ? null : base + addBy.slice(0, i + 1).reduce((a, x) => a + x, 0)));
+  // By business line: the month, April to the month (YTD) and the full year (budget vs outlook)
+  const ytdMonths = ym.filter((m) => m <= month);
+  const invoicedIn = (ms: string[], bl: string) =>
+    data.allocs
+      .filter((a) => ms.includes(a.month) && securedLineOf(a.secured_id)?.business_line === bl && (!person || securedLineOf(a.secured_id)?.sales_person_id === person))
+      .reduce((x, a) => x + Number(a.amount), 0);
+  const budgetIn = (ms: string[], bl: string) => ms.reduce((a, m) => a + budgetFor(m, budgetRows.filter((r) => r.business_line === bl)), 0);
+  const toBillFy = (bl: string) =>
+    lines.filter((l) => l.business_line === bl && l.forecast_month <= ym[11]).reduce((a, l) => a + Math.max(0, Number(l.remaining)), 0);
+  const byLine = LINES.filter((x) => !line || x.value === line).map((x) => ({
+    value: x.value,
+    label: x.label,
+    m: { budget: budgetIn([month], x.value), forecast: forecastFor(month, lines.filter((l) => l.business_line === x.value)), invoiced: invoicedIn([month], x.value) },
+    ytd: { budget: budgetIn(ytdMonths, x.value), invoiced: invoicedIn(ytdMonths, x.value) },
+    year: { budget: budgetIn(ym, x.value), outlook: invoicedIn(ym, x.value) + toBillFy(x.value) },
+  }));
+  const tot = (f: (x: (typeof byLine)[number]) => number) => byLine.reduce((a, x) => a + f(x), 0);
+  const signed = (v: number) => `${v > 0.005e6 ? '+' : ''}${mn(v)}`;
+  const tone = (v: number) => (v < -0.005e6 ? colors.red : colors.green);
+  const byLineFooter = [
+    'Total',
+    mn(tot((x) => x.m.budget)),
+    mn(tot((x) => x.m.forecast)),
+    mn(tot((x) => x.m.invoiced)),
+    signed(tot((x) => x.m.forecast - x.m.budget)),
+    mn(tot((x) => x.ytd.budget)),
+    mn(tot((x) => x.ytd.invoiced)),
+    signed(tot((x) => x.ytd.invoiced - x.ytd.budget)),
+    mn(tot((x) => x.year.budget)),
+    mn(tot((x) => x.year.outlook)),
+    signed(tot((x) => x.year.outlook - x.year.budget)),
+  ];
   const reasons = new Map<string, number>();
   data.changes
     .filter((c) => c.status !== 'rejected' && fyOf(c.from_month) === fy)
@@ -210,35 +242,26 @@ export default function Invoicing() {
         </Card>
       </Grid>
 
-      <Section title={`By business line · ${fmtMonth(month)} (LKR Mn)`}>
+      <Section title={`By business line · ${fmtMonth(month)}, year to date and ${fyLabel(fy)} (LKR Mn)`}>
         <DataTable
-          rows={LINES.filter((x) => !line || x.value === line)}
+          rows={byLine}
           keyOf={(x) => x.value}
+          footer={byLineFooter}
           columns={[
-            { h: 'Business line', w: 220, v: (x) => x.label, bold: true },
-            { h: 'Budget', w: 100, right: true, v: (x) => mn(budgetFor(month, budgetRows.filter((r) => r.business_line === x.value))) },
-            { h: 'Forecast', w: 100, right: true, v: (x) => mn(forecastFor(month, lines.filter((l) => l.business_line === x.value))) },
-            {
-              h: 'Invoiced',
-              w: 100,
-              right: true,
-              v: (x) =>
-                mn(
-                  data.allocs
-                    .filter((a) => a.month === month && securedLineOf(a.secured_id)?.business_line === x.value && (!person || securedLineOf(a.secured_id)?.sales_person_id === person))
-                    .reduce((s, a) => s + Number(a.amount), 0),
-                ),
-            },
-            {
-              h: 'Forecast vs budget',
-              w: 140,
-              right: true,
-              v: (x) => mn(forecastFor(month, lines.filter((l) => l.business_line === x.value)) - budgetFor(month, budgetRows.filter((r) => r.business_line === x.value))),
-              tone: (x) =>
-                forecastFor(month, lines.filter((l) => l.business_line === x.value)) < budgetFor(month, budgetRows.filter((r) => r.business_line === x.value)) ? colors.red : colors.green,
-            },
+            { h: 'Business line', w: 170, v: (x) => x.label, bold: true },
+            { h: 'Month budget', w: 82, right: true, v: (x) => mn(x.m.budget) },
+            { h: 'Forecast', w: 78, right: true, v: (x) => mn(x.m.forecast) },
+            { h: 'Invoiced', w: 78, right: true, v: (x) => mn(x.m.invoiced) },
+            { h: 'Fcst vs budget', w: 82, right: true, v: (x) => signed(x.m.forecast - x.m.budget), tone: (x) => tone(x.m.forecast - x.m.budget) },
+            { h: 'YTD budget', w: 82, right: true, v: (x) => mn(x.ytd.budget) },
+            { h: 'YTD invoiced', w: 82, right: true, v: (x) => mn(x.ytd.invoiced) },
+            { h: 'YTD vs budget', w: 82, right: true, v: (x) => signed(x.ytd.invoiced - x.ytd.budget), tone: (x) => tone(x.ytd.invoiced - x.ytd.budget) },
+            { h: 'Year budget', w: 82, right: true, v: (x) => mn(x.year.budget) },
+            { h: 'Year outlook', w: 82, right: true, v: (x) => mn(x.year.outlook) },
+            { h: 'Outlook vs budget', w: 86, right: true, v: (x) => signed(x.year.outlook - x.year.budget), tone: (x) => tone(x.year.outlook - x.year.budget) },
           ]}
         />
+        <Muted>{`YTD = April to ${fmtMonth(month)}. Year outlook = invoiced so far in ${fyLabel(fy)} + still to bill on the schedules by 31 March (slipped invoices included).`}</Muted>
       </Section>
 
       {tabs.slipped.length ? (
