@@ -109,15 +109,26 @@ export default function MeetingPack() {
   const dialog = useDialog();
   const { data, error, reload } = useLoad(async () => {
     const [m, n, a, i] = await Promise.all([
-      supabase.from('sales_meetings').select('*').eq('id', id).single(),
+      supabase.from('sales_meetings').select('*').eq('id', id).maybeSingle(),
       supabase.from('sales_meeting_notes').select('*').eq('meeting_id', id),
       supabase.from('sales_meeting_actions').select('*, projects(name), organizations(name), org_units(name)').eq('meeting_id', id).order('created_at'),
       supabase.from('sales_meeting_invitees').select('*').eq('meeting_id', id),
     ]);
     if (m.error) throw new Error(m.error.message);
+    if (!m.data) return null;
     return { m: m.data as Meeting, notes: (n.data ?? []) as Note[], actions: (a.data ?? []) as Action[], invitees: (i.data ?? []) as Invitee[] };
   }, [id]);
   const [adding, setAdding] = useState<string | null>(null); // sales person id, 'general', or null
+  if (data === null)
+    return (
+      <Screen>
+        <Notice tone={colors.amber}>
+          This meeting cannot be opened yet – its pack has not been published. GM / DGM see a meeting once its host (SM Projects, SM Estimation, Design Manager or
+          the Senior Electrical Engineer) publishes it. It may also have been removed.
+        </Notice>
+        <Button title="Go to Meetings" onPress={() => router.replace('/meetings')} />
+      </Screen>
+    );
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const { m } = data;
   const cfg = TEAMS[m.team ?? 'sales'];

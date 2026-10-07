@@ -58,7 +58,10 @@ export function WeekMeetings({ title = "This week's meetings" }: { title?: strin
               onPress={() =>
                 m.my_part === 'invitee' || !m.meeting_id
                   ? router.push(m.meeting_id ? '/meetings' : `/meetings?team=${m.team}`)
-                  : router.push(`/meeting/${m.meeting_id}`)
+                  : // GM / DGM open a meeting once its host has published the pack
+                    m.my_part !== 'host' && m.status !== 'published'
+                    ? router.push(`/meetings?team=${m.team}`)
+                    : router.push(`/meeting/${m.meeting_id}`)
               }
             />
           );
