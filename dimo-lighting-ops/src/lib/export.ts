@@ -122,7 +122,11 @@ function printWeb(html: string): Promise<void> {
     style.remove();
     window.removeEventListener('afterprint', cleanup);
   };
-  window.addEventListener('afterprint', cleanup);
+  // iPhone / iPad: window.print() returns at once and "afterprint" fires before the print preview is drawn, so removing
+  // the document then printed the app screen instead (one page). There the document stays (hidden on screen) until the
+  // next print replaces it.
+  const ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (!ios) window.addEventListener('afterprint', cleanup);
   return new Promise((resolve) => {
     const imgs = [...root.querySelectorAll('img')].filter((im) => !im.complete);
     let started = false;
