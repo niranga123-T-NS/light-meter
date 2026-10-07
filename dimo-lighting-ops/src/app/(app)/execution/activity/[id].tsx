@@ -111,7 +111,8 @@ export default function ActivityScreen() {
       ],
       confirmLabel: 'Save',
     });
-    if (r) await dialog.run(async () => { await rpc('save_activity_resource', { p_activity: a.id, p_id: x?.id ?? null, p: r }); await reload(); }, 'Saved');
+    // DIMO staff are named after the person chosen
+    if (r) await dialog.run(async () => { await rpc('save_activity_resource', { p_activity: a.id, p_id: x?.id ?? null, p: r.kind === 'staff' && r.profile_id ? { ...r, name: '' } : r }); await reload(); }, 'Saved');
   };
   const removeRes = (x: Resource) => dialog.run(async () => { await rpc('delete_activity_resource', { p_id: x.id }); await reload(); }, 'Removed');
   const progress = async () => {
@@ -219,9 +220,18 @@ export default function ActivityScreen() {
               onPress={canEdit ? () => resource(x) : undefined}
               title={x.name}
               subtitle={RES_KINDS.find((k) => k.value === x.kind)?.label}
-              right={<Row gap={4}><Pill label={`${x.qty} ${x.unit ?? ''}`.trim()} />{canEdit ? <Button small variant="ghost" title="✕" onPress={() => removeRes(x)} /> : null}</Row>}
+              right={
+                <Row gap={4}>
+                  <Pill label={`${x.qty} ${x.unit ?? ''}`.trim()} />
+                  {canEdit ? <Button small variant="secondary" title="Edit" onPress={() => resource(x)} /> : null}
+                  {canEdit ? <Button small variant="ghost" title="✕" onPress={() => removeRes(x)} /> : null}
+                </Row>
+              }
             />
           ))}
+          {!canEdit && me.role === 'senior_elec_engineer' && pg.status !== 'draft' ? (
+            <Muted style={{ padding: 12 }}>The programme is submitted – to change resources, ask SM Projects for permission to edit (Programme tab → Ask to edit).</Muted>
+          ) : null}
           {!res.length ? <Muted style={{ padding: 12 }}>{a.duration ? 'No resources yet – required before the programme can be submitted' : 'Milestones need no resources'}</Muted> : null}
         </Card>
       </Section>
