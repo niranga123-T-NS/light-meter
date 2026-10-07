@@ -29,7 +29,7 @@ import { fmtDate, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 
-type Tab = 'book' | 'missing' | 'review' | 'unbudgeted' | 'done' | 'closed';
+type Tab = 'book' | 'missing' | 'review' | 'budgeted' | 'unbudgeted' | 'done' | 'closed';
 
 /** Secured projects (order book): won in the system or loaded from the opening list, with what is still to invoice. */
 export default function SecuredList() {
@@ -41,14 +41,20 @@ export default function SecuredList() {
   const [line, setLine] = useState('');
   const [person, setPerson] = useState('');
   const { data, error, reload } = useLoad(async () => {
-    const [s, l, a] = await Promise.all([
+    const [s, l, a, b] = await Promise.all([
       supabase.from('secured_projects').select('*').order('won_on', { ascending: false }),
       supabase.from('invoice_line_status').select('*'),
       supabase.from('invoice_allocations').select('*'),
+      supabase.from('budget_projects').select('id, budget_value, business_line, sales_person_id').eq('fy', fy),
     ]);
     if (s.error) throw new Error(s.error.message);
     // Project codes invoiced this year that are on no secured project (Operations links them)
-    return { secured: (s.data ?? []) as SecuredProject[], lines: (l.data ?? []) as InvoiceLine[], allocs: (a.data ?? []) as Allocation[] };
+    return {
+      secured: (s.data ?? []) as SecuredProject[],
+      lines: (l.data ?? []) as InvoiceLine[],
+      allocs: (a.data ?? []) as Allocation[],
+      budget: (b.data ?? []) as { id: string; budget_value: number; business_line: string; sales_person_id: string | null }[],
+    };
   });
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const addOne = async () => {
@@ -89,12 +95,15 @@ export default function SecuredList() {
     const later = ls.filter((l) => l.forecast_month > end).reduce((a, l) => a + Math.max(0, Number(l.remaining)), 0);
     return { dueFy, invoicedFy, balFy, later, done: ls.length > 0 && balFy + later <= 0.5, invoicedAll };
   };
+  // Secured projects on this year's budget list
+  const budgetIds = new Set(data.budget.map((b) => b.id));
   const scoped = data.secured.filter((s) => (!line || s.business_line === line) && (!person || s.sales_person_id === person));
   const open = scoped.filter((s) => s.status === 'open');
   const filters: Record<Tab, (s: SecuredProject) => boolean> = {
     book: (s) => s.status === 'open' && !calc(s).done,
     missing: (s) => s.status === 'open' && s.schedule_status === 'missing',
     review: (s) => s.status === 'open' && s.schedule_status === 'review',
+    budgeted: (s) => s.status !== 'cancelled' && budgetIds.has(s.budget_id ?? ''),
     unbudgeted: (s) => s.source === 'won' && !s.budget_id && s.status !== 'cancelled' && fyOf(s.won_on) === fy,
     done: (s) => s.status === 'open' && calc(s).done,
     closed: (s) => s.status !== 'open',
@@ -105,6 +114,10 @@ export default function SecuredList() {
   const securedFy = wonFy.reduce((a, s) => a + data.lines.filter((l) => l.secured_id === s.id && inFy(l.original_month, fy)).reduce((x, l) => x + Number(l.amount), 0), 0);
   const invoicedFy = scoped.reduce((a, s) => a + calc(s).invoicedFy, 0);
   const toBill = open.reduce((a, s) => a + calc(s).balFy, 0);
+  const budgetedRows = scoped.filter(filters.budgeted);
+  const budgetScoped = data.budget.filter((b) => (!line || b.business_line === line) && (!person || b.sales_person_id === person));
+  const budgetedBudget = budgetScoped.filter((b) => budgetedRows.some((s) => s.budget_id === b.id)).reduce((a, b) => a + Number(b.budget_value), 0);
+  const budgetedOrder = budgetedRows.reduce((a, s) => a + Number(s.order_value), 0);
   const salesPeople = [...new Set(data.secured.map((s) => s.sales_person_id).filter(Boolean))] as string[];
 
   return (
@@ -115,6 +128,11 @@ export default function SecuredList() {
         <Stat
           label={`Secured this year – ${wonFy.length} win${wonFy.length === 1 ? '' : 's'}, order value ${mn(wonFy.reduce((a, s) => a + Number(s.order_value), 0))} Mn (to invoice this year shown)`}
           value={`${mn(securedFy)} Mn`}
+        />
+        <Stat
+          label={`Budgeted projects secured – ${budgetedRows.length} of ${budgetScoped.length} on the ${fyLabel(fy)} budget list · budget value ${mn(budgetedBudget)} Mn of ${mn(budgetScoped.reduce((a, b) => a + Number(b.budget_value), 0))} Mn (order value shown)`}
+          value={`${mn(budgetedOrder)} Mn`}
+          onPress={() => setTab('budgeted')}
         />
         <Stat label="Invoiced this year" value={`${mn(invoicedFy)} Mn`} />
         <Stat label="Still to bill this year" value={`${mn(toBill)} Mn`} tone={toBill ? 'amber' : undefined} />
@@ -143,6 +161,7 @@ export default function SecuredList() {
           { value: 'book', label: 'Order book', badge: scoped.filter(filters.book).length },
           { value: 'missing', label: 'Schedule missing', badge: scoped.filter(filters.missing).length },
           { value: 'review', label: me.role === 'sm_projects' ? 'To review' : 'Waiting for SM Projects', badge: scoped.filter(filters.review).length },
+          { value: 'budgeted', label: 'Budgeted', badge: budgetedRows.length },
           { value: 'unbudgeted', label: 'Unbudgeted wins', badge: scoped.filter(filters.unbudgeted).length },
           { value: 'done', label: 'Fully invoiced' },
           { value: 'closed', label: 'Closed' },
@@ -174,6 +193,7 @@ export default function SecuredList() {
                 <Pill label={SCHEDULE_LABEL[s.schedule_status]} tone={SCHEDULE_TONE[s.schedule_status]} />
                 {s.source === 'opening' ? <Pill label="Opening list" /> : null}
                 {s.removal_requested_at ? <Pill label="Removal with SM Projects" tone={colors.red} /> : null}
+                {budgetIds.has(s.budget_id ?? '') ? <Pill label="Budgeted" tone={colors.green} /> : null}
                 {s.source === 'won' && !s.budget_id ? <Pill label="Unbudgeted" tone={colors.blue} /> : null}
               </Row>
             ),
