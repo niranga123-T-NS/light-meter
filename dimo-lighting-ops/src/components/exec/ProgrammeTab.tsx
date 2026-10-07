@@ -49,7 +49,28 @@ export function ProgrammeTab({ p, onChange }: { p: ExecProject; onChange: () => 
   const { pg, wbs, acts, deps, res } = data;
   const see = me.role === 'senior_elec_engineer';
   const smp = me.role === 'sm_projects';
-  const canEdit = see && p.status === 'active' && pg?.status !== 'submitted';
+  // The SEE edits while the programme is a draft; once submitted, SM Projects' permission is needed to edit again
+  const canEdit = see && p.status === 'active' && pg?.status === 'draft';
+  const askEdit = async () => {
+    const r = await dialog.prompt({
+      title: 'Ask to edit the programme',
+      message: pg?.version
+        ? 'SM Projects decides. When allowed, the programme becomes a revision: the approved baseline stays in force until SM Projects approves the revised programme.'
+        : 'The programme is with SM Projects. When allowed, it comes back to you as a draft to change and submit again.',
+      fields: [{ key: 'n', label: 'What needs to change and why', type: 'multiline', required: true }],
+      confirmLabel: 'Send to SM Projects',
+    });
+    if (r) await dialog.run(async () => { await rpc('request_programme_edit', { p_exec: p.id, p_reason: r.n }); await refresh(); }, 'Sent to SM Projects');
+  };
+  const decideEdit = async (ok: boolean) => {
+    const r = await dialog.prompt({
+      title: ok ? 'Allow the SEE to edit' : 'Do not allow',
+      message: ok ? 'The programme goes back to the SEE as a draft. An approved baseline stays in force until you approve the revised programme.' : undefined,
+      fields: [{ key: 'n', label: ok ? 'Note' : 'Reason', type: 'multiline', required: !ok }],
+      confirmLabel: ok ? 'Allow' : 'Refuse',
+    });
+    if (r) await dialog.run(async () => { await rpc('decide_programme_edit', { p_exec: p.id, p_allow: ok, p_note: r.n || null }); await refresh(); }, ok ? 'Allowed – the SEE can edit' : 'Refused – the SEE is told');
+  };
   const refresh = async () => {
     await reload();
     onChange();
@@ -306,12 +327,33 @@ export function ProgrammeTab({ p, onChange }: { p: ExecProject; onChange: () => 
               {canEdit && wbs.length ? <Button small variant="secondary" title="+ Activity" onPress={() => addActivity()} /> : null}
               {canEdit && pg.status === 'draft' && acts.length ? <Button small title={pg.version ? 'Submit revision' : 'Submit to SM Projects'} onPress={submit} /> : null}
               {acts.length ? <Button small variant="secondary" title="PDF" onPress={pdf} /> : null}
+              {see && p.status === 'active' && pg.status !== 'draft' && !pg.edit_requested_at ? <Button small variant="secondary" title="Ask to edit" onPress={askEdit} /> : null}
               {smp && pg.status === 'submitted' ? <Button small title="Approve" onPress={() => decide(true)} /> : null}
               {smp && pg.status === 'submitted' ? <Button small variant="secondary" title="Return" onPress={() => decide(false)} /> : null}
             </Row>
           </Row>
           {pg.status === 'draft' && pg.decision_note && pg.decided_at ? <Notice tone={colors.amber}>{`Returned by SM Projects: ${pg.decision_note}`}</Notice> : null}
           {pg.status === 'submitted' && pg.submit_note ? <Notice>{pg.submit_note}</Notice> : null}
+          {pg.edit_requested_at ? (
+            <Notice tone={colors.amber}>{`The SEE asks to edit the programme – ${pg.edit_reason ?? ''}${smp ? '' : ' · waiting for SM Projects'}`}</Notice>
+          ) : null}
+          {pg.edit_requested_at && smp ? (
+            <Row gap={8}>
+              <Button small title="Allow editing" onPress={() => decideEdit(true)} />
+              <Button small variant="secondary" title="Do not allow" onPress={() => decideEdit(false)} />
+            </Row>
+          ) : null}
+          {pg.edit_requested_at && see ? (
+            <Button
+              small
+              variant="secondary"
+              title="Withdraw the request"
+              onPress={() => dialog.run(async () => { await rpc('decide_programme_edit', { p_exec: p.id, p_allow: false }); await refresh(); }, 'Withdrawn')}
+            />
+          ) : null}
+          {see && pg.status !== 'draft' && !pg.edit_requested_at ? (
+            <Muted>{pg.status === 'submitted' ? 'Submitted – to change it before SM Projects decides, ask to edit.' : 'The programme is finalised – to change dates or activities, ask SM Projects for permission to edit.'}</Muted>
+          ) : null}
           {!pg.version ? <Muted>Work cannot commence (gate 2) until SM Projects approves the programme.</Muted> : null}
         </Card>
         {guide}
