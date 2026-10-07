@@ -170,6 +170,7 @@ export default function SecuredList() {
               <Row gap={4} wrap>
                 <Pill label={SCHEDULE_LABEL[s.schedule_status]} tone={SCHEDULE_TONE[s.schedule_status]} />
                 {s.source === 'opening' ? <Pill label="Opening list" /> : null}
+                {s.removal_requested_at ? <Pill label="Removal with SM Projects" tone={colors.red} /> : null}
                 {s.source === 'won' && !s.budget_id ? <Pill label="Unbudgeted" tone={colors.blue} /> : null}
               </Row>
             ),
