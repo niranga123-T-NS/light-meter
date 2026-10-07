@@ -4,8 +4,10 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, Empty, Grid, ListRow, Muted, Notice, Pill, Row, Section, Segmented, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
+import { BILLING_ROLES, type BillingRow } from '@/lib/billing';
 import type { ExecMember, ExecProject } from '@/lib/execution';
-import { addDaysISO, fmtDate, fmtNumber, todayISO } from '@/lib/format';
+import { fmtMonth } from '@/lib/finance';
+import { addDaysISO, fmtDate, fmtMoney, fmtNumber, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { exportProgrammePdf } from '@/lib/programmePdf';
 import { ROLE_SHORT } from '@/lib/roles';
@@ -30,6 +32,7 @@ export function ProgrammeTab({ p, onChange }: { p: ExecProject; onChange: () => 
       supabase.from('exec_members').select('*').eq('exec_project_id', p.id).eq('active', true),
       supabase.from('exec_progress_snapshots').select('*').eq('exec_project_id', p.id).order('snap_date'),
     ]);
+    const bill = BILLING_ROLES.includes(me.role) && p.secured_id && p.status === 'active' ? ((await supabase.rpc('billing_risk', { p_exec: p.id })).data ?? []) as BillingRow[] : [];
     const acts = (a.data ?? []) as Activity[];
     const ids = acts.map((x) => x.id);
     const [d, r] = ids.length
@@ -43,10 +46,14 @@ export function ProgrammeTab({ p, onChange }: { p: ExecProject; onChange: () => 
       res: (r.data ?? []) as Resource[],
       members: (m.data ?? []) as ExecMember[],
       snaps: (sn.data ?? []) as Snapshot[],
+      bill,
     };
   }, [p.id]);
   if (!data) return null;
   const { pg, wbs, acts, deps, res } = data;
+  const billFlags = data.bill
+    .filter((b) => b.activity_id && b.stage === 'work' && ['green', 'amber', 'red'].includes(b.status))
+    .map((b) => ({ activityId: b.activity_id!, deadline: b.deadline, status: b.status, label: `₹ ${fmtMonth(b.forecast_month).slice(0, 3)}` }));
   const see = me.role === 'senior_elec_engineer';
   const smp = me.role === 'sm_projects';
   // The SEE edits while the programme is a draft; once submitted, SM Projects' permission is needed to edit again
@@ -228,13 +235,30 @@ export function ProgrammeTab({ p, onChange }: { p: ExecProject; onChange: () => 
     }, 'Added – allocate its resources on the activity page');
   };
   const submit = async () => {
+    // Billing check: the programme must deliver the invoicing plan
+    const bill = p.secured_id ? (((await supabase.rpc('billing_risk', { p_exec: p.id })).data ?? []) as BillingRow[]) : [];
+    const untriggered = bill.filter((b) => b.status === 'no_trigger');
+    const red = bill.filter((b) => b.status === 'red');
+    const amber = bill.filter((b) => b.status === 'amber');
+    if (untriggered.length)
+      return dialog.toast(`${untriggered.length} invoice line(s) have no trigger – set them in the Bill tab first (${untriggered.map((b) => b.description).join(', ')})`, 'error');
+    const lkr = (xs: BillingRow[]) => fmtMoney(xs.reduce((s2, b) => s2 + Number(b.open_amount), 0), 'LKR');
     const res2 = await dialog.prompt({
       title: pg?.version ? 'Submit the revised programme' : 'Submit the programme',
-      message: 'SM Projects approves it as the baseline. Every activity needs its resources and a responsible engineer.',
-      fields: [{ key: 'n', label: pg?.version ? 'Reason for the revision' : 'Note', type: 'multiline', required: !!pg?.version }],
+      message: [
+        'SM Projects approves it as the baseline. Every activity needs its resources and a responsible engineer.',
+        p.secured_id ? `Invoicing plan: ${bill.length - red.length - amber.length} on track · ${amber.length} at risk${amber.length ? ` (${lkr(amber)})` : ''} · ${red.length} will miss the month${red.length ? ` (${lkr(red)})` : ''}.` : null,
+        ...red.map((b) => `✕ ${b.description} – ${fmtMonth(b.forecast_month)} – ${b.trigger_label} expected ${fmtDate(b.forecast_date)}, deadline ${fmtDate(b.deadline)}`),
+      ]
+        .filter(Boolean)
+        .join('\n'),
+      fields: [
+        { key: 'n', label: pg?.version ? 'Reason for the revision' : 'Note', type: 'multiline', required: !!pg?.version },
+        ...(red.length ? [{ key: 'b', label: 'Invoices missing their month – reason and recovery plan (SM Projects sees it)', type: 'multiline' as const, required: true }] : []),
+      ],
       confirmLabel: 'Submit',
     });
-    if (res2) await dialog.run(async () => { await rpc('submit_programme', { p_exec: p.id, p_note: res2.n || null }); await refresh(); }, 'Sent to SM Projects');
+    if (res2) await dialog.run(async () => { await rpc('submit_programme', { p_exec: p.id, p_note: res2.n || null, p_billing_reason: res2.b || null }); await refresh(); }, 'Sent to SM Projects');
   };
   const decide = async (ok: boolean) => {
     const r = await dialog.prompt({
@@ -424,7 +448,7 @@ export function ProgrammeTab({ p, onChange }: { p: ExecProject; onChange: () => 
         <Empty title={wbs.length ? 'Add the activities' : 'Add the WBS'} hint="WBS elements first, then the activities under them, then link them and allocate the resources." />
       ) : view === 'gantt' ? (
         <>
-          <Gantt wbs={wbs} acts={acts} deps={deps} scale={scale} today={today} contractEnd={p.end_date} onWbsPress={canEdit ? editWbs : undefined}
+          <Gantt wbs={wbs} acts={acts} deps={deps} scale={scale} today={today} contractEnd={p.end_date} billing={billFlags} onWbsPress={canEdit ? editWbs : undefined}
             onDatesPress={canEdit ? setDates : undefined}
             onAddActivity={canEdit ? addActivity : undefined}
             onActivityEdit={canEdit ? renameActivity : undefined}

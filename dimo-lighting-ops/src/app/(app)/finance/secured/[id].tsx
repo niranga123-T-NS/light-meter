@@ -38,6 +38,7 @@ import {
   mn,
   monthOf,
   MOVE_REASONS,
+  canDecideMove,
   PATTERNS,
   thisMonth,
   type Allocation,
@@ -90,7 +91,7 @@ const lineStatus = (
     return { label: "Invoiced", tone: colors.green };
   if (l.pending_change_id)
     return {
-      label: `Awaiting SM Projects → ${fmtMonth(l.pending_month)}`,
+      label: `Awaiting approval → ${fmtMonth(l.pending_month)}`,
       tone: colors.red,
     };
   if (l.forecast_month < thisMonth())
@@ -434,7 +435,7 @@ export default function SecuredDetail() {
   const move = async (l: InvoiceLine) => {
     const r = await dialog.prompt({
       title: `Move “${l.description ?? kindLabel(l.kind)}”`,
-      message: `Now planned for ${fmtMonth(l.forecast_month)} (original ${fmtMonth(l.original_month)}). Moves of an invoice due this month or out of the financial year need SM Projects.`,
+      message: `Now planned for ${fmtMonth(l.forecast_month)} (original ${fmtMonth(l.original_month)}). Moves of an invoice due this month or out of the financial year need SM Projects; a move to another quarter or year also needs DGM / GM (budget).`,
       fields: [
         {
           key: "month",
@@ -463,7 +464,7 @@ export default function SecuredDetail() {
         p_note: r.note || null,
       });
       await reload();
-      if (res === "pending") dialog.toast("Sent to SM Projects for approval");
+      if (res === "pending") dialog.toast("Sent for approval");
     }, "Done");
   };
 
@@ -1323,7 +1324,11 @@ export default function SecuredDetail() {
                   h: "",
                   w: 280,
                   v: (l) =>
-                    l.pending_change_id && reviewer ? (
+                    l.pending_change_id &&
+                    canDecideMove(
+                      me.role,
+                      data.changes.find((c) => c.id === l.pending_change_id),
+                    ) ? (
                       <Row gap={4}>
                         <Button
                           small

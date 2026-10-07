@@ -2,12 +2,15 @@ import { router, Stack } from 'expo-router';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { BarChart, CHART, LineChart } from '@/components/charts';
+import { BillingRiskSection } from '@/components/BillingRiskSection';
 import { DataTable } from '@/components/DataTable';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, ErrorBanner, Grid, Loading, Muted, Notice, Pill, Row, Screen, Section, Segmented, Select, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
+import { BILLING_ROLES } from '@/lib/billing';
 import {
   amt,
+  canDecideMove,
   addMonths,
   fmtMonth,
   fyLabel,
@@ -284,7 +287,7 @@ export default function Invoicing() {
         options={[
           { value: 'month', label: `Due ${fmtMonth(month)}`, badge: tabs.month.length },
           { value: 'slipped', label: 'Slipped', badge: tabs.slipped.length },
-          { value: 'pending', label: 'Waiting for SM Projects', badge: tabs.pending.length },
+          { value: 'pending', label: 'Waiting for approval', badge: tabs.pending.length },
           { value: 'moved', label: 'Moved this year', badge: tabs.moved.length },
         ]}
       />
@@ -309,7 +312,7 @@ export default function Invoicing() {
             h: '',
             w: 170,
             v: (l) =>
-              l.pending_change_id && me.role === 'sm_projects' ? (
+              l.pending_change_id && canDecideMove(me.role, data.changes.find((c) => c.id === l.pending_change_id)) ? (
                 <Row gap={4}>
                   <Button small title="Approve" onPress={() => decide(l.pending_change_id!, true)} />
                   <Button small variant="secondary" title="Reject" onPress={() => decide(l.pending_change_id!, false)} />
@@ -330,6 +333,7 @@ export default function Invoicing() {
         </Section>
       ) : null}
       <Muted>Open a project to move an invoice (a reason is required). Record each invoice on its project (Secured → project → Record invoice).</Muted>
+      {BILLING_ROLES.includes(me.role) ? <BillingRiskSection /> : null}
     </Screen>
   );
 }

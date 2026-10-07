@@ -55,7 +55,7 @@ ${kv([
   [`Year-end outlook (budget ${mn(r.invoicing.fyBudget)})`, mn(r.invoicing.outlook)],
   [`Slipped (${r.invoicing.slipped.count})`, mn(r.invoicing.slipped.value)],
   ['Waiting for SM Projects (date changes)', String(r.invoicing.pending)],
-  ['Ready to invoice (execution)', mn(r.invoicing.ready)],
+  ['Certificate approved – to invoice', mn(r.invoicing.ready)],
   ['YTD invoiced / budget', `${mn(r.invoicing.ytd.invoiced)} / ${mn(r.invoicing.ytd.budget)}`],
 ])}
 ${table(
@@ -63,6 +63,7 @@ ${table(
   r.invoicing.byLine.map((x) => [x.line, mn(x.budget), mn(x.forecast), mn(x.invoiced), mn(x.ytdBudget), mn(x.ytdInvoiced)]),
   right(1, 2, 3, 4, 5),
 )}
+${r.invoicing.moves?.byReason.length ? `<div class="note"><b>Moved to a later month YTD (${r.invoicing.moves.count}, ${mn(r.invoicing.moves.value)} Mn; DIMO execution ${mn(r.invoicing.moves.dimoValue)} Mn):</b> ${r.invoicing.moves.byReason.map((x) => `${esc(x.reason)} ${mn(x.value)} (${x.count})`).join(' · ')}</div>` : ''}
 ${h2('Sales (LKR Mn)')}
 ${kv([
   [`Secured ${fmtMonth(r.month)} (this FY's part)`, mn(r.sales.secured.month)],
