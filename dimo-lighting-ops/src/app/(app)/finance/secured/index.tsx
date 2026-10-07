@@ -112,7 +112,10 @@ export default function SecuredList() {
       <Stack.Screen options={{ title: 'Secured projects' }} />
       <Grid min={210}>
         <Stat label={`Opening order book – due ${fyLabel(fy)}`} value={`${mn(opening)} Mn`} />
-        <Stat label={`Secured this year (this-year value, ${wonFy.length} wins)`} value={`${mn(securedFy)} Mn`} />
+        <Stat
+          label={`Secured this year – ${wonFy.length} win${wonFy.length === 1 ? '' : 's'}, order value ${mn(wonFy.reduce((a, s) => a + Number(s.order_value), 0))} Mn (to invoice this year shown)`}
+          value={`${mn(securedFy)} Mn`}
+        />
         <Stat label="Invoiced this year" value={`${mn(invoicedFy)} Mn`} />
         <Stat label="Still to bill this year" value={`${mn(toBill)} Mn`} tone={toBill ? 'amber' : undefined} />
       </Grid>
