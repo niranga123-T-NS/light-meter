@@ -68,7 +68,6 @@ export default function ActivityScreen() {
       message: pg.version ? 'Changing the approved programme starts a revision – SM Projects approves the new baseline.' : undefined,
       fields: [
         { key: 'wbs_id', label: 'WBS element', type: 'select', required: true, options: wbsOptions, initial: a.wbs_id },
-        { key: 'code', label: 'Code', required: true, initial: a.code },
         { key: 'name', label: 'Activity', required: true, initial: a.name },
         { key: 'duration', label: 'Duration (working days, 0 = milestone)', required: true, initial: String(a.duration) },
         { key: 'responsible_id', label: 'Responsible engineer', type: 'select', options: engineers, initial: a.responsible_id ?? undefined },

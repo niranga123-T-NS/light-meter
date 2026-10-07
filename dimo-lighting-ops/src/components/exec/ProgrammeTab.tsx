@@ -74,17 +74,25 @@ export function ProgrammeTab({ p, onChange }: { p: ExecProject; onChange: () => 
   const addWbs = async () => {
     const r = await dialog.prompt({
       title: 'WBS element',
-      message: 'Work breakdown: e.g. 1 Civil works › 1.1 Foundations, 2 Electrical › 2.1 Cabling.',
+      message: 'Work breakdown: e.g. Civil works › Foundations, Electrical › Cabling. Numbers (1, 1.1 …) are given automatically.',
       fields: [
         { key: 'parent', label: 'Under (leave empty for a top level element)', type: 'select', options: wbsOptions },
-        { key: 'code', label: 'Code', required: true },
         { key: 'name', label: 'Name', required: true },
       ],
       confirmLabel: 'Add',
     });
-    if (r) await dialog.run(async () => { await rpc('save_wbs', { p_exec: p.id, p_id: null, p_parent: r.parent || null, p_code: r.code, p_name: r.name }); await reload(); }, 'Added');
+    if (r) await dialog.run(async () => { await rpc('save_wbs', { p_exec: p.id, p_id: null, p_parent: r.parent || null, p_code: null, p_name: r.name }); await reload(); }, 'Added');
   };
   // Rename, move under another element, or delete a WBS element (delete only when it has no activities or sub-elements)
+  // Gantt: rename an activity
+  const renameActivity = async (a: Activity) => {
+    const r = await dialog.prompt({
+      title: `Activity ${a.code}`,
+      fields: [{ key: 'name', label: 'Activity name', required: true, initial: a.name }],
+      confirmLabel: 'Save',
+    });
+    if (r) await dialog.run(async () => { await rpc('rename_activity', { p_id: a.id, p_name: r.name }); await reload(); }, 'Saved');
+  };
   // Gantt: set an activity's start / finish – the duration (working days) is worked out from them
   const setDates = async (a: Activity) => {
     const res = await dialog.prompt({
@@ -132,7 +140,6 @@ export function ProgrammeTab({ p, onChange }: { p: ExecProject; onChange: () => 
       message: empty ? 'To delete it, choose "Delete this element" below.' : 'It has activities or sub-elements – move or delete those first to delete it.',
       fields: [
         { key: 'parent', label: 'Under (empty = top level)', type: 'select', initial: w.parent_id ?? '', options: [{ value: '', label: '— Top level —' }, ...wbsOptions.filter((o) => !below.has(o.value))] },
-        { key: 'code', label: 'Code', required: true, initial: w.code },
         { key: 'name', label: 'Name', required: true, initial: w.name },
         ...(empty ? [{ key: 'del', label: 'Delete', type: 'select' as const, initial: 'no', options: [{ value: 'no', label: 'Keep' }, { value: 'yes', label: 'Delete this element' }] }] : []),
       ],
@@ -144,14 +151,15 @@ export function ProgrammeTab({ p, onChange }: { p: ExecProject; onChange: () => 
         await dialog.run(async () => { await rpc('delete_wbs', { p_id: w.id }); await reload(); }, 'Deleted');
       return;
     }
-    await dialog.run(async () => { await rpc('save_wbs', { p_exec: p.id, p_id: w.id, p_parent: r.parent || null, p_code: r.code, p_name: r.name }); await reload(); }, 'Saved');
+    await dialog.run(async () => { await rpc('save_wbs', { p_exec: p.id, p_id: w.id, p_parent: r.parent || null, p_code: null, p_name: r.name }); await reload(); }, 'Saved – numbers updated');
   };
-  const addActivity = async () => {
+  // From the Gantt (w = the WBS row tapped) the new activity is added there and the Gantt stays open
+  const addActivity = async (w?: Wbs) => {
     const r = await dialog.prompt({
-      title: 'Activity',
+      title: w ? `Activity under ${w.code} ${w.name}` : 'Activity',
+      message: 'Numbered automatically (e.g. 2.1.3). Set its start and finish on the Gantt afterwards.',
       fields: [
-        { key: 'wbs_id', label: 'WBS element', type: 'select', required: true, options: wbsOptions },
-        { key: 'code', label: 'Activity code (e.g. A1010)', required: true },
+        { key: 'wbs_id', label: 'WBS element', type: 'select', required: true, options: wbsOptions, initial: w?.id },
         { key: 'name', label: 'Activity', required: true },
         { key: 'duration', label: 'Duration (working days, 0 = milestone)', required: true, initial: '1' },
         { key: 'responsible_id', label: 'Responsible engineer', type: 'select', options: engineers },
@@ -167,8 +175,9 @@ export function ProgrammeTab({ p, onChange }: { p: ExecProject; onChange: () => 
     await dialog.run(async () => {
       const id = await rpc<string>('save_activity', { p_exec: p.id, p_id: null, p: r });
       if (r.pred) await rpc('set_dependency', { p_succ: id, p_pred: r.pred, p_type: 'FS', p_lag: 0 });
-      router.push(`/execution/activity/${id}`);
-    }, 'Added – allocate its resources');
+      if (w) await reload();
+      else router.push(`/execution/activity/${id}`);
+    }, 'Added – allocate its resources on the activity page');
   };
   const submit = async () => {
     const res2 = await dialog.prompt({
@@ -240,7 +249,7 @@ export function ProgrammeTab({ p, onChange }: { p: ExecProject; onChange: () => 
     {
       done: acts.length > 0,
       text: acts.length ? `${acts.length} activit${acts.length === 1 ? 'y' : 'ies'} – the Gantt chart is below` : 'Add the activities under each WBS element, with duration and what each one follows – the Gantt chart appears from the first activity',
-      button: wbs.length ? { title: '+ Activity', onPress: addActivity } : undefined,
+      button: wbs.length ? { title: '+ Activity', onPress: () => addActivity() } : undefined,
     },
     {
       done: acts.length > 0 && noRes === 0,
@@ -294,7 +303,7 @@ export function ProgrammeTab({ p, onChange }: { p: ExecProject; onChange: () => 
             <Row wrap gap={6}>
               {canEdit ? <Button small variant="secondary" title="Start date" onPress={setStart} /> : null}
               {canEdit ? <Button small variant="secondary" title="+ WBS" onPress={addWbs} /> : null}
-              {canEdit && wbs.length ? <Button small variant="secondary" title="+ Activity" onPress={addActivity} /> : null}
+              {canEdit && wbs.length ? <Button small variant="secondary" title="+ Activity" onPress={() => addActivity()} /> : null}
               {canEdit && pg.status === 'draft' && acts.length ? <Button small title={pg.version ? 'Submit revision' : 'Submit to SM Projects'} onPress={submit} /> : null}
               {acts.length ? <Button small variant="secondary" title="PDF" onPress={pdf} /> : null}
               {smp && pg.status === 'submitted' ? <Button small title="Approve" onPress={() => decide(true)} /> : null}
@@ -346,7 +355,11 @@ export function ProgrammeTab({ p, onChange }: { p: ExecProject; onChange: () => 
         <Empty title={wbs.length ? 'Add the activities' : 'Add the WBS'} hint="WBS elements first, then the activities under them, then link them and allocate the resources." />
       ) : view === 'gantt' ? (
         <>
-          <Gantt wbs={wbs} acts={acts} deps={deps} scale={scale} today={today} contractEnd={p.end_date} onWbsPress={canEdit ? editWbs : undefined} onDatesPress={canEdit ? setDates : undefined} />
+          <Gantt wbs={wbs} acts={acts} deps={deps} scale={scale} today={today} contractEnd={p.end_date} onWbsPress={canEdit ? editWbs : undefined}
+            onDatesPress={canEdit ? setDates : undefined}
+            onAddActivity={canEdit ? addActivity : undefined}
+            onActivityEdit={canEdit ? renameActivity : undefined}
+          />
           <Muted>{ganttLegend}</Muted>
         </>
       ) : view === 'tracking' ? (
