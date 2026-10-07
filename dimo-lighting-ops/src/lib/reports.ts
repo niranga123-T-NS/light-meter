@@ -1,5 +1,5 @@
 import type { Column, Section } from './export';
-import { AGEING_COLOURS, AGEING_ORDER, fmtDate, fmtMoney, human, WORKING_HOURS_PER_DAY } from './format';
+import { AGEING_COLOURS, AGEING_ORDER, fmtDate, fmtMoney, human, WORKING_HOURS_PER_DAY, inquiryTitle } from './format';
 import { projectTypeLabel, ROLE_SHORT } from './roles';
 import { rpc, supabase } from './supabase';
 import type { Debt, Inquiry, Profile, Project, Quotation, Sample, SlaClock, Visit } from './types';
@@ -175,11 +175,11 @@ export async function buildReport(key: string, f: Filters, people: Record<string
       };
     }
     case 'quotations': {
-      const { data } = await supabase.from('quotations').select('*, inquiries(code, project_name, customer_name, sales_person_id, lost_reason)').gte('released_at', f.from).lte('released_at', `${f.to}T23:59:59`).order('released_at');
+      const { data } = await supabase.from('quotations').select('*, inquiries(code, project_name, inquiry_name, customer_name, sales_person_id, lost_reason)').gte('released_at', f.from).lte('released_at', `${f.to}T23:59:59`).order('released_at');
       const rows = ((data ?? []) as (Quotation & { inquiries: Inquiry })[]).map((q) => ({
         no: q.full_no,
         inquiry: q.inquiries?.code,
-        project: q.inquiries?.project_name,
+        project: inquiryTitle(q.inquiries),
         client: q.inquiries?.customer_name,
         person: name(q.inquiries?.sales_person_id),
         released: fmtDate(q.released_at),

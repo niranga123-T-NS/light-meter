@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useDialog } from '@/components/dialog';
 import { CustomerPicker } from '@/components/pickers';
 import { Button, Card, colors, DateField, ErrorBanner, Field, Loading, Muted, Notice, Row, Screen, Section } from '@/components/ui';
-import { fmtDate, fmtMoney } from '@/lib/format';
+import { fmtDate, fmtMoney, inquiryTitle } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 import type { Inquiry, Quotation } from '@/lib/types';
@@ -51,7 +51,7 @@ export default function QuoteAnotherContractor() {
       <Stack.Screen options={{ title: 'Quote to another contractor' }} />
       <ErrorBanner message={error} />
       <Notice tone={colors.blue}>
-        {`${i.project_name} · quotation ${q ? `${q.full_no} – ${fmtMoney(q.quoted_value, q.currency)}` : ''} to ${i.customer_name}. The same estimate is reused – no new design or estimation. SM Estimation uploads the quotation addressed to the new contractor and releases it with its own quotation number.`}
+        {`${inquiryTitle(i)} · quotation ${q ? `${q.full_no} – ${fmtMoney(q.quoted_value, q.currency)}` : ''} to ${i.customer_name}. The same estimate is reused – no new design or estimation. SM Estimation uploads the quotation addressed to the new contractor and releases it with its own quotation number.`}
       </Notice>
       {group.length ? <Muted>{`Already in this tender: ${group.map((g) => `${g.customer_name} (${g.code})`).join(' · ')}`}</Muted> : null}
       <Section title="New contractor">

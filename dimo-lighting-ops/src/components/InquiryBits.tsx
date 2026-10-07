@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
-import { daysBetween, fmtDate, fmtDateTime, INQUIRY_STATUS_LABEL, SLA_COLOURS, todayISO } from '@/lib/format';
+import { daysBetween, fmtDate, fmtDateTime, INQUIRY_STATUS_LABEL, SLA_COLOURS, todayISO, inquiryTitle } from '@/lib/format';
 import { rpc } from '@/lib/supabase';
 import type { Inquiry, SlaColour } from '@/lib/types';
 import { Card, colors, Muted, Pill, Progress, Row, SlaDot } from './ui';
@@ -28,7 +28,7 @@ export function InquiryCard({ inquiry, ownerName }: { inquiry: Inquiry; ownerNam
         <Pill label={INQUIRY_STATUS_LABEL[inquiry.status] ?? inquiry.status} tone={STAGE_COLOUR[colour]} />
       </Row>
       <Text style={{ marginTop: 6, fontWeight: '600', color: colors.text }} numberOfLines={1}>
-        {inquiry.project_name}
+        {inquiryTitle(inquiry)}
       </Text>
       <Muted>{inquiry.customer_name}</Muted>
       <View style={{ marginVertical: 8 }}>

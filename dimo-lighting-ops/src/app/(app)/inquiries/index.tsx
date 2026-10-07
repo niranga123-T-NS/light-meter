@@ -51,7 +51,7 @@ export default function Inquiries() {
   const rows = all
     .filter(filters[tab])
     .filter((i) => !type || i.project_type === type)
-    .filter((i) => !s || [i.code, i.project_name, i.customer_name].some((v) => v?.toLowerCase().includes(s)))
+    .filter((i) => !s || [i.code, i.project_name, i.inquiry_name, i.customer_name].some((v) => v?.toLowerCase().includes(s)))
     .sort((a, b) => {
       // Delayed items are pinned to the top in red (5.4)
       const red = Number(b.sla_colour === 'red') - Number(a.sla_colour === 'red');

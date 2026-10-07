@@ -2,7 +2,7 @@ import { router, Stack } from 'expo-router';
 import { ReactNode, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useMe } from '@/lib/auth';
-import { fmtDate, fmtDateTime, fmtWorkDays, human } from '@/lib/format';
+import { fmtDate, fmtDateTime, fmtWorkDays, human, inquiryTitle } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { isDesigner, isEstimator } from '@/lib/roles';
 import { supabase } from '@/lib/supabase';
@@ -43,7 +43,7 @@ export function DesignBoard({ header }: { header?: ReactNode } = {}) {
   const manager = !isDesigner(me.role);
   const [weekAhead] = useState(() => Date.now() + 7 * 86400000);
   const { data, error, loading, reload } = useLoad(async () => {
-    let q = supabase.from('design_jobs').select('*, inquiries(code, project_name, customer_name, customer_deadline, route, status, revision, variation_id)').order('due_at');
+    let q = supabase.from('design_jobs').select('*, inquiries(code, project_name, inquiry_name, customer_name, customer_deadline, route, status, revision, variation_id)').order('due_at');
     if (!manager) q = q.eq('assignee_id', me.id);
     const [{ data: jobs, error: e }, queue] = await Promise.all([
       q,
@@ -119,7 +119,7 @@ export function DesignBoard({ header }: { header?: ReactNode } = {}) {
                   ? (data?.queue ?? []).map((i) => (
                       <Card key={i.id} onPress={() => router.push(`/inquiries/${i.id}`)}>
                         <Text style={{ fontWeight: '700' }}>{i.code}</Text>
-                        <Muted numberOfLines={1}>{i.project_name}</Muted>
+                        <Muted numberOfLines={1}>{inquiryTitle(i)}</Muted>
                         <Pill label={human(i.status)} tone={colors.blue} />
                         <Muted>Customer deadline {fmtDate(i.customer_deadline)}</Muted>
                       </Card>
@@ -167,7 +167,7 @@ function JobCard({
           <Pill label={job.source} />
         )}
       </Row>
-      <Muted numberOfLines={1}>{inq?.project_name}</Muted>
+      <Muted numberOfLines={1}>{inquiryTitle(inq)}</Muted>
       {inq && 'variation_id' in inq && inq.variation_id ? <Pill label="Variation" tone={colors.amber} solid /> : null}
       {pct != null ? (
         <View style={{ marginVertical: 6 }}>
@@ -194,7 +194,7 @@ export function EstimationBoard({ header }: { header?: ReactNode } = {}) {
   const { data, error, loading, reload } = useLoad(async () => {
     let q = supabase
       .from('estimation_jobs')
-      .select('*, inquiries(code, project_name, customer_name, customer_deadline, route, status, duty_status, currency, project_type, revision, debtor_flag, variation_id)')
+      .select('*, inquiries(code, project_name, inquiry_name, customer_name, customer_deadline, route, status, duty_status, currency, project_type, revision, debtor_flag, variation_id)')
       .order('due_at', { nullsFirst: true });
     if (!manager) q = q.eq('assignee_id', me.id);
     const [{ data: jobs, error: e }, direct] = await Promise.all([
@@ -274,7 +274,7 @@ export function EstimationBoard({ header }: { header?: ReactNode } = {}) {
                     <Text style={{ fontWeight: '700' }}>{i.code}</Text>
                     <Pill label="Direct – accept" tone={colors.blue} />
                   </Row>
-                  <Muted>{i.project_name}</Muted>
+                  <Muted>{inquiryTitle(i)}</Muted>
                   <Muted>Customer deadline {fmtDate(i.customer_deadline)}</Muted>
                 </Card>
               ))
