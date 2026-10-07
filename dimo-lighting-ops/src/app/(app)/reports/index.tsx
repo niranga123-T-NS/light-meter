@@ -14,6 +14,16 @@ export default function Reports() {
   return (
     <Screen>
       <Stack.Screen options={{ title: 'Reports' }} />
+      {me.role === 'gm' ? (
+        <Card style={{ padding: 0, overflow: 'hidden' }}>
+          <ListRow
+            title="Management report – whole business"
+            subtitle="P&L, invoicing, sales, cash, execution and warranty for a month, with highlights and exceptions"
+            right={<Pill label="GM / DGM" tone={colors.brand} />}
+            onPress={() => router.push('/reports/management')}
+          />
+        </Card>
+      ) : null}
       <TextInput value={q} onChangeText={setQ} placeholder="Search reports" placeholderTextColor={colors.faint} style={styles.input} />
       {areas.map((a) => (
         <Section key={a} title={a}>

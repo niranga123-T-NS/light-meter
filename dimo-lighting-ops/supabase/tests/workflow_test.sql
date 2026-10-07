@@ -4145,5 +4145,25 @@ begin
   assert (select ready_at is not null and ready_note like 'Delivered to site%' from public.exec_invoice_triggers where line_id = l), 'delivered → ready';
 end $$;
 
+-- Management report: GM / DGM only ---------------------------------------------
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  begin perform public.save_mgmt_report(current_date, '{"pnl":{}}'); assert false, 'GM only';
+  exception when others then assert sqlerrm = 'Only the GM / DGM generates the management report', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ declare r uuid;
+begin
+  r := public.save_mgmt_report(current_date, '{"pnl":{"turnover":1}}');
+  perform public.save_mgmt_comments(r, 'Collections to be followed up');
+  assert (select comments = 'Collections to be followed up' and month = app.month_of(current_date) from public.mgmt_reports where id = r), 'saved with comments';
+  perform set_config('test.mgr', r::text, false);
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin assert not exists (select 1 from public.mgmt_reports), 'others do not see it'; end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
