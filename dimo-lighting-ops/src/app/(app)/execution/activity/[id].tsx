@@ -7,7 +7,7 @@ import { useMe } from '@/lib/auth';
 import { ITEM_STATUS, type ExecMember, type PlanItem } from '@/lib/execution';
 import { fmtDate, fmtDateTime, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
-import { byCode, DEP_TYPES, programmeRows, RES_KINDS, type Activity, type Dep, type Programme, type Resource, type Wbs } from '@/lib/programme';
+import { byCode, DEP_TYPES, programmeRows, RES_KINDS, RES_PRESETS, type Activity, type ResKind, type Dep, type Programme, type Resource, type Wbs } from '@/lib/programme';
 import { rpc, supabase } from '@/lib/supabase';
 
 const depLabel = (d: Dep) => `${d.dep_type}${d.lag ? ` ${d.lag > 0 ? '+' : ''}${d.lag} d` : ''}`;
@@ -31,6 +31,8 @@ export default function ActivityScreen() {
       supabase.from('exec_members').select('*').eq('exec_project_id', act.exec_project_id).eq('active', true),
       supabase.from('exec_projects').select('name, status').eq('id', act.exec_project_id).single(),
     ]);
+    const ids = ((all.data ?? []) as Activity[]).map((x) => x.id);
+    const { data: used } = ids.length ? await supabase.from('exec_activity_resources').select('kind, name, unit').in('activity_id', ids) : { data: [] };
     const { data: items } = await supabase.from('exec_plan_items').select('*').eq('activity_id', id).order('day', { ascending: false });
     return {
       a: act,
@@ -42,6 +44,7 @@ export default function ActivityScreen() {
       members: (m.data ?? []) as ExecMember[],
       project: pj.data as { name: string; status: string } | null,
       items: (items ?? []) as PlanItem[],
+      used: (used ?? []) as Pick<Resource, 'kind' | 'name' | 'unit'>[],
     };
   }, [id]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
@@ -99,20 +102,55 @@ export default function ActivityScreen() {
   };
   const removeDep = (d: Dep) => dialog.run(async () => { await rpc('remove_dependency', { p_id: d.id }); await reload(); }, 'Link removed');
   const resource = async (x?: Resource) => {
+    // One list: resources already used on this project first, then the usual ones by type, each type with its own "type the name" choice
+    const kindLabel = (k: string) => RES_KINDS.find((y) => y.value === k)?.label ?? k;
+    const presetKey = (k: string, n: string) => `${k}:${n}`;
+    const known = new Set<string>();
+    const opts: { value: string; label: string; group: string }[] = [];
+    const add = (k: string, n: string, group: string) => {
+      const key = n.trim().toLowerCase();
+      if (known.has(key)) return;
+      known.add(key);
+      opts.push({ value: presetKey(k, n), label: n, group });
+    };
+    data.used.filter((u) => u.kind !== 'staff').forEach((u) => add(u.kind, u.name, 'Used on this project'));
+    opts.push({ value: 'staff:', label: 'DIMO staff member – choose the person below', group: 'DIMO staff' });
+    for (const k of RES_KINDS) {
+      if (k.value === 'staff') continue;
+      (RES_PRESETS[k.value as Exclude<ResKind, 'staff'>] ?? []).forEach(([n]) => add(k.value, n, k.label));
+      opts.push({ value: presetKey(k.value, '*'), label: k.value === 'other' ? 'Custom resource – type the name below' : `Other – type the name below`, group: k.label });
+    }
+    const initial = !x ? undefined : x.kind === 'staff' ? 'staff:' : opts.find((o) => o.value === presetKey(x.kind, x.name)) ? presetKey(x.kind, x.name) : presetKey(x.kind, '*');
     const r = await dialog.prompt({
       title: x ? x.name : 'Resource',
-      message: 'DIMO staff (choose the person), a labour crew, equipment, or a subcontractor – with the quantity needed on this activity.',
+      message: 'Pick a resource from the list – or “Other – type the name below” under the right type for anything not listed – with the quantity needed on this activity.',
       fields: [
-        { key: 'kind', label: 'Type', type: 'select', required: true, options: RES_KINDS, initial: x?.kind ?? 'labour' },
-        { key: 'profile_id', label: 'DIMO staff member (for type DIMO staff)', type: 'select', options: engineers, initial: x?.profile_id ?? undefined },
-        { key: 'name', label: 'Name (e.g. Electricians, Crane 25 t, Lanka Electricals)', initial: x?.name ?? '' },
+        { key: 'res', label: 'Resource', type: 'select', required: true, options: opts, initial },
+        { key: 'profile_id', label: 'DIMO staff member (for DIMO staff)', type: 'select', options: engineers, initial: x?.profile_id ?? undefined },
+        { key: 'name', label: 'Name (for “Other” / custom)', initial: x && initial?.endsWith(':*') ? x.name : '' },
         { key: 'qty', label: 'Quantity', required: true, initial: x ? String(x.qty) : '1' },
-        { key: 'unit', label: 'Unit (e.g. workers, nos)', initial: x?.unit ?? '' },
+        { key: 'unit', label: 'Unit (e.g. workers, nos – blank = the usual unit)', initial: x?.unit ?? '' },
       ],
       confirmLabel: 'Save',
     });
-    // DIMO staff are named after the person chosen
-    if (r) await dialog.run(async () => { await rpc('save_activity_resource', { p_activity: a.id, p_id: x?.id ?? null, p: r.kind === 'staff' && r.profile_id ? { ...r, name: '' } : r }); await reload(); }, 'Saved');
+    if (!r) return;
+    const [kind, ...rest] = r.res.split(':');
+    const picked = rest.join(':');
+    const name = kind === 'staff' ? '' : picked === '*' ? r.name.trim() : picked;
+    const usual =
+      (RES_PRESETS[kind as Exclude<ResKind, 'staff'>] ?? []).find(([n]) => n === picked)?.[1] ??
+      data.used.find((u) => u.kind === kind && u.name === picked)?.unit ??
+      (kind === 'staff' ? 'nos' : '');
+    await dialog.run(async () => {
+      if (kind === 'staff' && !r.profile_id) throw new Error('Choose the DIMO staff member');
+      if (kind !== 'staff' && !name) throw new Error(`Type the name of the ${kindLabel(kind).toLowerCase()} resource`);
+      await rpc('save_activity_resource', {
+        p_activity: a.id,
+        p_id: x?.id ?? null,
+        p: { kind, profile_id: kind === 'staff' ? r.profile_id : null, name, qty: r.qty, unit: r.unit.trim() || usual },
+      });
+      await reload();
+    }, 'Saved');
   };
   const removeRes = (x: Resource) => dialog.run(async () => { await rpc('delete_activity_resource', { p_id: x.id }); await reload(); }, 'Removed');
   const progress = async () => {

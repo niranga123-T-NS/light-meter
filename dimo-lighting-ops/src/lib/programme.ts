@@ -50,7 +50,7 @@ export type Activity = {
   auto_at: string | null;
 };
 export type Dep = { id: string; pred_id: string; succ_id: string; dep_type: 'FS' | 'SS' | 'FF' | 'SF'; lag: number };
-export type Resource = { id: string; activity_id: string; kind: 'staff' | 'labour' | 'equipment' | 'subcontractor'; profile_id: string | null; name: string; qty: number; unit: string | null };
+export type Resource = { id: string; activity_id: string; kind: ResKind; profile_id: string | null; name: string; qty: number; unit: string | null };
 
 export const DEP_TYPES = [
   { value: 'FS', label: 'Finish → start (after it finishes)' },
@@ -58,12 +58,38 @@ export const DEP_TYPES = [
   { value: 'FF', label: 'Finish → finish (finish together)' },
   { value: 'SF', label: 'Start → finish' },
 ];
-export const RES_KINDS = [
+export type ResKind = 'staff' | 'labour' | 'equipment' | 'access' | 'vehicle' | 'tools' | 'subcontractor' | 'other';
+export const RES_KINDS: { value: ResKind; label: string }[] = [
   { value: 'staff', label: 'DIMO staff' },
   { value: 'labour', label: 'Labour / crew' },
-  { value: 'equipment', label: 'Equipment' },
+  { value: 'equipment', label: 'Equipment / plant' },
+  { value: 'access', label: 'Access – lifts & scaffolding' },
+  { value: 'vehicle', label: 'Vehicles / transport' },
+  { value: 'tools', label: 'Tools & test instruments' },
   { value: 'subcontractor', label: 'Subcontractor' },
+  { value: 'other', label: 'Other' },
 ];
+/** Common resources on lighting / electrical projects (street & highway lighting, floodlighting, buildings, LMS); unit is the default */
+export const RES_PRESETS: Record<Exclude<ResKind, 'staff'>, [string, string][]> = {
+  labour: [
+    ['Electrician', 'workers'], ['Electrical supervisor / foreman', 'nos'], ['Cable jointer', 'workers'], ['Skilled labour', 'workers'],
+    ['Unskilled labour / helper', 'workers'], ['Mason / civil crew', 'workers'], ['Welder / fabricator', 'workers'], ['Rigger', 'workers'],
+    ['Crane / plant operator', 'nos'], ['Painter', 'workers'], ['Safety officer', 'nos'],
+  ],
+  equipment: [
+    ['Crane 25 t', 'nos'], ['Crane 50 t', 'nos'], ['Boom truck', 'nos'], ['Excavator / backhoe (JCB)', 'nos'], ['Concrete mixer', 'nos'],
+    ['Plate compactor / vibrator', 'nos'], ['Generator', 'nos'], ['Cable pulling winch', 'nos'], ['Cable drum jack / trailer', 'nos'],
+    ['Welding plant', 'nos'], ['Core cutter / drilling machine', 'nos'], ['Water pump', 'nos'],
+  ],
+  access: [['Scissor lift', 'nos'], ['Boom lift / man lift', 'nos'], ['Cherry picker / sky lift', 'nos'], ['Scaffolding', 'sets'], ['Mobile scaffold tower', 'nos'], ['Ladder', 'nos']],
+  vehicle: [['Lorry / truck', 'nos'], ['Crew cab / van', 'nos'], ['Pickup', 'nos'], ['Tractor & trailer', 'nos']],
+  tools: [
+    ['Insulation tester (Megger)', 'nos'], ['Earth resistance tester', 'nos'], ['Lux meter', 'nos'], ['Multimeter / clamp meter', 'nos'],
+    ['RCD / loop tester', 'nos'], ['Cable crimping tool set', 'sets'], ['Total station / survey kit', 'nos'], ['Power tool set', 'sets'],
+  ],
+  subcontractor: [['Civil subcontractor', 'teams'], ['Electrical subcontractor', 'teams'], ['Pole erection subcontractor', 'teams'], ['Trenching / HDD subcontractor', 'teams'], ['Crane hire', 'nos']],
+  other: [],
+};
 export const PROG_STATUS: Record<Programme['status'], string> = { draft: 'Draft', submitted: 'With SM Projects', approved: 'Approved' };
 
 /** Natural sort for codes like 1, 1.2, 1.10, A10 */
@@ -118,7 +144,7 @@ export function weeklyLoading(acts: Activity[], res: Resource[]) {
   for (const r of res) {
     const a = acts.find((x) => x.id === r.activity_id);
     if (!a?.es || !a.ef) continue;
-    const key = `${r.kind}|${r.name.toLowerCase()}`;
+    const key = `${r.name.trim().toLowerCase()}|${(r.unit ?? '').trim().toLowerCase()}`; // same name and unit = one row, whatever the capitals
     names.set(key, { name: r.name, unit: r.unit, kind: r.kind });
     const seen = new Set<string>();
     for (let d = toDay(a.es); d <= toDay(a.ef); d++) {

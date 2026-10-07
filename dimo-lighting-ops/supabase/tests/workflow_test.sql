@@ -3730,6 +3730,14 @@ begin
   perform public.save_activity_resource(a, null, '{"kind":"labour","name":"Masons","qty":"4","unit":"workers"}');
   perform public.save_activity_resource(b, null, '{"kind":"equipment","name":"Crane 25 t","qty":"1"}');
   perform public.save_activity_resource(c, null, '{"kind":"subcontractor","name":"Lanka Electricals","qty":"6","unit":"workers"}');
+  -- the wider resource types, and a custom one
+  perform public.save_activity_resource(b, null, '{"kind":"access","name":"Scissor lift","qty":"2","unit":"nos"}');
+  perform public.save_activity_resource(b, null, '{"kind":"other","name":"Traffic management crew","qty":"1"}');
+  begin
+    perform public.save_activity_resource(b, null, '{"kind":"staff","name":"","qty":"1"}');
+    raise exception 'staff without a person accepted';
+  exception when others then if sqlerrm not like '%DIMO staff member%' then raise; end if;
+  end;
   perform public.save_activity_resource(d, null, jsonb_build_object('kind', 'staff', 'profile_id', (select id from u where role = 'assistant_engineer')));
   perform public.submit_programme(e, null);
   perform set_config('test.act_a', a::text, false);
