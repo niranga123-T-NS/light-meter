@@ -3654,7 +3654,7 @@ do $$ begin
   exception when others then assert sqlerrm = 'Attach the document first', sqlerrm; end;
   perform public.verify_test(current_setting('test.tr')::uuid, true);
   assert exists (select 1 from jsonb_array_elements(public.preview_gate(current_setting('test.ex')::uuid) -> 'checks') x where x ->> 'check' = 'No open NCR' and not (x ->> 'ok')::boolean), 'NCR blocks gate';
-  perform set_config('test.gate', public.request_gate(current_setting('test.ex')::uuid, '{"as_built":true}', 'Ready for handover')::text, false);
+  perform set_config('test.gate', public.request_gate(current_setting('test.ex')::uuid, '{"as_built":true}', 'Ready for handover', current_date)::text, false);
   perform public.save_cost_line(current_setting('test.ex')::uuid, null, '{"cost_code":"material","description":"Fixtures","budget":"1000000","committed":"900000","actual":"300000"}');
   perform public.advance_sub_cert(current_setting('test.spc')::uuid, true);
 end $$;
@@ -4465,6 +4465,12 @@ begin
   assert (select custom from public.material_request_lines where mr_id = mr and catalog_id is null), 'custom line';
 end $$;
 reset role;
+
+-- Work starts with the approved programme (no checkpoint to request)
+do $$ begin
+  assert (select stage from public.exec_projects where id = current_setting('test.exlegacy')::uuid) >= 2, 'started when the programme was approved';
+  assert exists (select 1 from public.exec_gates where exec_project_id = current_setting('test.exlegacy')::uuid and gate = 1 and status = 'approved' and not legacy), 'start recorded';
+end $$;
 
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

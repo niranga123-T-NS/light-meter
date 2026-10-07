@@ -26,8 +26,8 @@ export const EXEC_AREAS: { value: string; label: string; family: ExecFamily }[] 
 export const areaLabel = (v: string) => EXEC_AREAS.find((a) => a.value === v)?.label ?? v;
 
 export const EXEC_STAGES = ['Mobilising', 'In progress', 'Handed over (DLP)'];
-/** The checkpoint at the end of each stage (SEE requests, SM Projects approves) */
-export const CHECKPOINTS = ['Ready to start', 'Handover', 'Close-out'];
+/** How each stage ends: the programme approval starts the work; the SEE requests the handover and the closure, SM Projects approves */
+export const CHECKPOINTS = ['Programme approved', 'Handover to the client', 'Project closure'];
 export const stageLabel = (p: { stage: number; status: string }) => (p.status === 'closed' ? 'Closed' : (EXEC_STAGES[p.stage - 1] ?? '—'));
 
 export type ExecProject = {
@@ -504,10 +504,10 @@ export type ExecGate = {
   override: boolean;
   note: string | null;
   legacy?: boolean;
+  event_date?: string | null;
 };
 /** Manual confirmations the SEE ticks when requesting each gate (the data checks run on the server) */
 export const GATE_CHECKLIST: Record<number, string[]> = {
-  1: ['Site mobilised – stores, site office, HSE induction and permits', 'Contract, scope and programme agreed with the client'],
   2: ['Testing and commissioning complete, witnessed by the client', 'As-built drawings and O&M manuals submitted', 'Client training done', 'Handover certificate signed by the client'],
   3: ['Defects liability period ended – defects closed', 'Final account agreed', 'Warranty registered', 'Retention release requested'],
 };
