@@ -448,7 +448,7 @@ function AssignEstimator({ job, onDone }: { job: EstimationJob; onDone: () => vo
         const currentDay = job.due_at ? fmtDateISO(job.due_at) : undefined;
         const r = await dialog.prompt({
           title: 'Assign estimator',
-          message: 'Pre-selected by project type. Assigning the other estimator needs a reason. A new due date must leave 1 working day before the customer deadline (the current deadline, including any extension) – keep the date to change only the estimator.',
+          message: `Pre-selected by project type. Assigning the other estimator needs a reason. A new due date must leave 1 working day before the customer deadline${job.inquiries?.customer_deadline ? ` (${fmtDate(job.inquiries.customer_deadline)})` : ''} – keep the date to change only the estimator.`,
           fields: [
             { key: 'a', label: 'Estimator', type: 'select', required: true, initial: job.assignee_id ?? def ?? undefined, options: (people ?? []).map((p) => ({ value: p.id, label: `${p.full_name}${p.id === def ? ' (default)' : ''}` })) },
             { key: 'd', label: 'Estimation due date', type: 'date', required: true, initial: currentDay, hint: job.due_at ? 'Keep the current date to change only the estimator' : undefined },

@@ -9,7 +9,7 @@ import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, ErrorBanner, KeyValue, ListRow, Loading, Muted, Notice, NumberField, Pill, Progress, Row, Screen, Section, Toggle } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { openAttachment } from '@/lib/files';
-import { endOfWorkDay, fmtDate, fmtDateTime, fmtWorkDays, human, WORKING_HOURS_PER_DAY, inquiryTitle } from '@/lib/format';
+import { endOfWorkDay, fmtDate, fmtDateISO, fmtDateTime, fmtWorkDays, human, WORKING_HOURS_PER_DAY, inquiryTitle } from '@/lib/format';
 import { useLoad, useMasters, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 import type { Attachment, BrandLine, DesignJob } from '@/lib/types';
@@ -40,7 +40,7 @@ export default function DesignJobScreen() {
   const { data, error, reload } = useLoad(async () => {
     const { data: j, error: e } = await supabase
       .from('design_jobs')
-      .select('*, inquiries(code, project_name, inquiry_name, customer_name, customer_deadline, route, status, solution_level, manufacturing_origin, expectation_notes, scope_description, design_scope, estimation_scope, estimation_basis, design_required_by, revision)')
+      .select('*, inquiries(code, project_name, inquiry_name, customer_name, customer_deadline, route, design_due_at, status, solution_level, manufacturing_origin, expectation_notes, scope_description, design_scope, estimation_scope, estimation_basis, design_required_by, revision)')
       .eq('id', id)
       .single();
     if (e) throw new Error(e.message);
@@ -195,14 +195,21 @@ export default function DesignJobScreen() {
                 title="Reassign"
                 onPress={async () => {
                   const { data: ds } = await supabase.from('profiles').select('id, full_name').in('role', ['lighting_designer', 'lighting_engineer']).eq('active', true);
+                  const day = j.due_at ? fmtDateISO(j.due_at) : undefined;
+                  const limits = [
+                    inq?.route === 'A' && inq.design_due_at ? `the approved design completion date (${fmtDate(inq.design_due_at)})` : null,
+                    inq?.customer_deadline ? `the customer deadline (${fmtDate(inq.customer_deadline)})` : null,
+                  ].filter(Boolean);
                   const r = await dialog.prompt({
-                    title: 'Reassign (the clock continues)',
+                    title: 'Reassign design job',
+                    message: `Set a new due date for the new designer if needed – keep the date to continue the same clock.${limits.length ? ` The due date cannot be after ${limits.join(' or ')}.` : ''}`,
                     fields: [
-                      { key: 'a', label: 'New assignee', type: 'select', required: true, options: (ds ?? []).map((x) => ({ value: x.id, label: x.full_name })) },
+                      { key: 'a', label: 'New assignee', type: 'select', required: true, options: (ds ?? []).filter((x) => x.id !== j.assignee_id).map((x) => ({ value: x.id, label: x.full_name })) },
+                      { key: 'd', label: 'Due date', type: 'date', required: true, initial: day },
                       { key: 'r', label: 'Reason', type: 'multiline', required: true },
                     ],
                   });
-                  if (r) await run('reassign_job', { p_entity_type: 'design_job', p_job: j.id, p_assignee: r.a, p_reason: r.r }, 'Reassigned');
+                  if (r) await run('reassign_job', { p_entity_type: 'design_job', p_job: j.id, p_assignee: r.a, p_reason: r.r, p_due: r.d === day ? null : endOfWorkDay(r.d) }, 'Reassigned');
                 }}
               />
             </>

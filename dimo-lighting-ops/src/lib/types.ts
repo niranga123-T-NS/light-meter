@@ -266,7 +266,7 @@ export type DesignJob = {
   submitted_at: string | null;
   approved_at: string | null;
   released_at: string | null;
-  inquiries?: Pick<Inquiry, 'code' | 'project_name' | 'inquiry_name' | 'customer_name' | 'customer_deadline' | 'route' | 'status' | 'solution_level' | 'manufacturing_origin' | 'expectation_notes' | 'scope_description' | 'design_scope' | 'estimation_scope' | 'estimation_basis' | 'design_required_by' | 'revision'> & { variation_id?: string | null } | null;
+  inquiries?: Pick<Inquiry, 'code' | 'project_name' | 'inquiry_name' | 'customer_name' | 'customer_deadline' | 'route' | 'design_due_at' | 'status' | 'solution_level' | 'manufacturing_origin' | 'expectation_notes' | 'scope_description' | 'design_scope' | 'estimation_scope' | 'estimation_basis' | 'design_required_by' | 'revision'> & { variation_id?: string | null } | null;
 };
 
 export type BrandLine = { group: string; brand: string; origin?: string };
