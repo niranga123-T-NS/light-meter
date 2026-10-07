@@ -239,6 +239,26 @@ do $$ begin
     if sqlerrm not like '%approved design completion date%' then raise; end if;
   end;
 end $$;
+-- Reassign with a new due date: checked against the approved completion date; the clock follows the new date
+do $$ declare j uuid := (select id from public.design_jobs where inquiry_id = '00000000-0000-0000-0000-00000000d001' limit 1); d timestamptz;
+begin
+  begin
+    perform public.reassign_job('design_job', j, (select id from u where role = 'lighting_engineer'), 'Leave', now() + interval '9 days');
+    raise exception 'reassigned past the approved completion date';
+  exception when others then
+    if sqlerrm not like '%approved design completion date%' then raise; end if;
+  end;
+  d := date_trunc('minute', now() + interval '4 days');
+  perform public.reassign_job('design_job', j, (select id from u where role = 'lighting_engineer'), 'Leave', d);
+  assert (select due_at from public.design_jobs where id = j) = d, 'new due date set';
+  assert (select assignee_id from public.design_jobs where id = j) = (select id from u where role = 'lighting_engineer'), 'reassigned';
+  assert exists (select 1 from public.due_date_changes where entity_id = j and new_value::timestamptz = d), 'due change versioned';
+  assert (select due_at from public.sla_clocks where entity_id = j and stage = 'design' and stopped_at is null) = d, 'clock follows the new date';
+  -- back to the designer, keeping the date
+  perform public.reassign_job('design_job', j, (select id from u where role = 'lighting_designer'), 'Back from leave');
+  assert (select due_at from public.design_jobs where id = j) = d, 'date kept';
+  assert (select owner_id from public.sla_clocks where entity_id = j and stage = 'design' and stopped_at is null) = (select id from u where role = 'lighting_designer'), 'clock owner follows';
+end $$;
 reset role;
 
 -- 4. Designer works and submits --------------------------------------------------
