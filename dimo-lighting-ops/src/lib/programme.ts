@@ -14,6 +14,9 @@ export type Programme = {
   decision_note: string | null;
   baseline_finish: string | null;
   forecast_finish: string | null;
+  edit_reason?: string | null;
+  edit_requested_by?: string | null;
+  edit_requested_at?: string | null;
 };
 export type Wbs = { id: string; exec_project_id: string; parent_id: string | null; code: string; name: string; sort: number };
 export type Activity = {

@@ -3729,6 +3729,24 @@ do $$ begin
   exception when others then assert sqlerrm like 'The Senior Electrical Engineer prepares%', sqlerrm; end;
 end $$;
 reset role;
+-- After submission the SEE needs SM Projects' permission to edit the programme
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare e uuid := current_setting('test.exlegacy')::uuid;
+begin
+  begin perform public.save_activity(e, current_setting('test.act_c')::uuid, jsonb_build_object('wbs_id', (select wbs_id from public.exec_activities where id = current_setting('test.act_c')::uuid),
+      'name', 'Cable laying', 'duration', 4)); assert false, 'locked';
+  exception when others then assert sqlerrm like 'The programme is submitted – ask SM Projects%', sqlerrm; end;
+  begin perform public.request_programme_edit(e, ''); assert false, 'reason';
+  exception when others then assert sqlerrm = 'Give the reason', sqlerrm; end;
+  perform public.request_programme_edit(e, 'Cable route longer after the drainage clash');
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.my_pending_approvals() where source = 'programme_edit'), 'with SM Projects';
+  assert public.decide_programme_edit(current_setting('test.exlegacy')::uuid, true) = 'allowed', 'allowed';
+end $$;
+reset role;
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
 do $$ declare e uuid := current_setting('test.exlegacy')::uuid;
 begin

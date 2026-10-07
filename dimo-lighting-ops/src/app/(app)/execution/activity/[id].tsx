@@ -50,7 +50,7 @@ export default function ActivityScreen() {
     const o = all.find((y) => y.id === x);
     return o ? `${o.code} ${o.name}` : '—';
   };
-  const canEdit = me.role === 'senior_elec_engineer' && pg.status !== 'submitted' && data.project?.status === 'active';
+  const canEdit = me.role === 'senior_elec_engineer' && pg.status === 'draft' && data.project?.status === 'active';
   const canProgress = (me.role === 'senior_elec_engineer' || (me.role === 'assistant_engineer' && members.some((m) => m.user_id === me.id))) && pg.version > 0;
   const preds = deps.filter((d) => d.succ_id === a.id);
   const succs = deps.filter((d) => d.pred_id === a.id);
