@@ -186,11 +186,17 @@ function pages<T>(rows: T[], per: number, fill: (chunk: T[], from: number) => Sh
   return out;
 }
 
-async function template(code: string) {
-  const url = `${Platform.OS === 'web' ? '' : SITE}/hse-forms/${encodeURIComponent(code)}.pdf`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`The original ${code} form could not be loaded (${res.status})`);
+/** A file the app serves from /public (the web app itself; phones fetch it from the live site) */
+export async function assetBytes(path: string) {
+  const res = await fetch(`${Platform.OS === 'web' ? '' : SITE}${path}`);
+  if (!res.ok) throw new Error(`${path} could not be loaded (${res.status})`);
   return new Uint8Array(await res.arrayBuffer());
+}
+
+async function template(code: string) {
+  return assetBytes(`/hse-forms/${encodeURIComponent(code)}.pdf`).catch(() => {
+    throw new Error(`The original ${code} form could not be loaded`);
+  });
 }
 
 /** Write one value into its box: text shrunk (down to 5.5 pt) or wrapped to fit, ticks and circles drawn as ink. */
@@ -301,7 +307,8 @@ async function build(code: string, sheets: Sheet[]) {
   return doc.save();
 }
 
-async function deliver(bytes: Uint8Array, name: string, key: string, filters: string) {
+/** PDF bytes to the user: a download on the web, the share sheet on phones (logged like reports) */
+export async function deliver(bytes: Uint8Array, name: string, key: string, filters: string) {
   const { data } = await supabase.auth.getUser();
   if (data.user) await supabase.from('report_runs').insert({ user_id: data.user.id, report_key: key, filters: { text: filters }, format: 'pdf' });
   const fileName = `${name.replace(/[^A-Za-z0-9-]+/g, '_')}.pdf`;

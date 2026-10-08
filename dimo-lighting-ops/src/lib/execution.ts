@@ -44,6 +44,11 @@ export type ExecProject = {
   secured_id: string | null;
   /** SAP WBS number from the order book (e.g. LS-000116) – the project number on site documents */
   wbs_no: string | null;
+  /** Workers need a police report: flagged 2 days, then blocked until it is submitted */
+  police_required?: boolean;
+  letter_sign_name?: string | null;
+  letter_sign_designation?: string | null;
+  letter_sign_phone?: string | null;
   contract_ref: string | null;
   request_id: string | null;
   stage: number;
@@ -576,6 +581,10 @@ export type ExecRequest = {
   areas: string[];
   see_id: string | null;
   note: string | null;
+  police_required: boolean;
+  letter_sign_name: string | null;
+  letter_sign_designation: string | null;
+  letter_sign_phone: string | null;
   requested_by: string;
   requested_at: string;
   status: 'pending_smp' | 'approved' | 'rejected' | 'cancelled';
