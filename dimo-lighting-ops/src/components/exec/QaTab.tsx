@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
+import { Text } from 'react-native';
 import { Attachments } from '@/components/Attachments';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, Empty, ListRow, Muted, Notice, Pill, Row, Section } from '@/components/ui';
@@ -7,6 +8,7 @@ import { useMe } from '@/lib/auth';
 import type { ExecMember, ExecProject, Ncr, TestRecord } from '@/lib/execution';
 import { fmtDate, fmtDateTime, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
+import { QA_STATUS, type QaReport } from '@/lib/qaReport';
 import { rpc, supabase } from '@/lib/supabase';
 
 const testTone = (t: TestRecord) => (t.result === 'fail' ? colors.red : t.status === 'verified' ? colors.green : colors.amber);
@@ -18,12 +20,13 @@ export function QaTab({ p }: { p: ExecProject }) {
   const people = usePeople();
   const [open, setOpen] = useState<string | null>(null);
   const { data, reload } = useLoad(async () => {
-    const [t, n, m] = await Promise.all([
+    const [t, n, m, q] = await Promise.all([
       supabase.from('test_records').select('*').eq('exec_project_id', p.id).order('performed_at', { ascending: false }),
       supabase.from('ncrs').select('*').eq('exec_project_id', p.id).order('raised_at', { ascending: false }),
       supabase.from('exec_members').select('*').eq('exec_project_id', p.id).eq('active', true),
+      supabase.from('qa_reports').select('id, code, title, status, version, created_by, updated_at, submitted_at, decided_at, decided_by').eq('exec_project_id', p.id).order('updated_at', { ascending: false }),
     ]);
-    return { tests: (t.data ?? []) as TestRecord[], ncrs: (n.data ?? []) as Ncr[], members: (m.data ?? []) as ExecMember[] };
+    return { tests: (t.data ?? []) as TestRecord[], ncrs: (n.data ?? []) as Ncr[], members: (m.data ?? []) as ExecMember[], reports: (q.data ?? []) as QaReport[] };
   }, [p.id]);
   const isSee = me.role === 'senior_elec_engineer';
   const canRecord = isSee || me.role === 'assistant_engineer';
@@ -69,8 +72,39 @@ export function QaTab({ p }: { p: ExecProject }) {
     if (res) await dialog.run(async () => { await rpc('close_ncr', { p_id: n.id, p_root: res.r, p_action: res.a, p_note: res.n || null }); await reload(); }, 'Closed');
   };
 
+  const reports = data?.reports ?? [];
+  const drafts = reports.filter((x) => x.status === 'draft' || x.status === 'returned');
+  const issued = reports.filter((x) => x.status === 'submitted' || x.status === 'approved');
+  const reportRow = (x: QaReport) => (
+    <ListRow
+      key={x.id}
+      wrapRight
+      onPress={() => router.push(`/execution/qa-report/${x.id}`)}
+      highlight={x.status === 'returned' ? colors.red : isSee && x.status === 'submitted' ? colors.amber : undefined}
+      title={`${x.code} · ${x.title}`}
+      subtitle={[
+        people[x.created_by]?.full_name,
+        `v${x.version}`,
+        x.status === 'approved' ? `approved ${fmtDate(x.decided_at)} by ${people[x.decided_by ?? '']?.full_name ?? ''}` : x.status === 'submitted' ? `submitted ${fmtDate(x.submitted_at)}` : `saved ${fmtDateTime(x.updated_at)}`,
+      ]
+        .filter(Boolean)
+        .join(' · ')}
+      right={<Pill label={QA_STATUS[x.status]} tone={x.status === 'approved' ? colors.green : x.status === 'returned' ? colors.red : x.status === 'submitted' ? colors.amber : colors.grey} solid={x.status === 'approved'} />}
+    />
+  );
+
   return (
     <>
+      <Section
+        title={`Test reports (${reports.length})`}
+        right={canRecord && p.status === 'active' ? <Button small title="+ New test report" onPress={() => router.push({ pathname: '/execution/qa-report/[id]', params: { id: 'new', project: p.id } })} /> : null}
+      >
+        <Muted style={{ marginBottom: 6 }}>Write the report like a Word document on A4 pages – project header and DIMO logo on every page, tables, photos and readings. Save drafts, submit to the SEE; approved reports are published as PDF.</Muted>
+        <Text style={{ fontWeight: '700', color: colors.ink, marginBottom: 4 }}>{`My drafts and returned (${drafts.length})`}</Text>
+        {drafts.length ? <Card style={{ padding: 0, overflow: 'hidden', marginBottom: 8 }}>{drafts.map(reportRow)}</Card> : <Muted style={{ marginBottom: 8 }}>No drafts</Muted>}
+        <Text style={{ fontWeight: '700', color: colors.ink, marginBottom: 4 }}>{`Submitted and published (${issued.length})`}</Text>
+        {issued.length ? <Card style={{ padding: 0, overflow: 'hidden' }}>{issued.map(reportRow)}</Card> : <Muted>Nothing submitted yet</Muted>}
+      </Section>
       <Section
         title={`Tests (${tests.length})`}
         right={
