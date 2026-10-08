@@ -5111,5 +5111,15 @@ do $$ begin
 end $$;
 rollback to savepoint qa_reports;
 
+-- Operations Executive updates a debtor's status; the sales person is told --------------------------------------------
+savepoint debt_ops;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+select public.update_debt_status((select id from public.debts where invoice_no = 'INV-10452'), 'follow_up', 'Called the accounts dept', current_date + 3);
+reset role;
+do $$ begin
+  assert (select status = 'follow_up' from public.debts where invoice_no = 'INV-10452'), 'updated by Operations';
+end $$;
+rollback to savepoint debt_ops;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
