@@ -4950,5 +4950,50 @@ begin
 end $$;
 rollback to savepoint police;
 
+-- Debtors: part collections recorded by the Operations Executive with a note --------------------------------
+savepoint collections;
+do $$ declare d uuid;
+begin
+  insert into public.debts (invoice_no, client_name, amount, currency, outstanding_days, sales_person_id)
+  values ('INV-COLL-1', 'Part Pay Ltd', 1000000, 'LKR', 45, (select id from u where role = 'asm_building')) returning id into d;
+  perform set_config('test.cd', d::text, false);
+end $$;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  begin perform public.record_debt_collection(current_setting('test.cd')::uuid, 100, current_date, 'x'); assert false, 'ops only';
+  exception when others then assert sqlerrm like 'Only the Operations Executive%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare d uuid := current_setting('test.cd')::uuid; c uuid;
+begin
+  begin perform public.record_debt_collection(d, 400000, current_date, ''); assert false, 'note';
+  exception when others then assert sqlerrm like 'Add a note%', sqlerrm; end;
+  c := public.record_debt_collection(d, 400000, current_date, 'Cheque 123456 deposited – balance next month', 'CHQ-123456');
+  assert (select status = 'partially_collected' and collected_amount = 400000 from public.debts where id = d), 'part collected';
+  assert app.debt_collected(d) = 400000, 'total';
+  begin perform public.record_debt_collection(d, 700000, current_date, 'too much'); assert false, 'over balance';
+  exception when others then assert sqlerrm like 'More than the balance%', sqlerrm; end;
+  perform public.void_debt_collection(c, 'Cheque returned');
+  assert (select status = 'outstanding' and collected_amount is null from public.debts where id = d), 'back to outstanding';
+  perform public.record_debt_collection(d, 250000, current_date, 'Transfer received');
+  perform public.record_debt_collection(d, 750000, current_date, 'Final transfer');
+  assert (select status = 'collected' and collected_amount = 1000000 from public.debts where id = d), 'collected in full';
+  assert (select count(*) from public.debt_log where debt_id = d and kind = 'collection') = 4, 'history';
+end $$;
+reset role;
+do $$ declare d uuid := current_setting('test.cd')::uuid; up uuid;
+begin
+  assert exists (select 1 from public.notifications where kind = 'debt_collection' and recipient_id = (select id from u where role = 'asm_building')), 'sales person told';
+  -- new upload with a lower amount: payments taken in by accounts
+  update public.debts set status = 'partially_collected' where id = d;
+  delete from public.debt_collections where debt_id = d and note = 'Final transfer';
+  insert into public.debt_uploads (as_at, status, uploaded_by) values (current_date, 'confirmed', (select id from u where role = 'operations_exec')) returning id into up;
+  update public.debts set last_upload_id = up, amount = 750000 where id = d;
+  assert (select status = 'outstanding' and collected_amount is null from public.debts where id = d), 'reset after upload';
+  assert app.debt_collected(d) = 0, 'old collections are history';
+end $$;
+rollback to savepoint collections;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

@@ -459,6 +459,7 @@ export type Debt = {
   promised_date: string | null;
   collected_amount: number | null;
   collected_date: string | null;
+  last_upload_id?: string | null;
   dispute_reason: string | null;
   is_legal: boolean;
   legal_description: string | null;
