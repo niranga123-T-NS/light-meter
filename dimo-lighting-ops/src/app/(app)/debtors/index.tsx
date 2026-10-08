@@ -282,7 +282,14 @@ export default function Debtors() {
               <Row gap={4}>
                 {hearingPassed(d) ? <Pill label="Hearing passed – update" tone={colors.red} solid /> : null}
                 {d.collection_mismatch ? <Pill label="Mismatch" tone={colors.red} /> : null}
-                <Text style={{ fontWeight: '700' }}>{fmtMoney(d.amount, d.currency)}</Text>
+                {d.status === 'partially_collected' && d.collected_amount ? (
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={{ fontWeight: '700' }}>{fmtMoney(Number(d.amount) - Number(d.collected_amount), d.currency)}</Text>
+                    <Text style={{ fontSize: 11, color: colors.green }}>{`${fmtMoney(d.collected_amount, d.currency)} collected`}</Text>
+                  </View>
+                ) : (
+                  <Text style={{ fontWeight: '700' }}>{fmtMoney(d.amount, d.currency)}</Text>
+                )}
               </Row>
             }
             onPress={() => router.push(`/debtors/${d.id}`)}
