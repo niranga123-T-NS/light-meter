@@ -1,21 +1,18 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { useDialog } from '@/components/dialog';
 import { PlanItemRow } from '@/components/exec/PlanItemRow';
-import { PlanWeek } from '@/components/exec/PlanWeek';
+import { MyPlanEditor } from '@/components/exec/MyPlanEditor';
 import { TestingBanner } from '@/components/Testing';
-import { Button, Card, colors, Empty, ErrorBanner, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section, Select } from '@/components/ui';
+import { Button, Card, colors, Empty, ErrorBanner, ListRow, Loading, Muted, Pill, Row, Screen, Section, Select } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { PLAN_STATUS, weekOf, type ExecMember, type ExecPlan, type ExecProject, type PlanItem } from '@/lib/execution';
 import { addDaysISO, fmtDate, fmtDateTime, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
-import { loadProgramme } from '@/lib/programme';
-import { rpc, supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 /** Weekly plans: Assistant Engineers plan each project week (due Saturday 17:00); the Senior Electrical Engineer approves. */
 export default function Plans() {
   const me = useMe();
-  const dialog = useDialog();
   const people = usePeople();
   const params = useLocalSearchParams<{ project?: string; week?: string }>();
   const ae = me.role === 'assistant_engineer';
@@ -34,41 +31,10 @@ export default function Plans() {
   });
   const myProjects = (data?.projects ?? []).filter((p) => !ae || data?.members.some((m) => m.exec_project_id === p.id && m.user_id === me.id));
   const proj = project ?? myProjects[0]?.id ?? null;
-  const { data: weekData, reload: reloadWeek } = useLoad(async () => {
-    if (!ae || !proj) return null;
-    const { data: pl } = await supabase.from('exec_plans').select('*').eq('exec_project_id', proj).eq('ae_id', me.id).eq('week_start', week).maybeSingle();
-    const { data: its } = pl ? await supabase.from('exec_plan_items').select('*').eq('plan_id', pl.id).order('day') : { data: [] };
-    return { plan: pl as ExecPlan | null, items: (its ?? []) as PlanItem[], programme: await loadProgramme(proj) };
-  }, [proj, week, ae]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const refresh = async () => {
-    await reload();
-    await reloadWeek();
-  };
+  const refresh = reload;
   const toApprove = data.plans.filter((p) => p.status === 'submitted');
   const pname = (id: string) => data.projects.find((p) => p.id === id)?.name ?? '';
-  const supervisors = data.members.filter((m) => m.exec_project_id === proj && m.member_role === 'sub_supervisor');
-  const plan = weekData?.plan ?? null;
-  const editable = !plan || plan.status === 'draft' || plan.status === 'returned' || plan.status === 'approved';
-  const deadline = addDaysISO(week, -2);
-  // Critical activities due this week must be planned, or the reason given (shown to the SEE)
-  const submit = async () => {
-    if (!plan) return;
-    const missing = await rpc<{ activity_id: string; code: string; name: string; es: string; ef: string }[]>('plan_missing_critical', { p_plan: plan.id });
-    let reasons: Record<string, string> = {};
-    if (missing.length) {
-      const r = await dialog.prompt({
-        title: 'Critical activities not in this plan',
-        message: 'These critical activities are due this week. Cancel and plan them, or give the reason for each – the Senior Electrical Engineer sees it.',
-        fields: missing.map((m) => ({ key: m.activity_id, label: `${m.code} ${m.name} (${fmtDate(m.es)} → ${fmtDate(m.ef)})`, type: 'multiline' as const, required: true })),
-        confirmLabel: 'Submit with reasons',
-      });
-      if (!r) return;
-      reasons = r;
-    }
-    await dialog.run(async () => { await rpc('submit_plan', { p_plan: plan.id, p_reasons: reasons }); await refresh(); }, 'Submitted to the Senior Electrical Engineer');
-  };
-
   return (
     <Screen refreshing={loading} onRefresh={refresh}>
       <Stack.Screen options={{ title: 'Plans' }} />
@@ -109,21 +75,9 @@ export default function Plans() {
               <Button small variant="secondary" title="‹ Week" onPress={() => setWeek(addDaysISO(week, -7))} />
               <Muted>{`Week of ${fmtDate(week)}`}</Muted>
               <Button small variant="secondary" title="Week ›" onPress={() => setWeek(addDaysISO(week, 7))} />
-              {plan ? <Pill label={PLAN_STATUS[plan.status]} tone={plan.status === 'approved' ? colors.green : plan.status === 'returned' ? colors.red : colors.amber} /> : null}
             </Row>
-            {plan?.decision_note ? <Notice tone={plan.status === 'returned' ? colors.red : colors.blue}>{plan.decision_note}</Notice> : null}
-            <Muted>{`Submit by Saturday ${fmtDate(deadline)} 17:00 – the Senior Electrical Engineer approves. Supervisors see their items each day.`}</Muted>
           </Card>
-          {proj ? (
-            <PlanWeek week={week} items={weekData?.items ?? []} edit={editable} project={proj} supervisors={supervisors} canResult onChange={refresh} programme={weekData?.programme} />
-          ) : (
-            <Empty title="You are not on any execution project" />
-          )}
-          {plan && (plan.status === 'draft' || plan.status === 'returned') && weekData?.items.length ? (
-            <Row style={{ justifyContent: 'flex-end' }}>
-              <Button title="Submit for approval" onPress={submit} />
-            </Row>
-          ) : null}
+          {proj ? <MyPlanEditor project={proj} week={week} onChange={reload} /> : <Empty title="You are not on any execution project" />}
         </Section>
       ) : null}
       <Section title="Plans this week and next">

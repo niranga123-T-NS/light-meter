@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import { useState } from 'react';
 import { Button, Muted, Row, Section } from '@/components/ui';
 import { useMe } from '@/lib/auth';
@@ -7,6 +6,7 @@ import { addDaysISO, fmtDate, todayISO } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import { supabase } from '@/lib/supabase';
 import { loadProgramme } from '@/lib/programme';
+import { MyPlanEditor } from './MyPlanEditor';
 import { PlanWeek } from './PlanWeek';
 
 /** The project's week: every engineer's plan items and supervisor additions, with results. */
@@ -20,14 +20,17 @@ export function PlansTab({ p }: { p: ExecProject }) {
     ]);
     return { items: (its.data ?? []) as PlanItem[], members: (mem.data ?? []) as ExecMember[], programme: await loadProgramme(p.id) };
   }, [p.id, week]);
+  // An Assistant Engineer on this project plans right here
+  const myAe = me.role === 'assistant_engineer' && !!data?.members.some((m) => m.user_id === me.id && m.member_role === 'assistant_engineer');
   return (
     <Section title="Plan">
       <Row wrap gap={6} style={{ alignItems: 'center', marginBottom: 8 }}>
         <Button small variant="secondary" title="‹ Week" onPress={() => setWeek(addDaysISO(week, -7))} />
         <Muted>{`Week of ${fmtDate(week)}`}</Muted>
         <Button small variant="secondary" title="Week ›" onPress={() => setWeek(addDaysISO(week, 7))} />
-        {me.role === 'assistant_engineer' ? <Button small title="My plan" onPress={() => router.push({ pathname: '/execution/plans', params: { project: p.id, week } })} /> : null}
       </Row>
+      {myAe ? <MyPlanEditor project={p.id} week={week} onChange={reload} /> : null}
+      {myAe ? <Muted style={{ fontWeight: '700', marginTop: 12, marginBottom: 4 }}>Whole project this week</Muted> : null}
       {data ? (
         <PlanWeek week={week} items={data.items} project={p.id} supervisors={data.members.filter((m) => m.member_role === 'sub_supervisor')} canResult={me.role !== 'trainee'} onChange={reload} programme={data.programme} />
       ) : null}
