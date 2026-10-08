@@ -5051,5 +5051,48 @@ do $$ begin
 end $$;
 rollback to savepoint result_check;
 
+-- QA / QC test reports: draft → submitted → approved (published) or returned ---------------------------------------------
+savepoint qa_reports;
+insert into public.exec_members (exec_project_id, user_id, member_role)
+select current_setting('test.ex')::uuid, x.id, 'assistant_engineer' from u x where x.role = 'assistant_engineer'
+  and not exists (select 1 from public.exec_members m where m.exec_project_id = current_setting('test.ex')::uuid and m.user_id = x.id and m.active);
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare e uuid := current_setting('test.ex')::uuid; r uuid;
+begin
+  r := public.save_qa_report(e, null, '{"title":"IR test – DB-2","content_html":"<p>x</p>"}');
+  begin perform public.submit_qa_report(r); assert false, 'empty';
+  exception when others then assert sqlerrm like 'Write the report first%', sqlerrm; end;
+  perform public.save_qa_report(e, r, '{"title":"IR test – DB-2","content_html":"<h1>Insulation resistance</h1><p>All circuits above 1 MΩ</p>"}');
+  assert (select status = 'draft' and code like 'QAR-%' from public.qa_reports where id = r), 'draft saved';
+  perform public.submit_qa_report(r);
+  begin perform public.save_qa_report(e, r, '{"title":"x","content_html":"y"}'); assert false, 'locked';
+  exception when others then assert sqlerrm like 'The report is submitted%', sqlerrm; end;
+  perform set_config('test.qar', r::text, false);
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare r uuid := current_setting('test.qar')::uuid;
+begin
+  begin perform public.decide_qa_report(r, false); assert false, 'reason';
+  exception when others then assert sqlerrm like 'Say what needs to change%', sqlerrm; end;
+  perform public.decide_qa_report(r, false, 'Add the instrument calibration date');
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare r uuid := current_setting('test.qar')::uuid;
+begin
+  perform public.save_qa_report(current_setting('test.ex')::uuid, r, '{"title":"IR test – DB-2","content_html":"<h1>Insulation resistance</h1><p>All circuits above 1 MΩ. Megger calibrated 01/2026</p>"}');
+  perform public.submit_qa_report(r);
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select public.decide_qa_report(current_setting('test.qar')::uuid, true, null);
+reset role;
+do $$ begin
+  assert (select status = 'approved' and version = 2 from public.qa_reports where id = current_setting('test.qar')::uuid), 'published, second version';
+  assert exists (select 1 from public.notifications where kind = 'qa_report' and recipient_id = (select id from u where role = 'assistant_engineer')), 'author told';
+end $$;
+rollback to savepoint qa_reports;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
