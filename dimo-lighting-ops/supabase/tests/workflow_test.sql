@@ -3807,6 +3807,8 @@ begin
   begin perform public.save_plan_item(e, wk, jsonb_build_object('day', current_date, 'title', 'Cast bases M3–M4')); assert false, 'activity needed';
   exception when others then assert sqlerrm = 'Choose the programme activity this work belongs to', sqlerrm; end;
   it := public.save_plan_item(e, wk, jsonb_build_object('day', current_date, 'title', 'Cast bases M3–M4', 'activity_id', current_setting('test.act_a')));
+  -- A site meeting needs no activity
+  perform public.delete_plan_item(public.save_plan_item(e, wk, jsonb_build_object('day', current_date, 'kind', 'meeting', 'title', 'Weekly site meeting with the consultant')));
   perform set_config('test.pli', it::text, false);
   select plan_id into pl from public.exec_plan_items where id = it;
   perform set_config('test.plp', pl::text, false);

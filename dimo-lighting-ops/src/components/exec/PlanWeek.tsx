@@ -43,11 +43,10 @@ export function PlanWeek({
           ? [
               {
                 key: 'act',
-                label: programme.live ? 'Programme activity (⚠ = critical)' : 'Programme activity (optional until the programme is approved)',
+                label: programme.live ? 'Programme activity (⚠ = critical) – needed for Task items' : 'Programme activity (optional until the programme is approved)',
                 type: 'select' as const,
-                required: programme.live,
                 initial: it?.activity_id ?? undefined,
-                options: activityOptions(programme.acts, week),
+                options: [{ value: '', label: '— not linked (meeting, delivery, other) —' }, ...activityOptions(programme.acts, week)],
               },
             ]
           : []),
@@ -65,6 +64,10 @@ export function PlanWeek({
       ],
       confirmLabel: 'Save',
     });
+    if (r && programme?.live && r.kind === 'task' && !r.act) {
+      dialog.toast('Choose the programme activity this work belongs to – only meetings, inspections, tests, deliveries and other items can be left unlinked', 'error');
+      return;
+    }
     if (r)
       await dialog.run(async () => {
         const act = programme?.acts.find((a) => a.id === r.act);
