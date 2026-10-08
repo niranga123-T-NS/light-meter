@@ -1,6 +1,7 @@
 import { esc, printHtml } from './export';
 import { fmtDate, fmtDateTime } from './format';
 import type { HseEquipment, HseForm, HseRecord, Induction } from './hse';
+import { DIMO_LOGO_DATA_URI } from './brandLogoData';
 
 // HSE forms printed as on the issued DIMO paper forms: document number and issue box, the same sections and the
 // sign-off block, filled with the names, dates and times recorded in the app.
@@ -26,7 +27,7 @@ const CSS = `
 `;
 
 function head(f: HseForm, c: Ctx, sub = 'OCCUPATIONAL HEALTH & SAFETY MANAGEMENT SYSTEM') {
-  const logo = c.logoUrl ? `<img src="${esc(c.logoUrl)}" style="height:34pt" />` : '<b style="font-size:16pt;color:#1D3A8A">DIMO</b>';
+  const logo = `<img src="${DIMO_LOGO_DATA_URI}" alt="DIMO" style="height:36pt;width:auto" />`;
   const kind = f.kind === 'permit' ? 'PERMIT TO WORK' : f.kind === 'checklist' || f.kind === 'kit' ? 'CHECKLIST' : '';
   return `<table class="head"><tr><td rowspan="3" style="width:20%" class="c">${logo}</td><td class="sys">${esc(sub)}</td>
     <td style="width:26%">Document Number:<br/><b>${esc(f.doc_no)}</b></td></tr>

@@ -4732,6 +4732,10 @@ begin
   pid := public.request_permit(e, jsonb_build_object('form_code', 'PTW-05', 'answers', ans, 'starts_at', now(), 'ends_at', now() + interval '4 hours',
       'header', jsonb_build_object('location', 'Mast M2', 'description', 'Fix floodlights', 'in_charge', 'Sunil', 'mobile', '0771234567', 'shift', 'day')));
   assert (select code like 'PTW-%' and status = 'submitted' from public.hse_records where id = pid), 'requested';
+  pid := public.request_permit(e, jsonb_build_object('form_code', 'PTW-02', 'answers', (select jsonb_object_agg(lpad(g::text, 2, '0'), jsonb_build_object('a', 'yes')) from generate_series(1, 16) g),
+      'starts_at', now(), 'ends_at', now() + interval '2 hours', 'header', jsonb_build_object('location', 'Mast M3', 'description', 'Lift luminaires', 'in_charge', 'Sunil', 'mobile', '0771234567')));
+  assert (select header ->> 'lifting_plan_no' from public.hse_records where id = pid) = (select code from public.exec_projects where id = e) || '/LP-001', 'lifting plan numbered per project';
+  pid := (select id from public.hse_records where form_code = 'PTW-05' and exec_project_id = e order by created_at desc limit 1);
   begin perform public.decide_permit(pid, true); assert false, 'not EHS';
   exception when others then assert sqlerrm like 'Only the EHS Officer%', sqlerrm; end;
   tb := public.save_tbt(e, jsonb_build_object('permit_id', pid, 'header', '{"location":"Mast M2","activity":"Fix floodlights on M2","hazards":"Fall from height","shift":"day"}'::jsonb,

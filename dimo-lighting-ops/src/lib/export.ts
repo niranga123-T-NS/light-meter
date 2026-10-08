@@ -4,6 +4,7 @@ import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 import writeXlsxFile from 'write-excel-file/universal';
 import { supabase } from './supabase';
+import { DIMO_LOGO_DATA_URI } from './brandLogoData';
 
 // Branded report export (Section 9.5): DIMO logo, title, filters, report information block,
 // repeated table headers, bold totals, page X of Y, "Confidential" footer and a watermark
@@ -19,7 +20,7 @@ export type ReportMeta = {
   currencyNote?: string;     // e.g. "USD and LKR shown separately; consolidated at 1 USD = 300 LKR"
   generatedBy: string;       // "Name – Role"
   landscape?: boolean;
-  logoUrl?: string | null;   // maintained by the System Administrator (settings.report_logo_url)
+  logoUrl?: string | null;   // no longer used – every PDF carries the embedded official DIMO logo
   paper?: 'A4' | 'A3';
 };
 
@@ -31,9 +32,8 @@ export type Section<T> = { heading?: string; rows: T[]; totals?: Partial<Record<
 export function reportHtml<T>(meta: ReportMeta, columns: Column<T>[], sections: Section<T>[], extraHtml = '') {
   const now = new Date().toLocaleString('en-GB', { timeZone: 'Asia/Colombo' });
   const wide = meta.landscape ?? columns.length > 7;
-  const logo = meta.logoUrl
-    ? `<img src="${esc(meta.logoUrl)}" style="height:36px;width:auto;object-fit:contain" />`
-    : `<div style="font:800 26px/1 Arial;color:#C8102E;letter-spacing:1px">DIMO</div>`;
+  // Always the official DIMO logo (embedded – no hosted image needed)
+  const logo = `<img src="${DIMO_LOGO_DATA_URI}" alt="DIMO" style="height:40px;width:auto;object-fit:contain" />`;
   const table = (s: Section<T>) => `
     ${s.heading ? `<h2 style="background:${s.colour ?? '#F2F2F2'};color:${s.colour ? '#fff' : '#111'}">${esc(s.heading)}</h2>` : ''}
     <table>

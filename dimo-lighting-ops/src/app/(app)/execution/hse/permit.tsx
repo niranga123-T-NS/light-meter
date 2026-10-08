@@ -23,19 +23,51 @@ export default function PermitRequest() {
   const [to, setTo] = useState('17:00');
   const [equipment, setEquipment] = useState<string | null>(null);
   const [tbt, setTbt] = useState<string | null>(null);
-  const { data } = useLoad(async () => {
-    const [forms, eq, tbts] = await Promise.all([
+  const { data, reload } = useLoad(async () => {
+    const [forms, eq, tbts, proj, lifts] = await Promise.all([
       loadHseForms(),
       supabase.from('hse_equipment').select('*').eq('exec_project_id', params.project).neq('status', 'off_site'),
       supabase.from('hse_records').select('*').eq('exec_project_id', params.project).eq('form_code', 'TBT-01').gte('created_at', `${todayISO()}T00:00:00+05:30`),
+      supabase.from('exec_projects').select('code').eq('id', params.project).single(),
+      supabase.from('hse_records').select('id', { count: 'exact', head: true }).eq('exec_project_id', params.project).eq('form_code', 'PTW-02'),
     ]);
-    return { form: forms.find((f) => f.code === params.form)!, equipment: (eq.data ?? []) as HseEquipment[], tbts: (tbts.data ?? []) as HseRecord[] };
+    return {
+      forms,
+      form: forms.find((f) => f.code === params.form)!,
+      equipment: (eq.data ?? []) as HseEquipment[],
+      tbts: (tbts.data ?? []) as HseRecord[],
+      // Next lifting plan number of this project (the server gives the final one)
+      liftNo: `${(proj.data as { code: string | null } | null)?.code ?? 'EXP'}/LP-${String((lifts.count ?? 0) + 1).padStart(3, '0')}`,
+    };
   }, [params.project, params.form]);
   if (!data?.form) return <Screen><Loading /></Screen>;
   const f = data.form;
   const questions = f.extra.question_items ?? [];
   const eqs = data.equipment.filter((e) => (f.extra.equipment_forms ?? []).includes(e.form_code));
   const set = (k: string, v: string) => setH((s) => ({ ...s, [k]: v }));
+  const eqTypes = (f.extra.equipment_forms ?? []).map((c) => data.forms.find((x) => x.code === c)).filter(Boolean) as typeof data.forms;
+  const typeNames = eqTypes.map((x) => formName(x)).join(' / ');
+  const chosen = eqs.find((e) => e.id === equipment);
+  const inDate = (e?: HseEquipment) => !!e && e.status === 'in_use' && !!e.last_checked_at && !!e.next_due && e.next_due >= todayISO();
+  const registerEquipment = async () => {
+    const r = await dialog.prompt({
+      title: 'Register the machine on this project',
+      message: 'It is added to the project equipment register (HSE → Equipment checks). Check it with its DIMO checklist before the permit is requested.',
+      fields: [
+        { key: 'form', label: 'Type', type: 'select', required: true, options: eqTypes.map((x) => ({ value: x.code, label: `${x.code} ${formName(x)}` })), initial: eqTypes[0]?.code },
+        { key: 'name', label: 'Name / description (e.g. Boom truck 12 t)', required: true },
+        { key: 'serial', label: 'Serial / plate number' },
+        { key: 'contractor', label: "Contractor's name (owner)" },
+      ],
+      confirmLabel: 'Register',
+    });
+    if (!r) return;
+    await dialog.run(async () => {
+      const id = await rpc<string>('save_hse_equipment', { p_exec: params.project, p: { form_code: r.form, name: r.name, serial_no: r.serial, contractor: r.contractor } });
+      await reload();
+      setEquipment(id);
+    }, 'Registered – now check it (Check now)');
+  };
   const blocked = f.items.filter((it) => answers[it.no]?.a === 'no' && !questions.includes(it.no));
 
   const submit = async () => {
@@ -86,7 +118,13 @@ export default function PermitRequest() {
           <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>Work shift</Text>
           <Segmented value={h.shift ?? 'day'} onChange={(v) => set('shift', v)} options={[{ value: 'day', label: 'Day' }, { value: 'night', label: 'Night' }]} />
           {(f.extra.header ?? []).map((x) =>
-            x.key === 'tbt_no' && data.tbts.length ? (
+            x.key === 'lifting_plan_no' ? (
+              <View key={x.key} style={{ marginBottom: 8 }}>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>{x.label}</Text>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: colors.ink, marginTop: 4 }}>{data.liftNo}</Text>
+                <Muted>Given automatically – numbered per project</Muted>
+              </View>
+            ) : x.key === 'tbt_no' && data.tbts.length ? (
               <Select key={x.key} label={x.label} value={tbt} onChange={(v) => { setTbt(v || null); set('tbt_no', data.tbts.find((t) => t.id === v)?.code ?? ''); }}
                 options={[{ value: '', label: '— later (the toolbox talk links itself) —' }, ...data.tbts.map((t) => ({ value: t.id, label: `${t.code} · ${String(t.header.activity ?? '').slice(0, 50)}` }))]} />
             ) : (
@@ -94,8 +132,19 @@ export default function PermitRequest() {
             ),
           )}
           {f.extra.equipment_forms?.length ? (
-            <Select label="Machine / equipment used (its checklist must be in date)" value={equipment} onChange={(v) => setEquipment(v || null)}
-              options={[{ value: '', label: '— none —' }, ...eqs.map((e) => ({ value: e.id, label: `${e.name}${e.serial_no ? ` · ${e.serial_no}` : ''} – ${e.status === 'in_use' && e.next_due && e.next_due >= todayISO() ? 'checked' : 'NOT IN DATE'}` }))]} />
+            <View style={{ gap: 6 }}>
+              {eqs.length ? (
+                <Select label={`Machine / equipment used – ${typeNames} (its checklist must be in date)`} value={equipment} onChange={(v) => setEquipment(v || null)}
+                  options={[{ value: '', label: '— none —' }, ...eqs.map((e) => ({ value: e.id, label: `${e.name}${e.serial_no ? ` · ${e.serial_no}` : ''} – ${inDate(e) ? `checked ${fmtDate(e.last_checked_at)}` : 'CHECK NOT IN DATE'}` }))]} />
+              ) : (
+                <Notice tone={colors.amber}>{`No ${typeNames} is registered on this project yet. Register the machine, check it with its DIMO checklist, then select it here.`}</Notice>
+              )}
+              <Row gap={6} wrap>
+                <Button small variant="secondary" title={`+ Register ${eqTypes.length === 1 ? formName(eqTypes[0]).toLowerCase() : 'machine'}`} onPress={registerEquipment} />
+                {chosen && !inDate(chosen) ? <Button small title="Check now" onPress={() => router.push({ pathname: '/execution/hse/check', params: { equipment: chosen.id } })} /> : null}
+              </Row>
+              {chosen && !inDate(chosen) ? <Muted style={{ color: colors.red }}>{`${chosen.name} has no accepted checklist in date – check it before requesting the permit.`}</Muted> : null}
+            </View>
           ) : null}
         </Card>
       </Section>
