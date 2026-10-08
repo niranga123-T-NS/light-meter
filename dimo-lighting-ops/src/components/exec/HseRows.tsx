@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { Card, colors, Empty, ListRow, Pill, Row } from '@/components/ui';
 import { hseKind, type HseReport } from '@/lib/execution';
-import { fmtDateTime } from '@/lib/format';
+import { fmtDateTimeY } from '@/lib/format';
 import { usePeople } from '@/lib/hooks';
 
 export const sevTone = (s: string) => (s === 'critical' || s === 'high' ? colors.red : s === 'medium' ? colors.amber : colors.grey);
@@ -18,7 +18,7 @@ export function HseRows({ rows, projectName, empty = 'No HSE reports' }: { rows:
           onPress={() => router.push(`/execution/hse/${r.id}`)}
           highlight={r.status === 'open' ? sevTone(r.severity) : undefined}
           title={`${hseKind(r.kind)} – ${r.description}`}
-          subtitle={[r.code, projectName?.(r.exec_project_id), r.location, fmtDateTime(r.occurred_at), people[r.reported_by]?.full_name].filter(Boolean).join(' · ')}
+          subtitle={[r.code, projectName?.(r.exec_project_id), r.location, fmtDateTimeY(r.occurred_at), people[r.reported_by]?.full_name].filter(Boolean).join(' · ')}
           right={
             <Row gap={4}>
               <Pill label={r.severity} tone={sevTone(r.severity)} />

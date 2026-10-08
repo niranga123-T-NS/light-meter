@@ -28,6 +28,8 @@ export const areaLabel = (v: string) => EXEC_AREAS.find((a) => a.value === v)?.l
 export const EXEC_STAGES = ['Mobilising', 'In progress', 'Handed over (DLP)'];
 /** How each stage ends: the programme approval starts the work; the SEE requests the handover and the closure, SM Projects approves */
 export const CHECKPOINTS = ['Programme approved', 'Handover to the client', 'Project closure'];
+/** Project number on HSE forms and site documents: the WBS number, else the project code */
+export const projectNo = (p: { wbs_no?: string | null; code: string | null }) => p.wbs_no || p.code || '';
 export const stageLabel = (p: { stage: number; status: string }) => (p.status === 'closed' ? 'Closed' : (EXEC_STAGES[p.stage - 1] ?? '—'));
 
 export type ExecProject = {
@@ -40,6 +42,8 @@ export type ExecProject = {
   client_name: string | null;
   contract_value_lkr: number | null;
   secured_id: string | null;
+  /** SAP WBS number from the order book (e.g. LS-000116) – the project number on site documents */
+  wbs_no: string | null;
   contract_ref: string | null;
   request_id: string | null;
   stage: number;

@@ -4840,5 +4840,19 @@ end $$;
 reset role;
 rollback to savepoint workers;
 
+-- Project number on site documents = WBS of the secured project, kept in step -------------------
+do $$ declare e uuid := current_setting('test.exlegacy')::uuid; sid uuid;
+begin
+  begin
+    insert into public.secured_projects (project_name, sales_person_id, order_value, won_on, source, schedule_status, wbs)
+    values ('WBS sync test', (select id from u where role = 'asm_infra'), 1000000, current_date, 'won', 'approved', 'LS-000777-02-01') returning id into sid;
+    update public.exec_projects set secured_id = sid where id = e;
+    assert (select wbs_no from public.exec_projects where id = e) = 'LS-000777', 'WBS base taken from the secured project';
+    update public.secured_projects set wbs = 'LS-000778' where id = sid;
+    assert (select wbs_no from public.exec_projects where id = e) = 'LS-000778', 'WBS change follows';
+    raise exception 'rollback_ok';
+  exception when others then assert sqlerrm = 'rollback_ok', sqlerrm; end;
+end $$;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

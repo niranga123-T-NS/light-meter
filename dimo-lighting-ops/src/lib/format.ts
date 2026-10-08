@@ -2,10 +2,19 @@ import type { Currency, SlaColour } from './types';
 
 const TZ = 'Asia/Colombo';
 
-export function fmtDate(v?: string | null) {
-  if (!v) return '—';
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+/** Sri Lanka (UTC+05:30, no daylight saving) date parts worked out directly – the same on every phone and browser */
+function slParts(v: string) {
   const d = new Date(v.length === 10 ? `${v}T00:00:00+05:30` : v);
-  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: TZ });
+  if (Number.isNaN(d.getTime())) return null;
+  const t = new Date(d.getTime() + 330 * 60000);
+  const p2 = (n: number) => String(n).padStart(2, '0');
+  return { y: t.getUTCFullYear(), m: t.getUTCMonth(), dd: p2(t.getUTCDate()), mm: p2(t.getUTCMonth() + 1), time: `${p2(t.getUTCHours())}:${p2(t.getUTCMinutes())}` };
+}
+
+export function fmtDate(v?: string | null) {
+  const x = v ? slParts(v) : null;
+  return x ? `${x.dd} ${MON[x.m]} ${x.y}` : '—';
 }
 
 export function fmtDateTime(v?: string | null) {
@@ -17,6 +26,24 @@ export function fmtDateTime(v?: string | null) {
     minute: '2-digit',
     timeZone: TZ,
   });
+}
+
+/** Date and time with the year – 08 Oct 2026, 09:00 (forms and registers) */
+export function fmtDateTimeY(v?: string | null) {
+  const x = v ? slParts(v) : null;
+  return x ? `${x.dd} ${MON[x.m]} ${x.y}, ${x.time}` : '—';
+}
+
+/** Date with the year as on paper forms – 08/10/2026 */
+export function fmtDateNum(v?: string | null) {
+  const x = v ? slParts(v) : null;
+  return x ? `${x.dd}/${x.mm}/${x.y}` : '';
+}
+
+/** 24-hour time in Sri Lanka – 09:00 */
+export function fmtTime(v?: string | null) {
+  const x = v ? slParts(v) : null;
+  return x ? x.time : '';
 }
 
 /** Money always in full: comma thousands separators and two decimals – LKR 2,400,000.00 */

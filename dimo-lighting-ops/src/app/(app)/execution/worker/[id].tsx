@@ -6,7 +6,7 @@ import { useDialog } from '@/components/dialog';
 import { TestingBanner } from '@/components/Testing';
 import { Button, Card, colors, ErrorBanner, KeyValue, Loading, Muted, Notice, Pill, Row, Screen, Section } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { fmtDate, fmtDateTime, todayISO } from '@/lib/format';
+import { fmtDate, fmtDateTimeY, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 import type { Attachment } from '@/lib/types';
@@ -59,7 +59,7 @@ export default function WorkerView() {
           <KeyValue label="Added" value={`${people[w.added_by]?.full_name ?? ''} · ${fmtDate(w.added_at)}`} />
         </Row>
         <KeyValue label="Address" value={w.address} wide />
-        {w.verified_at ? <Muted>{`Verified by ${people[w.verified_by ?? '']?.full_name ?? ''} · ${fmtDateTime(w.verified_at)}`}</Muted> : null}
+        {w.verified_at ? <Muted>{`Verified by ${people[w.verified_by ?? '']?.full_name ?? ''} · ${fmtDateTimeY(w.verified_at)}`}</Muted> : null}
         {ind ? <Muted>{`Inducted ${fmtDate(ind.inducted_on)} by ${people[ind.instructor_id ?? '']?.full_name ?? ''} (HSE induction register IR-01)`}</Muted> : null}
         {w.status === 'off_site' ? <Notice tone={colors.grey}>{`Off site from ${fmtDate(w.off_site_on)}${w.off_site_reason ? ` – ${w.off_site_reason}` : ''}`}</Notice> : null}
         <Row gap={8} wrap style={{ marginTop: 4 }}>

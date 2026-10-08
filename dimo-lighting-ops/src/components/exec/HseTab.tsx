@@ -6,9 +6,9 @@ import { TestingBanner } from '@/components/Testing';
 import { Button, Card, colors, Empty, Grid, ListRow, Muted, Pill, Row, Section, Segmented, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import type { ExecMember, ExecProject, HseReport } from '@/lib/execution';
-import { fmtDate, fmtDateTime, todayISO } from '@/lib/format';
+import { fmtDate, fmtDateTimeY, todayISO } from '@/lib/format';
 import { EQUIP_STATUS, formName, loadHseForms, PERMIT_STATUS, type HseEquipment, type HseForm, type HseRecord, type HseSummary, type Induction } from '@/lib/hse';
-import { printInductionRegister } from '@/lib/hsePdf';
+import { fillInductionRegister } from '@/lib/hseFill';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 import { HseRows } from './HseRows';
@@ -203,7 +203,7 @@ export function HseTab({ p }: { p: ExecProject }) {
                 <Button small title="+ Permit to work" onPress={newPermit} />
               </Row>
             ) : null}
-            <RecordList rows={permits} forms={forms} people={people} empty="No permits yet" sub={(r) => `${String(r.header.location ?? '')} · ${fmtDateTime(r.starts_at)} – ${fmtDateTime(r.ends_at)}`} />
+            <RecordList rows={permits} forms={forms} people={people} empty="No permits yet" sub={(r) => `${String(r.header.location ?? '')} · ${fmtDateTimeY(r.starts_at)} – ${fmtDateTimeY(r.ends_at)}`} />
           </>
         ) : null}
         {part === 'tbt' ? (
@@ -229,8 +229,7 @@ export function HseTab({ p }: { p: ExecProject }) {
                   variant="secondary"
                   title="Induction register PDF"
                   onPress={() => {
-                    const f = form('IR-01');
-                    if (f) void printInductionRegister(f, [...data.inductions].reverse(), { project: p, name: (id) => (id ? people[id]?.full_name ?? '' : '') }, p.site_address ?? '');
+                    void dialog.run(() => fillInductionRegister([...data.inductions].reverse(), { project: p, name: (id) => (id ? people[id]?.full_name ?? '' : '') }, p.site_address ?? ''));
                   }}
                 />
               ) : null}
