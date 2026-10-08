@@ -264,6 +264,8 @@ export type DesignJob = {
   milestones: { name: string; due?: string; done?: boolean }[];
   progress_pct: number;
   hours_logged: number;
+  progress_updated_at?: string | null;
+  created_at?: string;
   review_cycles: number;
   brands_specified: BrandLine[];
   hold_reason: string | null;
@@ -286,6 +288,11 @@ export type EstimationJob = {
   status: string;
   /** 'pre': opened with the design (route A) – becomes 'final' when the design is released */
   phase?: 'pre' | 'final';
+  progress_pct?: number;
+  progress_note?: string | null;
+  progress_updated_at?: string | null;
+  assigned_at?: string | null;
+  created_at?: string;
   assignee_id: string | null;
   value_band: string | null;
   due_at: string | null;

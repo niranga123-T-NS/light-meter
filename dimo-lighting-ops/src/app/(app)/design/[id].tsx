@@ -5,6 +5,7 @@ import { Text, View } from 'react-native';
 import { Attachments, KIND_LABELS } from '@/components/Attachments';
 import { BrandEditor } from '@/components/BrandEditor';
 import { DesignNotes } from '@/components/DesignNotes';
+import { JobTimeRow, PercentChips } from '@/components/TimeBar';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, ErrorBanner, KeyValue, ListRow, Loading, Muted, Notice, NumberField, Pill, Progress, Row, Screen, Section, Toggle } from '@/components/ui';
 import { useMe } from '@/lib/auth';
@@ -92,8 +93,9 @@ export default function DesignJobScreen() {
           <Pill label={human(j.status)} tone={j.status === 'returned' ? colors.amber : j.status === 'on_hold' ? colors.grey : colors.blue} solid />
         </Row>
         <View style={{ marginVertical: 8 }}>
-          <Progress pct={j.progress_pct} />
+          <Progress pct={j.progress_pct} colour={colors.blue} />
         </View>
+        {active ? <JobTimeRow entityType="design_job" jobId={j.id} updatedAt={j.progress_updated_at ?? j.created_at} progress={j.progress_pct} reloadKey={data} /> : null}
         <Row wrap>
           <KeyValue label="Assignee" value={people[j.assignee_id ?? '']?.full_name ?? '—'} />
           <KeyValue label="Due" value={fmtDateTime(j.due_at)} />
@@ -221,7 +223,10 @@ export default function DesignJobScreen() {
       {mine && active && j.status !== 'assigned' ? (
         <Section title="Work and log">
           <Card>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>Progress – tap or type</Text>
+            <PercentChips value={progress} onChange={setProgress} />
             <NumberField label="Progress" suffix="%" value={progress} onChange={setProgress} />
+            <Muted>Update it at least once a day – a reminder comes at 3:30 pm if not, and the Design Manager is told after 2 working days without an update.</Muted>
             <NumberField label="Days worked today (e.g. 0.5 or 1)" suffix="days" value={hours} onChange={setHours} />
             <Muted style={{ marginBottom: 4 }}>Milestones</Muted>
             <Row wrap gap={12}>

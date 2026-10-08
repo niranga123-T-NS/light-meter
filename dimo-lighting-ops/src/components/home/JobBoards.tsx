@@ -7,7 +7,9 @@ import { useLoad, usePeople } from '@/lib/hooks';
 import { isDesigner, isEstimator } from '@/lib/roles';
 import { supabase } from '@/lib/supabase';
 import type { DesignJob, EstimationJob, Inquiry, SlaClock } from '@/lib/types';
+import { type JobClock } from '@/lib/progress';
 import { STAGE_COLOUR } from '../InquiryBits';
+import { ProgressFlags, TimeBar } from '../TimeBar';
 import { DesignHolds } from './DesignHolds';
 import { DesignPipeline } from './DesignPipeline';
 import { Avatar, Card, colors, Empty, ErrorBanner, Grid, H1, Muted, Pill, Progress, Row, Screen, Section, Segmented, SlaDot, Stat, useWide } from '../ui';
@@ -16,13 +18,31 @@ type Colour = 'green' | 'amber' | 'red' | 'grey';
 
 async function clockColours(entityType: string, ids: string[]) {
   if (!ids.length) return {} as Record<string, Colour>;
-  const { data } = await supabase.from('sla_clocks').select('entity_id, colour').eq('entity_type', entityType).in('entity_id', ids).is('stopped_at', null);
+  const { data } = await supabase
+    .from('sla_clocks')
+    .select('entity_id, colour, stage, used_pct, paused_at, due_at, target_minutes')
+    .eq('entity_type', entityType)
+    .in('entity_id', ids)
+    .is('stopped_at', null);
   const worst: Record<string, Colour> = {};
   const rank = { grey: 0, green: 1, amber: 2, red: 3 } as const;
   for (const c of (data ?? []) as Pick<SlaClock, 'entity_id' | 'colour'>[]) {
     if (!worst[c.entity_id] || rank[c.colour] > rank[worst[c.entity_id]]) worst[c.entity_id] = c.colour;
   }
   return worst;
+}
+
+/** The main work timer of each job (design / estimation stage) – drawn as the time bar */
+async function workClocks(entityType: string, ids: string[]) {
+  if (!ids.length) return {} as Record<string, JobClock>;
+  const { data } = await supabase
+    .from('sla_clocks')
+    .select('entity_id, stage, used_pct, paused_at, due_at, target_minutes')
+    .eq('entity_type', entityType)
+    .eq('stage', entityType === 'design_job' ? 'design' : 'estimation')
+    .in('entity_id', ids)
+    .is('stopped_at', null);
+  return Object.fromEntries(((data ?? []) as JobClock[]).map((c) => [c.entity_id, c]));
 }
 
 // ---------------------------------------------------------------------------
@@ -54,7 +74,7 @@ export function DesignBoard({ header }: { header?: ReactNode } = {}) {
     ]);
     if (e) throw new Error(e.message);
     const list = (jobs ?? []) as DesignJob[];
-    return { jobs: list, queue: (queue.data ?? []) as Inquiry[], colours: await clockColours('design_job', list.map((j) => j.id)) };
+    return { jobs: list, queue: (queue.data ?? []) as Inquiry[], colours: await clockColours('design_job', list.map((j) => j.id)), clocks: await workClocks('design_job', list.map((j) => j.id)) };
   });
 
   const jobs = data?.jobs ?? [];
@@ -126,7 +146,7 @@ export function DesignBoard({ header }: { header?: ReactNode } = {}) {
                         <Muted>Customer deadline {fmtDate(i.customer_deadline)}</Muted>
                       </Card>
                     ))
-                  : items.map((j) => <JobCard key={j.id} job={j} colour={data?.colours[j.id] ?? (j.status === 'on_hold' ? 'grey' : 'green')} assignee={people[j.assignee_id ?? '']?.full_name} kind="design" />)}
+                  : items.map((j) => <JobCard key={j.id} job={j} clock={data?.clocks[j.id]} colour={data?.colours[j.id] ?? (j.status === 'on_hold' ? 'grey' : 'green')} assignee={people[j.assignee_id ?? '']?.full_name} kind="design" />)}
                 {col.key !== 'queue' && !items.length ? <Muted>—</Muted> : null}
               </View>
             );
@@ -137,19 +157,25 @@ export function DesignBoard({ header }: { header?: ReactNode } = {}) {
   );
 }
 
+// Jobs still being worked on – the ones that get a time bar and are chased for progress
+const PENDING = ['assigned', 'acknowledged', 'in_progress', 'returned', 'date_change_requested'];
+
 function JobCard({
   job,
   colour,
   assignee,
   kind,
+  clock,
 }: {
   job: DesignJob | EstimationJob;
+  clock?: JobClock;
   colour: Colour;
   assignee?: string;
   kind: 'design' | 'estimation';
 }) {
   const inq = job.inquiries;
-  const pct = 'progress_pct' in job ? job.progress_pct : undefined;
+  const pending = PENDING.includes(job.status);
+  const pct = 'progress_pct' in job && (kind === 'design' || pending) ? job.progress_pct : undefined;
   return (
     <Card onPress={() => router.push(`/${kind}/${job.id}`)} style={{ borderLeftWidth: 4, borderLeftColor: STAGE_COLOUR[colour] }}>
       <Row style={{ justifyContent: 'space-between' }}>
@@ -175,13 +201,19 @@ function JobCard({
       {inq && 'variation_id' in inq && inq.variation_id ? <Pill label="Variation" tone={colors.amber} solid /> : null}
       {pct != null ? (
         <View style={{ marginVertical: 6 }}>
-          <Progress pct={pct} colour={STAGE_COLOUR[colour]} />
+          <Progress pct={pct} colour={colors.blue} />
         </View>
       ) : null}
       <Muted>
         Due {fmtDateTime(job.due_at)}
         {assignee ? ` · ${assignee}` : ''}
       </Muted>
+      {pending && clock ? (
+        <Row gap={10} wrap style={{ alignItems: 'flex-start', marginTop: 4 }}>
+          <TimeBar pct={clock.used_pct} targetMinutes={clock.target_minutes} paused={!!clock.paused_at} />
+          <ProgressFlags updatedAt={job.progress_updated_at ?? ('assigned_at' in job ? job.assigned_at : null) ?? job.created_at} progress={pct} timePct={clock.used_pct} />
+        </Row>
+      ) : null}
       <Muted>{human(job.status)}</Muted>
     </Card>
   );
@@ -207,7 +239,7 @@ export function EstimationBoard({ header }: { header?: ReactNode } = {}) {
     ]);
     if (e) throw new Error(e.message);
     const list = (jobs ?? []) as EstimationJob[];
-    return { jobs: list, direct: (direct.data ?? []) as Inquiry[], colours: await clockColours('estimation_job', list.map((j) => j.id)) };
+    return { jobs: list, direct: (direct.data ?? []) as Inquiry[], colours: await clockColours('estimation_job', list.map((j) => j.id)), clocks: await workClocks('estimation_job', list.map((j) => j.id)) };
   });
   const jobs = data?.jobs ?? [];
   const groups = {
@@ -285,7 +317,7 @@ export function EstimationBoard({ header }: { header?: ReactNode } = {}) {
               ))
             : null}
           {list.map((j) => (
-            <JobCard key={j.id} job={j} kind="estimation" colour={data?.colours[j.id] ?? (j.status === 'on_hold' ? 'grey' : 'green')} assignee={people[j.assignee_id ?? '']?.full_name} />
+            <JobCard key={j.id} job={j} kind="estimation" clock={data?.clocks[j.id]} colour={data?.colours[j.id] ?? (j.status === 'on_hold' ? 'grey' : 'green')} assignee={people[j.assignee_id ?? '']?.full_name} />
           ))}
           {!list.length && !(tab === 'queue' && data?.direct.length) ? <Empty title="Nothing here" /> : null}
         </View>

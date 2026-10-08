@@ -5,6 +5,7 @@ import { Text, View } from 'react-native';
 import { Attachments, KIND_LABELS } from '@/components/Attachments';
 import { BrandEditor } from '@/components/BrandEditor';
 import { DesignNotes } from '@/components/DesignNotes';
+import { EstimateProgress } from '@/components/EstimateProgress';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, DateField, ErrorBanner, Field, KeyValue, ListRow, Loading, Muted, Notice, NumberField, Pill, Row, Screen, Section, Select } from '@/components/ui';
 import { useMe } from '@/lib/auth';
@@ -324,6 +325,8 @@ export default function EstimationJobScreen() {
       ))}
 
       <DesignNotes inquiryId={j.inquiry_id} />
+
+      <EstimateProgress job={j} canEdit={editable} onSaved={reload} />
 
       <Section title="Inputs (request documents and approved design pack)">
         <Card style={{ padding: 0, overflow: 'hidden' }}>

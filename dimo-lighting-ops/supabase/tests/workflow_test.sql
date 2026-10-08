@@ -4561,6 +4561,37 @@ begin
   assert (select due_at from public.sla_clocks where entity_id = (select id from public.estimation_jobs where inquiry_id = i.id) and stage = 'estimation' and stopped_at is null) = i.estimation_due_at, 'clock follows';
   assert exists (select 1 from public.notifications where kind = 'deadline_extended' and entity_id = i.id and recipient_id = (select id from u where role = 'estimation_exec')), 'estimator told';
 end $$;
+-- Progress: estimators give a % too; quiet jobs are chased
+select pg_temp.act_as('estimation_exec'); set role authenticated;
+select public.update_estimate_progress((select id from public.estimation_jobs where inquiry_id = '00000000-0000-0000-0000-0000000de001'), 30, 'Cables and poles priced');
+reset role;
+do $$ begin
+  assert (select progress_pct = 30 and progress_updated_at is not null and status = 'in_progress' from public.estimation_jobs where inquiry_id = '00000000-0000-0000-0000-0000000de001'), 'estimate progress saved';
+end $$;
+update public.design_jobs set created_at = now() - interval '7 days', progress_updated_at = null where inquiry_id = '00000000-0000-0000-0000-0000000de001';
+do $$ declare n int;
+begin
+  perform public.progress_tick();
+  assert exists (select 1 from public.notifications where kind = 'progress_stale' and recipient_id = (select id from u where role = 'design_manager')
+                 and entity_id = (select id from public.design_jobs where inquiry_id = '00000000-0000-0000-0000-0000000de001')), 'Design Manager told about the quiet job';
+  assert (select progress_alerted_at is not null from public.design_jobs where inquiry_id = '00000000-0000-0000-0000-0000000de001'), 'marked';
+  assert not exists (select 1 from public.notifications where kind = 'progress_stale' and entity_id = (select id from public.estimation_jobs where inquiry_id = '00000000-0000-0000-0000-0000000de001')), 'updated estimate not chased';
+  select count(*) into n from public.notifications where kind = 'progress_stale';
+  perform public.progress_tick();
+  assert (select count(*) from public.notifications where kind = 'progress_stale') = n, 'told once';
+end $$;
+select pg_temp.act_as('lighting_designer'); set role authenticated;
+select public.update_design_progress((select id from public.design_jobs where inquiry_id = '00000000-0000-0000-0000-0000000de001'), 40, 2);
+reset role;
+do $$ begin
+  assert (select progress_alerted_at is null and progress_updated_at is not null from public.design_jobs where inquiry_id = '00000000-0000-0000-0000-0000000de001'), 'update clears the chase';
+end $$;
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+do $$ begin
+  assert (select estimation_progress = 30 and estimation_updated_at is not null and design_updated_at is not null and estimation_time_pct is not null
+            from public.design_pipeline() where inquiry_id = '00000000-0000-0000-0000-0000000de001'), 'panel has progress and time';
+end $$;
+reset role;
 -- One alert when the design is late
 select set_config('app.workflow', '1', false);
 update public.inquiries set design_due_at = now() - interval '1 hour' where id = '00000000-0000-0000-0000-0000000de001';

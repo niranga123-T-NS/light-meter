@@ -53,6 +53,13 @@ export type PipelineRow = {
   estimation_days: number | null;
   late: boolean;
   extension_status: 'requested' | 'granted' | 'refused' | null;
+  design_time_pct: number | null;
+  design_paused: boolean;
+  design_updated_at: string | null;
+  estimation_progress: number | null;
+  estimation_time_pct: number | null;
+  estimation_paused: boolean;
+  estimation_updated_at: string | null;
 };
 
 export const SUBMISSION_METHODS = [
