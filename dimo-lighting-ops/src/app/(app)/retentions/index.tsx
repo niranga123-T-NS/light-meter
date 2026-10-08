@@ -13,7 +13,9 @@ import type { Retention } from '@/lib/types';
 type Money = { lkr: number; usd: number };
 type Tab = 'open' | 'due' | 'claimed' | 'collected' | 'all';
 
-const sumOf = (list: Retention[], val: (r: Retention) => number = (r) => Number(r.retention_value)): Money => ({
+/** What is still to be collected: the retention value less any part collections (open retentions) */
+const balanceOf = (r: Retention) => Number(r.retention_value) - (r.status === 'held' || r.status === 'claimed' ? Number(r.collected_amount ?? 0) : 0);
+const sumOf = (list: Retention[], val: (r: Retention) => number = balanceOf): Money => ({
   lkr: list.filter((r) => r.currency === 'LKR').reduce((a, r) => a + val(r), 0),
   usd: list.filter((r) => r.currency === 'USD').reduce((a, r) => a + val(r), 0),
 });
@@ -225,7 +227,14 @@ export default function Retentions() {
                   right={
                     <Row gap={6}>
                       <Pill label={STAGE_LABEL[st]} tone={STAGE_TONE[st]} />
-                      <Text style={{ fontWeight: '700' }}>{fmtMoney(r.retention_value, r.currency)}</Text>
+                      {Number(r.collected_amount ?? 0) > 0 && (r.status === 'held' || r.status === 'claimed') ? (
+                        <View style={{ alignItems: 'flex-end' }}>
+                          <Text style={{ fontWeight: '700' }}>{fmtMoney(balanceOf(r), r.currency)}</Text>
+                          <Text style={{ fontSize: 11, color: colors.green }}>{`${fmtMoney(r.collected_amount, r.currency)} collected`}</Text>
+                        </View>
+                      ) : (
+                        <Text style={{ fontWeight: '700' }}>{fmtMoney(r.retention_value, r.currency)}</Text>
+                      )}
                     </Row>
                   }
                   onPress={() => router.push(`/retentions/${r.id}`)}

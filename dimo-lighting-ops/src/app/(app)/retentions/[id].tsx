@@ -10,6 +10,7 @@ import { daysFrom, RETENTION_FORMS, retentionStage, STAGE_LABEL } from '@/lib/re
 import { rpc, supabase } from '@/lib/supabase';
 import type { Retention } from '@/lib/types';
 
+type RetCollection = { id: string; amount: number; collected_on: string; note: string | null; recorded_by: string | null; recorded_at: string; voided_at: string | null; void_reason: string | null };
 type Log = { id: number; at: string; user_id: string | null; kind: string; note: string | null };
 
 const STAGE_TONE: Record<string, string> = {
@@ -28,13 +29,14 @@ export default function RetentionDetail() {
   const people = usePeople();
   const dialog = useDialog();
   const { data, error, reload } = useLoad(async () => {
-    const [{ data: r, error: e }, { data: log }, { data: pending }] = await Promise.all([
+    const [{ data: r, error: e }, { data: log }, { data: pending }, { data: cols }] = await Promise.all([
       supabase.from('retentions').select('*').eq('id', id).single(),
       supabase.from('retention_log').select('*').eq('retention_id', id).order('at', { ascending: false }),
       supabase.from('approvals').select('id, reason').eq('kind', 'retention_extension').eq('entity_id', id).eq('status', 'pending'),
+      supabase.from('retention_collections').select('*').eq('retention_id', id).order('recorded_at', { ascending: false }),
     ]);
     if (e) throw new Error(e.message);
-    return { r: r as Retention, log: (log ?? []) as Log[], pending: (pending ?? []) as { id: string; reason: string }[] };
+    return { r: r as Retention, log: (log ?? []) as Log[], pending: (pending ?? []) as { id: string; reason: string }[], cols: (cols ?? []) as RetCollection[] };
   }, [id]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const r = data.r;
@@ -43,6 +45,8 @@ export default function RetentionDetail() {
   const manager = ['operations_exec', 'sm_projects', 'gm'].includes(me.role);
   const canAct = manager || r.sales_person_id === me.id;
   const open = r.status === 'held' || r.status === 'claimed';
+  const collected = data.cols.filter((c) => !c.voided_at).reduce((a, c) => a + Number(c.amount), 0);
+  const balance = Number(r.retention_value) - collected;
   const run = (fn: string, args: Record<string, unknown>, ok: string) =>
     dialog.run(async () => {
       await rpc(fn, args);
@@ -74,7 +78,8 @@ export default function RetentionDetail() {
           />
           <KeyValue label="Sales person" value={people[r.sales_person_id ?? '']?.full_name ?? '—'} />
           {r.claimed_on ? <KeyValue label="Claimed" value={`${fmtDate(r.claimed_on)}${r.claim_ref ? ` · ${r.claim_ref}` : ''}`} /> : null}
-          {r.collected_on ? <KeyValue label="Collected" value={`${fmtMoney(r.collected_amount, r.currency)} on ${fmtDate(r.collected_on)}`} /> : null}
+          {collected ? <KeyValue label={open ? 'Collected so far' : 'Collected'} value={`${fmtMoney(collected, r.currency)}${r.collected_on ? ` · last ${fmtDate(r.collected_on)}` : ''}`} /> : null}
+          {collected && open ? <KeyValue label="Balance to collect" value={fmtMoney(balance, r.currency)} /> : null}
         </Row>
         {r.notes ? <Muted>{r.notes}</Muted> : null}
         {stage === 'due' ? <Notice tone={colors.red}>Due date reached – claim the retention now (or request an extension). A reminder is sent every day.</Notice> : null}
@@ -100,12 +105,13 @@ export default function RetentionDetail() {
           {canAct && open ? (
             <Button
               variant={r.status === 'claimed' ? 'primary' : 'secondary'}
-              title="Mark collected"
+              title={collected ? 'Record collection (balance)' : 'Record collection'}
               onPress={async () => {
                 const x = await dialog.prompt({
-                  title: 'Retention collected',
+                  title: 'Amount collected',
+                  message: `Balance ${fmtMoney(balance, r.currency)} – a part collection keeps the retention open (and in the due / overdue lists) until nothing is left.`,
                   fields: [
-                    { key: 'a', label: `Amount collected (${r.currency})`, required: true, initial: String(r.retention_value) },
+                    { key: 'a', label: `Amount collected (${r.currency})`, required: true, initial: String(balance) },
                     { key: 'd', label: 'Collection date', type: 'date', required: true, initial: today },
                     { key: 'n', label: 'Note', type: 'multiline' },
                   ],
@@ -113,7 +119,8 @@ export default function RetentionDetail() {
                 if (!x) return;
                 const amount = Number(String(x.a).replace(/,/g, ''));
                 if (!(amount > 0)) return dialog.toast('Enter the amount collected', 'error');
-                await run('mark_retention_collected', { p_id: r.id, p_amount: amount, p_on: x.d, p_note: x.n || null }, 'Marked collected');
+                if (amount > balance) return dialog.toast(`More than the balance of ${fmtMoney(balance, r.currency)}`, 'error');
+                await run('mark_retention_collected', { p_id: r.id, p_amount: amount, p_on: x.d, p_note: x.n || null }, amount >= balance ? 'Collected in full – closed' : `Part collection recorded – balance ${fmtMoney(balance - amount, r.currency)}`);
               }}
             />
           ) : null}
@@ -149,6 +156,26 @@ export default function RetentionDetail() {
         </Row>
       </Card>
       <Attachments entityType="retention" entityId={r.id} kinds={['retention_doc']} title="Documents (contract clause, certificates, claim letter, bank guarantee, payment proof)" canUpload={canAct} allowCamera />
+      {data.cols.length ? (
+        <Section title={`Collections${open && collected ? ` – balance ${fmtMoney(balance, r.currency)}` : ''}`}>
+          <Card style={{ padding: 0, overflow: 'hidden' }}>
+            {data.cols.map((c) => (
+              <Row key={c.id} wrap gap={8} style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: colors.line, alignItems: 'center', opacity: c.voided_at ? 0.55 : 1 }}>
+                <Text style={{ width: 150, fontWeight: '700', color: c.voided_at ? colors.muted : colors.green, textDecorationLine: c.voided_at ? 'line-through' : 'none' }}>{fmtMoney(c.amount, r.currency)}</Text>
+                <Text style={{ flex: 1, minWidth: 200, color: colors.ink }}>
+                  {`${fmtDate(c.collected_on)}${c.note ? ` · ${c.note}` : ''}${c.recorded_by ? ` · ${people[c.recorded_by]?.full_name ?? ''}` : ''}${c.voided_at ? ` · cancelled: ${c.void_reason ?? ''}` : ''}`}
+                </Text>
+                {manager && !c.voided_at ? (
+                  <Button small variant="ghost" title="Cancel entry" onPress={async () => {
+                    const x = await dialog.prompt({ title: 'Cancel this collection', message: `${fmtMoney(c.amount, r.currency)} on ${fmtDate(c.collected_on)}`, fields: [{ key: 'n', label: 'Reason', type: 'multiline', required: true }], confirmLabel: 'Cancel entry' });
+                    if (x) await run('void_retention_collection', { p_id: c.id, p_reason: x.n }, 'Entry cancelled');
+                  }} />
+                ) : null}
+              </Row>
+            ))}
+          </Card>
+        </Section>
+      ) : null}
       <Section title="History">
         <Card>
           {data.log.map((l) => (
