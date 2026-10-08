@@ -41,20 +41,46 @@ export function MyPlanEditor({ project, week, onChange }: { project: string; wee
     if (!plan) return;
     const missing = await rpc<{ activity_id: string; code: string; name: string; es: string; ef: string }[]>('plan_missing_critical', { p_plan: plan.id });
     let reasons: Record<string, string> = {};
+    const adds: { id: string; name: string; day: string }[] = [];
     if (missing.length) {
+      // Each activity: add it to this plan on one of its days this week, or say why not
+      const dayOptions = (m: { es: string; ef: string }) => {
+        const out: { value: string; label: string }[] = [];
+        for (let d = m.es > week ? m.es : week; d <= addDaysISO(week, 6) && d <= m.ef; d = addDaysISO(d, 1)) out.push({ value: d, label: `Add to the plan on ${fmtDate(d)}` });
+        return out;
+      };
       const r = await dialog.prompt({
         title: 'Critical activities not in this plan',
-        message: 'These critical activities are due this week. Cancel and plan them, or give the reason for each – the Senior Electrical Engineer sees it.',
-        fields: missing.map((m) => ({ key: m.activity_id, label: `${m.code} ${m.name} (${fmtDate(m.es)} → ${fmtDate(m.ef)})`, type: 'multiline' as const, required: true })),
-        confirmLabel: 'Submit with reasons',
+        message: 'These critical activities of yours are due this week. Add each to the plan in one step, or choose "Not this week" and give the reason – the Senior Electrical Engineer sees it.',
+        fields: missing.flatMap((m) => {
+          const days = dayOptions(m);
+          return [
+            {
+              key: `${m.activity_id}:a`,
+              label: `${m.code} ${m.name} (${fmtDate(m.es)} → ${fmtDate(m.ef)})`,
+              type: 'select' as const,
+              required: true,
+              initial: days[0]?.value ?? 'reason',
+              options: [...days, { value: 'reason', label: 'Not this week – give the reason' }],
+            },
+            { key: `${m.activity_id}:r`, label: 'Reason (only if not this week)', type: 'multiline' as const },
+          ];
+        }),
+        confirmLabel: 'Submit plan',
       });
       if (!r) return;
-      reasons = r;
+      for (const m of missing) {
+        const choice = r[`${m.activity_id}:a`];
+        if (choice && choice !== 'reason') adds.push({ id: m.activity_id, name: m.name, day: choice });
+        else if (!r[`${m.activity_id}:r`]?.trim()) return dialog.toast(`Give the reason for ${m.code} ${m.name}, or add it to the plan`, 'error');
+        else reasons[m.activity_id] = r[`${m.activity_id}:r`].trim();
+      }
     }
     await dialog.run(async () => {
+      for (const x of adds) await rpc('save_plan_item', { p_exec: project, p_week: week, p: { id: '', day: x.day, kind: 'task', title: x.name, activity_id: x.id } });
       await rpc('submit_plan', { p_plan: plan.id, p_reasons: reasons });
       await refresh();
-    }, 'Submitted to the Senior Electrical Engineer');
+    }, adds.length ? `${adds.length} critical ${adds.length === 1 ? 'activity' : 'activities'} added – submitted to the Senior Electrical Engineer` : 'Submitted to the Senior Electrical Engineer');
   };
 
   return (

@@ -5019,5 +5019,21 @@ end $$;
 reset role;
 rollback to savepoint report_tbt;
 
+-- Plan check asks only about the plan owner's own critical activities ------------------------------------------------
+savepoint own_critical;
+do $$ declare pl uuid := current_setting('test.plp')::uuid; e uuid; n int;
+begin
+  select exec_project_id into e from public.exec_plans where id = pl;
+  update public.exec_plan_items set activity_id = null where plan_id = pl;
+  update public.exec_activities set responsible_id = null where exec_project_id = e;
+  perform set_config('request.jwt.claim.sub', (select ae_id::text from public.exec_plans where id = pl), true);
+  select count(*) into n from public.plan_missing_critical(pl);
+  update public.exec_activities set responsible_id = (select id from u where role = 'senior_elec_engineer') where exec_project_id = e;
+  assert (select count(*) from public.plan_missing_critical(pl)) = 0, 'another engineer''s activities are not asked about';
+  update public.exec_activities set responsible_id = (select ae_id from public.exec_plans where id = pl) where exec_project_id = e;
+  assert (select count(*) from public.plan_missing_critical(pl)) = n, 'own activities still are';
+end $$;
+rollback to savepoint own_critical;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
