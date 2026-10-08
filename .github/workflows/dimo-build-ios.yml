@@ -79,6 +79,14 @@ jobs:
       - name: Link the Expo project
         run: npx eas-cli@latest init --non-interactive --force
 
+      # Over-the-air updates: the installed app downloads new versions from EAS Update (see dimo-app-update.yml)
+      - name: Point the app at its over-the-air updates
+        run: |
+          id=$(jq -r '.expo.extra.eas.projectId // empty' app.json)
+          if [ -z "$id" ]; then echo "::error::No Expo projectId after linking"; exit 1; fi
+          jq --arg u "https://u.expo.dev/$id" '.expo.updates.url = $u' app.json > app.tmp.json && mv app.tmp.json app.json
+          echo "Updates from https://u.expo.dev/$id (runtime $(jq -r '.expo.version' app.json))"
+
       - name: Build on EAS (iOS, production)
         run: |
           npx eas-cli@latest build --platform ios --profile production --non-interactive --json > build.json

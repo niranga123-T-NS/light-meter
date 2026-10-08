@@ -1,0 +1,76 @@
+# Sends the latest DIMO Lighting Ops version to the installed phone apps (Android and iPhone) as an over-the-air
+# update (EAS Update): runs after every change to the app on main; the app downloads it when opened or brought back to
+# the front and offers "Reload now". Builds made before over-the-air updates were added need one reinstall first.
+#
+# A new native module or an app version change (app.json "version") needs a new store / APK build instead – updates only
+# reach builds with the same version (runtime).
+#
+# Repository secret needed: EXPO_TOKEN (the same one the app builds use).
+name: DIMO – phone app update (OTA)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'dimo-lighting-ops/src/**'
+      - 'dimo-lighting-ops/assets/**'
+      - 'dimo-lighting-ops/app.json'
+      - 'dimo-lighting-ops/package.json'
+      - 'dimo-lighting-ops/package-lock.json'
+  workflow_dispatch:
+
+concurrency:
+  group: dimo-app-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: dimo-lighting-ops
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the Expo token is set
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then echo "::error::Add the EXPO_TOKEN repository secret first (expo.dev → Account settings → Access tokens)"; exit 1; fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: dimo-lighting-ops/package-lock.json
+
+      - run: npm ci
+
+      - name: Link the Expo project
+        run: npx eas-cli@latest init --non-interactive --force
+
+      - name: Point the app at its over-the-air updates
+        run: |
+          id=$(jq -r '.expo.extra.eas.projectId // empty' app.json)
+          if [ -z "$id" ]; then echo "::error::No Expo projectId after linking"; exit 1; fi
+          jq --arg u "https://u.expo.dev/$id" '.expo.updates.url = $u' app.json > app.tmp.json && mv app.tmp.json app.json
+
+      # Same public settings as the builds (eas.json), plus the version shown under the user's name in the menu
+      - name: Publish to the preview (APK) and production (store) channels
+        run: |
+          export EXPO_PUBLIC_SUPABASE_URL=$(jq -r '.build.preview.env.EXPO_PUBLIC_SUPABASE_URL' eas.json)
+          export EXPO_PUBLIC_SUPABASE_ANON_KEY=$(jq -r '.build.preview.env.EXPO_PUBLIC_SUPABASE_ANON_KEY' eas.json)
+          export EXPO_PUBLIC_BUILD_ID="${GITHUB_SHA}"
+          export EXPO_PUBLIC_BUILD_TIME="$(TZ=Asia/Colombo date +'%d %b %H:%M')"
+          msg="$(git log -1 --pretty=%s | cut -c1-120)"
+          for ch in preview production; do
+            npx eas-cli@latest update --channel "$ch" --platform all --message "$msg" --non-interactive
+          done
+          {
+            echo "### Phone app update published"
+            echo ""
+            echo "Version ${GITHUB_SHA::7} – $msg"
+            echo ""
+            echo "Installed apps built with over-the-air updates download it the next time they are opened."
+          } >> "$GITHUB_STEP_SUMMARY"

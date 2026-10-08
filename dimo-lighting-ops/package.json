@@ -32,6 +32,7 @@
     "expo-router": "~57.0.24",
     "expo-sharing": "~57.0.22",
     "expo-status-bar": "~57.0.1",
+    "expo-updates": "~57.0.24",
     "leaflet": "^1.9.4",
     "leaflet.heat": "^0.2.0",
     "pdf-lib": "^1.17.1",

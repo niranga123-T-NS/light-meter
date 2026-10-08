@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Platform, Pressable, Text, View } from 'react-native';
+import { AppState, Platform, Pressable, Text, View } from 'react-native';
 import { colors } from './ui';
 
 /** Build id baked in at build time (Vercel commit); "dev" when running locally. */
@@ -7,13 +7,27 @@ export const BUILD_ID = (process.env.EXPO_PUBLIC_BUILD_ID ?? 'dev').slice(0, 7);
 export const BUILD_TIME = process.env.EXPO_PUBLIC_BUILD_TIME ?? '';
 
 /**
- * Website only: checks every few minutes (and when the tab comes back into view) whether a newer version has been
- * deployed, and offers a one-tap reload – an open tab otherwise keeps running the version it loaded.
+ * Checks whether a newer version has been deployed and offers a one-tap reload.
+ *  Website: every few minutes and when the tab comes back into view (an open tab keeps the version it loaded).
+ *  Phone app: on start and when the app comes back to the front, downloads the latest over-the-air update (EAS Update).
  */
 export function UpdateBanner() {
   const [newer, setNewer] = useState(false);
   useEffect(() => {
-    if (Platform.OS !== 'web' || BUILD_ID === 'dev') return;
+    if (Platform.OS !== 'web') {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const Updates = require('expo-updates') as typeof import('expo-updates');
+      if (!Updates.isEnabled) return;
+      const fetchNewer = () =>
+        Updates.checkForUpdateAsync()
+          .then((c) => (c.isAvailable ? Updates.fetchUpdateAsync() : null))
+          .then((f) => f?.isNew && setNewer(true))
+          .catch(() => undefined);
+      void fetchNewer();
+      const sub = AppState.addEventListener('change', (st) => st === 'active' && void fetchNewer());
+      return () => sub.remove();
+    }
+    if (BUILD_ID === 'dev') return;
     const check = () =>
       fetch(`/version.json?t=${Date.now()}`, { cache: 'no-store' })
         .then((r) => (r.ok ? r.json() : null))
@@ -34,7 +48,12 @@ export function UpdateBanner() {
   return (
     <View style={{ backgroundColor: colors.blue, paddingVertical: 8, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
       <Text style={{ color: '#fff', flex: 1, fontWeight: '600' }}>A new version of DIMO Lighting Ops is available.</Text>
-      <Pressable onPress={() => window.location.reload()} style={{ backgroundColor: '#fff', borderRadius: 6, paddingHorizontal: 12, paddingVertical: 6 }}>
+      <Pressable
+        onPress={() => {
+          if (Platform.OS === 'web') window.location.reload();
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          else void (require('expo-updates') as typeof import('expo-updates')).reloadAsync();
+        }} style={{ backgroundColor: '#fff', borderRadius: 6, paddingHorizontal: 12, paddingVertical: 6 }}>
         <Text style={{ color: colors.blue, fontWeight: '700' }}>Reload now</Text>
       </Pressable>
     </View>
