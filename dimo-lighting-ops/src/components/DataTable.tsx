@@ -62,7 +62,7 @@ export function DataTable<T>({
                       {v ?? ''}
                     </Text>
                   ) : (
-                    <View key={`${c.h}${ci}`} style={[cell, { width: c.w, alignItems: c.right ? 'flex-end' : 'flex-start' }]}>
+                    <View key={`${c.h}${ci}`} style={[cell, { width: c.w, overflow: 'hidden', alignItems: c.right ? 'flex-end' : 'flex-start' }]}>
                       {v}
                     </View>
                   );
