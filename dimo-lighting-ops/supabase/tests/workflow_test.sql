@@ -3464,9 +3464,18 @@ do $$ declare r uuid;
 begin
   begin perform public.submit_exec_report(current_setting('test.ex')::uuid, current_date, '{"work_done":"Mounted 12 downlights"}'); assert false, 'crew needed';
   exception when others then assert sqlerrm = 'Enter the crew on site', sqlerrm; end;
+  begin perform public.submit_exec_report(current_setting('test.ex')::uuid, current_date, jsonb_build_object('crew_count', 6, 'work_done', 'x',
+      'items', jsonb_build_array(jsonb_build_object('id', current_setting('test.pi'), 'status', 'not_done')))); assert false, 'reason for not done';
+  exception when others then assert sqlerrm = 'Give the reason', sqlerrm; end;
   r := public.submit_exec_report(current_setting('test.ex')::uuid, current_date,
-    '{"crew_count":6,"work_done":"Mounted 12 downlights level 2","toolbox_talk":true,"toolbox_topic":"Ladder safety","safety_check":true}');
+    '{"crew_count":6,"work_done":"Mounted 12 downlights level 2","toolbox_talk":true,"toolbox_topic":"Ladder safety","safety_check":true}'::jsonb
+    || jsonb_build_object('items', jsonb_build_array(jsonb_build_object('id', current_setting('test.pi'), 'status', 'done', 'done_qty', 20, 'note', 'All fixed and tested'))));
   perform set_config('test.sr1', r::text, false);
+  assert (select status = 'done' and done_qty = 20 and result_note = 'All fixed and tested' from public.exec_plan_items where id = current_setting('test.pi')::uuid), 'activity updated from the report';
+  assert (select jsonb_array_length(item_updates) = 1 and item_updates -> 0 ->> 'status' = 'done' from public.exec_reports where id = r), 'snapshot kept';
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('exec_report', r, 'item_photo', 'exec_report/' || r || '/i1.jpg', 'i1.jpg');
+  perform public.attach_report_item_photos(r, current_setting('test.pi')::uuid, array(select id from public.attachments where entity_id = r and kind = 'item_photo'));
+  assert (select jsonb_array_length(item_updates -> 0 -> 'photos') = 1 from public.exec_reports where id = r), 'photo linked to the activity';
 end $$;
 reset role;
 select pg_temp.act_as('assistant_engineer'); set role authenticated;

@@ -2,12 +2,13 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Platform } from 'react-native';
 import { useDialog } from '@/components/dialog';
+import { itemChanged, ReportItems, type ItemEdit } from '@/components/exec/ReportItems';
 import { TestingBanner } from '@/components/Testing';
 import { Button, Card, DateField, ErrorBanner, Field, Muted, NumberField, Row, Screen, Section, Select, Toggle } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { ITEM_STATUS, type ExecProject, type ExecReport, type PlanItem } from '@/lib/execution';
+import type { ExecPlan, ExecProject, ExecReport, PlanItem } from '@/lib/execution';
 import { pickDocument, pickImage, uploadAttachment, type PickedFile } from '@/lib/files';
-import { todayISO } from '@/lib/format';
+import { addDaysISO, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 
@@ -20,6 +21,7 @@ export default function NewReport() {
   const sup = me.role === 'sub_supervisor';
   const [error, setError] = useState<string | null>(null);
   const [files, setFiles] = useState<PickedFile[]>([]);
+  const [edits, setEdits] = useState<Record<string, ItemEdit>>({});
   const [f, setF] = useState({
     project: params.project ?? null as string | null,
     date: params.date ?? todayISO(),
@@ -47,25 +49,30 @@ export default function NewReport() {
   // Pre-fill from the day's plan results and (for an Assistant Engineer) the supervisors' reports
   const { data: day } = useLoad(async () => {
     if (!proj) return null;
-    const [its, reps] = await Promise.all([
-      supabase.from('exec_plan_items').select('*').eq('exec_project_id', proj).eq('day', f.date),
+    const [its, earlier, reps, plans] = await Promise.all([
+      supabase.from('exec_plan_items').select('*').eq('exec_project_id', proj).eq('day', f.date).order('created_at'),
+      // earlier activities of the last two weeks still without a result
+      supabase.from('exec_plan_items').select('*').eq('exec_project_id', proj).eq('status', 'planned').lt('day', f.date).gte('day', addDaysISO(f.date, -14)).order('day'),
       sup ? Promise.resolve({ data: [] }) : supabase.from('exec_reports').select('*').eq('exec_project_id', proj).eq('report_date', f.date).eq('level', 'supervisor'),
+      sup ? Promise.resolve({ data: [] }) : supabase.from('exec_plans').select('id, ae_id, status').eq('exec_project_id', proj),
     ]);
-    return { items: (its.data ?? []) as PlanItem[], reps: (reps.data ?? []) as ExecReport[] };
+    const myPlans = new Set(((plans.data ?? []) as Pick<ExecPlan, 'id' | 'ae_id' | 'status'>[]).filter((x) => x.ae_id === me.id && x.status === 'approved').map((x) => x.id));
+    const okPlans = new Set(((plans.data ?? []) as Pick<ExecPlan, 'id' | 'status'>[]).filter((x) => x.status === 'approved').map((x) => x.id));
+    // Supervisor: own activities. Assistant Engineer: activities of the own approved plan and accepted supervisor additions.
+    const mine = (i: PlanItem) =>
+      i.source === 'supervisor' ? i.acceptance === 'accepted' && (!sup || i.supervisor_id === me.id) : sup ? i.supervisor_id === me.id : !!i.plan_id && myPlans.has(i.plan_id) && okPlans.has(i.plan_id);
+    const seen = new Set<string>();
+    const items = [...((earlier.data ?? []) as PlanItem[]).filter((i) => i.day < f.date), ...((its.data ?? []) as PlanItem[])].filter((i) => mine(i) && !seen.has(i.id) && !!seen.add(i.id));
+    return { items, reps: (reps.data ?? []) as ExecReport[] };
   }, [proj, f.date, sup]);
   // Pre-fill once per project and day (guarded set during render instead of an effect)
   const prefillKey = day ? `${proj}|${f.date}` : null;
   const [filled, setFilled] = useState<string | null>(null);
   if (day && prefillKey && filled !== prefillKey) {
     setFilled(prefillKey);
-    const mine = day.items.filter((i) => !sup || i.supervisor_id === me.id);
-    const planLines = mine.map((i) => `• ${i.title}${i.qty != null ? ` – ${i.done_qty ?? 0}/${i.qty} ${i.unit ?? ''}` : ''}: ${ITEM_STATUS[i.status]}${i.result_note ? ` (${i.result_note})` : ''}`);
+    setEdits({});
     const supLines = day.reps.map((r) => `• ${people[r.author_id]?.full_name ?? ''} (${r.crew_count ?? 0} crew, ${r.status}): ${r.work_done}`);
-    if (!f.work_done)
-      setF((s) => ({
-        ...s,
-        work_done: [planLines.length ? `Plan results:\n${planLines.join('\n')}` : '', supLines.length ? `Supervisor reports:\n${supLines.join('\n')}` : ''].filter(Boolean).join('\n\n'),
-      }));
+    if (!f.work_done && supLines.length) setF((s) => ({ ...s, work_done: `Supervisor reports:\n${supLines.join('\n')}` }));
   }
 
   const addFile = async (camera: boolean) => {
@@ -76,8 +83,17 @@ export default function NewReport() {
   const save = async () => {
     setError(null);
     if (!proj) return setError('Choose the project');
+    const changed = (day?.items ?? []).filter((it) => itemChanged(it, edits[it.id]));
+    const noReason = changed.find((it) => (edits[it.id].status === 'partial' || edits[it.id].status === 'not_done') && !edits[it.id].note.trim());
+    if (noReason) return setError(`Give the reason for “${noReason.title}”`);
     await dialog.run(async () => {
-      const id = await rpc<string>('submit_exec_report', { p_exec: proj, p_date: f.date, p: { ...f, crew_count: f.crew_count ?? '' } });
+      const items = changed.map((it) => ({ id: it.id, status: edits[it.id].status, done_qty: edits[it.id].done_qty ?? '', note: edits[it.id].note }));
+      const id = await rpc<string>('submit_exec_report', { p_exec: proj, p_date: f.date, p: { ...f, crew_count: f.crew_count ?? '', items } });
+      for (const it of changed) {
+        const ids: string[] = [];
+        for (const x of edits[it.id].photos) ids.push((await uploadAttachment('exec_report', id, 'item_photo', x)).id);
+        if (ids.length) await rpc('attach_report_item_photos', { p_report: id, p_item: it.id, p_attachments: ids });
+      }
       for (const x of files) await uploadAttachment('exec_report', id, x.mimeType?.startsWith('image/') ? 'daily_photo' : 'daily_doc', x);
       router.replace(`/execution/report/${id}`);
     }, sup ? 'Submitted – the Assistant Engineers verify it' : 'Submitted to the Senior Electrical Engineer');
@@ -98,6 +114,13 @@ export default function NewReport() {
               <Field label="Crew by trade (electricians, helpers…)" value={f.crew} onChangeText={(v) => set('crew', v)} />
             </>
           ) : null}
+        </Card>
+      </Section>
+      <Section title={`Planned activities – update the status (${day?.items.length ?? 0})`}>
+        <ReportItems items={day?.items ?? []} edits={edits} onChange={(id, e) => setEdits((s) => ({ ...s, [id]: e }))} people={people} day={f.date} />
+      </Section>
+      <Section title="Work on site">
+        <Card>
           <Field label="Work done" required multiline value={f.work_done} onChangeText={(v) => set('work_done', v)} />
           {!sup ? <Field label="Inspections and tests" multiline value={f.inspections} onChangeText={(v) => set('inspections', v)} /> : null}
           <Field label="Delays and reasons" multiline value={f.delays} onChangeText={(v) => set('delays', v)} />
