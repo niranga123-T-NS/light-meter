@@ -21,6 +21,20 @@ export type Worker = {
   induction_id: string | null;
   added_by: string;
   added_at: string;
+  police_status: 'none' | 'letter_requested' | 'letter_issued' | 'submitted' | 'accepted' | 'rejected';
+  police_due_at: string | null;
+  police_blocked_at: string | null;
+  police_letter_requested_by: string | null;
+  police_letter_requested_at: string | null;
+  police_letter_no: string | null;
+  police_letter_valid_until: string | null;
+  police_letter_issued_by: string | null;
+  police_letter_issued_at: string | null;
+  police_submitted_by: string | null;
+  police_submitted_at: string | null;
+  police_decided_by: string | null;
+  police_decided_at: string | null;
+  police_note: string | null;
 };
 
 export const TRADES = ['Electrician', 'Wireman', 'Cable jointer', 'Rigger', 'Crane operator', 'Machine operator', 'Welder', 'Mason', 'Carpenter', 'Helper / labourer', 'Driver', 'Foreman', 'Other'].map(
@@ -29,5 +43,28 @@ export const TRADES = ['Electrician', 'Wireman', 'Cable jointer', 'Rigger', 'Cra
 
 export const workerState = (w: Worker) =>
   w.status === 'off_site' ? 'Off site' : w.induction_id ? 'Inducted' : w.verified_at ? 'Verified – to induct' : 'To verify';
+
+export type PoliceState = 'not_required' | 'flagged' | 'blocked' | 'submitted' | 'accepted';
+/** Same rule as app.police_state: without a submitted report a worker is flagged for 2 days, then blocked */
+export function policeState(w: Worker, required: boolean | undefined, now: number): PoliceState {
+  if (!required) return 'not_required';
+  if (w.police_status === 'submitted' || w.police_status === 'accepted') return w.police_status;
+  return !w.police_due_at || Date.parse(w.police_due_at) > now ? 'flagged' : 'blocked';
+}
+export const POLICE_LABEL: Record<PoliceState, string> = {
+  not_required: 'Not required',
+  flagged: 'Police report due',
+  blocked: 'Blocked – no police report',
+  submitted: 'Police report submitted',
+  accepted: 'Police report accepted',
+};
+export const LETTER_STEP: Record<Worker['police_status'], string> = {
+  none: 'No letter yet',
+  letter_requested: 'Letter requested – SEE to release',
+  letter_issued: 'Letter released',
+  submitted: 'Report submitted – to check',
+  accepted: 'Report accepted',
+  rejected: 'Report returned',
+};
 
 export const idLabel = (w: Pick<Worker, 'id_type'>) => (w.id_type === 'passport' ? 'Passport' : 'NIC');

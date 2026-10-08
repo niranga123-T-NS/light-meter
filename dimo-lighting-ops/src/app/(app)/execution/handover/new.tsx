@@ -1,10 +1,10 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Platform } from 'react-native';
+import { Platform, Text } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { AreaPicker } from '@/components/exec/AreaPicker';
 import { TestingBanner } from '@/components/Testing';
-import { Button, Card, DateField, ErrorBanner, Field, Muted, NumberField, Row, Screen, Section, Select } from '@/components/ui';
+import { Button, Card, colors, DateField, ErrorBanner, Field, Grid, Muted, NumberField, Row, Screen, Section, Segmented, Select } from '@/components/ui';
 import type { ExecRequest } from '@/lib/execution';
 import { pickDocument, pickImage, uploadAttachment, type PickedFile } from '@/lib/files';
 import { fmtMoney } from '@/lib/format';
@@ -37,6 +37,10 @@ export default function NewHandover() {
     areas: [] as string[],
     see_id: null as string | null,
     note: '',
+    police_required: false,
+    letter_sign_name: '',
+    letter_sign_designation: '',
+    letter_sign_phone: '',
   });
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((s) => ({ ...s, [k]: v }));
   const { data: won } = useLoad(async () => {
@@ -61,6 +65,7 @@ export default function NewHandover() {
     if (!legacy && !f.project_id) return setError('Choose the won project');
     if (legacy && (!f.name.trim() || !f.client_name.trim())) return setError('Enter the project name and the client');
     if (legacy && !f.areas.length) return setError('Choose at least one project area');
+    if (!f.letter_sign_name.trim() || !f.letter_sign_designation.trim()) return setError('Enter the signing authority of the project letters (name and designation)');
     await dialog.run(async () => {
       const id = await rpc<string>('request_execution', {
         p: { ...f, kind, contract_value: f.contract_value ?? '', start_date: f.start_date ?? '', end_date: f.end_date ?? '', see_id: f.see_id ?? '' },
@@ -115,6 +120,19 @@ export default function NewHandover() {
       <Section title={`Project areas (${f.areas.length} chosen)${legacy ? '' : ' – optional, the SEE can set them'}`}>
         <Card>
           <AreaPicker value={f.areas} onChange={(v) => set('areas', v)} />
+        </Card>
+      </Section>
+      <Section title="Site workers – police reports and letters">
+        <Card>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>Police reports required for the workers?</Text>
+          <Segmented value={f.police_required ? 'yes' : 'no'} onChange={(v) => set('police_required', v === 'yes')} options={[{ value: 'no', label: 'Not required' }, { value: 'yes', label: 'Required' }]} />
+          {f.police_required ? <Muted>A worker without a police report is flagged for 2 days, then blocked until the report is submitted.</Muted> : null}
+          <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text, marginTop: 6 }}>Signing authority of the project letters (police report letters to workers)</Text>
+          <Grid min={220}>
+            <Field label="Name" required value={f.letter_sign_name} onChangeText={(v) => set('letter_sign_name', v)} placeholder="e.g. Mohamed Sajid" />
+            <Field label="Designation" required value={f.letter_sign_designation} onChangeText={(v) => set('letter_sign_designation', v)} placeholder="e.g. Senior Engineer - Lighting Projects" />
+            <Field label="Phone" value={f.letter_sign_phone} onChangeText={(v) => set('letter_sign_phone', v)} keyboardType="phone-pad" />
+          </Grid>
         </Card>
       </Section>
       <Section title="Contract documents">

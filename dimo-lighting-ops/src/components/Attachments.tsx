@@ -28,6 +28,7 @@ export const KIND_LABELS: Record<string, string> = {
   deadline_extension: 'Extension notice / client e-mail',
   tender_addendum: 'Tender addendum',
   id_front: 'ID – front side',
+  police_report: 'Police report',
   id_back: 'ID – back side',
   retention_doc: 'Retention document',
   bond_doc: 'Bond document',

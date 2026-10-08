@@ -71,6 +71,8 @@ export default function HandoverScreen() {
         <KeyValue label="Project areas" value={r.areas.length ? r.areas.map(areaLabel).join(' · ') : 'To be set by the SEE'} />
         {r.see_id ? <KeyValue label="Senior Electrical Engineer" value={people[r.see_id]?.full_name ?? ''} /> : null}
         {r.site_address ? <KeyValue label="Site" value={r.site_address} /> : null}
+        <KeyValue label="Workers' police reports" value={r.police_required ? 'Required' : 'Not required'} />
+        {r.letter_sign_name ? <KeyValue label="Letters signed by" value={[r.letter_sign_name, r.letter_sign_designation, r.letter_sign_phone].filter(Boolean).join(' · ')} /> : null}
         {r.start_date || r.end_date ? <KeyValue label="Dates" value={`${fmtDate(r.start_date)} → ${fmtDate(r.end_date)}`} /> : null}
         <KeyValue label="Requested by" value={`${people[r.requested_by]?.full_name ?? ''} · ${fmtDateTime(r.requested_at)}`} />
         {r.note ? <Notice>{r.note}</Notice> : null}

@@ -10,7 +10,7 @@ import { idLabel, type Worker } from './workers';
 export async function printWorkerList(
   project: { code: string | null; wbs_no?: string | null; name: string; site_address: string | null },
   workers: Worker[],
-  o: { photos: boolean; inductedOn: Record<string, string>; by: string },
+  o: { photos: boolean; inductedOn: Record<string, string>; by: string; police?: (w: Worker) => string },
 ) {
   let photos: Record<string, { front?: string; back?: string }> = {};
   if (o.photos && workers.length) {
@@ -35,8 +35,8 @@ export async function printWorkerList(
     .map(
       (w, i) => `<tr><td class="c">${i + 1}</td><td><b>${esc(w.full_name)}</b><br/><span class="s">${esc(w.trade ?? '')}</span></td>
       <td>${esc(idLabel(w))}<br/><b>${esc(w.id_no)}</b></td><td>${esc(w.address)}</td><td>${esc(w.police_station)}</td><td>${esc(w.company)}</td>
-      <td>${esc(w.mobile ?? '')}</td><td>${esc(o.inductedOn[w.id] ? fmtDate(o.inductedOn[w.id]) : '')}</td></tr>
-      ${o.photos ? `<tr class="ph"><td></td><td colspan="7">${photos[w.id]?.front ? `<img src="${esc(photos[w.id].front)}"/>` : '<span class="s">no front photo</span>'} ${photos[w.id]?.back ? `<img src="${esc(photos[w.id].back)}"/>` : '<span class="s">no back photo</span>'}</td></tr>` : ''}`,
+      <td>${esc(w.mobile ?? '')}</td><td>${esc(o.inductedOn[w.id] ? fmtDate(o.inductedOn[w.id]) : '')}</td>${o.police ? `<td>${esc(o.police(w))}</td>` : ''}</tr>
+      ${o.photos ? `<tr class="ph"><td></td><td colspan="${o.police ? 8 : 7}">${photos[w.id]?.front ? `<img src="${esc(photos[w.id].front)}"/>` : '<span class="s">no front photo</span>'} ${photos[w.id]?.back ? `<img src="${esc(photos[w.id].back)}"/>` : '<span class="s">no back photo</span>'}</td></tr>` : ''}`,
     )
     .join('');
   const html = `<!doctype html><html><head><meta charset="utf-8"/><style>
@@ -51,7 +51,7 @@ export async function printWorkerList(
   </style></head><body>
   <header><img src="${DIMO_LOGO_DATA_URI}" style="height:40px"/><div><h1>Site workers register</h1>
   <div class="sub">Project ${esc(`${projectNo(project)} ${project.name}`)}${project.site_address ? ` · ${esc(project.site_address)}` : ''} · ${workers.length} workers · ${esc(fmtDate(new Date().toISOString()))}</div></div></header>
-  <table><tr><th class="c">#</th><th>Name / trade</th><th>ID</th><th>Address</th><th>Nearest police station</th><th>Company</th><th>Mobile</th><th>Inducted</th></tr>${rows}</table>
+  <table><tr><th class="c">#</th><th>Name / trade</th><th>ID</th><th>Address</th><th>Nearest police station</th><th>Company</th><th>Mobile</th><th>Inducted</th>${o.police ? '<th>Police report</th>' : ''}</tr>${rows}</table>
   <div class="foot">Confidential – personal data. Prepared by ${esc(o.by)}. For site security, main contractor and police registration only.</div>
   </body></html>`;
   await printHtml(html, { key: 'site_workers', filters: project.name, title: 'Site workers register', landscape: true });

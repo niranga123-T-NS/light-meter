@@ -25,6 +25,8 @@ export default function WorkerForm() {
   const [back, setBack] = useState<PickedFile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  // Set once the details are saved: if a photo upload then fails, trying again uploads to the same worker
+  const [savedId, setSavedId] = useState<string | null>(null);
   const { data } = useLoad(async () => {
     const w = params.edit ? ((await supabase.from('exec_workers').select('*').eq('id', params.edit).single()).data as Worker) : null;
     const project = params.project ?? w?.exec_project_id ?? '';
@@ -60,12 +62,17 @@ export default function WorkerForm() {
 
   const save = async () => {
     setError(null);
-    if (!data.w && (!front || !back)) return setError(`Add the photos of both sides of the ${f.id_type === 'nic' ? 'NIC' : 'passport'}`);
+    if (!data.w && (!front || !back)) return setError(`The photos of both sides of the ${f.id_type === 'nic' ? 'NIC' : 'passport'} are required – take or choose them first`);
     await dialog.run(async () => {
       const company = f.company === 'DIMO (own labour)' ? 'DIMO' : f.company;
-      const id = await rpc<string>('save_worker', { p_exec: data.project, p: { ...f, company, id: data.w?.id ?? '' } });
-      if (front) await uploadAttachment('exec_worker', id, 'id_front', front);
-      if (back) await uploadAttachment('exec_worker', id, 'id_back', back);
+      const id = await rpc<string>('save_worker', { p_exec: data.project, p: { ...f, company, id: data.w?.id ?? savedId ?? '' } });
+      setSavedId(id);
+      try {
+        if (front) await uploadAttachment('exec_worker', id, 'id_front', front);
+        if (back) await uploadAttachment('exec_worker', id, 'id_back', back);
+      } catch (e) {
+        throw new Error(`Details saved, but the ID photo did not upload (${e instanceof Error ? e.message : 'network'}). Press Add worker again to retry the photos.`);
+      }
       router.replace(`/execution/worker/${id}`);
     }, data.w ? 'Saved' : sup ? 'Added – an Assistant Engineer verifies and inducts' : 'Added');
   };
@@ -101,8 +108,8 @@ export default function WorkerForm() {
           <Field label="Address" required multiline value={f.address} onChangeText={(v) => set('address', v)} />
           <Field label="Nearest police station" required value={f.police_station} onChangeText={(v) => set('police_station', v)} />
           <Row wrap gap={12}>
-            {photo(`${f.id_type === 'nic' ? 'NIC' : 'Passport'} – front side`, front, 'front')}
-            {photo(`${f.id_type === 'nic' ? 'NIC' : 'Passport'} – back side`, back, 'back')}
+            {photo(`${f.id_type === 'nic' ? 'NIC' : 'Passport'} – front side${data.w ? '' : ' *'}`, front, 'front')}
+            {photo(`${f.id_type === 'nic' ? 'NIC' : 'Passport'} – back side${data.w ? '' : ' *'}`, back, 'back')}
           </Row>
         </Card>
       </Section>

@@ -3278,7 +3278,7 @@ do $$ begin
   begin perform public.request_execution('{"kind":"won","project_id":"00000000-0000-0000-0000-00000000b001"}'); assert false, 'Ops requests';
   exception when others then assert sqlerrm like 'The Operations Executive requests%', sqlerrm; end;
   -- Project won before the system: entered by the SEE
-  perform set_config('test.legacy', public.request_execution('{"kind":"legacy","name":"Old Harbour Lighting","client_name":"Ports Authority","contract_value":"45000000","contract_ref":"PA/2025/17","areas":["outdoor"]}')::text, false);
+  perform set_config('test.legacy', public.request_execution('{"kind":"legacy","name":"Old Harbour Lighting","client_name":"Ports Authority","contract_value":"45000000","contract_ref":"PA/2025/17","areas":["outdoor"],"letter_sign_name":"Mohamed Sajid","letter_sign_designation":"Senior Engineer - Lighting Projects"}')::text, false);
 end $$;
 reset role;
 select pg_temp.act_as('operations_exec'); set role authenticated;
@@ -3286,7 +3286,7 @@ do $$ declare rid uuid;
 begin
   begin perform public.request_execution('{"kind":"won","project_id":"00000000-0000-0000-0000-00000000b001","areas":["kitchen"]}'); assert false, 'bad area';
   exception when others then assert sqlerrm = 'Unknown project area', sqlerrm; end;
-  rid := public.request_execution('{"kind":"won","project_id":"00000000-0000-0000-0000-00000000b001","areas":["indoor","facade","emergency"],"note":"PO received"}');
+  rid := public.request_execution('{"kind":"won","project_id":"00000000-0000-0000-0000-00000000b001","areas":["indoor","facade","emergency"],"note":"PO received","letter_sign_name":"Mohamed Sajid","letter_sign_designation":"Senior Engineer - Lighting Projects","police_required":true}');
   perform set_config('test.exr', rid::text, false);
   begin perform public.request_execution('{"kind":"won","project_id":"00000000-0000-0000-0000-00000000b001"}'); assert false, 'one open request';
   exception when others then assert sqlerrm like 'A hand-over request is already waiting%', sqlerrm; end;
@@ -4853,6 +4853,93 @@ begin
     raise exception 'rollback_ok';
   exception when others then assert sqlerrm = 'rollback_ok', sqlerrm; end;
 end $$;
+
+-- Police reports: required on the project → flagged 2 days, then blocked; letter released by the SEE; report lifts the block ----
+savepoint police;
+update public.profiles set company = 'Lanka Electricals' where id = (select id from u where role = 'sub_supervisor');
+insert into public.exec_members (exec_project_id, user_id, member_role)
+select current_setting('test.ex')::uuid, x.id, case when x.role = 'sub_supervisor' then 'sub_supervisor' else 'assistant_engineer' end from u x where x.role in ('assistant_engineer', 'sub_supervisor')
+  and not exists (select 1 from public.exec_members m where m.exec_project_id = current_setting('test.ex')::uuid and m.user_id = x.id and m.active);
+do $$ begin
+  assert (select police_required and letter_sign_name = 'Mohamed Sajid' from public.exec_projects where id = current_setting('test.ex')::uuid), 'settings from the hand-over request';
+end $$;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare e uuid := current_setting('test.ex')::uuid;
+begin
+  begin perform public.set_police_settings(e, '{"police_required":true,"letter_sign_name":""}'); assert false, 'signatory needed';
+  exception when others then assert sqlerrm like 'Enter the name and designation%', sqlerrm; end;
+  perform public.set_police_settings(e, '{"police_required":true,"letter_sign_name":"Mohamed Sajid","letter_sign_designation":"Senior Engineer - Lighting Projects","letter_sign_phone":"0773850629"}');
+end $$;
+reset role;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare e uuid := current_setting('test.ex')::uuid; w uuid;
+begin
+  w := public.save_worker(e, '{"full_name":"Sunil Jayarathne","address":"5 Lake Rd, Negombo","police_station":"Negombo","id_no":"960571479V","trade":"Skilled labour"}');
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values
+    ('exec_worker', w, 'id_front', 'exec_worker/' || w || '/f.jpg', 'f.jpg'), ('exec_worker', w, 'id_back', 'exec_worker/' || w || '/b.jpg', 'b.jpg');
+  perform set_config('test.pw', w::text, false);
+end $$;
+reset role;
+do $$ declare w public.exec_workers;
+begin
+  select * into w from public.exec_workers where id = current_setting('test.pw')::uuid;
+  assert w.police_due_at > now() + interval '47 hours' and app.police_state(w) = 'flagged', 'flagged for 2 days';
+  assert exists (select 1 from public.notifications where kind = 'police_report' and recipient_id = w.supervisor_id), 'supervisor told';
+  update public.exec_workers set police_due_at = now() - interval '1 minute' where id = w.id;
+  assert public.police_tick() = 1, 'blocked by the tick';
+  assert public.police_tick() = 0, 'once';
+  select * into w from public.exec_workers where id = w.id;
+  assert w.police_blocked_at is not null and app.police_state(w) = 'blocked', 'blocked';
+  assert exists (select 1 from public.notifications where kind = 'police_report' and priority = 'critical' and recipient_id = (select id from u where role = 'assistant_engineer')), 'AE told';
+end $$;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare w uuid := current_setting('test.pw')::uuid;
+begin
+  perform public.verify_worker(w);
+  begin perform public.induct_worker(w); assert false, 'blocked';
+  exception when others then assert sqlerrm like 'Police report not submitted%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare w uuid := current_setting('test.pw')::uuid;
+begin
+  perform public.request_police_letter(w);
+  begin perform public.submit_police_report(w); assert false, 'upload first';
+  exception when others then assert sqlerrm like 'Upload the police report%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare w uuid := current_setting('test.pw')::uuid;
+begin
+  begin perform public.issue_police_letters(array[w], current_date - 1); assert false, 'validity';
+  exception when others then assert sqlerrm like 'Enter the date the letter is valid until%', sqlerrm; end;
+  assert public.issue_police_letters(array[w], current_date + 30) = 1, 'released';
+  assert (select police_status = 'letter_issued' and police_letter_no like '%/PR/001' and police_letter_valid_until = current_date + 30 from public.exec_workers where id = w), 'numbered letter';
+end $$;
+reset role;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare w uuid := current_setting('test.pw')::uuid;
+begin
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('exec_worker', w, 'police_report', 'exec_worker/' || w || '/pr.pdf', 'pr.pdf');
+  perform public.submit_police_report(w);
+  assert (select police_blocked_at is null and police_status = 'submitted' from public.exec_workers where id = w), 'block lifted';
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare w uuid := current_setting('test.pw')::uuid;
+begin
+  perform public.induct_worker(w);
+  begin perform public.decide_police_report(w, false); assert false, 'reason';
+  exception when others then assert sqlerrm like 'Give the reason%', sqlerrm; end;
+  perform public.decide_police_report(w, false, 'Report older than 6 months');
+end $$;
+reset role;
+do $$ declare w public.exec_workers;
+begin
+  select * into w from public.exec_workers where id = current_setting('test.pw')::uuid;
+  assert w.police_status = 'rejected' and w.police_blocked_at is not null and app.police_state(w) = 'blocked', 'returned after the 2 days → blocked again';
+end $$;
+rollback to savepoint police;
 
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

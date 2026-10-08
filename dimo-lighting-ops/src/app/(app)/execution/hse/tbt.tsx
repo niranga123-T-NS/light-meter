@@ -9,6 +9,7 @@ import { fmtDate, todayISO } from '@/lib/format';
 import { formName, loadHseForms, type HseRecord, type Induction, type Participant } from '@/lib/hse';
 import { useLoad } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
+import { policeState, type Worker } from '@/lib/workers';
 
 /** Toolbox meeting (OHS/LTD/TBT/01): today's activity from the plan, hazards, control measures, participants from the induction register. */
 export default function ToolboxTalk() {
@@ -21,14 +22,19 @@ export default function ToolboxTalk() {
   const [extra, setExtra] = useState<Participant[]>([]);
   const [permit, setPermit] = useState<string | null>(null);
   const { data } = useLoad(async () => {
-    const [forms, items, ind, permits] = await Promise.all([
+    const [forms, items, ind, permits, wk, proj] = await Promise.all([
       loadHseForms(),
       supabase.from('exec_plan_items').select('*').eq('exec_project_id', project).eq('day', todayISO()),
       supabase.from('hse_inductions').select('*').eq('exec_project_id', project).order('name'),
       supabase.from('hse_records').select('*').eq('exec_project_id', project).like('code', 'PTW-%').in('status', ['submitted', 'active']),
+      supabase.from('exec_workers').select('*').eq('exec_project_id', project).not('induction_id', 'is', null),
+      supabase.from('exec_projects').select('police_required').eq('id', project).single(),
     ]);
+    // Workers blocked for a missing police report are left out of the people present
+    const now = Date.now();
+    const blocked = new Set(((wk.data ?? []) as Worker[]).filter((w) => policeState(w, proj.data?.police_required, now) === 'blocked').map((w) => w.induction_id));
     const plan = ((items.data ?? []) as PlanItem[]).map((x) => `• ${x.title}${x.zone ? ` – ${x.zone}` : ''}`).join('\n');
-    return { form: forms.find((f) => f.code === 'TBT-01')!, plan, inductions: (ind.data ?? []) as Induction[], permits: (permits.data ?? []) as HseRecord[] };
+    return { form: forms.find((f) => f.code === 'TBT-01')!, plan, inductions: ((ind.data ?? []) as Induction[]).filter((x) => !blocked.has(x.id)), blockedCount: blocked.size, permits: (permits.data ?? []) as HseRecord[] };
   }, [project]);
   const [seeded, setSeeded] = useState(false);
   if (data && !seeded) {
@@ -97,6 +103,7 @@ export default function ToolboxTalk() {
       </Section>
       <Section title="Section D – Participants" right={<Button small variant="secondary" title="+ Person" onPress={() => setExtra((s) => [...s, { name: '', position: '' }])} />}>
         <Card>
+          {data.blockedCount ? <Muted style={{ color: colors.red }}>{`${data.blockedCount} inducted ${data.blockedCount === 1 ? 'worker is' : 'workers are'} blocked (no police report) and not listed`}</Muted> : null}
           {data.inductions.length ? (
             <MultiSelect label="Inducted people present" values={picked} onChange={setPicked} options={data.inductions.map((x) => ({ value: x.id, label: `${x.name} · ${x.company ?? ''}` }))} />
           ) : (
