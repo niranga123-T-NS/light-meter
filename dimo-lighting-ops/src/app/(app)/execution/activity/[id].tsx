@@ -87,20 +87,47 @@ export default function ActivityScreen() {
     if (await dialog.confirm(`Delete ${a.code}?`, 'Its links and resources are deleted too.', { danger: true, confirmLabel: 'Delete' }))
       await dialog.run(async () => { await rpc('delete_activity', { p_id: a.id }); router.back(); }, 'Deleted');
   };
-  const addPred = async () => {
-    const r = await dialog.prompt({
-      title: 'Predecessor',
-      message: `${a.code} depends on:`,
-      fields: [
-        { key: 'p', label: 'Activity', type: 'select', required: true, options: [...all].filter((x) => x.id !== a.id).sort(byCode).map((x) => ({ value: x.id, label: `${x.code} ${x.name}` })) },
-        { key: 't', label: 'Link', type: 'select', required: true, options: DEP_TYPES, initial: 'FS' },
-        { key: 'l', label: 'Lag in working days (negative = lead)', initial: '0' },
-      ],
-      confirmLabel: 'Link',
+  // Any link change recalculates the whole programme; the toast says how many activities moved and the new finish
+  const relink = (fn: () => Promise<unknown>, what: string) =>
+    dialog.run(async () => {
+      const before = new Map(all.map((x) => [x.id, `${x.es}|${x.ef}`]));
+      const finishBefore = all.reduce((m, x) => (x.ef && x.ef > m ? x.ef : m), '');
+      await fn();
+      const { data: after } = await supabase.from('exec_activities').select('id, es, ef').eq('exec_project_id', a.exec_project_id);
+      const rows = (after ?? []) as Pick<Activity, 'id' | 'es' | 'ef'>[];
+      const moved = rows.filter((x) => before.has(x.id) && before.get(x.id) !== `${x.es}|${x.ef}`).length;
+      const finish = rows.reduce((m, x) => (x.ef && x.ef > m ? x.ef : m), '');
+      await reload();
+      dialog.toast(`${what} – ${moved ? `${moved} ${moved === 1 ? 'activity' : 'activities'} rescheduled` : 'no dates changed'}${finish && finish !== finishBefore ? ` · project finish now ${fmtDate(finish)}` : ''}`);
     });
-    if (r) await dialog.run(async () => { await rpc('set_dependency', { p_succ: a.id, p_pred: r.p, p_type: r.t, p_lag: Number(r.l || 0) }); await reload(); }, 'Linked – dates recalculated');
+  const linkFields = (t = 'FS', l = 0) => [
+    { key: 't', label: 'Link', type: 'select' as const, required: true, options: DEP_TYPES, initial: t },
+    { key: 'l', label: 'Lag in working days (negative = lead)', initial: String(l) },
+  ];
+  const others = [...all].filter((x) => x.id !== a.id).sort(byCode).map((x) => ({ value: x.id, label: `${x.code} ${x.name}` }));
+  const addPred = async () => {
+    const r = await dialog.prompt({ title: 'Predecessor', message: `${a.code} depends on:`, fields: [{ key: 'p', label: 'Activity', type: 'select', required: true, options: others }, ...linkFields()], confirmLabel: 'Link' });
+    if (r) await relink(() => rpc('set_dependency', { p_succ: a.id, p_pred: r.p, p_type: r.t, p_lag: Number(r.l || 0) }), 'Linked');
   };
-  const removeDep = (d: Dep) => dialog.run(async () => { await rpc('remove_dependency', { p_id: d.id }); await reload(); }, 'Link removed');
+  const addSucc = async () => {
+    const r = await dialog.prompt({ title: 'Successor', message: `Follows ${a.code}:`, fields: [{ key: 's', label: 'Activity', type: 'select', required: true, options: others }, ...linkFields()], confirmLabel: 'Link' });
+    if (r) await relink(() => rpc('set_dependency', { p_succ: r.s, p_pred: a.id, p_type: r.t, p_lag: Number(r.l || 0) }), 'Linked');
+  };
+  const editDep = async (d: Dep) => {
+    const r = await dialog.prompt({ title: 'Change the link', message: `${name(d.pred_id)} → ${name(d.succ_id)}`, fields: linkFields(d.dep_type, d.lag), confirmLabel: 'Save' });
+    if (r) await relink(() => rpc('set_dependency', { p_succ: d.succ_id, p_pred: d.pred_id, p_type: r.t, p_lag: Number(r.l || 0) }), 'Link changed');
+  };
+  const removeDep = async (d: Dep) => {
+    if (await dialog.confirm('Remove this link?', `${name(d.pred_id)} → ${name(d.succ_id)}. The dates of the following activities are recalculated.`, { danger: true, confirmLabel: 'Remove' }))
+      await relink(() => rpc('remove_dependency', { p_id: d.id }), 'Link removed');
+  };
+  const depRight = (d: Dep) => (
+    <Row gap={4} style={{ alignItems: 'center' }}>
+      <Pill label={depLabel(d)} />
+      {canEdit ? <Button small variant="secondary" title="Edit" onPress={() => editDep(d)} /> : null}
+      {canEdit ? <Button small variant="ghost" title="✕" onPress={() => removeDep(d)} /> : null}
+    </Row>
+  );
   const resource = async (x?: Resource) => {
     // One list: resources already used on this project first, then the usual ones by type, each type with its own "type the name" choice
     const kindLabel = (k: string) => RES_KINDS.find((y) => y.value === k)?.label ?? k;
@@ -236,15 +263,15 @@ export default function ActivityScreen() {
         <Card style={{ padding: 0, overflow: 'hidden' }}>
           {preds.map((d) => (
             <ListRow key={d.id} title={name(d.pred_id)} subtitle={DEP_TYPES.find((t) => t.value === d.dep_type)?.label} onPress={() => router.push(`/execution/activity/${d.pred_id}`)}
-              right={<Row gap={4}><Pill label={depLabel(d)} />{canEdit ? <Button small variant="ghost" title="✕" onPress={() => removeDep(d)} /> : null}</Row>} />
+              right={depRight(d)} />
           ))}
           {!preds.length ? <Muted style={{ padding: 12 }}>{'Starts at the programme start (or its "not before" date)'}</Muted> : null}
         </Card>
       </Section>
-      <Section title={`Successors (${succs.length})`}>
+      <Section title={`Successors (${succs.length})`} right={canEdit ? <Button small variant="secondary" title="+ Successor" onPress={addSucc} /> : null}>
         <Card style={{ padding: 0, overflow: 'hidden' }}>
           {succs.map((d) => (
-            <ListRow key={d.id} title={name(d.succ_id)} onPress={() => router.push(`/execution/activity/${d.succ_id}`)} right={<Pill label={depLabel(d)} />} />
+            <ListRow key={d.id} title={name(d.succ_id)} subtitle={DEP_TYPES.find((t) => t.value === d.dep_type)?.label} onPress={() => router.push(`/execution/activity/${d.succ_id}`)} right={depRight(d)} />
           ))}
           {!succs.length ? <Muted style={{ padding: 12 }}>Nothing follows this activity</Muted> : null}
         </Card>
