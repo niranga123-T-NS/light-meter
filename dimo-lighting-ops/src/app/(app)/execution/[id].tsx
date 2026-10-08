@@ -19,6 +19,7 @@ import { colors, ErrorBanner, Loading, Muted, Screen, Segmented } from '@/compon
 import { useMe } from '@/lib/auth';
 import { stageLabel, type ExecProject } from '@/lib/execution';
 import { useLoad } from '@/lib/hooks';
+import { WorkersTab } from '@/components/exec/WorkersTab';
 import { supabase } from '@/lib/supabase';
 import type { Role } from '@/lib/types';
 
@@ -32,6 +33,7 @@ const TABS: Tab[] = [
   { key: 'reports', label: 'Daily reports' },
   { key: 'variations', label: 'Variations', roles: ['senior_elec_engineer', 'sm_projects', 'gm', 'operations_exec', 'assistant_engineer'] },
   { key: 'hse', label: 'HSE' },
+  { key: 'workers', label: 'Workers', roles: ['senior_elec_engineer', 'sm_projects', 'assistant_engineer', 'sub_supervisor'] },
   { key: 'materials', label: 'Materials', roles: INTERNAL },
   { key: 'qa', label: 'QA', roles: INTERNAL },
   { key: 'documents', label: 'Documents' },
@@ -66,6 +68,7 @@ export default function ExecProjectScreen() {
       {t === 'reports' ? <ReportsTab p={p} /> : null}
       {t === 'variations' ? <VariationsTab p={p} /> : null}
       {t === 'hse' ? <HseTab p={p} /> : null}
+      {t === 'workers' ? <WorkersTab p={p} /> : null}
       {t === 'materials' ? <MaterialsTab p={p} /> : null}
       {t === 'qa' ? <QaTab p={p} /> : null}
       {t === 'documents' ? <DocumentsTab p={p} queries={me.role !== 'sub_supervisor'} /> : null}
