@@ -29,7 +29,7 @@ const MUTED = '#6B7280';
 const LINE = '#E5E7EB';
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-function ganttPages(i: ProgrammePdfInput) {
+export function ganttPages(i: ProgrammePdfInput) {
   const rows = programmeRows(i.wbs, i.acts);
   const W = i.paper === 'A3' ? 1480 : 1020;
   const per = i.paper === 'A3' ? 40 : 24;
@@ -125,7 +125,7 @@ function ganttPages(i: ProgrammePdfInput) {
   return pages;
 }
 
-function scurveSvg(i: ProgrammePdfInput) {
+export function scurveSvg(i: ProgrammePdfInput) {
   const bl = i.acts.filter((a) => a.bl_start && a.bl_finish);
   if (!bl.length) return '';
   const W = i.paper === 'A3' ? 1480 : 1020;

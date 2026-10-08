@@ -1,7 +1,8 @@
 import type { BillingRow } from './billing';
-import { projectNo, stageLabel, type ExecProject } from './execution';
+import { CHECKPOINTS, projectNo, stageLabel, type ExecProject } from './execution';
 import { addDaysISO, fmtDate } from './format';
-import { actualPct, plannedPct, type Activity } from './programme';
+import { actualPct, plannedPct, toDay, type Activity, type Dep, type Programme, type Snapshot, type Wbs } from './programme';
+import { ganttPages, scurveSvg } from './programmePdf';
 import { rpc, supabase } from './supabase';
 
 // Project meeting pack: the figures of one execution project, gathered when the Senior Electrical Engineer presses
@@ -36,6 +37,15 @@ export type ProjectPack = {
   billing: { at_risk: number; red: number; lines: Item[] };
   cost: { budget: number; spent: number; pct: number | null };
   actions: { action: string; owner: string | null; due: string | null; meeting: string }[];
+  /** Tracked timeline (packs from 154 on): Gantt of the activities that matter now, S-curve, weekly tracking, milestones, trend */
+  timeline?: {
+    gantt: string[];
+    gantt_note: string;
+    scurve: string;
+    weeks: { week: string; planned: number; actual: number; forecast: string | null; critical: number }[];
+    milestones: Item[];
+    trend: { since: string; was: string | null; now: string | null; days: number | null } | null;
+  };
 };
 
 const n = (v: unknown) => Number(v ?? 0) || 0;
@@ -69,6 +79,12 @@ export async function buildProjectPack(p: ExecProject, meetingDate: string): Pro
     supabase.from('exec_cost_lines').select('budget, committed, actual').eq('exec_project_id', ex),
     supabase.from('sales_meetings').select('id, meeting_date').eq('team', 'project').eq('exec_project_id', ex).eq('status', 'published').lt('meeting_date', on),
     rpc<BillingRow[]>('billing_risk', { p_exec: ex }).catch(() => [] as BillingRow[]),
+  ]);
+  const [wbsR, snapR, gateR, lastR] = await Promise.all([
+    supabase.from('exec_wbs').select('*').eq('exec_project_id', ex),
+    supabase.from('exec_progress_snapshots').select('*').eq('exec_project_id', ex).lte('snap_date', on).order('snap_date'),
+    supabase.from('exec_gates').select('gate, status, decided_at, requested_at, event_date').eq('exec_project_id', ex),
+    supabase.from('sales_meetings').select('meeting_date, pack').eq('team', 'project').eq('exec_project_id', ex).eq('status', 'published').lt('meeting_date', on).order('meeting_date', { ascending: false }).limit(1),
   ]);
   const [pgR, actR, planR, repR, hseR, hseActR, testR, qaR, ncrR, snagR, mrR, varR, dqR, costR, prevR] = q;
   const billing = q[15] as BillingRow[];
@@ -123,6 +139,92 @@ export async function buildProjectPack(p: ExecProject, meetingDate: string): Pro
   }
 
   const risky = billing.filter((b) => b.status === 'amber' || b.status === 'red' || b.status === 'no_trigger');
+
+  // ---- Tracked timeline
+  let timeline: ProjectPack['timeline'];
+  if (live) {
+    const wbs = (wbsR.data ?? []) as Wbs[];
+    const snaps = (snapR.data ?? []) as Snapshot[];
+    // The Gantt shows what matters now: open activities and those finished in the last 14 days (critical, behind and next first if many)
+    const recent = addDaysISO(on, -14);
+    let shown = acts.filter((a) => !a.actual_finish || a.actual_finish >= recent);
+    const total = shown.length;
+    if (shown.length > 36) {
+      const score = (a: Activity) =>
+        (a.critical ? 4 : 0) + (a.bl_finish && a.bl_finish < on && Number(a.pct) < 100 ? 4 : 0) + (a.actual_start && !a.actual_finish ? 3 : 0) + ((a.es ?? '9') <= addDaysISO(on, 21) ? 2 : 0);
+      const keep = new Set([...shown].sort((a, b) => score(b) - score(a) || (a.es ?? '').localeCompare(b.es ?? '')).slice(0, 36).map((a) => a.id));
+      shown = shown.filter((a) => keep.has(a.id));
+    }
+    const { data: dp } = shown.length
+      ? await supabase
+          .from('exec_activity_deps')
+          .select('*')
+          .in(
+            'succ_id',
+            shown.map((a) => a.id),
+          )
+      : { data: [] };
+    const deps = (dp ?? []) as Dep[];
+    const used = new Set<string>();
+    for (const a of shown) for (let w = wbs.find((x) => x.id === a.wbs_id); w && !used.has(w.id); w = wbs.find((x) => x.id === w!.parent_id)) used.add(w.id);
+    const input = {
+      project: { name: p.name, code: p.code, client_name: p.client_name, end_date: p.end_date },
+      pg: pgR.data as Programme,
+      wbs: wbs.filter((w) => used.has(w.id)),
+      acts: shown,
+      deps,
+      snaps,
+      people: {},
+      today: on,
+      generatedBy: '',
+      parts: { gantt: true, scurve: true, table: false },
+      paper: 'A4' as const,
+      purpose: '',
+    };
+    const sc = scurveSvg({ ...input, acts });
+    const byWeek = new Map<string, Snapshot>();
+    for (const x of snaps) {
+      const d = new Date(`${x.snap_date}T00:00:00Z`);
+      byWeek.set(addDaysISO(x.snap_date, -((d.getUTCDay() + 6) % 7)), x);
+    }
+    const gates = (gateR.data ?? []) as { gate: number; status: string; decided_at: string | null; requested_at: string | null; event_date: string | null }[];
+    const milestones: Item[] = [
+      ...acts
+        .filter((a) => a.duration === 0)
+        .map((a) => {
+          const due = a.bl_finish ?? a.bl_start;
+          const fc = a.ef ?? a.es;
+          const late = due && fc ? toDay(fc) - toDay(due) : 0;
+          return {
+            code: a.code,
+            name: a.name,
+            note: a.actual_finish
+              ? `achieved ${fmtDate(a.actual_finish)}${due && a.actual_finish > due ? ` (${toDay(a.actual_finish) - toDay(due)} days late)` : ''}`
+              : `${due ? `baseline ${fmtDate(due)}` : 'no baseline'}${fc ? ` · forecast ${fmtDate(fc)}` : ''}${late > 0 ? ` · ${late} days late` : due && due < on ? ' · missed' : ' · on track'}`,
+          };
+        }),
+      ...gates
+        .filter((g) => g.status !== 'rejected')
+        .sort((a, b) => a.gate - b.gate)
+        .map((g) => ({
+          code: '',
+          name: CHECKPOINTS[g.gate - 1] ?? `Checkpoint ${g.gate}`,
+          note: g.status === 'approved' ? `approved ${fmtDate((g.event_date ?? g.decided_at ?? '').slice(0, 10))}` : `requested ${fmtDate((g.requested_at ?? '').slice(0, 10))} – waiting for approval`,
+        })),
+      ...billing.map((b) => ({ code: '', name: `Invoice: ${b.description}`, note: `deadline ${fmtDate(b.deadline)} · ${b.status === 'ready' ? 'ready to invoice' : b.status === 'green' ? 'on track' : b.status === 'red' ? 'will miss the month' : b.status === 'amber' ? 'at risk' : b.status.replace('_', ' ')}` })),
+    ];
+    const last = (lastR.data ?? [])[0] as { meeting_date: string; pack: ProjectPack | null } | undefined;
+    const was = last?.pack?.progress?.forecast_finish ?? null;
+    const now = pg?.forecast_finish ?? null;
+    timeline = {
+      gantt: ganttPages(input),
+      gantt_note: shown.length < total ? `${shown.length} of ${total} open / recent activities – critical, behind, in progress and starting soon first` : `${total} open or recently finished activities`,
+      scurve: sc.slice(0, sc.indexOf('</svg>') + 6),
+      weeks: [...byWeek.entries()].slice(-8).map(([week, x]) => ({ week, planned: Math.round(Number(x.pct_planned)), actual: Math.round(Number(x.pct_actual)), forecast: x.forecast_finish, critical: x.critical_open })),
+      milestones,
+      trend: last ? { since: last.meeting_date, was, now, days: was && now ? toDay(now) - toDay(was) : null } : null,
+    };
+  }
   return {
     team_kind: 'project',
     generated_at: new Date().toISOString(),
@@ -209,6 +311,7 @@ export async function buildProjectPack(p: ExecProject, meetingDate: string): Pro
     },
     cost: { budget, spent, pct: budget ? Math.round((spent / budget) * 100) : null },
     actions,
+    timeline,
   };
 }
 
@@ -227,6 +330,14 @@ export function projectFacts(pk: ProjectPack): { facts: Facts; lists: List[] } {
     ['Contract period', `${dt(pk.project.start)} – ${dt(pk.project.end)}`],
     ['Progress (planned / actual)', g.live ? `${g.planned}% / ${g.actual}%${g.planned != null && g.actual != null ? ` (${g.actual - g.planned >= 0 ? '+' : ''}${g.actual - g.planned} pts)` : ''}` : 'Programme not approved yet'],
     ['Finish (baseline → forecast)', g.baseline_finish ? `${dt(g.baseline_finish)} → ${dt(g.forecast_finish)}${g.late_days ? ` · ${g.late_days > 0 ? `${g.late_days} days late` : `${-g.late_days} days early`}` : ''}` : '—'],
+    ...(pk.timeline?.trend
+      ? ([
+          [
+            `Forecast finish since the last meeting (${dt(pk.timeline.trend.since)})`,
+            `${dt(pk.timeline.trend.was)} → ${dt(pk.timeline.trend.now)}${pk.timeline.trend.days ? ` · ${pk.timeline.trend.days > 0 ? `${pk.timeline.trend.days} days later` : `${-pk.timeline.trend.days} days earlier`}` : ' · no change'}`,
+          ],
+        ] as Facts)
+      : []),
     ['Critical activities open', String(g.critical_open)],
     ['Plan last week', pk.plan.items ? `${pk.plan.done} of ${pk.plan.items} done · ${pk.plan.partial} partly · ${pk.plan.not_done} not done · ${pk.plan.open} not updated${pk.plan.no_result ? ` · ${pk.plan.no_result} without result` : ''}` : 'No plan items'],
     ['Daily reports last week', `${pk.reports.week} submitted · ${pk.reports.late} late · ${pk.reports.days_missing} days missing${pk.reports.returned ? ` · ${pk.reports.returned} returned` : ''}`],
@@ -242,6 +353,7 @@ export function projectFacts(pk: ProjectPack): { facts: Facts; lists: List[] } {
   const lists: List[] = [
     { title: 'Activities behind the baseline', items: pk.behind.map(it), tone: 'red' as const },
     { title: 'Activities starting in the next 14 days', items: pk.coming.map(it) },
+    { title: 'Milestones, checkpoints and billing deadlines', items: (pk.timeline?.milestones ?? []).map(it) },
     { title: 'Late materials', items: pk.materials.late.map(it), tone: 'amber' as const },
     { title: 'Overdue design queries', items: pk.queries.overdue.map(it), tone: 'amber' as const },
     { title: 'Invoice lines at risk', items: pk.billing.lines.map(it), tone: 'red' as const },
@@ -252,4 +364,19 @@ export function projectFacts(pk: ProjectPack): { facts: Facts; lists: List[] } {
     },
   ].filter((l) => l.items.length);
   return { facts, lists };
+}
+
+/** The tracked timeline for the minutes: Gantt, S-curve and the weekly tracking table */
+export function timelineHtml(pk: ProjectPack): string {
+  const t = pk.timeline;
+  if (!t) return '';
+  const rows = t.weeks
+    .map((w) => {
+      const v = w.actual - w.planned;
+      return `<tr><td>${fmtDate(w.week)}</td><td style="text-align:right">${w.planned}%</td><td style="text-align:right">${w.actual}%</td><td style="text-align:right;color:${v < 0 ? '#C8102E' : '#111827'}">${v > 0 ? '+' : ''}${v}%</td><td>${dt(w.forecast)}</td><td style="text-align:right">${w.critical}</td></tr>`;
+    })
+    .join('');
+  return `<h3>Tracked timeline – Gantt</h3><div style="font-size:9px;color:#6B7280">${t.gantt_note} · grey line = baseline · red = critical · green = finished · red vertical line = meeting day</div>${t.gantt.map((g) => `<div style="margin-top:4px">${g}</div>`).join('')}
+<h3 style="page-break-before:auto">Progress S-curve</h3>${t.scurve}<div style="font-size:9px;color:#6B7280">Dashed = planned (baseline) · blue = actual · red = meeting day</div>
+${rows ? `<h3>Weekly tracking</h3><table><thead><tr><th>Week of</th><th style="text-align:right">Planned</th><th style="text-align:right">Actual</th><th style="text-align:right">Variance</th><th>Forecast finish</th><th style="text-align:right">Critical open</th></tr></thead><tbody>${rows}</tbody></table>` : ''}`;
 }

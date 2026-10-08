@@ -9,7 +9,7 @@ import { hhmm, type Team, TEAMS } from '@/lib/meetings';
 import { ExecPackView } from '@/components/ExecPackView';
 import { ProjectPackView } from '@/components/exec/ProjectPackView';
 import { projectNo, type ExecProject } from '@/lib/execution';
-import { buildProjectPack, projectFacts, type ProjectPack } from '@/lib/projectMeeting';
+import { buildProjectPack, projectFacts, timelineHtml, type ProjectPack } from '@/lib/projectMeeting';
 import { TeamPackView, type TeamPack } from '@/components/TeamPackView';
 import { captureLocation } from '@/components/VisitBits';
 import { Button, Card, colors, ErrorBanner, Grid, KeyValue, Loading, Muted, Notice, Pill, Progress, Row, Screen, Section, Stat } from '@/components/ui';
@@ -325,6 +325,7 @@ export default function MeetingPack() {
           }))
           .sort((a, b) => a.name.localeCompare(b.name)),
         reviewTitle: isProject ? 'Project review' : undefined,
+        teamHtml: isProject && pack ? timelineHtml(pack as unknown as ProjectPack) : undefined,
         teamFacts: team.facts,
         teamLists: team.lists,
         notes: [m.agenda ? `Agenda: ${m.agenda}` : null, m.notes].filter(Boolean).join('\n\n') || null,

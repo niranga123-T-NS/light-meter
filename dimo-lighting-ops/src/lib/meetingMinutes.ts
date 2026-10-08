@@ -39,6 +39,8 @@ export type MinutesInput = {
   attendance: { name: string; role: string; status: string; at: string | null; note: string | null }[];
   /** Heading of the figures section (default "Team review") */
   reviewTitle?: string;
+  /** Extra figures (charts) after the lists, already HTML */
+  teamHtml?: string;
   teamFacts: Facts;
   teamLists: List[];
   notes: string | null;
@@ -326,6 +328,7 @@ ${
 <h2>2. ${esc(m.reviewTitle ?? 'Team review')}</h2>
 ${facts(m.teamFacts)}
 ${lists(m.teamLists)}
+${m.teamHtml ?? ''}
 
 <h2>3. General discussion</h2>
 ${para(m.notes)}
