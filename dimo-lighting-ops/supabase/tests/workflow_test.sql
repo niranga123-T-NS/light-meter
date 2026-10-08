@@ -4665,5 +4665,125 @@ do $$ begin
 end $$;
 rollback to savepoint parallel_de;
 
+
+-- HSE forms: equipment checklists, permits to work, toolbox talks, induction, training --------------------------------
+savepoint hse_forms;
+insert into u values ('ae2', gen_random_uuid());
+insert into auth.users (id, email) select id, 'ae2@test.local' from u where role = 'ae2';
+insert into public.profiles (id, full_name, role) select id, 'Second AE', 'assistant_engineer' from u where role = 'ae2';
+insert into public.exec_members (exec_project_id, user_id, member_role)
+select current_setting('test.ex')::uuid, x.id, 'assistant_engineer' from u x where x.role in ('assistant_engineer', 'ae2')
+  and not exists (select 1 from public.exec_members m where m.exec_project_id = current_setting('test.ex')::uuid and m.user_id = x.id and m.active);
+insert into public.exec_members (exec_project_id, user_id, member_role)
+select current_setting('test.ex')::uuid, x.id, 'sub_supervisor' from u x where x.role = 'sub_supervisor'
+  and not exists (select 1 from public.exec_members m where m.exec_project_id = current_setting('test.ex')::uuid and m.user_id = x.id and m.active);
+do $$ begin
+  assert (select count(*) from public.hse_forms) = 26, 'all 26 forms';
+  assert (select count(*) from public.hse_forms where kind = 'checklist') = 16 and (select count(*) from public.hse_forms where kind = 'permit') = 6, 'kinds';
+  assert (select jsonb_array_length(items) from public.hse_forms where code = 'CL-03') = 13, 'crane 13 points';
+  assert (select jsonb_array_length(items) from public.hse_forms where code = 'CL-07') = 16, 'first aid 16 items';
+end $$;
+-- SEE names one AE as EHS Officer
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select public.set_ehs_officer(current_setting('test.ex')::uuid, (select id from u where role = 'ae2'), true);
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare e uuid := current_setting('test.ex')::uuid; eq uuid; kit uuid; rid uuid; ans jsonb;
+begin
+  assert not app.is_ehs(e), 'AE1 is not the EHS Officer once one is named';
+  eq := public.save_hse_equipment(e, '{"form_code":"CL-16","name":"DB-01 site DB","serial_no":"SN-44","contractor":"Lanka Electricals"}');
+  assert (select frequency_days from public.hse_equipment where id = eq) = 7, 'DB weekly';
+  begin perform public.save_hse_checklist(e, jsonb_build_object('equipment_id', eq, 'answers', '{"01":{"a":"yes"}}'::jsonb));
+    assert false, 'all points needed';
+  exception when others then assert sqlerrm like 'Answer point 02%', sqlerrm; end;
+  select jsonb_object_agg(lpad(g::text, 2, '0'), jsonb_build_object('a', case when g = 3 then 'no' else 'yes' end, 'r', case when g = 3 then 'Did not trip' end))
+    into ans from generate_series(1, 10) g;
+  rid := public.save_hse_checklist(e, jsonb_build_object('equipment_id', eq, 'answers', ans));
+  assert (select accepted is false and hse_report_id is not null from public.hse_records where id = rid), 'not accepted, report raised';
+  assert (select status from public.hse_equipment where id = eq) = 'removed', 'out of use';
+  assert (select severity from public.hse_reports where id = (select hse_report_id from public.hse_records where id = rid)) = 'critical', 'ELCB trip failure is critical';
+  perform public.record_hse_correction(rid, current_date, 'ELCB replaced');
+  ans := jsonb_set(ans, '{03}', '{"a":"yes"}');
+  rid := public.save_hse_checklist(e, jsonb_build_object('equipment_id', eq, 'answers', ans, 'header', '{"trip_value_tested":"2026-10-01"}'::jsonb));
+  assert (select accepted from public.hse_records where id = rid), 'accepted';
+  assert (select status = 'in_use' and next_due = current_date + 7 from public.hse_equipment where id = eq), 'back in use, next due';
+  -- first aid kit
+  kit := public.save_hse_equipment(e, '{"form_code":"CL-07","name":"First aid box – site office"}');
+  select jsonb_object_agg(lpad(g::text, 2, '0'), jsonb_build_object('avail', case when g = 16 then 5 else 99 end, 'exp', case when g = 11 then (current_date + 10)::text end))
+    into ans from generate_series(1, 16) g;
+  rid := public.save_hse_checklist(e, jsonb_build_object('equipment_id', kit, 'answers', ans));
+  assert (select accepted is false from public.hse_records where id = rid), 'Panadol short → not accepted';
+  perform set_config('test.hse_eq', eq::text, false);
+end $$;
+reset role;
+-- Permits: every control Yes / N/A, approved by the EHS Officer (not the requester), closed by HSE
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare e uuid := current_setting('test.ex')::uuid; ans jsonb; pid uuid; tb uuid;
+begin
+  select jsonb_object_agg(lpad(g::text, 2, '0'), jsonb_build_object('a', 'yes')) into ans from generate_series(1, 18) g;
+  begin perform public.request_permit(e, jsonb_build_object('form_code', 'PTW-04', 'answers', ans, 'starts_at', now(), 'ends_at', now() + interval '4 hours',
+      'header', jsonb_build_object('location', 'Cable pit P3', 'description', 'Pull cables in the pit', 'in_charge', 'Sunil', 'mobile', '0771234567', 'readings', '{"o2":"18.2","lel":"0","h2s":"0","co":"0"}'::jsonb)));
+    assert false, 'low oxygen';
+  exception when others then assert sqlerrm like 'Oxygen (%%) 18.2 is outside the safe limit%', sqlerrm; end;
+  begin perform public.request_permit(e, jsonb_build_object('form_code', 'PTW-05', 'answers', jsonb_set(ans, '{05}', '{"a":"no"}'), 'starts_at', now(), 'ends_at', now() + interval '4 hours',
+      'header', jsonb_build_object('location', 'Mast M2', 'description', 'Fix floodlights', 'in_charge', 'Sunil', 'mobile', '0771234567')));
+    assert false, 'no lifeline';
+  exception when others then assert sqlerrm like 'Control 05 (Adequate life line%) must be Yes or N/A%', sqlerrm; end;
+  pid := public.request_permit(e, jsonb_build_object('form_code', 'PTW-05', 'answers', ans, 'starts_at', now(), 'ends_at', now() + interval '4 hours',
+      'header', jsonb_build_object('location', 'Mast M2', 'description', 'Fix floodlights', 'in_charge', 'Sunil', 'mobile', '0771234567', 'shift', 'day')));
+  assert (select code like 'PTW-%' and status = 'submitted' from public.hse_records where id = pid), 'requested';
+  begin perform public.decide_permit(pid, true); assert false, 'not EHS';
+  exception when others then assert sqlerrm like 'Only the EHS Officer%', sqlerrm; end;
+  tb := public.save_tbt(e, jsonb_build_object('permit_id', pid, 'header', '{"location":"Mast M2","activity":"Fix floodlights on M2","hazards":"Fall from height","shift":"day"}'::jsonb,
+     'answers', '{"01":{"a":"yes"},"08":{"a":"yes"}}'::jsonb, 'participants', '[{"name":"Nimal","position":"Rigger"},{"name":"Kamal","position":"Electrician"}]'::jsonb));
+  assert (select header ->> 'tbt_no' from public.hse_records where id = pid) = (select code from public.hse_records where id = tb), 'permit shows the TBT number';
+  perform set_config('test.ptw', pid::text, false);
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'hse_permit' and recipient_id = (select id from u where role = 'ae2')), 'EHS Officer told';
+end $$;
+select pg_temp.act_as('ae2'); set role authenticated;
+do $$ declare pid uuid := current_setting('test.ptw')::uuid;
+begin
+  assert app.is_ehs(current_setting('test.ex')::uuid), 'named EHS Officer';
+  perform public.decide_permit(pid, true, 'OK – harness checked');
+  assert (select status = 'active' and ehs_by = auth.uid() from public.hse_records where id = pid), 'active';
+  perform public.close_permit(pid, 'Work completed, area cleared');
+  assert (select status from public.hse_records where id = pid) = 'closed', 'closed';
+  perform public.sign_hse_record((select id from public.hse_records where form_code = 'TBT-01' and related_id = pid), 'ehs');
+end $$;
+reset role;
+-- An open permit past its finishing time is alerted
+update public.hse_records set status = 'active', ends_at = now() - interval '2 hours' where id = current_setting('test.ptw')::uuid;
+do $$ begin
+  perform public.hse_forms_tick();
+  assert exists (select 1 from public.notifications where dedupe_key = 'ptw_open:' || current_setting('test.ptw')), 'open permit alerted';
+end $$;
+-- Induction (once per project per NIC) and training man-hours
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare e uuid := current_setting('test.ex')::uuid; t uuid;
+begin
+  perform public.add_induction(e, '{"name":"Nimal Perera","nic":"901234567V","company":"Lanka Electricals"}');
+  begin perform public.add_induction(e, '{"name":"Nimal P","nic":"901234567v"}'); assert false, 'twice';
+  exception when others then assert sqlerrm like 'Nimal Perera was already inducted%', sqlerrm; end;
+  begin perform public.add_induction(e, '{"name":"X","nic":"123"}'); assert false, 'bad NIC';
+  exception when others then assert sqlerrm like 'Enter a valid NIC%', sqlerrm; end;
+  assert (select count(*) from public.induction_lookup('901234567V')) = 1, 'lookup';
+  t := public.save_training(e, jsonb_build_object('starts_at', now() - interval '2 hours', 'ends_at', now(), 'header', '{"title":"Working at height"}'::jsonb,
+         'participants', '[{"name":"A"},{"name":"B"},{"name":"C"}]'::jsonb));
+  assert (select (header ->> 'man_hours')::numeric from public.hse_records where id = t) = 6, '3 people × 2 h';
+  assert (public.hse_summary(e) ->> 'inducted')::int = 1, 'summary';
+end $$;
+reset role;
+-- The supervisor signs the checklist; the SEE signs last as Site In-charge
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+select public.sign_hse_record((select id from public.hse_records where equipment_id = current_setting('test.hse_eq')::uuid and accepted order by created_at desc limit 1), 'supervisor');
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select public.sign_hse_record((select id from public.hse_records where equipment_id = current_setting('test.hse_eq')::uuid and accepted order by created_at desc limit 1), 'manager');
+reset role;
+rollback to savepoint hse_forms;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
