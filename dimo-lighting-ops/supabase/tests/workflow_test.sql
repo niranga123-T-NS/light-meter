@@ -5035,5 +5035,21 @@ begin
 end $$;
 rollback to savepoint own_critical;
 
+-- Plan results: SEE's result counts as checked; a later change from site needs checking again -----------------------
+savepoint result_check;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select public.update_plan_item(current_setting('test.pli')::uuid, 'partial', null, 'Checked on site – 2 bases left');
+reset role;
+do $$ begin
+  assert (select result_checked_by is not null from public.exec_plan_items where id = current_setting('test.pli')::uuid), 'checked by the SEE';
+end $$;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+select public.update_plan_item(current_setting('test.pli')::uuid, 'done');
+reset role;
+do $$ begin
+  assert (select result_checked_by is null from public.exec_plan_items where id = current_setting('test.pli')::uuid), 'site change needs checking again';
+end $$;
+rollback to savepoint result_check;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
