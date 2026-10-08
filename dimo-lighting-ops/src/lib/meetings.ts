@@ -1,7 +1,7 @@
 import { addDaysISO, todayISO } from './format';
 import type { Role } from './types';
 
-export type Team = 'sales' | 'estimation' | 'design' | 'execution';
+export type Team = 'sales' | 'estimation' | 'design' | 'execution' | 'project';
 
 export const TEAMS: Record<
   Team,
@@ -51,11 +51,23 @@ export const TEAMS: Record<
     ends: '10:00',
     fixed: false,
   },
+  // Called by the SEE from a project's Meetings tab (not a weekly team meeting)
+  project: {
+    label: 'Project meeting',
+    short: 'Project',
+    host: 'Senior Electrical Engineer',
+    hostRole: 'senior_elec_engineer',
+    members: ['assistant_engineer', 'trainee', 'sub_supervisor'],
+    dow: 0,
+    starts: '10:00',
+    ends: '11:00',
+    fixed: false,
+  },
 };
 
 export const TEAM_LIST: Team[] = ['sales', 'estimation', 'design', 'execution'];
 
-export const isTeam = (t: unknown): t is Team => t === 'sales' || t === 'estimation' || t === 'design' || t === 'execution';
+export const isTeam = (t: unknown): t is Team => t === 'sales' || t === 'estimation' || t === 'design' || t === 'execution' || t === 'project';
 
 /** Teams whose meetings a role can open: the host runs theirs; GM / DGM read all published; SM Projects reads Estimation and Design. */
 export function teamsFor(role: Role): { team: Team; host: boolean }[] {

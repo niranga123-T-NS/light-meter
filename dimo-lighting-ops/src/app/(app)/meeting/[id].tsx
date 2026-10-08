@@ -7,6 +7,9 @@ import { MeetingActionForm, type ActionDraft } from '@/components/MeetingActionF
 import { isTeamKind, kindLabel } from '@/lib/meetingActions';
 import { hhmm, type Team, TEAMS } from '@/lib/meetings';
 import { ExecPackView } from '@/components/ExecPackView';
+import { ProjectPackView } from '@/components/exec/ProjectPackView';
+import { projectNo, type ExecProject } from '@/lib/execution';
+import { buildProjectPack, projectFacts, type ProjectPack } from '@/lib/projectMeeting';
 import { TeamPackView, type TeamPack } from '@/components/TeamPackView';
 import { captureLocation } from '@/components/VisitBits';
 import { Button, Card, colors, ErrorBanner, Grid, KeyValue, Loading, Muted, Notice, Pill, Progress, Row, Screen, Section, Stat } from '@/components/ui';
@@ -58,7 +61,10 @@ type Meeting = {
   generated_at: string | null;
   published_at: string | null;
   started_at: string | null;
+  exec_project_id: string | null;
+  agenda: string | null;
 };
+type Leave = { id: string; sales_person_id: string; reason: string; status: 'pending' | 'approved' | 'rejected'; decision_note: string | null };
 type Note = { sales_person_id: string; note: string };
 type Action = {
   id: string;
@@ -116,7 +122,21 @@ export default function MeetingPack() {
     ]);
     if (m.error) throw new Error(m.error.message);
     if (!m.data) return null;
-    return { m: m.data as Meeting, notes: (n.data ?? []) as Note[], actions: (a.data ?? []) as Action[], invitees: (i.data ?? []) as Invitee[] };
+    const ex = m.data.exec_project_id as string | null;
+    const [ep, lv] = ex
+      ? await Promise.all([
+          supabase.from('exec_projects').select('*').eq('id', ex).maybeSingle(),
+          supabase.from('meeting_exceptions').select('id, sales_person_id, reason, status, decision_note').eq('meeting_id', id),
+        ])
+      : [{ data: null }, { data: [] }];
+    return {
+      m: m.data as Meeting,
+      notes: (n.data ?? []) as Note[],
+      actions: (a.data ?? []) as Action[],
+      invitees: (i.data ?? []) as Invitee[],
+      project: (ep.data ?? null) as ExecProject | null,
+      leave: (lv.data ?? []) as Leave[],
+    };
   }, [id]);
   const [adding, setAdding] = useState<string | null>(null); // sales person id, 'general', or null
   if (data === null)
@@ -133,6 +153,8 @@ export default function MeetingPack() {
   const { m } = data;
   const cfg = TEAMS[m.team ?? 'sales'];
   const PackView = m.team === 'execution' ? ExecPackView : TeamPackView;
+  const isProject = m.team === 'project';
+  const label = isProject && data.project ? `Project meeting – ${projectNo(data.project)} ${data.project.name}` : cfg.label;
   // The host runs the meeting: SM Projects (sales), SM Estimation, Design Manager
   const host = me.role === cfg.hostRole;
   const edit = host && m.status === 'draft';
@@ -195,7 +217,36 @@ export default function MeetingPack() {
     if (r) await run('decide_attendance', { p_meeting: m.id, p_person: p.person_id, p_present: present, p_note: r.n || null }, 'Saved');
   };
   // Published minutes as a PDF: GM / DGM and SM Projects
-  const canDownload = m.status === 'published' && (me.role === 'gm' || me.role === 'sm_projects');
+  const canDownload = m.status === 'published' && (me.role === 'gm' || me.role === 'sm_projects' || (isProject && host));
+  // Project meeting: the project's figures are gathered here and kept with the meeting
+  const generateProject = () =>
+    dialog.run(async () => {
+      if (!data.project) throw new Error('Project not found');
+      const pk = await buildProjectPack(data.project, m.meeting_date);
+      await rpc('save_project_meeting_pack', { p_id: m.id, p_pack: pk });
+      await reload();
+    }, 'Project figures generated – notes and actions kept');
+  const cancelMeeting = async () => {
+    const r = await dialog.prompt({
+      title: 'Cancel this project meeting',
+      message: 'The invitees are told. Notes and actions recorded so far are removed.',
+      fields: [{ key: 'r', label: 'Reason', type: 'multiline', required: true }],
+      confirmLabel: 'Cancel meeting',
+    });
+    if (r)
+      await dialog.run(async () => {
+        await rpc('cancel_project_meeting', { p_id: m.id, p_reason: r.r });
+        router.back();
+      }, 'Meeting cancelled – invitees told');
+  };
+  const decideLeave = async (e: Leave, approve: boolean) => {
+    const r = await dialog.prompt({
+      title: `${approve ? 'Approve' : 'Refuse'} leave – ${people[e.sales_person_id]?.full_name ?? ''}`,
+      message: e.reason,
+      fields: [{ key: 'n', label: approve ? 'Note' : 'Reason', type: 'multiline', required: !approve }],
+    });
+    if (r) await run('decide_meeting_exception', { p_id: e.id, p_approve: approve, p_note: r.n || null }, approve ? 'Leave approved' : 'Leave refused');
+  };
   const downloadMinutes = () =>
     dialog.run(async () => {
       const { data: logo } = await supabase.from('settings').select('value').eq('key', 'report_logo_url').maybeSingle();
@@ -228,7 +279,9 @@ export default function MeetingPack() {
       const packPeople = (pack?.people ?? []) as unknown as ({ id: string; name: string } & Record<string, unknown>)[];
       const team = !pack
         ? { facts: [], lists: [] }
-        : m.team === 'sales'
+        : isProject
+          ? projectFacts(pack as unknown as ProjectPack)
+          : m.team === 'sales'
           ? salesTeam(pack.team)
           : m.team === 'execution'
             ? execTeam(pack.team as Record<string, unknown>)
@@ -239,7 +292,7 @@ export default function MeetingPack() {
       const noteOf = (pid: string) => data.notes.find((n) => n.sales_person_id === pid)?.note ?? '';
       const persons = [
         ...packPeople.map((p) => {
-          const f = m.team === 'sales' ? salesPerson(p) : m.team === 'execution' ? execPerson(p) : teamPerson(est, p);
+          const f = m.team === 'sales' || isProject ? salesPerson(p) : m.team === 'execution' ? execPerson(p) : teamPerson(est, p);
           const ex = p.exception as { status: string; reason: string } | null;
           return {
             name: p.name,
@@ -254,7 +307,7 @@ export default function MeetingPack() {
       ];
       const invited = data.invitees.filter((x) => x.status !== 'pending_approval');
       const html = minutesHtml({
-        title: cfg.label,
+        title: label,
         date: m.meeting_date,
         time: `${hhmm(m.starts_at)} – ${hhmm(m.ends_at)}`,
         host: cfg.host,
@@ -271,16 +324,17 @@ export default function MeetingPack() {
             note: x.note,
           }))
           .sort((a, b) => a.name.localeCompare(b.name)),
+        reviewTitle: isProject ? 'Project review' : undefined,
         teamFacts: team.facts,
         teamLists: team.lists,
-        notes: m.notes,
+        notes: [m.agenda ? `Agenda: ${m.agenda}` : null, m.notes].filter(Boolean).join('\n\n') || null,
         general,
         people: persons,
         distribution: [m.team === 'sales' ? 'GM / DGM' : 'GM / DGM, SM Projects', ...invited.map((x) => name(x.person_id)).sort()],
         generatedBy: `${me.full_name} – ${ROLE_SHORT[me.role]}`,
         logoUrl: (logo?.value as string | undefined) ?? null,
       });
-      await printHtml(html, { key: `meeting_minutes_${m.team}`, filters: `${cfg.label} ${m.meeting_date}`, title: `Minutes – ${cfg.label} ${fmtDate(m.meeting_date)}` });
+      await printHtml(html, { key: `meeting_minutes_${m.team}`, filters: `${label} ${m.meeting_date}`, title: `Minutes – ${label} ${fmtDate(m.meeting_date)}` });
     });
   const actionsFor = (personId: string | null) => data.actions.filter((a) => a.sales_person_id === personId);
   const actionList = (personId: string | null) => (
@@ -313,13 +367,24 @@ export default function MeetingPack() {
     </View>
   );
 
+  const generalCard = (
+    <Card style={{ marginTop: 8 }}>
+      <Row style={{ justifyContent: 'space-between' }}>
+        <Text style={{ fontWeight: '700', color: colors.ink }}>Meeting notes</Text>
+        {edit ? <Button small variant="ghost" title="Edit" onPress={() => editNote(null, m.notes ?? '')} /> : null}
+      </Row>
+      <Muted>{m.notes ?? 'No notes'}</Muted>
+      {actionList(null)}
+    </Card>
+  );
+
   return (
     <Screen maxWidth={1100}>
-      <Stack.Screen options={{ title: `${cfg.label} · ${fmtDate(m.meeting_date)}` }} />
+      <Stack.Screen options={{ title: `${isProject ? 'Project meeting' : cfg.label} · ${fmtDate(m.meeting_date)}` }} />
       <Card>
         <Row wrap style={{ justifyContent: 'space-between', alignItems: 'center' }}>
           <Text style={{ fontSize: 18, fontWeight: '700', color: colors.ink }}>
-            {`${cfg.label} · ${new Date(`${m.meeting_date}T00:00:00`).toLocaleDateString('en-GB', { weekday: 'long' })} ${fmtDate(m.meeting_date)} · ${hhmm(m.starts_at)} – ${hhmm(m.ends_at)}`}
+            {`${label} · ${new Date(`${m.meeting_date}T00:00:00`).toLocaleDateString('en-GB', { weekday: 'long' })} ${fmtDate(m.meeting_date)} · ${hhmm(m.starts_at)} – ${hhmm(m.ends_at)}`}
           </Text>
           <Pill label={m.status === 'published' ? 'Published' : 'Draft'} tone={m.status === 'published' ? colors.green : colors.amber} solid />
         </Row>
@@ -327,13 +392,18 @@ export default function MeetingPack() {
           {pack ? `Figures as at ${fmtDateTime(pack.generated_at)} · last week ${fmtDate(pack.week_from)} – ${fmtDate(pack.week_to)}` : 'Not generated yet'}
           {m.published_at ? ` · published ${fmtDateTime(m.published_at)}` : ''}
         </Muted>
+        {isProject && m.agenda ? <Text style={{ color: colors.ink, marginTop: 4 }}>{`Agenda: ${m.agenda}`}</Text> : null}
         {edit ? (
           <Row wrap gap={8} style={{ marginTop: 8 }}>
-            <Button
-              variant="secondary"
-              title="Regenerate figures"
-              onPress={() => run('generate_team_meeting', { p_team: m.team, p_date: m.meeting_date }, 'Figures refreshed – notes and actions kept')}
-            />
+            {isProject ? (
+              <Button variant={pack ? 'secondary' : 'primary'} title={pack ? 'Regenerate project figures' : 'Generate project figures'} onPress={generateProject} />
+            ) : (
+              <Button
+                variant="secondary"
+                title="Regenerate figures"
+                onPress={() => run('generate_team_meeting', { p_team: m.team, p_date: m.meeting_date }, 'Figures refreshed – notes and actions kept')}
+              />
+            )}
             <Button
               title={m.team === 'sales' ? 'Publish to GM / DGM' : 'Publish to GM / DGM and SM Projects'}
               onPress={async () => {
@@ -342,6 +412,7 @@ export default function MeetingPack() {
                   await run('publish_sales_meeting', { p_id: m.id }, `Published – ${who} notified`);
               }}
             />
+            {isProject && !m.started_at ? <Button variant="ghost" title="Cancel meeting" onPress={cancelMeeting} /> : null}
           </Row>
         ) : null}
         {canDownload ? (
@@ -357,7 +428,17 @@ export default function MeetingPack() {
         right={
           edit && !m.started_at ? (
             <Row gap={6}>
-              <Button small variant="secondary" title="Invitees" onPress={() => router.push({ pathname: '/meeting/invite', params: { team: m.team, date: m.meeting_date } })} />
+              <Button
+                small
+                variant="secondary"
+                title={isProject ? 'Date, agenda & invitees' : 'Invitees'}
+                onPress={() =>
+                  router.push({
+                    pathname: '/meeting/invite',
+                    params: isProject ? { team: m.team, project: m.exec_project_id ?? '', meeting: m.id } : { team: m.team, date: m.meeting_date },
+                  })
+                }
+              />
               {isToday ? <Button small title="Start meeting here" onPress={startMeeting} /> : null}
             </Row>
           ) : undefined
@@ -395,23 +476,38 @@ export default function MeetingPack() {
           ) : (
             <Muted>Nobody invited yet{edit ? ' – press Invitees' : ''}.</Muted>
           )}
+          {data.leave
+            .filter((e) => e.status === 'pending' || host)
+            .map((e) => (
+              <Row key={e.id} wrap gap={8} style={{ alignItems: 'center', borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 6, marginTop: 6 }}>
+                <Text style={{ fontWeight: '600', color: colors.ink, minWidth: 170 }}>{people[e.sales_person_id]?.full_name ?? '—'}</Text>
+                <Pill label={e.status === 'pending' ? 'Leave requested' : e.status === 'approved' ? 'Leave approved' : 'Leave refused'} tone={e.status === 'pending' ? colors.amber : e.status === 'approved' ? colors.blue : colors.red} />
+                <Muted>{`${e.reason}${e.decision_note ? ` · ${e.decision_note}` : ''}`}</Muted>
+                {host && e.status === 'pending' ? (
+                  <Row gap={4}>
+                    <Button small title="Approve" onPress={() => decideLeave(e, true)} />
+                    <Button small variant="secondary" title="Refuse" onPress={() => decideLeave(e, false)} />
+                  </Row>
+                ) : null}
+              </Row>
+            ))}
         </Card>
       </Section>
 
-      {pack && m.team !== 'sales' ? (
+      {isProject ? (
+        pack ? (
+          <ProjectPackView pack={pack as unknown as ProjectPack} general={generalCard} />
+        ) : (
+          <>
+            <Notice tone={colors.amber}>{host ? 'Generate the project figures before the meeting – press “Generate project figures”.' : 'The project figures have not been generated yet.'}</Notice>
+            {generalCard}
+          </>
+        )
+      ) : pack && m.team !== 'sales' ? (
         <PackView
           team={m.team}
           pack={pack as unknown as TeamPack}
-          general={
-            <Card style={{ marginTop: 8 }}>
-              <Row style={{ justifyContent: 'space-between' }}>
-                <Text style={{ fontWeight: '700', color: colors.ink }}>Meeting notes</Text>
-                {edit ? <Button small variant="ghost" title="Edit" onPress={() => editNote(null, m.notes ?? '')} /> : null}
-              </Row>
-              <Muted>{m.notes ?? 'No notes'}</Muted>
-              {actionList(null)}
-            </Card>
-          }
+          general={generalCard}
           personFooter={(pid) => {
             const note = data.notes.find((n) => n.sales_person_id === pid)?.note ?? '';
             return (
