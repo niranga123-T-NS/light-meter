@@ -300,6 +300,7 @@ export type EstimationJob = {
   quoted_value: number | null;
   price_currency?: Currency | null;
   validity_days: number;
+  validity_until?: string | null;
   brands_offered: BrandLine[];
   alternatives: string | null;
   supplier_waits: { supplier: string; requested?: string; expected?: string; received?: string | null }[];

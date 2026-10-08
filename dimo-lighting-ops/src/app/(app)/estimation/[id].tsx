@@ -7,10 +7,10 @@ import { BrandEditor } from '@/components/BrandEditor';
 import { DesignNotes } from '@/components/DesignNotes';
 import { EstimateProgress } from '@/components/EstimateProgress';
 import { useDialog } from '@/components/dialog';
-import { Button, Card, colors, DateField, ErrorBanner, Field, KeyValue, ListRow, Loading, Muted, Notice, NumberField, Pill, Row, Screen, Section, Select } from '@/components/ui';
+import { Button, Card, colors, DateField, ErrorBanner, Field, KeyValue, ListRow, Loading, Muted, Notice, NumberField, Pill, Row, Screen, Section, Segmented, Select } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { openAttachment } from '@/lib/files';
-import { endOfWorkDay, fmtDate, fmtDateISO, fmtDateTime, fmtMoney, human, inquiryTitle } from '@/lib/format';
+import { addDaysISO, endOfWorkDay, fmtDate, fmtDateDash, fmtDateISO, fmtDateTime, fmtMoney, human, inquiryTitle, todayISO } from '@/lib/format';
 import { useLoad, useMasters, usePeople } from '@/lib/hooks';
 import { projectTypeLabel } from '@/lib/roles';
 import { rpc, supabase } from '@/lib/supabase';
@@ -25,7 +25,7 @@ export default function EstimationJobScreen() {
   const people = usePeople();
   const masters = useMasters();
   const dialog = useDialog();
-  const [est, setEst] = useState({ quoted_value: null as number | null, cost: null as number | null, margin_pct: null as number | null, validity_days: 30 as number | null, alternatives: '', design_version: '' });
+  const [est, setEst] = useState({ quoted_value: null as number | null, cost: null as number | null, margin_pct: null as number | null, validity_days: 30 as number | null, validity_until: null as string | null, validity_mode: 'days' as 'days' | 'date', alternatives: '', design_version: '' });
   const [brands, setBrands] = useState<BrandLine[]>([]);
   const [waits, setWaits] = useState<EstimationJob['supplier_waits']>([]);
 
@@ -80,6 +80,8 @@ export default function EstimationJobScreen() {
       cost: repriced ? (data.costing?.cost ?? null) : null,
       margin_pct: repriced ? (data.costing?.margin_pct ?? null) : null,
       validity_days: data.job.validity_days,
+      validity_until: data.job.validity_until ?? null,
+      validity_mode: data.job.validity_until ? 'date' : 'days',
       alternatives: data.job.alternatives ?? '',
       design_version: data.job.design_version_used ?? '',
     });
@@ -112,7 +114,9 @@ export default function EstimationJobScreen() {
   };
   const saveEstimate = async () => {
     checkBrands();
-    return rpc('save_estimate', {
+    if (est.validity_mode === 'date' && !est.validity_until) throw new Error('Choose the date the quotation is valid until');
+    if (est.validity_mode === 'date' && est.validity_until! < todayISO()) throw new Error('The validity date cannot be in the past');
+    await rpc('save_estimate', {
       p_job: j.id,
       p_quoted_value: est.quoted_value,
       p_cost: est.cost,
@@ -123,6 +127,7 @@ export default function EstimationJobScreen() {
       p_supplier_waits: waits,
       p_design_version: est.design_version || null,
     });
+    await rpc('set_quote_validity', { p_job: j.id, p_until: est.validity_mode === 'date' ? est.validity_until : null });
   };
 
   return (
@@ -312,7 +317,7 @@ export default function EstimationJobScreen() {
               {p.costing ? <KeyValue label="Cost · margin" value={`${fmtMoney(p.costing.cost, p.quote?.currency ?? p.job.price_currency ?? cur)} · ${p.costing.margin_pct ?? '—'}%`} /> : null}
               <KeyValue label="Released" value={fmtDateTime(p.quote?.released_at ?? p.job.released_at)} />
               <KeyValue label="Submitted to client" value={fmtDateTime(p.quote?.submitted_to_client_at ?? null)} />
-              <KeyValue label="Valid until" value={fmtDate(p.quote?.validity_date ?? null)} />
+              <KeyValue label="Valid until" value={fmtDateDash(p.quote?.validity_date ?? null)} />
               <KeyValue label="Estimator" value={people[p.job.assignee_id ?? '']?.full_name ?? '—'} />
             </Row>
             <Muted>Brands offered: {(p.quote?.brands_offered ?? p.job.brands_offered ?? []).map((b) => `${b.group}: ${b.brand}`).join(' · ') || '—'}</Muted>
@@ -351,7 +356,13 @@ export default function EstimationJobScreen() {
           <NumberField label="Quoted value" suffix={cur} value={est.quoted_value} onChange={(v) => setEst((s) => ({ ...s, quoted_value: v }))} />
           <NumberField label="Cost (restricted)" suffix={cur} value={est.cost} onChange={(v) => setEst((s) => ({ ...s, cost: v }))} />
           <NumberField label="Margin % (calculated if blank)" value={est.margin_pct} onChange={(v) => setEst((s) => ({ ...s, margin_pct: v }))} />
-          <NumberField label="Validity" suffix="days" value={est.validity_days} onChange={(v) => setEst((s) => ({ ...s, validity_days: v }))} />
+          <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>Quotation validity</Text>
+          <Segmented value={est.validity_mode} onChange={(v) => setEst((s) => ({ ...s, validity_mode: v }))} options={[{ value: 'days', label: 'Number of days' }, { value: 'date', label: 'Valid until a date' }]} />
+          {est.validity_mode === 'days' ? (
+            <NumberField label="Validity" suffix="days" value={est.validity_days} onChange={(v) => setEst((s) => ({ ...s, validity_days: v }))} hint={`From the release date – e.g. released today, valid until ${fmtDateDash(addDaysISO(todayISO(), est.validity_days ?? 30))}`} />
+          ) : (
+            <DateField label="Valid until" required value={est.validity_until} onChange={(v) => setEst((s) => ({ ...s, validity_until: v }))} quick={[30, 45, 60, 90]} hint={est.validity_until ? `Valid until ${fmtDateDash(est.validity_until)}` : 'dd-mm-yyyy – the date printed on the quotation'} />
+          )}
           <Field label="Alternatives / value engineering" multiline value={est.alternatives} onChangeText={(v) => setEst((s) => ({ ...s, alternatives: v }))} />
           <Field label="Design version used" value={est.design_version} onChangeText={(v) => setEst((s) => ({ ...s, design_version: v }))} />
           <Muted>

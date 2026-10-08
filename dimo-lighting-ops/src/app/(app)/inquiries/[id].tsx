@@ -12,7 +12,7 @@ import { Button, Card, colors, DateField, ErrorBanner, KeyValue, ListRow, Loadin
 import { useMe } from '@/lib/auth';
 import { isTender, type Split } from '@/lib/deadlines';
 import { openAttachment } from '@/lib/files';
-import { daysBetween, endOfWorkDay, fmtDate, fmtDateISO, fmtDateTime, fmtMoney, human, INQUIRY_STATUS_LABEL, todayISO, inquiryTitle } from '@/lib/format';
+import { daysBetween, endOfWorkDay, fmtDate, fmtDateISO, fmtDateTime, fmtMoney, human, INQUIRY_STATUS_LABEL, todayISO, inquiryTitle, fmtDateDash } from '@/lib/format';
 import { useLoad, useMasters, usePeople } from '@/lib/hooks';
 import { isDesigner, isEstimator, isSales, projectTypeLabel } from '@/lib/roles';
 import { rpc, supabase } from '@/lib/supabase';
@@ -593,7 +593,7 @@ export default function InquiryDetail() {
                   <Text style={{ fontWeight: '600' }}>{q.full_no}</Text>
                   <Row gap={6}>
                     <Text>{fmtMoney(q.quoted_value, q.currency)}</Text>
-                    <Pill label={q.result ?? (expired ? 'Expired' : `Valid to ${fmtDate(q.validity_date)}`)} tone={expired ? colors.red : colors.green} />
+                    <Pill label={q.result ?? (expired ? 'Expired' : `Valid to ${fmtDateDash(q.validity_date)}`)} tone={expired ? colors.red : colors.green} />
                   </Row>
                 </Row>
               );

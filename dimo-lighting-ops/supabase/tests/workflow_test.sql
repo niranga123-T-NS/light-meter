@@ -538,6 +538,11 @@ select public.assign_estimation_job((select id from public.estimation_jobs), pub
 reset role;
 select pg_temp.act_as('estimation_exec'); set role authenticated;
 select public.save_estimate((select id from public.estimation_jobs), 58000000, 45000000, 22, '[{"group":"Downlights","brand":"TestBrand EU","origin":"european"}]');
+do $$ begin
+  begin perform public.set_quote_validity((select id from public.estimation_jobs), current_date - 1); assert false, 'past date';
+  exception when others then assert sqlerrm like 'The validity date cannot be in the past%', sqlerrm; end;
+  perform public.set_quote_validity((select id from public.estimation_jobs), current_date + 45);
+end $$;
 select public.submit_estimate_for_approval((select id from public.estimation_jobs));
 reset role;
 select pg_temp.act_as('sm_estimation'); set role authenticated;
@@ -592,6 +597,7 @@ do $$ begin
   exception when others then if sqlerrm not like '%not applicable with a reason%' then raise; end if;
   end;
   perform public.release_quotation((select id from public.estimation_jobs), null, 'Budget quotation – no specification', 'Labour-only installation');
+  assert (select validity_date from public.quotations where estimation_job_id = (select id from public.estimation_jobs) order by revision desc limit 1) = current_date + 45, 'valid until the date the estimator entered';
 end $$;
 reset role;
 do $$ begin
