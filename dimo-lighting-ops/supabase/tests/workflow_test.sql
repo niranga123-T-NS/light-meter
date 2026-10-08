@@ -2841,7 +2841,7 @@ reset role;
 -- My Day: this week's meetings
 insert into public.sales_meetings (team, meeting_date, starts_at, ends_at, initiated_at)
 values ('estimation', (now() at time zone app.tz())::date + case when extract(isodow from (now() at time zone app.tz())::date) = 7 then -1 else 0 end, '08:00', '09:00', now())
-on conflict (team, meeting_date) do update set initiated_at = now();
+on conflict (team, meeting_date) where team <> 'project' do update set initiated_at = now();
 insert into public.sales_meeting_invitees (meeting_id, person_id)
 select m.id, (select id from u where role = 'estimation_exec') from public.sales_meetings m
  where m.team = 'estimation' and m.meeting_date = (now() at time zone app.tz())::date + case when extract(isodow from (now() at time zone app.tz())::date) = 7 then -1 else 0 end
@@ -5120,6 +5120,65 @@ do $$ begin
   assert (select status = 'follow_up' from public.debts where invoice_no = 'INV-10452'), 'updated by Operations';
 end $$;
 rollback to savepoint debt_ops;
+
+-- Project meetings: the SEE calls a meeting about one project, with its agenda, invitees and figures
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare mid uuid; d date := current_date + 4;
+begin
+  while extract(isodow from d) = 7 loop d := d + 1; end loop;
+  mid := public.invite_project_meeting(current_setting('test.ex')::uuid, null, d, '14:00', '15:00',
+    array[(select id from u where role = 'assistant_engineer'), (select id from u where role = 'asm_building')], 'Progress, delays and the next two weeks');
+  perform set_config('test.pm', mid::text, false);
+  assert (select team = 'project' and exec_project_id = current_setting('test.ex')::uuid and agenda like 'Progress%' from public.sales_meetings where id = mid), 'project meeting';
+  assert (select status from public.sales_meeting_invitees where meeting_id = mid and person_id = (select id from u where role = 'assistant_engineer')) = 'invited', 'AE invited';
+  assert (select status from public.sales_meeting_invitees where meeting_id = mid and person_id = (select id from u where role = 'asm_building')) = 'pending_approval', 'sales needs SMP';
+  begin perform public.invite_project_meeting(current_setting('test.ex')::uuid, null, d, '16:00', '17:00', array[(select id from u where role = 'assistant_engineer')]);
+    assert false, 'one a day';
+  exception when others then assert sqlerrm like 'This project already has a meeting on that day%', sqlerrm; end;
+  -- Moved an hour later: the AE is told
+  perform public.invite_project_meeting(current_setting('test.ex')::uuid, mid, d, '15:00', '16:00', array[(select id from u where role = 'assistant_engineer')], 'Progress');
+  assert (select starts_at = '15:00' from public.sales_meetings where id = mid), 'moved';
+  assert not exists (select 1 from public.sales_meeting_invitees where meeting_id = mid and person_id = (select id from u where role = 'asm_building')), 'withdrawn';
+  begin perform public.publish_sales_meeting(mid); assert false, 'pack first';
+  exception when others then assert sqlerrm = 'Generate the meeting pack first', sqlerrm; end;
+  perform public.save_project_meeting_pack(mid, jsonb_build_object('progress', jsonb_build_object('planned', 40, 'actual', 35)));
+  assert (select pack ->> 'team_kind' = 'project' and pack -> 'progress' ->> 'actual' = '35' from public.sales_meetings where id = mid), 'pack saved';
+  perform public.add_meeting_action(mid, jsonb_build_object('kind', 'task', 'owner_id', (select id from u where role = 'assistant_engineer'), 'action', 'Recover the cable tray delay',
+    'due_date', d + 3));
+  perform public.publish_sales_meeting(mid);
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin
+  assert (select title like 'Project meeting – %' from public.my_meetings() where meeting_id = current_setting('test.pm')::uuid), 'AE sees it';
+  assert exists (select 1 from public.sales_meetings where id = current_setting('test.pm')::uuid), 'invitee opens the meeting';
+  perform set_config('test.pml', public.request_meeting_leave(current_setting('test.pm')::uuid, 'Site inspection with the client')::text, false);
+  assert (select meeting_id = current_setting('test.pm')::uuid from public.meeting_exceptions where id = current_setting('test.pml')::uuid), 'leave for that meeting';
+  begin perform public.invite_project_meeting(current_setting('test.ex')::uuid, null, current_date + 5, '10:00', '11:00', array[(select id from u where role = 'trainee')]);
+    assert false, 'SEE only';
+  exception when others then assert sqlerrm = 'Only the Senior Electrical Engineer calls project meetings', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare mid uuid; d date := current_date + 6;
+begin
+  while extract(isodow from d) = 7 loop d := d + 1; end loop;
+  perform public.decide_meeting_exception(current_setting('test.pml')::uuid, true);
+  assert (select status from public.sales_meeting_invitees where meeting_id = current_setting('test.pm')::uuid
+            and person_id = (select id from u where role = 'assistant_engineer')) = 'excused', 'leave approved';
+  mid := public.invite_project_meeting(current_setting('test.ex')::uuid, null, d, '09:00', '10:00', array[(select id from u where role = 'assistant_engineer')]);
+  perform public.cancel_project_meeting(mid, 'Client visit moved');
+  assert not exists (select 1 from public.sales_meetings where id = mid), 'cancelled';
+end $$;
+reset role;
+do $$ declare mid uuid := current_setting('test.pm')::uuid; m public.sales_meetings;
+begin
+  select * into m from public.sales_meetings where id = mid;
+  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'assistant_engineer') and title like 'Project meeting – % moved'), 'moved notice';
+  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'gm') and title like 'Project meeting – % pack – %'), 'GM told';
+  perform public.project_meeting_tick(app.meeting_ends(m) + interval '1 minute');
+  assert (select status from public.sales_meeting_invitees where meeting_id = mid and person_id = (select id from u where role = 'assistant_engineer')) = 'excused', 'excused stays';
+end $$;
 
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

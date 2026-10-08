@@ -37,6 +37,8 @@ export type MinutesInput = {
   figuresAt: string | null;
   period: string | null;
   attendance: { name: string; role: string; status: string; at: string | null; note: string | null }[];
+  /** Heading of the figures section (default "Team review") */
+  reviewTitle?: string;
   teamFacts: Facts;
   teamLists: List[];
   notes: string | null;
@@ -321,7 +323,7 @@ ${
 }
 </tbody></table>
 
-<h2>2. Team review</h2>
+<h2>2. ${esc(m.reviewTitle ?? 'Team review')}</h2>
 ${facts(m.teamFacts)}
 ${lists(m.teamLists)}
 
@@ -331,7 +333,7 @@ ${para(m.notes)}
 <h2>4. Action register – all actions and responsibilities</h2>
 ${register(all, true)}
 
-<h2>5. Review by person</h2>
+${m.people.length ? '<h2>5. Review by person</h2>' : ''}
 ${m.people
   .map(
     (p) => `<div class="person"><h3>${esc(p.name)}</h3>${p.leave ? `<div class="leave">${esc(p.leave)}</div>` : ''}${facts(p.facts)}${lists(p.lists)}
@@ -340,7 +342,7 @@ ${m.people
   )
   .join('')}
 
-<h2>6. Distribution</h2>
+<h2>${m.people.length ? 6 : 5}. Distribution</h2>
 <p>${esc(m.distribution.join(', ') || '—')}</p>
 <div class="sign"><div>Chaired by – ${esc(m.host)}${m.publishedAt ? ` · published ${esc(fmtDateTime(m.publishedAt))}` : ''}</div><div>Reviewed by – GM / DGM</div></div>
 </body></html>`;

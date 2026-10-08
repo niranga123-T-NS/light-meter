@@ -7,6 +7,7 @@ import { DocumentsTab } from '@/components/exec/DocumentsTab';
 import { HandoverTab } from '@/components/exec/HandoverTab';
 import { HseTab } from '@/components/exec/HseTab';
 import { MaterialsTab } from '@/components/exec/MaterialsTab';
+import { MeetingsTab } from '@/components/exec/MeetingsTab';
 import { OverviewTab } from '@/components/exec/OverviewTab';
 import { PlansTab } from '@/components/exec/PlansTab';
 import { ProgrammeTab } from '@/components/exec/ProgrammeTab';
@@ -28,6 +29,7 @@ const INTERNAL: Role[] = ['senior_elec_engineer', 'sm_projects', 'gm', 'operatio
 const TABS: Tab[] = [
   { key: 'overview', label: 'Overview' },
   { key: 'team', label: 'Project team', roles: INTERNAL },
+  { key: 'meetings', label: 'Meetings', roles: INTERNAL },
   { key: 'programme', label: 'Programme', roles: INTERNAL },
   { key: 'plans', label: 'Plan', roles: INTERNAL },
   { key: 'reports', label: 'Daily reports' },
@@ -76,6 +78,7 @@ export default function ExecProjectScreen() {
       {t === 'cost' ? <CostTab p={p} /> : null}
       {t === 'billing' ? <BillingTab key={p.secured_id ?? 'none'} p={p} onChange={reload} /> : null}
       {t === 'team' ? <TeamTab p={p} /> : null}
+      {t === 'meetings' ? <MeetingsTab p={p} /> : null}
     </Screen>
   );
 }
