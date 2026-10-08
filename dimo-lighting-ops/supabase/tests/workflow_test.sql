@@ -1319,6 +1319,23 @@ begin
   assert exists (select 1 from public.notifications where kind = 'retention_claim_overdue' and priority = 'critical'
                  and recipient_id = (select id from u where role = 'gm')), 'GM / DGM alerted';
 end $$;
+-- Part collection keeps the retention open for its balance
+savepoint ret_part;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare rid uuid := (select id from public.retentions); v numeric := (select retention_value from public.retentions);
+begin
+  perform public.mark_retention_collected(rid, 1000000, current_date, 'First part');
+  assert (select status = 'claimed' and collected_amount = 1000000 from public.retentions where id = rid), 'still open with its balance';
+  begin perform public.mark_retention_collected(rid, v, current_date); assert false, 'over balance';
+  exception when others then assert sqlerrm like 'More than the balance%', sqlerrm; end;
+  perform public.void_retention_collection((select id from public.retention_collections where retention_id = rid and voided_at is null limit 1), 'Cheque returned');
+  assert (select status = 'claimed' and collected_amount is null from public.retentions where id = rid), 'cancelled entry';
+  perform public.mark_retention_collected(rid, 400000, current_date);
+  perform public.mark_retention_collected(rid, v - 400000, current_date);
+  assert (select status from public.retentions where id = rid) = 'collected', 'closed when nothing is left';
+end $$;
+reset role;
+rollback to savepoint ret_part;
 select pg_temp.act_as('operations_exec'); set role authenticated;
 select public.mark_retention_collected((select id from public.retentions), 2400000, current_date);
 insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name)

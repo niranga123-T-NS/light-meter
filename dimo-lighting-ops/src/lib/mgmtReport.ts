@@ -303,7 +303,7 @@ export async function buildManagementReport(month: string): Promise<MgmtReport> 
     buckets: BUCKETS.map((b) => ({ bucket: b, value: sum(debts.filter((d) => d.ageing_bucket === b), (d) => d.due) })).filter((b) => b.value),
     legal: debts.filter((d) => d.is_legal).length,
     top: [...byClient.entries()].map(([client, v]) => ({ client, ...v })).sort((a, b) => b.value - a.value).slice(0, 5),
-    retentions: { held: sum(rets, (r) => lkr(n(r.retention_value) - n(r.collected_amount), r.currency)), overdue: sum(overdueR, (r) => lkr(r.retention_value, r.currency)), overdueCount: overdueR.length },
+    retentions: { held: sum(rets, (r) => lkr(n(r.retention_value) - n(r.collected_amount), r.currency)), overdue: sum(overdueR, (r) => lkr(n(r.retention_value) - n(r.collected_amount), r.currency)), overdueCount: overdueR.length },
     bonds: { active: sum(bonds, (b) => lkr(b.bond_value, b.currency)), count: bonds.length, expiring30: bonds.filter((b) => b.expiry_date >= today && days(today, b.expiry_date) <= 30).length },
   };
 

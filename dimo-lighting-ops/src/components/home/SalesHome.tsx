@@ -60,7 +60,7 @@ export function SalesHome() {
   const retDue = retAction.filter((x) => x.st === 'due');
   const sumText = (list: { r: Retention }[]) =>
     (['LKR', 'USD'] as const)
-      .map((c) => [c, list.filter((x) => x.r.currency === c).reduce((a, x) => a + Number(x.r.retention_value), 0)] as const)
+      .map((c) => [c, list.filter((x) => x.r.currency === c).reduce((a, x) => a + Number(x.r.retention_value) - Number(x.r.collected_amount ?? 0), 0)] as const)
       .filter(([, v]) => v > 0)
       .map(([c, v]) => fmtMoney(v, c))
       .join(' + ');
@@ -137,7 +137,7 @@ export function SalesHome() {
                     }
                     right={
                       <Row gap={6} wrap>
-                        <Pill label={fmtMoney(r.retention_value, r.currency)} />
+                        <Pill label={fmtMoney(Number(r.retention_value) - Number(r.collected_amount ?? 0), r.currency)} />
                         <Pill
                           label={st === 'due' ? 'Due – not claimed' : st === 'claim_overdue' ? 'Claimed > 60 days' : 'Due within 60 days'}
                           tone={st === 'due_soon' ? colors.amber : colors.red}
