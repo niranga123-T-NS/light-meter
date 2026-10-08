@@ -2,6 +2,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { Attachments, KIND_LABELS } from '@/components/Attachments';
+import { DeadlineCard } from '@/components/DeadlineCard';
 import { DesignNotes } from '@/components/DesignNotes';
 import { useDialog } from '@/components/dialog';
 import { InquiryTimeline, STAGE_COLOUR } from '@/components/InquiryBits';
@@ -9,6 +10,7 @@ import { PersonPicker } from '@/components/pickers';
 import { DESIGN_SCOPE, designScopeText, ESTIMATION_BASIS, ESTIMATION_SCOPE, estimationScopeText } from '@/lib/constants';
 import { Button, Card, colors, DateField, ErrorBanner, KeyValue, ListRow, Loading, Muted, Notice, Pill, Progress, Row, Screen, Section, Select, SlaDot } from '@/components/ui';
 import { useMe } from '@/lib/auth';
+import { isTender, type Split } from '@/lib/deadlines';
 import { openAttachment } from '@/lib/files';
 import { daysBetween, endOfWorkDay, fmtDate, fmtDateISO, fmtDateTime, fmtMoney, human, INQUIRY_STATUS_LABEL, todayISO, inquiryTitle } from '@/lib/format';
 import { useLoad, useMasters, usePeople } from '@/lib/hooks';
@@ -86,6 +88,27 @@ export default function InquiryDetail() {
       if (res && typeof res === 'object' && 'warning' in (res as object)) dialog.toast(String((res as { warning: string }).warning), 'error');
       await reload();
     }, ok);
+
+  // Route A: the deadline is split once – release, final pricing, the rest for design – and estimation starts with the design
+  const designDatePrompt = async (title: string, confirmLabel?: string) => {
+    const sp = await rpc<Split | null>('deadline_split', { p_inquiry: i.id }).catch(() => null);
+    const r = await dialog.prompt({
+      title,
+      message: sp
+        ? `Counted back from the ${isTender(i) ? `tender closing (${fmtDateTime(i.tender_closes_at)}, fixed)` : `client deadline (${fmtDate(i.customer_deadline)})`}: ${sp.release_days} working day${sp.release_days > 1 ? 's' : ''} to check and release, ${sp.pricing_days} for final pricing (by ${fmtDate(sp.estimation_due)}), the rest for design. Estimation opens now as a pre-estimate and adds the designed fixtures when the design is released. SM Projects approves the date; latest possible ${fmtDate(sp.design_latest)}.${sp.tight ? ' The standard split is already past – agree the date with SM Projects or ask the client for more time.' : ''}`
+        : `When the whole design (all tasks) will be complete. SM Projects approves it after checking the time left for estimation before the customer deadline (${fmtDate(i.customer_deadline)}).`,
+      fields: [
+        { key: 'date', label: 'Design complete by (17:30)', type: 'date', required: true, initial: sp && !sp.tight ? fmtDateISO(sp.design_due) : undefined },
+        { key: 'note', label: 'Note for SM Projects (optional)', type: 'multiline' },
+      ],
+      confirmLabel,
+    });
+    if (!r) return null;
+    if (r.date < todayISO()) return (dialog.toast('The completion date must be in the future', 'error'), null);
+    if (sp && r.date > fmtDateISO(sp.design_latest)) return (dialog.toast(`The design must be complete by ${fmtDate(sp.design_latest)} to leave time for final pricing and release`, 'error'), null);
+    if (!sp && i.customer_deadline && r.date >= i.customer_deadline) return (dialog.toast(`The design must be complete before the customer deadline (${fmtDate(i.customer_deadline)})`, 'error'), null);
+    return r;
+  };
 
   const reason = async (title: string, label = 'Reason') => (await dialog.prompt({ title, fields: [{ key: 'r', label, type: 'multiline', required: true }] }))?.r;
 
@@ -221,24 +244,6 @@ export default function InquiryDetail() {
     if (!['draft', 'won', 'lost', 'cancelled', 'rejected'].includes(i.status)) {
       buttons.push(
         <Button
-          key="ext"
-          variant="secondary"
-          title="Customer extended the deadline"
-          onPress={async () => {
-            const r = await dialog.prompt({
-              title: 'Customer deadline extension',
-              message: 'Attach the extension notice below if available.',
-              fields: [
-                { key: 'd', label: 'New customer deadline', type: 'date', required: true },
-                { key: 'r', label: 'Reason', type: 'multiline', required: true },
-              ],
-            });
-            if (r) await act('extend_customer_deadline', { p_inquiry: i.id, p_new_deadline: r.d, p_reason: r.r }, 'Deadline updated');
-          }}
-        />,
-      );
-      buttons.push(
-        <Button
           key="chg"
           variant="secondary"
           title={pendingChange ? 'Change request waiting for approval' : 'Request a change'}
@@ -346,18 +351,8 @@ export default function InquiryDetail() {
           onPress={async () => {
             // Route A: the Design Manager gives the design completion date while accepting; it goes to SM Projects for approval
             if (i.route !== 'A' || i.design_due_status === 'approved' || i.design_due_status === 'pending') return act('accept_inquiry', { p_inquiry: i.id }, 'Accepted');
-            const r = await dialog.prompt({
-              title: 'Accept and set the design completion date',
-              message: `When the whole design (all tasks) will be complete. SM Projects approves it after checking the time left for estimation before the customer deadline (${fmtDate(i.customer_deadline)}). You can assign the designer once it is approved.`,
-              fields: [
-                { key: 'date', label: 'Design complete by (17:30)', type: 'date', required: true },
-                { key: 'note', label: 'Note for SM Projects (optional)', type: 'multiline' },
-              ],
-              confirmLabel: 'Accept',
-            });
+            const r = await designDatePrompt('Accept and set the design completion date', 'Accept');
             if (!r) return;
-            if (r.date < todayISO()) return dialog.toast('The completion date must be in the future', 'error');
-            if (i.customer_deadline && r.date >= i.customer_deadline) return dialog.toast(`The design must be complete before the customer deadline (${fmtDate(i.customer_deadline)})`, 'error');
             await dialog.run(async () => {
               await rpc('accept_inquiry', { p_inquiry: i.id });
               try {
@@ -395,14 +390,7 @@ export default function InquiryDetail() {
               variant={i.design_due_status === 'approved' ? 'secondary' : 'primary'}
               title={i.design_due_status === 'approved' ? 'Change design completion date' : 'Set design completion date'}
               onPress={async () => {
-                const r = await dialog.prompt({
-                  title: 'Design completion date',
-                  message: `When the whole design (all tasks) will be complete. SM Projects approves it after checking the time left for estimation before the customer deadline (${fmtDate(i.customer_deadline)}).`,
-                  fields: [
-                    { key: 'date', label: 'Design complete by (17:30)', type: 'date', required: true },
-                    { key: 'note', label: 'Note for SM Projects (optional)', type: 'multiline' },
-                  ],
-                });
+                const r = await designDatePrompt('Design completion date');
                 if (r) await act('propose_design_due', { p_inquiry: i.id, p_due: endOfWorkDay(r.date), p_note: r.note || null }, 'Sent to SM Projects for approval');
               }}
             />,
@@ -475,7 +463,10 @@ export default function InquiryDetail() {
         <Row wrap>
           <KeyValue label="Current owner" value={people[i.current_owner_id ?? '']?.full_name ?? '—'} />
           <KeyValue label="Current due" value={fmtDateTime(i.current_due_at)} />
-          <KeyValue label="Customer deadline" value={`${fmtDate(i.customer_deadline)}${daysLeft != null ? ` (${daysLeft} days)` : ''}`} />
+          <KeyValue
+            label={isTender(i) ? 'Tender closes (fixed)' : 'Client deadline'}
+            value={`${isTender(i) ? fmtDateTime(i.tender_closes_at) : fmtDate(i.customer_deadline)}${daysLeft != null ? ` (${daysLeft} days)` : ''}${i.extension_status === 'requested' ? ' · extension asked' : ''}`}
+          />
           {i.route === 'A' && (i.design_due_at || i.design_due_proposed_at) ? (
             <KeyValue
               label="Design completion"
@@ -502,6 +493,7 @@ export default function InquiryDetail() {
         {sales ? <Row wrap gap={8} style={{ marginTop: 8 }}>{sales}</Row> : null}
         {mgr ? <Row wrap gap={8} style={{ marginTop: 8 }}>{mgr}</Row> : null}
       </Card>
+      {i.status !== 'draft' ? <DeadlineCard inquiry={i} onChange={reload} /> : null}
 
       {clocks.length ? (
         <Section title="Stage timers">
@@ -673,7 +665,7 @@ export default function InquiryDetail() {
           <Row wrap>
             <KeyValue label="Design scope" value={designScopeText(i.design_scope)} />
             <KeyValue label="Estimation scope" value={estimationScopeText(i.estimation_scope, i.estimation_basis)} />
-            <KeyValue label="Submission type" value={i.submission_type ?? '—'} />
+            {i.submission_type ? <KeyValue label="Submission type" value={i.submission_type} /> : null}
             <KeyValue label="Solution level" value={human(i.solution_level)} />
             <KeyValue label="Origin" value={human(i.manufacturing_origin)} />
             {!isDesigner(me.role) && me.role !== 'design_manager' ? <KeyValue label="Budget indication" value={fmtMoney(i.budget_lkr, 'LKR')} /> : null}
@@ -694,7 +686,7 @@ export default function InquiryDetail() {
       <Attachments
         entityType="inquiry"
         entityId={i.id}
-        kinds={['inquiry_doc', 'client_markup', 'deadline_extension']}
+        kinds={['inquiry_doc', 'client_markup', 'deadline_extension', 'tender_addendum']}
         title="Inquiry documents (drawings, BOQ, specification, RCPs, photos)"
         canUpload={mineAsSales}
       />

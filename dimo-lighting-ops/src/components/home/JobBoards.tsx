@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase';
 import type { DesignJob, EstimationJob, Inquiry, SlaClock } from '@/lib/types';
 import { STAGE_COLOUR } from '../InquiryBits';
 import { DesignHolds } from './DesignHolds';
+import { DesignPipeline } from './DesignPipeline';
 import { Avatar, Card, colors, Empty, ErrorBanner, Grid, H1, Muted, Pill, Progress, Row, Screen, Section, Segmented, SlaDot, Stat, useWide } from '../ui';
 
 type Colour = 'green' | 'amber' | 'red' | 'grey';
@@ -77,6 +78,7 @@ export function DesignBoard({ header }: { header?: ReactNode } = {}) {
         </Grid>
       </Section>
 
+      {manager ? <DesignPipeline view="design" reloadKey={data} /> : null}
       {manager ? <DesignHolds reloadKey={data} /> : null}
 
       {manager ? (
@@ -163,6 +165,8 @@ function JobCard({
             <Pill label={job.task_type} />
             <Pill label={`Rev ${job.review_cycles}`} tone={job.review_cycles ? colors.amber : undefined} />
           </Row>
+        ) : 'phase' in job && job.phase === 'pre' ? (
+          <Pill label="Pre-estimate · design in progress" tone={colors.blue} />
         ) : (
           <Pill label={job.source} />
         )}
@@ -230,6 +234,7 @@ export function EstimationBoard({ header }: { header?: ReactNode } = {}) {
           <Stat label="Supplier price waits" value={groups.open.reduce((a, j) => a + (j.supplier_waits ?? []).filter((w) => !w.received).length, 0)} />
         </Grid>
       </Section>
+      {manager ? <DesignPipeline view="estimation" reloadKey={data} /> : null}
       {manager ? (
         <Section title="Workload">
           <Grid min={220}>

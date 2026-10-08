@@ -1,9 +1,12 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
+import { Text } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { CustomerPicker, ProjectPicker } from '@/components/pickers';
-import { Button, Card, colors, DateField, ErrorBanner, Field, Muted, MultiSelect, Notice, NumberField, Row, Screen, Section, Segmented, Select, Toggle } from '@/components/ui';
+import { Button, Card, colors, DateField, ErrorBanner, Field, Grid, Muted, MultiSelect, Notice, NumberField, Row, Screen, Section, Segmented, Select, Toggle } from '@/components/ui';
 import { DESIGN_SCOPE, ESTIMATION_BASIS, ESTIMATION_SCOPE } from '@/lib/constants';
+import { colomboHHMM, colomboTime, SUBMISSION_METHODS } from '@/lib/deadlines';
+import { fmtDateISO } from '@/lib/format';
 import { supabase } from '@/lib/supabase';
 import type { DutyStatus, Inquiry, Project } from '@/lib/types';
 
@@ -34,7 +37,9 @@ export default function NewInquiry() {
     estimation_scope: ['fixtures'] as string[],
     estimation_basis: null as string | null,
     priority: 'normal',
-    submission_type: '',
+    deadline_type: 'client' as 'client' | 'tender',
+    tender_ref: '',
+    tender_submission: null as string | null,
     customer_deadline: null as string | null,
     design_required_by: null as string | null,
     quotation_required_by: null as string | null,
@@ -49,6 +54,9 @@ export default function NewInquiry() {
     expectation_notes: '',
   });
   const [f, setF] = useState(blank);
+  // Tender closing date and time (Sri Lanka) – saved as tender_closes_at
+  const [closeDate, setCloseDate] = useState<string | null>(null);
+  const [closeTime, setCloseTime] = useState('10:00');
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((s) => ({ ...s, [k]: v }));
 
   // Prefill from the visit (convert to inquiry) or load a draft for editing
@@ -57,6 +65,10 @@ export default function NewInquiry() {
       supabase.from('inquiries').select('*').eq('id', params.edit).single().then(({ data }) => {
         const i = data as Inquiry | null;
         if (!i) return;
+        if (i.tender_closes_at) {
+          setCloseDate(fmtDateISO(i.tender_closes_at));
+          setCloseTime(colomboHHMM(i.tender_closes_at));
+        }
         setF((s) => ({
           ...s,
           ...Object.fromEntries(Object.keys(s).map((k) => [k, (i as unknown as Record<string, unknown>)[k] ?? (s as Record<string, unknown>)[k]])),
@@ -84,7 +96,10 @@ export default function NewInquiry() {
     if (!f.project_id || !f.organization_id) return setError('Select the project and customer');
     if (!f.inquiry_name?.trim()) return setError('Enter the inquiry name – what this inquiry is for (e.g. Street lighting – Package 2)');
     if (hasUnits && !f.unit_id) return setError('Select the unit / department – this customer has units defined');
-    if (!f.customer_deadline) return setError('Customer deadline is mandatory');
+    const tender = f.deadline_type === 'tender';
+    if (tender && !closeDate) return setError('Give the tender closing date');
+    if (tender && !/^\d{1,2}:\d{2}$/.test(closeTime.trim())) return setError('Give the tender closing time as HH:MM, e.g. 10:00');
+    if (!tender && !f.customer_deadline) return setError('Customer deadline is mandatory');
     if (needsDuty && !f.duty_status) return setError('Duty status is mandatory when estimation is in scope');
     if (needsDuty && !f.estimation_scope.length) return setError('Select the estimation scope – what Estimation must price');
     if (needsDuty && !f.estimation_basis) return setError('Select the estimation basis – supply only, supply & install, or supply, install & commission');
@@ -95,7 +110,10 @@ export default function NewInquiry() {
       estimation_scope: needsDuty ? f.estimation_scope : [],
       estimation_basis: needsDuty ? f.estimation_basis : null,
       duty_status: needsDuty ? f.duty_status : f.duty_status,
-      submission_type: f.submission_type || null,
+      customer_deadline: tender ? closeDate : f.customer_deadline,
+      tender_closes_at: tender && closeDate ? colomboTime(closeDate, closeTime.trim()) : null,
+      tender_ref: tender ? f.tender_ref.trim() || null : null,
+      tender_submission: tender ? f.tender_submission : null,
       areas: f.areas || null,
       preferred_brands: f.preferred_brands || null,
       approved_makes: f.approved_makes || null,
@@ -204,14 +222,39 @@ export default function NewInquiry() {
               { value: 'urgent', label: 'Urgent' },
             ]}
           />
-          <Field label="Tender or submission type" value={f.submission_type} onChangeText={(v) => set('submission_type', v)} />
         </Card>
       </Section>
 
       <Section title="Dates">
         <Card>
-          <DateField label="Customer deadline" required value={f.customer_deadline} onChange={(v) => set('customer_deadline', v)} quick={[7, 14, 21, 30]} hint="The date the client or consultant needs the submission" />
-          <Muted>Only the customer deadline is needed. The Design Manager and SM Estimation set the internal design and estimation due dates when they assign the work.</Muted>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>Deadline type</Text>
+          <Segmented
+            value={f.deadline_type}
+            onChange={(v) => set('deadline_type', v)}
+            options={[
+              { value: 'client', label: 'Client deadline' },
+              { value: 'tender', label: 'Tender closing' },
+            ]}
+          />
+          {f.deadline_type === 'tender' ? (
+            <>
+              <Grid min={220}>
+                <DateField label="Tender closing date" required value={closeDate} onChange={setCloseDate} quick={[7, 14, 21, 30]} />
+                <Field label="Closing time (HH:MM)" required value={closeTime} onChangeText={setCloseTime} placeholder="10:00" />
+              </Grid>
+              <Grid min={220}>
+                <Field label="Tender number / reference" value={f.tender_ref} onChangeText={(v) => set('tender_ref', v)} placeholder="e.g. RDA/EL/2026/14" />
+                <Select label="Submitted by" value={f.tender_submission} onChange={(v) => set('tender_submission', v)} options={SUBMISSION_METHODS} />
+              </Grid>
+              <Muted>The closing date is fixed – it moves only if the client issues an addendum. Two working days are kept before closing to check, seal and submit.</Muted>
+            </>
+          ) : (
+            <>
+              <DateField label="Client deadline" required value={f.customer_deadline} onChange={(v) => set('customer_deadline', v)} quick={[7, 14, 21, 30]} hint="The date the client or consultant needs the submission" />
+              <Muted>If more time is needed later, ask the client from the inquiry page – the request and the answer are recorded.</Muted>
+            </>
+          )}
+          <Muted>For design + estimation, the deadline is split once: design and estimation start together, final pricing follows the design, and the last day(s) are kept for release.</Muted>
         </Card>
       </Section>
 

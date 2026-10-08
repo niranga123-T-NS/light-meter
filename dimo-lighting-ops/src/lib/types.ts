@@ -204,6 +204,13 @@ export type Inquiry = {
   priority: 'normal' | 'high' | 'urgent';
   submission_type: string | null;
   customer_deadline: string | null;
+  deadline_type?: 'client' | 'tender';
+  tender_closes_at?: string | null;
+  tender_ref?: string | null;
+  tender_submission?: 'online' | 'hard_copy' | 'email' | null;
+  estimation_due_at?: string | null;
+  design_due_approved_at?: string | null;
+  extension_status?: 'requested' | 'granted' | 'refused' | null;
   design_required_by: string | null;
   design_due_proposed_at: string | null;
   design_due_at: string | null;
@@ -277,6 +284,8 @@ export type EstimationJob = {
   revision: number;
   source: 'design' | 'direct';
   status: string;
+  /** 'pre': opened with the design (route A) – becomes 'final' when the design is released */
+  phase?: 'pre' | 'final';
   assignee_id: string | null;
   value_band: string | null;
   due_at: string | null;
@@ -299,7 +308,7 @@ export type EstimationJob = {
   sm_projects_revisions?: number;
   submitted_at: string | null;
   released_at: string | null;
-  inquiries?: Pick<Inquiry, 'code' | 'project_name' | 'inquiry_name' | 'customer_name' | 'customer_deadline' | 'route' | 'status' | 'duty_status' | 'currency' | 'project_type' | 'solution_level' | 'manufacturing_origin' | 'expectation_notes' | 'scope_description' | 'design_scope' | 'estimation_scope' | 'estimation_basis' | 'quotation_required_by' | 'debtor_flag' | 'revision'> & { variation_id?: string | null } | null;
+  inquiries?: Pick<Inquiry, 'code' | 'project_name' | 'inquiry_name' | 'customer_name' | 'customer_deadline' | 'route' | 'status' | 'duty_status' | 'currency' | 'project_type' | 'solution_level' | 'manufacturing_origin' | 'expectation_notes' | 'scope_description' | 'design_scope' | 'estimation_scope' | 'estimation_basis' | 'quotation_required_by' | 'debtor_flag' | 'revision' | 'design_due_at' | 'estimation_due_at' | 'deadline_type' | 'tender_closes_at'> & { variation_id?: string | null } | null;
 };
 
 export type Quotation = {

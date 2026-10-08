@@ -4472,5 +4472,167 @@ do $$ begin
   assert exists (select 1 from public.exec_gates where exec_project_id = current_setting('test.exlegacy')::uuid and gate = 1 and status = 'approved' and not legacy), 'start recorded';
 end $$;
 
+
+-- Design + estimation together: deadline type, one split, parallel pre-estimate, extensions, late alert ---------------
+savepoint parallel_de;
+select set_config('app.workflow', '1', false);
+insert into public.inquiries (id, project_id, organization_id, unit_id, route, release_mode, release_mode_confirmed, design_scope, scope_description,
+                              estimation_scope, estimation_basis, sales_person_id, status, budget_lkr, deadline_type, tender_closes_at, tender_ref, tender_submission)
+values ('00000000-0000-0000-0000-0000000de001', '00000000-0000-0000-0000-00000000b001', '00000000-0000-0000-0000-00000000a001', '00000000-0000-0000-0000-00000000a002',
+        'A', 3, true, 'lighting', 'Stadium floodlighting tender', '{fixtures,controls}', 'supply_install', (select id from u where role = 'asm_building'),
+        'accepted', 60000000, 'tender', ((app.wd_back(current_date + 30, 0)) + time '10:00') at time zone app.tz(), 'NSC/T/2026/14', 'hard_copy');
+update public.inquiries set status = 'accepted' where id = '00000000-0000-0000-0000-0000000de001';
+select set_config('app.workflow', '', false);
+do $$ declare i public.inquiries := app.inq('00000000-0000-0000-0000-0000000de001'); s jsonb := app.deadline_split(i);
+begin
+  assert i.customer_deadline = current_date + 30, 'tender deadline follows the closing date';
+  assert (s ->> 'release_days')::int = 2 and (s ->> 'pricing_days')::int = 2, 'tender: 2 release days, 2 pricing days (large job)';
+  assert ((s ->> 'estimation_due')::timestamptz at time zone app.tz())::date = app.wd_back(current_date + 30, 2), 'final pricing ends 2 working days before closing';
+  assert ((s ->> 'design_due')::timestamptz at time zone app.tz())::date = app.wd_back(current_date + 30, 4), 'design gets the rest';
+  perform set_config('test.split', s::text, false);
+end $$;
+select pg_temp.act_as('design_manager'); set role authenticated;
+do $$ declare s jsonb := current_setting('test.split')::jsonb;
+begin
+  begin perform public.propose_design_due('00000000-0000-0000-0000-0000000de001', (s ->> 'estimation_due')::timestamptz);
+    assert false, 'no time left for final pricing';
+  exception when others then assert sqlerrm like 'The design must be complete by % – that leaves 1 working day for final pricing and 2 working days for release before the tender closes', sqlerrm; end;
+  perform set_config('app.workflow', '', true);
+  perform public.propose_design_due('00000000-0000-0000-0000-0000000de001', (s ->> 'design_due')::timestamptz);
+  assert (select reason from public.approvals where kind = 'design_due' and entity_id = '00000000-0000-0000-0000-0000000de001') like '%tender closes%(fixed closing)%pre-estimate%', 'approval shows the split';
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+select public.decide_approval((select id from public.approvals where kind = 'design_due' and entity_id = '00000000-0000-0000-0000-0000000de001'), 'approved');
+reset role;
+do $$ declare i public.inquiries := app.inq('00000000-0000-0000-0000-0000000de001'); s jsonb := current_setting('test.split')::jsonb;
+begin
+  assert i.estimation_due_at = (s ->> 'estimation_due')::timestamptz, 'final pricing date stored';
+  assert (select count(*) from public.estimation_jobs where inquiry_id = i.id) = 1, 'estimation opens with the design';
+  assert (select phase = 'pre' and status = 'queued' from public.estimation_jobs where inquiry_id = i.id), 'as a pre-estimate';
+  assert exists (select 1 from public.notifications where kind = 'pre_estimate_opened' and entity_id = (select id from public.estimation_jobs where inquiry_id = i.id)
+                 and recipient_id = (select id from u where role = 'sm_estimation')), 'SM Estimation told';
+end $$;
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+do $$ declare j uuid := (select id from public.estimation_jobs where inquiry_id = '00000000-0000-0000-0000-0000000de001'); i public.inquiries := app.inq('00000000-0000-0000-0000-0000000de001');
+begin
+  perform public.accept_estimation(j);
+  begin perform public.assign_estimation_job(j, public.default_estimator(i.id), i.tender_closes_at - interval '1 day', 'large', 'x');
+    assert false, 'too close to the tender closing';
+  exception when others then assert sqlerrm like '%2 working days before the tender closes%', sqlerrm; end;
+  perform public.assign_estimation_job(j, (select id from u where role = 'estimation_exec'), i.estimation_due_at, 'large', 'Tender team');
+  assert (select status from public.inquiries where id = i.id) = 'accepted', 'inquiry stays with Design during the pre-estimate';
+  assert (select count(*) from public.design_pipeline() where inquiry_id = i.id and deadline_type = 'tender' and estimation_phase = 'pre' and estimator is not null) = 1, 'SM Estimation panel row';
+end $$;
+reset role;
+select pg_temp.act_as('estimation_exec'); set role authenticated;
+do $$ declare j uuid := (select id from public.estimation_jobs where inquiry_id = '00000000-0000-0000-0000-0000000de001');
+begin
+  begin perform public.submit_estimate_for_approval(j); assert false, 'pre-estimate submitted';
+  exception when others then assert sqlerrm like 'The design is not released yet%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('design_manager'); set role authenticated;
+select public.assign_design_job('00000000-0000-0000-0000-0000000de001', (select id from u where role = 'lighting_designer'), (select design_due_at from public.inquiries where id = '00000000-0000-0000-0000-0000000de001'), 'lighting', 'large', '[]', 'Tender');
+reset role;
+do $$ begin
+  assert (select current_owner_id from public.inquiries where id = '00000000-0000-0000-0000-0000000de001') = (select id from u where role = 'lighting_designer'), 'the designer owns the inquiry while designing';
+end $$;
+-- Tenders: no request – only the client's addendum moves the closing date
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ declare i public.inquiries := app.inq('00000000-0000-0000-0000-0000000de001'); old_d timestamptz := i.design_due_at; old_e timestamptz := i.estimation_due_at;
+begin
+  begin perform public.request_deadline_extension(i.id, current_date + 40, 'More time'); assert false, 'tender extension request';
+  exception when others then assert sqlerrm like 'A tender closing date is fixed%', sqlerrm; end;
+  begin perform public.record_tender_extension(i.id, i.tender_closes_at + interval '7 days', 'Addendum 2'); assert false, 'no addendum file';
+  exception when others then assert sqlerrm = 'Attach the tender addendum', sqlerrm; end;
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('inquiry', i.id, 'tender_addendum', 'inquiry/' || i.id || '/add2.pdf', 'add2.pdf');
+  perform public.record_tender_extension(i.id, i.tender_closes_at + interval '7 days', 'Addendum 2', 'Site visit added');
+  i := app.inq(i.id);
+  assert i.customer_deadline = current_date + 37, 'closing date moved';
+  assert i.design_due_at > old_d and i.estimation_due_at > old_e, 'dates re-split';
+  assert (i.estimation_due_at at time zone app.tz())::date = app.wd_back(current_date + 37, 2), 'final pricing re-split';
+  assert (select count(*) from public.deadline_extensions where inquiry_id = i.id and kind = 'tender_addendum' and addendum_ref = 'Addendum 2') = 1, 'extension recorded';
+end $$;
+reset role;
+do $$ declare i public.inquiries := app.inq('00000000-0000-0000-0000-0000000de001');
+begin
+  assert (select due_at from public.estimation_jobs where inquiry_id = i.id) = i.estimation_due_at, 'estimator''s date follows';
+  assert (select due_at from public.sla_clocks where entity_id = (select id from public.estimation_jobs where inquiry_id = i.id) and stage = 'estimation' and stopped_at is null) = i.estimation_due_at, 'clock follows';
+  assert exists (select 1 from public.notifications where kind = 'deadline_extended' and entity_id = i.id and recipient_id = (select id from u where role = 'estimation_exec')), 'estimator told';
+end $$;
+-- One alert when the design is late
+select set_config('app.workflow', '1', false);
+update public.inquiries set design_due_at = now() - interval '1 hour' where id = '00000000-0000-0000-0000-0000000de001';
+select set_config('app.workflow', '', false);
+do $$ begin
+  assert public.design_split_tick() = 1, 'late design alerted';
+  assert public.design_split_tick() = 0, 'only once';
+  assert exists (select 1 from public.notifications where kind = 'design_late' and priority = 'critical' and recipient_id = (select id from u where role = 'sm_estimation')), 'SM Estimation alerted';
+end $$;
+-- Design released: the same job moves on to final pricing
+select set_config('app.workflow', '1', false);
+update public.design_jobs set status = 'approved' where inquiry_id = '00000000-0000-0000-0000-0000000de001';
+update public.inquiries set status = 'design_approved' where id = '00000000-0000-0000-0000-0000000de001';
+select set_config('app.workflow', '', false);
+select pg_temp.act_as('design_manager'); set role authenticated;
+select public.release_design('00000000-0000-0000-0000-0000000de001');
+reset role;
+do $$ begin
+  assert (select count(*) from public.estimation_jobs where inquiry_id = '00000000-0000-0000-0000-0000000de001') = 1, 'no second job';
+  assert (select phase from public.estimation_jobs where inquiry_id = '00000000-0000-0000-0000-0000000de001') = 'final', 'final pricing';
+  assert (select status from public.inquiries where id = '00000000-0000-0000-0000-0000000de001') = 'in_estimation', 'with Estimation now';
+  assert exists (select 1 from public.notifications where title like 'Design released – add the designed fixtures%' and recipient_id = (select id from u where role = 'estimation_exec')), 'estimator told';
+end $$;
+-- Client deadline: ask → work continues → granted (with the client's e-mail) or refused
+select set_config('app.workflow', '1', false);
+insert into public.inquiries (id, project_id, organization_id, unit_id, route, release_mode, release_mode_confirmed, design_scope, scope_description,
+                              estimation_scope, estimation_basis, sales_person_id, status, customer_deadline)
+values ('00000000-0000-0000-0000-0000000de002', '00000000-0000-0000-0000-00000000b001', '00000000-0000-0000-0000-00000000a001', '00000000-0000-0000-0000-00000000a002',
+        'A', 3, true, 'lighting', 'Hotel facade', '{fixtures}', 'supply', (select id from u where role = 'asm_building'), 'accepted', current_date + 20);
+update public.inquiries set status = 'accepted' where id = '00000000-0000-0000-0000-0000000de002';
+select set_config('app.workflow', '', false);
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+do $$ declare x uuid;
+begin
+  begin perform public.request_deadline_extension('00000000-0000-0000-0000-0000000de002', current_date + 10, 'x'); assert false, 'earlier date';
+  exception when others then assert sqlerrm like 'Propose a date after the current deadline%', sqlerrm; end;
+  x := public.request_deadline_extension('00000000-0000-0000-0000-0000000de002', current_date + 27, 'Client added the car park');
+  begin perform public.request_deadline_extension('00000000-0000-0000-0000-0000000de002', current_date + 28, 'again'); assert false, 'second request';
+  exception when others then assert sqlerrm like 'An extension request is already open%', sqlerrm; end;
+  begin perform public.record_extension_outcome(x, true, current_date + 27); assert false, 'SM Estimation records the answer';
+  exception when others then assert sqlerrm like 'Only the sales person or SM Projects%', sqlerrm; end;
+  perform set_config('test.ext', x::text, false);
+end $$;
+reset role;
+do $$ begin
+  assert (select extension_status from public.inquiries where id = '00000000-0000-0000-0000-0000000de002') = 'requested', 'requested';
+  assert (select customer_deadline from public.inquiries where id = '00000000-0000-0000-0000-0000000de002') = current_date + 20, 'work continues to the current date';
+end $$;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ declare x uuid := current_setting('test.ext')::uuid;
+begin
+  assert exists (select 1 from public.notifications where kind = 'deadline_extension_requested' and recipient_id = auth.uid()), 'sales person asked to ask the client';
+  begin perform public.record_extension_outcome(x, true, current_date + 27); assert false, 'no client e-mail';
+  exception when others then assert sqlerrm like 'Attach the client%', sqlerrm; end;
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('inquiry', '00000000-0000-0000-0000-0000000de002', 'deadline_extension', 'inquiry/de002/ext.pdf', 'ext.pdf');
+  perform public.record_extension_outcome(x, true, current_date + 25, 'Client agreed 25th');
+  assert (select customer_deadline = current_date + 25 and extension_status = 'granted' from public.inquiries where id = '00000000-0000-0000-0000-0000000de002'), 'granted';
+  x := public.request_deadline_extension('00000000-0000-0000-0000-0000000de002', current_date + 32, 'More changes');
+  perform public.record_extension_outcome(x, false, null, 'Board meeting fixed');
+  assert (select customer_deadline = current_date + 25 and extension_status = 'refused' from public.inquiries where id = '00000000-0000-0000-0000-0000000de002'), 'refused keeps the date';
+  assert (select count(*) from public.deadline_extensions where inquiry_id = '00000000-0000-0000-0000-0000000de002') = 2, 'both recorded';
+end $$;
+reset role;
+-- Tender inquiries need the closing date and time
+do $$ begin
+  begin
+    perform set_config('app.workflow', '1', true);
+    update public.inquiries set deadline_type = 'tender' where id = '00000000-0000-0000-0000-0000000de002';
+    assert false, 'tender without closing';
+  exception when others then assert sqlerrm = 'Give the tender closing date and time', sqlerrm; end;
+end $$;
+rollback to savepoint parallel_de;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
