@@ -21,7 +21,14 @@ function status(r: PipelineRow): { label: string; tone: string } {
 }
 
 const Type = ({ r }: { r: PipelineRow }) =>
-  r.deadline_type === 'tender' ? <Pill label="Tender" tone={colors.brand} solid /> : <Pill label="Client" tone={colors.grey} />;
+  r.deadline_type === 'tender' ? (
+    <View style={{ gap: 2 }}>
+      <Pill label="TENDER" tone={colors.brand} solid />
+      {r.tender_ref ? <Text style={{ fontSize: 10, color: colors.brand }} numberOfLines={1}>{r.tender_ref}</Text> : null}
+    </View>
+  ) : (
+    <Pill label="Design + est." tone={colors.grey} />
+  );
 
 const InquiryCell = ({ r }: { r: PipelineRow }) => (
   <View style={{ alignSelf: 'stretch' }}>
@@ -72,7 +79,7 @@ export function DesignPipeline({ view, reloadKey }: { view: 'estimation' | 'desi
 
   const common: Column<PipelineRow>[] = [
     { h: 'Inquiry', w: 220, v: (r) => <InquiryCell r={r} /> },
-    { h: 'Type', w: 72, v: (r) => <Type r={r} /> },
+    { h: 'Type', w: 100, v: (r) => <Type r={r} /> },
     { h: 'Designer', w: 130, v: (r) => r.designers ?? '—' },
     { h: 'Design due', w: 105, v: (r) => fmtDate(r.design_due_at), tone: (r) => (r.late ? colors.red : undefined), bold: true },
     { h: 'Design progress', w: 130, v: (r) => <ProgressCell r={r} /> },
@@ -102,8 +109,8 @@ export function DesignPipeline({ view, reloadKey }: { view: 'estimation' | 'desi
   const columns = view === 'estimation' ? [...common, estimate[1], ...tail] : [...common, ...estimate, tail[0], tail[2]];
 
   return (
-    <Section title={view === 'estimation' ? 'Design in progress' : 'Estimates waiting on your designs'}>
-      <TestingBanner what={view === 'estimation' ? 'Design in progress' : 'Estimates waiting on designs'} />
+    <Section title={view === 'estimation' ? 'Designs waiting for estimation' : 'Estimates waiting on your designs'}>
+      <TestingBanner what={view === 'estimation' ? 'Designs waiting for estimation' : 'Estimates waiting on designs'} />
       <Grid min={170} max={4}>
         <Stat label="Designs due this week" value={coming} />
         <Stat label="Tenders closing this week" value={tenders} tone={tenders ? 'amber' : undefined} />
@@ -116,6 +123,7 @@ export function DesignPipeline({ view, reloadKey }: { view: 'estimation' | 'desi
           rows={rows}
           keyOf={(r) => r.inquiry_id}
           edge={(r) => (r.late ? colors.red : r.deadline_type === 'tender' ? colors.brand : undefined)}
+          rowStyle={(r) => (r.deadline_type === 'tender' ? { backgroundColor: '#FFF5F5' } : undefined)}
           onPress={(r) => (view === 'design' || r.estimation_job_id ? router.push(`/inquiries/${r.inquiry_id}`) : undefined)}
           emptyTitle="No design + estimation inquiries in design"
         />
