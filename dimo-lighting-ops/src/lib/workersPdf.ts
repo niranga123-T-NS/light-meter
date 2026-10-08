@@ -1,4 +1,5 @@
 import { DIMO_LOGO_DATA_URI } from './brandLogoData';
+import { projectNo } from './execution';
 import { esc, printHtml } from './export';
 import { fmtDate } from './format';
 import { supabase } from './supabase';
@@ -7,7 +8,7 @@ import { idLabel, type Worker } from './workers';
 
 /** Worker list for site security, the main contractor or police registration – optionally with both sides of each ID. */
 export async function printWorkerList(
-  project: { code: string | null; name: string; site_address: string | null },
+  project: { code: string | null; wbs_no?: string | null; name: string; site_address: string | null },
   workers: Worker[],
   o: { photos: boolean; inductedOn: Record<string, string>; by: string },
 ) {
@@ -49,7 +50,7 @@ export async function printWorkerList(
     .foot { margin-top: 8px; font-size: 8pt; color: #555; }
   </style></head><body>
   <header><img src="${DIMO_LOGO_DATA_URI}" style="height:40px"/><div><h1>Site workers register</h1>
-  <div class="sub">${esc(`${project.code ?? ''} ${project.name}`)}${project.site_address ? ` · ${esc(project.site_address)}` : ''} · ${workers.length} workers · ${esc(fmtDate(new Date().toISOString()))}</div></div></header>
+  <div class="sub">Project ${esc(`${projectNo(project)} ${project.name}`)}${project.site_address ? ` · ${esc(project.site_address)}` : ''} · ${workers.length} workers · ${esc(fmtDate(new Date().toISOString()))}</div></div></header>
   <table><tr><th class="c">#</th><th>Name / trade</th><th>ID</th><th>Address</th><th>Nearest police station</th><th>Company</th><th>Mobile</th><th>Inducted</th></tr>${rows}</table>
   <div class="foot">Confidential – personal data. Prepared by ${esc(o.by)}. For site security, main contractor and police registration only.</div>
   </body></html>`;
