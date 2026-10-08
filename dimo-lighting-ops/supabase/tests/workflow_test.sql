@@ -4791,5 +4791,54 @@ select public.sign_hse_record((select id from public.hse_records where equipment
 reset role;
 rollback to savepoint hse_forms;
 
+
+-- Site workers register: supervisor adds own crew, AE verifies against ID photos and inducts; personal data kept private ----
+savepoint workers;
+update public.profiles set company = 'Lanka Electricals' where id = (select id from u where role = 'sub_supervisor');
+insert into public.exec_members (exec_project_id, user_id, member_role)
+select current_setting('test.ex')::uuid, x.id, case when x.role = 'sub_supervisor' then 'sub_supervisor' else 'assistant_engineer' end from u x where x.role in ('assistant_engineer', 'sub_supervisor')
+  and not exists (select 1 from public.exec_members m where m.exec_project_id = current_setting('test.ex')::uuid and m.user_id = x.id and m.active);
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare e uuid := current_setting('test.ex')::uuid; w uuid;
+begin
+  begin perform public.save_worker(e, '{"full_name":"Nimal Perera","address":"12 Temple Rd, Kandy","police_station":"Kandy","id_no":"12345"}'); assert false, 'bad NIC';
+  exception when others then assert sqlerrm like 'Enter a valid NIC%', sqlerrm; end;
+  w := public.save_worker(e, '{"full_name":"Nimal Perera","address":"12 Temple Rd, Kandy","police_station":"Kandy","id_no":"901234567v","trade":"Electrician","mobile":"0771234567"}');
+  assert (select company = 'Lanka Electricals' and supervisor_id = auth.uid() and id_no = '901234567V' from public.exec_workers where id = w), 'own company, normalised NIC';
+  begin perform public.save_worker(e, '{"full_name":"N Perera","address":"x","police_station":"y","id_no":"901234567V"}'); assert false, 'twice';
+  exception when others then assert sqlerrm like '%already on this project%', sqlerrm; end;
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values
+    ('exec_worker', w, 'id_front', 'exec_worker/' || w || '/f.jpg', 'f.jpg');
+  perform set_config('test.worker', w::text, false);
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'exec_worker' and recipient_id = (select id from u where role = 'assistant_engineer')), 'AE asked to verify';
+end $$;
+select pg_temp.act_as('trainee'); set role authenticated;
+do $$ begin
+  assert (select count(*) from public.exec_workers) = 0, 'trainee does not see personal data';
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare w uuid := current_setting('test.worker')::uuid; o uuid;
+begin
+  begin perform public.induct_worker(w); assert false, 'not verified';
+  exception when others then assert sqlerrm like 'Verify the worker%', sqlerrm; end;
+  begin perform public.verify_worker(w); assert false, 'back side missing';
+  exception when others then assert sqlerrm like 'Add the photos of both sides of the NIC%', sqlerrm; end;
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('exec_worker', w, 'id_back', 'exec_worker/' || w || '/b.jpg', 'b.jpg');
+  perform public.verify_worker(w);
+  perform public.induct_worker(w);
+  assert exists (select 1 from public.hse_inductions where nic = '901234567V' and name = 'Nimal Perera'), 'in the induction register';
+  -- DIMO own labour added by the AE (passport)
+  o := public.save_worker(current_setting('test.ex')::uuid, '{"company":"DIMO","full_name":"Ravi Kumar","address":"Chennai","police_station":"Wellawatte","id_type":"passport","id_no":"N1234567"}');
+  assert (select supervisor_id is null and company = 'DIMO' from public.exec_workers where id = o), 'own labour';
+  assert (select count(*) from public.worker_lookup('901234567V')) = 1, 'lookup';
+  perform public.set_worker_off_site(o, current_date, 'Job finished');
+end $$;
+reset role;
+rollback to savepoint workers;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
