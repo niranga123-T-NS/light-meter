@@ -23,9 +23,9 @@ const Type = ({ r }: { r: PipelineRow }) =>
   r.deadline_type === 'tender' ? <Pill label="Tender" tone={colors.brand} solid /> : <Pill label="Client" tone={colors.grey} />;
 
 const InquiryCell = ({ r }: { r: PipelineRow }) => (
-  <View>
+  <View style={{ alignSelf: 'stretch' }}>
     <Text style={{ fontWeight: '600', color: colors.ink }} numberOfLines={1}>{r.code}</Text>
-    <Muted numberOfLines={1}>{r.title}</Muted>
+    <Muted numberOfLines={2}>{r.title}</Muted>
   </View>
 );
 
@@ -53,7 +53,7 @@ export function DesignPipeline({ view, reloadKey }: { view: 'estimation' | 'desi
   const waiting = rows.filter((r) => r.estimation_job_id).length;
 
   const common: Column<PipelineRow>[] = [
-    { h: 'Inquiry', w: 190, v: (r) => <InquiryCell r={r} /> },
+    { h: 'Inquiry', w: 220, v: (r) => <InquiryCell r={r} /> },
     { h: 'Type', w: 72, v: (r) => <Type r={r} /> },
     { h: 'Designer', w: 130, v: (r) => r.designers ?? '—' },
     { h: 'Design due', w: 105, v: (r) => fmtDate(r.design_due_at), tone: (r) => (r.late ? colors.red : undefined), bold: true },
