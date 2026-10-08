@@ -5001,5 +5001,23 @@ begin
 end $$;
 rollback to savepoint collections;
 
+-- Daily report linked to the day's toolbox talk record (number from the TBT form) ---------------------------------
+savepoint report_tbt;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare e uuid := current_setting('test.ex')::uuid; t uuid; r uuid; other uuid;
+begin
+  t := public.save_tbt(e, jsonb_build_object('header', jsonb_build_object('activity', 'Cable pulling north stand', 'hazards', 'Manual handling'),
+    'participants', jsonb_build_array(jsonb_build_object('name', 'Nimal')), 'starts_at', ((current_date - 1) + time '07:45') at time zone app.tz()));
+  other := public.save_tbt(e, jsonb_build_object('header', jsonb_build_object('activity', 'Other day', 'hazards', 'x'),
+    'participants', jsonb_build_array(jsonb_build_object('name', 'Nimal')), 'starts_at', ((current_date - 2) + time '07:45') at time zone app.tz()));
+  begin perform public.submit_exec_report(e, current_date - 1, jsonb_build_object('crew_count', 4, 'work_done', 'x', 'toolbox_talk', true, 'toolbox_records', jsonb_build_array(other)));
+    assert false, 'wrong day';
+  exception when others then assert sqlerrm like 'The toolbox talk must be one of this project on the report day%', sqlerrm; end;
+  r := public.submit_exec_report(e, current_date - 1, jsonb_build_object('crew_count', 4, 'work_done', 'Cable pulling', 'toolbox_talk', true, 'toolbox_records', jsonb_build_array(t)));
+  assert (select toolbox_records = array[t] and toolbox_topic like (select code from public.hse_records where id = t) || ' – Cable pulling%' from public.exec_reports where id = r), 'TBT number on the report';
+end $$;
+reset role;
+rollback to savepoint report_tbt;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
