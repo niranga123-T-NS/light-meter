@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { Text, View } from 'react-native';
 import { DataTable, type Column } from '@/components/DataTable';
+import { ProgressFlags, TimeBar } from '@/components/TimeBar';
 import { TestingBanner } from '@/components/Testing';
 import { thisWeek, type PipelineRow } from '@/lib/deadlines';
 import { fmtDate, fmtDateTime } from '@/lib/format';
@@ -32,9 +33,26 @@ const InquiryCell = ({ r }: { r: PipelineRow }) => (
 const ProgressCell = ({ r }: { r: PipelineRow }) => (
   <View style={{ gap: 2, width: 84 }}>
     <Text style={{ fontSize: 12, color: colors.muted }}>{`${r.design_progress}%`}</Text>
-    <Progress pct={r.design_progress} colour={r.late ? colors.red : colors.brand} />
+    <Progress pct={r.design_progress} colour={colors.blue} />
+    {r.inquiry_status === 'in_design' && r.designers ? <ProgressFlags compact updatedAt={r.design_updated_at} progress={r.design_progress} timePct={r.design_time_pct} /> : null}
   </View>
 );
+
+// The estimate alongside: its own % and time bar once an estimator has it
+const EstimateCell = ({ r }: { r: PipelineRow }) => {
+  if (!r.estimation_job_id) return <Muted>—</Muted>;
+  if (r.estimation_status === 'queued') return <Muted>To accept</Muted>;
+  if (r.estimation_status === 'accepted' || !r.estimator) return <Muted>To assign</Muted>;
+  const pct = r.estimation_progress ?? 0;
+  return (
+    <View style={{ gap: 3, width: 130 }}>
+      <Text style={{ fontSize: 12, color: colors.muted }}>{`${pct}% · ${r.estimation_phase === 'pre' ? 'pre-estimate' : 'final pricing'}`}</Text>
+      <Progress pct={pct} colour={colors.blue} />
+      <TimeBar pct={r.estimation_time_pct} paused={r.estimation_paused} width={130} />
+      <ProgressFlags compact updatedAt={r.estimation_updated_at} progress={pct} timePct={r.estimation_time_pct} />
+    </View>
+  );
+};
 
 const deadlineCell = (r: PipelineRow) => (r.deadline_type === 'tender' ? fmtDateTime(r.deadline_at) : fmtDate(r.deadline_at));
 
@@ -57,7 +75,12 @@ export function DesignPipeline({ view, reloadKey }: { view: 'estimation' | 'desi
     { h: 'Type', w: 72, v: (r) => <Type r={r} /> },
     { h: 'Designer', w: 130, v: (r) => r.designers ?? '—' },
     { h: 'Design due', w: 105, v: (r) => fmtDate(r.design_due_at), tone: (r) => (r.late ? colors.red : undefined), bold: true },
-    { h: 'Progress', w: 100, v: (r) => <ProgressCell r={r} /> },
+    { h: 'Design progress', w: 130, v: (r) => <ProgressCell r={r} /> },
+    {
+      h: 'Design time used',
+      w: 120,
+      v: (r) => (r.inquiry_status === 'in_design' && r.design_time_pct != null ? <TimeBar pct={r.design_time_pct} paused={r.design_paused} width={104} /> : '—'),
+    },
   ];
   const tail: Column<PipelineRow>[] = [
     { h: 'Deadline / closing', w: 130, v: deadlineCell, tone: (r) => (r.deadline_type === 'tender' ? colors.brand : undefined) },
@@ -72,15 +95,11 @@ export function DesignPipeline({ view, reloadKey }: { view: 'estimation' | 'desi
   ];
   const estimate: Column<PipelineRow>[] = [
     { h: 'Estimator', w: 150, v: (r) => r.estimator ?? (r.estimation_job_id ? 'To assign' : 'Opens when dates are approved') },
-    {
-      h: 'Pre-estimate',
-      w: 130,
-      v: (r) => (!r.estimation_job_id ? '—' : r.estimation_status === 'queued' ? 'To accept' : r.estimation_status === 'accepted' ? 'To assign' : 'Pricing non-design items'),
-    },
+    { h: 'Estimate', w: 150, v: (r) => <EstimateCell r={r} /> },
     { h: 'Final pricing by', w: 120, v: (r) => fmtDate(r.estimation_due_at) },
   ];
   // The Design Manager sees the final pricing date instead of the days count
-  const columns = view === 'estimation' ? [...common, ...tail] : [...common, ...estimate, tail[0], tail[2]];
+  const columns = view === 'estimation' ? [...common, estimate[1], ...tail] : [...common, ...estimate, tail[0], tail[2]];
 
   return (
     <Section title={view === 'estimation' ? 'Design in progress' : 'Estimates waiting on your designs'}>
