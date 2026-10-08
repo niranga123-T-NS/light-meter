@@ -290,6 +290,9 @@ export default function Debtors() {
                 ) : (
                   <Text style={{ fontWeight: '700' }}>{fmtMoney(d.amount, d.currency)}</Text>
                 )}
+                {me.role === 'operations_exec' && d.source !== 'sample' ? (
+                  <Button small variant="secondary" title="✎ Edit" onPress={() => router.push({ pathname: '/debtors/[id]', params: { id: d.id, edit: '1' } })} />
+                ) : null}
               </Row>
             }
             onPress={() => router.push(`/debtors/${d.id}`)}
