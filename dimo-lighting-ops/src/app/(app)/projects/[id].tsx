@@ -6,7 +6,7 @@ import { Button, Card, colors, ErrorBanner, KeyValue, ListRow, Loading, Muted, N
 import { useMe } from '@/lib/auth';
 import { MILESTONES } from '@/lib/constants';
 import { type ChangeRequest, FIELD_LABEL, showValue } from '@/lib/projectChanges';
-import { fmtDate, fmtDateTime, fmtMoney, human } from '@/lib/format';
+import { fmtDate, fmtDateTime, fmtMoney, human, fmtDateDash } from '@/lib/format';
 import { useLoad, useMasters, usePeople } from '@/lib/hooks';
 import { isSales, projectTypeLabel } from '@/lib/roles';
 import { rpc, supabase } from '@/lib/supabase';
@@ -397,7 +397,7 @@ export default function ProjectDetail() {
                   {inquiries.find((i) => i.id === q.inquiry_id)?.tender_group_id ? <Text style={{ color: colors.muted }}> · {inquiries.find((i) => i.id === q.inquiry_id)?.customer_name}</Text> : null}
                 </Text>
                 <Text>
-                  {fmtMoney(q.quoted_value, q.currency)} · {q.result ?? (new Date(q.validity_date) < new Date() ? 'Expired' : `valid to ${fmtDate(q.validity_date)}`)}
+                  {fmtMoney(q.quoted_value, q.currency)} · {q.result ?? (new Date(q.validity_date) < new Date() ? 'Expired' : `valid to ${fmtDateDash(q.validity_date)}`)}
                 </Text>
               </Row>
             ))}

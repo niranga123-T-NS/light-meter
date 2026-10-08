@@ -34,6 +34,12 @@ export function fmtDateTimeY(v?: string | null) {
   return x ? `${x.dd} ${MON[x.m]} ${x.y}, ${x.time}` : '—';
 }
 
+/** Date as dd-mm-yyyy – 08-10-2026 (quotation validity) */
+export function fmtDateDash(v?: string | null) {
+  const x = v ? slParts(v) : null;
+  return x ? `${x.dd}-${x.mm}-${x.y}` : '—';
+}
+
 /** Date with the year as on paper forms – 08/10/2026 */
 export function fmtDateNum(v?: string | null) {
   const x = v ? slParts(v) : null;
