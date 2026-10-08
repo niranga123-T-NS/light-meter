@@ -1,9 +1,10 @@
 import { Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
-import { Button, Card, colors, Muted, Row } from '@/components/ui';
+import { Button, Card, colors, Muted, Notice, Row } from '@/components/ui';
+import { useMe } from '@/lib/auth';
 import { PLAN_KINDS, type ExecMember, type PlanItem } from '@/lib/execution';
 import { activityOptions, type Activity } from '@/lib/programme';
-import { addDaysISO, fmtDate } from '@/lib/format';
+import { addDaysISO, fmtDate, todayISO } from '@/lib/format';
 import { usePeople } from '@/lib/hooks';
 import { rpc } from '@/lib/supabase';
 import { PlanItemRow } from './PlanItemRow';
@@ -30,6 +31,7 @@ export function PlanWeek({
   programme?: { live: boolean; acts: Activity[] } | null;
 }) {
   const dialog = useDialog();
+  const me = useMe();
   const people = usePeople();
   const days = [0, 1, 2, 3, 4, 5].map((i) => addDaysISO(week, i));
 
@@ -86,8 +88,22 @@ export function PlanWeek({
       onChange();
     }, 'Removed');
 
+  // GM / DGM and SM Projects: past activities still without a result, or with a result the SEE has not checked
+  const today = todayISO();
+  const live = items.filter((i) => (i.source === 'plan' || i.acceptance === 'accepted') && i.acceptance !== 'rejected');
+  const noResult = live.filter((i) => i.status === 'planned' && i.day < today).length;
+  const unchecked = live.filter((i) => i.status !== 'planned' && !i.result_checked_at).length;
+  const mgmt = me.role === 'gm' || me.role === 'sm_projects';
+
   return (
     <View style={{ gap: 8 }}>
+      {(mgmt || me.role === 'senior_elec_engineer') && (noResult || unchecked) ? (
+        <Notice tone={noResult ? colors.red : colors.amber}>
+          {`${[noResult ? `${noResult} past ${noResult === 1 ? 'activity has' : 'activities have'} no result` : '', unchecked ? `${unchecked} ${unchecked === 1 ? 'result' : 'results'} from site not checked by the Senior Electrical Engineer` : '']
+            .filter(Boolean)
+            .join(' · ')}${me.role === 'senior_elec_engineer' ? ' – check them against the daily reports (Result / Check result).' : '.'}`}
+        </Notice>
+      ) : null}
       {days.map((d) => {
         const list = items.filter((i) => i.day === d);
         return (

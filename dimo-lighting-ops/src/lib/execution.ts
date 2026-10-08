@@ -163,6 +163,9 @@ export type PlanItem = {
   status: 'planned' | 'done' | 'partial' | 'not_done';
   done_qty: number | null;
   result_note: string | null;
+  /** The Senior Electrical Engineer checked (or entered) the result */
+  result_checked_by?: string | null;
+  result_checked_at?: string | null;
   added_by: string | null;
 };
 export const PLAN_KINDS = [

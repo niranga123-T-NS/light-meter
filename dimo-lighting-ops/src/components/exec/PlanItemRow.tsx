@@ -32,10 +32,16 @@ export function PlanItemRow({
   const pending = it.source === 'supervisor' && it.acceptance === 'pending';
   const canDecide = pending && (me.role === 'assistant_engineer' || me.role === 'senior_elec_engineer');
   const startable = it.source === 'plan' || it.acceptance === 'accepted';
+  // Results come from the daily reports; the Senior Electrical Engineer checks them (or enters them) here
+  const see = me.role === 'senior_elec_engineer';
+  const live = startable && it.acceptance !== 'rejected';
+  const noResult = live && it.status === 'planned' && it.day < todayISO();
+  const toCheck = live && it.status !== 'planned' && !it.result_checked_at;
 
   const result = async () => {
     const r = await dialog.prompt({
       title: it.title,
+      message: it.status !== 'planned' ? `Reported from site: ${ITEM_STATUS[it.status]}${it.result_note ? ` – ${it.result_note}` : ''}. Save to confirm it as checked, or correct it.` : 'No result reported from site yet.',
       fields: [
         {
           key: 's',
@@ -50,11 +56,11 @@ export function PlanItemRow({
           ],
         },
         ...(it.qty != null ? [{ key: 'q', label: `Quantity done (planned ${it.qty} ${it.unit ?? ''})`, initial: it.done_qty != null ? String(it.done_qty) : '' }] : []),
-        { key: 'n', label: 'Note / reason (needed if not fully done)', type: 'multiline' as const },
+        { key: 'n', label: 'Note / reason (needed if not fully done)', type: 'multiline' as const, initial: it.result_note ?? '' },
       ],
-      confirmLabel: 'Save',
+      confirmLabel: it.status !== 'planned' ? 'Confirm / save' : 'Save',
     });
-    if (r) await dialog.run(async () => { await rpc('update_plan_item', { p_id: it.id, p_status: r.s, p_done_qty: r.q ? Number(r.q) : null, p_note: r.n || null }); onChange(); }, 'Saved');
+    if (r) await dialog.run(async () => { await rpc('update_plan_item', { p_id: it.id, p_status: r.s, p_done_qty: r.q ? Number(r.q) : null, p_note: r.n || null }); onChange(); }, 'Result checked');
   };
 
   const decide = async (accept: boolean) => {
@@ -85,7 +91,7 @@ export function PlanItemRow({
   return (
     <ListRow
       wrapRight
-      highlight={pending ? colors.amber : it.status === 'not_done' ? colors.red : undefined}
+      highlight={pending ? colors.amber : noResult || it.status === 'not_done' ? colors.red : toCheck ? colors.amber : undefined}
       title={`${it.title}${it.source === 'supervisor' ? ' · added by supervisor' : ''}`}
       subtitle={[
         activity ? `${activity.critical && !activity.actual_finish ? '⚠ ' : ''}${activity.code}` : null,
@@ -95,20 +101,22 @@ export function PlanItemRow({
         it.qty != null ? `${it.done_qty != null ? `${it.done_qty} / ` : ''}${it.qty} ${it.unit ?? ''}` : null,
         it.supervisor_id ? people[it.supervisor_id]?.full_name : 'no supervisor',
         it.result_note,
+        it.result_checked_at ? `✓ checked by ${people[it.result_checked_by ?? '']?.full_name ?? 'SEE'}` : null,
         it.acceptance === 'rejected' ? `rejected – ${it.reject_reason ?? ''}` : null,
       ]
         .filter(Boolean)
         .join(' · ')}
       right={
         <Row gap={4} wrap>
-          {pending ? <Pill label="Waiting for AE" tone={colors.amber} /> : <Pill label={ITEM_STATUS[it.status]} tone={tone(it.status)} />}
+          {pending ? <Pill label="Waiting for AE" tone={colors.amber} /> : noResult ? <Pill label="No result – SEE to enter" tone={colors.red} solid /> : <Pill label={ITEM_STATUS[it.status]} tone={tone(it.status)} />}
+          {toCheck ? <Pill label="SEE to check" tone={colors.amber} /> : null}
           {canDecide ? (
             <>
               <Button small title="Accept" onPress={() => decide(true)} />
               <Button small variant="ghost" title="Reject" onPress={() => decide(false)} />
             </>
           ) : null}
-          {canResult && startable && it.acceptance !== 'rejected' && it.day <= todayISO() ? <Button small variant="secondary" title="Result" onPress={result} /> : null}
+          {canResult && see && live && it.day <= todayISO() ? <Button small variant={noResult || toCheck ? 'primary' : 'secondary'} title={toCheck ? 'Check result' : 'Result'} onPress={result} /> : null}
           {extra}
         </Row>
       }
