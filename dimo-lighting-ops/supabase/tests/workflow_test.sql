@@ -5001,5 +5001,39 @@ begin
 end $$;
 rollback to savepoint collections;
 
+-- Daily report linked to the day's toolbox talk record (number from the TBT form) ---------------------------------
+savepoint report_tbt;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare e uuid := current_setting('test.ex')::uuid; t uuid; r uuid; other uuid;
+begin
+  t := public.save_tbt(e, jsonb_build_object('header', jsonb_build_object('activity', 'Cable pulling north stand', 'hazards', 'Manual handling'),
+    'participants', jsonb_build_array(jsonb_build_object('name', 'Nimal')), 'starts_at', ((current_date - 1) + time '07:45') at time zone app.tz()));
+  other := public.save_tbt(e, jsonb_build_object('header', jsonb_build_object('activity', 'Other day', 'hazards', 'x'),
+    'participants', jsonb_build_array(jsonb_build_object('name', 'Nimal')), 'starts_at', ((current_date - 2) + time '07:45') at time zone app.tz()));
+  begin perform public.submit_exec_report(e, current_date - 1, jsonb_build_object('crew_count', 4, 'work_done', 'x', 'toolbox_talk', true, 'toolbox_records', jsonb_build_array(other)));
+    assert false, 'wrong day';
+  exception when others then assert sqlerrm like 'The toolbox talk must be one of this project on the report day%', sqlerrm; end;
+  r := public.submit_exec_report(e, current_date - 1, jsonb_build_object('crew_count', 4, 'work_done', 'Cable pulling', 'toolbox_talk', true, 'toolbox_records', jsonb_build_array(t)));
+  assert (select toolbox_records = array[t] and toolbox_topic like (select code from public.hse_records where id = t) || ' – Cable pulling%' from public.exec_reports where id = r), 'TBT number on the report';
+end $$;
+reset role;
+rollback to savepoint report_tbt;
+
+-- Plan check asks only about the plan owner's own critical activities ------------------------------------------------
+savepoint own_critical;
+do $$ declare pl uuid := current_setting('test.plp')::uuid; e uuid; n int;
+begin
+  select exec_project_id into e from public.exec_plans where id = pl;
+  update public.exec_plan_items set activity_id = null where plan_id = pl;
+  update public.exec_activities set responsible_id = null where exec_project_id = e;
+  perform set_config('request.jwt.claim.sub', (select ae_id::text from public.exec_plans where id = pl), true);
+  select count(*) into n from public.plan_missing_critical(pl);
+  update public.exec_activities set responsible_id = (select id from u where role = 'senior_elec_engineer') where exec_project_id = e;
+  assert (select count(*) from public.plan_missing_critical(pl)) = 0, 'another engineer''s activities are not asked about';
+  update public.exec_activities set responsible_id = (select ae_id from public.exec_plans where id = pl) where exec_project_id = e;
+  assert (select count(*) from public.plan_missing_critical(pl)) = n, 'own activities still are';
+end $$;
+rollback to savepoint own_critical;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

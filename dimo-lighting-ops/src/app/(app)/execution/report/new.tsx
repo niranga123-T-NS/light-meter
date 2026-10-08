@@ -1,6 +1,6 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Platform, Text } from 'react-native';
+import { Platform, Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { itemChanged, ReportItems, type ItemEdit } from '@/components/exec/ReportItems';
 import { TestingBanner } from '@/components/Testing';
@@ -8,7 +8,8 @@ import { Button, Card, colors, DateField, ErrorBanner, Field, Grid, Muted, Notic
 import { useMe } from '@/lib/auth';
 import type { ExecPlan, ExecProject, ExecReport, PlanItem } from '@/lib/execution';
 import { pickDocument, pickImage, uploadAttachment, type PickedFile } from '@/lib/files';
-import { addDaysISO, todayISO } from '@/lib/format';
+import { addDaysISO, fmtDate, fmtTime, todayISO } from '@/lib/format';
+import type { HseRecord } from '@/lib/hse';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 
@@ -22,6 +23,8 @@ export default function NewReport() {
   const [error, setError] = useState<string | null>(null);
   const [files, setFiles] = useState<PickedFile[]>([]);
   const [edits, setEdits] = useState<Record<string, ItemEdit>>({});
+  const [tbt, setTbt] = useState<string[]>([]);
+  const [tbtSeen, setTbtSeen] = useState('');
   const [f, setF] = useState({
     project: params.project ?? null as string | null,
     date: params.date ?? todayISO(),
@@ -49,13 +52,18 @@ export default function NewReport() {
   // Pre-fill from the day's plan results and (for an Assistant Engineer) the supervisors' reports
   const { data: day } = useLoad(async () => {
     if (!proj) return null;
-    const [its, earlier, reps, plans] = await Promise.all([
+    const [its, earlier, reps, plans, talks] = await Promise.all([
       supabase.from('exec_plan_items').select('*').eq('exec_project_id', proj).eq('day', f.date).order('created_at'),
       // earlier activities of the last two weeks still without a result
       supabase.from('exec_plan_items').select('*').eq('exec_project_id', proj).eq('status', 'planned').lt('day', f.date).gte('day', addDaysISO(f.date, -14)).order('day'),
       sup ? Promise.resolve({ data: [] }) : supabase.from('exec_reports').select('*').eq('exec_project_id', proj).eq('report_date', f.date).eq('level', 'supervisor'),
       sup ? Promise.resolve({ data: [] }) : supabase.from('exec_plans').select('id, ae_id, status').eq('exec_project_id', proj),
+      // toolbox talks recorded on the TBT form that day (numbered automatically)
+      supabase.from('hse_records').select('*').eq('exec_project_id', proj).eq('form_code', 'TBT-01')
+        .gte('starts_at', `${f.date}T00:00:00+05:30`).lt('starts_at', `${addDaysISO(f.date, 1)}T00:00:00+05:30`).order('starts_at'),
     ]);
+    // Supervisor: own toolbox talks. Assistant Engineer: every toolbox talk of the project that day.
+    const tbts = ((talks.data ?? []) as HseRecord[]).filter((t) => !sup || t.created_by === me.id);
     const myPlans = new Set(((plans.data ?? []) as Pick<ExecPlan, 'id' | 'ae_id' | 'status'>[]).filter((x) => x.ae_id === me.id && x.status === 'approved').map((x) => x.id));
     const okPlans = new Set(((plans.data ?? []) as Pick<ExecPlan, 'id' | 'status'>[]).filter((x) => x.status === 'approved').map((x) => x.id));
     // Supervisor: own activities. Assistant Engineer: activities of the own approved plan and accepted supervisor additions.
@@ -68,7 +76,7 @@ export default function NewReport() {
     const waiting = ((its.data ?? []) as PlanItem[]).filter((i) =>
       i.source === 'supervisor' ? i.acceptance === 'pending' && (!sup || i.supervisor_id === me.id) : !sup && !!allPlans.find((x) => x.id === i.plan_id && x.ae_id === me.id && x.status !== 'approved'),
     );
-    return { items, waiting, reps: (reps.data ?? []) as ExecReport[] };
+    return { items, waiting, tbts, reps: (reps.data ?? []) as ExecReport[] };
   }, [proj, f.date, sup]);
   // Pre-fill once per project and day (guarded set during render instead of an effect)
   const prefillKey = day ? `${proj}|${f.date}` : null;
@@ -76,6 +84,16 @@ export default function NewReport() {
   if (day && prefillKey && filled !== prefillKey) {
     setFilled(prefillKey);
     setEdits({});
+  }
+  // Toolbox talks recorded for the day are ticked and linked automatically (also ones recorded after opening the form)
+  const tbtKey = day ? `${prefillKey}|${day.tbts.map((t) => t.id).join(',')}` : '';
+  if (day && tbtKey !== tbtSeen) {
+    setTbtSeen(tbtKey);
+    const fresh = day.tbts.map((t) => t.id).filter((x) => !tbtSeen.includes(x));
+    if (fresh.length) {
+      setTbt((sel) => [...new Set([...(tbtSeen.startsWith(`${prefillKey}|`) ? sel : []), ...fresh])]);
+      setF((st) => ({ ...st, toolbox_talk: true }));
+    } else if (!tbtSeen.startsWith(`${prefillKey}|`)) setTbt([]);
   }
 
   const addFile = async (camera: boolean) => {
@@ -87,11 +105,13 @@ export default function NewReport() {
     setError(null);
     if (!proj) return setError('Choose the project');
     const changed = (day?.items ?? []).filter((it) => itemChanged(it, edits[it.id]));
+    const linked = f.toolbox_talk ? tbt.filter((x) => day?.tbts.some((t) => t.id === x)) : [];
+    if (f.toolbox_talk && !linked.length && !f.toolbox_topic.trim()) return setError(day?.tbts.length ? 'Tick the toolbox talk held' : 'Record the toolbox talk (TBT form) or enter the topic');
     const noReason = changed.find((it) => (edits[it.id].status === 'partial' || edits[it.id].status === 'not_done') && !edits[it.id].note.trim());
     if (noReason) return setError(`Give the reason for “${noReason.title}”`);
     await dialog.run(async () => {
       const items = changed.map((it) => ({ id: it.id, status: edits[it.id].status, done_qty: edits[it.id].done_qty ?? '', note: edits[it.id].note }));
-      const id = await rpc<string>('submit_exec_report', { p_exec: proj, p_date: f.date, p: { ...f, crew_count: f.crew_count ?? '', items } });
+      const id = await rpc<string>('submit_exec_report', { p_exec: proj, p_date: f.date, p: { ...f, crew_count: f.crew_count ?? '', items, toolbox_records: linked, toolbox_topic: linked.length ? '' : f.toolbox_topic } });
       for (const it of changed) {
         const ids: string[] = [];
         for (const x of edits[it.id].photos) ids.push((await uploadAttachment('exec_report', id, 'item_photo', x)).id);
@@ -168,7 +188,26 @@ export default function NewReport() {
       <Section title={`${sup ? 'C' : 'D'}. Health and safety`}>
         <Card>
           <Toggle label="Toolbox talk held" value={f.toolbox_talk} onChange={(v) => set('toolbox_talk', v)} />
-          {f.toolbox_talk ? <Field label="Toolbox talk topic" required value={f.toolbox_topic} onChangeText={(v) => set('toolbox_topic', v)} /> : null}
+          {f.toolbox_talk && day?.tbts.length ? (
+            <View style={{ gap: 4 }}>
+              <Muted>{`Toolbox talk ${day.tbts.length > 1 ? 'records' : 'record'} of this day – number taken from the TBT form`}</Muted>
+              {day.tbts.map((t) => (
+                <Toggle
+                  key={t.id}
+                  value={tbt.includes(t.id)}
+                  onChange={(v) => setTbt((sel) => (v ? [...sel, t.id] : sel.filter((x) => x !== t.id)))}
+                  label={`${t.code} · ${fmtTime(t.starts_at)} · ${String(t.header.activity ?? '').split('\n')[0].replace(/^[•\s]+/, '').slice(0, 70)} · ${people[t.created_by]?.full_name ?? ''} · ${(t.participants ?? []).length} present`}
+                />
+              ))}
+            </View>
+          ) : null}
+          {f.toolbox_talk && day && !day.tbts.length ? (
+            <View style={{ gap: 6 }}>
+              <Notice tone={colors.amber}>{`No toolbox talk recorded for ${fmtDate(f.date)} yet. Record it on the TBT form – its number is then linked here automatically.`}</Notice>
+              {proj ? <Button small title="Record toolbox talk (TBT form)" onPress={() => router.push({ pathname: '/execution/hse/tbt', params: { project: proj } })} /> : null}
+              <Field label="…or type the topic (if no TBT record)" value={f.toolbox_topic} onChangeText={(v) => set('toolbox_topic', v)} />
+            </View>
+          ) : null}
           <Toggle label="Daily safety check done" value={f.safety_check} onChange={(v) => set('safety_check', v)} />
           <Field label="HSE notes" multiline value={f.hse_notes} onChangeText={(v) => set('hse_notes', v)} />
           <Muted>Report incidents, near misses and unsafe acts separately under HSE – SM Projects is told at once.</Muted>
