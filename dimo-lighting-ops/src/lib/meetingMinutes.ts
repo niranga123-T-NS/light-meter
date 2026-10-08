@@ -2,6 +2,7 @@ import { EXEC_STAGES } from '@/lib/execution';
 import { esc } from './export';
 import { fmtDate, fmtDateTime } from './format';
 import { isTeamKind, kindLabel } from './meetingActions';
+import { DIMO_LOGO_DATA_URI } from './brandLogoData';
 
 // Full minutes of a published meeting (sales, estimation or design) as a printable A4 page:
 // meeting details, attendance, the team's figures, the meeting notes, the action register (who is responsible,
@@ -269,9 +270,7 @@ ${rows
 
 export function minutesHtml(m: MinutesInput) {
   const now = new Date().toLocaleString('en-GB', { timeZone: 'Asia/Colombo' });
-  const logo = m.logoUrl
-    ? `<img src="${esc(m.logoUrl)}" style="height:36px;width:auto;object-fit:contain" />`
-    : `<div style="font:800 26px/1 Arial;color:#C8102E;letter-spacing:1px">DIMO</div>`;
+  const logo = `<img src="${DIMO_LOGO_DATA_URI}" alt="DIMO" style="height:40px;width:auto;object-fit:contain" />`;
   const present = m.attendance.filter((a) => a.status === 'Present').length;
   const all = [...m.general, ...m.people.flatMap((p) => p.actions)];
   const open = all.filter((a) => a.status === 'open').length;

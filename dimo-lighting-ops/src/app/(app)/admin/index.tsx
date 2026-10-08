@@ -252,10 +252,7 @@ function Settings() {
     return (rows ?? []) as { key: string; value: unknown; description: string | null }[];
   });
   return (
-    <Section title="Settings" right={['sys_admin', 'gm'].includes(me.role) ? <Button small title="+ Report logo URL" onPress={async () => {
-      const r = await dialog.prompt({ title: 'Report logo', message: 'Public or signed URL of the DIMO logo (PNG / SVG) used on every PDF report.', fields: [{ key: 'u', label: 'Logo URL', required: true }] });
-      if (r) await dialog.run(async () => { const { error } = await supabase.from('settings').upsert({ key: 'report_logo_url', value: r.u, description: 'Logo on branded PDF reports' }); if (error) throw new Error(error.message); await reload(); }, 'Saved');
-    }} /> : undefined}>
+    <Section title="Settings">
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         {(data ?? []).map((s) => (
           <ListRow
