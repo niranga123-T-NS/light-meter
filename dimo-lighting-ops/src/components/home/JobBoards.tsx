@@ -198,6 +198,12 @@ function JobCard({
         )}
       </Row>
       <Muted numberOfLines={1}>{inquiryTitle(inq)}</Muted>
+      {inq && 'deadline_type' in inq && inq.deadline_type === 'tender' ? (
+        <Row gap={6} style={{ alignItems: 'center', marginTop: 2 }}>
+          <Pill label="TENDER" tone={colors.brand} solid />
+          <Text style={{ fontSize: 12, color: colors.brand, fontWeight: '600' }}>{`closes ${fmtDateTime(inq.tender_closes_at ?? null)} (fixed)`}</Text>
+        </Row>
+      ) : null}
       {inq && 'variation_id' in inq && inq.variation_id ? <Pill label="Variation" tone={colors.amber} solid /> : null}
       {pct != null ? (
         <View style={{ marginVertical: 6 }}>
@@ -230,7 +236,7 @@ export function EstimationBoard({ header }: { header?: ReactNode } = {}) {
   const { data, error, loading, reload } = useLoad(async () => {
     let q = supabase
       .from('estimation_jobs')
-      .select('*, inquiries(code, project_name, inquiry_name, customer_name, customer_deadline, route, status, duty_status, currency, project_type, revision, debtor_flag, variation_id)')
+      .select('*, inquiries(code, project_name, inquiry_name, customer_name, customer_deadline, deadline_type, tender_closes_at, tender_ref, route, status, duty_status, currency, project_type, revision, debtor_flag, variation_id)')
       .order('due_at', { nullsFirst: true });
     if (!manager) q = q.eq('assignee_id', me.id);
     const [{ data: jobs, error: e }, direct] = await Promise.all([

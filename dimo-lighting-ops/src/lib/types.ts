@@ -315,7 +315,7 @@ export type EstimationJob = {
   sm_projects_revisions?: number;
   submitted_at: string | null;
   released_at: string | null;
-  inquiries?: Pick<Inquiry, 'code' | 'project_name' | 'inquiry_name' | 'customer_name' | 'customer_deadline' | 'route' | 'status' | 'duty_status' | 'currency' | 'project_type' | 'solution_level' | 'manufacturing_origin' | 'expectation_notes' | 'scope_description' | 'design_scope' | 'estimation_scope' | 'estimation_basis' | 'quotation_required_by' | 'debtor_flag' | 'revision' | 'design_due_at' | 'estimation_due_at' | 'deadline_type' | 'tender_closes_at'> & { variation_id?: string | null } | null;
+  inquiries?: Pick<Inquiry, 'code' | 'project_name' | 'inquiry_name' | 'customer_name' | 'customer_deadline' | 'route' | 'status' | 'duty_status' | 'currency' | 'project_type' | 'solution_level' | 'manufacturing_origin' | 'expectation_notes' | 'scope_description' | 'design_scope' | 'estimation_scope' | 'estimation_basis' | 'quotation_required_by' | 'debtor_flag' | 'revision' | 'design_due_at' | 'estimation_due_at' | 'deadline_type' | 'tender_closes_at' | 'tender_ref'> & { variation_id?: string | null } | null;
 };
 
 export type Quotation = {

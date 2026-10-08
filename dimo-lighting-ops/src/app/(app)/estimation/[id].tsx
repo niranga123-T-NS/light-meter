@@ -32,7 +32,7 @@ export default function EstimationJobScreen() {
   const { data, error, reload } = useLoad(async () => {
     const { data: j, error: e } = await supabase
       .from('estimation_jobs')
-      .select('*, inquiries(code, project_name, inquiry_name, customer_name, customer_deadline, deadline_type, tender_closes_at, design_due_at, estimation_due_at, route, status, duty_status, currency, project_type, solution_level, manufacturing_origin, expectation_notes, scope_description, design_scope, estimation_scope, estimation_basis, quotation_required_by, debtor_flag, revision)')
+      .select('*, inquiries(code, project_name, inquiry_name, customer_name, customer_deadline, deadline_type, tender_closes_at, tender_ref, design_due_at, estimation_due_at, route, status, duty_status, currency, project_type, solution_level, manufacturing_origin, expectation_notes, scope_description, design_scope, estimation_scope, estimation_basis, quotation_required_by, debtor_flag, revision)')
       .eq('id', id)
       .single();
     if (e) throw new Error(e.message);
@@ -145,6 +145,9 @@ export default function EstimationJobScreen() {
           <Notice tone={colors.blue}>
             {`Pre-estimate – the design is in progress (due ${fmtDateTime(inq?.design_due_at ?? null)}). Price everything that does not depend on it now: cables, switchgear, poles, controls, installation, prelims. When the design is released, add the designed fixtures and finish final pricing by ${fmtDateTime(inq?.estimation_due_at ?? j.due_at)}. ${inq?.deadline_type === 'tender' ? `Tender closes ${fmtDateTime(inq?.tender_closes_at ?? null)} (fixed).` : ''}`}
           </Notice>
+        ) : null}
+        {inq?.deadline_type === 'tender' && j.phase !== 'pre' ? (
+          <Notice tone={colors.red}>{`TENDER${inq.tender_ref ? ` ${inq.tender_ref}` : ''} – closes ${fmtDateTime(inq.tender_closes_at ?? null)}. The closing date is fixed; keep 2 working days to check, seal and submit.`}</Notice>
         ) : null}
         {inq?.debtor_flag ? <Notice tone={colors.red}>This client has an outstanding-debt flag – consider pricing and payment terms.</Notice> : null}
         <Row wrap style={{ marginTop: 8 }}>
