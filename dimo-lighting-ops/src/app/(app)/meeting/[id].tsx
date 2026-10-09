@@ -129,7 +129,16 @@ export default function MeetingPack() {
           supabase.from('meeting_exceptions').select('id, sales_person_id, reason, status, decision_note').eq('meeting_id', id),
         ])
       : [{ data: null }, { data: [] }];
+    // a project meeting's actions are for that project and its customer
+    const ep2 = (ep.data ?? null) as ExecProject | null;
+    const prj = ep2?.project_id
+      ? ((await supabase.from('projects').select('organization_id, organizations(name)').eq('id', ep2.project_id).maybeSingle()).data as {
+          organization_id: string | null;
+          organizations: { name: string } | null;
+        } | null)
+      : null;
     return {
+      prj,
       m: m.data as Meeting,
       notes: (n.data ?? []) as Note[],
       actions: (a.data ?? []) as Action[],
@@ -376,7 +385,22 @@ export default function MeetingPack() {
         </Row>
       ))}
       {edit && adding === (personId ?? 'general') ? (
-        <MeetingActionForm owners={owners} defaultOwner={personId} onSave={(a) => saveAction(personId, a)} onCancel={() => setAdding(null)} />
+        <MeetingActionForm
+          owners={owners}
+          defaultOwner={personId}
+          fixedProject={
+            isProject && data.project
+              ? {
+                  project_id: data.project.project_id,
+                  organization_id: data.prj?.organization_id ?? null,
+                  project: `${projectNo(data.project)} ${data.project.name}`,
+                  customer: data.prj?.organizations?.name ?? data.project.client_name,
+                }
+              : undefined
+          }
+          onSave={(a) => saveAction(personId, a)}
+          onCancel={() => setAdding(null)}
+        />
       ) : edit ? (
         <Row>
           <Button small variant="secondary" title="+ Action" onPress={() => setAdding(personId ?? 'general')} />
