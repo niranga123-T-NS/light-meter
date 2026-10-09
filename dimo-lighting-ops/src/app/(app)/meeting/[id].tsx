@@ -1,5 +1,5 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { pctTone } from '@/components/financeTones';
 import { useDialog } from '@/components/dialog';
@@ -139,6 +139,13 @@ export default function MeetingPack() {
     };
   }, [id]);
   const [adding, setAdding] = useState<string | null>(null); // sales person id, 'general', or null
+  // While a meeting is running today, attendance refreshes by itself (invitees mark present from their own phones)
+  const live = !!data?.m.started_at && data.m.status === 'draft' && data.m.meeting_date === todayISO();
+  useEffect(() => {
+    if (!live) return;
+    const t = setInterval(() => reload(), 15000);
+    return () => clearInterval(t);
+  }, [live, reload]);
   if (data === null)
     return (
       <Screen>
@@ -207,6 +214,16 @@ export default function MeetingPack() {
     const loc = await captureLocation();
     if (!loc) return dialog.toast('Allow location access – the meeting location is where you start it', 'error');
     await run('start_sales_meeting', { p_id: m.id, p_lat: loc.lat, p_lng: loc.lng }, 'Meeting started – invitees can mark attendance');
+  };
+  const mine = data.invitees.find((x) => x.person_id === me.id);
+  const markPresent = async () => {
+    const loc = await captureLocation();
+    if (!loc && !(await dialog.confirm('Location not available', 'Without your location the host must approve your attendance. Continue?', { confirmLabel: 'Continue' }))) return;
+    await dialog.run(async () => {
+      const st = await rpc<string>('attend_sales_meeting', { p_meeting: m.id, p_lat: loc?.lat ?? null, p_lng: loc?.lng ?? null });
+      await reload();
+      if (st !== 'present') dialog.toast(`Your location differs from the meeting – ${cfg.host} will approve your attendance`, 'error');
+    }, 'Attendance recorded');
   };
   const decideAttendance = async (p: Invitee, present: boolean) => {
     const r = await dialog.prompt({
@@ -447,7 +464,15 @@ export default function MeetingPack() {
       >
         <Card>
           {m.started_at ? (
-            <Muted>{`Started ${fmtDateTime(m.started_at)} – invitees marking present more than 200 m from the venue need ${host ? 'your' : `${cfg.host}'s`} approval.`}</Muted>
+            <Row wrap gap={8} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+              <Muted style={{ flexShrink: 1 }}>{`Started ${fmtDateTime(m.started_at)} – invitees marking present more than 200 m from the venue need ${host ? 'your' : `${cfg.host}'s`} approval.${live ? ' Attendance updates by itself.' : ''}`}</Muted>
+              <Row gap={6}>
+                {mine && isToday && m.status === 'draft' && (mine.status === 'invited' || mine.status === 'location_check') ? (
+                  <Button small title="I'm here – mark present" onPress={markPresent} />
+                ) : null}
+                <Button small variant="ghost" title="↻ Refresh" onPress={() => reload()} />
+              </Row>
+            </Row>
           ) : (
             <Muted>
               {isToday && host
@@ -466,6 +491,12 @@ export default function MeetingPack() {
                   <Pill label={ATT[x.status].label} tone={ATT[x.status].tone} />
                   {x.checkin_at ? <Muted>{`${fmtDateTime(x.checkin_at)}${x.distance_m != null ? ` · ${Math.round(x.distance_m)} m` : ''}`}</Muted> : null}
                   {x.note ? <Muted>{x.note}</Muted> : null}
+                  {host && m.started_at && x.status === 'invited' ? (
+                    <Row gap={4}>
+                      <Button small variant="secondary" title="Mark present" onPress={() => decideAttendance(x, true)} />
+                      <Button small variant="ghost" title="Absent" onPress={() => decideAttendance(x, false)} />
+                    </Row>
+                  ) : null}
                   {host && x.status === 'location_check' ? (
                     <Row gap={4}>
                       <Button small title="Accept present" onPress={() => decideAttendance(x, true)} />
