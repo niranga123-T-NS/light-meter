@@ -32,6 +32,19 @@ const JOURNEY: { group: string; stage: string; label: string; who: string }[] = 
 
 const USUAL = colors.blue;
 const SLOW = '#BFD0F7';
+// Approval kinds: what is decided and who decides it
+const APPROVALS: Record<string, { label: string; who: string }> = {
+  release_mode: { label: 'Release mode of the quotation', who: 'SM Projects' },
+  design_due: { label: 'Design completion date', who: 'SM Projects' },
+  expectation_change: { label: 'Change of client expectation', who: 'Design Manager / SM Estimation' },
+  duty_change: { label: 'Change of duty status', who: 'SM Projects' },
+  debtor_check: { label: 'Debtor check before work', who: 'SM Projects' },
+  retention_extension: { label: 'Retention extension', who: 'GM / DGM' },
+  quotation_release: { label: 'Quotation release (above limit)', who: 'GM / DGM' },
+  early_design_release: { label: 'Early design release', who: 'Design Manager → SM Projects' },
+  estimation_hold: { label: 'Estimation on hold', who: 'SM Estimation' },
+  mixed_duty: { label: 'Mixed duty', who: 'SM Projects' },
+};
 const pctOf = (a: number, b: number) => (b ? Math.round((a / b) * 100) : null);
 
 /** Dashboard card: how long inquiries take – the whole journey, then each stage in order against its target. */
@@ -84,6 +97,45 @@ export function StageTimes({ stages, journey, hoursPerDay, from, to }: { stages:
   };
 
   const groups = [...new Set(main.map((m) => m.group))];
+  const row = (m: { stage: string; label: string; who: string; s: StageTime }, sc: number) => {
+              const s = m.s;
+              const p = pctOf(Number(s.on_time ?? 0), Number(s.n));
+              const few = Number(s.n) < 3;
+              const tone = few || p == null ? colors.grey : p >= 90 ? colors.green : p >= 75 ? colors.amber : colors.red;
+              return (
+                <View key={m.stage}>
+                  <Pressable onPress={() => toggle(m.stage)} style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.line }}>
+                    <View style={{ width: 230, maxWidth: '100%' }}>
+                      <Text style={{ fontWeight: '600', color: colors.ink }}>{m.label}</Text>
+                      <Muted>{`${m.who} · ${s.n} done`}</Muted>
+                    </View>
+                    <View style={{ flex: 1, minWidth: 200, height: 22, justifyContent: 'center' }}>
+                      <View style={{ position: 'absolute', left: 0, top: 6, height: 10, borderRadius: 3, width: `${(Number(s.p90_hours) / sc) * 100}%`, backgroundColor: SLOW }} />
+                      <View style={{ position: 'absolute', left: 0, top: 6, height: 10, borderRadius: 3, width: `${Math.max((usual(s) / sc) * 100, 1)}%`, backgroundColor: USUAL }} />
+                      {s.target_hours != null ? <View style={{ position: 'absolute', top: 0, height: 22, width: 2, left: `${Math.min((Number(s.target_hours) / sc) * 100, 99.5)}%`, backgroundColor: colors.ink }} /> : null}
+                    </View>
+                    <View style={{ width: 150, alignItems: 'flex-end', gap: 2 }}>
+                      <Text style={{ color: colors.ink, fontWeight: '600' }}>{`${t(usual(s))} · slow ${t(s.p90_hours)}`}</Text>
+                      <Muted>{`target ${t(s.target_hours)}`}</Muted>
+                    </View>
+                    <View style={{ width: 150, alignItems: 'flex-end', gap: 2 }}>
+                      <Pill label={few ? 'Too few to judge' : `${p ?? '—'}% on time`} tone={tone} />
+                      <Muted>{Number(s.late) ? `${s.late} over target ›` : 'none late'}</Muted>
+                    </View>
+                  </Pressable>
+                  {open === m.stage ? lateList(m.stage) : null}
+                </View>
+              );
+  };
+  // Manager approvals: plain names and who decides, on their own scale (they are short)
+  const appr = others.map((s) => {
+    const k = s.stage.replace(/^approval_/, '');
+    const a = APPROVALS[k];
+    return { stage: s.stage, label: a?.label ?? human(k), who: a?.who ?? 'Manager', s };
+  });
+  const apprScale = Math.max(1, ...appr.map((m) => Math.max(Number(m.s.p90_hours), Number(m.s.target_hours ?? 0))));
+  const apprTot = appr.reduce((a, m) => ({ on: a.on + Number(m.s.on_time ?? 0), n: a.n + Number(m.s.n), late: a.late + Number(m.s.late ?? 0) }), { on: 0, n: 0, late: 0 });
+
   return (
     <Card style={{ marginTop: 8 }}>
       <Text style={{ fontWeight: '700', fontSize: 16, color: colors.ink }}>How long inquiries take</Text>
@@ -107,53 +159,16 @@ export function StageTimes({ stages, journey, hoursPerDay, from, to }: { stages:
           <Text style={{ fontSize: 12, fontWeight: '700', letterSpacing: 0.8, color: colors.muted, textTransform: 'uppercase', borderBottomWidth: 1, borderBottomColor: colors.line, paddingBottom: 4 }}>{g}</Text>
           {main
             .filter((m) => m.group === g)
-            .map((m) => {
-              const s = m.s;
-              const p = pctOf(Number(s.on_time ?? 0), Number(s.n));
-              const few = Number(s.n) < 3;
-              const tone = few || p == null ? colors.grey : p >= 90 ? colors.green : p >= 75 ? colors.amber : colors.red;
-              return (
-                <View key={m.stage}>
-                  <Pressable onPress={() => toggle(m.stage)} style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.line }}>
-                    <View style={{ width: 230, maxWidth: '100%' }}>
-                      <Text style={{ fontWeight: '600', color: colors.ink }}>{m.label}</Text>
-                      <Muted>{`${m.who} · ${s.n} done`}</Muted>
-                    </View>
-                    <View style={{ flex: 1, minWidth: 200, height: 22, justifyContent: 'center' }}>
-                      <View style={{ position: 'absolute', left: 0, top: 6, height: 10, borderRadius: 3, width: `${(Number(s.p90_hours) / scale) * 100}%`, backgroundColor: SLOW }} />
-                      <View style={{ position: 'absolute', left: 0, top: 6, height: 10, borderRadius: 3, width: `${Math.max((usual(s) / scale) * 100, 1)}%`, backgroundColor: USUAL }} />
-                      {s.target_hours != null ? <View style={{ position: 'absolute', top: 0, height: 22, width: 2, left: `${Math.min((Number(s.target_hours) / scale) * 100, 99.5)}%`, backgroundColor: colors.ink }} /> : null}
-                    </View>
-                    <View style={{ width: 150, alignItems: 'flex-end', gap: 2 }}>
-                      <Text style={{ color: colors.ink, fontWeight: '600' }}>{`${t(usual(s))} · slow ${t(s.p90_hours)}`}</Text>
-                      <Muted>{`target ${t(s.target_hours)}`}</Muted>
-                    </View>
-                    <View style={{ width: 150, alignItems: 'flex-end', gap: 2 }}>
-                      <Pill label={few ? 'Too few to judge' : `${p ?? '—'}% on time`} tone={tone} />
-                      <Muted>{Number(s.late) ? `${s.late} over target ›` : 'none late'}</Muted>
-                    </View>
-                  </Pressable>
-                  {open === m.stage ? lateList(m.stage) : null}
-                </View>
-              );
-            })}
+            .map((m) => row(m, scale))}
         </View>
       ))}
-      {others.length ? (
-        <View style={{ marginTop: 12 }}>
-          <Text style={{ fontSize: 12, fontWeight: '700', letterSpacing: 0.8, color: colors.muted, textTransform: 'uppercase', borderBottomWidth: 1, borderBottomColor: colors.line, paddingBottom: 4 }}>Manager approvals</Text>
-          {others.map((s) => (
-            <View key={s.stage}>
-              <Pressable onPress={() => toggle(s.stage)} style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 8, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.line }}>
-                <Text style={{ color: colors.ink }}>
-                  {human(s.stage.replace(/^approval_/, ''))}
-                  <Text style={{ color: colors.muted }}>{` · ${s.n}${Number(s.n) < 3 ? ' – too few to judge' : ''}`}</Text>
-                </Text>
-                <Text style={{ color: Number(s.late) ? colors.red : colors.text }}>{`${t(usual(s))} · slow ${t(s.p90_hours)}${Number(s.late) ? ` · ${s.late} late ›` : ''}`}</Text>
-              </Pressable>
-              {open === s.stage ? lateList(s.stage) : null}
-            </View>
-          ))}
+      {appr.length ? (
+        <View style={{ marginTop: 14 }}>
+          <Row wrap style={{ justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: colors.line, paddingBottom: 4 }}>
+            <Text style={{ fontSize: 12, fontWeight: '700', letterSpacing: 0.8, color: colors.muted, textTransform: 'uppercase' }}>Manager approvals</Text>
+            <Muted>{`${apprTot.n} decisions · ${pctOf(apprTot.on, apprTot.n) ?? '—'}% on time${apprTot.late ? ` · ${apprTot.late} late` : ''} · own scale`}</Muted>
+          </Row>
+          {[...appr].sort((x, y) => Number(y.s.n) - Number(x.s.n)).map((m) => row(m, apprScale))}
         </View>
       ) : null}
       {!stages.length ? <Muted>No completed stages in this period.</Muted> : null}
