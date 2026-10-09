@@ -87,8 +87,14 @@ export default function SubCertPage() {
         .order("var_code"),
     ]);
     if (c.error) throw new Error(c.error.message);
+    const team = await supabase
+      .from("exec_members")
+      .select("user_id")
+      .eq("exec_project_id", (c.data as SubCert).exec_project_id)
+      .eq("active", true);
     const vars = (cv.data ?? []) as CertVar[];
     return {
+      team: (team.data ?? []).map((m) => m.user_id as string),
       subs: await loadSubcontractors((c.data as SubCert).exec_project_id),
       vars,
       varFiles: vars.length
@@ -134,9 +140,15 @@ export default function SubCertPage() {
   const jmReviewer =
     (c.status === "jm_ae" && me.role === "assistant_engineer") ||
     (c.status === "jm_see" && me.role === "senior_elec_engineer");
+  // The project's AE confirms the joint measurement date (the SEE only when the project has no AE)
+  const hasAe = data.team.some(
+    (u) =>
+      people[u]?.role === "assistant_engineer" && people[u]?.active !== false,
+  );
   const canSchedule =
     (c.status === "jm_requested" || c.status === "jm_scheduled") &&
-    (me.role === "assistant_engineer" || me.role === "senior_elec_engineer");
+    ((me.role === "assistant_engineer" && data.team.includes(me.id)) ||
+      (me.role === "senior_elec_engineer" && !hasAe));
   const jmReady = files.some((x) => x.kind === "jm_sheet");
   const ready =
     files.some((x) => x.kind === "ipc_draft") &&
@@ -342,7 +354,7 @@ export default function SubCertPage() {
               label="Joint measurement"
               value={
                 c.jm_date
-                  ? `${fmtDate(c.jm_date)}${c.jm_note ? ` · ${c.jm_note}` : ""}`
+                  ? `${fmtDate(c.jm_date)}${c.jm_note ? ` · ${c.jm_note}` : ""}${c.jm_scheduled_by ? ` · confirmed by ${people[c.jm_scheduled_by]?.full_name ?? "the AE"}` : ""}`
                   : "Not confirmed yet"
               }
             />

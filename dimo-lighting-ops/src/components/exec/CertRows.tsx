@@ -10,7 +10,7 @@ export const certTone = (s: SubCert['status']) =>
 
 /** The step waiting for this user: the AE checks, the SEE approves, SM Projects approves, Operations pays; the preparer resubmits. */
 export const certForMe = (c: SubCert, me: { id: string; role: string }) =>
-  (c.status === 'jm_requested' && (me.role === 'assistant_engineer' || me.role === 'senior_elec_engineer')) ||
+  (c.status === 'jm_requested' && me.role === 'assistant_engineer') ||
   (c.status === 'jm_ae' && me.role === 'assistant_engineer') ||
   (c.status === 'jm_see' && me.role === 'senior_elec_engineer') ||
   ((c.status === 'jm_scheduled' || c.status === 'jm_returned') && c.prepared_by === me.id) ||

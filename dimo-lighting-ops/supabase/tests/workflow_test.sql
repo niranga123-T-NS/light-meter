@@ -5330,19 +5330,32 @@ begin
   perform set_config('test.spc2', cid::text, false);
   assert exists (select 1 from public.sub_certs where id = cid), 'supervisor sees own IPC';
   begin perform public.schedule_joint_measurement(cid, '2026-11-02'); assert false, 'sub does not confirm';
-  exception when others then assert sqlerrm like 'The project''s Assistant Engineer or the SEE confirms%', sqlerrm; end;
+  exception when others then assert sqlerrm like 'The project''s Assistant Engineer confirms%', sqlerrm; end;
 end $$;
 reset role;
 do $$ begin
   assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'assistant_engineer') and title = 'Joint measurement requested'), 'AE told of JM';
-  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'senior_elec_engineer') and title = 'Joint measurement requested'), 'SEE told of JM';
+  assert not exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'senior_elec_engineer') and title = 'Joint measurement requested'
+    and entity_id = current_setting('test.spc2')::uuid), 'the AE (not the SEE) confirms the JM';
 end $$;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin
+  assert not exists (select 1 from public.my_pending_approvals() where source = 'sub_cert' and id = current_setting('test.spc2')::uuid), 'not on the SEE''s list';
+  assert exists (select 1 from public.sub_certs where id = current_setting('test.spc2')::uuid), 'SEE sees the request';
+  begin perform public.schedule_joint_measurement(current_setting('test.spc2')::uuid, '2026-11-02'); assert false, 'SEE does not confirm when the project has an AE';
+  exception when others then assert sqlerrm like 'The project''s Assistant Engineer confirms%', sqlerrm; end;
+end $$;
+reset role;
 select pg_temp.act_as('assistant_engineer'); set role authenticated;
 do $$ begin
   assert exists (select 1 from public.my_pending_approvals() where source = 'sub_cert' and id = current_setting('test.spc2')::uuid and step = 'Confirm joint measurement'), 'AE to confirm';
   perform public.schedule_joint_measurement(current_setting('test.spc2')::uuid, '2026-11-02');
 end $$;
 reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'senior_elec_engineer') and title = 'Joint measurement confirmed'
+    and entity_id = current_setting('test.spc2')::uuid), 'SEE told the JM is confirmed';
+end $$;
 select pg_temp.act_as('sub_supervisor'); set role authenticated;
 do $$ declare cid uuid := current_setting('test.spc2')::uuid;
 begin
