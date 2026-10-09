@@ -5450,5 +5450,15 @@ begin
 end $$;
 reset role;
 
+-- A duty change must name the new duty status
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  begin perform public.request_inquiry_change('00000000-0000-0000-0000-00000000d001', 'duty_change', '{"duty_status":""}', 'x'); assert false, 'duty needed';
+  exception when others then assert sqlerrm = 'Choose the new duty status', sqlerrm; end;
+  begin perform public.request_inquiry_change('00000000-0000-0000-0000-00000000d001', 'release_mode', '{"release_mode":0}', 'x'); assert false, 'mode needed';
+  exception when others then assert sqlerrm = 'Choose the new release mode', sqlerrm; end;
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

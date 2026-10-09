@@ -270,7 +270,7 @@ export default function InquiryDetail() {
                 },
                 {
                   key: 'duty',
-                  label: 'New duty status',
+                  label: 'New duty status (for a duty change)',
                   type: 'select',
                   options: [
                     { value: 'duty_free', label: 'Duty Free – USD' },
@@ -321,6 +321,10 @@ export default function InquiryDetail() {
               ],
             });
             if (!r) return;
+            if (r.kind === 'duty_change' && !r.duty) return dialog.toast('Choose the new duty status', 'error');
+            if (r.kind === 'duty_change' && r.duty === i.duty_status) return dialog.toast('The inquiry already has this duty status', 'error');
+            if (r.kind === 'release_mode' && !r.mode) return dialog.toast('Choose the new release mode', 'error');
+            if (r.kind === 'early_design_release' && !r.date) return dialog.toast('Enter the required date', 'error');
             const payload =
               r.kind === 'duty_change'
                 ? { duty_status: r.duty }
