@@ -237,7 +237,7 @@ export async function buildManagementReport(month: string): Promise<MgmtReport> 
       ytdInvoiced: invFor(ytdMonths, x.value),
     })),
     ready: sum(lines.filter((l) => readyIds.has(l.id) && n(l.remaining) > 0.5), (l) => n(l.remaining)),
-    noBudget: !budget.some((b) => b.budget_invoices.some((i) => ym.includes(i.month) && n(i.amount) > 0)),
+    noBudget: !budMonths.some((b) => b.months.some((i) => ym.includes(i.month) && i.amount > 0)),
   };
 
   // ---- Sales
