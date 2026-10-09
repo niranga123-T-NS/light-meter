@@ -5524,5 +5524,24 @@ do $$ begin
   assert (select status from public.access_requests where id = current_setting('test.sr2')::uuid) = 'done', 'nomination done';
 end $$;
 
+-- Changing an approved appointment: the SEE proposes, SM Projects approves, it applies to the membership
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin
+  assert public.propose_access_change(current_setting('test.sr2')::uuid, jsonb_build_object('end_date', (current_date + 90)::text, 'zones', 'Facade and car park'), 'Scope extended') = 'pending', 'waits for SMP';
+  begin perform public.propose_access_change(current_setting('test.sr2')::uuid, '{"zones":"x"}', 'again'); assert false, 'one at a time';
+  exception when others then assert sqlerrm = 'A change is already waiting for SM Projects', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.my_pending_approvals() where source = 'access_change'), 'in SMP approvals';
+  perform public.decide_access_change((select id from public.access_changes where request_id = current_setting('test.sr2')::uuid and status = 'pending'), true);
+end $$;
+reset role;
+do $$ begin
+  assert (select valid_to = current_date + 90 and zones = 'Facade and car park' from public.exec_members
+           where user_id = '00000000-0000-0000-0000-0000000005a1' and exec_project_id = current_setting('test.ex')::uuid and active), 'membership updated';
+end $$;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
