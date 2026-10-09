@@ -1,5 +1,6 @@
 import { router, Stack } from 'expo-router';
 import { useState } from 'react';
+import { Text } from 'react-native';
 import { TestingBanner } from '@/components/Testing';
 import { Button, Card, colors, Empty, ErrorBanner, Field, ListRow, Loading, Pill, Row, Screen, Segmented } from '@/components/ui';
 import { useMe } from '@/lib/auth';
@@ -20,7 +21,12 @@ export default function ExecProjects() {
       supabase.from('exec_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending_smp'),
     ]);
     if (e) throw new Error(e.message);
-    return { rows: rows as ExecProject[], pending: r.count ?? 0 };
+    // Field staff without a project: why (waiting for approval, starts on a date, ended…)
+    const access =
+      !(rows ?? []).length && (me.role === 'sub_supervisor' || me.role === 'assistant_engineer' || me.role === 'trainee')
+        ? (((await supabase.rpc('my_exec_access')).data ?? []) as { project: string | null; state: string; since: string | null }[])
+        : [];
+    return { rows: rows as ExecProject[], pending: r.count ?? 0, access };
   });
   const title =
     me.role === 'gm' || me.role === 'sm_projects' || me.role === 'operations_exec' ? 'Execution portfolio' : me.role === 'senior_elec_engineer' ? 'Execution projects' : me.role === 'sub_supervisor' ? 'My work' : 'My projects';
@@ -68,7 +74,26 @@ export default function ExecProjects() {
           ))}
         </Card>
       ) : (
-        <Empty title={me.role === 'sub_supervisor' || me.role === 'assistant_engineer' || me.role === 'trainee' ? 'No projects assigned to you' : 'No execution projects yet'} />
+        <>
+          <Empty title={me.role === 'sub_supervisor' || me.role === 'assistant_engineer' || me.role === 'trainee' ? 'No projects assigned to you' : 'No execution projects yet'} />
+          {data.access.length ? (
+            <Card>
+              {data.access.map((x, i) => (
+                <Row key={i} wrap gap={8} style={{ paddingVertical: 4, alignItems: 'center' }}>
+                  <Pill label={x.state === 'starts' ? `Access starts ${fmtDate(x.since)}` : x.state === 'ended' ? `Access ended ${fmtDate(x.since)}` : x.state} tone={colors.amber} />
+                  <Text style={{ color: colors.ink, flexShrink: 1 }}>{x.project ?? 'Project'}</Text>
+                </Row>
+              ))}
+            </Card>
+          ) : me.role === 'sub_supervisor' ? (
+            <Card>
+              <Text style={{ color: colors.text }}>
+                Your login is not linked to a project yet. Ask the Senior Electrical Engineer to nominate you on the project (Team → Nominate subcontractor supervisor) with
+                this mobile number / email – once SM Projects approves, the project appears here.
+              </Text>
+            </Card>
+          ) : null}
+        </>
       )}
     </Screen>
   );
