@@ -32,7 +32,6 @@ export const THRESHOLDS = {
   profitBelowBudget: 0.1, // profit more than 10% under the YTD budget → red (any shortfall → amber)
   debtorsOver90Share: 0.2, // more than 20% of debtors older than 90 days
   behindProgramme: 10, // % points of work behind the plan
-  costOverBudget: 1.0, // committed + actual above the cost budget
 };
 
 export type Level = 'red' | 'amber' | 'green';
@@ -86,9 +85,9 @@ export type MgmtReport = {
   };
   execution: {
     active: number;
-    projects: { code: string; name: string; stage: number; planned: number | null; actual: number | null; late: number | null; costPct: number | null; hseOpen: number }[];
+    projects: { code: string; name: string; stage: number; planned: number | null; actual: number | null; late: number | null; costPct?: number | null; hseOpen: number }[];
     behind: number;
-    overCost: number;
+    overCost?: number; // reports built before the cost lines were removed
     variations: { approvedValue: Money; pending: number };
     hse: { month: number; incidents: number; lostTime: number; open: number };
   };
@@ -138,7 +137,6 @@ export async function buildManagementReport(month: string): Promise<MgmtReport> 
     fetchAll('exec_projects', '*', 'id', (x) => x.eq('status', 'active')),
     fetchAll('exec_programmes', '*', 'exec_project_id'),
     fetchAll('exec_activities', 'id, exec_project_id, duration, pct, bl_start, bl_finish', 'id'),
-    fetchAll('exec_cost_lines', 'exec_project_id, budget, committed, actual', 'id'),
     fetchAll('hse_reports', 'exec_project_id, kind, status, lost_time, occurred_at', 'id'),
     fetchAll('variations', 'status, value_lkr, smp_at, gm_at, raised_at', 'id'),
     fetchAll('exec_invoice_triggers', 'line_id, ready_at', 'line_id', (x) => x.not('ready_at', 'is', null)),
@@ -150,7 +148,7 @@ export async function buildManagementReport(month: string): Promise<MgmtReport> 
   const perf = await rpc<Performance>('finance_performance', { p_fy: fy });
   const err = q.find((r) => r.error);
   if (err?.error) throw new Error(err.error.message);
-  const [upR, linesR, allocR, budR, secR, quoR, debtR, retR, bondR, exR, pgR, actR, costR, hseR, varR, trigR, wcR, movR, rateR] = q.map((r) => (r.data ?? []) as unknown[]);
+  const [upR, linesR, allocR, budR, secR, quoR, debtR, retR, bondR, exR, pgR, actR, hseR, varR, trigR, wcR, movR, rateR] = q.map((r) => (r.data ?? []) as unknown[]);
   const usdRate = n((rateR[0] as { usd_to_lkr?: number } | undefined)?.usd_to_lkr);
   let usdMissing = false;
   const lkr = (v: unknown, cur: unknown) => {
@@ -314,7 +312,6 @@ export async function buildManagementReport(month: string): Promise<MgmtReport> 
   const ex = exR as { id: string; code: string | null; name: string; stage: number }[];
   const pgs = pgR as { exec_project_id: string; version: number; baseline_finish: string | null; forecast_finish: string | null }[];
   const acts = actR as Activity[];
-  const costs = costR as { exec_project_id: string; budget: number; committed: number; actual: number }[];
   const hse = hseR as { exec_project_id: string; kind: string; status: string; lost_time: boolean; occurred_at: string }[];
   const monthEnd = addMonths(month, 1);
   const asOf = month === now ? today : addMonths(month, 1);
@@ -322,8 +319,6 @@ export async function buildManagementReport(month: string): Promise<MgmtReport> 
     const pg = pgs.find((x) => x.exec_project_id === p.id);
     const a = acts.filter((x) => x.exec_project_id === p.id);
     const live = !!pg && pg.version > 0 && a.length > 0;
-    const c = costs.filter((x) => x.exec_project_id === p.id);
-    const cb = sum(c, (x) => n(x.budget));
     return {
       code: p.code ?? '',
       name: p.name,
@@ -331,7 +326,6 @@ export async function buildManagementReport(month: string): Promise<MgmtReport> 
       planned: live ? Math.round(plannedPct(a, asOf)) : null,
       actual: live ? Math.round(actualPct(a)) : null,
       late: pg?.baseline_finish && pg.forecast_finish ? days(pg.baseline_finish, pg.forecast_finish) : null,
-      costPct: cb ? Math.round((sum(c, (x) => n(x.committed) + n(x.actual)) / cb) * 100) : null,
       hseOpen: hse.filter((h) => h.exec_project_id === p.id && h.status !== 'closed').length,
     };
   });
@@ -345,7 +339,6 @@ export async function buildManagementReport(month: string): Promise<MgmtReport> 
     active: ex.length,
     projects,
     behind: projects.filter((p) => (p.planned != null && p.actual != null && p.planned - p.actual > THRESHOLDS.behindProgramme) || (p.late ?? 0) > 0).length,
-    overCost: projects.filter((p) => (p.costPct ?? 0) > THRESHOLDS.costOverBudget * 100).length,
     variations: {
       approvedValue: sum(vars.filter((v) => ['approved', 'client_accepted'].includes(v.status) && decidedIn(v)), (v) => n(v.value_lkr)),
       pending: vars.filter((v) => ['raised', 'pricing', 'pending_smp', 'pending_gm'].includes(v.status)).length,
@@ -410,10 +403,9 @@ export async function buildManagementReport(month: string): Promise<MgmtReport> 
     .filter((p) => p.planned != null && p.actual != null && p.planned - p.actual > THRESHOLDS.behindProgramme)
     .forEach((p) => flags.push({ area: 'Execution', level: 'red', text: `${p.code} ${p.name}: ${p.actual}% done against ${p.planned}% planned.` }));
   projects.filter((p) => (p.late ?? 0) > 0).forEach((p) => flags.push({ area: 'Execution', level: 'amber', text: `${p.code} ${p.name}: forecast finish ${p.late} day(s) after the baseline.` }));
-  projects.filter((p) => (p.costPct ?? 0) > 100).forEach((p) => flags.push({ area: 'Execution', level: 'red', text: `${p.code} ${p.name}: committed + actual cost at ${p.costPct}% of budget.` }));
   if (execution.hse.lostTime) flags.push({ area: 'Execution', level: 'red', text: `${execution.hse.lostTime} lost-time HSE incident(s) in ${fmtMonth(month)}.` });
   if (execution.hse.open) flags.push({ area: 'Execution', level: 'amber', text: `${execution.hse.open} HSE report(s) still open.` });
-  if (execution.active) headlines.push(`${execution.active} project(s) in execution; ${execution.behind} behind programme, ${execution.overCost} over the cost budget.`);
+  if (execution.active) headlines.push(`${execution.active} project(s) in execution; ${execution.behind} behind programme.`);
 
   if (warranty.open) flags.push({ area: 'Warranty', level: warranty.open > 10 ? 'amber' : 'green', text: `${warranty.open} warranty claim(s) open; ${warranty.loggedMonth} logged in ${fmtMonth(month)}.` });
 

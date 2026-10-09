@@ -2,7 +2,6 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Text } from 'react-native';
 import { BillingTab } from '@/components/exec/BillingTab';
-import { CostTab } from '@/components/exec/CostTab';
 import { DocumentsTab } from '@/components/exec/DocumentsTab';
 import { HandoverTab } from '@/components/exec/HandoverTab';
 import { HseTab } from '@/components/exec/HseTab';
@@ -12,6 +11,7 @@ import { OverviewTab } from '@/components/exec/OverviewTab';
 import { PlansTab } from '@/components/exec/PlansTab';
 import { ProgrammeTab } from '@/components/exec/ProgrammeTab';
 import { QaTab } from '@/components/exec/QaTab';
+import { SubCertsTab } from '@/components/exec/SubCertsTab';
 import { ReportsTab } from '@/components/exec/ReportsTab';
 import { TeamTab } from '@/components/exec/TeamTab';
 import { VariationsTab } from '@/components/exec/VariationsTab';
@@ -40,7 +40,7 @@ const TABS: Tab[] = [
   { key: 'qa', label: 'QA', roles: INTERNAL },
   { key: 'documents', label: 'Documents' },
   { key: 'handover', label: 'Handover', roles: INTERNAL },
-  { key: 'cost', label: 'Cost', roles: ['senior_elec_engineer', 'sm_projects', 'gm', 'operations_exec', 'assistant_engineer'] },
+  { key: 'subcerts', label: 'Subcontractor certificates', roles: ['senior_elec_engineer', 'sm_projects', 'gm', 'operations_exec', 'assistant_engineer'] },
   { key: 'billing', label: 'Billing', roles: ['senior_elec_engineer', 'sm_projects', 'gm', 'operations_exec', 'assistant_engineer'] },
 ];
 
@@ -48,7 +48,8 @@ const TABS: Tab[] = [
 export default function ExecProjectScreen() {
   const { id, tab } = useLocalSearchParams<{ id: string; tab?: string }>();
   const me = useMe();
-  const [t, setT] = useState(tab ?? 'overview');
+  // (old links to the removed Cost tab open the certificates)
+  const [t, setT] = useState(tab === 'cost' ? 'subcerts' : (tab ?? 'overview'));
   const { data, error, reload } = useLoad(async () => {
     const { data: p, error: e } = await supabase.from('exec_projects').select('*').eq('id', id).single();
     if (e) throw new Error(e.message);
@@ -75,7 +76,7 @@ export default function ExecProjectScreen() {
       {t === 'qa' ? <QaTab p={p} /> : null}
       {t === 'documents' ? <DocumentsTab p={p} queries={me.role !== 'sub_supervisor'} /> : null}
       {t === 'handover' ? <HandoverTab p={p} onChange={reload} /> : null}
-      {t === 'cost' ? <CostTab p={p} /> : null}
+      {t === 'subcerts' ? <SubCertsTab p={p} /> : null}
       {t === 'billing' ? <BillingTab key={p.secured_id ?? 'none'} p={p} onChange={reload} /> : null}
       {t === 'team' ? <TeamTab p={p} /> : null}
       {t === 'meetings' ? <MeetingsTab p={p} /> : null}
