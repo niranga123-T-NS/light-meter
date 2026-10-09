@@ -120,22 +120,42 @@ export function SubCertsTab({ p }: { p: ExecProject }) {
         { key: 'subcontractor', label: 'Subcontractor', required: true },
         { key: 'period', label: 'Period (e.g. Oct 2026)', required: true },
         { key: 'jm_date', label: 'Proposed date for the joint measurement', type: 'date', required: true },
-        { key: 'boq', label: 'BOQ (contract) work in this cycle', type: 'select', initial: 'yes', options: [{ value: 'yes', label: 'Yes – measure the BOQ work' }, { value: 'no', label: 'No – variations only' }] },
-        ...((data?.varOpts ?? []).length
-          ? [{ key: 'vars', label: 'Variations in this cycle (each measured and submitted separately)', type: 'multiselect' as const, options: (data?.varOpts ?? []).map((v) => ({ value: v.id, label: `${v.vo_no || v.code} · ${v.title}` })) }]
-          : []),
+        {
+          key: 'what',
+          label: 'What to measure in this cycle',
+          type: 'select',
+          required: true,
+          initial: 'boq',
+          options: [
+            { value: 'boq', label: 'BOQ (contract) work only' },
+            { value: 'both', label: 'BOQ work + variations (each submitted separately)' },
+            { value: 'vars', label: 'Variations only' },
+          ],
+        },
+        {
+          key: 'vars',
+          label: 'Variations in this cycle',
+          type: 'multiselect',
+          options: (data?.varOpts ?? []).map((v) => ({ value: v.id, label: `${v.vo_no || v.code} · ${v.title}` })),
+          hint: (data?.varOpts ?? []).length
+            ? 'Tick the variations – each gets its own measurement, IPA and IPC'
+            : 'No approved variations on this project yet – a variation can be measured once it is approved (Variations tab)',
+        },
         { key: 'jm_scope', label: 'Work / areas to measure', type: 'multiline' },
       ],
       confirmLabel: 'Request',
     });
     if (!res) return;
-    const { vars, boq, ...rest } = res as Record<string, string>;
-    const variation_ids = (vars ?? '').split(',').filter(Boolean);
+    const { vars, what, ...rest } = res as Record<string, string>;
+    const boq = what !== 'vars';
+    const variation_ids = what === 'boq' ? [] : (vars ?? '').split(',').filter(Boolean);
+    if (what !== 'boq' && !variation_ids.length)
+      return dialog.toast((data?.varOpts ?? []).length ? 'Tick the variations to measure' : 'No approved variations on this project yet', 'error');
     await dialog.run(async () => {
-      const ids = await rpc<string[]>('request_joint_measurements', { p_exec: p.id, p: { ...rest, boq: boq !== 'no', variation_ids } });
+      const ids = await rpc<string[]>('request_joint_measurements', { p_exec: p.id, p: { ...rest, boq, variation_ids } });
       if (ids.length === 1) router.push(`/execution/sub-cert/${ids[0]}`);
       else await reload();
-    }, variation_ids.length ? `Requested – ${variation_ids.length + (boq !== 'no' ? 1 : 0)} separate measurements (BOQ / each variation)` : undefined);
+    }, variation_ids.length + (boq ? 1 : 0) > 1 ? `Requested – ${variation_ids.length + (boq ? 1 : 0)} separate measurements (BOQ / each variation)` : undefined);
   };
 
   const head = (c: SubCert, label: string, tone: string, action?: string) => (
