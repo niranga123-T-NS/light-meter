@@ -45,7 +45,7 @@ export default function NewSubInvoice() {
             hint={cert ? `Certified net ${fmtMoney(cert.net, 'LKR')}` : undefined}
           />
           <Field label="Note" multiline value={f.note} onChangeText={(v) => setF((s) => ({ ...s, note: v }))} />
-          <Muted>Next: attach the invoice copy, the IPA-approved IPC with signatures, and the corrected (final) measurement sheets – then submit.</Muted>
+          <Muted>Next: attach the invoice copy and submit – the invoice follows the approved IPC (IPA approved with the SEE&apos;s comments / edits).</Muted>
           <Row gap={8} style={{ marginTop: 8 }}>
             <Button
               title="Continue – attach the documents"

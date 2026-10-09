@@ -9,6 +9,7 @@ import { fmtDate, fmtDateTime, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { byCode, DEP_TYPES, programmeRows, RES_KINDS, RES_PRESETS, type Activity, type ResKind, type Dep, type Programme, type Resource, type Wbs } from '@/lib/programme';
 import { rpc, supabase } from '@/lib/supabase';
+import { addSubcontractor, canKeepSubs, loadSubcontractors, NEW_SUB, subOptions } from '@/lib/subcontractors';
 
 const depLabel = (d: Dep) => `${d.dep_type}${d.lag ? ` ${d.lag > 0 ? '+' : ''}${d.lag} d` : ''}`;
 
@@ -35,6 +36,7 @@ export default function ActivityScreen() {
     const { data: used } = ids.length ? await supabase.from('exec_activity_resources').select('kind, name, unit').in('activity_id', ids) : { data: [] };
     const { data: items } = await supabase.from('exec_plan_items').select('*').eq('activity_id', id).order('day', { ascending: false });
     return {
+      subs: await loadSubcontractors(act.exec_project_id),
       a: act,
       all: (all.data ?? []) as Activity[],
       wbs: (w.data ?? []) as Wbs[],
@@ -65,6 +67,7 @@ export default function ActivityScreen() {
     .filter((r) => r.kind === 'wbs')
     .map((r) => (r.kind === 'wbs' ? { value: r.wbs.id, label: `${'  '.repeat(r.depth)}${r.wbs.code}  ${r.wbs.name}` } : { value: '', label: '' }));
 
+  const subs = data.subs;
   const edit = async () => {
     const r = await dialog.prompt({
       title: `Edit ${a.code}`,
@@ -74,14 +77,20 @@ export default function ActivityScreen() {
         { key: 'name', label: 'Activity', required: true, initial: a.name },
         { key: 'duration', label: 'Duration (working days, 0 = milestone)', required: true, initial: String(a.duration) },
         { key: 'responsible_id', label: 'Responsible engineer', type: 'select', options: engineers, initial: a.responsible_id ?? undefined },
-        { key: 'subcontractor', label: 'Subcontractor', initial: a.subcontractor ?? '' },
+        { key: 'subcontractor', label: 'Subcontractor', type: 'select', options: subOptions(subs, { current: a.subcontractor, canAdd: canKeepSubs(me.role) }), initial: a.subcontractor ?? undefined },
         { key: 'qty', label: 'Quantity', initial: a.qty != null ? String(a.qty) : '' },
         { key: 'unit', label: 'Unit', initial: a.unit ?? '' },
         { key: 'not_before', label: 'Not before', type: 'date', initial: a.not_before ?? undefined },
       ],
       confirmLabel: 'Save',
     });
-    if (r) await dialog.run(async () => { await rpc('save_activity', { p_exec: a.exec_project_id, p_id: a.id, p: r }); await reload(); }, 'Saved – dates recalculated');
+    if (!r) return;
+    if (r.subcontractor === NEW_SUB) {
+      const n = await addSubcontractor(dialog.prompt, a.exec_project_id).catch((e) => (dialog.toast((e as Error).message, 'error'), null));
+      if (!n) return;
+      r.subcontractor = n;
+    }
+    await dialog.run(async () => { await rpc('save_activity', { p_exec: a.exec_project_id, p_id: a.id, p: r }); await reload(); }, 'Saved – dates recalculated');
   };
   const del = async () => {
     if (await dialog.confirm(`Delete ${a.code}?`, 'Its links and resources are deleted too.', { danger: true, confirmLabel: 'Delete' }))

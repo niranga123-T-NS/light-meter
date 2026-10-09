@@ -6,6 +6,7 @@ import { Button, Card, DateField, ErrorBanner, Field, MultiSelect, Muted, Row, S
 import type { ExecProject } from '@/lib/execution';
 import { useLoad } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
+import { addSubcontractor, loadSubcontractors, NEW_SUB, subOptions } from '@/lib/subcontractors';
 
 /** Temporary Assistant Engineer / Trainee request (SEE) – or, with ?nominate=<project>, a subcontractor supervisor nomination. */
 export function AccessForm({ nominate }: { nominate?: string }) {
@@ -29,6 +30,7 @@ export function AccessForm({ nominate }: { nominate?: string }) {
     const { data } = await supabase.from('exec_projects').select('*').eq('status', 'active').order('name');
     return (data ?? []) as ExecProject[];
   });
+  const { data: subs, reload: reloadSubs } = useLoad(() => (nominate ? loadSubcontractors(nominate) : Promise.resolve([])), [nominate]);
   const project = projects?.find((p) => p.id === nominate);
 
   const save = async () => {
@@ -60,7 +62,23 @@ export function AccessForm({ nominate }: { nominate?: string }) {
             />
           ) : null}
           <Field label="Name" required value={f.person_name} onChangeText={(v) => set('person_name', v)} />
-          {nominate ? <Field label="Subcontractor company" required value={f.company} onChangeText={(v) => set('company', v)} /> : null}
+          {nominate ? (
+            <Select
+              label="Subcontractor company"
+              required
+              value={f.company || null}
+              onChange={async (v) => {
+                if (v !== NEW_SUB) return set('company', v ?? '');
+                const n = await addSubcontractor(dialog.prompt, nominate).catch((e) => (dialog.toast((e as Error).message, 'error'), null));
+                if (n) {
+                  await reloadSubs();
+                  set('company', n);
+                }
+              }}
+              options={subOptions(subs ?? [], { canAdd: true })}
+              hint="From the project's subcontractors (Team → Subcontractors)"
+            />
+          ) : null}
           <Field label={nominate ? 'Mobile number (the login)' : 'Mobile number'} required={!!nominate} keyboardType="phone-pad" value={f.phone} onChangeText={(v) => set('phone', v)} />
           <Field label={nominate ? 'Email (optional)' : 'Email (the login; or use the mobile number)'} autoCapitalize="none" keyboardType="email-address" value={f.email} onChangeText={(v) => set('email', v)} />
           <Field label={nominate ? 'NIC / site pass number' : 'Employee or contract ID'} required value={f.id_no} onChangeText={(v) => set('id_no', v)} />

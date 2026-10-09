@@ -2,20 +2,21 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Text } from 'react-native';
 import { useDialog } from '@/components/dialog';
-import { Button, Card, colors, Empty, Muted, Notice, Pill, Row, Section, Segmented } from '@/components/ui';
+import { Button, Card, Chip, colors, Empty, Muted, Notice, Pill, Row, Section, Segmented } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { CERT_STATUS, SINV_NOTICE, SINV_STATUS, type ExecProject, type SubCert, type SubInvoice } from '@/lib/execution';
 import { listAttachments, openAttachment } from '@/lib/files';
 import { fmtDate, fmtMoney } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
+import { addSubcontractor, canKeepSubs, loadSubcontractors, NEW_SUB, subOptions } from '@/lib/subcontractors';
 import type { Attachment } from '@/lib/types';
 import { certForMe, certTone } from './CertRows';
 
 type Tab = 'measure' | 'ipa' | 'ipc';
 type Var = { id: string; sub_cert_id?: string; invoice_id?: string; var_code: string };
 
-// How far a certificate has come: < 4 joint measurement · 4–6 IPA · ≥ 7 IPA approved (IPC stage)
+// How far a certificate has come: < 4 joint measurement · 4–6 IPA · ≥ 7 IPA approved = the IPC (invoice stage)
 const RANK: Record<SubCert['status'], number> = {
   jm_requested: 0, jm_scheduled: 1, jm_returned: 1, jm_ae: 2, jm_see: 3, draft: 4, returned: 4, ae_review: 5, prepared: 6, verified: 7, approved: 8, paid: 9, cancelled: -1,
 };
@@ -28,7 +29,7 @@ function jmLabel(c: SubCert) {
   return CERT_STATUS[c.status];
 }
 function ipaLabel(c: SubCert) {
-  if (RANK[c.status] >= 7) return c.verified_at ? `IPA approved ${fmtDate(c.verified_at)}` : 'IPA approved';
+  if (RANK[c.status] >= 7) return c.verified_at ? `IPA approved ${fmtDate(c.verified_at)} → IPC` : 'IPA approved → IPC';
   return CERT_STATUS[c.status];
 }
 
@@ -52,11 +53,14 @@ export function SubCertsTab({ p }: { p: ExecProject }) {
   const me = useMe();
   const dialog = useDialog();
   const [tab, setTab] = useState<Tab>('measure');
+  const [subFilter, setSubFilter] = useState<string | null>(null);
   const { data, reload } = useLoad(async () => {
-    const [{ data: c }, { data: v }, varOpts] = await Promise.all([
+    const [{ data: c }, { data: v }, varOpts, subs, myCo] = await Promise.all([
       supabase.from('sub_certs').select('*').eq('exec_project_id', p.id).neq('status', 'cancelled').order('prepared_at', { ascending: false }),
       supabase.from('sub_invoices').select('*').eq('exec_project_id', p.id).neq('status', 'cancelled').order('created_at', { ascending: false }),
       rpc<{ id: string; code: string; vo_no: string | null; title: string }[]>('sub_variation_options', { p_exec: p.id }).catch(() => []),
+      loadSubcontractors(p.id),
+      supabase.from('profiles').select('company').eq('id', me.id).maybeSingle(),
     ]);
     const certs = (c ?? []) as SubCert[];
     const invoices = (v ?? []) as SubInvoice[];
@@ -73,12 +77,14 @@ export function SubCertsTab({ p }: { p: ExecProject }) {
       listAttachments('sub_invoice', invoices.map((x) => x.id)),
       listAttachments('sub_invoice_var', invVars.map((x) => x.id)),
     ]);
-    return { varOpts, certs, invoices, certVars, invVars, formats: tf as Attachment[], files: [...cf, ...vf, ...inf, ...ivf] as Attachment[] };
+    return { varOpts, subs, myCompany: (myCo.data?.company as string | null) ?? null, certs, invoices, certVars, invVars, formats: tf as Attachment[], files: [...cf, ...vf, ...inf, ...ivf] as Attachment[] };
   }, [p.id]);
   const sub = me.role === 'sub_supervisor';
   const canRecord = me.role === 'senior_elec_engineer' || me.role === 'assistant_engineer' || sub;
   const active = p.status === 'active';
-  const certs = data?.certs ?? [];
+  const allCerts = data?.certs ?? [];
+  const subNames = [...new Set([...(data?.subs ?? []).filter((s) => s.active).map((s) => s.name), ...allCerts.map((c) => c.subcontractor)])];
+  const certs = subFilter ? allCerts.filter((c) => c.subcontractor.toLowerCase() === subFilter.toLowerCase()) : allCerts;
   const files = data?.files ?? [];
   const of = (id: string, ...kinds: string[]) => files.filter((f) => f.entity_id === id && kinds.includes(f.kind));
   const varFiles = (vars: Var[], key: 'sub_cert_id' | 'invoice_id', id: string, kind: string) => {
@@ -117,7 +123,9 @@ export function SubCertsTab({ p }: { p: ExecProject }) {
       title: 'Request a joint measurement',
       message: 'The first step of every IPC. The AE / SEE confirms the date; after the measurement upload the joint measurement sheets for approval – then the IPA.',
       fields: [
-        { key: 'subcontractor', label: 'Subcontractor', required: true },
+        sub && data?.myCompany
+          ? { key: 'subcontractor', label: 'Subcontractor (your company)', type: 'select' as const, required: true, initial: data.myCompany, options: [{ value: data.myCompany, label: data.myCompany }] }
+          : { key: 'subcontractor', label: 'Subcontractor', type: 'select' as const, required: true, initial: subFilter ?? undefined, options: subOptions(data?.subs ?? [], { canAdd: canKeepSubs(me.role) }) },
         { key: 'period', label: 'Period (e.g. Oct 2026)', required: true },
         { key: 'jm_date', label: 'Proposed date for the joint measurement', type: 'date', required: true },
         {
@@ -146,6 +154,11 @@ export function SubCertsTab({ p }: { p: ExecProject }) {
       confirmLabel: 'Request',
     });
     if (!res) return;
+    if (res.subcontractor === NEW_SUB) {
+      const n = await addSubcontractor(dialog.prompt, p.id).catch((e) => (dialog.toast((e as Error).message, 'error'), null));
+      if (!n) return;
+      res.subcontractor = n;
+    }
     const { vars, what, ...rest } = res as Record<string, string>;
     const boq = what !== 'vars';
     const variation_ids = what === 'boq' ? [] : (vars ?? '').split(',').filter(Boolean);
@@ -193,6 +206,14 @@ export function SubCertsTab({ p }: { p: ExecProject }) {
           { value: 'ipc', label: 'IPC', badge: badge.ipc },
         ]}
       />
+      {subNames.length > 1 ? (
+        <Row wrap gap={6} style={{ marginTop: 6 }}>
+          <Chip label="All subcontractors" on={!subFilter} onPress={() => setSubFilter(null)} />
+          {subNames.map((n) => (
+            <Chip key={n} label={n} on={subFilter === n} onPress={() => setSubFilter(subFilter === n ? null : n)} />
+          ))}
+        </Row>
+      ) : null}
 
       {tab === 'measure' ? (
         <>
@@ -258,7 +279,6 @@ export function SubCertsTab({ p }: { p: ExecProject }) {
 
       {tab === 'ipc' ? (
         <>
-          {formats('tpl_ipc', 'IPC')}
           {canRecord ? <Notice tone={colors.blue}>{SINV_NOTICE}</Notice> : null}
           <Section title="IPC & invoices">
             {ipc.length ? (
@@ -266,7 +286,10 @@ export function SubCertsTab({ p }: { p: ExecProject }) {
                 const invs = (data?.invoices ?? []).filter((v) => v.sub_cert_id === c.id);
                 return [groupHead(ipc, i), (
                   <Card key={c.id}>
-                    {head(c, `${ipaLabel(c)} · ${CERT_STATUS[c.status].replace(/^IPA approved – /, '')}`, c.status === 'paid' ? colors.green : colors.blue)}
+                    {head(c, `${c.status === 'verified' ? 'IPC approved – submit the invoice' : CERT_STATUS[c.status]}`, c.status === 'paid' ? colors.green : colors.blue)}
+                    <FileLinks label="Approved IPC" files={of(c.id, 'ipc_draft')} />
+                    <FileLinks label="Measurement sheets" files={of(c.id, 'ipc_measure')} />
+                    {of(c.id, 'ipc_markup').length ? <FileLinks label="SEE's comments / edits" files={of(c.id, 'ipc_markup')} /> : null}
                     <Muted>{`Net ${fmtMoney(c.net, 'LKR')}${c.paid_ref ? ` · paid ${fmtDate(c.paid_at)} · ${c.paid_ref}` : ''}`}</Muted>
                     {invs.map((v) => {
                       const st = SINV_STATUS[v.status];
@@ -279,8 +302,6 @@ export function SubCertsTab({ p }: { p: ExecProject }) {
                               <Button small variant={invMine(v) ? undefined : 'secondary'} title={invMine(v) ? (v.status === 'draft' || v.status === 'returned' ? 'Upload & submit' : 'Review') : 'Open'} onPress={() => router.push(`/execution/sub-invoice/${v.id}`)} />
                             </Row>
                           </Row>
-                          <FileLinks label="IPC – IPA approved, signed" files={of(v.id, 'ipc_signed')} />
-                          <FileLinks label="Final measurement sheets" files={of(v.id, 'measure_final')} />
                           <FileLinks label="Invoice" files={of(v.id, 'sinv_doc')} />
                           {(data?.invVars ?? []).some((x) => x.invoice_id === v.id) ? (
                             <FileLinks label="Variations – signed" files={varFiles(data?.invVars ?? [], 'invoice_id', v.id, 'var_final')} />
@@ -300,7 +321,7 @@ export function SubCertsTab({ p }: { p: ExecProject }) {
             ) : (
               <Empty title="Nothing yet – the IPC opens once IPA is approved" />
             )}
-            <Muted>After IPA: upload the IPA-approved IPC with signatures, the corrected (final) measurement sheets, each variation and the invoice · approved by the SEE, then Operations · then the physical documents go to the office.</Muted>
+            <Muted>The approved IPA is the IPC (with the SEE&apos;s comments / edits) · the subcontractor submits the invoice according to it · approved by the SEE, then Operations · then the physical documents go to the office.</Muted>
           </Section>
         </>
       ) : null}

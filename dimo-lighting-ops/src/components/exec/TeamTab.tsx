@@ -6,6 +6,7 @@ import { REQUEST_STATUS, roleTypeLabel, type AccessRequest, type ExecMember, typ
 import { fmtDate } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
+import { addSubcontractor, canKeepSubs, loadSubcontractors, type ExecSubcontractor } from '@/lib/subcontractors';
 
 type Person = { id: string; full_name: string; role: string; is_temporary: boolean; company: string | null; phone: string | null };
 
@@ -16,12 +17,13 @@ export function TeamTab({ p }: { p: ExecProject }) {
   const people = usePeople();
   const lead = me.role === 'senior_elec_engineer' || me.role === 'sm_projects';
   const { data, reload } = useLoad(async () => {
-    const [m, r, pr] = await Promise.all([
+    const [m, r, pr, subs] = await Promise.all([
       supabase.from('exec_members').select('*').eq('exec_project_id', p.id).order('added_at'),
       lead || me.role === 'gm' ? supabase.from('access_requests').select('*').contains('project_ids', [p.id]).order('requested_at', { ascending: false }) : Promise.resolve({ data: [] }),
       supabase.from('profiles').select('id, full_name, role, is_temporary, company, phone'),
+      loadSubcontractors(p.id),
     ]);
-    return { members: (m.data ?? []) as ExecMember[], requests: (r.data ?? []) as AccessRequest[], profiles: (pr.data ?? []) as Person[] };
+    return { subs, members: (m.data ?? []) as ExecMember[], requests: (r.data ?? []) as AccessRequest[], profiles: (pr.data ?? []) as Person[] };
   }, [p.id]);
   if (!data) return null;
   const prof = (id: string) => data.profiles.find((x) => x.id === id);
@@ -89,8 +91,50 @@ export function TeamTab({ p }: { p: ExecProject }) {
     );
   };
 
+  const keepSubs = canKeepSubs(me.role) && p.status === 'active';
+  const editSub = async (s: ExecSubcontractor) => {
+    const r = await dialog.prompt({
+      title: s.name,
+      fields: [
+        { key: 'name', label: 'Company name', required: true, initial: s.name },
+        { key: 'trade', label: 'Trade / scope', initial: s.trade ?? '' },
+        { key: 'contact_name', label: 'Contact person', initial: s.contact_name ?? '' },
+        { key: 'phone', label: 'Phone', initial: s.phone ?? '' },
+        { key: 'email', label: 'Email', initial: s.email ?? '' },
+        { key: 'active', label: 'On the project', type: 'select', initial: s.active ? 'true' : 'false', options: [{ value: 'true', label: 'Yes – working on the project' }, { value: 'false', label: 'No – finished / removed (kept in the records)' }] },
+      ],
+      confirmLabel: 'Save',
+    });
+    if (r) await dialog.run(async () => { await rpc('save_exec_subcontractor', { p_exec: p.id, p: { ...r, id: s.id } }); await reload(); }, 'Saved');
+  };
+  const subRows = data.subs;
+
   return (
     <>
+      <Section
+        title={`Subcontractors (${subRows.filter((s) => s.active).length})`}
+        right={keepSubs ? <Button small variant="secondary" title="+ Subcontractor" onPress={() => dialog.run(async () => { if (await addSubcontractor(dialog.prompt, p.id)) await reload(); }, 'Added')} /> : null}
+      >
+        <Card style={{ padding: 0, overflow: 'hidden' }}>
+          {subRows.length ? (
+            subRows.map((s) => (
+              <ListRow
+                key={s.id}
+                title={s.name}
+                subtitle={[s.trade, s.contact_name, s.phone, s.email, s.active ? null : 'no longer on the project'].filter(Boolean).join(' · ') || ' '}
+                right={
+                  <Row gap={6}>
+                    <Pill label={`${active.filter((m) => m.member_role === 'sub_supervisor' && (prof(m.user_id)?.company ?? '').toLowerCase() === s.name.toLowerCase()).length} supervisor(s)`} />
+                    {keepSubs ? <Button small variant="ghost" title="Edit" onPress={() => editSub(s)} /> : null}
+                  </Row>
+                }
+              />
+            ))
+          ) : (
+            <Muted style={{ padding: 12 }}>No subcontractors yet – add each subcontractor working on the project. They are chosen from this list on activities, measurements, IPA / IPC, supervisor nominations and workers.</Muted>
+          )}
+        </Card>
+      </Section>
       <Section title={`Team (${active.length})`}>
         <Card style={{ padding: 0, overflow: 'hidden' }}>
           <ListRow title={people[p.see_id ?? '']?.full_name ?? 'Senior Electrical Engineer'} subtitle="Senior Electrical Engineer · plans, assigns, approves" />

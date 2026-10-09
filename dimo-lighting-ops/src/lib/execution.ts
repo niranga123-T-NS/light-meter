@@ -587,7 +587,7 @@ export const CERT_STATUS: Record<SubCert['status'], string> = {
   draft: 'JM approved – attach the IPC and sheets',
   ae_review: 'IPA pending – AE checking',
   prepared: 'IPA pending – with the SEE',
-  verified: 'IPA approved – SM Projects next',
+  verified: 'IPC approved – invoice / SM Projects next',
   approved: 'Operations to pay',
   paid: 'Paid',
   returned: 'Returned with comments',

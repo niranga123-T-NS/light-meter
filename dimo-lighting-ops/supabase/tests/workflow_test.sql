@@ -3326,6 +3326,13 @@ begin
   assert (select legacy and project_id is null and client_name = 'Ports Authority' from public.exec_projects where id = e), 'legacy project';
   perform set_config('test.exlegacy', e::text, false);
 end $$;
+-- The project's subcontractors (the register every subcontractor field picks from)
+do $$ begin
+  perform public.save_exec_subcontractor(current_setting('test.ex')::uuid, '{"name":"ABC Electricals","trade":"Cabling"}');
+  perform public.save_exec_subcontractor(current_setting('test.ex')::uuid, '{"name":"Lanka Electricals","trade":"Mast erection"}');
+  begin perform public.save_exec_subcontractor(current_setting('test.ex')::uuid, '{"name":"lanka electricals"}'); assert false, 'duplicate';
+  exception when others then assert sqlerrm = 'This subcontractor is already on the project', sqlerrm; end;
+end $$;
 reset role;
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
 do $$ declare e uuid := current_setting('test.ex')::uuid; rid uuid;
@@ -5230,12 +5237,6 @@ begin
   begin perform public.submit_sub_invoice(iid); assert false, 'copy needed';
   exception when others then assert sqlerrm = 'Attach the invoice copy (PDF or photos)', sqlerrm; end;
   insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_invoice', iid, 'sinv_doc', 'sub_invoice/' || iid || '/inv.pdf', 'inv.pdf');
-  begin perform public.submit_sub_invoice(iid); assert false, 'signed IPC needed';
-  exception when others then assert sqlerrm = 'Attach the IPA-approved IPC with signatures (PDF or photos)', sqlerrm; end;
-  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_invoice', iid, 'ipc_signed', 'sub_invoice/' || iid || '/ipc.pdf', 'ipc.pdf');
-  begin perform public.submit_sub_invoice(iid); assert false, 'final sheets needed';
-  exception when others then assert sqlerrm = 'Attach the corrected (final) measurement sheets (PDF or photos)', sqlerrm; end;
-  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_invoice', iid, 'measure_final', 'sub_invoice/' || iid || '/ms.pdf', 'ms.pdf');
   perform public.submit_sub_invoice(iid);
   assert (select status from public.sub_invoices where id = iid) = 'ae_review', 'supervisor''s invoice goes to the AE first';
   begin perform public.decide_sub_invoice(iid, true); assert false, 'not the sub';
@@ -5307,7 +5308,7 @@ end $$;
 select pg_temp.act_as('sub_supervisor'); set role authenticated;
 do $$ declare cid uuid;
 begin
-  cid := public.prepare_sub_cert(current_setting('test.ex')::uuid, '{"jm_date":"2026-10-01","subcontractor":"Lanka Electricals","period":"Nov 2026","gross":"2000000","previous":"1500000"}');
+  cid := public.prepare_sub_cert(current_setting('test.ex')::uuid, '{"jm_date":"2026-10-01","subcontractor":"ABC Electricals","period":"Nov 2026","gross":"2000000","previous":"1500000"}');
   perform set_config('test.spc2', cid::text, false);
   assert exists (select 1 from public.sub_certs where id = cid), 'supervisor sees own IPC';
   begin perform public.schedule_joint_measurement(cid, '2026-11-02'); assert false, 'sub does not confirm';
@@ -5387,21 +5388,23 @@ select public.advance_sub_cert(current_setting('test.spc2')::uuid, true);
 reset role;
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
 do $$ begin
+  -- the SEE's final comments / edits become part of the IPC; the AE's review mark-ups are removed
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name)
+  values ('sub_cert', current_setting('test.spc2')::uuid, 'ipc_markup', 'sub_cert/x/see-final.pdf', 'Marked up – final.pdf');
   assert public.advance_sub_cert(current_setting('test.spc2')::uuid, true) = 'verified', 'SEE approves';
-  assert not exists (select 1 from public.attachments where entity_id = current_setting('test.spc2')::uuid and kind = 'ipc_markup' and archived_at is null), 'IPC mark-ups removed at IPA';
+  assert (select string_agg(file_name, ',') from public.attachments where entity_id = current_setting('test.spc2')::uuid and kind = 'ipc_markup' and archived_at is null)
+    = 'Marked up – final.pdf', 'only the SEE''s final edits stay with the IPC';
   assert (select count(*) from public.sub_certs where id = current_setting('test.spc2')::uuid and ae_by is not null) = 1, 'AE check recorded';
 end $$;
 reset role;
 do $$ begin
-  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'sub_supervisor') and title = 'IPA approved – record the invoice'
-                  and body like '%IPC with signatures and the corrected (final) measurement sheets%'), 'supervisor told to record the invoice';
+  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'sub_supervisor') and title = 'IPC approved – submit your invoice'
+                  and body like '%now the approved IPC%'), 'supervisor told to record the invoice';
 end $$;
 select pg_temp.act_as('sub_supervisor'); set role authenticated;
 do $$ declare iid uuid;
 begin
   iid := public.create_sub_invoice(current_setting('test.spc2')::uuid, '{"invoice_no":"LE/INV/0050","invoice_date":"2026-11-05","amount":"450000"}');
-  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_invoice', iid, 'ipc_signed', 'sub_invoice/' || iid || '/ipc.pdf', 'ipc.pdf');
-  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_invoice', iid, 'measure_final', 'sub_invoice/' || iid || '/ms.pdf', 'ms.pdf');
   insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_invoice', iid, 'sinv_doc', 'sub_invoice/' || iid || '/inv.pdf', 'inv.pdf');
   perform public.submit_sub_invoice(iid);
 end $$;
@@ -5426,13 +5429,17 @@ select pg_temp.act_as('sub_supervisor'); set role authenticated;
 do $$ declare ids uuid[];
 begin
   assert exists (select 1 from public.sub_variation_options(current_setting('test.ex')::uuid) where id = current_setting('test.var')::uuid), 'approved variation offered';
-  ids := public.request_joint_measurements(current_setting('test.ex')::uuid, jsonb_build_object('subcontractor', 'Lanka Electricals', 'period', 'Dec 2026',
+  ids := public.request_joint_measurements(current_setting('test.ex')::uuid, jsonb_build_object('subcontractor', 'ABC Electricals', 'period', 'Dec 2026',
     'jm_date', '2026-12-02', 'boq', true, 'variation_ids', jsonb_build_array(current_setting('test.var'))));
   assert cardinality(ids) = 2, 'BOQ + variation';
   assert (select count(*) from public.sub_certs where id = any (ids) and variation_id is null) = 1, 'one BOQ certificate';
   assert (select var_code is not null and status = 'jm_requested' from public.sub_certs where id = any (ids) and variation_id = current_setting('test.var')::uuid), 'variation certificate';
   begin perform public.request_joint_measurements(current_setting('test.ex')::uuid, '{"subcontractor":"X","period":"Y","jm_date":"2026-12-02","boq":false}'); assert false, 'choose something';
   exception when others then assert sqlerrm like 'Choose the BOQ work%', sqlerrm; end;
+  begin perform public.prepare_sub_cert(current_setting('test.ex')::uuid, '{"subcontractor":"Lanka Electricals","period":"Y","jm_date":"2026-12-02"}'); assert false, 'own company only';
+  exception when others then assert sqlerrm like 'A subcontractor supervisor requests measurements for their own company%', sqlerrm; end;
+  begin perform public.prepare_sub_cert(current_setting('test.ex')::uuid, '{"subcontractor":"Unknown Ltd","period":"Y","jm_date":"2026-12-02"}'); assert false, 'register only';
+  exception when others then assert sqlerrm like '"Unknown Ltd" is not a subcontractor of this project%', sqlerrm; end;
 end $$;
 reset role;
 
