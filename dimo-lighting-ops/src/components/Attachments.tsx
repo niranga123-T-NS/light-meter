@@ -17,6 +17,8 @@ export const KIND_LABELS: Record<string, string> = {
   ipc_draft: 'IPC (payment certificate)',
   ipc_measure: 'Measurement sheets',
   ipc_markup: 'Marked-up IPC',
+  ipc_var: 'Variation IPC / measurement sheets',
+  var_final: 'Variation – IPA approved, with signatures',
   inquiry_doc: 'Inquiry document',
   visit_photo: 'Photo / business card',
   visit_doc: 'Document',

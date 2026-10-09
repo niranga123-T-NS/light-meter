@@ -5298,6 +5298,13 @@ begin
   insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_cert', cid, 'ipc_draft', 'sub_cert/' || cid || '/ipc.pdf', 'ipc.pdf');
   insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_cert', cid, 'ipc_measure', 'sub_cert/' || cid || '/ms.pdf', 'ms.pdf');
   perform public.update_sub_cert(cid, '{"gross":"2100000"}');
+  -- the IPC includes an approved variation: its sheets are uploaded separately
+  assert exists (select 1 from public.sub_cert_variation_options(cid) where id = current_setting('test.var')::uuid and not ticked), 'variation offered';
+  perform public.set_sub_cert_variations(cid, array[current_setting('test.var')::uuid]);
+  begin perform public.submit_sub_cert(cid); assert false, 'variation sheets needed';
+  exception when others then assert sqlerrm like 'Attach the IPC / measurement sheets of each ticked variation separately: %', sqlerrm; end;
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name)
+  select 'sub_cert_var', x.id, 'ipc_var', 'sub_cert_var/' || x.id || '/v.pdf', 'v.pdf' from public.sub_cert_variations x where x.sub_cert_id = cid;
   assert public.submit_sub_cert(cid) = 'ae_review', 'supervisor''s IPC goes to the AE';
   begin insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_cert', cid, 'ipc_draft', 'x', 'x'); assert false, 'locked once submitted';
   exception when others then null; end;
@@ -5345,6 +5352,10 @@ begin
   insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_invoice', iid, 'ipc_signed', 'sub_invoice/' || iid || '/ipc.pdf', 'ipc.pdf');
   insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_invoice', iid, 'measure_final', 'sub_invoice/' || iid || '/ms.pdf', 'ms.pdf');
   insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_invoice', iid, 'sinv_doc', 'sub_invoice/' || iid || '/inv.pdf', 'inv.pdf');
+  begin perform public.submit_sub_invoice(iid); assert false, 'variation docs needed';
+  exception when others then assert sqlerrm like 'Attach the IPA-approved documents of each variation separately: %', sqlerrm; end;
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name)
+  select 'sub_invoice_var', x.id, 'var_final', 'sub_invoice_var/' || x.id || '/v.pdf', 'v.pdf' from public.sub_invoice_variations x where x.invoice_id = iid;
   perform public.submit_sub_invoice(iid);
 end $$;
 reset role;

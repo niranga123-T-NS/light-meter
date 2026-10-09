@@ -3,7 +3,7 @@ import { Text } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { DocSlot } from '@/components/exec/DocSlot';
 import { certTone } from '@/components/exec/CertRows';
-import { Button, Card, colors, ErrorBanner, KeyValue, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section } from '@/components/ui';
+import { Button, Card, Chip, colors, ErrorBanner, KeyValue, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { CERT_STATUS, type SubCert } from '@/lib/execution';
 import { listAttachments, openAttachment } from '@/lib/files';
@@ -11,6 +11,9 @@ import { fmtDateTime, fmtMoney } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 import type { Attachment } from '@/lib/types';
+
+type VarOpt = { id: string; code: string; vo_no: string | null; title: string; ticked: boolean };
+type CertVar = { id: string; variation_id: string; var_code: string; var_title: string };
 
 const STEPS: { key: SubCert['status'][]; label: string; ae?: boolean }[] = [
   { key: ['ae_review', 'prepared', 'verified', 'approved', 'paid'], label: 'Submitted' },
@@ -27,26 +30,35 @@ export default function SubCertPage() {
   const people = usePeople();
   const dialog = useDialog();
   const { data, error, reload } = useLoad(async () => {
-    const [c, f, v] = await Promise.all([
+    const [c, f, v, opts, cv] = await Promise.all([
       supabase.from('sub_certs').select('*, exec_projects(code, name)').eq('id', id).single(),
       listAttachments('sub_cert', [id]),
       supabase.from('sub_invoices').select('id, code, invoice_no, status').eq('sub_cert_id', id).neq('status', 'cancelled'),
+      rpc<VarOpt[]>('sub_cert_variation_options', { p_cert: id }).catch(() => [] as VarOpt[]),
+      supabase.from('sub_cert_variations').select('*').eq('sub_cert_id', id).order('var_code'),
     ]);
     if (c.error) throw new Error(c.error.message);
+    const vars = (cv.data ?? []) as CertVar[];
     return {
+      opts,
+      vars,
+      varFiles: vars.length ? ((await listAttachments('sub_cert_var', vars.map((x) => x.id))) as Attachment[]) : [],
       c: c.data as SubCert & { exec_projects: { code: string | null; name: string } | null },
       files: f as Attachment[],
       invoices: (v.data ?? []) as { id: string; code: string; invoice_no: string; status: string }[],
     };
   }, [id]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const { c, files, invoices } = data;
+  const { c, files, invoices, opts, vars, varFiles } = data;
   const preparer = c.prepared_by === me.id || me.role === 'senior_elec_engineer';
   const editable = preparer && (c.status === 'draft' || c.status === 'returned');
   const reviewer = (c.status === 'ae_review' && me.role === 'assistant_engineer') || (c.status === 'prepared' && me.role === 'senior_elec_engineer');
   const later = (c.status === 'verified' && me.role === 'sm_projects') || (c.status === 'approved' && me.role === 'operations_exec');
   const marked = files.filter((x) => x.kind === 'ipc_markup');
-  const ready = files.some((x) => x.kind === 'ipc_draft') && files.some((x) => x.kind === 'ipc_measure');
+  const ready =
+    files.some((x) => x.kind === 'ipc_draft') && files.some((x) => x.kind === 'ipc_measure') && vars.every((x) => varFiles.some((f) => f.entity_id === x.id));
+  const tick = (vid: string, on: boolean) =>
+    run('set_sub_cert_variations', { p_cert: c.id, p_ids: [...vars.map((x) => x.variation_id).filter((x) => x !== vid), ...(on ? [vid] : [])] }, on ? 'Variation ticked – attach its sheets below' : 'Removed');
   const canRecord = (c.status === 'verified' || c.status === 'approved' || c.status === 'paid') && (c.prepared_by === me.id || me.role === 'assistant_engineer' || me.role === 'senior_elec_engineer' || me.role === 'sub_supervisor');
   const run = (fn: string, args: Record<string, unknown>, ok: string) =>
     dialog.run(async () => {
@@ -129,6 +141,41 @@ export default function SubCertPage() {
       <DocSlot title="IPC (payment certificate)" entity="sub_cert" entityId={c.id} kind="ipc_draft" files={files} canAdd={editable} canMarkUp={reviewer} required={editable} onChange={reload} />
       <DocSlot title="Measurement sheets" entity="sub_cert" entityId={c.id} kind="ipc_measure" files={files} canAdd={editable} canMarkUp={reviewer} required={editable} onChange={reload} />
 
+      <Section title="Variations included in this IPC">
+        {editable ? (
+          opts.length ? (
+            <Card>
+              <Muted>Tick each approved variation this IPC includes – then attach its IPC / measurement sheets separately below.</Muted>
+              <Row wrap gap={6} style={{ marginTop: 8 }}>
+                {opts.map((o) => (
+                  <Chip key={o.id} on={o.ticked} label={`${o.ticked ? '☑' : '☐'} ${o.vo_no || o.code} · ${o.title}`} onPress={() => tick(o.id, !o.ticked)} />
+                ))}
+              </Row>
+            </Card>
+          ) : (
+            <Muted>No approved variations on this project.</Muted>
+          )
+        ) : !vars.length ? (
+          <Muted>None – the IPC covers contract work only.</Muted>
+        ) : null}
+      </Section>
+      {vars.map((x) => (
+        <DocSlot
+          key={x.id}
+          title={`Variation ${x.var_code} – ${x.var_title} (IPC / measurement sheets)`}
+          entity="sub_cert_var"
+          entityId={x.id}
+          kind="ipc_var"
+          files={varFiles}
+          canAdd={editable}
+          canMarkUp={reviewer}
+          required={editable}
+          markupEntity="sub_cert"
+          markupId={c.id}
+          onChange={reload}
+        />
+      ))}
+
       {marked.length ? (
         <Section title="Comments marked on the copy">
           <Card style={{ padding: 0, overflow: 'hidden', borderColor: colors.red, borderWidth: 1 }}>
@@ -173,7 +220,7 @@ export default function SubCertPage() {
           <Button title="+ Record invoice" onPress={() => router.push({ pathname: '/execution/sub-invoice/new', params: { project: c.exec_project_id, cert: c.id } })} />
         ) : null}
       </Row>
-      {editable && !ready ? <Muted>Attach the IPC and the measurement sheets (PDF or photos) to submit.</Muted> : null}
+      {editable && !ready ? <Muted>Attach the IPC, the measurement sheets and the sheets of each ticked variation (PDF or photos) to submit.</Muted> : null}
 
       {invoices.length ? (
         <Section title="Invoices against this IPC">
