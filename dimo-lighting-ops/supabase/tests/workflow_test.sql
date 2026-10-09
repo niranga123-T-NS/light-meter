@@ -4755,7 +4755,7 @@ select pg_temp.act_as('assistant_engineer'); set role authenticated;
 do $$ declare e uuid := current_setting('test.ex')::uuid; eq uuid; kit uuid; rid uuid; ans jsonb;
 begin
   assert not app.is_ehs(e), 'AE1 is not the EHS Officer once one is named';
-  eq := public.save_hse_equipment(e, '{"form_code":"CL-16","name":"DB-01 site DB","serial_no":"SN-44","contractor":"Lanka Electricals"}');
+  eq := public.save_hse_equipment(e, '{"form_code":"CL-16","name":"DB-01 site DB","serial_no":"SN-44","contractor":"ABC Electricals"}');
   assert (select frequency_days from public.hse_equipment where id = eq) = 7, 'DB weekly';
   begin perform public.save_hse_checklist(e, jsonb_build_object('equipment_id', eq, 'answers', '{"01":{"a":"yes"}}'::jsonb));
     assert false, 'all points needed';
@@ -5591,6 +5591,35 @@ select pg_temp.act_as('sub_supervisor'); set role authenticated;
 do $$ begin
   perform public.update_sub_plan_item((select id from public.sub_plan_items where sub_plan_id = current_setting('test.sp')::uuid and additional), 'done');
   assert (select status from public.sub_plan_items where sub_plan_id = current_setting('test.sp')::uuid and additional) = 'done', 'marked done';
+end $$;
+reset role;
+
+-- Subcontractors never see each other: Sameera (Lanka Electricals) and the ABC Electricals supervisor on the same project
+update public.profiles set company = 'Lanka Electricals' where id = '00000000-0000-0000-0000-0000000005a1';
+insert into public.hse_records (code, exec_project_id, form_code, header, status, created_by)
+values ('PTW-LANKA-1', current_setting('test.ex')::uuid, 'PTW-01', '{"location":"Zone L","in_charge":"Sameera","mobile":"0715556667"}', 'submitted', '00000000-0000-0000-0000-0000000005a1');
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ begin
+  assert not exists (select 1 from public.exec_members where user_id = '00000000-0000-0000-0000-0000000005a1'), 'other supervisor hidden from the team list';
+  assert exists (select 1 from public.exec_members where user_id = auth.uid()), 'own membership visible';
+  assert exists (select 1 from public.exec_members where member_role = 'assistant_engineer'), 'DIMO engineers visible';
+  assert not exists (select 1 from public.exec_subcontractors where lower(name) <> 'abc electricals'), 'only own company in the register';
+  assert not exists (select 1 from public.hse_records where code = 'PTW-LANKA-1'), 'other subcontractor''s permit hidden';
+  assert exists (select 1 from public.hse_records where id = current_setting('test.subptw1')::uuid), 'own permit visible';
+  assert not exists (select 1 from public.profiles where id = '00000000-0000-0000-0000-0000000005a1'), 'other supervisor''s profile hidden';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000005a1', false); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.hse_records where code = 'PTW-LANKA-1'), 'Sameera sees own permit';
+  assert not exists (select 1 from public.hse_records where id = current_setting('test.subptw1')::uuid), 'Sameera does not see ABC''s permit';
+  assert not exists (select 1 from public.exec_members where member_role = 'sub_supervisor' and user_id <> auth.uid()), 'Sameera does not see ABC''s supervisor';
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin
+  assert (select count(*) from public.hse_records where code = 'PTW-LANKA-1' or id = current_setting('test.subptw1')::uuid) = 2, 'the AE sees both';
+  assert (select count(*) from public.exec_members where member_role = 'sub_supervisor' and exec_project_id = current_setting('test.ex')::uuid and active) >= 2, 'the AE sees both supervisors';
 end $$;
 reset role;
 
