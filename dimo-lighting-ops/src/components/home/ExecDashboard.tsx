@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { TeamTargetCard } from '@/components/TargetCharts';
 import { useMe } from '@/lib/auth';
-import { fyLabel, fyOf, type Performance } from '@/lib/finance';
+import { companyInvoicing } from '@/lib/companyInvoicing';
+import { fyLabel, fyOf, thisMonth, type Performance } from '@/lib/finance';
 import { AGEING_COLOURS, AGEING_ORDER, fmtDate, fmtMoney, fmtNumber, fmtWorkDays, human, SLA_COLOURS } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import { projectTypeLabel } from '@/lib/roles';
@@ -67,6 +68,7 @@ export function ExecDashboard() {
   // This year's sales targets: budget vs secured vs invoiced
   const fy = fyOf(new Date().toISOString().slice(0, 10));
   const perf = useLoad(() => rpc<Performance>('finance_performance', { p_fy: fy }).catch(() => null), [fy]);
+  const company = useLoad(() => companyInvoicing(fy, thisMonth()).catch(() => null), [fy]);
 
   const red = data?.delay_control.filter((d) => d.colour === 'red').reduce((a, d) => a + d.n, 0) ?? 0;
   const amber = data?.delay_control.filter((d) => d.colour === 'amber').reduce((a, d) => a + d.n, 0) ?? 0;
@@ -75,7 +77,7 @@ export function ExecDashboard() {
   const bucketMax = Math.max(1, ...(data?.debtors.by_bucket ?? []).map((b) => Number(b.lkr)));
 
   return (
-    <Screen refreshing={loading} onRefresh={() => { reload(); perf.reload(); }} maxWidth={1400}>
+    <Screen refreshing={loading} onRefresh={() => { reload(); perf.reload(); company.reload(); }} maxWidth={1400}>
       <Stack.Screen options={{ title: gm ? 'Overall Dashboard' : 'Sales Management' }} />
       <Row style={{ justifyContent: 'space-between' }} wrap>
         <H1>{gm ? 'Overall Dashboard' : 'Sales Management'}</H1>
@@ -96,7 +98,7 @@ export function ExecDashboard() {
           title={`Sales targets · ${fyLabel(fy)}`}
           right={<Button small variant="ghost" title="Targets" onPress={() => router.push('/finance/targets')} />}
         >
-          <TeamTargetCard people={perf.data.people} upTo={perf.data.latest_month} />
+          <TeamTargetCard people={perf.data.people} upTo={perf.data.latest_month} company={company.data} />
         </Section>
       ) : null}
       {data ? (
