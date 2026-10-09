@@ -15,8 +15,9 @@ import { HseRows } from './HseRows';
 
 type Part = 'equipment' | 'permits' | 'tbt' | 'people' | 'reports';
 
-/** HSE for one project: equipment checklists, permits to work, toolbox talks, induction & training, and incident reports. */
-export function HseTab({ p }: { p: ExecProject }) {
+/** HSE for one project: equipment checklists, permits to work, toolbox talks, induction & training, and incident reports.
+ *  For a subcontractor supervisor the permits live in the Planning tab (`mode="permits"`) and HSE has the rest (`"noPermits"`). */
+export function HseTab({ p, mode = 'all' }: { p: ExecProject; mode?: 'all' | 'permits' | 'noPermits' }) {
   const me = useMe();
   const people = usePeople();
   const dialog = useDialog();
@@ -133,13 +134,35 @@ export function HseTab({ p }: { p: ExecProject }) {
   const tbts = rec.filter((r) => r.form_code === 'TBT-01');
   const trainings = rec.filter((r) => r.form_code === 'TR-01');
   const lastCheck = (e: HseEquipment) => rec.find((r) => r.equipment_id === e.id && form(r.form_code)?.kind !== 'permit');
+  const permitList = (
+    <>
+      {canWork && me.role !== 'trainee' ? (
+        <Row gap={6}>
+          <Button small title="+ Permit to work" onPress={newPermit} />
+        </Row>
+      ) : null}
+      <RecordList rows={permits} forms={forms} people={people} empty="No permits yet" sub={(r) => `${String(r.header.location ?? '')} · ${fmtDateTimeY(r.starts_at)} – ${fmtDateTimeY(r.ends_at)}`} />
+    </>
+  );
+  if (mode === 'permits')
+    return (
+      <View style={{ gap: 8 }}>
+        <Grid min={150} max={4}>
+          <Stat label="Permits waiting" value={s?.permits_waiting ?? 0} tone={s?.permits_waiting ? 'amber' : undefined} />
+          <Stat label="Permits active" value={s?.permits_active ?? 0} />
+        </Grid>
+        <Muted>Request a permit to work for each shift of work – an Assistant Engineer of the project approves it. Every work in your plan needs an approved permit for its day.</Muted>
+        {permitList}
+      </View>
+    );
+  const withPermits = mode === 'all';
 
   return (
     <Section title="HSE">
       <TestingBanner what="HSE forms – checklists, permits, toolbox talks, induction and training" />
       <Grid min={150} max={6}>
-        <Stat label="Permits waiting" value={s?.permits_waiting ?? 0} tone={s?.permits_waiting ? 'amber' : undefined} onPress={() => setPart('permits')} />
-        <Stat label="Permits active" value={s?.permits_active ?? 0} onPress={() => setPart('permits')} />
+        {withPermits ? <Stat label="Permits waiting" value={s?.permits_waiting ?? 0} tone={s?.permits_waiting ? 'amber' : undefined} onPress={() => setPart('permits')} /> : null}
+        {withPermits ? <Stat label="Permits active" value={s?.permits_active ?? 0} onPress={() => setPart('permits')} /> : null}
         <Stat label="Checks due" value={s?.checks_due ?? 0} tone={s?.checks_due ? 'amber' : undefined} onPress={() => setPart('equipment')} />
         <Stat label="Out of use" value={s?.removed ?? 0} tone={s?.removed ? 'red' : undefined} onPress={() => setPart('equipment')} />
         <Stat label="Inducted" value={s?.inducted ?? 0} onPress={() => setPart('people')} />
@@ -154,7 +177,7 @@ export function HseTab({ p }: { p: ExecProject }) {
         onChange={setPart}
         options={[
           { value: 'equipment', label: 'Equipment checks' },
-          { value: 'permits', label: 'Permits', badge: s?.permits_waiting || undefined },
+          ...(withPermits ? [{ value: 'permits' as const, label: 'Permits', badge: s?.permits_waiting || undefined }] : []),
           { value: 'tbt', label: 'Toolbox talks' },
           { value: 'people', label: 'Induction & training' },
           { value: 'reports', label: 'Incident reports' },
@@ -197,16 +220,7 @@ export function HseTab({ p }: { p: ExecProject }) {
             )}
           </>
         ) : null}
-        {part === 'permits' ? (
-          <>
-            {canWork && me.role !== 'trainee' ? (
-              <Row gap={6}>
-                <Button small title="+ Permit to work" onPress={newPermit} />
-              </Row>
-            ) : null}
-            <RecordList rows={permits} forms={forms} people={people} empty="No permits yet" sub={(r) => `${String(r.header.location ?? '')} · ${fmtDateTimeY(r.starts_at)} – ${fmtDateTimeY(r.ends_at)}`} />
-          </>
-        ) : null}
+        {part === 'permits' && withPermits ? permitList : null}
         {part === 'tbt' ? (
           <>
             {canWork ? (

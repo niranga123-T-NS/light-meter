@@ -12,6 +12,7 @@ import { PlansTab } from '@/components/exec/PlansTab';
 import { ProgrammeTab } from '@/components/exec/ProgrammeTab';
 import { QaTab } from '@/components/exec/QaTab';
 import { SubCertsTab } from '@/components/exec/SubCertsTab';
+import { SubPlanningTab } from '@/components/exec/SubPlanningTab';
 import { ReportsTab } from '@/components/exec/ReportsTab';
 import { TeamTab } from '@/components/exec/TeamTab';
 import { VariationsTab } from '@/components/exec/VariationsTab';
@@ -32,6 +33,7 @@ const TABS: Tab[] = [
   { key: 'meetings', label: 'Meetings', roles: INTERNAL },
   { key: 'programme', label: 'Programme', roles: INTERNAL },
   { key: 'plans', label: 'Plan', roles: INTERNAL },
+  { key: 'planning', label: 'Planning', roles: ['sub_supervisor'] },
   { key: 'reports', label: 'Daily reports' },
   { key: 'variations', label: 'Variations', roles: ['senior_elec_engineer', 'sm_projects', 'gm', 'operations_exec', 'assistant_engineer'] },
   { key: 'hse', label: 'HSE' },
@@ -70,7 +72,8 @@ export default function ExecProjectScreen() {
       {t === 'plans' ? <PlansTab p={p} /> : null}
       {t === 'reports' ? <ReportsTab p={p} /> : null}
       {t === 'variations' ? <VariationsTab p={p} /> : null}
-      {t === 'hse' ? <HseTab p={p} /> : null}
+      {t === 'planning' ? <SubPlanningTab p={p} /> : null}
+      {t === 'hse' ? <HseTab p={p} mode={me.role === 'sub_supervisor' ? 'noPermits' : 'all'} /> : null}
       {t === 'workers' ? <WorkersTab p={p} /> : null}
       {t === 'materials' ? <MaterialsTab p={p} /> : null}
       {t === 'qa' ? <QaTab p={p} /> : null}
