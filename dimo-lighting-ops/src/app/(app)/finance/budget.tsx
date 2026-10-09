@@ -212,30 +212,40 @@ export default function BudgetScreen() {
                 { h: 'Project', w: 240, v: (r) => r.project_name, bold: true },
                 {
                   h: 'Status',
-                  w: desk ? 290 : 160,
+                  w: 170,
                   v: (r) => {
                     const s = securedOf(r);
-                    const edit = desk ? <Button small variant="secondary" title="Edit" onPress={() => router.push(`/finance/budget-item/${r.id}`)} /> : null;
-                    const status = s ? (
-                      <Pill label={s.source === 'opening' ? 'Secured earlier' : 'Secured'} tone={colors.green} />
-                    ) : desk || r.sales_person_id === me.id ? (
-                      <Button small variant="secondary" title="Mark secured" onPress={() => markSecured(r)} />
-                    ) : (
-                      <Pill label="To win" tone={colors.amber} />
-                    );
-                    const st = r.status === 'on_hold' ? <Pill label="On hold" tone={colors.amber} solid /> : r.status === 'dropped' ? <Pill label="Dropped" tone={colors.red} /> : null;
                     return (
-                      <Row gap={6} wrap style={{ alignItems: 'center' }}>
-                        {edit}
-                        {st}
-                        {status}
-                        {desk ? <Button small variant="ghost" title="Status" onPress={() => setStatus(r)} /> : null}
-                      </Row>
+                      <View style={{ gap: 4, alignItems: 'flex-start' }}>
+                        <Row gap={4} wrap>
+                          {s ? (
+                            <Pill label={s.source === 'opening' ? 'Secured earlier' : 'Secured'} tone={colors.green} />
+                          ) : (
+                            <Pill label="To win" tone={colors.grey} />
+                          )}
+                          {r.status === 'on_hold' ? <Pill label="On hold" tone={colors.amber} solid /> : r.status === 'dropped' ? <Pill label="Dropped" tone={colors.red} solid /> : null}
+                        </Row>
+                        {held(r) && r.status_reason ? <Muted numberOfLines={2}>{r.status_reason}</Muted> : null}
+                      </View>
                     );
                   },
                 },
+                ...(desk || data.rows.some((r) => r.sales_person_id === me.id)
+                  ? [
+                      {
+                        h: '',
+                        w: desk ? 250 : 130,
+                        v: (r: BudgetProject) => (
+                          <Row gap={4} style={{ alignItems: 'center' }}>
+                            {desk ? <Button small variant="ghost" title="Edit" onPress={() => router.push(`/finance/budget-item/${r.id}`)} /> : null}
+                            {desk ? <Button small variant="secondary" title="Status" onPress={() => setStatus(r)} /> : null}
+                            {!securedOf(r) && (desk || r.sales_person_id === me.id) ? <Button small title="Mark secured" onPress={() => markSecured(r)} /> : null}
+                          </Row>
+                        ),
+                      },
+                    ]
+                  : []),
                 { h: 'Customer', w: 170, v: (r) => r.customer ?? '—' },
-                { h: 'Hold / drop reason', w: 180, v: (r) => (held(r) ? r.status_reason ?? '—' : '') },
                 { h: 'Sales person', w: 150, v: (r) => people[r.sales_person_id ?? '']?.full_name ?? '—' },
                 { h: 'WBS', w: 95, v: (r) => r.wbs ?? '—' },
                 { h: 'Budget value (LKR)', w: 150, right: true, v: (r) => amt(r.budget_value) },
