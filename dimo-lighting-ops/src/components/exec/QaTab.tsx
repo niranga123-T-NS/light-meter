@@ -1,7 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Text } from 'react-native';
-import { Attachments } from '@/components/Attachments';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, Empty, ListRow, Muted, Notice, Pill, Row, Section } from '@/components/ui';
 import { useMe } from '@/lib/auth';
@@ -10,6 +9,9 @@ import { fmtDate, fmtDateTime, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { QA_STATUS, type QaReport } from '@/lib/qaReport';
 import { rpc, supabase } from '@/lib/supabase';
+import { listAttachments } from '@/lib/files';
+import type { Attachment } from '@/lib/types';
+import { TestDocs } from './TestDocs';
 
 const testTone = (t: TestRecord) => (t.result === 'fail' ? colors.red : t.status === 'verified' ? colors.green : colors.amber);
 
@@ -26,7 +28,9 @@ export function QaTab({ p }: { p: ExecProject }) {
       supabase.from('exec_members').select('*').eq('exec_project_id', p.id).eq('active', true),
       supabase.from('qa_reports').select('id, code, title, status, version, created_by, updated_at, submitted_at, decided_at, decided_by').eq('exec_project_id', p.id).order('updated_at', { ascending: false }),
     ]);
-    return { tests: (t.data ?? []) as TestRecord[], ncrs: (n.data ?? []) as Ncr[], members: (m.data ?? []) as ExecMember[], reports: (q.data ?? []) as QaReport[] };
+    const tests = (t.data ?? []) as TestRecord[];
+    const testFiles = await listAttachments('test_record', tests.map((x) => x.id));
+    return { testFiles: testFiles as Attachment[], tests, ncrs: (n.data ?? []) as Ncr[], members: (m.data ?? []) as ExecMember[], reports: (q.data ?? []) as QaReport[] };
   }, [p.id]);
   const isSee = me.role === 'senior_elec_engineer';
   const canRecord = isSee || me.role === 'assistant_engineer';
@@ -122,7 +126,7 @@ export function QaTab({ p }: { p: ExecProject }) {
                 wrapRight
                 onPress={() => setOpen(open === t.id ? null : t.id)}
                 highlight={t.result === 'fail' ? colors.red : undefined}
-                title={`${t.code} · ${t.test_type} – ${t.system}`}
+                title={`${t.code} · ${t.test_type} – ${t.system}${(data?.testFiles ?? []).some((f) => f.entity_id === t.id) ? ` · 📎 ${(data?.testFiles ?? []).filter((f) => f.entity_id === t.id).length}` : ''}`}
                 subtitle={
                   <>
                     <Muted>{[people[t.performed_by]?.full_name, fmtDateTime(t.performed_at), t.witness ? `witness ${t.witness}` : null, t.note].filter(Boolean).join(' · ')}</Muted>
@@ -133,7 +137,7 @@ export function QaTab({ p }: { p: ExecProject }) {
                             {`${r.pass ? '✓' : '✕'} ${r.param}: ${r.value}${r.unit ? ` ${r.unit}` : ''}${r.min != null || r.max != null ? ` (limits ${r.min ?? '—'} – ${r.max ?? '—'})` : ''}`}
                           </Muted>
                         ))}
-                        <Attachments entityType="test_record" entityId={t.id} kinds={['test_sheet']} title="Signed test sheet" canUpload={t.performed_by === me.id || isSee} />
+                        <TestDocs testId={t.id} files={(data?.testFiles ?? []).filter((f) => f.entity_id === t.id)} canUpload={(t.performed_by === me.id || isSee) && t.status !== 'verified'} onChange={reload} />
                         {isSee && t.status === 'submitted' ? (
                           <Row gap={6}>
                             <Button small title="Verify" onPress={() => verify(t, true)} />

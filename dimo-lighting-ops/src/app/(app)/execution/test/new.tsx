@@ -1,43 +1,27 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
+import { Platform, Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
+import { pickTestDoc, TEST_DOC_KINDS } from '@/components/exec/TestDocs';
 import { TestingBanner } from '@/components/Testing';
 import { Button, Card, colors, ErrorBanner, Field, Muted, Notice, Row, Screen, Section, Select } from '@/components/ui';
 import { EXEC_AREAS, type ExecProject, type Instrument } from '@/lib/execution';
 import { fmtDate, todayISO } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
+import { uploadAttachment, type PickedFile } from '@/lib/files';
 
-type Line = { param: string; unit: string; min: string; max: string; value: string };
-const blank = (): Line => ({ param: '', unit: '', min: '', max: '', value: '' });
+type Queued = { kind: string; file: PickedFile };
+const TESTS = ['Insulation resistance', 'Earth continuity', 'Earth electrode resistance', 'Lux level', 'Emergency duration', 'Voltage drop', 'RCD trip time', 'DALI / control addressing', 'Other'];
 
-/** Common tests with their readings pre-filled as rows (limits can be changed). */
-const TEMPLATES: Record<string, Line[]> = {
-  'Insulation resistance': [
-    { param: 'L-N', unit: 'MΩ', min: '1', max: '', value: '' },
-    { param: 'L-E', unit: 'MΩ', min: '1', max: '', value: '' },
-    { param: 'N-E', unit: 'MΩ', min: '1', max: '', value: '' },
-  ],
-  'Earth continuity': [{ param: 'R1+R2', unit: 'Ω', min: '', max: '1', value: '' }],
-  'Earth electrode resistance': [{ param: 'Electrode', unit: 'Ω', min: '', max: '10', value: '' }],
-  'Lux level': [
-    { param: 'Average', unit: 'lx', min: '', max: '', value: '' },
-    { param: 'Uniformity Uo', unit: '', min: '0.4', max: '', value: '' },
-  ],
-  'Emergency duration': [{ param: 'Duration', unit: 'min', min: '180', max: '', value: '' }],
-  'Voltage drop': [{ param: 'At farthest point', unit: '%', min: '', max: '4', value: '' }],
-  'RCD trip time': [{ param: 'At 1×IΔn', unit: 'ms', min: '', max: '300', value: '' }],
-  'DALI / control addressing': [{ param: 'Devices responding', unit: '%', min: '100', max: '', value: '' }],
-};
-
-/** Record an inspection / test: readings are checked against the limits; a failure raises an NCR automatically. */
+/** Record an inspection / test: the readings are uploaded as documents (several per category); the engineer states the result – a failure raises an NCR. */
 export default function NewTest() {
   const dialog = useDialog();
   const params = useLocalSearchParams<{ project?: string }>();
   const [error, setError] = useState<string | null>(null);
   const [project, setProject] = useState<string | null>(params.project ?? null);
-  const [f, setF] = useState({ area: null as string | null, system: '', test_type: 'Insulation resistance', instrument_id: null as string | null, witness: '', note: '' });
-  const [lines, setLines] = useState<Line[]>(TEMPLATES['Insulation resistance']);
+  const [f, setF] = useState({ area: null as string | null, system: '', test_type: 'Insulation resistance', instrument_id: null as string | null, witness: '', note: '', result: null as string | null });
+  const [queue, setQueue] = useState<Queued[]>([]);
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((s) => ({ ...s, [k]: v }));
   const { data } = useLoad(async () => {
     const [p, i] = await Promise.all([
@@ -50,17 +34,22 @@ export default function NewTest() {
   const areas = data?.projects.find((p) => p.id === proj)?.areas ?? [];
   const inst = data?.instruments.find((i) => i.id === f.instrument_id);
   const expired = !!inst && inst.calibration_due < todayISO();
-  const setLine = (i: number, l: Partial<Line>) => setLines((s) => s.map((x, k) => (k === i ? { ...x, ...l } : x)));
-  const pass = (l: Line) => {
-    const v = Number(l.value);
-    if (l.value === '' || Number.isNaN(v)) return null;
-    return (l.min === '' || v >= Number(l.min)) && (l.max === '' || v <= Number(l.max));
+  const add = async (kind: string, photo: boolean, camera = false) => {
+    try {
+      const file = await pickTestDoc(photo, camera);
+      if (file) setQueue((q) => [...q, { kind, file }]);
+    } catch (e) {
+      dialog.toast((e as Error).message, 'error');
+    }
   };
   const save = async () => {
     setError(null);
     if (!proj) return setError('Choose the project');
+    if (!queue.length) return setError('Upload the reading documents (at least one)');
+    if (!f.result) return setError('State the result – pass or fail');
     await dialog.run(async () => {
-      await rpc('record_test', { p_exec: proj, p: { ...f, area: f.area ?? '', instrument_id: f.instrument_id ?? '', rows: lines } });
+      const id = await rpc<string>('record_test', { p_exec: proj, p: { ...f, area: f.area ?? '', instrument_id: f.instrument_id ?? '', rows: [] } });
+      for (const q of queue) await uploadAttachment('test_record', id, q.kind, q.file);
       router.replace({ pathname: '/execution/[id]', params: { id: proj, tab: 'qa' } });
     }, 'Recorded – the Senior Electrical Engineer verifies it');
   };
@@ -78,11 +67,8 @@ export default function NewTest() {
             label="Test"
             required
             value={f.test_type}
-            onChange={(v) => {
-              set('test_type', v);
-              setLines(TEMPLATES[v] ?? [blank()]);
-            }}
-            options={[...Object.keys(TEMPLATES), 'Other'].map((k) => ({ value: k, label: k }))}
+            onChange={(v) => set('test_type', v)}
+            options={TESTS.map((k) => ({ value: k, label: k }))}
           />
           <Select
             label="Instrument"
@@ -94,32 +80,47 @@ export default function NewTest() {
           <Field label="Witness (client / consultant)" value={f.witness} onChangeText={(v) => set('witness', v)} />
         </Card>
       </Section>
-      <Section title="Readings" right={<Button small variant="secondary" title="+ Reading" onPress={() => setLines((s) => [...s, blank()])} />}>
-        {lines.map((l, i) => {
-          const ok = pass(l);
+      <Section title="Reading documents">
+        <Muted style={{ marginBottom: 6 }}>Upload the readings – several files per category (PDF, Excel, photos). They are kept with the test, grouped by category and downloadable.</Muted>
+        {TEST_DOC_KINDS.map((k) => {
+          const mine = queue.filter((q) => q.kind === k.kind);
           return (
-            <Card key={i} style={{ marginBottom: 6, borderLeftWidth: 4, borderLeftColor: ok == null ? colors.line : ok ? colors.green : colors.red }}>
-              <Row gap={8} wrap>
-                <Field label="Parameter" value={l.param} onChangeText={(v) => setLine(i, { param: v })} />
-                <Field label="Unit" value={l.unit} onChangeText={(v) => setLine(i, { unit: v })} />
+            <Card key={k.kind} style={{ marginBottom: 6, borderLeftWidth: 4, borderLeftColor: mine.length ? colors.green : colors.line }}>
+              <Row wrap gap={8} style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                <View style={{ flexShrink: 1 }}>
+                  <Text style={{ fontWeight: '700', color: colors.ink }}>{`${k.label}${mine.length ? ` (${mine.length})` : ''}`}</Text>
+                  <Muted>{k.hint}</Muted>
+                </View>
+                <Row gap={6}>
+                  <Button small variant="secondary" title="+ PDF / file" onPress={() => add(k.kind, false)} />
+                  <Button small variant="secondary" title="+ Photo" onPress={() => add(k.kind, true)} />
+                  {Platform.OS !== 'web' ? <Button small variant="secondary" title="📷 Take photo" onPress={() => add(k.kind, true, true)} /> : null}
+                </Row>
               </Row>
-              <Row gap={8} wrap>
-                <Field label="Min" keyboardType="numeric" value={l.min} onChangeText={(v) => setLine(i, { min: v })} />
-                <Field label="Max" keyboardType="numeric" value={l.max} onChangeText={(v) => setLine(i, { max: v })} />
-                <Field label="Measured" keyboardType="numeric" value={l.value} onChangeText={(v) => setLine(i, { value: v })} />
-              </Row>
-              <Row style={{ justifyContent: 'space-between' }}>
-                <Muted>{ok == null ? '' : ok ? '✓ Within limits' : '✕ Outside limits – an NCR will be raised'}</Muted>
-                {lines.length > 1 ? <Button small variant="ghost" title="Remove" onPress={() => setLines((s) => s.filter((_, k) => k !== i))} /> : null}
-              </Row>
+              {mine.map((q) => (
+                <Row key={q.file.uri + q.file.name} gap={8} style={{ justifyContent: 'space-between', alignItems: 'center', paddingTop: 4 }}>
+                  <Text style={{ color: colors.ink, flexShrink: 1 }}>{`📄 ${q.file.name}`}</Text>
+                  <Button small variant="ghost" title="Remove" onPress={() => setQueue((s) => s.filter((x) => x !== q))} />
+                </Row>
+              ))}
             </Card>
           );
         })}
+        <Select
+          label="Result"
+          required
+          value={f.result}
+          onChange={(v) => set('result', v)}
+          options={[
+            { value: 'pass', label: 'Pass – all readings within limits' },
+            { value: 'fail', label: 'Fail – an NCR is raised' },
+          ]}
+        />
         <Field label="Note" multiline value={f.note} onChangeText={(v) => set('note', v)} />
       </Section>
       <Row gap={8} style={{ justifyContent: 'flex-end' }}>
         <Button variant="secondary" title="Cancel" onPress={() => router.back()} />
-        <Button title="Save test" onPress={save} disabled={expired} />
+        <Button title="Save test" onPress={save} disabled={expired || !queue.length || !f.result} />
       </Row>
     </Screen>
   );

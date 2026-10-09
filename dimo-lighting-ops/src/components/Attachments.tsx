@@ -65,7 +65,11 @@ export const KIND_LABELS: Record<string, string> = {
   snag_before: 'Before',
   snag_after: 'After',
   dossier_doc: 'Document',
-  test_sheet: 'Test sheet',
+  test_sheet: 'Witness-signed test sheet',
+  test_readings: 'Readings sheet',
+  test_printout: 'Instrument printout / export',
+  test_photo: 'Photo of the instrument display',
+  test_other: 'Other test document',
   handover_doc: 'Contract document',
 };
 

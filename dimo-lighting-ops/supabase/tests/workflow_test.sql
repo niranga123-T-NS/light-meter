@@ -5436,5 +5436,19 @@ begin
 end $$;
 reset role;
 
+-- Tests with uploaded reading documents: the engineer states the result
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare t uuid;
+begin
+  begin perform public.record_test(current_setting('test.ex')::uuid, '{"system":"DB-3","test_type":"Lux level"}'); assert false, 'result needed';
+  exception when others then assert sqlerrm like 'State the result%', sqlerrm; end;
+  t := public.record_test(current_setting('test.ex')::uuid, '{"system":"DB-3","test_type":"Lux level","result":"pass"}');
+  assert (select result from public.test_records where id = t) = 'pass', 'pass recorded';
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('test_record', t, 'test_printout', 'test_record/' || t || '/p.pdf', 'p.pdf');
+  t := public.record_test(current_setting('test.ex')::uuid, '{"system":"DB-4","test_type":"RCD trip time","result":"fail"}');
+  assert exists (select 1 from public.ncrs where test_record_id = t), 'fail raises an NCR';
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
