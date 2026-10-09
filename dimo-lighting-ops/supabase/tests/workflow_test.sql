@@ -5506,5 +5506,23 @@ do $$ begin
 end $$;
 reset role;
 
+-- A supervisor whose login was created in Admin → Users (not with "Create login") is linked to the approved nomination
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin
+  perform set_config('test.sr2', public.nominate_supervisor(current_setting('test.ex')::uuid, jsonb_build_object('person_name', 'Sameera Sup', 'company', 'ABC Electricals',
+    'phone', '0715556667', 'id_no', 'NIC777', 'start_date', current_date, 'end_date', current_date + 30))::text, false);
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+select public.decide_access_request(current_setting('test.sr2')::uuid, true);
+reset role;
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000005a1', 'sameera@example.com');
+insert into public.profiles (id, full_name, role, phone, email) values ('00000000-0000-0000-0000-0000000005a1', 'Sameera Sup', 'sub_supervisor', '0715556667', 'sameera@example.com');
+do $$ begin
+  assert exists (select 1 from public.exec_members where user_id = '00000000-0000-0000-0000-0000000005a1' and exec_project_id = current_setting('test.ex')::uuid and active),
+    'admin-created login linked to the approved nomination';
+  assert (select status from public.access_requests where id = current_setting('test.sr2')::uuid) = 'done', 'nomination done';
+end $$;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
