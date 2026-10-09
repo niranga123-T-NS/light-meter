@@ -66,8 +66,10 @@ type Meeting = {
 };
 type Leave = { id: string; sales_person_id: string; reason: string; status: 'pending' | 'approved' | 'rejected'; decision_note: string | null };
 type Note = { sales_person_id: string; note: string };
+type Item = { id: string; sort: number; body: string };
 type Action = {
   id: string;
+  item_id: string | null;
   sales_person_id: string | null;
   owner_id: string;
   action: string;
@@ -120,6 +122,7 @@ export default function MeetingPack() {
       supabase.from('sales_meeting_actions').select('*, projects(name), organizations(name), org_units(name)').eq('meeting_id', id).order('created_at'),
       supabase.from('sales_meeting_invitees').select('*').eq('meeting_id', id),
     ]);
+    const items = ((await supabase.from('meeting_items').select('id, sort, body').eq('meeting_id', id).order('sort')).data ?? []) as Item[];
     if (m.error) throw new Error(m.error.message);
     if (!m.data) return null;
     const ex = m.data.exec_project_id as string | null;
@@ -139,6 +142,7 @@ export default function MeetingPack() {
       : null;
     const team = ep2 ? ((await supabase.from('exec_members').select('user_id').eq('exec_project_id', ep2.id).eq('active', true)).data ?? []).map((x) => x.user_id as string) : [];
     return {
+      items,
       team,
       prj,
       m: m.data as Meeting,
@@ -200,7 +204,7 @@ export default function MeetingPack() {
   const owners = Object.values(people)
     .filter((p) => p.active !== false && p.role !== 'gm' && p.role !== 'sys_admin' && (!projectPeople || projectPeople.has(p.id)))
     .sort((a, b) => a.full_name.localeCompare(b.full_name));
-  const saveAction = async (personId: string | null, a: ActionDraft) => {
+  const saveAction = async (personId: string | null, a: ActionDraft, itemId: string | null = null) => {
     await run(
       'add_meeting_action',
       {
@@ -217,6 +221,7 @@ export default function MeetingPack() {
           new_project: a.new_project,
           new_customer: a.new_customer,
           objective: a.objective,
+          item_id: itemId,
         },
       },
       'Action added',
@@ -318,7 +323,12 @@ export default function MeetingPack() {
           : m.team === 'execution'
             ? execTeam(pack.team as Record<string, unknown>)
             : teamTeam(est, pack.team as Record<string, unknown>);
-      const general = actionsFor(null).map(toMin);
+      // actions under the meeting notes, numbered by their note, then any others
+      const itemNo = (iid: string | null) => (iid ? data.items.findIndex((x) => x.id === iid) + 1 : 0);
+      const general = data.actions
+        .filter((a) => !a.sales_person_id)
+        .sort((a, b) => (itemNo(a.item_id) || 999) - (itemNo(b.item_id) || 999))
+        .map((a) => ({ ...toMin(a), action: itemNo(a.item_id) ? `[Note ${itemNo(a.item_id)}] ${a.action}` : a.action }));
       const inPack = new Set(packPeople.map((p) => p.id));
       const others = [...new Set(data.actions.map((a) => a.sales_person_id).filter((x): x is string => !!x && !inPack.has(x)))];
       const noteOf = (pid: string) => data.notes.find((n) => n.sales_person_id === pid)?.note ?? '';
@@ -360,7 +370,7 @@ export default function MeetingPack() {
         teamHtml: isProject && pack ? timelineHtml(pack as unknown as ProjectPack) : undefined,
         teamFacts: team.facts,
         teamLists: team.lists,
-        notes: [m.agenda ? `Agenda: ${m.agenda}` : null, m.notes].filter(Boolean).join('\n\n') || null,
+        notes: [m.agenda ? `Agenda: ${m.agenda}` : null, m.notes, ...data.items.map((it, i) => `${i + 1}. ${it.body}`)].filter(Boolean).join('\n\n') || null,
         general,
         people: persons,
         distribution: [m.team === 'sales' ? 'GM / DGM' : 'GM / DGM, SM Projects', ...invited.map((x) => name(x.person_id)).sort()],
@@ -369,10 +379,11 @@ export default function MeetingPack() {
       });
       await printHtml(html, { key: `meeting_minutes_${m.team}`, filters: `${label} ${m.meeting_date}`, title: `Minutes – ${label} ${fmtDate(m.meeting_date)}` });
     });
-  const actionsFor = (personId: string | null) => data.actions.filter((a) => a.sales_person_id === personId);
-  const actionList = (personId: string | null) => (
+  const actionsFor = (personId: string | null, itemId: string | null = null) =>
+    data.actions.filter((a) => a.sales_person_id === personId && (personId !== null || (a.item_id ?? null) === itemId));
+  const actionList = (personId: string | null, itemId: string | null = null) => (
     <View style={{ gap: 4, marginTop: 6 }}>
-      {actionsFor(personId).map((a) => (
+      {actionsFor(personId, itemId).map((a) => (
         <Row key={a.id} wrap gap={6} style={{ alignItems: 'center' }}>
           <Pill label={a.status === 'done' ? 'Done' : 'Open'} tone={a.status === 'done' ? colors.green : colors.amber} />
           {a.kind !== 'task' ? <Pill label={kindLabel(a.kind)} tone={colors.blue} /> : null}
@@ -390,7 +401,7 @@ export default function MeetingPack() {
           {edit ? <Button small variant="ghost" title="Delete" onPress={() => run('delete_meeting_action', { p_id: a.id }, 'Deleted')} /> : null}
         </Row>
       ))}
-      {edit && adding === (personId ?? 'general') ? (
+      {edit && adding === (itemId ? `item:${itemId}` : (personId ?? 'general')) ? (
         <MeetingActionForm
           owners={owners}
           defaultOwner={personId}
@@ -405,25 +416,58 @@ export default function MeetingPack() {
                 }
               : undefined
           }
-          onSave={(a) => saveAction(personId, a)}
+          onSave={(a) => saveAction(personId, a, itemId)}
           onCancel={() => setAdding(null)}
         />
       ) : edit ? (
         <Row>
-          <Button small variant="secondary" title="+ Action" onPress={() => setAdding(personId ?? 'general')} />
+          <Button small variant="secondary" title="+ Action" onPress={() => setAdding(itemId ? `item:${itemId}` : (personId ?? 'general'))} />
         </Row>
       ) : null}
     </View>
   );
 
+  const editItem = async (it?: Item) => {
+    const r = await dialog.prompt({
+      title: it ? 'Edit note' : 'Add a note',
+      fields: [{ key: 'b', label: 'Note / discussion point', type: 'multiline', required: true, initial: it?.body ?? '' }],
+      confirmLabel: 'Save',
+    });
+    if (r) await run('save_meeting_item', { p_meeting: m.id, p_id: it?.id ?? null, p_body: r.b }, 'Saved');
+  };
+  const removeItem = async (it: Item) => {
+    const n = actionsFor(null, it.id).length;
+    if (await dialog.confirm('Remove this note?', n ? `Its ${n} action(s) are removed too.` : undefined, { confirmLabel: 'Remove', danger: true }))
+      await run('delete_meeting_item', { p_id: it.id }, 'Removed');
+  };
   const generalCard = (
     <Card style={{ marginTop: 8 }}>
-      <Row style={{ justifyContent: 'space-between' }}>
-        <Text style={{ fontWeight: '700', color: colors.ink }}>Meeting notes</Text>
-        {edit ? <Button small variant="ghost" title="Edit" onPress={() => editNote(null, m.notes ?? '')} /> : null}
+      <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+        <Text style={{ fontWeight: '700', color: colors.ink }}>{`Meeting notes (${data.items.length})`}</Text>
+        {edit ? <Button small variant="secondary" title="+ Note" onPress={() => editItem()} /> : null}
       </Row>
-      <Muted>{m.notes ?? 'No notes'}</Muted>
-      {actionList(null)}
+      {m.notes ? <Muted>{m.notes}</Muted> : null}
+      {data.items.map((it, i) => (
+        <View key={it.id} style={{ borderTopWidth: 1, borderTopColor: colors.line, marginTop: 8, paddingTop: 8 }}>
+          <Row wrap gap={6} style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <Text style={{ color: colors.ink, flexShrink: 1, fontWeight: '600' }}>{`${i + 1}. ${it.body}`}</Text>
+            {edit ? (
+              <Row gap={4}>
+                <Button small variant="ghost" title="Edit" onPress={() => editItem(it)} />
+                <Button small variant="ghost" title="Remove" onPress={() => removeItem(it)} />
+              </Row>
+            ) : null}
+          </Row>
+          <View style={{ paddingLeft: 12 }}>{actionList(null, it.id)}</View>
+        </View>
+      ))}
+      {!data.items.length && !m.notes ? <Muted>{edit ? 'No notes yet – press “+ Note” for each point discussed, then add its actions.' : 'No notes'}</Muted> : null}
+      {actionsFor(null, null).length || (edit && !data.items.length) ? (
+        <View style={{ borderTopWidth: data.items.length ? 1 : 0, borderTopColor: colors.line, marginTop: 8, paddingTop: 8 }}>
+          {data.items.length ? <Muted>Other actions</Muted> : null}
+          {actionList(null)}
+        </View>
+      ) : null}
     </Card>
   );
 
@@ -602,14 +646,7 @@ export default function MeetingPack() {
               <Stat label={`Slipped invoices · ${mn(t.slipped)} Mn`} value={t.slipped_n ?? 0} tone={t.slipped_n ? 'red' : undefined} />
               <Stat label="Debtors over 90 days (Mn)" value={mn(t.debtors_90)} tone={t.debtors_90 ? 'amber' : undefined} />
             </Grid>
-            <Card style={{ marginTop: 8 }}>
-              <Row style={{ justifyContent: 'space-between' }}>
-                <Text style={{ fontWeight: '700', color: colors.ink }}>Meeting notes</Text>
-                {edit ? <Button small variant="ghost" title="Edit" onPress={() => editNote(null, m.notes ?? '')} /> : null}
-              </Row>
-              <Muted>{m.notes ?? 'No notes'}</Muted>
-              {actionList(null)}
-            </Card>
+            {generalCard}
           </Section>
 
           {pack.people.map((p) => {

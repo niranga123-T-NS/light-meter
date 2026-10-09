@@ -5180,6 +5180,19 @@ begin
   exception when others then assert sqlerrm = 'Choose someone on this project or invited to the meeting', sqlerrm; end;
   begin perform public.add_meeting_action(mid, jsonb_build_object('kind', 'design', 'action', 'x')); assert false, 'design task';
   exception when others then assert sqlerrm = 'A project meeting gives tasks and project execution tasks', sqlerrm; end;
+  -- several notes, each with its own actions
+  declare n1 uuid; n2 uuid; begin
+    n1 := public.save_meeting_item(mid, null, 'Cable tray delay at Level 3');
+    n2 := public.save_meeting_item(mid, null, 'Dewatering');
+    perform public.save_meeting_item(mid, n2, 'Dewatering – pump hire');
+    perform public.add_meeting_action(mid, jsonb_build_object('kind', 'task', 'owner_id', (select id from u where role = 'assistant_engineer'), 'action', 'Hire a second pump', 'item_id', n2));
+    perform public.add_meeting_action(mid, jsonb_build_object('kind', 'task', 'owner_id', (select id from u where role = 'assistant_engineer'), 'action', 'Clear the tray route', 'item_id', n1));
+    assert (select count(*) from public.sales_meeting_actions where item_id = n2) = 1, 'action under note 2';
+    assert (select body from public.meeting_items where id = n2) = 'Dewatering – pump hire', 'note edited';
+    perform public.delete_meeting_item(n1);
+    assert not exists (select 1 from public.sales_meeting_actions where action = 'Clear the tray route'), 'its actions removed';
+    assert (select count(*) from public.meeting_items where meeting_id = mid) = 1, 'one note left';
+  end;
   perform public.publish_sales_meeting(mid);
 end $$;
 reset role;
