@@ -3670,6 +3670,14 @@ begin
   exception when others then assert sqlerrm = 'Attach the after photo first', sqlerrm; end;
   perform set_config('test.spc', public.prepare_sub_cert(current_setting('test.ex')::uuid, '{"subcontractor":"Lanka Electricals","period":"Sep 2026","gross":"1000000","previous":"200000","retention_pct":"10","deductions":"20000"}')::text, false);
   assert (select net from public.sub_certs where id = current_setting('test.spc')::uuid) = 700000, 'net value';
+  assert (select status from public.sub_certs where id = current_setting('test.spc')::uuid) = 'draft', 'a draft until submitted';
+  begin perform public.submit_sub_cert(current_setting('test.spc')::uuid); assert false, 'IPC needed';
+  exception when others then assert sqlerrm = 'Attach the IPC (PDF or photos)', sqlerrm; end;
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_cert', current_setting('test.spc')::uuid, 'ipc_draft', 'sub_cert/x/ipc.pdf', 'ipc.pdf');
+  begin perform public.submit_sub_cert(current_setting('test.spc')::uuid); assert false, 'sheets needed';
+  exception when others then assert sqlerrm = 'Attach the measurement sheets (PDF or photos)', sqlerrm; end;
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_cert', current_setting('test.spc')::uuid, 'ipc_measure', 'sub_cert/x/ms.pdf', 'ms.pdf');
+  assert public.submit_sub_cert(current_setting('test.spc')::uuid) = 'prepared', 'AE''s IPC goes straight to the SEE';
   assert not exists (select 1 from public.exec_cost_lines), 'AE does not read costs';
 end $$;
 reset role;
@@ -5207,6 +5215,12 @@ begin
   begin perform public.submit_sub_invoice(iid); assert false, 'copy needed';
   exception when others then assert sqlerrm = 'Attach the invoice copy (PDF or photos)', sqlerrm; end;
   insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_invoice', iid, 'sinv_doc', 'sub_invoice/' || iid || '/inv.pdf', 'inv.pdf');
+  begin perform public.submit_sub_invoice(iid); assert false, 'signed IPC needed';
+  exception when others then assert sqlerrm = 'Attach the IPC approved and signed (PDF or photos)', sqlerrm; end;
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_invoice', iid, 'ipc_signed', 'sub_invoice/' || iid || '/ipc.pdf', 'ipc.pdf');
+  begin perform public.submit_sub_invoice(iid); assert false, 'final sheets needed';
+  exception when others then assert sqlerrm = 'Attach the corrected (final) measurement sheets (PDF or photos)', sqlerrm; end;
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_invoice', iid, 'measure_final', 'sub_invoice/' || iid || '/ms.pdf', 'ms.pdf');
   perform public.submit_sub_invoice(iid);
   assert (select status from public.sub_invoices where id = iid) = 'ae_review', 'supervisor''s invoice goes to the AE first';
   begin perform public.decide_sub_invoice(iid, true); assert false, 'not the sub';
@@ -5273,6 +5287,67 @@ reset role;
 do $$ begin
   assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'sub_supervisor') and title = 'Approved – submit the physical documents'), 'told to bring documents';
 end $$;
+
+-- IPC by a subcontractor supervisor: draft with the IPC and measurement sheets → the project AE checks → the SEE approves → invoice
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare cid uuid;
+begin
+  cid := public.prepare_sub_cert(current_setting('test.ex')::uuid, '{"subcontractor":"Lanka Electricals","period":"Nov 2026","gross":"2000000","previous":"1500000"}');
+  perform set_config('test.spc2', cid::text, false);
+  assert exists (select 1 from public.sub_certs where id = cid), 'supervisor sees own IPC';
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_cert', cid, 'ipc_draft', 'sub_cert/' || cid || '/ipc.pdf', 'ipc.pdf');
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_cert', cid, 'ipc_measure', 'sub_cert/' || cid || '/ms.pdf', 'ms.pdf');
+  perform public.update_sub_cert(cid, '{"gross":"2100000"}');
+  assert public.submit_sub_cert(cid) = 'ae_review', 'supervisor''s IPC goes to the AE';
+  begin insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_cert', cid, 'ipc_draft', 'x', 'x'); assert false, 'locked once submitted';
+  exception when others then null; end;
+  begin perform public.create_sub_invoice(cid, '{"invoice_no":"X2","invoice_date":"2026-10-08","amount":"1"}'); assert false, 'no invoice before approval';
+  exception when others then assert sqlerrm like 'The payment certificate (IPC and measurement sheets) must be verified%', sqlerrm; end;
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'assistant_engineer') and title = 'Subcontractor IPC to check'), 'AE told';
+end $$;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare cid uuid := current_setting('test.spc2')::uuid;
+begin
+  assert exists (select 1 from public.my_pending_approvals() where source = 'sub_cert' and id = cid), 'in the AE''s approvals';
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_cert', cid, 'ipc_markup', 'sub_cert/' || cid || '/m.pdf', 'Marked up – ipc.pdf');
+  assert public.advance_sub_cert(cid, false, 'Quantities of item 3 wrong') = 'returned', 'AE returns';
+end $$;
+reset role;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare cid uuid := current_setting('test.spc2')::uuid;
+begin
+  assert exists (select 1 from public.attachments where entity_id = cid and kind = 'ipc_markup'), 'supervisor sees the marked-up IPC';
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_cert', cid, 'ipc_measure', 'sub_cert/' || cid || '/ms2.pdf', 'ms2.pdf');
+  assert public.submit_sub_cert(cid) = 'ae_review', 'resubmitted';
+  assert (select revision from public.sub_certs where id = cid) = 1, 'revision';
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+select public.advance_sub_cert(current_setting('test.spc2')::uuid, true);
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin
+  assert public.advance_sub_cert(current_setting('test.spc2')::uuid, true) = 'verified', 'SEE approves';
+  assert (select count(*) from public.sub_certs where id = current_setting('test.spc2')::uuid and ae_by is not null) = 1, 'AE check recorded';
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'sub_supervisor') and title = 'IPC approved – record the invoice'
+                  and body like '%signed IPC and the corrected (final) measurement sheets%'), 'supervisor told to record the invoice';
+end $$;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare iid uuid;
+begin
+  iid := public.create_sub_invoice(current_setting('test.spc2')::uuid, '{"invoice_no":"LE/INV/0050","invoice_date":"2026-11-05","amount":"450000"}');
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_invoice', iid, 'ipc_signed', 'sub_invoice/' || iid || '/ipc.pdf', 'ipc.pdf');
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_invoice', iid, 'measure_final', 'sub_invoice/' || iid || '/ms.pdf', 'ms.pdf');
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_invoice', iid, 'sinv_doc', 'sub_invoice/' || iid || '/inv.pdf', 'inv.pdf');
+  perform public.submit_sub_invoice(iid);
+end $$;
+reset role;
 
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

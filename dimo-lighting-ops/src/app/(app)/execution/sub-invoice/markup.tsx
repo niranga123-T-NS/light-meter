@@ -9,9 +9,10 @@ import { useLoad } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 import type { Attachment } from '@/lib/types';
 
-/** Red pen on an invoice copy (SEE / Operations): the comments are saved as a marked-up PDF kept with the invoice. */
+/** Red pen on an invoice or IPC copy (AE / SEE / Operations): the comments are saved as a marked-up PDF kept with the record. */
 export default function SubInvoiceMarkup() {
-  const { id, att } = useLocalSearchParams<{ id: string; att: string }>();
+  const { id, att, entity } = useLocalSearchParams<{ id: string; att: string; entity?: string }>();
+  const ipc = entity === 'sub_cert';
   const me = useMe();
   const dialog = useDialog();
   const { data, error } = useLoad(async () => {
@@ -38,7 +39,7 @@ export default function SubInvoiceMarkup() {
         onCancel={() => router.back()}
         onSave={async (pdf) => {
           await dialog.run(async () => {
-            await uploadAttachment('sub_invoice', id, 'sinv_markup', {
+            await uploadAttachment(ipc ? 'sub_cert' : 'sub_invoice', id, ipc ? 'ipc_markup' : 'sinv_markup', {
               name: `Marked up – ${base}.pdf`,
               uri: '',
               mimeType: 'application/pdf',

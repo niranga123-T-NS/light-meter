@@ -11,9 +11,9 @@ type Cert = { id: string; code: string; subcontractor: string; period: string; n
 
 /** Record a subcontractor invoice against a verified payment certificate (IPC + measurement sheets); the copy is attached next. */
 export default function NewSubInvoice() {
-  const { project } = useLocalSearchParams<{ project: string }>();
+  const { project, cert: preset } = useLocalSearchParams<{ project: string; cert?: string }>();
   const dialog = useDialog();
-  const [f, setF] = useState({ cert: '', invoice_no: '', invoice_date: todayISO(), amount: '', note: '' });
+  const [f, setF] = useState({ cert: preset ?? '', invoice_no: '', invoice_date: todayISO(), amount: '', note: '' });
   const { data, error } = useLoad(() => rpc<Cert[]>('sub_invoice_certs', { p_exec: project }), [project]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const cert = data.find((c) => c.id === f.cert);
@@ -23,12 +23,12 @@ export default function NewSubInvoice() {
       <Notice tone={colors.blue}>{SINV_NOTICE}</Notice>
       {!data.length ? (
         <Notice tone={colors.amber}>
-          No verified payment certificate yet. An invoice is recorded once the Senior Electrical Engineer has verified the IPC and measurement sheets.
+          No approved payment certificate yet. Submit the IPC with its measurement sheets first – the invoice is recorded once the Senior Electrical Engineer approves the IPC.
         </Notice>
       ) : (
         <Card>
           <Select
-            label="Payment certificate (IPC) verified by the SEE"
+            label="Payment certificate (IPC) approved by the SEE"
             required
             value={f.cert}
             onChange={(v) => setF((s) => ({ ...s, cert: v, amount: s.amount || String(data.find((c) => c.id === v)?.net ?? '') }))}
@@ -45,11 +45,11 @@ export default function NewSubInvoice() {
             hint={cert ? `Certified net ${fmtMoney(cert.net, 'LKR')}` : undefined}
           />
           <Field label="Note" multiline value={f.note} onChangeText={(v) => setF((s) => ({ ...s, note: v }))} />
-          <Muted>Next: attach the invoice copy (PDF or photos) and submit.</Muted>
+          <Muted>Next: attach the invoice copy, the IPC approved and signed, and the corrected (final) measurement sheets – then submit.</Muted>
           <Row gap={8} style={{ marginTop: 8 }}>
             <Button
-              title="Continue – attach the copy"
-              disabled={!f.cert || !f.invoice_no.trim() || !f.amount}
+              title="Continue – attach the documents"
+              disabled={!data.some((c) => c.id === f.cert) || !f.invoice_no.trim() || !f.amount}
               onPress={() =>
                 dialog.run(async () => {
                   const id = await rpc<string>('create_sub_invoice', { p_cert: f.cert, p: { invoice_no: f.invoice_no, invoice_date: f.invoice_date, amount: f.amount, note: f.note } });
