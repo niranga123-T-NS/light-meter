@@ -23,12 +23,12 @@ export default function NewSubInvoice() {
       <Notice tone={colors.blue}>{SINV_NOTICE}</Notice>
       {!data.length ? (
         <Notice tone={colors.amber}>
-          No approved payment certificate yet. Submit the IPC with its measurement sheets first – the invoice is recorded once the Senior Electrical Engineer approves the IPC.
+          No payment certificate with Interim Payment Approval (IPA) yet. Submit the IPC with its measurement sheets first – the invoice is recorded once the IPC has IPA.
         </Notice>
       ) : (
         <Card>
           <Select
-            label="Payment certificate (IPC) approved by the SEE"
+            label="Payment certificate (IPC) with IPA"
             required
             value={f.cert}
             onChange={(v) => setF((s) => ({ ...s, cert: v, amount: s.amount || String(data.find((c) => c.id === v)?.net ?? '') }))}
@@ -45,7 +45,7 @@ export default function NewSubInvoice() {
             hint={cert ? `Certified net ${fmtMoney(cert.net, 'LKR')}` : undefined}
           />
           <Field label="Note" multiline value={f.note} onChangeText={(v) => setF((s) => ({ ...s, note: v }))} />
-          <Muted>Next: attach the invoice copy, the IPC approved and signed, and the corrected (final) measurement sheets – then submit.</Muted>
+          <Muted>Next: attach the invoice copy, the IPA-approved IPC with signatures, and the corrected (final) measurement sheets – then submit.</Muted>
           <Row gap={8} style={{ marginTop: 8 }}>
             <Button
               title="Continue – attach the documents"

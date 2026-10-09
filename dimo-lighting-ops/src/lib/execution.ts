@@ -569,15 +569,16 @@ export type SubCert = {
 };
 export const CERT_STATUS: Record<SubCert['status'], string> = {
   draft: 'Draft – attach the IPC and sheets',
-  ae_review: 'With the AE to check',
-  prepared: 'With the SEE to approve',
-  verified: 'SEE approved – SM Projects to approve',
+  ae_review: 'IPA pending – AE checking',
+  prepared: 'IPA pending – with the SEE',
+  verified: 'IPA approved – SM Projects next',
   approved: 'Operations to pay',
   paid: 'Paid',
   returned: 'Returned with comments',
   cancelled: 'Withdrawn',
 };
 /** An invoice can be recorded once the SEE has approved the IPC */
+/** IPA = Interim Payment Approval: the SEE's approval of the IPC */
 export const certApproved = (s: SubCert['status']) => s === 'verified' || s === 'approved' || s === 'paid';
 
 // ---- Subcontractor invoices: recorded for reference against a verified IPC; SEE → Operations; then the physical documents ----
