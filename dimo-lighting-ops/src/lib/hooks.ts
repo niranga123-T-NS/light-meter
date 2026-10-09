@@ -82,19 +82,42 @@ export function useMasters() {
 // People (names and pictures appear across lists)
 // ---------------------------------------------------------------------------
 let peopleCache: Record<string, Profile> | null = null;
+let peopleAt = 0;
+let peopleLoading: Promise<Record<string, Profile> | null> | null = null;
+const PEOPLE_TTL = 10 * 60 * 1000;
+
+// Names load only once signed in: an empty / failed load (e.g. before the session is restored) is never kept, and a new
+// sign-in or session refresh loads them again.
+function loadPeople() {
+  if (!peopleLoading)
+    peopleLoading = Promise.resolve(supabase.from('profiles').select('*'))
+      .then(({ data, error }) => {
+        if (error || !data?.length) return null;
+        peopleCache = Object.fromEntries(data.map((p) => [p.id, p as Profile]));
+        peopleAt = Date.now();
+        return peopleCache;
+      })
+      .catch(() => null)
+      .finally(() => {
+        peopleLoading = null;
+      });
+  return peopleLoading;
+}
+supabase.auth.onAuthStateChange((event) => {
+  if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') peopleCache = null;
+});
 
 export function usePeople() {
   const [people, setPeople] = useState<Record<string, Profile>>(peopleCache ?? {});
   useEffect(() => {
-    if (peopleCache) return;
-    supabase
-      .from('profiles')
-      .select('*')
-      .then(({ data }) => {
-        const map = Object.fromEntries((data ?? []).map((p) => [p.id, p as Profile]));
-        peopleCache = map;
-        setPeople(map);
-      });
+    let live = true;
+    if (peopleCache && Date.now() - peopleAt < PEOPLE_TTL) return;
+    loadPeople().then((map) => {
+      if (live && map) setPeople(map);
+    });
+    return () => {
+      live = false;
+    };
   }, []);
   return people;
 }
