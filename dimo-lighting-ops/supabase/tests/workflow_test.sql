@@ -3488,6 +3488,16 @@ select pg_temp.act_as('sub_supervisor'); set role authenticated;
 select public.update_plan_item(current_setting('test.sx')::uuid, 'done');
 reset role;
 
+-- No supervisor daily report without the day's toolbox meeting
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ begin
+  begin perform public.submit_exec_report(current_setting('test.ex')::uuid, current_date, '{"crew_count":6,"work_done":"x"}'); assert false, 'toolbox first';
+  exception when others then assert sqlerrm like 'Hold and record the day''s toolbox meeting first%', sqlerrm; end;
+end $$;
+reset role;
+insert into public.hse_records (code, exec_project_id, form_code, header, status, starts_at, created_by)
+values ('TBT-T0', current_setting('test.ex')::uuid, 'TBT-01', '{"activity":"Downlights L2","hazards":"Ladders"}', 'submitted', now(), (select id from u where role = 'sub_supervisor'));
+
 -- Execution step 4: supervisor report → AE verifies; AE report → SEE; late / missing alerts and SM Projects after 3 days
 select pg_temp.act_as('sub_supervisor'); set role authenticated;
 do $$ declare r uuid;
@@ -5050,13 +5060,16 @@ rollback to savepoint collections;
 
 -- Daily report linked to the day's toolbox talk record (number from the TBT form) ---------------------------------
 savepoint report_tbt;
+-- (the supervisor's toolbox talks of earlier days, as recorded then)
+insert into public.hse_records (code, exec_project_id, form_code, header, status, starts_at, created_by)
+values ('TBT-Y1', current_setting('test.ex')::uuid, 'TBT-01', '{"activity":"Cable pulling north stand","hazards":"Manual handling"}', 'submitted',
+        ((current_date - 1) + time '07:45') at time zone app.tz(), (select id from u where role = 'sub_supervisor')),
+       ('TBT-Y2', current_setting('test.ex')::uuid, 'TBT-01', '{"activity":"Other day","hazards":"x"}', 'submitted',
+        ((current_date - 2) + time '07:45') at time zone app.tz(), (select id from u where role = 'sub_supervisor'));
 select pg_temp.act_as('sub_supervisor'); set role authenticated;
-do $$ declare e uuid := current_setting('test.ex')::uuid; t uuid; r uuid; other uuid;
+do $$ declare e uuid := current_setting('test.ex')::uuid; t uuid := (select id from public.hse_records where code = 'TBT-Y1'); r uuid;
+  other uuid := (select id from public.hse_records where code = 'TBT-Y2');
 begin
-  t := public.save_tbt(e, jsonb_build_object('header', jsonb_build_object('activity', 'Cable pulling north stand', 'hazards', 'Manual handling'),
-    'participants', jsonb_build_array(jsonb_build_object('name', 'Nimal')), 'starts_at', ((current_date - 1) + time '07:45') at time zone app.tz()));
-  other := public.save_tbt(e, jsonb_build_object('header', jsonb_build_object('activity', 'Other day', 'hazards', 'x'),
-    'participants', jsonb_build_array(jsonb_build_object('name', 'Nimal')), 'starts_at', ((current_date - 2) + time '07:45') at time zone app.tz()));
   begin perform public.submit_exec_report(e, current_date - 1, jsonb_build_object('crew_count', 4, 'work_done', 'x', 'toolbox_talk', true, 'toolbox_records', jsonb_build_array(other)));
     assert false, 'wrong day';
   exception when others then assert sqlerrm like 'The toolbox talk must be one of this project on the report day%', sqlerrm; end;
@@ -5720,6 +5733,60 @@ do $$ begin
   assert (select count(*) from public.exec_members where member_role = 'sub_supervisor' and exec_project_id = current_setting('test.ex')::uuid and active) >= 2, 'the AE sees both supervisors';
 end $$;
 reset role;
+
+
+-- Site location, check-in and the toolbox meeting (08:30, late after 08:50)
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin
+  begin perform public.set_site_location(current_setting('test.ex')::uuid, 6.9271, 79.8612, 200); assert false, 'SEE sets it';
+  exception when others then assert sqlerrm = 'The Senior Electrical Engineer sets the site location', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select public.set_site_location(current_setting('test.ex')::uuid, 6.9271, 79.8612, 200);
+reset role;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare e uuid := current_setting('test.ex')::uuid; res jsonb; t uuid; tbt jsonb := jsonb_build_object('header', jsonb_build_object('activity', 'Containment L3', 'hazards', 'Height'),
+    'participants', jsonb_build_array(jsonb_build_object('name', 'Nimal')));
+begin
+  begin perform public.save_tbt(e, tbt || jsonb_build_object('starts_at', (current_date + time '08:35') at time zone app.tz())); assert false, 'check in first';
+  exception when others then assert sqlerrm like 'Check in on site first%', sqlerrm; end;
+  res := public.site_checkin(e, 6.9500, 79.8612, 15);
+  assert not (res ->> 'within')::boolean and (res ->> 'distance_m')::numeric > 2000, 'away from site';
+  begin perform public.save_tbt(e, tbt || jsonb_build_object('starts_at', (current_date + time '08:35') at time zone app.tz())); assert false, 'still not on site';
+  exception when others then assert sqlerrm like 'Check in on site first%', sqlerrm; end;
+  res := public.site_checkin(e, 6.9278, 79.8616, 10);
+  assert (res ->> 'within')::boolean, 'on site';
+  begin perform public.save_tbt(e, tbt || jsonb_build_object('starts_at', ((current_date - 1) + time '08:35') at time zone app.tz())); assert false, 'on the day';
+  exception when others then assert sqlerrm = 'The toolbox meeting is held on the day itself', sqlerrm; end;
+  t := public.save_tbt(e, tbt || jsonb_build_object('starts_at', (current_date + time '08:40') at time zone app.tz()));
+  assert not (select tbt_late from public.hse_records where id = t), 'on time';
+  t := public.save_tbt(e, tbt || jsonb_build_object('starts_at', (current_date + time '09:05') at time zone app.tz()));
+  assert (select tbt_late from public.hse_records where id = t), 'late after 08:50';
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'senior_elec_engineer') and title like 'Check-in away from site%'), 'SEE told of the away check-in';
+  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'assistant_engineer') and title like 'Checked in on site%'), 'AE told of the check-in';
+  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'senior_elec_engineer') and title like 'Toolbox meeting late%' and body like '%held at 09:05%'), 'late toolbox reported';
+  assert (select count(*) from public.site_checkins where exec_project_id = current_setting('test.ex')::uuid) = 2, 'both check-ins recorded';
+end $$;
+-- Sameera has a work permit on a working day and no toolbox meeting by 08:50: the AEs and the SEE are alerted once
+do $$ declare wd date := current_date + 7; n int;
+begin
+  while not app.is_working_day(wd) loop wd := wd + 1; end loop;
+  insert into public.hse_records (code, exec_project_id, form_code, header, status, starts_at, ends_at, created_by)
+  values ('PTW-SAM-1', current_setting('test.ex')::uuid, 'PTW-01', '{"location":"Zone L"}', 'active', (wd + time '08:00') at time zone app.tz(),
+          (wd + time '17:00') at time zone app.tz(), '00000000-0000-0000-0000-0000000005a1');
+  assert public.toolbox_tick((wd + time '08:45') at time zone app.tz()) = 0, 'not before 08:50';
+  n := public.toolbox_tick((wd + time '08:55') at time zone app.tz());
+  assert n >= 1, 'alert';
+  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'senior_elec_engineer') and title = 'Toolbox meeting late – ' || app.display_name('00000000-0000-0000-0000-0000000005a1')
+                 and body like '%no toolbox meeting by 08:50%'), 'SEE alerted';
+  perform public.toolbox_tick((wd + time '09:05') at time zone app.tz());
+  assert (select count(*) from public.notifications where recipient_id = (select id from u where role = 'senior_elec_engineer')
+          and dedupe_key = 'tbt_late:' || current_setting('test.ex') || ':00000000-0000-0000-0000-0000000005a1:' || wd) = 1, 'once a day';
+end $$;
 
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
