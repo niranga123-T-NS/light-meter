@@ -7,7 +7,7 @@ import { fmtMoney, todayISO } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import { rpc } from '@/lib/supabase';
 
-type Cert = { id: string; code: string; subcontractor: string; period: string; net: number; status: string };
+type Cert = { id: string; code: string; subcontractor: string; period: string; net: number; status: string; var_code: string | null };
 
 /** Record a subcontractor invoice against a verified payment certificate (IPC + measurement sheets); the copy is attached next. */
 export default function NewSubInvoice() {
@@ -32,7 +32,7 @@ export default function NewSubInvoice() {
             required
             value={f.cert}
             onChange={(v) => setF((s) => ({ ...s, cert: v, amount: s.amount || String(data.find((c) => c.id === v)?.net ?? '') }))}
-            options={data.map((c) => ({ value: c.id, label: `${c.code} · ${c.subcontractor} · ${c.period} · net ${fmtMoney(c.net, 'LKR')}` }))}
+            options={data.map((c) => ({ value: c.id, label: `${c.code} · ${c.var_code ? `Variation ${c.var_code}` : 'BOQ work'} · ${c.subcontractor} · ${c.period} · net ${fmtMoney(c.net, 'LKR')}` }))}
           />
           <Field label="Invoice number" required value={f.invoice_no} onChangeText={(v) => setF((s) => ({ ...s, invoice_no: v }))} />
           <DateField label="Invoice date" required value={f.invoice_date} onChange={(v) => setF((s) => ({ ...s, invoice_date: v ?? '' }))} quick={[0, -1]} />

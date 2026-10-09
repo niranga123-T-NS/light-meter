@@ -6,7 +6,6 @@ import { certTone } from "@/components/exec/CertRows";
 import {
   Button,
   Card,
-  Chip,
   colors,
   ErrorBanner,
   KeyValue,
@@ -20,20 +19,13 @@ import {
   Section,
 } from "@/components/ui";
 import { useMe } from "@/lib/auth";
-import { CERT_STATUS, isJm, type SubCert } from "@/lib/execution";
+import { CERT_STATUS, certTitle, isJm, type SubCert } from "@/lib/execution";
 import { listAttachments, openAttachment } from "@/lib/files";
 import { fmtDate, fmtDateTime, fmtMoney, todayISO } from "@/lib/format";
 import { useLoad, usePeople } from "@/lib/hooks";
 import { rpc, supabase } from "@/lib/supabase";
 import type { Attachment } from "@/lib/types";
 
-type VarOpt = {
-  id: string;
-  code: string;
-  vo_no: string | null;
-  title: string;
-  ticked: boolean;
-};
 type CertVar = {
   id: string;
   variation_id: string;
@@ -75,7 +67,7 @@ export default function SubCertPage() {
   const people = usePeople();
   const dialog = useDialog();
   const { data, error, reload } = useLoad(async () => {
-    const [c, f, v, opts, cv] = await Promise.all([
+    const [c, f, v, cv] = await Promise.all([
       supabase
         .from("sub_certs")
         .select("*, exec_projects(code, name)")
@@ -87,9 +79,6 @@ export default function SubCertPage() {
         .select("id, code, invoice_no, status")
         .eq("sub_cert_id", id)
         .neq("status", "cancelled"),
-      rpc<VarOpt[]>("sub_cert_variation_options", { p_cert: id }).catch(
-        () => [] as VarOpt[],
-      ),
       supabase
         .from("sub_cert_variations")
         .select("*")
@@ -99,7 +88,6 @@ export default function SubCertPage() {
     if (c.error) throw new Error(c.error.message);
     const vars = (cv.data ?? []) as CertVar[];
     return {
-      opts,
       vars,
       varFiles: vars.length
         ? ((await listAttachments(
@@ -123,7 +111,7 @@ export default function SubCertPage() {
     return (
       <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>
     );
-  const { c, files, invoices, opts, vars, varFiles } = data;
+  const { c, files, invoices, vars, varFiles } = data;
   const preparer =
     c.prepared_by === me.id || me.role === "senior_elec_engineer";
   const editable =
@@ -152,18 +140,6 @@ export default function SubCertPage() {
     files.some((x) => x.kind === "ipc_draft") &&
     files.some((x) => x.kind === "ipc_measure") &&
     vars.every((x) => varFiles.some((f) => f.entity_id === x.id));
-  const tick = (vid: string, on: boolean) =>
-    run(
-      "set_sub_cert_variations",
-      {
-        p_cert: c.id,
-        p_ids: [
-          ...vars.map((x) => x.variation_id).filter((x) => x !== vid),
-          ...(on ? [vid] : []),
-        ],
-      },
-      on ? "Variation ticked – attach its sheets below" : "Removed",
-    );
   const canRecord =
     (c.status === "verified" ||
       c.status === "approved" ||
@@ -326,7 +302,7 @@ export default function SubCertPage() {
         >
           <Text
             style={{ fontSize: 18, fontWeight: "700", color: colors.ink }}
-          >{`${c.code} · ${c.subcontractor} · ${c.period}`}</Text>
+          >{certTitle(c)}</Text>
           <Pill
             label={CERT_STATUS[c.status]}
             tone={certTone(c.status)}
@@ -489,32 +465,6 @@ export default function SubCertPage() {
             onChange={reload}
           />
 
-          <Section title="Variations included in this IPC">
-            {editable ? (
-              opts.length ? (
-                <Card>
-                  <Muted>
-                    Tick each approved variation this IPC includes – then attach
-                    its IPC / measurement sheets separately below.
-                  </Muted>
-                  <Row wrap gap={6} style={{ marginTop: 8 }}>
-                    {opts.map((o) => (
-                      <Chip
-                        key={o.id}
-                        on={o.ticked}
-                        label={`${o.ticked ? "☑" : "☐"} ${o.vo_no || o.code} · ${o.title}`}
-                        onPress={() => tick(o.id, !o.ticked)}
-                      />
-                    ))}
-                  </Row>
-                </Card>
-              ) : (
-                <Muted>No approved variations on this project.</Muted>
-              )
-            ) : !vars.length ? (
-              <Muted>None – the IPC covers contract work only.</Muted>
-            ) : null}
-          </Section>
           {vars.map((x) => (
             <DocSlot
               key={x.id}
@@ -714,8 +664,7 @@ export default function SubCertPage() {
       </Row>
       {editable && !ready ? (
         <Muted>
-          Attach the IPC, the measurement sheets and the sheets of each ticked
-          variation (PDF or photos) to submit.
+          Attach the IPC and the measurement sheets (PDF or photos) to submit.
         </Muted>
       ) : null}
 

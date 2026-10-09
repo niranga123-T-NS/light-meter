@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { Card, colors, Empty, ListRow, Pill, Row } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { CERT_STATUS, type SubCert } from '@/lib/execution';
+import { CERT_STATUS, certTitle, type SubCert } from '@/lib/execution';
 import { fmtDate, fmtMoney } from '@/lib/format';
 import { usePeople } from '@/lib/hooks';
 
@@ -33,7 +33,7 @@ export function CertRows({ rows, projectName, empty = 'No payment certificates' 
           wrapRight
           highlight={certForMe(c, me) ? colors.amber : undefined}
           onPress={() => router.push(`/execution/sub-cert/${c.id}`)}
-          title={`${c.code} · ${c.subcontractor} · ${c.period}`}
+          title={certTitle(c)}
           subtitle={[
             projectName?.(c.exec_project_id),
             people[c.prepared_by]?.full_name,

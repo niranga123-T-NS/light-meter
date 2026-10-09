@@ -554,6 +554,9 @@ export type SubCert = {
   net: number;
   note: string | null;
   status: 'jm_requested' | 'jm_scheduled' | 'jm_ae' | 'jm_see' | 'jm_returned' | 'draft' | 'ae_review' | 'prepared' | 'verified' | 'approved' | 'paid' | 'returned' | 'cancelled';
+  variation_id: string | null;
+  var_code: string | null;
+  var_title: string | null;
   jm_requested_date: string | null;
   jm_scope: string | null;
   jm_date: string | null;
@@ -591,6 +594,9 @@ export const CERT_STATUS: Record<SubCert['status'], string> = {
   cancelled: 'Withdrawn',
 };
 /** An invoice can be recorded once the SEE has approved the IPC */
+/** BOQ (contract) work, or one variation – each goes through measurement, IPA and IPC separately */
+export const certWork = (c: Pick<SubCert, 'var_code' | 'var_title'>) => (c.var_code ? `Variation ${c.var_code} – ${c.var_title ?? ''}` : 'BOQ work');
+export const certTitle = (c: Pick<SubCert, 'code' | 'subcontractor' | 'period' | 'var_code' | 'var_title'>) => `${c.code} · ${certWork(c)} · ${c.subcontractor} · ${c.period}`;
 /** Joint measurement stages: before them nothing of the IPC itself can be uploaded */
 export const isJm = (s: SubCert['status']) => s.startsWith('jm_');
 /** IPA = Interim Payment Approval: the SEE's approval of the IPC */
