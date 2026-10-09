@@ -6,7 +6,8 @@ import { TestingBanner } from '@/components/Testing';
 import { Button, Card, colors, ErrorBanner, Loading, Muted, Notice, Pill, Row, Section, Select } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { weekOf, type ExecProject } from '@/lib/execution';
-import { addDaysISO, fmtDate, fmtDateTime, todayISO } from '@/lib/format';
+import { addDaysISO, fmtDate, fmtDateTime, fmtTime, todayISO } from '@/lib/format';
+import { siteFix } from '@/lib/site';
 import { formName, loadHseForms, PERMIT_STATUS, type HseRecord } from '@/lib/hse';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
@@ -15,7 +16,9 @@ type SubPlan = { id: string; exec_project_id: string; supervisor_id: string; wee
 type Item = { id: string; day: string; ae_item_id: string | null; title: string; zone: string | null; qty: number | null; unit: string | null; crew: number | null; additional: boolean; status: 'planned' | 'done' | 'partial' | 'not_done'; done_qty: number | null; result_note: string | null; activity_id: string | null };
 type AeItem = { id: string; day: string; kind: string; title: string; zone: string | null; qty: number | null; unit: string | null; engineer: string; mine: boolean; picked: boolean; activity: string | null };
 type Link = { item_id: string; permit_id: string };
-type Permit = Pick<HseRecord, 'id' | 'code' | 'status' | 'starts_at' | 'ends_at' | 'header' | 'late_request'>;
+type Permit = Pick<HseRecord, 'id' | 'code' | 'status' | 'starts_at' | 'ends_at' | 'header' | 'late_request' | 'created_by'>;
+type Checkin = { id: string; day: string; at: string; distance_m: number; within: boolean };
+type Tbt = { id: string; code: string; starts_at: string; tbt_late: boolean };
 
 const STATUS: Record<SubPlan['status'], { label: string; tone: string }> = {
   draft: { label: 'Draft – pick the work and submit', tone: colors.grey },
@@ -51,7 +54,7 @@ export function SubPlanView({ plan: planParam, project: projectParam, week: week
     let planId = params.plan ?? null;
     const proj = project ?? projects[0]?.id ?? null;
     if (!planId && sup && proj) planId = await rpc<string>('my_sub_plan', { p_exec: proj, p_week: week });
-    if (!planId) return { projects, plan: null, items: [] as Item[], ae: [] as AeItem[], permits: [] as Permit[], links: [] as Link[], projectName: '' };
+    if (!planId) return { projects, plan: null, items: [] as Item[], ae: [] as AeItem[], permits: [] as Permit[], links: [] as Link[], checkins: [] as Checkin[], tbts: [] as Tbt[], projectName: '' };
     const [{ data: pl, error: e }, { data: it }, ae] = await Promise.all([
       supabase.from('sub_plans').select('*, exec_projects(code, name)').eq('id', planId).single(),
       supabase.from('sub_plan_items').select('*').eq('sub_plan_id', planId).order('day').order('created_at'),
@@ -63,13 +66,21 @@ export function SubPlanView({ plan: planParam, project: projectParam, week: week
     const { data: ln } = items.length ? await supabase.from('sub_plan_item_permits').select('*').in('item_id', items.map((x) => x.id)) : { data: [] };
     const { data: pm } = await supabase
       .from('hse_records')
-      .select('id, code, status, starts_at, ends_at, header, late_request')
+      .select('id, code, status, starts_at, ends_at, header, late_request, created_by')
       .eq('exec_project_id', p.exec_project_id)
       .like('code', 'PTW-%')
       .in('status', ['submitted', 'active', 'closed'])
       .order('starts_at', { ascending: false })
       .limit(300);
-    return { projects, plan: p as SubPlan, items, ae, permits: (pm ?? []) as Permit[], links: (ln ?? []) as Link[], projectName: `${p.exec_projects?.code ?? ''} ${p.exec_projects?.name ?? ''}` };
+    // Site check-ins and toolbox meetings of the supervisor this week
+    const end = addDaysISO(p.week_start, 7);
+    const [{ data: ck }, { data: tb }] = await Promise.all([
+      supabase.from('site_checkins').select('id, day, at, distance_m, within').eq('exec_project_id', p.exec_project_id).eq('user_id', p.supervisor_id)
+        .gte('day', p.week_start).lt('day', end).order('at'),
+      supabase.from('hse_records').select('id, code, starts_at, tbt_late').eq('exec_project_id', p.exec_project_id).eq('form_code', 'TBT-01').eq('created_by', p.supervisor_id)
+        .gte('starts_at', `${p.week_start}T00:00:00+05:30`).lt('starts_at', `${end}T00:00:00+05:30`).order('starts_at'),
+    ]);
+    return { projects, plan: p as SubPlan, items, ae, permits: (pm ?? []) as Permit[], links: (ln ?? []) as Link[], checkins: (ck ?? []) as Checkin[], tbts: (tb ?? []) as Tbt[], projectName: `${p.exec_projects?.code ?? ''} ${p.exec_projects?.name ?? ''}` };
   }, [params.plan, project, week]);
   if (!data) return error ? <ErrorBanner message={error} /> : <Loading />;
   const { plan } = data;
@@ -123,6 +134,48 @@ export function SubPlanView({ plan: planParam, project: projectParam, week: week
     if (r?.f) router.push({ pathname: '/execution/hse/permit', params: { project: plan!.exec_project_id, form: r.f, day: d, items: items.map((x) => x.id).join(',') } });
   };
 
+  // Check in on site (location verified against the site) – before the toolbox meeting
+  const checkin = async () => {
+    const fix = await siteFix();
+    if (!fix) return dialog.toast('Location could not be read – allow location access and try again', 'error');
+    await dialog.run(async () => {
+      const r = await rpc<{ within: boolean; distance_m: number; radius_m: number }>('site_checkin', { p_exec: plan!.exec_project_id, p_lat: fix.lat, p_lng: fix.lng, p_accuracy: fix.accuracy });
+      await reload();
+      if (!r.within) throw new Error(`You are ${dist(r.distance_m)} from the site (check-in within ${r.radius_m} m) – check in at the site`);
+    }, 'Checked in on site – the AE and the SEE are told');
+  };
+  const dist = (m: number) => (m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`);
+  const siteRow = (d: string) => {
+    const ck = data.checkins.filter((x) => x.day === d);
+    const ok = ck.filter((x) => x.within);
+    const tb = data.tbts.filter((t) => slDay(t.starts_at) === d);
+    const permitToday = data.permits.some((r) => r.created_by === plan!.supervisor_id && (r.status === 'active' || r.status === 'closed') && covers(r, d));
+    const isToday = d === today;
+    if (!mine && !ck.length && !tb.length) return null;
+    if (mine && d < today && !ck.length && !tb.length) return null;
+    const why = !ok.length ? 'check in on site first' : !permitToday ? 'needs an approved work permit for today' : '';
+    return (
+      <Row wrap gap={6} style={{ alignItems: 'center', marginBottom: 6 }}>
+        {ok.length ? <Pill label={`Checked in ${fmtTime(ok[0].at)} · ${dist(ok[0].distance_m)}`} tone={colors.green} /> : ck.length ? <Pill label={`Away from site · ${dist(ck[ck.length - 1].distance_m)}`} tone={colors.red} /> : null}
+        {tb.map((t) => (
+          <Pressable key={t.id} onPress={() => router.push(`/execution/hse/form/${t.id}`)}>
+            <Pill label={`Toolbox ${t.code} · ${fmtTime(t.starts_at)}${t.tbt_late ? ' · late' : ''}`} tone={t.tbt_late ? colors.red : colors.green} />
+          </Pressable>
+        ))}
+        {mine && isToday && !ok.length ? <Button small variant="secondary" title="📍 Check in on site" onPress={checkin} /> : null}
+        {mine && d >= today && !tb.length ? (
+          <Button
+            small
+            title="Toolbox meeting (08:30)"
+            disabled={!isToday || !!why}
+            onPress={() => router.push({ pathname: '/execution/hse/tbt', params: { project: plan!.exec_project_id } })}
+          />
+        ) : null}
+        {mine && d >= today && !tb.length ? <Muted>{!isToday ? 'opens on the day' : why}</Muted> : null}
+      </Row>
+    );
+  };
+
   const days = plan ? Array.from({ length: 7 }, (_, i) => addDaysISO(plan.week_start, i)) : [];
   const today = todayISO();
 
@@ -166,10 +219,12 @@ export function SubPlanView({ plan: planParam, project: projectParam, week: week
           {days.map((d, i) => {
             const aeDay = data.ae.filter((x) => x.day === d);
             const items = data.items.filter((x) => x.day === d);
-            if (!editable && !items.length) return null;
+            const siteDay = data.checkins.some((x) => x.day === d) || data.tbts.some((t) => slDay(t.starts_at) === d) || (mine && d === today);
+            if (!editable && !items.length && !siteDay) return null;
             return (
               <Section key={d} title={`${DAY[i]} ${fmtDate(d)}${d === today ? ' · today' : ''}`}>
                 <Card>
+                  {plan.status !== 'draft' ? siteRow(d) : null}
                   {editable && aeDay.length ? (
                     <>
                       <Muted>Planned for your team by the engineers</Muted>

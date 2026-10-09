@@ -2,6 +2,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useDialog } from '@/components/dialog';
 import { AreaPicker } from '@/components/exec/AreaPicker';
+import { SiteLocationCard } from '@/components/exec/SiteLocationCard';
 import { TestingBanner } from '@/components/Testing';
 import { Button, Card, DateField, ErrorBanner, Field, Loading, Muted, Row, Screen, Section } from '@/components/ui';
 import type { ExecProject } from '@/lib/execution';
@@ -14,7 +15,7 @@ export default function ExecutionDetails() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [error, setError] = useState<string | null>(null);
   const [f, setF] = useState<{ areas: string[]; site_address: string; start_date: string | null; end_date: string | null } | null>(null);
-  const { data: existing } = useLoad(async () => {
+  const { data: existing, reload } = useLoad(async () => {
     const { data } = await supabase.from('exec_projects').select('*').eq('id', id).maybeSingle();
     return data as ExecProject | null;
   }, [id]);
@@ -54,6 +55,7 @@ export default function ExecutionDetails() {
           </Row>
         </Card>
       </Section>
+      <SiteLocationCard p={existing} onChange={reload} />
       <Row gap={8} style={{ justifyContent: 'flex-end' }}>
         <Button variant="secondary" title="Cancel" onPress={() => router.back()} />
         <Button title="Save" onPress={save} />

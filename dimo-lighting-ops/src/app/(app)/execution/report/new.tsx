@@ -117,6 +117,9 @@ export default function NewReport() {
     } else if (!tbtSeen.startsWith(`${prefillKey}|`)) setTbt([]);
   }
 
+  // Supervisor: no daily report without the day's toolbox meeting
+  const needTbt = sup && !!day && !day.tbts.length;
+
   const addFile = async (camera: boolean) => {
     const x = camera ? await pickImage(true) : Platform.OS === 'web' ? await pickDocument() : await pickImage(false);
     if (x) setFiles((s) => [...s, x]);
@@ -125,6 +128,7 @@ export default function NewReport() {
   const save = async () => {
     setError(null);
     if (!proj) return setError('Choose the project');
+    if (needTbt) return setError('Hold and record the day’s toolbox meeting first – no daily report without it');
     const changed = (day?.items ?? []).filter((it) => itemChanged(it, edits[it.id]));
     const linked = f.toolbox_talk ? tbt.filter((x) => day?.tbts.some((t) => t.id === x)) : [];
     if (f.toolbox_talk && !linked.length && !f.toolbox_topic.trim()) return setError(day?.tbts.length ? 'Tick the toolbox talk held' : 'Record the toolbox talk (TBT form) or enter the topic');
@@ -166,6 +170,9 @@ export default function NewReport() {
         <Text style={{ fontSize: 17, fontWeight: '800', color: colors.ink }}>Daily progress report</Text>
         <Muted>{`${sup ? 'Subcontractor supervisor report – due by 18:00, goes to the Assistant Engineers' : 'Assistant Engineer report – due by 20:00, goes to the Senior Electrical Engineer'}. Same sections as the PDF report.`}</Muted>
       </Card>
+      {needTbt ? (
+        <Notice tone={colors.red}>{`No toolbox meeting recorded for ${fmtDate(f.date)} – hold it first (Planning tab: check in on site, then Toolbox meeting). No daily report without it.`}</Notice>
+      ) : null}
       <Section title="Report details">
         <Card>
           <Select label="Project" required value={proj} onChange={(v) => set('project', v)} options={(projects ?? []).map((p) => ({ value: p.id, label: `${p.wbs_no || p.code || ''} ${p.name}` }))} />
@@ -315,7 +322,7 @@ export default function NewReport() {
       <Muted style={{ marginTop: 4 }}>{`After you submit, the PDF report is available on the report${sup ? '' : ' to you and the Senior Electrical Engineer'}.`}</Muted>
       <Row gap={8} style={{ justifyContent: 'flex-end' }}>
         <Button variant="secondary" title="Cancel" onPress={() => router.back()} />
-        <Button title="Submit report" onPress={save} />
+        <Button title="Submit report" disabled={needTbt} onPress={save} />
       </Row>
     </Screen>
   );
