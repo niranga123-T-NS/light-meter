@@ -12,6 +12,11 @@ import { Button, Card, ListRow, Muted, Row, Section } from './ui';
 export const KIND_LABELS: Record<string, string> = {
   sinv_doc: 'Invoice copy (PDF / photo)',
   sinv_markup: 'Marked-up copy',
+  ipc_signed: 'IPC approved and signed',
+  measure_final: 'Corrected measurement sheets',
+  ipc_draft: 'IPC (payment certificate)',
+  ipc_measure: 'Measurement sheets',
+  ipc_markup: 'Marked-up IPC',
   inquiry_doc: 'Inquiry document',
   visit_photo: 'Photo / business card',
   visit_doc: 'Document',

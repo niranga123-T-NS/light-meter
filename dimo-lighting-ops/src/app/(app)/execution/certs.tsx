@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 import { useState } from 'react';
-import { CertRows } from '@/components/exec/CertRows';
+import { CertRows, certForMe } from '@/components/exec/CertRows';
 import { SubInvoiceRows } from '@/components/exec/SubInvoiceRows';
 import { TestingBanner } from '@/components/Testing';
 import { ErrorBanner, Grid, Loading, Screen, Section, Segmented, Stat } from '@/components/ui';
@@ -16,7 +16,7 @@ export default function Certs() {
   const [tab, setTab] = useState<'invoices' | 'action' | 'open' | 'paid'>('invoices');
   const { data, error, reload, loading } = useLoad(async () => {
     const [c, p, v] = await Promise.all([
-      supabase.from('sub_certs').select('*').order('prepared_at', { ascending: false }),
+      supabase.from('sub_certs').select('*').neq('status', 'cancelled').order('prepared_at', { ascending: false }),
       supabase.from('exec_projects').select('*'),
       supabase.from('sub_invoices').select('*').neq('status', 'cancelled').order('created_at', { ascending: false }).limit(300),
     ]);
@@ -25,8 +25,7 @@ export default function Certs() {
   });
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const pname = (id: string) => data.projects.find((p) => p.id === id)?.name ?? '';
-  const step: Partial<Record<string, SubCert['status']>> = { senior_elec_engineer: 'prepared', sm_projects: 'verified', operations_exec: 'approved' };
-  const action = data.rows.filter((c) => c.status === step[me.role]);
+  const action = data.rows.filter((c) => certForMe(c, me));
   const open = data.rows.filter((c) => c.status !== 'paid');
   const paid = data.rows.filter((c) => c.status === 'paid');
   // Invoices: the project AE checks a supervisor's invoice, the SEE approves, then Operations; Operations then records the physical documents
@@ -64,7 +63,7 @@ export default function Certs() {
           </Section>
         </>
       ) : (
-        <CertRows rows={tab === 'action' ? action : tab === 'open' ? open : paid} projectName={pname} onChange={reload} />
+        <CertRows rows={tab === 'action' ? action : tab === 'open' ? open : paid} projectName={pname} />
       )}
     </Screen>
   );

@@ -1,10 +1,11 @@
-import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { Platform, Text, View } from 'react-native';
+import { Stack, useLocalSearchParams } from 'expo-router';
+import { Text } from 'react-native';
 import { useDialog } from '@/components/dialog';
+import { DocSlot } from '@/components/exec/DocSlot';
 import { Button, Card, colors, ErrorBanner, KeyValue, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { SINV_NOTICE, SINV_STATUS, type SubInvoice } from '@/lib/execution';
-import { listAttachments, openAttachment, pickDocument, pickImage, uploadAttachment } from '@/lib/files';
+import { listAttachments, openAttachment } from '@/lib/files';
 import { fmtDate, fmtDateTime, fmtMoney } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
@@ -51,7 +52,7 @@ export default function SubInvoicePage() {
   }, [id]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const { v, log, files } = data;
-  const docs = files.filter((x) => x.kind === 'sinv_doc');
+  const ready = ['sinv_doc', 'ipc_signed', 'measure_final'].every((k) => files.some((x) => x.kind === k));
   const marked = files.filter((x) => x.kind === 'sinv_markup');
   const st = SINV_STATUS[v.status];
   const tone = { grey: colors.grey, amber: colors.amber, blue: colors.blue, green: colors.green, red: colors.red }[st.tone];
@@ -66,20 +67,12 @@ export default function SubInvoicePage() {
       await reload();
     }, ok);
 
-  const add = async (photo: boolean, camera = false) => {
-    const f = photo ? await pickImage(camera) : await pickDocument();
-    if (!f) return;
-    await dialog.run(async () => {
-      await uploadAttachment('sub_invoice', v.id, 'sinv_doc', f);
-      await reload();
-    }, 'Copy attached');
-  };
   const submit = async () => {
     const again = v.status === 'returned';
     const r = again
       ? await dialog.prompt({
           title: 'Submit again',
-          message: 'Attach the corrected copy first if the comments asked for one.',
+          message: 'Attach the corrected documents first if the comments asked for them.',
           fields: [
             { key: 'amount', label: 'Invoice amount (LKR)', initial: String(v.amount) },
             { key: 'note', label: 'What was corrected', type: 'multiline', required: true },
@@ -143,46 +136,9 @@ export default function SubInvoicePage() {
         <Notice tone={colors.blue}>{SINV_NOTICE}</Notice>
       ) : null}
 
-      <Section title="Invoice copy">
-        <Card style={{ padding: 0, overflow: 'hidden' }}>
-          {docs.length ? (
-            docs.map((f) => (
-              <ListRow
-                key={f.id}
-                title={f.file_name}
-                subtitle={`${people[f.uploaded_by]?.full_name ?? ''} · ${fmtDateTime(f.uploaded_at)}`}
-                right={
-                  <Row gap={6}>
-                    <Button small variant="secondary" title="Open" onPress={() => dialog.run(() => openAttachment(f))} />
-                    {reviewer ? (
-                      <Button
-                        small
-                        title="✎ Mark up"
-                        onPress={() =>
-                          Platform.OS === 'web'
-                            ? router.push({ pathname: '/execution/sub-invoice/markup', params: { id: v.id, att: f.id } })
-                            : dialog.toast('Mark up the copy on the website (computer or tablet browser)', 'error')
-                        }
-                      />
-                    ) : null}
-                  </Row>
-                }
-              />
-            ))
-          ) : (
-            <View style={{ padding: 12 }}>
-              <Muted>No copy attached yet.</Muted>
-            </View>
-          )}
-        </Card>
-        {editable ? (
-          <Row wrap gap={8} style={{ marginTop: 8 }}>
-            <Button small variant="secondary" title="+ PDF / file" onPress={() => add(false)} />
-            <Button small variant="secondary" title="+ Photo" onPress={() => add(true)} />
-            {Platform.OS !== 'web' ? <Button small variant="secondary" title="📷 Take photo" onPress={() => add(true, true)} /> : null}
-          </Row>
-        ) : null}
-      </Section>
+      <DocSlot title="Invoice copy" entity="sub_invoice" entityId={v.id} kind="sinv_doc" files={files} canAdd={editable} canMarkUp={reviewer} required={editable} onChange={reload} />
+      <DocSlot title="IPC – approved and signed" entity="sub_invoice" entityId={v.id} kind="ipc_signed" files={files} canAdd={editable} canMarkUp={reviewer} required={editable} onChange={reload} />
+      <DocSlot title="Measurement sheets – corrected (final)" entity="sub_invoice" entityId={v.id} kind="measure_final" files={files} canAdd={editable} canMarkUp={reviewer} required={editable} onChange={reload} />
 
       {marked.length ? (
         <Section title="Comments marked on the copy">
@@ -201,7 +157,7 @@ export default function SubInvoicePage() {
       ) : null}
 
       <Row wrap gap={8}>
-        {editable ? <Button title={v.status === 'returned' ? 'Submit again' : 'Submit'} disabled={!docs.length} onPress={submit} /> : null}
+        {editable ? <Button title={v.status === 'returned' ? 'Submit again' : 'Submit'} disabled={!ready} onPress={submit} /> : null}
         {editable ? (
           <Button
             variant="ghost"
@@ -224,7 +180,7 @@ export default function SubInvoicePage() {
           />
         ) : null}
       </Row>
-      {editable && !docs.length ? <Muted>Attach the invoice copy (PDF or photos) to submit.</Muted> : null}
+      {editable && !ready ? <Muted>Attach the invoice copy, the signed IPC and the corrected measurement sheets (PDF or photos) to submit.</Muted> : null}
 
       <Section title="History">
         <Card>
