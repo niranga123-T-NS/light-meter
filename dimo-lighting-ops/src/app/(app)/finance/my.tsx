@@ -75,6 +75,7 @@ export default function MyTarget() {
                 <KeyValue label={`Invoicing budget ${fyLabel(fy)}`} value={`${mn(y.fyInvoiceTarget)} Mn`} />
                 <KeyValue label="Invoiced so far" value={`${mn(y.fyInvoiced)} Mn`} />
                 <KeyValue label="Secured, still to bill this year" value={`${mn(y.toBill)} Mn`} />
+                {y.onHoldN ? <KeyValue label={`On hold · ${y.onHoldN} project${y.onHoldN === 1 ? '' : 's'} (not counted)`} value={`${mn(y.onHold)} Mn`} /> : null}
                 <KeyValue label="Cover" value={fmtPct(y.cover)} />
                 <KeyValue label="Still to win and bill" value={<Text style={{ color: y.gap ? colors.red : colors.green, fontWeight: '700' }}>{mn(y.gap)} Mn</Text>} />
                 <KeyValue label={`Budget to secure ${fyLabel(fy)}`} value={`${mn(y.fySecuredTarget)} Mn`} />

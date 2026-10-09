@@ -5788,5 +5788,57 @@ begin
           and dedupe_key = 'tbt_late:' || current_setting('test.ex') || ':00000000-0000-0000-0000-0000000005a1:' || wd) = 1, 'once a day';
 end $$;
 
+
+-- Projects on hold: a secured project (Operations / SM Projects / GM) and a budget line
+savepoint on_hold;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  begin perform public.hold_secured_project(current_setting('test.sec')::uuid, true, 'Client funding', current_date + 30); assert false, 'sales cannot';
+  exception when others then assert sqlerrm like 'Only Operations, SM Projects or GM%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare sid uuid := current_setting('test.sec')::uuid; st text;
+begin
+  st := (select status from public.secured_projects where id = sid);
+  if st <> 'open' then perform public.close_secured_project(sid, 'open', 'Re-opened'); end if;
+  begin perform public.hold_secured_project(sid, true, '', current_date + 30); assert false, 'reason';
+  exception when others then assert sqlerrm = 'Give the reason', sqlerrm; end;
+  begin perform public.hold_secured_project(sid, true, 'Client funding', current_date - 1); assert false, 'review date';
+  exception when others then assert sqlerrm like 'Choose the review date%', sqlerrm; end;
+  perform public.hold_secured_project(sid, true, 'Client funding', current_date + 30);
+  assert (select status = 'on_hold' and hold_reason = 'Client funding' from public.secured_projects where id = sid), 'on hold';
+  assert exists (select 1 from public.secured_log where secured_id = sid and action = 'on_hold'), 'logged';
+end $$;
+reset role;
+do $$ declare sid uuid := current_setting('test.sec')::uuid; sp uuid := (select sales_person_id from public.secured_projects where id = current_setting('test.sec')::uuid);
+begin
+  assert exists (select 1 from public.notifications where recipient_id = sp and title = 'Project put on hold'), 'sales person told';
+  assert not exists (select 1 from public.invoice_line_status where secured_id = sid and project_status = 'open'), 'out of the open (to bill) lines';
+  assert public.hold_tick(now() + interval '29 days') = 0, 'not before the review date';
+  assert public.hold_tick(now() + interval '31 days') = 1, 'review reminder';
+  assert public.hold_tick(now() + interval '32 days') = 0, 'once';
+  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'operations_exec') and title = 'On-hold project to review'), 'operations reminded';
+end $$;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ declare me jsonb; sid uuid := current_setting('test.sec')::uuid;
+begin
+  select x into me from jsonb_array_elements(public.finance_performance(app.fy_of(current_date)) -> 'people') x
+   where x ->> 'id' = (select sales_person_id::text from public.secured_projects where id = sid);
+  assert me ? 'on_hold_value', 'on-hold value in the performance';
+  perform public.hold_secured_project(sid, false, 'Funding released');
+  assert (select status = 'open' and hold_review_date is null from public.secured_projects where id = sid), 'resumed';
+  -- budget line: on hold, dropped, active
+  begin perform public.set_budget_status((select id from public.budget_projects where wbs = 'LS-000170'), 'on_hold'); assert false, 'reason';
+  exception when others then assert sqlerrm = 'Give the reason', sqlerrm; end;
+  perform public.set_budget_status((select id from public.budget_projects where wbs = 'LS-000170'), 'on_hold', 'Tender postponed');
+  assert (select status = 'on_hold' and status_reason = 'Tender postponed' from public.budget_projects where wbs = 'LS-000170'), 'budget line on hold';
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'asm_infra') and title = 'Budgeted project on hold'), 'sales person told of the budget line';
+end $$;
+rollback to savepoint on_hold;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

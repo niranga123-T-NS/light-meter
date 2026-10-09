@@ -726,6 +726,34 @@ export default function SecuredDetail() {
     }, ok ? "Removed" : "Kept – Operations told");
   };
 
+  const holdProject = async (extend: boolean) => {
+    const r = await dialog.prompt({
+      title: extend ? "Extend the hold" : "Put the project on hold",
+      message: "Invoice reminders stop and the remaining value is shown as \"on hold\" until it is resumed. On the review date the sales person, Operations and SM Projects are reminded.",
+      fields: [
+        { key: "reason", label: "Reason", type: "multiline", required: true, initial: s.hold_reason ?? "" },
+        { key: "review", label: "Review on", type: "date", required: true, initial: s.hold_review_date ?? undefined },
+      ],
+      confirmLabel: extend ? "Extend" : "Put on hold",
+    });
+    if (!r) return;
+    await dialog.run(async () => {
+      await rpc("hold_secured_project", { p_secured: s.id, p_hold: true, p_reason: r.reason, p_review: r.review });
+      await reload();
+    }, extend ? "Hold extended" : "On hold");
+  };
+  const resumeProject = async () => {
+    const r = await dialog.prompt({
+      title: "Resume the project",
+      fields: [{ key: "note", label: "Note (optional)", type: "multiline" }],
+      confirmLabel: "Resume",
+    });
+    if (!r) return;
+    await dialog.run(async () => {
+      await rpc("hold_secured_project", { p_secured: s.id, p_hold: false, p_reason: r.note || null });
+      await reload();
+    }, "Resumed");
+  };
   const closeProject = async () => {
     const r = await dialog.prompt({
       title: "Close or cancel this secured project",
@@ -889,13 +917,20 @@ export default function SecuredDetail() {
           {s.source === "won" && !s.budget_id ? (
             <Pill label="Unbudgeted win" tone={colors.blue} />
           ) : null}
-          {s.status !== "open" ? (
+          {s.status === "on_hold" ? (
+            <Pill label="On hold" tone={colors.amber} solid />
+          ) : s.status !== "open" ? (
             <Pill
               label={s.status === "closed" ? "Closed" : "Cancelled"}
               tone={colors.grey}
             />
           ) : null}
         </Row>
+        {s.status === "on_hold" ? (
+          <Notice tone={colors.amber}>
+            {`On hold since ${fmtDate(s.hold_at)} by ${people[s.hold_by ?? ""]?.full_name ?? "—"} · ${s.hold_reason ?? ""} · review on ${fmtDate(s.hold_review_date)}. Invoice reminders are paused and its value is shown as "on hold", not "to bill".`}
+          </Notice>
+        ) : null}
         <Grid min={200}>
           <KeyValue label="Customer" value={s.customer ?? "—"} />
           <KeyValue label="Business line" value={lineLabel(s.business_line)} />
@@ -993,13 +1028,22 @@ export default function SecuredDetail() {
           {(me.role === "operations_exec" || me.role === "sm_projects") && !s.removal_requested_at ? (
             <Button small variant="ghost" title="Remove from list" onPress={askRemove} />
           ) : null}
+          {desk && s.status === "open" ? (
+            <Button small variant="ghost" title="Put on hold" onPress={() => holdProject(false)} />
+          ) : null}
+          {desk && s.status === "on_hold" ? (
+            <>
+              <Button small variant="secondary" title="Resume" onPress={resumeProject} />
+              <Button small variant="ghost" title="Extend hold" onPress={() => holdProject(true)} />
+            </>
+          ) : null}
           {desk ? (
             <Button
               small
               variant="ghost"
-              title={s.status === "open" ? "Close / cancel" : "Re-open"}
+              title={s.status === "open" || s.status === "on_hold" ? "Close / cancel" : "Re-open"}
               onPress={
-                s.status === "open"
+                s.status === "open" || s.status === "on_hold"
                   ? closeProject
                   : () =>
                       dialog.run(async () => {
