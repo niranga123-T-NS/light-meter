@@ -39,7 +39,7 @@ export default function SubInvoicePage() {
   const dialog = useDialog();
   const { data, error, reload } = useLoad(async () => {
     const [v, l, f, iv] = await Promise.all([
-      supabase.from('sub_invoices').select('*, exec_projects(code, name), sub_certs(code, period, net)').eq('id', id).single(),
+      supabase.from('sub_invoices').select('*, exec_projects(code, name), sub_certs(code, period, net, var_code)').eq('id', id).single(),
       supabase.from('sub_invoice_log').select('*').eq('invoice_id', id).order('at'),
       listAttachments('sub_invoice', [id]),
       supabase.from('sub_invoice_variations').select('id, var_code, var_title').eq('invoice_id', id).order('var_code'),
@@ -47,7 +47,7 @@ export default function SubInvoicePage() {
     const vars = (iv.data ?? []) as { id: string; var_code: string; var_title: string }[];
     if (v.error) throw new Error(v.error.message);
     return {
-      v: v.data as SubInvoice & { exec_projects: { code: string | null; name: string } | null; sub_certs: { code: string; period: string; net: number } | null },
+      v: v.data as SubInvoice & { exec_projects: { code: string | null; name: string } | null; sub_certs: { code: string; period: string; net: number; var_code: string | null } | null },
       log: (l.data ?? []) as Log[],
       files: f as Attachment[],
       vars,
@@ -123,7 +123,7 @@ export default function SubInvoicePage() {
         <Row wrap gap={16} style={{ marginTop: 8 }}>
           <KeyValue label="Invoice" value={`${v.invoice_no} · ${fmtDate(v.invoice_date)}`} />
           <KeyValue label="Amount" value={fmtMoney(v.amount, 'LKR')} />
-          <KeyValue label="Payment certificate" value={v.sub_certs ? `${v.sub_certs.code} · ${v.sub_certs.period} · net ${fmtMoney(v.sub_certs.net, 'LKR')}` : '—'} />
+          <KeyValue label="Payment certificate" value={v.sub_certs ? `${v.sub_certs.code} · ${v.sub_certs.var_code ? `Variation ${v.sub_certs.var_code}` : 'BOQ work'} · ${v.sub_certs.period} · net ${fmtMoney(v.sub_certs.net, 'LKR')}` : '—'} />
           <KeyValue label="Recorded by" value={`${people[v.created_by]?.full_name ?? '—'}${v.revision ? ` · revision ${v.revision}` : ''}`} />
         </Row>
         {v.note ? <Muted>{v.note}</Muted> : null}

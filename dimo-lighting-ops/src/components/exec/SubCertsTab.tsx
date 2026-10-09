@@ -52,10 +52,11 @@ export function SubCertsTab({ p }: { p: ExecProject }) {
   const me = useMe();
   const dialog = useDialog();
   const [tab, setTab] = useState<Tab>('measure');
-  const { data } = useLoad(async () => {
-    const [{ data: c }, { data: v }] = await Promise.all([
+  const { data, reload } = useLoad(async () => {
+    const [{ data: c }, { data: v }, varOpts] = await Promise.all([
       supabase.from('sub_certs').select('*').eq('exec_project_id', p.id).neq('status', 'cancelled').order('prepared_at', { ascending: false }),
       supabase.from('sub_invoices').select('*').eq('exec_project_id', p.id).neq('status', 'cancelled').order('created_at', { ascending: false }),
+      rpc<{ id: string; code: string; vo_no: string | null; title: string }[]>('sub_variation_options', { p_exec: p.id }).catch(() => []),
     ]);
     const certs = (c ?? []) as SubCert[];
     const invoices = (v ?? []) as SubInvoice[];
@@ -72,7 +73,7 @@ export function SubCertsTab({ p }: { p: ExecProject }) {
       listAttachments('sub_invoice', invoices.map((x) => x.id)),
       listAttachments('sub_invoice_var', invVars.map((x) => x.id)),
     ]);
-    return { certs, invoices, certVars, invVars, formats: tf as Attachment[], files: [...cf, ...vf, ...inf, ...ivf] as Attachment[] };
+    return { varOpts, certs, invoices, certVars, invVars, formats: tf as Attachment[], files: [...cf, ...vf, ...inf, ...ivf] as Attachment[] };
   }, [p.id]);
   const sub = me.role === 'sub_supervisor';
   const canRecord = me.role === 'senior_elec_engineer' || me.role === 'assistant_engineer' || sub;
@@ -85,9 +86,20 @@ export function SubCertsTab({ p }: { p: ExecProject }) {
     return files.filter((f) => ids.includes(f.entity_id) && f.kind === kind);
   };
 
-  const measure = certs;
-  const ipa = certs.filter((c) => RANK[c.status] >= 4);
-  const ipc = certs.filter((c) => RANK[c.status] >= 7);
+  // Grouped by measurement cycle (subcontractor + period): the BOQ work first, then each variation – each submitted separately
+  const cycle = (c: SubCert) => `${c.subcontractor} · ${c.period}`;
+  const ordered = [...certs].sort((a, b) => {
+    const ka = cycle(a), kb = cycle(b);
+    if (ka !== kb) return (certs.findIndex((x) => cycle(x) === ka) - certs.findIndex((x) => cycle(x) === kb));
+    return (a.var_code ? 1 : 0) - (b.var_code ? 1 : 0) || (a.var_code ?? '').localeCompare(b.var_code ?? '');
+  });
+  const measure = ordered;
+  const ipa = ordered.filter((c) => RANK[c.status] >= 4);
+  const ipc = ordered.filter((c) => RANK[c.status] >= 7);
+  const groupHead = (list: SubCert[], i: number) =>
+    i === 0 || cycle(list[i - 1]) !== cycle(list[i]) ? (
+      <Text key={`h-${list[i].id}`} style={{ fontWeight: '700', color: colors.muted, marginTop: i ? 14 : 4, marginBottom: 2 }}>{`Cycle: ${cycle(list[i])}`}</Text>
+    ) : null;
   const mine = (c: SubCert) => certForMe(c, me);
   const invMine = (v: SubInvoice) =>
     (v.created_by === me.id && (v.status === 'draft' || v.status === 'returned')) ||
@@ -108,18 +120,32 @@ export function SubCertsTab({ p }: { p: ExecProject }) {
         { key: 'subcontractor', label: 'Subcontractor', required: true },
         { key: 'period', label: 'Period (e.g. Oct 2026)', required: true },
         { key: 'jm_date', label: 'Proposed date for the joint measurement', type: 'date', required: true },
+        { key: 'boq', label: 'BOQ (contract) work in this cycle', type: 'select', initial: 'yes', options: [{ value: 'yes', label: 'Yes – measure the BOQ work' }, { value: 'no', label: 'No – variations only' }] },
+        ...((data?.varOpts ?? []).length
+          ? [{ key: 'vars', label: 'Variations in this cycle (each measured and submitted separately)', type: 'multiselect' as const, options: (data?.varOpts ?? []).map((v) => ({ value: v.id, label: `${v.vo_no || v.code} · ${v.title}` })) }]
+          : []),
         { key: 'jm_scope', label: 'Work / areas to measure', type: 'multiline' },
         { key: 'retention_pct', label: 'Retention % (for the IPC)', initial: '10' },
       ],
       confirmLabel: 'Request',
     });
-    if (res) await dialog.run(async () => { const id = await rpc<string>('prepare_sub_cert', { p_exec: p.id, p: res }); router.push(`/execution/sub-cert/${id}`); });
+    if (!res) return;
+    const { vars, boq, ...rest } = res as Record<string, string>;
+    const variation_ids = (vars ?? '').split(',').filter(Boolean);
+    await dialog.run(async () => {
+      const ids = await rpc<string[]>('request_joint_measurements', { p_exec: p.id, p: { ...rest, boq: boq !== 'no', variation_ids } });
+      if (ids.length === 1) router.push(`/execution/sub-cert/${ids[0]}`);
+      else await reload();
+    }, variation_ids.length ? `Requested – ${variation_ids.length + (boq !== 'no' ? 1 : 0)} separate measurements (BOQ / each variation)` : undefined);
   };
 
   const head = (c: SubCert, label: string, tone: string, action?: string) => (
     <>
       <Row wrap style={{ justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
-        <Text style={{ fontWeight: '700', color: colors.ink }}>{`${c.code} · ${c.subcontractor} · ${c.period}`}</Text>
+        <Row gap={6} wrap style={{ alignItems: 'center', flexShrink: 1 }}>
+          <Pill label={c.var_code ? `Variation ${c.var_code}` : 'BOQ work'} tone={c.var_code ? colors.blue : colors.grey} solid={!!c.var_code} />
+          <Text style={{ fontWeight: '700', color: colors.ink, flexShrink: 1 }}>{`${c.code}${c.var_title ? ` · ${c.var_title}` : ''}`}</Text>
+        </Row>
         <Row gap={6} wrap>
           <Pill label={label} tone={tone} />
           <Button small variant={mine(c) ? undefined : 'secondary'} title={action && mine(c) ? action : 'Open'} onPress={() => router.push(`/execution/sub-cert/${c.id}`)} />
@@ -154,17 +180,17 @@ export function SubCertsTab({ p }: { p: ExecProject }) {
           {formats('tpl_measurement', 'Joint measurement')}
           <Section title="Joint measurements" right={canRecord && active ? <Button small title="+ Request joint measurement" onPress={request} /> : null}>
             {measure.length ? (
-              measure.map((c) => (
+              measure.map((c, i) => [groupHead(measure, i), (
                 <Card key={c.id} style={mine(c) && RANK[c.status] < 4 ? { borderColor: colors.amber, borderWidth: 1 } : undefined}>
                   {head(c, jmLabel(c), RANK[c.status] >= 4 ? colors.green : certTone(c.status), c.status === 'jm_requested' ? 'Confirm' : c.status === 'jm_ae' || c.status === 'jm_see' ? 'Review' : 'Upload sheets')}
                   <Muted>
-                    {[c.jm_scope, c.jm_date ? `measured ${fmtDate(c.jm_date)}${c.jm_note ? ` (${c.jm_note})` : ''}` : null, c.status === 'jm_returned' && c.return_note ? `returned: ${c.return_note}` : null]
+                    {[c.jm_scope, c.jm_date ? `${RANK[c.status] >= 2 ? "measured" : "joint measurement on"} ${fmtDate(c.jm_date)}${c.jm_note ? ` (${c.jm_note})` : ''}` : null, c.status === 'jm_returned' && c.return_note ? `returned: ${c.return_note}` : null]
                       .filter(Boolean)
                       .join(' · ') || ' '}
                   </Muted>
                   <FileLinks label="Joint measurement sheets" files={of(c.id, 'jm_sheet')} />
                 </Card>
-              ))
+              )])
             ) : (
               <Empty title={sub ? 'No joint measurement requested by you yet' : 'No joint measurements yet'} />
             )}
@@ -178,7 +204,7 @@ export function SubCertsTab({ p }: { p: ExecProject }) {
           {formats('tpl_ipa', 'IPA')}
           <Section title="Interim Payment Approval (IPA)">
             {ipa.length ? (
-              ipa.map((c) => (
+              ipa.map((c, i) => [groupHead(ipa, i), (
                 <Card key={c.id} style={mine(c) && RANK[c.status] < 7 ? { borderColor: colors.amber, borderWidth: 1 } : undefined}>
                   {head(c, ipaLabel(c), RANK[c.status] >= 7 ? colors.green : certTone(c.status), c.status === 'draft' || c.status === 'returned' ? 'Upload & submit' : 'Review')}
                   <Muted>
@@ -199,7 +225,7 @@ export function SubCertsTab({ p }: { p: ExecProject }) {
                     />
                   ) : null}
                 </Card>
-              ))
+              )])
             ) : (
               <Empty title="Nothing yet – the IPA opens once a joint measurement is approved" />
             )}
@@ -217,9 +243,9 @@ export function SubCertsTab({ p }: { p: ExecProject }) {
           {canRecord ? <Notice tone={colors.blue}>{SINV_NOTICE}</Notice> : null}
           <Section title="IPC & invoices">
             {ipc.length ? (
-              ipc.map((c) => {
+              ipc.map((c, i) => {
                 const invs = (data?.invoices ?? []).filter((v) => v.sub_cert_id === c.id);
-                return (
+                return [groupHead(ipc, i), (
                   <Card key={c.id}>
                     {head(c, `${ipaLabel(c)} · ${CERT_STATUS[c.status].replace(/^IPA approved – /, '')}`, c.status === 'paid' ? colors.green : colors.blue)}
                     <Muted>{`Net ${fmtMoney(c.net, 'LKR')}${c.paid_ref ? ` · paid ${fmtDate(c.paid_at)} · ${c.paid_ref}` : ''}`}</Muted>
@@ -250,7 +276,7 @@ export function SubCertsTab({ p }: { p: ExecProject }) {
                       </Row>
                     ) : null}
                   </Card>
-                );
+                )];
               })
             ) : (
               <Empty title="Nothing yet – the IPC opens once IPA is approved" />
