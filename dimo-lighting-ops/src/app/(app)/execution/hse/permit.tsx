@@ -10,17 +10,28 @@ import { formName, loadHseForms, slTime, type Answer, type HseEquipment, type Hs
 import { useLoad } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 
-/** Request a permit to work: Section A work details, Section B control measures (all Yes / N/A), then the EHS Officer approves. */
+/** Request a permit to work: Section A work details, Section B control measures (all Yes / N/A), then an Assistant Engineer of the project approves. */
 export default function PermitRequest() {
-  const params = useLocalSearchParams<{ project: string; form: string }>();
+  const params = useLocalSearchParams<{ project: string; form: string; carry?: string }>();
+  // Several permit types in one go: this one, then the rest – the work details carry over
+  const queue = (params.form ?? '').split(',').filter(Boolean);
+  const current = queue[0];
+  const rest = queue.slice(1);
+  const carried = (() => {
+    try {
+      return params.carry ? (JSON.parse(params.carry) as { h: Record<string, string>; day: string | null; from: string; to: string }) : null;
+    } catch {
+      return null;
+    }
+  })();
   const dialog = useDialog();
   const [error, setError] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<string, Answer>>({});
-  const [h, setH] = useState<Record<string, string>>({ shift: 'day' });
+  const [h, setH] = useState<Record<string, string>>(carried?.h ?? { shift: 'day' });
   const [readings, setReadings] = useState<Record<string, string>>({});
-  const [day, setDay] = useState<string | null>(todayISO());
-  const [from, setFrom] = useState('08:00');
-  const [to, setTo] = useState('17:00');
+  const [day, setDay] = useState<string | null>(carried?.day ?? todayISO());
+  const [from, setFrom] = useState(carried?.from ?? '08:00');
+  const [to, setTo] = useState(carried?.to ?? '17:00');
   const [equipment, setEquipment] = useState<string | null>(null);
   const [tbt, setTbt] = useState<string | null>(null);
   const { data, reload } = useLoad(async () => {
@@ -33,13 +44,13 @@ export default function PermitRequest() {
     ]);
     return {
       forms,
-      form: forms.find((f) => f.code === params.form)!,
+      form: forms.find((f) => f.code === current)!,
       equipment: (eq.data ?? []) as HseEquipment[],
       tbts: (tbts.data ?? []) as HseRecord[],
       // Next lifting plan number of this project (the server gives the final one)
       liftNo: `${(proj.data as { code: string | null } | null)?.code ?? 'EXP'}/LP-${String((lifts.count ?? 0) + 1).padStart(3, '0')}`,
     };
-  }, [params.project, params.form]);
+  }, [params.project, current]);
   if (!data?.form) return <Screen><Loading /></Screen>;
   const f = data.form;
   const questions = f.extra.question_items ?? [];
@@ -86,13 +97,18 @@ export default function PermitRequest() {
         p_exec: params.project,
         p: { form_code: f.code, answers, starts_at: start, ends_at: end, equipment_id: equipment, tbt_id: tbt, header: { ...h, readings } },
       });
-      router.replace(`/execution/hse/form/${id}`);
-    }, 'Requested – the EHS Officer approves it before work starts');
+      if (rest.length) {
+        // next permit type: same work details, fresh controls
+        const keep = { location: h.location, description: h.description, in_charge: h.in_charge, mobile: h.mobile, shift: h.shift };
+        router.replace({ pathname: '/execution/hse/permit', params: { project: params.project, form: rest.join(','), carry: JSON.stringify({ h: keep, day, from, to }) } });
+      } else router.replace(`/execution/hse/form/${id}`);
+    }, rest.length ? `Requested – now the next permit (${rest.length} more)` : 'Requested – an Assistant Engineer of the project approves it before work starts');
   };
 
   return (
     <Screen maxWidth={860}>
-      <Stack.Screen options={{ title: `Permit – ${formName(f)}` }} />
+      <Stack.Screen options={{ title: `Permit – ${formName(f)}${queue.length > 1 ? ` (${queue.length} to go)` : ''}` }} />
+      {queue.length > 1 ? <Notice tone={colors.blue}>{`After this one: ${rest.map((c) => formName(data.forms.find((x) => x.code === c)!)).join(', ')} – the work details carry over.`}</Notice> : null}
       <TestingBanner what="Permits to work" />
       <ErrorBanner message={error} />
       <Card style={{ gap: 2 }}>

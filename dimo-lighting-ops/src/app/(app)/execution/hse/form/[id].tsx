@@ -39,11 +39,12 @@ export default function HseFormView() {
       eq: (eq.data ?? null) as HseEquipment | null,
       related: (rel.data ?? null) as Pick<HseRecord, 'id' | 'code' | 'form_code' | 'status'> | null,
       canEhs: !!sum?.can_ehs,
+      canPermit: !!(sum?.can_permit ?? sum?.can_ehs),
       loadedAt: Date.now(),
     };
   }, [id]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const { r, form: f, project, eq, related, canEhs, loadedAt } = data;
+  const { r, form: f, project, eq, related, canEhs, canPermit, loadedAt } = data;
   const name = (u: string | null) => (u ? people[u]?.full_name ?? '' : '');
   const permit = f.kind === 'permit';
   const see = me.role === 'senior_elec_engineer' || me.role === 'sm_projects';
@@ -97,7 +98,7 @@ export default function HseFormView() {
         <Section title="Permit">
           <Card style={{ gap: 6 }}>
             {r.status === 'submitted' ? (
-              canEhs && r.created_by !== me.id ? (
+              canPermit && r.created_by !== me.id ? (
                 <Row gap={8} wrap>
                   <Button title="Approve – work can start" onPress={() => act('decide_permit', { p_id: r.id, p_approve: true }, 'Approved')} />
                   <Button variant="secondary" title="Not approved" onPress={async () => {
@@ -106,11 +107,11 @@ export default function HseFormView() {
                   }} />
                 </Row>
               ) : (
-                <Muted>{r.created_by === me.id ? 'Waiting for an EHS Officer of the project to approve. Work must not start before.' : 'Waiting for the EHS Officer to approve.'}</Muted>
+                <Muted>{r.created_by === me.id ? 'Waiting for an Assistant Engineer of the project to approve. Work must not start before.' : 'Waiting for an Assistant Engineer of the project to approve.'}</Muted>
               )
             ) : null}
             {r.ehs_by ? <Muted>{`${r.status === 'rejected' ? 'Not approved' : 'Approved'} by ${name(r.ehs_by)} · ${fmtDateTimeY(r.ehs_at)}${r.ehs_note ? ` – ${r.ehs_note}` : ''}`}</Muted> : null}
-            {r.status === 'active' && canEhs ? (
+            {r.status === 'active' && canPermit ? (
               <Button title="Close the permit (work complete, area safe)" onPress={async () => {
                 const x = await dialog.prompt({ title: 'Close the permit', message: 'I am confident that all necessary safety precautions in relation to hazards identified with this task have been taken.', fields: [{ key: 'n', label: 'Note (optional)', type: 'multiline' }], confirmLabel: 'Close permit' });
                 if (x) await act('close_permit', { p_id: r.id, p_note: x.n || null }, 'Permit closed');

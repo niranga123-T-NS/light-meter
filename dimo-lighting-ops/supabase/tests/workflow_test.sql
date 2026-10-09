@@ -4800,8 +4800,8 @@ begin
       'starts_at', now(), 'ends_at', now() + interval '2 hours', 'header', jsonb_build_object('location', 'Mast M3', 'description', 'Lift luminaires', 'in_charge', 'Sunil', 'mobile', '0771234567')));
   assert (select header ->> 'lifting_plan_no' from public.hse_records where id = pid) = (select code from public.exec_projects where id = e) || '/LP-001', 'lifting plan numbered per project';
   pid := (select id from public.hse_records where form_code = 'PTW-05' and exec_project_id = e order by created_at desc limit 1);
-  begin perform public.decide_permit(pid, true); assert false, 'not EHS';
-  exception when others then assert sqlerrm like 'Only the EHS Officer%', sqlerrm; end;
+  begin perform public.decide_permit(pid, true); assert false, 'own permit';
+  exception when others then assert sqlerrm like 'You requested this permit%', sqlerrm; end;
   tb := public.save_tbt(e, jsonb_build_object('permit_id', pid, 'header', '{"location":"Mast M2","activity":"Fix floodlights on M2","hazards":"Fall from height","shift":"day"}'::jsonb,
      'answers', '{"01":{"a":"yes"},"08":{"a":"yes"}}'::jsonb, 'participants', '[{"name":"Nimal","position":"Rigger"},{"name":"Kamal","position":"Electrician"}]'::jsonb));
   assert (select header ->> 'tbt_no' from public.hse_records where id = pid) = (select code from public.hse_records where id = tb), 'permit shows the TBT number';
@@ -5542,6 +5542,26 @@ do $$ begin
   assert (select valid_to = current_date + 90 and zones = 'Facade and car park' from public.exec_members
            where user_id = '00000000-0000-0000-0000-0000000005a1' and exec_project_id = current_setting('test.ex')::uuid and active), 'membership updated';
 end $$;
+
+-- The subcontractor supervisor requests several permits; any Assistant Engineer of the project approves them
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare e uuid := current_setting('test.ex')::uuid; ans jsonb; i int;
+begin
+  select jsonb_object_agg(it ->> 'no', jsonb_build_object('a', 'yes')) into ans from public.hse_forms f, jsonb_array_elements(f.items) it where f.code = 'PTW-01';
+  for i in 1..2 loop
+    perform set_config('test.subptw' || i, public.request_permit(e, jsonb_build_object('form_code', 'PTW-01', 'answers', ans, 'starts_at', now(), 'ends_at', now() + interval '6 hours',
+      'header', jsonb_build_object('location', 'Zone ' || i, 'description', 'Cable pulling', 'in_charge', 'Sameera', 'mobile', '0715556667', 'tbt_no', 'TBT-1', 'explain', 'Isolate DB-2 and lock out')))::text, false);
+  end loop;
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin
+  perform public.decide_permit(current_setting('test.subptw1')::uuid, true, 'OK');
+  perform public.decide_permit(current_setting('test.subptw2')::uuid, true);
+  assert (select count(*) from public.hse_records where id in (current_setting('test.subptw1')::uuid, current_setting('test.subptw2')::uuid) and status = 'active') = 2, 'both approved by the AE';
+  perform public.close_permit(current_setting('test.subptw1')::uuid, 'Done');
+end $$;
+reset role;
 
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

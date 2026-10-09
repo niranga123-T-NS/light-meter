@@ -75,10 +75,11 @@ export function HseTab({ p }: { p: ExecProject }) {
   const newPermit = async () => {
     const r = await dialog.prompt({
       title: 'Request a permit to work',
-      fields: [{ key: 'f', label: 'Permit type', type: 'select', required: true, options: forms.filter((f) => f.kind === 'permit').map((f) => ({ value: f.code, label: `${f.code} ${formName(f)}` })) }],
+      message: 'Choose one or more permit types – each is filled in and submitted in turn (the work details carry over). An Assistant Engineer of the project approves each.',
+      fields: [{ key: 'f', label: 'Permit types', type: 'multiselect', required: true, options: forms.filter((f) => f.kind === 'permit').map((f) => ({ value: f.code, label: `${f.code} ${formName(f)}` })) }],
       confirmLabel: 'Next',
     });
-    if (r) router.push({ pathname: '/execution/hse/permit', params: { project: p.id, form: r.f } });
+    if (r?.f) router.push({ pathname: '/execution/hse/permit', params: { project: p.id, form: r.f } });
   };
 
   const induct = async () => {
