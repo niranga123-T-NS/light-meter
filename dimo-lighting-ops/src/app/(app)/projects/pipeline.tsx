@@ -9,7 +9,9 @@ import { MILESTONES } from '@/lib/constants';
 import { fmtDate } from '@/lib/format';
 import { fmtMonth, fyLabel, fyMonths, fyOf, LINES, lineShort, mn, thisMonth } from '@/lib/finance';
 import { useLoad, usePeople } from '@/lib/hooks';
-import { PROJECT_TYPES, projectTypeLabel } from '@/lib/roles';
+import { exportPipelineReport } from '@/lib/pipelineReportPdf';
+import { useDialog } from '@/components/dialog';
+import { PROJECT_TYPES, projectTypeLabel, ROLE_LABELS } from '@/lib/roles';
 import { rpc } from '@/lib/supabase';
 
 type P = {
@@ -68,6 +70,7 @@ const ALL = 'all';
 export default function Pipeline() {
   const me = useMe();
   const people = usePeople();
+  const dialog = useDialog();
   const manager = me.role === 'gm' || me.role === 'sm_projects';
   const curFy = fyOf(thisMonth());
   const [fy, setFy] = useState(curFy);
@@ -149,6 +152,43 @@ export default function Pipeline() {
   const coverage = v.stillNeeded ? v.weighted / v.stillNeeded : null;
   const filtered = Object.values(f).some((x) => x !== ALL);
   const opt = (all: string, list: { value: string; label: string }[]) => [{ value: ALL, label: all }, ...list];
+  // The filters in words, for the report header
+  const filterText = [
+    f.person !== ALL ? people[f.person]?.full_name ?? 'One sales person' : manager ? 'Whole team' : me.full_name,
+    f.line !== ALL ? (f.line === 'none' ? 'Building – line not set' : LINES.find((l) => l.value === f.line)?.label) : null,
+    f.type !== ALL ? projectTypeLabel(f.type) : null,
+    f.term !== ALL ? TERMS.find((x) => x.value === f.term)?.label : null,
+    f.duty !== ALL ? (f.duty === 'duty_paid' ? 'Duty paid' : 'Duty free') : null,
+    f.stage !== ALL ? MILESTONES.find((m) => m.value === f.stage)?.label : null,
+    f.band !== ALL ? BANDS.find((b) => b.value === f.band)?.label : null,
+    f.flag !== ALL ? FLAGS.find((x) => x.key === f.flag)?.label : null,
+  ].filter(Boolean).join(' · ');
+  const report = () =>
+    dialog.run(() =>
+      exportPipelineReport({
+        fy,
+        today: fmtDate(data.today),
+        filters: filterText,
+        generatedBy: `${me.full_name} – ${ROLE_LABELS[me.role]}`,
+        bands: BANDS,
+        bandOf,
+        flagOf: v.flagOf,
+        flags: v.flagCounts.map((x) => ({ key: x.key, label: x.label, n: x.n })),
+        months: v.months,
+        monthly: v.monthly,
+        cum: v.cum,
+        projects: v.projects,
+        inYear: v.inYear,
+        later: v.later,
+        secured: v.secured,
+        targets: data.targets.filter((t) => f.person === ALL || t.owner_id === f.person),
+        targetApplies: v.targetApplies,
+        totals: { secured: v.securedTotal, weighted: v.weighted, unweighted: v.unweighted, expected: v.expected, target: v.target, stillNeeded: v.stillNeeded },
+        onHold: data.on_hold,
+        name: (id) => people[id]?.full_name ?? '—',
+        byPerson: manager && f.person === ALL,
+      }),
+    );
 
   return (
     <Screen maxWidth={1300}>
@@ -184,7 +224,10 @@ export default function Pipeline() {
           <Muted>
             LKR Mn · weighted = lighting value × win probability · USD at the monthly rate · stage, chance and attention filters apply to open projects (not to secured orders)
           </Muted>
-          {filtered ? <Button small variant="ghost" title="Clear filters" onPress={() => setF({ person: ALL, line: ALL, type: ALL, term: ALL, duty: ALL, stage: ALL, band: ALL, flag: ALL })} /> : null}
+          <Row gap={6}>
+            {filtered ? <Button small variant="ghost" title="Clear filters" onPress={() => setF({ person: ALL, line: ALL, type: ALL, term: ALL, duty: ALL, stage: ALL, band: ALL, flag: ALL })} /> : null}
+            <Button small title="Management report (PDF)" onPress={report} />
+          </Row>
         </Row>
       </Card>
 
