@@ -137,7 +137,9 @@ export default function MeetingPack() {
           organizations: { name: string } | null;
         } | null)
       : null;
+    const team = ep2 ? ((await supabase.from('exec_members').select('user_id').eq('exec_project_id', ep2.id).eq('active', true)).data ?? []).map((x) => x.user_id as string) : [];
     return {
+      team,
       prj,
       m: m.data as Meeting,
       notes: (n.data ?? []) as Note[],
@@ -191,8 +193,12 @@ export default function MeetingPack() {
     if (r) await run('save_meeting_note', { p_meeting: m.id, p_sales_person: personId, p_note: r.n ?? '' }, 'Saved');
   };
   // Anyone but GM / DGM and System Admin can be given an action
+  // A project meeting gives actions only to the project's people: its SEE, the project team and the meeting's invitees
+  const projectPeople = isProject
+    ? new Set([data.project?.see_id, (m as { initiated_by?: string | null }).initiated_by, ...data.team, ...data.invitees.filter((x) => x.status !== 'pending_approval').map((x) => x.person_id)].filter(Boolean) as string[])
+    : null;
   const owners = Object.values(people)
-    .filter((p) => p.active !== false && p.role !== 'gm' && p.role !== 'sys_admin')
+    .filter((p) => p.active !== false && p.role !== 'gm' && p.role !== 'sys_admin' && (!projectPeople || projectPeople.has(p.id)))
     .sort((a, b) => a.full_name.localeCompare(b.full_name));
   const saveAction = async (personId: string | null, a: ActionDraft) => {
     await run(
@@ -388,6 +394,7 @@ export default function MeetingPack() {
         <MeetingActionForm
           owners={owners}
           defaultOwner={personId}
+          kinds={isProject ? ['task', 'execution'] : undefined}
           fixedProject={
             isProject && data.project
               ? {

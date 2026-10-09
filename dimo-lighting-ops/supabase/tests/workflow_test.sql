@@ -5175,6 +5175,11 @@ begin
   assert (select pack ->> 'team_kind' = 'project' and pack -> 'progress' ->> 'actual' = '35' from public.sales_meetings where id = mid), 'pack saved';
   perform public.add_meeting_action(mid, jsonb_build_object('kind', 'task', 'owner_id', (select id from u where role = 'assistant_engineer'), 'action', 'Recover the cable tray delay',
     'due_date', d + 3));
+  begin perform public.add_meeting_action(mid, jsonb_build_object('kind', 'task', 'owner_id', (select id from u where role = 'lighting_designer'), 'action', 'x'));
+    assert false, 'outsider';
+  exception when others then assert sqlerrm = 'Choose someone on this project or invited to the meeting', sqlerrm; end;
+  begin perform public.add_meeting_action(mid, jsonb_build_object('kind', 'design', 'action', 'x')); assert false, 'design task';
+  exception when others then assert sqlerrm = 'A project meeting gives tasks and project execution tasks', sqlerrm; end;
   perform public.publish_sales_meeting(mid);
 end $$;
 reset role;
