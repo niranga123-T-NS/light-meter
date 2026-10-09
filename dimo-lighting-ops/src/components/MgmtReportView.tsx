@@ -170,7 +170,6 @@ export function MgmtReportView({ r }: { r: MgmtReport }) {
         <Grid min={170}>
           <Stat label="Projects in execution" value={String(r.execution.active)} />
           <Stat label="Behind programme" value={String(r.execution.behind)} tone={r.execution.behind ? 'red' : undefined} />
-          <Stat label="Over cost budget" value={String(r.execution.overCost)} tone={r.execution.overCost ? 'red' : undefined} />
           <Stat label={`Variations approved YTD (${r.execution.variations.pending} pending)`} value={`${mn(r.execution.variations.approvedValue)} Mn`} />
           <Stat label={`HSE ${fmtMonth(r.month)} (${r.execution.hse.lostTime} lost time)`} value={String(r.execution.hse.month)} tone={r.execution.hse.lostTime ? 'red' : undefined} />
         </Grid>
@@ -185,7 +184,6 @@ export function MgmtReportView({ r }: { r: MgmtReport }) {
               { h: 'Planned', w: 75, right: true, v: (x) => (x.planned == null ? '—' : `${x.planned}%`) },
               { h: 'Done', w: 65, right: true, v: (x) => (x.actual == null ? '—' : `${x.actual}%`) },
               { h: 'Finish vs baseline', w: 130, right: true, v: (x) => (x.late == null ? '—' : x.late > 0 ? `${x.late} days late` : 'On time'), tone: (x) => ((x.late ?? 0) > 0 ? colors.amber : undefined) },
-              { h: 'Cost vs budget', w: 115, right: true, v: (x) => (x.costPct == null ? '—' : `${x.costPct}%`), tone: (x) => ((x.costPct ?? 0) > 100 ? colors.red : undefined) },
               { h: 'HSE open', w: 80, right: true, v: (x) => String(x.hseOpen) },
             ]}
           />

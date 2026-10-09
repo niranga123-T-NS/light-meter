@@ -101,7 +101,6 @@ ${h2('Execution')}
 ${kv([
   ['Projects in execution', String(r.execution.active)],
   ['Behind programme', String(r.execution.behind)],
-  ['Over cost budget', String(r.execution.overCost)],
   [`Variations approved YTD (${r.execution.variations.pending} pending)`, `${mn(r.execution.variations.approvedValue)} Mn`],
   [`HSE reports ${fmtMonth(r.month)}`, `${r.execution.hse.month} (${r.execution.hse.incidents} incidents, ${r.execution.hse.lostTime} lost time)`],
   ['HSE reports open', String(r.execution.hse.open)],
@@ -109,17 +108,16 @@ ${kv([
 ${
   r.execution.projects.length
     ? table(
-        ['Project', 'Stage', 'Planned', 'Done', 'Finish vs baseline', 'Cost vs budget', 'HSE open'],
+        ['Project', 'Stage', 'Planned', 'Done', 'Finish vs baseline', 'HSE open'],
         r.execution.projects.map((x) => [
           `${x.code} ${x.name}`,
           EXEC_STAGES[x.stage - 1] ?? String(x.stage),
           x.planned == null ? '—' : `${x.planned}%`,
           x.actual == null ? '—' : `${x.actual}%`,
           x.late == null ? '—' : x.late > 0 ? `${x.late} days late` : 'On time',
-          x.costPct == null ? '—' : `${x.costPct}%`,
           x.hseOpen,
         ]),
-        right(2, 3, 4, 5, 6),
+        right(2, 3, 4, 5),
       )
     : ''
 }

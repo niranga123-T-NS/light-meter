@@ -35,7 +35,8 @@ export type ProjectPack = {
   variations: { open: number; open_value: number; approved_value: number };
   queries: { open: number; overdue: Item[] };
   billing: { at_risk: number; red: number; lines: Item[] };
-  cost: { budget: number; spent: number; pct: number | null };
+  /** packs generated before the cost lines were removed */
+  cost?: { budget: number; spent: number; pct: number | null };
   actions: { action: string; owner: string | null; due: string | null; meeting: string }[];
   /** Tracked timeline (packs from 154 on): Gantt of the activities that matter now, S-curve, weekly tracking, milestones, trend */
   timeline?: {
@@ -76,7 +77,6 @@ export async function buildProjectPack(p: ExecProject, meetingDate: string): Pro
     supabase.from('material_requests').select('code, purpose, status, expected_date, required_date, supplier').eq('exec_project_id', ex).in('status', ['ae_review', 'submitted', 'pending_smp', 'approved', 'ordered', 'part_received']),
     supabase.from('variations').select('status, value_lkr').eq('exec_project_id', ex).not('status', 'in', '(rejected,cancelled,client_rejected)'),
     supabase.from('design_queries').select('code, question, status, target_date, raised_at').eq('exec_project_id', ex).in('status', ['raised', 'forwarded']),
-    supabase.from('exec_cost_lines').select('budget, committed, actual').eq('exec_project_id', ex),
     supabase.from('sales_meetings').select('id, meeting_date').eq('team', 'project').eq('exec_project_id', ex).eq('status', 'published').lt('meeting_date', on),
     rpc<BillingRow[]>('billing_risk', { p_exec: ex }).catch(() => [] as BillingRow[]),
   ]);
@@ -86,9 +86,9 @@ export async function buildProjectPack(p: ExecProject, meetingDate: string): Pro
     supabase.from('exec_gates').select('gate, status, decided_at, requested_at, event_date').eq('exec_project_id', ex),
     supabase.from('sales_meetings').select('meeting_date, pack').eq('team', 'project').eq('exec_project_id', ex).eq('status', 'published').lt('meeting_date', on).order('meeting_date', { ascending: false }).limit(1),
   ]);
-  const [pgR, actR, planR, repR, hseR, hseActR, testR, qaR, ncrR, snagR, mrR, varR, dqR, costR, prevR] = q;
-  const billing = q[15] as BillingRow[];
-  for (const r of q.slice(0, 15) as { error: { message: string } | null }[]) if (r.error) throw new Error(r.error.message);
+  const [pgR, actR, planR, repR, hseR, hseActR, testR, qaR, ncrR, snagR, mrR, varR, dqR, prevR] = q;
+  const billing = q[14] as BillingRow[];
+  for (const r of q.slice(0, 14) as { error: { message: string } | null }[]) if (r.error) throw new Error(r.error.message);
 
   const pg = pgR.data as { status: string; version: number; baseline_finish: string | null; forecast_finish: string | null } | null;
   const acts = (actR.data ?? []) as Activity[];
@@ -114,9 +114,6 @@ export async function buildProjectPack(p: ExecProject, meetingDate: string): Pro
   const vars = (varR.data ?? []) as { status: string; value_lkr: number | null }[];
   const approvedVar = ['approved', 'client_accepted'];
   const dqs = (dqR.data ?? []) as { code: string; question: string; target_date: string | null }[];
-  const costs = (costR.data ?? []) as { budget: number; committed: number; actual: number }[];
-  const budget = costs.reduce((t, c) => t + n(c.budget), 0);
-  const spent = costs.reduce((t, c) => t + n(c.committed) + n(c.actual), 0);
 
   // Open actions from this project's earlier meetings
   const prev = (prevR.data ?? []) as { id: string; meeting_date: string }[];
@@ -309,7 +306,6 @@ export async function buildProjectPack(p: ExecProject, meetingDate: string): Pro
       red: billing.filter((b) => b.status === 'red').length,
       lines: risky.map((b) => ({ code: '', name: b.description, note: `${b.status === 'red' ? 'will miss the month' : b.status === 'no_trigger' ? 'no trigger' : 'at risk'} · deadline ${fmtDate(b.deadline)}` })),
     },
-    cost: { budget, spent, pct: budget ? Math.round((spent / budget) * 100) : null },
     actions,
     timeline,
   };
@@ -347,7 +343,6 @@ export function projectFacts(pk: ProjectPack): { facts: Facts; lists: List[] } {
     ['Variations', `${pk.variations.open} open (LKR ${mn(pk.variations.open_value)}) · approved LKR ${mn(pk.variations.approved_value)}`],
     ['Design queries', `${pk.queries.open} open · ${pk.queries.overdue.length} overdue`],
     ['Billing', `${pk.billing.at_risk} invoice lines at risk${pk.billing.red ? ` (${pk.billing.red} will miss the month)` : ''}`],
-    ['Cost', pk.cost.budget ? `LKR ${mn(pk.cost.spent)} of ${mn(pk.cost.budget)} budget (${pk.cost.pct}%)` : 'No cost budget'],
   ];
   const it = (x: Item) => `${x.code ? `${x.code} ` : ''}${x.name} – ${x.note}`;
   const lists: List[] = [
