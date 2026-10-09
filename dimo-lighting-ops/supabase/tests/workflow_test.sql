@@ -5180,5 +5180,17 @@ begin
   assert (select status from public.sales_meeting_invitees where meeting_id = mid and person_id = (select id from u where role = 'assistant_engineer')) = 'excused', 'excused stays';
 end $$;
 
+-- Dashboard stage times: usual / slow / target / on time, the journey and a stage's late cases
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ declare d jsonb := public.overall_dashboard(current_date - 400, current_date + 1); s jsonb;
+begin
+  select x into s from jsonb_array_elements(d -> 'sla_by_stage') x limit 1;
+  assert s ? 'median_hours' and s ? 'target_hours' and s ? 'on_time' and s ? 'late', 'stage fields';
+  assert (s ->> 'on_time')::int + (s ->> 'late')::int = (s ->> 'n')::int, 'on time + late = all';
+  assert d -> 'journey' ? 'median_hours' and (d ->> 'work_hours_per_day')::numeric > 0, 'journey';
+  perform * from public.sla_stage_late(s ->> 'stage', current_date - 400, current_date + 1);
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
