@@ -54,6 +54,7 @@ export type HseRecord = {
   starts_at: string | null;
   ends_at: string | null;
   related_id: string | null;
+  late_request?: boolean;
   hse_report_id: string | null;
   corrective_date: string | null;
   corrective_note: string | null;

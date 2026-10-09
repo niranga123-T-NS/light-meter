@@ -5589,14 +5589,13 @@ begin
   assert (select count(*) from public.sub_plan_items where sub_plan_id = sp) = 2, 'picked + additional';
   begin perform public.update_sub_plan_item(x, 'done'); assert false, 'approval first';
   exception when others then assert sqlerrm = 'The plan must be approved first', sqlerrm; end;
-  begin perform public.submit_sub_plan(sp); assert false, 'permits first';
-  exception when others then assert sqlerrm like 'Each planned work needs an approved work permit for its day – not yet: %Clear debris at Level 2%', sqlerrm; end;
-  perform set_config('test.spday', (select day from public.sub_plan_items where id = x)::text, false);
 end $$;
 reset role;
--- (the permits are moved to the planned day; a programme activity of ABC Electricals runs that week)
-do $$ declare d date := current_setting('test.spday')::date;
+-- (the plan's work is moved to today, the permits too; a programme activity of ABC Electricals runs that week)
+do $$ declare d date := current_date;
 begin
+  perform set_config('test.spday', d::text, false);
+  update public.sub_plan_items set day = d where sub_plan_id = current_setting('test.sp')::uuid;
   insert into public.exec_wbs (exec_project_id, code, name) values (current_setting('test.ex')::uuid, 'S1', 'Subcontract works');
   update public.hse_records set starts_at = (d + time '08:00') at time zone 'Asia/Colombo', ends_at = (d + time '17:00') at time zone 'Asia/Colombo'
    where id = current_setting('test.subptw2')::uuid;
@@ -5617,13 +5616,7 @@ begin
   assert act is not null, 'own company''s programme activity offered';
   perform public.pick_sub_plan_activity(sp, act, d, true);
   assert (select picked from public.sub_plan_activities(sp) where id = act) = array[d], 'activity picked for the day';
-  select id into it from public.sub_plan_items where sub_plan_id = sp and additional;
-  begin perform public.set_sub_plan_permit(it, current_setting('test.subptw1')::uuid); assert false, 'wrong day';
-  exception when others then assert sqlerrm like 'Permit % does not cover %', sqlerrm; end;
-  for it in select id from public.sub_plan_items where sub_plan_id = sp loop
-    perform public.set_sub_plan_permit(it, current_setting('test.subptw2')::uuid);
-  end loop;
-  assert (select count(*) from public.sub_plan_items where sub_plan_id = sp and permit_id is not null) = 3, 'permits linked';
+  -- the plan is submitted without permits
   perform public.submit_sub_plan(sp);
   begin perform public.pick_sub_plan_item(sp, (select ae_item_id from public.sub_plan_items where sub_plan_id = sp and ae_item_id is not null), false); assert false, 'locked';
   exception when others then assert sqlerrm like 'The plan is submitted%', sqlerrm; end;
@@ -5639,6 +5632,53 @@ select pg_temp.act_as('sub_supervisor'); set role authenticated;
 do $$ begin
   perform public.update_sub_plan_item((select id from public.sub_plan_items where sub_plan_id = current_setting('test.sp')::uuid and additional), 'done');
   assert (select status from public.sub_plan_items where sub_plan_id = current_setting('test.sp')::uuid and additional) = 'done', 'marked done';
+  perform public.update_sub_plan_item((select id from public.sub_plan_items where sub_plan_id = current_setting('test.sp')::uuid and additional), 'planned');
+end $$;
+reset role;
+-- Next day's permits by 20:00: reminder at 18:00, then the supervisor and the AEs are told what has no permit
+do $$ declare d date := current_setting('test.spday')::date; sup uuid := (select id from u where role = 'sub_supervisor');
+begin
+  assert (select late_request from public.hse_records where id = current_setting('test.subptw2')::uuid), 'same-day permit request is late';
+  assert public.permit_tick(((d - 1) + time '17:00') at time zone 'Asia/Colombo') = 0, 'nothing before 18:00';
+  assert public.permit_tick(((d - 1) + time '18:30') at time zone 'Asia/Colombo') = 1, 'reminder';
+  assert exists (select 1 from public.notifications where recipient_id = sup and title = 'Submit tomorrow''s work permits by 20:00' and body like '%3 planned works without a permit%'), 'supervisor reminded';
+  assert not exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'assistant_engineer') and title like 'Work permits not submitted by 20:00%'), 'AE not yet';
+end $$;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare sp uuid := current_setting('test.sp')::uuid;
+begin
+  begin perform public.link_permit_plan_items(current_setting('test.subptw1')::uuid, array(select id from public.sub_plan_items where sub_plan_id = sp)); assert false, 'closed';
+  exception when others then assert sqlerrm = 'That permit is no longer open', sqlerrm; end;
+  -- one permit covers the planned works except the additional one
+  perform public.link_permit_plan_items(current_setting('test.subptw2')::uuid, array(select id from public.sub_plan_items where sub_plan_id = sp and not additional));
+  assert (select count(*) from public.sub_plan_item_permits where permit_id = current_setting('test.subptw2')::uuid) = 2, 'linked';
+end $$;
+reset role;
+do $$ declare d date := current_setting('test.spday')::date;
+begin
+  assert public.permit_tick(((d - 1) + time '20:15') at time zone 'Asia/Colombo') = 1, 'alert';
+  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'assistant_engineer') and title like 'Work permits not submitted by 20:00%'
+                 and body like '%1 planned work without a permit: Clear debris at Level 2%'), 'AE told what has no permit';
+  -- the supervisor's report of the day is made again below
+  delete from public.exec_reports where author_id = (select id from u where role = 'sub_supervisor') and report_date = d;
+end $$;
+-- The supervisor's daily report refers to the day's plan and the work permits
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare sp uuid := current_setting('test.sp')::uuid; d date := current_setting('test.spday')::date; r uuid; items jsonb;
+begin
+  begin perform public.submit_exec_report(current_setting('test.ex')::uuid, d, jsonb_build_object('crew_count', 5, 'work_done', 'Containment and debris'));
+    assert false, 'plan results needed';
+  exception when others then assert sqlerrm like 'Give the result of each work of your plan for the day:%', sqlerrm; end;
+  select jsonb_agg(jsonb_build_object('id', id, 'status', 'done')) into items from public.sub_plan_items where sub_plan_id = sp;
+  begin perform public.submit_exec_report(current_setting('test.ex')::uuid, d, jsonb_build_object('crew_count', 5, 'work_done', 'Containment and debris', 'sub_items', items));
+    assert false, 'permit needed';
+  exception when others then assert sqlerrm = 'Refer the work permit(s) the work was done under', sqlerrm; end;
+  r := public.submit_exec_report(current_setting('test.ex')::uuid, d, jsonb_build_object('crew_count', 5, 'work_done', 'Containment and debris', 'sub_items', items,
+         'permit_ids', jsonb_build_array(current_setting('test.subptw2'))));
+  assert (select permit_ids from public.exec_reports where id = r) = array[current_setting('test.subptw2')::uuid], 'permit referred';
+  assert (select jsonb_array_length(sub_plan_updates) from public.exec_reports where id = r) = 3, 'plan results on the report';
+  assert (select count(*) from public.exec_reports x, jsonb_array_elements(x.sub_plan_updates) e where x.id = r and e -> 'permits' ? (select code from public.hse_records where id = current_setting('test.subptw2')::uuid)) = 2, 'permit codes on the plan results';
+  assert not exists (select 1 from public.sub_plan_items where sub_plan_id = sp and status = 'planned'), 'plan updated from the report';
 end $$;
 reset role;
 
