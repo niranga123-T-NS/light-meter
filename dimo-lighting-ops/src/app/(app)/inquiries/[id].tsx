@@ -486,8 +486,17 @@ export default function InquiryDetail() {
         </Row>
         {i.sla_colour === 'red' ? (
           <Notice tone={colors.red}>
-            Delayed{i.delay_reason ? `: ${i.delay_reason}` : ''}
-            {i.revised_due_at ? ` · revised date ${fmtDateTime(i.revised_due_at)}` : ''}
+            {[
+              // Which stage is late, whose it is and by how much – then the reason the owner gave (or that none was given)
+              ...clocks
+                .filter((c) => c.colour === 'red')
+                .map((c) => `Delayed: ${c.label} – ${people[c.owner_id ?? '']?.full_name ?? human(c.owner_team)}, due ${fmtDateTime(c.revised_due_at ?? c.due_at)}, ${c.timing}`),
+              ...(clocks.some((c) => c.colour === 'red') ? [] : ['Delayed']),
+              i.delay_reason ? `Reason: ${i.delay_reason}` : 'No delay reason given yet – the owner enters it on the stage timer below.',
+              i.revised_due_at ? `Revised date ${fmtDateTime(i.revised_due_at)}` : null,
+            ]
+              .filter(Boolean)
+              .join('\n')}
           </Notice>
         ) : null}
         {i.status === 'on_hold' ? <Notice tone={colors.grey}>On hold: {i.hold_reason}</Notice> : null}
