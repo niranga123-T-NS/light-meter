@@ -58,10 +58,13 @@ export function PlanWeek({
         { key: 'unit', label: 'Unit (m, nos, points…)', initial: it?.unit ?? '' },
         {
           key: 'sup',
-          label: 'Subcontractor supervisor',
+          label: "Subcontractor supervisor (a programme activity's subcontractor gets its work)",
           type: 'select',
           initial: it?.supervisor_id ?? '',
-          options: [{ value: '', label: 'Own team (no supervisor)' }, ...supervisors.map((s) => ({ value: s.user_id, label: people[s.user_id]?.full_name ?? '—' }))],
+          options: [
+            { value: '', label: 'Own team / the activity’s subcontractor' },
+            ...supervisors.map((s) => ({ value: s.user_id, label: `${people[s.user_id]?.full_name ?? '—'}${people[s.user_id]?.company ? ` · ${people[s.user_id]?.company}` : ''}` })),
+          ],
         },
       ],
       confirmLabel: 'Save',

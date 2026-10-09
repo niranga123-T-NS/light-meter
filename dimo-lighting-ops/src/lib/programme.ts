@@ -164,7 +164,7 @@ export function activityOptions(acts: Activity[], week: string) {
   const end = fromDay(toDay(week) + 6);
   const open = acts.filter((a) => !a.actual_finish).sort(byCode);
   const due = (a: Activity) => !!a.es && !!a.ef && a.es <= end && a.ef >= week;
-  const label = (a: Activity) => `${a.critical ? '⚠ ' : ''}${a.code} ${a.name}`;
+  const label = (a: Activity) => `${a.critical ? '⚠ ' : ''}${a.code} ${a.name}${a.subcontractor ? ` · ${a.subcontractor}` : ''}`;
   return [
     ...open.filter(due).map((a) => ({ value: a.id, label: label(a), group: 'Due this week' })),
     ...open.filter((a) => !due(a)).map((a) => ({ value: a.id, label: label(a), group: 'Other activities' })),

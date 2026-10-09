@@ -5607,23 +5607,33 @@ begin
   insert into public.exec_activities (exec_project_id, wbs_id, code, name, duration, subcontractor, es, ef)
   values (current_setting('test.ex')::uuid, (select id from public.exec_wbs where exec_project_id = current_setting('test.ex')::uuid limit 1),
           'SUB-L1', 'Lanka cabling', 3, 'Lanka Electricals', d - 1, d + 1);
+  -- the engineer's approved plan: an item of each company's activity and an own-team item (no supervisor)
+  insert into public.exec_plan_items (plan_id, exec_project_id, day, kind, title, activity_id)
+  select current_setting('test.pl')::uuid, current_setting('test.ex')::uuid, d, 'task', x.t, (select id from public.exec_activities where code = x.c and exec_project_id = current_setting('test.ex')::uuid)
+    from (values ('Containment L3 east', 'SUB-A1'), ('Lanka cabling L4', 'SUB-L1'), ('DIMO team: DB testing', null)) x (t, c);
 end $$;
 select pg_temp.act_as('sub_supervisor'); set role authenticated;
 do $$ declare sp uuid := current_setting('test.sp')::uuid; d date := current_setting('test.spday')::date; act uuid; it uuid;
 begin
-  assert not exists (select 1 from public.sub_plan_activities(sp) where code = 'SUB-L1'), 'another company''s activity not offered';
-  select id into act from public.sub_plan_activities(sp) where code = 'SUB-A1';
-  assert act is not null, 'own company''s programme activity offered';
-  perform public.pick_sub_plan_activity(sp, act, d, true);
-  assert (select picked from public.sub_plan_activities(sp) where id = act) = array[d], 'activity picked for the day';
+  assert not exists (select 1 from public.sub_plan_ae_items(sp) where title in ('Lanka cabling L4', 'DIMO team: DB testing')), 'another company''s and the own team''s work not offered';
+  select id into act from public.sub_plan_ae_items(sp) where title = 'Containment L3 east';
+  assert act is not null, 'engineer''s item of an activity given to the company offered';
+  perform public.pick_sub_plan_item(sp, act, true);
+  begin perform public.pick_sub_plan_item(sp, (select id from public.exec_plan_items where title = 'DIMO team: DB testing'), true); assert false, 'own team item';
+  exception when others then assert sqlerrm = 'Choose an item the engineers planned for you this week', sqlerrm; end;
   -- the plan is submitted without permits
   perform public.submit_sub_plan(sp);
-  begin perform public.pick_sub_plan_item(sp, (select ae_item_id from public.sub_plan_items where sub_plan_id = sp and ae_item_id is not null), false); assert false, 'locked';
+  begin perform public.pick_sub_plan_item(sp, (select ae_item_id from public.sub_plan_items where sub_plan_id = sp and ae_item_id is not null limit 1), false); assert false, 'locked';
   exception when others then assert sqlerrm like 'The plan is submitted%', sqlerrm; end;
 end $$;
 reset role;
 select pg_temp.act_as('assistant_engineer'); set role authenticated;
 do $$ begin
+  -- an activity given to Lanka Electricals cannot go to the ABC Electricals supervisor
+  begin perform public.save_plan_item(current_setting('test.ex')::uuid, current_setting('test.wk')::date, jsonb_build_object('day', current_date, 'title', 'Lanka cabling L5',
+      'activity_id', (select id from public.exec_activities where code = 'SUB-L1'), 'supervisor_id', (select id from u where role = 'sub_supervisor')));
+    assert false, 'wrong company';
+  exception when others then assert sqlerrm like 'That activity is given to Lanka Electricals – choose a supervisor of Lanka Electricals%', sqlerrm; end;
   assert exists (select 1 from public.sub_plans_to_approve() where id = current_setting('test.sp')::uuid), 'AE sees it';
   perform public.decide_sub_plan(current_setting('test.sp')::uuid, true, 'OK');
 end $$;

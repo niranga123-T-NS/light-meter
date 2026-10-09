@@ -14,7 +14,6 @@ import { rpc, supabase } from '@/lib/supabase';
 type SubPlan = { id: string; exec_project_id: string; supervisor_id: string; week_start: string; status: 'draft' | 'submitted' | 'approved' | 'returned'; submitted_at: string | null; decided_by: string | null; decided_at: string | null; decision_note: string | null };
 type Item = { id: string; day: string; ae_item_id: string | null; title: string; zone: string | null; qty: number | null; unit: string | null; crew: number | null; additional: boolean; status: 'planned' | 'done' | 'partial' | 'not_done'; done_qty: number | null; result_note: string | null; activity_id: string | null };
 type AeItem = { id: string; day: string; kind: string; title: string; zone: string | null; qty: number | null; unit: string | null; engineer: string; mine: boolean; picked: boolean; activity: string | null };
-type Activity = { id: string; code: string; name: string; start_on: string | null; finish_on: string | null; pct: number; qty: number | null; unit: string | null; picked: string[] };
 type Link = { item_id: string; permit_id: string };
 type Permit = Pick<HseRecord, 'id' | 'code' | 'status' | 'starts_at' | 'ends_at' | 'header' | 'late_request'>;
 
@@ -52,12 +51,11 @@ export function SubPlanView({ plan: planParam, project: projectParam, week: week
     let planId = params.plan ?? null;
     const proj = project ?? projects[0]?.id ?? null;
     if (!planId && sup && proj) planId = await rpc<string>('my_sub_plan', { p_exec: proj, p_week: week });
-    if (!planId) return { projects, plan: null, items: [] as Item[], ae: [] as AeItem[], acts: [] as Activity[], permits: [] as Permit[], links: [] as Link[], projectName: '' };
-    const [{ data: pl, error: e }, { data: it }, ae, acts] = await Promise.all([
+    if (!planId) return { projects, plan: null, items: [] as Item[], ae: [] as AeItem[], permits: [] as Permit[], links: [] as Link[], projectName: '' };
+    const [{ data: pl, error: e }, { data: it }, ae] = await Promise.all([
       supabase.from('sub_plans').select('*, exec_projects(code, name)').eq('id', planId).single(),
       supabase.from('sub_plan_items').select('*').eq('sub_plan_id', planId).order('day').order('created_at'),
       rpc<AeItem[]>('sub_plan_ae_items', { p_plan: planId }),
-      rpc<Activity[]>('sub_plan_activities', { p_plan: planId }),
     ]);
     if (e) throw new Error(e.message);
     const p = pl as SubPlan & { exec_projects: { code: string | null; name: string } | null };
@@ -71,7 +69,7 @@ export function SubPlanView({ plan: planParam, project: projectParam, week: week
       .in('status', ['submitted', 'active', 'closed'])
       .order('starts_at', { ascending: false })
       .limit(300);
-    return { projects, plan: p as SubPlan, items, ae, acts, permits: (pm ?? []) as Permit[], links: (ln ?? []) as Link[], projectName: `${p.exec_projects?.code ?? ''} ${p.exec_projects?.name ?? ''}` };
+    return { projects, plan: p as SubPlan, items, ae, permits: (pm ?? []) as Permit[], links: (ln ?? []) as Link[], projectName: `${p.exec_projects?.code ?? ''} ${p.exec_projects?.name ?? ''}` };
   }, [params.plan, project, week]);
   if (!data) return error ? <ErrorBanner message={error} /> : <Loading />;
   const { plan } = data;
@@ -127,7 +125,6 @@ export function SubPlanView({ plan: planParam, project: projectParam, week: week
 
   const days = plan ? Array.from({ length: 7 }, (_, i) => addDaysISO(plan.week_start, i)) : [];
   const today = todayISO();
-  const actDay = (d: string) => data.acts.filter((a) => (!a.start_on || a.start_on <= d) && (!a.finish_on || d <= a.finish_on));
 
   return (
     <View style={{ gap: 10 }}>
@@ -162,9 +159,9 @@ export function SubPlanView({ plan: planParam, project: projectParam, week: week
           </Card>
           {plan.status === 'returned' ? <Notice tone={colors.red}>{`Returned: ${plan.decision_note ?? ''} – correct the plan and submit again.`}</Notice> : null}
           {editable ? (
-            <Notice tone={colors.blue}>Each day, tick the items of the engineers&apos; approved plan and the programme activities your team will do and add any additional work – then submit; an Assistant Engineer of the project approves it. Work permits are requested day by day: the next day&apos;s permits go to the AE before 20:00.</Notice>
+            <Notice tone={colors.blue}>Each day, tick the work the Assistant Engineers planned for your team and add any additional work – then submit; an Assistant Engineer of the project approves it. Work permits are requested day by day: the next day&apos;s permits go to the AE before 20:00.</Notice>
           ) : null}
-          {!data.ae.length && editable ? <Muted>No approved engineer plan for this week yet – the items appear here once the Senior Electrical Engineer approves the engineers&apos; plans.</Muted> : null}
+          {!data.ae.length && editable ? <Muted>No work planned for your team by the Assistant Engineers this week yet – it appears here once their plans are approved (work given to you, or of a programme activity given to your company). You can still add additional work.</Muted> : null}
 
           {days.map((d, i) => {
             const aeDay = data.ae.filter((x) => x.day === d);
@@ -175,7 +172,7 @@ export function SubPlanView({ plan: planParam, project: projectParam, week: week
                 <Card>
                   {editable && aeDay.length ? (
                     <>
-                      <Muted>From the engineers&apos; approved plan</Muted>
+                      <Muted>Planned for your team by the engineers</Muted>
                       {aeDay.map((x) => (
                         <Pressable key={x.id} onPress={() => run('pick_sub_plan_item', { p_plan: plan.id, p_ae_item: x.id, p_on: !x.picked })}>
                           <Row gap={8} style={{ paddingVertical: 5, alignItems: 'center' }}>
@@ -189,27 +186,10 @@ export function SubPlanView({ plan: planParam, project: projectParam, week: week
                       ))}
                     </>
                   ) : null}
-                  {editable && actDay(d).length ? (
+                  {items.filter((x) => !editable || !x.ae_item_id).length ? (
                     <>
-                      <Muted style={{ marginTop: 6 }}>Programme activities of your company</Muted>
-                      {actDay(d).map((a) => {
-                        const on = a.picked.includes(d);
-                        return (
-                          <Pressable key={a.id} onPress={() => run('pick_sub_plan_activity', { p_plan: plan.id, p_activity: a.id, p_day: d, p_on: !on })}>
-                            <Row gap={8} style={{ paddingVertical: 5, alignItems: 'center' }}>
-                              <Text style={{ fontSize: 18, color: on ? colors.green : colors.muted }}>{on ? '☑' : '☐'}</Text>
-                              <Text style={{ color: colors.ink, flexShrink: 1 }}>{`${a.code} ${a.name}`}</Text>
-                              <Muted>{`${fmtDate(a.start_on)} – ${fmtDate(a.finish_on)} · ${Math.round(a.pct)}% done`}</Muted>
-                            </Row>
-                          </Pressable>
-                        );
-                      })}
-                    </>
-                  ) : null}
-                  {items.length ? (
-                    <>
-                      {editable ? <Muted style={{ marginTop: 6 }}>Planned</Muted> : null}
-                      {items.map((x) => {
+                      {editable ? <Muted style={{ marginTop: 6 }}>Additional work</Muted> : null}
+                      {items.filter((x) => !editable || !x.ae_item_id).map((x) => {
                         const pms = permitsOf(x);
                         return (
                           <Row key={x.id} wrap gap={8} style={{ paddingVertical: 5, alignItems: 'center', borderTopWidth: 1, borderTopColor: colors.line }}>
@@ -228,9 +208,9 @@ export function SubPlanView({ plan: planParam, project: projectParam, week: week
                             {!pms.length && plan.status !== 'draft' && x.status === 'planned' && d >= today ? <Pill label="No work permit yet" tone={colors.grey} /> : null}
                             {plan.status === 'approved' ? <Pill label={RESULT[x.status].label} tone={RESULT[x.status].tone} /> : null}
                             {x.result_note ? <Muted>{x.result_note}</Muted> : null}
-                            {editable && x.additional ? (
+                            {editable ? (
                               <Row gap={4}>
-                                <Button small variant="ghost" title="Edit" onPress={() => extra(d, x)} />
+                                {x.additional ? <Button small variant="ghost" title="Edit" onPress={() => extra(d, x)} /> : null}
                                 <Button small variant="ghost" title="Remove" onPress={() => run('delete_sub_plan_item', { p_id: x.id })} />
                               </Row>
                             ) : null}
