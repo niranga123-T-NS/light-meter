@@ -8,7 +8,7 @@ import { usePeople } from '@/lib/hooks';
 import type { Attachment } from '@/lib/types';
 
 /** One required document of an IPC or invoice (PDF / photos): upload while it can be changed, open, and the reviewer's ✎ Mark up. */
-export function DocSlot({ title, entity, entityId, kind, files, canAdd, canMarkUp, required, onChange, markupEntity, markupId }: {
+export function DocSlot({ title, entity, entityId, kind, files, canAdd, canMarkUp, required, onChange, markupEntity, markupId, markupKind }: {
   title: string;
   entity: 'sub_cert' | 'sub_invoice' | 'sub_cert_var' | 'sub_invoice_var';
   entityId: string;
@@ -21,6 +21,8 @@ export function DocSlot({ title, entity, entityId, kind, files, canAdd, canMarkU
   /** The record the marked-up copy is kept with (defaults to this one) */
   markupEntity?: 'sub_cert' | 'sub_invoice';
   markupId?: string;
+  /** Kind of the marked-up copy (defaults by record: ipc_markup / sinv_markup) */
+  markupKind?: string;
 }) {
   const dialog = useDialog();
   const people = usePeople();
@@ -51,7 +53,7 @@ export function DocSlot({ title, entity, entityId, kind, files, canAdd, canMarkU
                       title="✎ Mark up"
                       onPress={() =>
                         Platform.OS === 'web'
-                          ? router.push({ pathname: '/execution/sub-invoice/markup', params: { id: markupId ?? entityId, att: f.id, entity: markupEntity ?? entity } })
+                          ? router.push({ pathname: '/execution/sub-invoice/markup', params: { id: markupId ?? entityId, att: f.id, entity: markupEntity ?? entity, ...(markupKind ? { kind: markupKind } : {}) } })
                           : dialog.toast('Mark up the copy on the website (computer or tablet browser)', 'error')
                       }
                     />

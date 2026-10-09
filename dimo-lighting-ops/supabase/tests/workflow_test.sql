@@ -3668,9 +3668,24 @@ begin
   perform set_config('test.snag', public.raise_snag(current_setting('test.ex')::uuid, '{"location":"Lobby","description":"Scratched diffuser","responsible":"Subcontractor","priority":"high"}')::text, false);
   begin perform public.close_snag(current_setting('test.snag')::uuid); assert false, 'after photo needed';
   exception when others then assert sqlerrm = 'Attach the after photo first', sqlerrm; end;
-  perform set_config('test.spc', public.prepare_sub_cert(current_setting('test.ex')::uuid, '{"subcontractor":"Lanka Electricals","period":"Sep 2026","gross":"1000000","previous":"200000","retention_pct":"10","deductions":"20000"}')::text, false);
+  perform set_config('test.spc', public.prepare_sub_cert(current_setting('test.ex')::uuid, '{"jm_date":"2026-10-01","subcontractor":"Lanka Electricals","period":"Sep 2026","gross":"1000000","previous":"200000","retention_pct":"10","deductions":"20000"}')::text, false);
   assert (select net from public.sub_certs where id = current_setting('test.spc')::uuid) = 700000, 'net value';
-  assert (select status from public.sub_certs where id = current_setting('test.spc')::uuid) = 'draft', 'a draft until submitted';
+  assert (select status from public.sub_certs where id = current_setting('test.spc')::uuid) = 'jm_requested', 'joint measurement first';
+  begin insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_cert', current_setting('test.spc')::uuid, 'ipc_draft', 'x0', 'x'); assert false, 'IPC upload locked before JM';
+  exception when others then null; end;
+  perform public.schedule_joint_measurement(current_setting('test.spc')::uuid, '2026-10-02', 'With the client QS');
+  begin perform public.submit_joint_measurement(current_setting('test.spc')::uuid); assert false, 'JM sheets needed';
+  exception when others then assert sqlerrm = 'Attach the joint measurement sheets (PDF or photos)', sqlerrm; end;
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_cert', current_setting('test.spc')::uuid, 'jm_sheet', 'sub_cert/x/jm.pdf', 'jm.pdf');
+  assert public.submit_joint_measurement(current_setting('test.spc')::uuid) = 'jm_see', 'AE''s JM straight to the SEE';
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select public.decide_joint_measurement(current_setting('test.spc')::uuid, true);
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin
+  assert (select status from public.sub_certs where id = current_setting('test.spc')::uuid) = 'draft', 'IPC uploads open after the JM';
   begin perform public.submit_sub_cert(current_setting('test.spc')::uuid); assert false, 'IPC needed';
   exception when others then assert sqlerrm = 'Attach the IPC (PDF or photos)', sqlerrm; end;
   insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_cert', current_setting('test.spc')::uuid, 'ipc_draft', 'sub_cert/x/ipc.pdf', 'ipc.pdf');
@@ -5241,7 +5256,7 @@ end $$;
 select pg_temp.act_as('assistant_engineer'); set role authenticated;
 do $$ declare cid uuid;
 begin
-  cid := public.prepare_sub_cert(current_setting('test.ex')::uuid, '{"subcontractor":"Lanka Electricals","period":"Oct 2026","gross":"1500000","previous":"1000000"}');
+  cid := public.prepare_sub_cert(current_setting('test.ex')::uuid, '{"jm_date":"2026-10-01","subcontractor":"Lanka Electricals","period":"Oct 2026","gross":"1500000","previous":"1000000"}');
   begin perform public.create_sub_invoice(cid, '{"invoice_no":"X1","invoice_date":"2026-10-08","amount":"1"}'); assert false, 'IPC first';
   exception when others then assert sqlerrm like 'The payment certificate (IPC and measurement sheets) must have Interim Payment Approval%', sqlerrm; end;
 end $$;
@@ -5292,9 +5307,48 @@ end $$;
 select pg_temp.act_as('sub_supervisor'); set role authenticated;
 do $$ declare cid uuid;
 begin
-  cid := public.prepare_sub_cert(current_setting('test.ex')::uuid, '{"subcontractor":"Lanka Electricals","period":"Nov 2026","gross":"2000000","previous":"1500000"}');
+  cid := public.prepare_sub_cert(current_setting('test.ex')::uuid, '{"jm_date":"2026-10-01","subcontractor":"Lanka Electricals","period":"Nov 2026","gross":"2000000","previous":"1500000"}');
   perform set_config('test.spc2', cid::text, false);
   assert exists (select 1 from public.sub_certs where id = cid), 'supervisor sees own IPC';
+  begin perform public.schedule_joint_measurement(cid, '2026-11-02'); assert false, 'sub does not confirm';
+  exception when others then assert sqlerrm like 'The project''s Assistant Engineer or the SEE confirms%', sqlerrm; end;
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'assistant_engineer') and title = 'Joint measurement requested'), 'AE told of JM';
+  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'senior_elec_engineer') and title = 'Joint measurement requested'), 'SEE told of JM';
+end $$;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.my_pending_approvals() where source = 'sub_cert' and id = current_setting('test.spc2')::uuid and step = 'Confirm joint measurement'), 'AE to confirm';
+  perform public.schedule_joint_measurement(current_setting('test.spc2')::uuid, '2026-11-02');
+end $$;
+reset role;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare cid uuid := current_setting('test.spc2')::uuid;
+begin
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_cert', cid, 'jm_sheet', 'sub_cert/' || cid || '/jm.pdf', 'jm.pdf');
+  assert public.submit_joint_measurement(cid) = 'jm_ae', 'supervisor''s JM to the AE';
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare cid uuid := current_setting('test.spc2')::uuid;
+begin
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_cert', cid, 'jm_markup', 'sub_cert/' || cid || '/jmm.pdf', 'Marked up – jm.pdf');
+  assert public.decide_joint_measurement(cid, true) = 'jm_see', 'AE checked JM';
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare cid uuid := current_setting('test.spc2')::uuid;
+begin
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_cert', cid, 'jm_markup', 'sub_cert/' || cid || '/jmm2.pdf', 'Marked up – jm 2.pdf');
+  assert public.decide_joint_measurement(cid, true) = 'draft', 'SEE approved JM';
+  assert not exists (select 1 from public.attachments where entity_id = cid and kind = 'jm_markup' and archived_at is null), 'marked-up copies removed on final approval';
+end $$;
+reset role;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare cid uuid := current_setting('test.spc2')::uuid;
+begin
   insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_cert', cid, 'ipc_draft', 'sub_cert/' || cid || '/ipc.pdf', 'ipc.pdf');
   insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_cert', cid, 'ipc_measure', 'sub_cert/' || cid || '/ms.pdf', 'ms.pdf');
   perform public.update_sub_cert(cid, '{"gross":"2100000"}');
@@ -5338,6 +5392,7 @@ reset role;
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
 do $$ begin
   assert public.advance_sub_cert(current_setting('test.spc2')::uuid, true) = 'verified', 'SEE approves';
+  assert not exists (select 1 from public.attachments where entity_id = current_setting('test.spc2')::uuid and kind = 'ipc_markup' and archived_at is null), 'IPC mark-ups removed at IPA';
   assert (select count(*) from public.sub_certs where id = current_setting('test.spc2')::uuid and ae_by is not null) = 1, 'AE check recorded';
 end $$;
 reset role;

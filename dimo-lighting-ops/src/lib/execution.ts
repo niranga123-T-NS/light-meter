@@ -553,7 +553,15 @@ export type SubCert = {
   deductions: number;
   net: number;
   note: string | null;
-  status: 'draft' | 'ae_review' | 'prepared' | 'verified' | 'approved' | 'paid' | 'returned' | 'cancelled';
+  status: 'jm_requested' | 'jm_scheduled' | 'jm_ae' | 'jm_see' | 'jm_returned' | 'draft' | 'ae_review' | 'prepared' | 'verified' | 'approved' | 'paid' | 'returned' | 'cancelled';
+  jm_requested_date: string | null;
+  jm_scope: string | null;
+  jm_date: string | null;
+  jm_note: string | null;
+  jm_submitted_at: string | null;
+  jm_ae_by: string | null;
+  jm_see_by: string | null;
+  jm_see_at: string | null;
   prepared_by: string;
   prepared_at: string;
   submitted_at: string | null;
@@ -568,7 +576,12 @@ export type SubCert = {
   return_note: string | null;
 };
 export const CERT_STATUS: Record<SubCert['status'], string> = {
-  draft: 'Draft – attach the IPC and sheets',
+  jm_requested: 'Joint measurement requested',
+  jm_scheduled: 'Joint measurement confirmed – upload the sheets',
+  jm_ae: 'JM sheets – AE checking',
+  jm_see: 'JM sheets – with the SEE',
+  jm_returned: 'JM sheets returned with comments',
+  draft: 'JM approved – attach the IPC and sheets',
   ae_review: 'IPA pending – AE checking',
   prepared: 'IPA pending – with the SEE',
   verified: 'IPA approved – SM Projects next',
@@ -578,6 +591,8 @@ export const CERT_STATUS: Record<SubCert['status'], string> = {
   cancelled: 'Withdrawn',
 };
 /** An invoice can be recorded once the SEE has approved the IPC */
+/** Joint measurement stages: before them nothing of the IPC itself can be uploaded */
+export const isJm = (s: SubCert['status']) => s.startsWith('jm_');
 /** IPA = Interim Payment Approval: the SEE's approval of the IPC */
 export const certApproved = (s: SubCert['status']) => s === 'verified' || s === 'approved' || s === 'paid';
 

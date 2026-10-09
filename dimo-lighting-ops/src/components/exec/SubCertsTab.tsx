@@ -24,26 +24,25 @@ export function SubCertsTab({ p }: { p: ExecProject }) {
 
   const prepare = async () => {
     const res = await dialog.prompt({
-      title: 'Subcontractor payment certificate',
+      title: 'Request a joint measurement',
+      message: 'The first step of every IPC. The AE / SEE confirms the date; after the measurement upload the joint measurement sheets for approval – then the IPC.',
       fields: [
         { key: 'subcontractor', label: 'Subcontractor', required: true },
         { key: 'period', label: 'Period (e.g. Oct 2026)', required: true },
-        { key: 'gross', label: 'Gross value of work done to date (LKR)', required: true },
-        { key: 'previous', label: 'Previously certified (LKR)' },
-        { key: 'retention_pct', label: 'Retention %', initial: '10' },
-        { key: 'deductions', label: 'Other deductions (LKR)' },
-        { key: 'note', label: 'Note', type: 'multiline' },
+        { key: 'jm_date', label: 'Proposed date for the joint measurement', type: 'date', required: true },
+        { key: 'jm_scope', label: 'Work / areas to measure', type: 'multiline' },
+        { key: 'retention_pct', label: 'Retention % (for the IPC)', initial: '10' },
       ],
-      confirmLabel: 'Continue – attach the IPC',
+      confirmLabel: 'Request',
     });
     if (res) await dialog.run(async () => { const id = await rpc<string>('prepare_sub_cert', { p_exec: p.id, p: res }); router.push(`/execution/sub-cert/${id}`); });
   };
 
   return (
     <>
-      <Section title="Payment certificates (IPC)" right={canRecord && p.status === 'active' ? <Button small title="+ Submit IPC" onPress={prepare} /> : null}>
+      <Section title="Payment certificates (IPC)" right={canRecord && p.status === 'active' ? <Button small title="+ Request joint measurement" onPress={prepare} /> : null}>
         <CertRows rows={data?.certs ?? []} empty={sub ? 'No IPC submitted by you yet' : undefined} />
-        <Muted>The IPC with its measurement sheets is checked by the AE (when a supervisor submits it), then given Interim Payment Approval (IPA) by the SEE. Until IPA it shows “IPA pending”; only then can the invoice, signed IPC and final measurement sheets be uploaded.</Muted>
+        <Muted>Joint measurement first: request it, upload the joint measurement sheets for AE / SEE approval. Then the IPC with its measurement sheets is checked by the AE (when a supervisor submits it), then given Interim Payment Approval (IPA) by the SEE. Until IPA it shows “IPA pending”; only then can the invoice, signed IPC and final measurement sheets be uploaded.</Muted>
       </Section>
       <Section
         title="Subcontractor invoices"

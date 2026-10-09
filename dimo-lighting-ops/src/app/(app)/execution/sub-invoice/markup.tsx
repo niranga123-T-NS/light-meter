@@ -11,7 +11,7 @@ import type { Attachment } from '@/lib/types';
 
 /** Red pen on an invoice or IPC copy (AE / SEE / Operations): the comments are saved as a marked-up PDF kept with the record. */
 export default function SubInvoiceMarkup() {
-  const { id, att, entity } = useLocalSearchParams<{ id: string; att: string; entity?: string }>();
+  const { id, att, entity, kind } = useLocalSearchParams<{ id: string; att: string; entity?: string; kind?: string }>();
   const ipc = entity === 'sub_cert';
   const me = useMe();
   const dialog = useDialog();
@@ -39,7 +39,7 @@ export default function SubInvoiceMarkup() {
         onCancel={() => router.back()}
         onSave={async (pdf) => {
           await dialog.run(async () => {
-            await uploadAttachment(ipc ? 'sub_cert' : 'sub_invoice', id, ipc ? 'ipc_markup' : 'sinv_markup', {
+            await uploadAttachment(ipc ? 'sub_cert' : 'sub_invoice', id, kind === 'jm_markup' && ipc ? 'jm_markup' : ipc ? 'ipc_markup' : 'sinv_markup', {
               name: `Marked up – ${base}.pdf`,
               uri: '',
               mimeType: 'application/pdf',
