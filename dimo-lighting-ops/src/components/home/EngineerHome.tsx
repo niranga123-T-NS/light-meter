@@ -2,6 +2,7 @@ import { router, Stack } from 'expo-router';
 import { Text } from 'react-native';
 import { EngJobRows } from '@/components/EngJobRows';
 import { TodayPlan } from '@/components/exec/TodayPlan';
+import { SubProgress } from '@/components/home/SubProgress';
 import { Button, Card, colors, ErrorBanner, Grid, ListRow, Loading, Muted, Notice, Row, Screen, Section, Stat } from '@/components/ui';
 import { MyDayMeetings } from '@/components/WeekMeetings';
 import { useMe } from '@/lib/auth';
@@ -89,6 +90,7 @@ export function EngineerHome() {
           <Button variant="secondary" title={me.role === 'sub_supervisor' ? 'My work' : 'My projects'} onPress={() => router.push('/execution')} />
         </Row>
       ) : null}
+      {me.role === 'sub_supervisor' ? <SubProgress /> : null}
       <TodayPlan />
 
       {data.hse.length ? (

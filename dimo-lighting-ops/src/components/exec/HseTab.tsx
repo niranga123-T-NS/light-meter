@@ -178,7 +178,8 @@ export function HseTab({ p, mode = 'all' }: { p: ExecProject; mode?: 'all' | 'pe
         options={[
           { value: 'equipment', label: 'Equipment checks' },
           ...(withPermits ? [{ value: 'permits' as const, label: 'Permits', badge: s?.permits_waiting || undefined }] : []),
-          { value: 'tbt', label: 'Toolbox talks' },
+          // a subcontractor supervisor holds the toolbox meeting from the Planning tab
+          ...(withPermits ? [{ value: 'tbt' as const, label: 'Toolbox talks' }] : []),
           { value: 'people', label: 'Induction & training' },
           { value: 'reports', label: 'Incident reports' },
         ]}
@@ -221,7 +222,7 @@ export function HseTab({ p, mode = 'all' }: { p: ExecProject; mode?: 'all' | 'pe
           </>
         ) : null}
         {part === 'permits' && withPermits ? permitList : null}
-        {part === 'tbt' ? (
+        {part === 'tbt' && withPermits ? (
           <>
             {canWork ? (
               <Row gap={6}>
