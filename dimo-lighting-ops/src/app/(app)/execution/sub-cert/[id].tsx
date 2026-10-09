@@ -24,6 +24,7 @@ import { listAttachments, openAttachment } from "@/lib/files";
 import { fmtDate, fmtDateTime, fmtMoney, todayISO } from "@/lib/format";
 import { useLoad, usePeople } from "@/lib/hooks";
 import { rpc, supabase } from "@/lib/supabase";
+import { loadSubcontractors, subOptions } from "@/lib/subcontractors";
 import type { Attachment } from "@/lib/types";
 
 type CertVar = {
@@ -88,6 +89,7 @@ export default function SubCertPage() {
     if (c.error) throw new Error(c.error.message);
     const vars = (cv.data ?? []) as CertVar[];
     return {
+      subs: await loadSubcontractors((c.data as SubCert).exec_project_id),
       vars,
       varFiles: vars.length
         ? ((await listAttachments(
@@ -216,8 +218,13 @@ export default function SubCertPage() {
         {
           key: "subcontractor",
           label: "Subcontractor",
+          type: "select",
           initial: c.subcontractor,
           required: true,
+          options:
+            me.role === "sub_supervisor"
+              ? [{ value: c.subcontractor, label: c.subcontractor }]
+              : subOptions(data.subs, { current: c.subcontractor }),
         },
         { key: "period", label: "Period", initial: c.period, required: true },
         {

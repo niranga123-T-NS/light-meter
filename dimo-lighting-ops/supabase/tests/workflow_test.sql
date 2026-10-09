@@ -3326,6 +3326,13 @@ begin
   assert (select legacy and project_id is null and client_name = 'Ports Authority' from public.exec_projects where id = e), 'legacy project';
   perform set_config('test.exlegacy', e::text, false);
 end $$;
+-- The project's subcontractors (the register every subcontractor field picks from)
+do $$ begin
+  perform public.save_exec_subcontractor(current_setting('test.ex')::uuid, '{"name":"ABC Electricals","trade":"Cabling"}');
+  perform public.save_exec_subcontractor(current_setting('test.ex')::uuid, '{"name":"Lanka Electricals","trade":"Mast erection"}');
+  begin perform public.save_exec_subcontractor(current_setting('test.ex')::uuid, '{"name":"lanka electricals"}'); assert false, 'duplicate';
+  exception when others then assert sqlerrm = 'This subcontractor is already on the project', sqlerrm; end;
+end $$;
 reset role;
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
 do $$ declare e uuid := current_setting('test.ex')::uuid; rid uuid;
@@ -5301,7 +5308,7 @@ end $$;
 select pg_temp.act_as('sub_supervisor'); set role authenticated;
 do $$ declare cid uuid;
 begin
-  cid := public.prepare_sub_cert(current_setting('test.ex')::uuid, '{"jm_date":"2026-10-01","subcontractor":"Lanka Electricals","period":"Nov 2026","gross":"2000000","previous":"1500000"}');
+  cid := public.prepare_sub_cert(current_setting('test.ex')::uuid, '{"jm_date":"2026-10-01","subcontractor":"ABC Electricals","period":"Nov 2026","gross":"2000000","previous":"1500000"}');
   perform set_config('test.spc2', cid::text, false);
   assert exists (select 1 from public.sub_certs where id = cid), 'supervisor sees own IPC';
   begin perform public.schedule_joint_measurement(cid, '2026-11-02'); assert false, 'sub does not confirm';
@@ -5422,13 +5429,17 @@ select pg_temp.act_as('sub_supervisor'); set role authenticated;
 do $$ declare ids uuid[];
 begin
   assert exists (select 1 from public.sub_variation_options(current_setting('test.ex')::uuid) where id = current_setting('test.var')::uuid), 'approved variation offered';
-  ids := public.request_joint_measurements(current_setting('test.ex')::uuid, jsonb_build_object('subcontractor', 'Lanka Electricals', 'period', 'Dec 2026',
+  ids := public.request_joint_measurements(current_setting('test.ex')::uuid, jsonb_build_object('subcontractor', 'ABC Electricals', 'period', 'Dec 2026',
     'jm_date', '2026-12-02', 'boq', true, 'variation_ids', jsonb_build_array(current_setting('test.var'))));
   assert cardinality(ids) = 2, 'BOQ + variation';
   assert (select count(*) from public.sub_certs where id = any (ids) and variation_id is null) = 1, 'one BOQ certificate';
   assert (select var_code is not null and status = 'jm_requested' from public.sub_certs where id = any (ids) and variation_id = current_setting('test.var')::uuid), 'variation certificate';
   begin perform public.request_joint_measurements(current_setting('test.ex')::uuid, '{"subcontractor":"X","period":"Y","jm_date":"2026-12-02","boq":false}'); assert false, 'choose something';
   exception when others then assert sqlerrm like 'Choose the BOQ work%', sqlerrm; end;
+  begin perform public.prepare_sub_cert(current_setting('test.ex')::uuid, '{"subcontractor":"Lanka Electricals","period":"Y","jm_date":"2026-12-02"}'); assert false, 'own company only';
+  exception when others then assert sqlerrm like 'A subcontractor supervisor requests measurements for their own company%', sqlerrm; end;
+  begin perform public.prepare_sub_cert(current_setting('test.ex')::uuid, '{"subcontractor":"Unknown Ltd","period":"Y","jm_date":"2026-12-02"}'); assert false, 'register only';
+  exception when others then assert sqlerrm like '"Unknown Ltd" is not a subcontractor of this project%', sqlerrm; end;
 end $$;
 reset role;
 

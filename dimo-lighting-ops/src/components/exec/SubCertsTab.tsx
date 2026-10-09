@@ -2,13 +2,14 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Text } from 'react-native';
 import { useDialog } from '@/components/dialog';
-import { Button, Card, colors, Empty, Muted, Notice, Pill, Row, Section, Segmented } from '@/components/ui';
+import { Button, Card, Chip, colors, Empty, Muted, Notice, Pill, Row, Section, Segmented } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { CERT_STATUS, SINV_NOTICE, SINV_STATUS, type ExecProject, type SubCert, type SubInvoice } from '@/lib/execution';
 import { listAttachments, openAttachment } from '@/lib/files';
 import { fmtDate, fmtMoney } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
+import { addSubcontractor, canKeepSubs, loadSubcontractors, NEW_SUB, subOptions } from '@/lib/subcontractors';
 import type { Attachment } from '@/lib/types';
 import { certForMe, certTone } from './CertRows';
 
@@ -52,11 +53,14 @@ export function SubCertsTab({ p }: { p: ExecProject }) {
   const me = useMe();
   const dialog = useDialog();
   const [tab, setTab] = useState<Tab>('measure');
+  const [subFilter, setSubFilter] = useState<string | null>(null);
   const { data, reload } = useLoad(async () => {
-    const [{ data: c }, { data: v }, varOpts] = await Promise.all([
+    const [{ data: c }, { data: v }, varOpts, subs, myCo] = await Promise.all([
       supabase.from('sub_certs').select('*').eq('exec_project_id', p.id).neq('status', 'cancelled').order('prepared_at', { ascending: false }),
       supabase.from('sub_invoices').select('*').eq('exec_project_id', p.id).neq('status', 'cancelled').order('created_at', { ascending: false }),
       rpc<{ id: string; code: string; vo_no: string | null; title: string }[]>('sub_variation_options', { p_exec: p.id }).catch(() => []),
+      loadSubcontractors(p.id),
+      supabase.from('profiles').select('company').eq('id', me.id).maybeSingle(),
     ]);
     const certs = (c ?? []) as SubCert[];
     const invoices = (v ?? []) as SubInvoice[];
@@ -73,12 +77,14 @@ export function SubCertsTab({ p }: { p: ExecProject }) {
       listAttachments('sub_invoice', invoices.map((x) => x.id)),
       listAttachments('sub_invoice_var', invVars.map((x) => x.id)),
     ]);
-    return { varOpts, certs, invoices, certVars, invVars, formats: tf as Attachment[], files: [...cf, ...vf, ...inf, ...ivf] as Attachment[] };
+    return { varOpts, subs, myCompany: (myCo.data?.company as string | null) ?? null, certs, invoices, certVars, invVars, formats: tf as Attachment[], files: [...cf, ...vf, ...inf, ...ivf] as Attachment[] };
   }, [p.id]);
   const sub = me.role === 'sub_supervisor';
   const canRecord = me.role === 'senior_elec_engineer' || me.role === 'assistant_engineer' || sub;
   const active = p.status === 'active';
-  const certs = data?.certs ?? [];
+  const allCerts = data?.certs ?? [];
+  const subNames = [...new Set([...(data?.subs ?? []).filter((s) => s.active).map((s) => s.name), ...allCerts.map((c) => c.subcontractor)])];
+  const certs = subFilter ? allCerts.filter((c) => c.subcontractor.toLowerCase() === subFilter.toLowerCase()) : allCerts;
   const files = data?.files ?? [];
   const of = (id: string, ...kinds: string[]) => files.filter((f) => f.entity_id === id && kinds.includes(f.kind));
   const varFiles = (vars: Var[], key: 'sub_cert_id' | 'invoice_id', id: string, kind: string) => {
@@ -117,7 +123,9 @@ export function SubCertsTab({ p }: { p: ExecProject }) {
       title: 'Request a joint measurement',
       message: 'The first step of every IPC. The AE / SEE confirms the date; after the measurement upload the joint measurement sheets for approval – then the IPA.',
       fields: [
-        { key: 'subcontractor', label: 'Subcontractor', required: true },
+        sub && data?.myCompany
+          ? { key: 'subcontractor', label: 'Subcontractor (your company)', type: 'select' as const, required: true, initial: data.myCompany, options: [{ value: data.myCompany, label: data.myCompany }] }
+          : { key: 'subcontractor', label: 'Subcontractor', type: 'select' as const, required: true, initial: subFilter ?? undefined, options: subOptions(data?.subs ?? [], { canAdd: canKeepSubs(me.role) }) },
         { key: 'period', label: 'Period (e.g. Oct 2026)', required: true },
         { key: 'jm_date', label: 'Proposed date for the joint measurement', type: 'date', required: true },
         {
@@ -146,6 +154,11 @@ export function SubCertsTab({ p }: { p: ExecProject }) {
       confirmLabel: 'Request',
     });
     if (!res) return;
+    if (res.subcontractor === NEW_SUB) {
+      const n = await addSubcontractor(dialog.prompt, p.id).catch((e) => (dialog.toast((e as Error).message, 'error'), null));
+      if (!n) return;
+      res.subcontractor = n;
+    }
     const { vars, what, ...rest } = res as Record<string, string>;
     const boq = what !== 'vars';
     const variation_ids = what === 'boq' ? [] : (vars ?? '').split(',').filter(Boolean);
@@ -193,6 +206,14 @@ export function SubCertsTab({ p }: { p: ExecProject }) {
           { value: 'ipc', label: 'IPC', badge: badge.ipc },
         ]}
       />
+      {subNames.length > 1 ? (
+        <Row wrap gap={6} style={{ marginTop: 6 }}>
+          <Chip label="All subcontractors" on={!subFilter} onPress={() => setSubFilter(null)} />
+          {subNames.map((n) => (
+            <Chip key={n} label={n} on={subFilter === n} onPress={() => setSubFilter(subFilter === n ? null : n)} />
+          ))}
+        </Row>
+      ) : null}
 
       {tab === 'measure' ? (
         <>

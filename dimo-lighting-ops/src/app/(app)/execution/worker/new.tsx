@@ -9,6 +9,7 @@ import type { ExecMember } from '@/lib/execution';
 import { pickDocument, pickImage, uploadAttachment, type PickedFile } from '@/lib/files';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
+import { loadSubcontractors } from '@/lib/subcontractors';
 import { TRADES, type Worker } from '@/lib/workers';
 
 const blank = { full_name: '', address: '', police_station: '', id_type: 'nic' as 'nic' | 'passport', id_no: '', mobile: '', trade: '', emergency_name: '', emergency_phone: '', company: '', supervisor_id: '' };
@@ -31,7 +32,7 @@ export default function WorkerForm() {
     const w = params.edit ? ((await supabase.from('exec_workers').select('*').eq('id', params.edit).single()).data as Worker) : null;
     const project = params.project ?? w?.exec_project_id ?? '';
     const { data: mem } = await supabase.from('exec_members').select('*').eq('exec_project_id', project).eq('active', true).eq('member_role', 'sub_supervisor');
-    return { w, project, sups: (mem ?? []) as ExecMember[] };
+    return { w, project, sups: (mem ?? []) as ExecMember[], subs: project ? await loadSubcontractors(project) : [] };
   }, [params.edit, params.project]);
   if (data && !loaded) {
     setLoaded(true);
@@ -40,7 +41,7 @@ export default function WorkerForm() {
   if (!data) return <Screen><Loading /></Screen>;
   const set = <K extends keyof typeof blank>(k: K, v: (typeof blank)[K]) => setF((s) => ({ ...s, [k]: v }));
   const supCompany = (id: string) => (people[id] as { company?: string | null } | undefined)?.company ?? '';
-  const companies = [...new Set(['DIMO (own labour)', ...data.sups.map((m) => supCompany(m.user_id)).filter(Boolean)])];
+  const companies = ['DIMO (own labour)', ...data.subs.filter((s) => s.active).map((s) => s.name)];
 
   const take = async (side: 'front' | 'back') => {
     const camera = Platform.OS !== 'web' || (await dialog.confirm('ID photo', 'Take a photo with the camera? (Cancel to choose a file)', { confirmLabel: 'Camera' }));
@@ -118,11 +119,9 @@ export default function WorkerForm() {
           {sup ? (
             <Muted>{`Company: ${supCompany(me.id) || 'your company'} · your crew`}</Muted>
           ) : (
-            <Grid min={240}>
-              <Select label="Company" required value={f.company === 'DIMO' ? 'DIMO (own labour)' : f.company || null} onChange={(v) => set('company', v ?? '')}
-                options={[...companies.map((c) => ({ value: c, label: c })), ...(f.company && !companies.includes(f.company) && f.company !== 'DIMO' ? [{ value: f.company, label: f.company }] : [])]} />
-              <Field label="…or another subcontractor (type the name)" value={companies.includes(f.company) || f.company === 'DIMO' ? '' : f.company} onChangeText={(v) => set('company', v)} />
-            </Grid>
+            <Select label="Company" required value={f.company === 'DIMO' ? 'DIMO (own labour)' : f.company || null} onChange={(v) => set('company', v ?? '')}
+              hint="DIMO own labour, or a subcontractor of the project (Team → Subcontractors)"
+              options={[...companies.map((c) => ({ value: c, label: c })), ...(f.company && !companies.includes(f.company) && f.company !== 'DIMO' ? [{ value: f.company, label: `${f.company} (not on the list)` }] : [])]} />
           )}
           {!sup && data.sups.length ? (
             <Select label="Crew of supervisor (optional)" value={f.supervisor_id || null} onChange={(v) => set('supervisor_id', v ?? '')}

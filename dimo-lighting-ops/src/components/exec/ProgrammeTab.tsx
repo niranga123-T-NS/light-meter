@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, Empty, Grid, ListRow, Muted, Notice, Pill, Row, Section, Segmented, Stat } from '@/components/ui';
@@ -13,6 +13,7 @@ import { exportProgrammePdf } from '@/lib/programmePdf';
 import { ROLE_SHORT } from '@/lib/roles';
 import { byCode, PROG_STATUS, programmeRows, toDay, weeklyLoading, type Activity, type Dep, type Programme, type Resource, type Snapshot, type Wbs } from '@/lib/programme';
 import { rpc, supabase } from '@/lib/supabase';
+import { addSubcontractor, canKeepSubs, loadSubcontractors, NEW_SUB, subOptions } from '@/lib/subcontractors';
 import { Gantt, ganttLegend } from './Gantt';
 import { SCurve } from './SCurve';
 import { TrackingTable } from './TrackingTable';
@@ -21,6 +22,10 @@ import { TrackingTable } from './TrackingTable';
 export function ProgrammeTab({ p, onChange }: { p: ExecProject; onChange: () => void }) {
   const me = useMe();
   const dialog = useDialog();
+  const [subs, setSubs] = useState<Awaited<ReturnType<typeof loadSubcontractors>>>([]);
+  useEffect(() => {
+    loadSubcontractors(p.id).then(setSubs).catch(() => undefined);
+  }, [p.id]);
   const people = usePeople();
   const [view, setView] = useState<'gantt' | 'tracking' | 'scurve' | 'list' | 'resources'>('gantt');
   const [scale, setScale] = useState<'day' | 'week' | 'month'>('week');
@@ -219,7 +224,7 @@ export function ProgrammeTab({ p, onChange }: { p: ExecProject; onChange: () => 
         { key: 'duration', label: 'Duration (working days, 0 = milestone)', required: true, initial: '1' },
         { key: 'responsible_id', label: 'Responsible engineer', type: 'select', options: engineers },
         { key: 'pred', label: 'Starts after (predecessor – more links on the activity page)', type: 'select', options: [...acts].sort(byCode).map((a) => ({ value: a.id, label: `${a.code} ${a.name}` })) },
-        { key: 'subcontractor', label: 'Subcontractor' },
+        { key: 'subcontractor', label: 'Subcontractor', type: 'select', options: subOptions(subs, { canAdd: canKeepSubs(me.role) }) },
         { key: 'qty', label: 'Quantity' },
         { key: 'unit', label: 'Unit' },
         { key: 'not_before', label: 'Not before (e.g. material arrival)', type: 'date' },
@@ -227,6 +232,12 @@ export function ProgrammeTab({ p, onChange }: { p: ExecProject; onChange: () => 
       confirmLabel: 'Add',
     });
     if (!r) return;
+    if (r.subcontractor === NEW_SUB) {
+      const n = await addSubcontractor(dialog.prompt, p.id).catch((e) => (dialog.toast((e as Error).message, 'error'), null));
+      if (!n) return;
+      r.subcontractor = n;
+      setSubs(await loadSubcontractors(p.id));
+    }
     await dialog.run(async () => {
       const id = await rpc<string>('save_activity', { p_exec: p.id, p_id: null, p: r });
       if (r.pred) await rpc('set_dependency', { p_succ: id, p_pred: r.pred, p_type: 'FS', p_lag: 0 });
