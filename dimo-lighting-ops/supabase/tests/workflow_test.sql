@@ -5415,5 +5415,19 @@ begin
 end $$;
 reset role;
 
+-- Subcontractor formats: the SEE uploads them on the project, the supervisor downloads them
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name)
+values ('exec_project', current_setting('test.ex')::uuid, 'tpl_measurement', 'exec_project/x/jm-format.xlsx', 'JM format.xlsx');
+reset role;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.attachments where entity_type = 'exec_project' and kind = 'tpl_measurement'), 'supervisor sees the format';
+  begin insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name)
+    values ('exec_project', current_setting('test.ex')::uuid, 'tpl_ipa', 'exec_project/x/ipa.xlsx', 'ipa.xlsx'); assert false, 'only the SEE uploads formats';
+  exception when others then null; end;
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

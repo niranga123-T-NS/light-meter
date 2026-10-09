@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { Attachments } from '@/components/Attachments';
 import { Button, Card, colors, KeyValue, Muted, Notice, Row, Section } from '@/components/ui';
@@ -15,14 +16,18 @@ export function OverviewTab({ p, onTab, onChange }: { p: ExecProject; onTab: (t:
   const people = usePeople();
   const lead = me.role === 'senior_elec_engineer' || me.role === 'sm_projects';
   const { data: st } = useLoad(async () => {
-    const [m, g, pg] = await Promise.all([
+    const [m, g, pg, tf] = await Promise.all([
       supabase.from('exec_members').select('member_role').eq('exec_project_id', p.id).eq('active', true),
       supabase.from('exec_gates').select('gate').eq('exec_project_id', p.id).eq('status', 'pending'),
       supabase.from('exec_programmes').select('status, version').eq('exec_project_id', p.id).maybeSingle(),
+      supabase.from('attachments').select('kind').eq('entity_type', 'exec_project').eq('entity_id', p.id).is('archived_at', null),
     ]);
     const roles = (m.data ?? []).map((x) => x.member_role as string);
-    return { engineers: roles.filter((r) => r !== 'sub_supervisor').length, supervisors: roles.filter((r) => r === 'sub_supervisor').length, gatePending: (g.data ?? []).length > 0, programme: pg.data as { status: string; version: number } | null };
+    return { engineers: roles.filter((r) => r !== 'sub_supervisor').length, supervisors: roles.filter((r) => r === 'sub_supervisor').length, gatePending: (g.data ?? []).length > 0, programme: pg.data as { status: string; version: number } | null, formats: (tf.data ?? []).map((x) => x.kind as string) };
   }, [p.id, p.stage]);
+  const [fmt, setFmt] = useState<string[] | null>(null);
+  const fmtKinds = fmt ?? st?.formats ?? [];
+  const fmtMissing = ['tpl_measurement', 'tpl_ipa', 'tpl_ipc'].filter((k) => !fmtKinds.includes(k)).map((k) => ({ tpl_measurement: 'Measurement', tpl_ipa: 'IPA', tpl_ipc: 'IPC' })[k]);
   const step = (done: boolean, text: string, action?: { title: string; onPress: () => void }) => (
     <Row key={text} wrap gap={8} style={{ justifyContent: 'space-between', alignItems: 'center', paddingVertical: 4 }}>
       <Text style={{ flex: 1, minWidth: 200, color: done ? colors.green : colors.ink }}>{`${done ? '✓' : '○'} ${text}`}</Text>
@@ -43,6 +48,7 @@ export function OverviewTab({ p, onTab, onChange }: { p: ExecProject; onTab: (t:
             {step(p.areas.length > 0, 'Project areas, site and dates set', me.role === 'senior_elec_engineer' || me.role === 'sm_projects' ? { title: 'Edit', onPress: () => router.push({ pathname: '/execution/start', params: { id: p.id } }) } : undefined)}
             {step(st.engineers > 0, st.engineers ? `${st.engineers} engineer(s) / trainee(s) on the project` : 'Add the Assistant Engineers (and trainees)', { title: '+ Add engineer / trainee', onPress: () => onTab('team') })}
             {step(st.supervisors > 0, st.supervisors ? `${st.supervisors} subcontractor supervisor(s)` : 'Nominate the subcontractor supervisor (if any) – SM Projects approves', { title: 'Nominate', onPress: () => onTab('team') })}
+            {step(!fmtMissing.length, fmtMissing.length ? `Upload the subcontractor formats (below): ${fmtMissing.join(', ')}` : 'Subcontractor formats uploaded (Measurement · IPA · IPC)')}
             {step(
               !!st.programme?.version,
               !st.programme
@@ -117,6 +123,16 @@ export function OverviewTab({ p, onTab, onChange }: { p: ExecProject; onTab: (t:
           ) : null}
         </Card>
       </Section>
+      {me.role === 'senior_elec_engineer' || me.role === 'sm_projects' || me.role === 'gm' ? (
+        <Attachments
+          entityType="exec_project"
+          entityId={p.id}
+          kinds={['tpl_measurement', 'tpl_ipa', 'tpl_ipc']}
+          title="Subcontractor formats (Measurement · IPA · IPC)"
+          canUpload={me.role === 'senior_elec_engineer' && p.status === 'active'}
+          onChange={(f) => setFmt(f.map((x) => x.kind))}
+        />
+      ) : null}
       {p.request_id && me.role !== 'sub_supervisor' ? <Attachments entityType="exec_request" entityId={p.request_id} kinds={['handover_doc']} title="Contract documents" canUpload={false} /> : null}
     </>
   );
