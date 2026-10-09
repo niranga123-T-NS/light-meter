@@ -5,7 +5,7 @@ import { Attachments, KIND_LABELS } from '@/components/Attachments';
 import { DeadlineCard } from '@/components/DeadlineCard';
 import { DesignNotes } from '@/components/DesignNotes';
 import { useDialog } from '@/components/dialog';
-import { InquiryTimeline, STAGE_COLOUR } from '@/components/InquiryBits';
+import { deadlineCounting, deadlineNote, InquiryTimeline, STAGE_COLOUR } from '@/components/InquiryBits';
 import { PersonPicker } from '@/components/pickers';
 import { DESIGN_SCOPE, designScopeText, ESTIMATION_BASIS, ESTIMATION_SCOPE, estimationScopeText } from '@/lib/constants';
 import { Button, Card, colors, DateField, ErrorBanner, KeyValue, ListRow, Loading, Muted, Notice, Pill, Progress, Row, Screen, Section, Select, SlaDot } from '@/components/ui';
@@ -80,7 +80,10 @@ export default function InquiryDetail() {
   const openOthers = group.filter((g) => g.id !== i.id && !['won', 'lost', 'cancelled', 'rejected'].includes(g.status));
   const mineAsSales = i.sales_person_id === me.id || me.role === 'sm_projects' || me.role === 'gm';
   const colour = i.status === 'on_hold' ? 'grey' : i.sla_colour;
-  const daysLeft = i.customer_deadline ? daysBetween(todayISO(), i.customer_deadline) : null;
+  // The countdown runs only while the team still works towards the deadline; after the quotation it shows when it went
+  const dn = deadlineNote(i);
+  const counting = deadlineCounting(i.status);
+  const daysLeft = counting && i.customer_deadline ? daysBetween(todayISO(), i.customer_deadline) : null;
   const act = (fn: string, args: Record<string, unknown>, ok: string) =>
     dialog.run(async () => {
       const res = await rpc<unknown>(fn, args);
@@ -465,7 +468,7 @@ export default function InquiryDetail() {
           <KeyValue label="Current due" value={fmtDateTime(i.current_due_at)} />
           <KeyValue
             label={isTender(i) ? 'Tender closes (fixed)' : 'Client deadline'}
-            value={`${isTender(i) ? fmtDateTime(i.tender_closes_at) : fmtDate(i.customer_deadline)}${daysLeft != null ? ` (${daysLeft} days)` : ''}${i.extension_status === 'requested' ? ' · extension asked' : ''}`}
+            value={`${isTender(i) ? fmtDateTime(i.tender_closes_at) : counting ? fmtDate(i.customer_deadline) : dn.text.replace('Customer deadline ', '')}${daysLeft != null ? ` (${daysLeft} days)` : ''}${i.extension_status === 'requested' ? ' · extension asked' : ''}`}
           />
           {i.route === 'A' && (i.design_due_at || i.design_due_proposed_at) ? (
             <KeyValue

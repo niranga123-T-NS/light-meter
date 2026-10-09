@@ -8,9 +8,33 @@ import { Card, colors, Muted, Pill, Progress, Row, SlaDot } from './ui';
 
 export const STAGE_COLOUR: Record<SlaColour, string> = SLA_COLOURS;
 
+// Stages still working towards the customer deadline (as the server's deadline alerts)
+const OPEN_STAGES = ['submitted', 'accepted', 'in_design', 'design_review', 'design_approved', 'in_estimation', 'estimation_review', 'returned_for_info'];
+export const deadlineCounting = (status: string) => OPEN_STAGES.includes(status);
+
+/** The customer deadline line: a countdown while the team still works on it; once the quotation is out, when it went and
+ * whether that met the deadline; closed inquiries just show the date. */
+export function deadlineNote(i: Pick<Inquiry, 'status' | 'customer_deadline' | 'quotation_released_at' | 'submitted_to_client_at'>): { text: string; tone?: string; bold?: boolean } {
+  if (!i.customer_deadline) return { text: 'No customer deadline' };
+  const dl = fmtDate(i.customer_deadline);
+  if (deadlineCounting(i.status)) {
+    const left = daysBetween(todayISO(), i.customer_deadline);
+    if (left < 0) return { text: `Customer deadline ${dl} – passed ${-left}d ago`, tone: colors.red, bold: true };
+    return { text: `Customer deadline ${dl} (${left}d)`, tone: left <= 2 ? colors.red : undefined, bold: left <= 2 };
+  }
+  const sent = (i.quotation_released_at ?? i.submitted_to_client_at)?.slice(0, 10);
+  if (sent) {
+    const late = daysBetween(i.customer_deadline, sent);
+    return late > 0
+      ? { text: `Quoted ${fmtDate(sent)} – ${late}d after the deadline (${dl})`, tone: colors.amber }
+      : { text: `Quoted ${fmtDate(sent)} – before the deadline (${dl})`, tone: colors.green };
+  }
+  return { text: `Customer deadline ${dl}` };
+}
+
 /** Progress-tracker card: stage, %, dates, colour – what Sales sees (Section 5.4). */
 export function InquiryCard({ inquiry, ownerName }: { inquiry: Inquiry; ownerName?: string }) {
-  const daysLeft = inquiry.customer_deadline ? daysBetween(todayISO(), inquiry.customer_deadline) : null;
+  const dn = deadlineNote(inquiry);
   const colour = inquiry.status === 'on_hold' ? 'grey' : inquiry.sla_colour;
   return (
     <Card onPress={() => router.push(`/inquiries/${inquiry.id}`)} style={{ borderLeftWidth: 4, borderLeftColor: STAGE_COLOUR[colour] }}>
@@ -36,10 +60,7 @@ export function InquiryCard({ inquiry, ownerName }: { inquiry: Inquiry; ownerNam
       </View>
       <Row wrap style={{ justifyContent: 'space-between' }}>
         <Muted>Due {fmtDateTime(inquiry.revised_due_at ?? inquiry.current_due_at)}{ownerName ? ` · ${ownerName}` : ''}</Muted>
-        <Muted style={daysLeft != null && daysLeft <= 2 ? { color: colors.red, fontWeight: '700' } : undefined}>
-          Customer deadline {fmtDate(inquiry.customer_deadline)}
-          {daysLeft != null ? ` (${daysLeft}d)` : ''}
-        </Muted>
+        <Muted style={dn.tone ? { color: dn.tone, fontWeight: dn.bold ? '700' : '600' } : undefined}>{dn.text}</Muted>
       </Row>
       {inquiry.sla_colour === 'red' && inquiry.delay_reason ? (
         <Text style={{ color: colors.red, marginTop: 4 }}>
