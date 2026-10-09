@@ -71,7 +71,7 @@ export type HseRecord = {
   close_note: string | null;
 };
 export type Induction = { id: string; exec_project_id: string; inducted_on: string; name: string; nic: string; company: string | null; remarks: string | null; instructor_id: string | null };
-export type HseSummary = { permits_waiting: number; permits_active: number; checks_due: number; removed: number; inducted: number; man_hours: number; can_ehs: boolean };
+export type HseSummary = { permits_waiting: number; permits_active: number; checks_due: number; removed: number; inducted: number; man_hours: number; can_ehs: boolean; can_permit?: boolean };
 
 export const EQUIP_STATUS: Record<HseEquipment['status'], { label: string; tone: string }> = {
   in_use: { label: 'In use', tone: colors.green },
