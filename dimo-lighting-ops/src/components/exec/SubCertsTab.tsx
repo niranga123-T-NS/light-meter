@@ -57,7 +57,7 @@ export function SubCertsTab({ p }: { p: ExecProject }) {
       >
         {canRecord ? <Notice tone={colors.blue}>{SINV_NOTICE}</Notice> : null}
         <SubInvoiceRows rows={data?.invoices ?? []} />
-        <Muted>Recorded against a payment certificate verified by the SEE · approved by the SEE, then Operations · then the physical documents go to the office.</Muted>
+        <Muted>Recorded against a payment certificate verified by the SEE · a supervisor&apos;s invoice is checked by the AE · approved by the SEE, then Operations · then the physical documents go to the office.</Muted>
       </Section>
     </>
   );

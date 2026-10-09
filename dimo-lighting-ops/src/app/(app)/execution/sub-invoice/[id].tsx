@@ -15,14 +15,16 @@ const ACTION: Record<string, string> = {
   created: 'Recorded',
   submitted: 'Submitted',
   resubmitted: 'Submitted again',
+  approved_submitted: 'Checked by the Assistant Engineer',
   approved_see_approved: 'Approved by the Senior Electrical Engineer',
   approved_approved: 'Approved by Operations – physical documents can be submitted',
   returned: 'Returned with comments',
   docs_received: 'Physical documents received',
   cancelled: 'Withdrawn',
 };
-const STEPS: { key: SubInvoice['status'][]; label: string }[] = [
-  { key: ['submitted', 'see_approved', 'approved', 'docs_received'], label: 'Recorded' },
+const STEPS: { key: SubInvoice['status'][]; label: string; ae?: boolean }[] = [
+  { key: ['ae_review', 'submitted', 'see_approved', 'approved', 'docs_received'], label: 'Recorded' },
+  { key: ['submitted', 'see_approved', 'approved', 'docs_received'], label: 'AE checked', ae: true },
   { key: ['see_approved', 'approved', 'docs_received'], label: 'SEE approved' },
   { key: ['approved', 'docs_received'], label: 'Operations approved' },
   { key: ['docs_received'], label: 'Documents received' },
@@ -55,7 +57,9 @@ export default function SubInvoicePage() {
   const tone = { grey: colors.grey, amber: colors.amber, blue: colors.blue, green: colors.green, red: colors.red }[st.tone];
   const recorder = v.created_by === me.id || me.role === 'assistant_engineer' || me.role === 'senior_elec_engineer';
   const editable = recorder && (v.status === 'draft' || v.status === 'returned');
-  const reviewer = (v.status === 'submitted' && me.role === 'senior_elec_engineer') || (v.status === 'see_approved' && me.role === 'operations_exec');
+  const reviewer =
+    (v.status === 'ae_review' && me.role === 'assistant_engineer') ||
+    (v.status === 'submitted' && me.role === 'senior_elec_engineer') || (v.status === 'see_approved' && me.role === 'operations_exec');
   const run = (fn: string, args: Record<string, unknown>, ok: string) =>
     dialog.run(async () => {
       await rpc(fn, args);
@@ -89,7 +93,13 @@ export default function SubInvoicePage() {
   };
   const decide = async (ok: boolean) => {
     const r = await dialog.prompt({
-      title: ok ? (me.role === 'operations_exec' ? 'Approve – the subcontractor may submit the physical documents' : 'Approve – goes to Operations') : 'Return with comments',
+      title: ok
+        ? me.role === 'operations_exec'
+          ? 'Approve – the subcontractor may submit the physical documents'
+          : me.role === 'assistant_engineer'
+            ? 'Checked – goes to the Senior Electrical Engineer'
+            : 'Approve – goes to Operations'
+        : 'Return with comments',
       message: ok ? undefined : marked.length ? 'Your marked-up copy goes with it.' : 'Tip: mark your comments in red on the copy first (✎ Mark up), then return.',
       fields: [{ key: 'n', label: ok ? 'Note (optional)' : 'Reason', type: 'multiline', required: !ok }],
       confirmLabel: ok ? 'Approve' : 'Return',
@@ -108,7 +118,7 @@ export default function SubInvoicePage() {
         </Row>
         <Muted>{`${v.exec_projects?.code ?? ''} ${v.exec_projects?.name ?? ''}`}</Muted>
         <Row wrap gap={6} style={{ marginTop: 8 }}>
-          {STEPS.map((s) => (
+          {STEPS.filter((s) => !s.ae || v.ae_by || v.status === 'ae_review').map((s) => (
             <Pill key={s.label} label={`${s.key.includes(v.status) ? '✓ ' : ''}${s.label}`} tone={s.key.includes(v.status) ? colors.green : colors.grey} />
           ))}
         </Row>
@@ -202,7 +212,7 @@ export default function SubInvoicePage() {
             }}
           />
         ) : null}
-        {reviewer ? <Button title="Approve" onPress={() => decide(true)} /> : null}
+        {reviewer ? <Button title={me.role === 'assistant_engineer' ? 'Checked – send to the SEE' : 'Approve'} onPress={() => decide(true)} /> : null}
         {reviewer ? <Button variant="danger" title="Return with comments" onPress={() => decide(false)} /> : null}
         {v.status === 'approved' && me.role === 'operations_exec' ? (
           <Button

@@ -29,8 +29,8 @@ export default function Certs() {
   const action = data.rows.filter((c) => c.status === step[me.role]);
   const open = data.rows.filter((c) => c.status !== 'paid');
   const paid = data.rows.filter((c) => c.status === 'paid');
-  // Invoices: the SEE approves, then Operations; Operations then records the physical documents
-  const invMine = data.invoices.filter((v) => (me.role === 'senior_elec_engineer' && v.status === 'submitted') || (me.role === 'operations_exec' && (v.status === 'see_approved' || v.status === 'approved')));
+  // Invoices: the project AE checks a supervisor's invoice, the SEE approves, then Operations; Operations then records the physical documents
+  const invMine = data.invoices.filter((v) => (me.role === 'assistant_engineer' && v.status === 'ae_review') || (me.role === 'senior_elec_engineer' && v.status === 'submitted') || (me.role === 'operations_exec' && (v.status === 'see_approved' || v.status === 'approved')));
   const invOpen = data.invoices.filter((v) => v.status !== 'docs_received');
   const toPay = data.rows.filter((c) => c.status === 'approved').reduce((a, c) => a + Number(c.net), 0);
   return (

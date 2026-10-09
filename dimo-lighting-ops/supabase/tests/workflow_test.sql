@@ -5208,9 +5208,15 @@ begin
   exception when others then assert sqlerrm = 'Attach the invoice copy (PDF or photos)', sqlerrm; end;
   insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_invoice', iid, 'sinv_doc', 'sub_invoice/' || iid || '/inv.pdf', 'inv.pdf');
   perform public.submit_sub_invoice(iid);
-  assert (select status from public.sub_invoices where id = iid) = 'submitted', 'submitted';
+  assert (select status from public.sub_invoices where id = iid) = 'ae_review', 'supervisor''s invoice goes to the AE first';
   begin perform public.decide_sub_invoice(iid, true); assert false, 'not the sub';
-  exception when others then assert sqlerrm = 'The Senior Electrical Engineer approves first', sqlerrm; end;
+  exception when others then assert sqlerrm = 'The project''s Assistant Engineer checks it first', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare iid uuid := current_setting('test.sinv')::uuid;
+begin
+  assert public.decide_sub_invoice(iid, true, 'Quantities match the IPC') = 'submitted', 'AE checked → SEE';
 end $$;
 reset role;
 do $$ begin
@@ -5242,7 +5248,15 @@ begin
   exception when others then null; end;
   insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_invoice', iid, 'sinv_doc', 'sub_invoice/' || iid || '/inv2.pdf', 'inv2.pdf');
   perform public.submit_sub_invoice(iid, '{"amount":"630000"}');
-  assert (select revision = 1 and amount = 630000 from public.sub_invoices where id = iid), 'resubmitted';
+  assert (select revision = 1 and amount = 630000 and status = 'ae_review' from public.sub_invoices where id = iid), 'resubmitted to the AE';
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare iid uuid := current_setting('test.sinv')::uuid;
+begin
+  -- the AE can mark up the copy while checking it
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_invoice', iid, 'sinv_markup', 'sub_invoice/' || iid || '/ae.pdf', 'Marked up – AE.pdf');
+  perform public.decide_sub_invoice(iid, true);
 end $$;
 reset role;
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;

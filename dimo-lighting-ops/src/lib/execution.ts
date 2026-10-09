@@ -579,11 +579,13 @@ export type SubInvoice = {
   invoice_date: string;
   amount: number;
   note: string | null;
-  status: 'draft' | 'submitted' | 'see_approved' | 'approved' | 'returned' | 'docs_received' | 'cancelled';
+  status: 'draft' | 'ae_review' | 'submitted' | 'see_approved' | 'approved' | 'returned' | 'docs_received' | 'cancelled';
   revision: number;
   created_by: string;
   created_at: string;
   submitted_at: string | null;
+  ae_by: string | null;
+  ae_at: string | null;
   see_by: string | null;
   see_at: string | null;
   ops_by: string | null;
@@ -596,6 +598,7 @@ export type SubInvoice = {
 };
 export const SINV_STATUS: Record<SubInvoice['status'], { label: string; tone: 'grey' | 'amber' | 'blue' | 'green' | 'red' }> = {
   draft: { label: 'Draft – attach the copy and submit', tone: 'grey' },
+  ae_review: { label: 'With the Assistant Engineer to check', tone: 'amber' },
   submitted: { label: 'With the Senior Electrical Engineer', tone: 'amber' },
   see_approved: { label: 'With the Operations Executive', tone: 'amber' },
   approved: { label: 'Approved – submit the physical documents', tone: 'blue' },

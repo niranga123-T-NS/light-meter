@@ -1,7 +1,8 @@
 -- Subcontractor invoices: recorded in the system for reference and alerts only – the physical documents go to the DIMO
 -- Lighting Solutions office for processing. An invoice is recorded against the subcontractor's verified payment certificate
 -- (IPC and measurement sheets) by the subcontractor supervisor, or by the project's Assistant Engineer when no supervisor is
--- appointed, with a copy (PDF / photos). The Senior Electrical Engineer approves, then the Operations Executive; once
+-- appointed, with a copy (PDF / photos). A supervisor's invoice is checked first by the project's Assistant Engineer;
+-- then the Senior Electrical Engineer approves, then the Operations Executive; once
 -- approved the submitter is told to bring the physical documents. Either may return it with comments written in red on the
 -- copy (a marked-up PDF kept with the invoice); the submitter corrects and records it again. Operations records when the
 -- physical documents are received.
@@ -16,11 +17,13 @@ create table if not exists public.sub_invoices (
   invoice_date date not null,
   amount numeric(16, 2) not null check (amount > 0),
   note text,
-  status text not null default 'draft' check (status in ('draft', 'submitted', 'see_approved', 'approved', 'returned', 'docs_received', 'cancelled')),
+  status text not null default 'draft' check (status in ('draft', 'ae_review', 'submitted', 'see_approved', 'approved', 'returned', 'docs_received', 'cancelled')),
   revision int not null default 0,
   created_by uuid not null default auth.uid() references public.profiles (id),
   created_at timestamptz not null default now(),
   submitted_at timestamptz,
+  ae_by uuid references public.profiles (id),
+  ae_at timestamptz,
   see_by uuid references public.profiles (id),
   see_at timestamptz,
   ops_by uuid references public.profiles (id),
@@ -96,15 +99,19 @@ end $$;
 -- Submit (or resubmit after a return): the copy must be attached
 create or replace function public.submit_sub_invoice(p_id uuid, p jsonb default '{}'::jsonb) returns void
 language plpgsql security definer set search_path = public as $$
-declare v public.sub_invoices; head text;
+declare v public.sub_invoices; head text; aes uuid[]; by_sub boolean;
 begin
   select * into v from public.sub_invoices where id = p_id for update;
   perform app.require(v.id is not null, 'Invoice not found');
+  -- recorded by a subcontractor supervisor: the project's Assistant Engineer checks it first (if the project has one)
+  by_sub := exists (select 1 from public.profiles where id = v.created_by and role = 'sub_supervisor');
+  aes := array(select m.user_id from public.exec_members m join public.profiles p on p.id = m.user_id
+                where m.exec_project_id = v.exec_project_id and m.member_role = 'assistant_engineer' and m.active and p.active);
   perform app.require(v.created_by = auth.uid() or (app.can_record_sub_invoice(v.exec_project_id) and not app.has_role('sub_supervisor')), 'Only who recorded it submits it');
   perform app.require(v.status in ('draft', 'returned'), 'Already submitted');
   perform app.require(exists (select 1 from public.attachments a where a.entity_type = 'sub_invoice' and a.entity_id = v.id and a.kind = 'sinv_doc'),
     'Attach the invoice copy (PDF or photos)');
-  update public.sub_invoices set status = 'submitted', submitted_at = now(), revision = revision + case when status = 'returned' then 1 else 0 end,
+  update public.sub_invoices set status = case when by_sub and cardinality(aes) > 0 then 'ae_review' else 'submitted' end, submitted_at = now(), revision = revision + case when status = 'returned' then 1 else 0 end,
     invoice_no = coalesce(nullif(btrim(p ->> 'invoice_no'), ''), invoice_no), amount = coalesce(nullif(replace(p ->> 'amount', ',', ''), '')::numeric, amount),
     note = coalesce(nullif(btrim(p ->> 'note'), ''), note)
    where id = v.id returning * into v;
@@ -113,8 +120,13 @@ begin
   perform app.notify(v.created_by, 'sub_invoice', 'Invoice recorded – for reference only',
     head || E'\nThis submission is for recording purposes only. The physical documents must be submitted to the DIMO Lighting Solutions office for processing – you will be told here when they can be submitted (after the Senior Electrical Engineer and Operations approve).',
     'normal', 'sub_invoice', v.id, '/execution/sub-invoice/' || v.id, null, true);
-  perform app.notify_many(app.role_users('senior_elec_engineer'), 'sub_invoice', 'Subcontractor invoice to approve', head || ' · ' || app.exec_head(v.exec_project_id),
-    'normal', 'sub_invoice', v.id, '/execution/sub-invoice/' || v.id, null, true);
+  if v.status = 'ae_review' then
+    perform app.notify_many(aes, 'sub_invoice', 'Subcontractor invoice to check', head || ' · ' || app.exec_head(v.exec_project_id),
+      'normal', 'sub_invoice', v.id, '/execution/sub-invoice/' || v.id, null, true);
+  else
+    perform app.notify_many(app.role_users('senior_elec_engineer'), 'sub_invoice', 'Subcontractor invoice to approve', head || ' · ' || app.exec_head(v.exec_project_id),
+      'normal', 'sub_invoice', v.id, '/execution/sub-invoice/' || v.id, null, true);
+  end if;
 end $$;
 
 -- SEE, then Operations: approve, or return with comments (marked on the copy)
@@ -126,7 +138,15 @@ begin
   perform app.require(v.id is not null, 'Invoice not found');
   perform app.require(p_ok or coalesce(btrim(p_note), '') <> '', 'Give the reason – and mark the comments on the copy');
   head := format('%s · %s · invoice %s · %s', v.code, v.subcontractor, v.invoice_no, app.fmt_money(v.amount, 'LKR'));
-  if v.status = 'submitted' then
+  if v.status = 'ae_review' then
+    perform app.require(app.is_project_ae(v.exec_project_id), 'The project''s Assistant Engineer checks it first');
+    if p_ok then
+      update public.sub_invoices set status = 'submitted', ae_by = auth.uid(), ae_at = now() where id = v.id;
+      perform app.notify_many(app.role_users('senior_elec_engineer'), 'sub_invoice', 'Subcontractor invoice to approve', head || ' · checked by ' || app.display_name(auth.uid()),
+        'normal', 'sub_invoice', v.id, '/execution/sub-invoice/' || v.id, null, true);
+      nxt := 'submitted';
+    end if;
+  elsif v.status = 'submitted' then
     perform app.require(app.has_role('senior_elec_engineer'), 'The Senior Electrical Engineer approves first');
     if p_ok then
       update public.sub_invoices set status = 'see_approved', see_by = auth.uid(), see_at = now() where id = v.id;
@@ -356,7 +376,8 @@ begin
     return exists (select 1 from public.sub_invoices x where x.id = p_entity_id and (
       ((p_kind is null or p_kind = 'sinv_doc') and x.status in ('draft', 'returned')
         and (x.created_by = auth.uid() or (app.can_record_sub_invoice(x.exec_project_id) and not app.has_role('sub_supervisor'))))
-      or ((p_kind is null or p_kind = 'sinv_markup') and ((x.status = 'submitted' and app.has_role('senior_elec_engineer'))
+      or ((p_kind is null or p_kind = 'sinv_markup') and ((x.status = 'ae_review' and app.is_project_ae(x.exec_project_id))
+                                                          or (x.status = 'submitted' and app.has_role('senior_elec_engineer'))
                                                           or (x.status = 'see_approved' and app.has_role('operations_exec'))))));
   when 'sub_cert' then
     return exists (select 1 from public.sub_certs x where x.id = p_entity_id and (x.prepared_by = auth.uid() or app.has_role('senior_elec_engineer', 'operations_exec')));
