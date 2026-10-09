@@ -29,7 +29,7 @@ import { fmtDate, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 
-type Tab = 'book' | 'missing' | 'review' | 'budgeted' | 'unbudgeted' | 'done' | 'closed';
+type Tab = 'book' | 'missing' | 'review' | 'on_hold' | 'budgeted' | 'unbudgeted' | 'done' | 'closed';
 
 /** Secured projects (order book): won in the system or loaded from the opening list, with what is still to invoice. */
 export default function SecuredList() {
@@ -105,8 +105,9 @@ export default function SecuredList() {
     review: (s) => s.status === 'open' && s.schedule_status === 'review',
     budgeted: (s) => s.status !== 'cancelled' && budgetIds.has(s.budget_id ?? ''),
     unbudgeted: (s) => s.source === 'won' && !s.budget_id && s.status !== 'cancelled' && fyOf(s.won_on) === fy,
+    on_hold: (s) => s.status === 'on_hold',
     done: (s) => s.status === 'open' && calc(s).done,
-    closed: (s) => s.status !== 'open',
+    closed: (s) => s.status === 'closed' || s.status === 'cancelled',
   };
   const rows = scoped.filter(filters[tab]);
   const opening = open.filter((s) => s.source === 'opening').reduce((a, s) => a + calc(s).dueFy, 0);
@@ -114,6 +115,8 @@ export default function SecuredList() {
   const securedFy = wonFy.reduce((a, s) => a + data.lines.filter((l) => l.secured_id === s.id && inFy(l.original_month, fy)).reduce((x, l) => x + Number(l.amount), 0), 0);
   const invoicedFy = scoped.reduce((a, s) => a + calc(s).invoicedFy, 0);
   const toBill = open.reduce((a, s) => a + calc(s).balFy, 0);
+  const held = scoped.filter((s) => s.status === 'on_hold');
+  const heldValue = held.reduce((a, s) => a + calc(s).balFy + calc(s).later, 0);
   const budgetedRows = scoped.filter(filters.budgeted);
   const budgetScoped = data.budget.filter((b) => (!line || b.business_line === line) && (!person || b.sales_person_id === person));
   const budgetedBudget = budgetScoped.filter((b) => budgetedRows.some((s) => s.budget_id === b.id)).reduce((a, b) => a + Number(b.budget_value), 0);
@@ -123,7 +126,7 @@ export default function SecuredList() {
   return (
     <Screen maxWidth={1250}>
       <Stack.Screen options={{ title: 'Secured projects' }} />
-      <Grid min={200} max={5}>
+      <Grid min={200} max={6}>
         <Stat label="Opening order book" sub={`Due ${fyLabel(fy)}`} value={`${mn(opening)} Mn`} />
         <Stat
           label="Secured this year (this FY)"
@@ -138,6 +141,9 @@ export default function SecuredList() {
         />
         <Stat label="Invoiced this year" value={`${mn(invoicedFy)} Mn`} />
         <Stat label="Still to bill this year" value={`${mn(toBill)} Mn`} tone={toBill ? 'amber' : undefined} />
+        {held.length ? (
+          <Stat label={`On hold · ${held.length} project${held.length === 1 ? '' : 's'} (not counted)`} value={`${mn(heldValue)} Mn`} tone="amber" onPress={() => setTab('on_hold')} />
+        ) : null}
       </Grid>
 
       {seesFinance(me.role) ? (
@@ -163,6 +169,7 @@ export default function SecuredList() {
           { value: 'book', label: 'Order book', badge: scoped.filter(filters.book).length },
           { value: 'missing', label: 'Schedule missing', badge: scoped.filter(filters.missing).length },
           { value: 'review', label: me.role === 'sm_projects' ? 'To review' : 'Waiting for SM Projects', badge: scoped.filter(filters.review).length },
+          { value: 'on_hold', label: 'On hold', badge: held.length || undefined },
           { value: 'budgeted', label: 'Budgeted', badge: budgetedRows.length },
           { value: 'unbudgeted', label: 'Unbudgeted wins', badge: scoped.filter(filters.unbudgeted).length },
           { value: 'done', label: 'Fully invoiced' },
@@ -192,6 +199,7 @@ export default function SecuredList() {
             w: 190,
             v: (s) => (
               <Row gap={4} wrap>
+                {s.status === 'on_hold' ? <Pill label={`On hold · review ${fmtDate(s.hold_review_date)}`} tone={colors.amber} solid /> : null}
                 <Pill label={SCHEDULE_LABEL[s.schedule_status]} tone={SCHEDULE_TONE[s.schedule_status]} />
                 {s.source === 'opening' ? <Pill label="Opening list" /> : null}
                 {s.removal_requested_at ? <Pill label="Removal with SM Projects" tone={colors.red} /> : null}

@@ -31,6 +31,10 @@ export type BudgetProject = {
   budget_gp_value?: number | null;
   order_month: string | null;
   notes: string | null;
+  status?: 'active' | 'on_hold' | 'dropped';
+  status_reason?: string | null;
+  status_by?: string | null;
+  status_at?: string | null;
 };
 export type BudgetInvoice = { id: number; budget_id: string; month: string; amount: number };
 
@@ -53,7 +57,11 @@ export type SecuredProject = {
   submitted_at: string | null;
   approved_at: string | null;
   review_note: string | null;
-  status: 'open' | 'closed' | 'cancelled';
+  status: 'open' | 'on_hold' | 'closed' | 'cancelled';
+  hold_reason?: string | null;
+  hold_review_date?: string | null;
+  hold_by?: string | null;
+  hold_at?: string | null;
   notes: string | null;
   removal_reason?: string | null;
   removal_requested_by?: string | null;
@@ -171,6 +179,8 @@ export type PerfPerson = {
   role: Role;
   lines: BusinessLine[];
   to_bill_fy: number;
+  on_hold_value?: number;
+  on_hold_n?: number;
   pending_n: number;
   pending_value: number;
   months: PerfMonth[];
@@ -330,6 +340,8 @@ export function ytd(p: PerfPerson, upTo: string | null, securedUpTo: string = th
     fySecuredTarget: fySum('secured_target'),
     fyInvoiced,
     toBill: p.to_bill_fy,
+    onHold: Number(p.on_hold_value ?? 0),
+    onHoldN: Number(p.on_hold_n ?? 0),
     cover,
     gap: Math.max(0, fyInvTarget - fyInvoiced - p.to_bill_fy),
     score: score(pct(s, st), pct(i, it)),

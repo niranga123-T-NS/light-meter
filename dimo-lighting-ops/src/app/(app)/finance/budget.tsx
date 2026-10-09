@@ -38,6 +38,7 @@ export default function BudgetScreen() {
   const people = usePeople();
   const [fy, setFy] = useState(fyOf(todayISO()));
   const [line, setLine] = useState<string>('all');
+  const [stat, setStat] = useState<'all' | 'active' | 'on_hold' | 'dropped'>('all');
   const desk = isFinanceDesk(me.role);
   const dialog = useDialog();
   const { data, error, reload } = useLoad(async () => {
@@ -53,6 +54,34 @@ export default function BudgetScreen() {
   }, [fy]);
 
   // A budgeted project that has been won (or was won before the system): add it to the secured list
+  // Budget line status: active / on hold / dropped (Operations, SM Projects, GM / DGM)
+  const setStatus = async (b: BudgetProject) => {
+    const r = await dialog.prompt({
+      title: `Status – ${b.project_name}`,
+      message: 'On-hold and dropped lines stay on the budget list but are shown apart in the totals.',
+      fields: [
+        {
+          key: 's',
+          label: 'Status',
+          type: 'select',
+          required: true,
+          initial: b.status ?? 'active',
+          options: [
+            { value: 'active', label: 'Active' },
+            { value: 'on_hold', label: 'On hold' },
+            { value: 'dropped', label: 'Dropped – will not happen this year' },
+          ],
+        },
+        { key: 'r', label: 'Reason (needed for on hold / dropped)', type: 'multiline', initial: b.status_reason ?? '' },
+      ],
+      confirmLabel: 'Save',
+    });
+    if (!r) return;
+    await dialog.run(async () => {
+      await rpc('set_budget_status', { p_id: b.id, p_status: r.s, p_reason: r.r || null });
+      await reload();
+    }, 'Saved');
+  };
   const markSecured = async (b: BudgetProject) => {
     const r = await dialog.prompt({
       title: `Mark as secured – ${b.project_name}`,
@@ -79,7 +108,8 @@ export default function BudgetScreen() {
   };
   const securedOf = (b: BudgetProject) =>
     data?.secured.find((s) => s.budget_id === b.id || (b.project_id && s.project_id === b.project_id) || (b.wbs && s.wbs === b.wbs));
-  const rows = (data?.rows ?? []).filter((r) => line === 'all' || r.business_line === line);
+  const rows = (data?.rows ?? []).filter((r) => (line === 'all' || r.business_line === line) && (stat === 'all' || (r.status ?? 'active') === stat));
+  const held = (r: BudgetProject) => (r.status ?? 'active') !== 'active';
   const fyInv = (r: { budget_invoices: BudgetInvoice[] }) => r.budget_invoices.filter((i) => inFy(i.month, fy)).reduce((a, i) => a + Number(i.amount), 0);
   // GP value as given, or worked out from the GP % for lists saved before the GP value column
   const gpv = (r: BudgetProject) => Number(r.budget_gp_value ?? (r.budget_gp_pct != null ? (Number(r.budget_value) * Number(r.budget_gp_pct)) / 100 : 0));
@@ -127,6 +157,7 @@ export default function BudgetScreen() {
                 fmtPct(pct(total(gpv, data.rows), total((r) => Number(r.budget_value), data.rows))),
                 mn(total(fyInv, data.rows)),
                 mn(total((r) => (securedOf(r) ? Number(r.budget_value) : 0), data.rows)),
+                mn(total((r) => (held(r) ? Number(r.budget_value) : 0), data.rows)),
                 fmtPct(
                   (total((r) => (securedOf(r) ? Number(r.budget_value) : 0), data.rows) / (total((r) => Number(r.budget_value), data.rows) || 1)) * 100,
                 ),
@@ -139,6 +170,7 @@ export default function BudgetScreen() {
                 { h: 'GP %', w: 80, right: true, v: (x) => fmtPct(pct(total(gpv, x.list), total((r) => Number(r.budget_value), x.list))) },
                 { h: 'To invoice this FY', w: 140, right: true, v: (x) => mn(total(fyInv, x.list)) },
                 { h: 'Secured so far', w: 120, right: true, v: (x) => mn(total((r) => (securedOf(r) ? Number(r.budget_value) : 0), x.list)) },
+                { h: 'On hold / dropped', w: 130, right: true, v: (x) => mn(total((r) => (held(r) ? Number(r.budget_value) : 0), x.list)) },
                 {
                   h: '% secured',
                   w: 100,
@@ -155,6 +187,16 @@ export default function BudgetScreen() {
               onChange={setLine}
               options={[{ value: 'all', label: 'All', badge: data.rows.length }, ...LINES.map((l) => ({ value: l.value, label: l.short, badge: data.rows.filter((r) => r.business_line === l.value).length }))]}
             />
+            <Segmented
+              value={stat}
+              onChange={setStat}
+              options={[
+                { value: 'all', label: 'Any status' },
+                { value: 'active', label: 'Active' },
+                { value: 'on_hold', label: 'On hold', badge: data.rows.filter((r) => r.status === 'on_hold').length || undefined },
+                { value: 'dropped', label: 'Dropped', badge: data.rows.filter((r) => r.status === 'dropped').length || undefined },
+              ]}
+            />
             <DataTable
               rows={rows}
               keyOf={(r) => r.id}
@@ -170,7 +212,7 @@ export default function BudgetScreen() {
                 { h: 'Project', w: 240, v: (r) => r.project_name, bold: true },
                 {
                   h: 'Status',
-                  w: desk ? 210 : 140,
+                  w: desk ? 290 : 160,
                   v: (r) => {
                     const s = securedOf(r);
                     const edit = desk ? <Button small variant="secondary" title="Edit" onPress={() => router.push(`/finance/budget-item/${r.id}`)} /> : null;
@@ -181,15 +223,19 @@ export default function BudgetScreen() {
                     ) : (
                       <Pill label="To win" tone={colors.amber} />
                     );
+                    const st = r.status === 'on_hold' ? <Pill label="On hold" tone={colors.amber} solid /> : r.status === 'dropped' ? <Pill label="Dropped" tone={colors.red} /> : null;
                     return (
-                      <Row gap={6} style={{ alignItems: 'center' }}>
+                      <Row gap={6} wrap style={{ alignItems: 'center' }}>
                         {edit}
+                        {st}
                         {status}
+                        {desk ? <Button small variant="ghost" title="Status" onPress={() => setStatus(r)} /> : null}
                       </Row>
                     );
                   },
                 },
                 { h: 'Customer', w: 170, v: (r) => r.customer ?? '—' },
+                { h: 'Hold / drop reason', w: 180, v: (r) => (held(r) ? r.status_reason ?? '—' : '') },
                 { h: 'Sales person', w: 150, v: (r) => people[r.sales_person_id ?? '']?.full_name ?? '—' },
                 { h: 'WBS', w: 95, v: (r) => r.wbs ?? '—' },
                 { h: 'Budget value (LKR)', w: 150, right: true, v: (r) => amt(r.budget_value) },
