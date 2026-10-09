@@ -46,18 +46,21 @@ export default function SubInvoicePage() {
     ]);
     const vars = (iv.data ?? []) as { id: string; var_code: string; var_title: string }[];
     if (v.error) throw new Error(v.error.message);
+    // the approved IPC: the IPA documents with the SEE's final comments / edits
+    const ipc = (await listAttachments('sub_cert', [(v.data as SubInvoice).sub_cert_id]).catch(() => [])) as Attachment[];
     return {
       v: v.data as SubInvoice & { exec_projects: { code: string | null; name: string } | null; sub_certs: { code: string; period: string; net: number; var_code: string | null } | null },
       log: (l.data ?? []) as Log[],
       files: f as Attachment[],
       vars,
+      ipc: ipc.filter((x) => ['ipc_draft', 'ipc_measure', 'ipc_markup'].includes(x.kind)),
       varFiles: vars.length ? ((await listAttachments('sub_invoice_var', vars.map((x) => x.id))) as Attachment[]) : [],
     };
   }, [id]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const { v, log, files, vars, varFiles } = data;
+  const { v, log, files, vars, varFiles, ipc } = data;
   const ready =
-    ['sinv_doc', 'ipc_signed', 'measure_final'].every((k) => files.some((x) => x.kind === k)) && vars.every((x) => varFiles.some((f) => f.entity_id === x.id));
+    files.some((x) => x.kind === 'sinv_doc') && vars.every((x) => varFiles.some((f) => f.entity_id === x.id));
   const marked = files.filter((x) => x.kind === 'sinv_markup');
   const st = SINV_STATUS[v.status];
   const tone = { grey: colors.grey, amber: colors.amber, blue: colors.blue, green: colors.green, red: colors.red }[st.tone];
@@ -141,9 +144,27 @@ export default function SubInvoicePage() {
         <Notice tone={colors.blue}>{SINV_NOTICE}</Notice>
       ) : null}
 
+      <Section title="Approved IPC (IPA approved – with the SEE's comments / edits)">
+        <Card>
+          {ipc.length ? (
+            <Row wrap gap={6}>
+              {ipc.map((f) => (
+                <Button
+                  key={f.id}
+                  small
+                  variant="secondary"
+                  title={`⬇ ${f.kind === 'ipc_markup' ? '✎ ' : ''}${f.file_name}`}
+                  onPress={() => dialog.run(() => openAttachment(f))}
+                />
+              ))}
+            </Row>
+          ) : (
+            <Muted>The approved IPC documents are on the IPC page.</Muted>
+          )}
+          <Muted>The invoice must follow this IPC – nothing else to upload except the invoice.</Muted>
+        </Card>
+      </Section>
       <DocSlot title="Invoice copy" entity="sub_invoice" entityId={v.id} kind="sinv_doc" files={files} canAdd={editable} canMarkUp={reviewer} required={editable} onChange={reload} />
-      <DocSlot title="IPC – IPA approved, with signatures" entity="sub_invoice" entityId={v.id} kind="ipc_signed" files={files} canAdd={editable} canMarkUp={reviewer} required={editable} onChange={reload} />
-      <DocSlot title="Measurement sheets – corrected (final)" entity="sub_invoice" entityId={v.id} kind="measure_final" files={files} canAdd={editable} canMarkUp={reviewer} required={editable} onChange={reload} />
 
       {vars.map((x) => (
         <DocSlot
@@ -202,7 +223,7 @@ export default function SubInvoicePage() {
           />
         ) : null}
       </Row>
-      {editable && !ready ? <Muted>Attach the invoice copy, the signed IPC, the corrected measurement sheets and each variation&apos;s documents (PDF or photos) to submit.</Muted> : null}
+      {editable && !ready ? <Muted>Attach the invoice copy (PDF or photos) to submit – it is checked against the approved IPC above.</Muted> : null}
 
       <Section title="History">
         <Card>

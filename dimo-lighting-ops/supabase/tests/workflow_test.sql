@@ -5230,12 +5230,6 @@ begin
   begin perform public.submit_sub_invoice(iid); assert false, 'copy needed';
   exception when others then assert sqlerrm = 'Attach the invoice copy (PDF or photos)', sqlerrm; end;
   insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_invoice', iid, 'sinv_doc', 'sub_invoice/' || iid || '/inv.pdf', 'inv.pdf');
-  begin perform public.submit_sub_invoice(iid); assert false, 'signed IPC needed';
-  exception when others then assert sqlerrm = 'Attach the IPA-approved IPC with signatures (PDF or photos)', sqlerrm; end;
-  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_invoice', iid, 'ipc_signed', 'sub_invoice/' || iid || '/ipc.pdf', 'ipc.pdf');
-  begin perform public.submit_sub_invoice(iid); assert false, 'final sheets needed';
-  exception when others then assert sqlerrm = 'Attach the corrected (final) measurement sheets (PDF or photos)', sqlerrm; end;
-  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_invoice', iid, 'measure_final', 'sub_invoice/' || iid || '/ms.pdf', 'ms.pdf');
   perform public.submit_sub_invoice(iid);
   assert (select status from public.sub_invoices where id = iid) = 'ae_review', 'supervisor''s invoice goes to the AE first';
   begin perform public.decide_sub_invoice(iid, true); assert false, 'not the sub';
@@ -5387,21 +5381,23 @@ select public.advance_sub_cert(current_setting('test.spc2')::uuid, true);
 reset role;
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
 do $$ begin
+  -- the SEE's final comments / edits become part of the IPC; the AE's review mark-ups are removed
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name)
+  values ('sub_cert', current_setting('test.spc2')::uuid, 'ipc_markup', 'sub_cert/x/see-final.pdf', 'Marked up – final.pdf');
   assert public.advance_sub_cert(current_setting('test.spc2')::uuid, true) = 'verified', 'SEE approves';
-  assert not exists (select 1 from public.attachments where entity_id = current_setting('test.spc2')::uuid and kind = 'ipc_markup' and archived_at is null), 'IPC mark-ups removed at IPA';
+  assert (select string_agg(file_name, ',') from public.attachments where entity_id = current_setting('test.spc2')::uuid and kind = 'ipc_markup' and archived_at is null)
+    = 'Marked up – final.pdf', 'only the SEE''s final edits stay with the IPC';
   assert (select count(*) from public.sub_certs where id = current_setting('test.spc2')::uuid and ae_by is not null) = 1, 'AE check recorded';
 end $$;
 reset role;
 do $$ begin
-  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'sub_supervisor') and title = 'IPA approved – record the invoice'
-                  and body like '%IPC with signatures and the corrected (final) measurement sheets%'), 'supervisor told to record the invoice';
+  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'sub_supervisor') and title = 'IPC approved – submit your invoice'
+                  and body like '%now the approved IPC%'), 'supervisor told to record the invoice';
 end $$;
 select pg_temp.act_as('sub_supervisor'); set role authenticated;
 do $$ declare iid uuid;
 begin
   iid := public.create_sub_invoice(current_setting('test.spc2')::uuid, '{"invoice_no":"LE/INV/0050","invoice_date":"2026-11-05","amount":"450000"}');
-  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_invoice', iid, 'ipc_signed', 'sub_invoice/' || iid || '/ipc.pdf', 'ipc.pdf');
-  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_invoice', iid, 'measure_final', 'sub_invoice/' || iid || '/ms.pdf', 'ms.pdf');
   insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_invoice', iid, 'sinv_doc', 'sub_invoice/' || iid || '/inv.pdf', 'inv.pdf');
   perform public.submit_sub_invoice(iid);
 end $$;

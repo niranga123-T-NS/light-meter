@@ -55,7 +55,7 @@ const STEPS: { from: number; label: string; ae?: "jm" | "ipc" }[] = [
   { from: 4, label: "JM approved" },
   { from: 5, label: "IPC submitted" },
   { from: 6, label: "AE checked", ae: "ipc" },
-  { from: 7, label: "IPA approved" },
+  { from: 7, label: "IPA approved = IPC" },
   { from: 8, label: "SM Projects approved" },
   { from: 9, label: "Paid" },
 ];
@@ -397,13 +397,12 @@ export default function SubCertPage() {
         >{`Joint measurement sheets returned: ${c.return_note ?? ""}\nSee the comments marked in red below, correct the sheets and submit again.`}</Notice>
       ) : c.status === "draft" ? (
         <Notice tone={colors.blue}>
-          Joint measurement approved. Enter the IPC figures (Edit figures), attach the IPC and the measurement sheets, then submit. Until Interim
-          Payment Approval (IPA) it shows “IPA pending” – the invoice, signed
-          IPC and final measurement sheets can be uploaded only after IPA.
+          Joint measurement approved. Enter the IPC figures (Edit figures), attach the IPC and the measurement sheets, then submit for Interim
+          Payment Approval (IPA). Until IPA it shows “IPA pending”; once approved it becomes the IPC and the invoice can be submitted.
         </Notice>
       ) : c.status === "ae_review" || c.status === "prepared" ? (
         <Notice tone={colors.amber}>
-          {`IPA pending (Interim Payment Approval) – ${c.status === "ae_review" ? "with the Assistant Engineer to check, then the Senior Electrical Engineer" : "with the Senior Electrical Engineer"}. Submitted ${fmtDateTime(c.submitted_at)}. The invoice, signed IPC and final measurement sheets can be uploaded once IPA is approved.`}
+          {`IPA pending (Interim Payment Approval) – ${c.status === "ae_review" ? "with the Assistant Engineer to check, then the Senior Electrical Engineer" : "with the Senior Electrical Engineer"}. Submitted ${fmtDateTime(c.submitted_at)}. The SEE may comment / edit in red; once approved it becomes the IPC and the invoice can be submitted.`}
         </Notice>
       ) : c.status === "returned" ? (
         <Notice
@@ -413,7 +412,7 @@ export default function SubCertPage() {
         c.status === "approved" ||
         c.status === "paid" ? (
         <Notice tone={colors.green}>
-          {`IPA approved (Interim Payment Approval) by the Senior Electrical Engineer${c.verified_at ? ` on ${fmtDateTime(c.verified_at)}` : ""}. Now record the invoice with the IPA-approved IPC with signatures and the corrected (final) measurement sheets.`}
+          {`IPA approved by the Senior Electrical Engineer${c.verified_at ? ` on ${fmtDateTime(c.verified_at)}` : ""} – this is now the approved IPC (the documents below with the SEE's comments / edits in red). Submit the invoice according to this IPC.`}
         </Notice>
       ) : null}
 
@@ -485,7 +484,7 @@ export default function SubCertPage() {
       )}
 
       {marked.length ? (
-        <Section title="Comments marked on the copy">
+        <Section title={c.status === "verified" || c.status === "approved" || c.status === "paid" ? "IPC – SEE's comments / edits" : "Comments marked on the copy"}>
           <Card
             style={{
               padding: 0,

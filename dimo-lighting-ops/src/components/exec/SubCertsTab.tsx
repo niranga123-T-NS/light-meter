@@ -15,7 +15,7 @@ import { certForMe, certTone } from './CertRows';
 type Tab = 'measure' | 'ipa' | 'ipc';
 type Var = { id: string; sub_cert_id?: string; invoice_id?: string; var_code: string };
 
-// How far a certificate has come: < 4 joint measurement · 4–6 IPA · ≥ 7 IPA approved (IPC stage)
+// How far a certificate has come: < 4 joint measurement · 4–6 IPA · ≥ 7 IPA approved = the IPC (invoice stage)
 const RANK: Record<SubCert['status'], number> = {
   jm_requested: 0, jm_scheduled: 1, jm_returned: 1, jm_ae: 2, jm_see: 3, draft: 4, returned: 4, ae_review: 5, prepared: 6, verified: 7, approved: 8, paid: 9, cancelled: -1,
 };
@@ -28,7 +28,7 @@ function jmLabel(c: SubCert) {
   return CERT_STATUS[c.status];
 }
 function ipaLabel(c: SubCert) {
-  if (RANK[c.status] >= 7) return c.verified_at ? `IPA approved ${fmtDate(c.verified_at)}` : 'IPA approved';
+  if (RANK[c.status] >= 7) return c.verified_at ? `IPA approved ${fmtDate(c.verified_at)} → IPC` : 'IPA approved → IPC';
   return CERT_STATUS[c.status];
 }
 
@@ -258,7 +258,6 @@ export function SubCertsTab({ p }: { p: ExecProject }) {
 
       {tab === 'ipc' ? (
         <>
-          {formats('tpl_ipc', 'IPC')}
           {canRecord ? <Notice tone={colors.blue}>{SINV_NOTICE}</Notice> : null}
           <Section title="IPC & invoices">
             {ipc.length ? (
@@ -266,7 +265,10 @@ export function SubCertsTab({ p }: { p: ExecProject }) {
                 const invs = (data?.invoices ?? []).filter((v) => v.sub_cert_id === c.id);
                 return [groupHead(ipc, i), (
                   <Card key={c.id}>
-                    {head(c, `${ipaLabel(c)} · ${CERT_STATUS[c.status].replace(/^IPA approved – /, '')}`, c.status === 'paid' ? colors.green : colors.blue)}
+                    {head(c, `${c.status === 'verified' ? 'IPC approved – submit the invoice' : CERT_STATUS[c.status]}`, c.status === 'paid' ? colors.green : colors.blue)}
+                    <FileLinks label="Approved IPC" files={of(c.id, 'ipc_draft')} />
+                    <FileLinks label="Measurement sheets" files={of(c.id, 'ipc_measure')} />
+                    {of(c.id, 'ipc_markup').length ? <FileLinks label="SEE's comments / edits" files={of(c.id, 'ipc_markup')} /> : null}
                     <Muted>{`Net ${fmtMoney(c.net, 'LKR')}${c.paid_ref ? ` · paid ${fmtDate(c.paid_at)} · ${c.paid_ref}` : ''}`}</Muted>
                     {invs.map((v) => {
                       const st = SINV_STATUS[v.status];
@@ -279,8 +281,6 @@ export function SubCertsTab({ p }: { p: ExecProject }) {
                               <Button small variant={invMine(v) ? undefined : 'secondary'} title={invMine(v) ? (v.status === 'draft' || v.status === 'returned' ? 'Upload & submit' : 'Review') : 'Open'} onPress={() => router.push(`/execution/sub-invoice/${v.id}`)} />
                             </Row>
                           </Row>
-                          <FileLinks label="IPC – IPA approved, signed" files={of(v.id, 'ipc_signed')} />
-                          <FileLinks label="Final measurement sheets" files={of(v.id, 'measure_final')} />
                           <FileLinks label="Invoice" files={of(v.id, 'sinv_doc')} />
                           {(data?.invVars ?? []).some((x) => x.invoice_id === v.id) ? (
                             <FileLinks label="Variations – signed" files={varFiles(data?.invVars ?? [], 'invoice_id', v.id, 'var_final')} />
@@ -300,7 +300,7 @@ export function SubCertsTab({ p }: { p: ExecProject }) {
             ) : (
               <Empty title="Nothing yet – the IPC opens once IPA is approved" />
             )}
-            <Muted>After IPA: upload the IPA-approved IPC with signatures, the corrected (final) measurement sheets, each variation and the invoice · approved by the SEE, then Operations · then the physical documents go to the office.</Muted>
+            <Muted>The approved IPA is the IPC (with the SEE&apos;s comments / edits) · the subcontractor submits the invoice according to it · approved by the SEE, then Operations · then the physical documents go to the office.</Muted>
           </Section>
         </>
       ) : null}

@@ -27,7 +27,7 @@ export function OverviewTab({ p, onTab, onChange }: { p: ExecProject; onTab: (t:
   }, [p.id, p.stage]);
   const [fmt, setFmt] = useState<string[] | null>(null);
   const fmtKinds = fmt ?? st?.formats ?? [];
-  const fmtMissing = ['tpl_measurement', 'tpl_ipa', 'tpl_ipc'].filter((k) => !fmtKinds.includes(k)).map((k) => ({ tpl_measurement: 'Measurement', tpl_ipa: 'IPA', tpl_ipc: 'IPC' })[k]);
+  const fmtMissing = ['tpl_measurement', 'tpl_ipa'].filter((k) => !fmtKinds.includes(k)).map((k) => ({ tpl_measurement: 'Measurement', tpl_ipa: 'IPA' })[k]);
   const step = (done: boolean, text: string, action?: { title: string; onPress: () => void }) => (
     <Row key={text} wrap gap={8} style={{ justifyContent: 'space-between', alignItems: 'center', paddingVertical: 4 }}>
       <Text style={{ flex: 1, minWidth: 200, color: done ? colors.green : colors.ink }}>{`${done ? '✓' : '○'} ${text}`}</Text>
@@ -48,7 +48,7 @@ export function OverviewTab({ p, onTab, onChange }: { p: ExecProject; onTab: (t:
             {step(p.areas.length > 0, 'Project areas, site and dates set', me.role === 'senior_elec_engineer' || me.role === 'sm_projects' ? { title: 'Edit', onPress: () => router.push({ pathname: '/execution/start', params: { id: p.id } }) } : undefined)}
             {step(st.engineers > 0, st.engineers ? `${st.engineers} engineer(s) / trainee(s) on the project` : 'Add the Assistant Engineers (and trainees)', { title: '+ Add engineer / trainee', onPress: () => onTab('team') })}
             {step(st.supervisors > 0, st.supervisors ? `${st.supervisors} subcontractor supervisor(s)` : 'Nominate the subcontractor supervisor (if any) – SM Projects approves', { title: 'Nominate', onPress: () => onTab('team') })}
-            {step(!fmtMissing.length, fmtMissing.length ? `Upload the subcontractor formats (below): ${fmtMissing.join(', ')}` : 'Subcontractor formats uploaded (Measurement · IPA · IPC)')}
+            {step(!fmtMissing.length, fmtMissing.length ? `Upload the subcontractor formats (below): ${fmtMissing.join(', ')}` : 'Subcontractor formats uploaded (Measurement · IPA)')}
             {step(
               !!st.programme?.version,
               !st.programme
@@ -127,8 +127,8 @@ export function OverviewTab({ p, onTab, onChange }: { p: ExecProject; onTab: (t:
         <Attachments
           entityType="exec_project"
           entityId={p.id}
-          kinds={['tpl_measurement', 'tpl_ipa', 'tpl_ipc']}
-          title="Subcontractor formats (Measurement · IPA · IPC)"
+          kinds={['tpl_measurement', 'tpl_ipa']}
+          title="Subcontractor formats (Measurement · IPA)"
           canUpload={me.role === 'senior_elec_engineer' && p.status === 'active'}
           onChange={(f) => setFmt(f.map((x) => x.kind))}
         />
