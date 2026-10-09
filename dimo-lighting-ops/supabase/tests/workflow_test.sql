@@ -5467,5 +5467,26 @@ do $$ begin
 end $$;
 reset role;
 
+-- Debtors: Operations adds one in the system, corrects it and removes a wrong entry
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare d uuid;
+begin
+  d := public.add_debt('{"client_name":"Test Client","invoice_no":"MAN-0001","invoice_date":"2026-09-01","amount":"125,000","currency":"LKR"}');
+  assert (select source = 'manual' and outstanding_days > 0 and status = 'outstanding' from public.debts where id = d), 'added';
+  begin perform public.add_debt('{"client_name":"X","invoice_no":"MAN-0001","amount":"1","currency":"LKR","outstanding_days":"1"}'); assert false, 'duplicate';
+  exception when others then assert sqlerrm like 'A debt with invoice number MAN-0001 already exists', sqlerrm; end;
+  perform public.edit_debt(d, '{"amount":"120000"}', 'Credit note');
+  assert (select amount from public.debts where id = d) = 120000, 'edited';
+  perform public.remove_debt(d, 'Entered twice');
+  assert (select status = 'cleared' and status_note like 'Removed by Operations%' from public.debts where id = d), 'removed';
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  begin perform public.add_debt('{"client_name":"X","invoice_no":"MAN-0002","amount":"1","currency":"LKR","outstanding_days":"1"}'); assert false, 'ops only';
+  exception when others then assert sqlerrm = 'Only the Operations Executive adds debtors', sqlerrm; end;
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

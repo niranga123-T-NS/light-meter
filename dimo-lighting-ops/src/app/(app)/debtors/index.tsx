@@ -7,7 +7,8 @@ import { useMe } from '@/lib/auth';
 import { AGEING_COLOURS, AGEING_ORDER, fmtDate, fmtMoney, human, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { isSales } from '@/lib/roles';
-import { supabase } from '@/lib/supabase';
+import { rpc, supabase } from '@/lib/supabase';
+import { useDialog } from '@/components/dialog';
 import type { Debt } from '@/lib/types';
 
 type Filter = 'open' | 'legal' | 'hearing' | 'mismatch' | 'non_moving' | 'closed';
@@ -43,6 +44,7 @@ function byCustomer(list: Debt[]): CustomerRow[] {
 export default function Debtors() {
   const me = useMe();
   const people = usePeople();
+  const dialog = useDialog();
   const params = useLocalSearchParams<{ bucket?: string; filter?: Filter }>();
   const [filter, setFilter] = useState<Filter>(params.filter ?? 'open');
   const [bucket, setBucket] = useState<string | null>(params.bucket ?? null);
@@ -58,6 +60,37 @@ export default function Debtors() {
     return rows as Debt[];
   });
   // Date of the latest confirmed debtors file (management roles can read the upload list)
+  // Operations adds a debtor directly (the next upload updates it from the file, or clears it if the file no longer has it)
+  const addDebtor = async () => {
+    const r = await dialog.prompt({
+      title: 'Add a debtor',
+      message: 'For an invoice not yet in the uploaded file. The next upload updates it from the file (same invoice number), or clears it if the file does not have it.',
+      fields: [
+        { key: 'client_name', label: 'Client name', required: true },
+        { key: 'project_name', label: 'Project' },
+        { key: 'invoice_no', label: 'Invoice number', required: true },
+        { key: 'invoice_date', label: 'Invoice date', type: 'date', required: true },
+        { key: 'amount', label: 'Outstanding amount', required: true },
+        { key: 'currency', label: 'Currency', type: 'select', required: true, initial: 'LKR', options: [{ value: 'LKR', label: 'LKR' }, { value: 'USD', label: 'USD' }] },
+        {
+          key: 'sales_person_id',
+          label: 'Sales person',
+          type: 'select',
+          options: Object.values(people)
+            .filter((x) => (x.role === 'asm_building' || x.role === 'asm_infra') && x.active)
+            .map((x) => ({ value: x.id, label: x.full_name })),
+        },
+        { key: 'note', label: 'Note', type: 'multiline' },
+      ],
+      confirmLabel: 'Add',
+    });
+    if (!r) return;
+    await dialog.run(async () => {
+      const id = await rpc<string>('add_debt', { p: r });
+      await reload();
+      router.push(`/debtors/${id}`);
+    }, 'Debtor added');
+  };
   const latest = useLoad(async () => {
     const { data: up } = await supabase.from('debt_uploads').select('as_at').eq('status', 'confirmed').order('as_at', { ascending: false }).limit(1).maybeSingle();
     return (up as { as_at: string } | null)?.as_at ?? null;
@@ -166,7 +199,12 @@ export default function Debtors() {
             { value: 'closed', label: 'Collected / cleared' },
           ]}
         />
-        {me.role === 'operations_exec' ? <Button title="⇪ Upload" onPress={() => router.push('/debtors/upload')} /> : null}
+        {me.role === 'operations_exec' ? (
+          <>
+            <Button variant="secondary" title="+ Add debtor" onPress={addDebtor} />
+            <Button title="⇪ Upload" onPress={() => router.push('/debtors/upload')} />
+          </>
+        ) : null}
       </Row>
       <Row wrap gap={8}>
         <Segmented
