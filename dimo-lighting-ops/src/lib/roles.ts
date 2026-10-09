@@ -260,7 +260,7 @@ function baseNav(role: Role): NavItem[] {
     case 'trainee':
       return [{ href: '/', label: 'My Day', icon: '⌂' }, EXEC_NAV.mine, { href: '/engineering', label: 'Tasks & instructions', icon: '▣' }, EXEC_NAV.hse];
     case 'sub_supervisor':
-      return [{ href: '/', label: 'My Day', icon: '⌂' }, EXEC_NAV.myWork, EXEC_NAV.report, EXEC_NAV.materials, EXEC_NAV.hse];
+      return [{ href: '/', label: 'My Day', icon: '⌂' }, EXEC_NAV.myWork, { href: '/execution/sub-plan', label: 'My plan', icon: '▦', testing: true } as NavItem, EXEC_NAV.report, EXEC_NAV.materials, EXEC_NAV.hse];
     case 'sys_admin':
       return [{ href: '/', label: 'Home', icon: '⌂' }, { href: '/admin', label: 'Administration', icon: '⚙' }];
   }

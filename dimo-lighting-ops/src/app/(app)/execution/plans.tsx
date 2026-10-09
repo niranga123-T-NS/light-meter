@@ -20,14 +20,15 @@ export default function Plans() {
   const [week, setWeek] = useState(params.week ?? nextWeek);
   const [project, setProject] = useState<string | null>(params.project ?? null);
   const { data, error, reload, loading } = useLoad(async () => {
-    const [pr, pl, mem, items] = await Promise.all([
+    const [pr, pl, mem, items, subPlans] = await Promise.all([
       supabase.from('exec_projects').select('*').eq('status', 'active').order('name'),
       supabase.from('exec_plans').select('*').gte('week_start', addDaysISO(weekOf(todayISO()), -7)).order('week_start'),
       supabase.from('exec_members').select('*').eq('active', true),
       supabase.from('exec_plan_items').select('*').eq('source', 'supervisor').eq('acceptance', 'pending'),
+      supabase.rpc('sub_plans_to_approve'),
     ]);
     if (pr.error) throw new Error(pr.error.message);
-    return { projects: (pr.data ?? []) as ExecProject[], plans: (pl.data ?? []) as ExecPlan[], members: (mem.data ?? []) as ExecMember[], pendingAdds: (items.data ?? []) as PlanItem[] };
+    return { projects: (pr.data ?? []) as ExecProject[], plans: (pl.data ?? []) as ExecPlan[], members: (mem.data ?? []) as ExecMember[], pendingAdds: (items.data ?? []) as PlanItem[], subPlans: (subPlans.data ?? []) as { id: string; exec_project_id: string; supervisor_id: string; week_start: string; submitted_at: string; items: number }[] };
   });
   const myProjects = (data?.projects ?? []).filter((p) => !ae || data?.members.some((m) => m.exec_project_id === p.id && m.user_id === me.id));
   const proj = project ?? myProjects[0]?.id ?? null;
@@ -39,6 +40,20 @@ export default function Plans() {
     <Screen refreshing={loading} onRefresh={refresh}>
       <Stack.Screen options={{ title: 'Plans' }} />
       <TestingBanner what="Weekly and daily plans" />
+      {data.subPlans.length ? (
+        <Section title={`Subcontractor plans to approve (${data.subPlans.length})`}>
+          <Card style={{ padding: 0, overflow: 'hidden' }}>
+            {data.subPlans.map((p) => (
+              <ListRow
+                key={p.id}
+                onPress={() => router.push({ pathname: '/execution/sub-plan', params: { plan: p.id } })}
+                title={`${people[p.supervisor_id]?.full_name ?? ''} · week of ${fmtDate(p.week_start)}`}
+                subtitle={`${pname(p.exec_project_id)} · ${p.items} item(s) · submitted ${fmtDateTime(p.submitted_at)}`}
+              />
+            ))}
+          </Card>
+        </Section>
+      ) : null}
       {data.pendingAdds.length ? (
         <Section title={`Tasks added by supervisors – accept or reject (${data.pendingAdds.length})`}>
           <Card style={{ padding: 0, overflow: 'hidden' }}>

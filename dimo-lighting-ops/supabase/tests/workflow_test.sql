@@ -5563,5 +5563,36 @@ do $$ begin
 end $$;
 reset role;
 
+-- Subcontractor plan: picks from the engineer's approved plan + additional work; the AE approves
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare sp uuid; ae uuid; x uuid;
+begin
+  sp := public.my_sub_plan(current_setting('test.ex')::uuid, current_setting('test.wk')::date);
+  perform set_config('test.sp', sp::text, false);
+  select id into ae from public.sub_plan_ae_items(sp) limit 1;
+  assert ae is not null, 'approved engineer items offered';
+  perform public.pick_sub_plan_item(sp, ae, true);
+  x := public.save_sub_plan_extra(sp, null, jsonb_build_object('day', (select day from public.sub_plan_items where sub_plan_id = sp limit 1), 'title', 'Clear debris at Level 2', 'crew', 3));
+  assert (select count(*) from public.sub_plan_items where sub_plan_id = sp) = 2, 'picked + additional';
+  begin perform public.update_sub_plan_item(x, 'done'); assert false, 'approval first';
+  exception when others then assert sqlerrm = 'The plan must be approved first', sqlerrm; end;
+  perform public.submit_sub_plan(sp);
+  begin perform public.pick_sub_plan_item(sp, ae, false); assert false, 'locked';
+  exception when others then assert sqlerrm like 'The plan is submitted%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.sub_plans_to_approve() where id = current_setting('test.sp')::uuid), 'AE sees it';
+  perform public.decide_sub_plan(current_setting('test.sp')::uuid, true, 'OK');
+end $$;
+reset role;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ begin
+  perform public.update_sub_plan_item((select id from public.sub_plan_items where sub_plan_id = current_setting('test.sp')::uuid and additional), 'done');
+  assert (select status from public.sub_plan_items where sub_plan_id = current_setting('test.sp')::uuid and additional) = 'done', 'marked done';
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
