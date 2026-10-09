@@ -5216,7 +5216,7 @@ begin
   exception when others then assert sqlerrm = 'Attach the invoice copy (PDF or photos)', sqlerrm; end;
   insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_invoice', iid, 'sinv_doc', 'sub_invoice/' || iid || '/inv.pdf', 'inv.pdf');
   begin perform public.submit_sub_invoice(iid); assert false, 'signed IPC needed';
-  exception when others then assert sqlerrm = 'Attach the IPC approved and signed (PDF or photos)', sqlerrm; end;
+  exception when others then assert sqlerrm = 'Attach the IPA-approved IPC with signatures (PDF or photos)', sqlerrm; end;
   insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_invoice', iid, 'ipc_signed', 'sub_invoice/' || iid || '/ipc.pdf', 'ipc.pdf');
   begin perform public.submit_sub_invoice(iid); assert false, 'final sheets needed';
   exception when others then assert sqlerrm = 'Attach the corrected (final) measurement sheets (PDF or photos)', sqlerrm; end;
@@ -5243,7 +5243,7 @@ do $$ declare cid uuid;
 begin
   cid := public.prepare_sub_cert(current_setting('test.ex')::uuid, '{"subcontractor":"Lanka Electricals","period":"Oct 2026","gross":"1500000","previous":"1000000"}');
   begin perform public.create_sub_invoice(cid, '{"invoice_no":"X1","invoice_date":"2026-10-08","amount":"1"}'); assert false, 'IPC first';
-  exception when others then assert sqlerrm like 'The payment certificate (IPC and measurement sheets) must be verified%', sqlerrm; end;
+  exception when others then assert sqlerrm like 'The payment certificate (IPC and measurement sheets) must have Interim Payment Approval%', sqlerrm; end;
 end $$;
 reset role;
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
@@ -5302,7 +5302,7 @@ begin
   begin insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_cert', cid, 'ipc_draft', 'x', 'x'); assert false, 'locked once submitted';
   exception when others then null; end;
   begin perform public.create_sub_invoice(cid, '{"invoice_no":"X2","invoice_date":"2026-10-08","amount":"1"}'); assert false, 'no invoice before approval';
-  exception when others then assert sqlerrm like 'The payment certificate (IPC and measurement sheets) must be verified%', sqlerrm; end;
+  exception when others then assert sqlerrm like 'The payment certificate (IPC and measurement sheets) must have Interim Payment Approval%', sqlerrm; end;
 end $$;
 reset role;
 do $$ begin
@@ -5335,8 +5335,8 @@ do $$ begin
 end $$;
 reset role;
 do $$ begin
-  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'sub_supervisor') and title = 'IPC approved – record the invoice'
-                  and body like '%signed IPC and the corrected (final) measurement sheets%'), 'supervisor told to record the invoice';
+  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'sub_supervisor') and title = 'IPA approved – record the invoice'
+                  and body like '%IPC with signatures and the corrected (final) measurement sheets%'), 'supervisor told to record the invoice';
 end $$;
 select pg_temp.act_as('sub_supervisor'); set role authenticated;
 do $$ declare iid uuid;

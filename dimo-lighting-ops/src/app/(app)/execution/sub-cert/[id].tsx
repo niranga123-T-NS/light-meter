@@ -15,7 +15,7 @@ import type { Attachment } from '@/lib/types';
 const STEPS: { key: SubCert['status'][]; label: string; ae?: boolean }[] = [
   { key: ['ae_review', 'prepared', 'verified', 'approved', 'paid'], label: 'Submitted' },
   { key: ['prepared', 'verified', 'approved', 'paid'], label: 'AE checked', ae: true },
-  { key: ['verified', 'approved', 'paid'], label: 'SEE approved' },
+  { key: ['verified', 'approved', 'paid'], label: 'IPA approved' },
   { key: ['approved', 'paid'], label: 'SM Projects approved' },
   { key: ['paid'], label: 'Paid' },
 ];
@@ -73,7 +73,7 @@ export default function SubCertPage() {
   const decide = async (ok: boolean) => {
     const pay = c.status === 'approved';
     const r = await dialog.prompt({
-      title: pay ? 'Record the payment' : ok ? (c.status === 'ae_review' ? 'Checked – goes to the Senior Electrical Engineer' : c.status === 'prepared' ? 'Approve the IPC – the invoice can then be recorded' : 'Approve') : 'Return with comments',
+      title: pay ? 'Record the payment' : ok ? (c.status === 'ae_review' ? 'Checked – goes to the Senior Electrical Engineer' : c.status === 'prepared' ? 'Interim Payment Approval (IPA) – the invoice can then be recorded' : 'Approve') : 'Return with comments',
       message: ok ? `${c.code} · net ${fmtMoney(c.net, 'LKR')}` : marked.length ? 'Your marked-up copy goes with it.' : 'Tip: mark your comments in red on the IPC or the sheets first (✎ Mark up), then return.',
       fields: [{ key: 'n', label: pay ? 'Payment reference (cheque / transfer)' : ok ? 'Note (optional)' : 'Reason', type: pay ? undefined : 'multiline', required: pay || !ok }],
       confirmLabel: pay ? 'Paid' : ok ? 'Approve' : 'Return',
@@ -113,16 +113,16 @@ export default function SubCertPage() {
       </Card>
 
       {c.status === 'draft' ? (
-        <Notice tone={colors.blue}>Attach the IPC and the measurement sheets, then submit. The invoice can be recorded only after the Senior Electrical Engineer approves the IPC.</Notice>
+        <Notice tone={colors.blue}>Attach the IPC and the measurement sheets, then submit. Until Interim Payment Approval (IPA) it shows “IPA pending” – the invoice, signed IPC and final measurement sheets can be uploaded only after IPA.</Notice>
       ) : c.status === 'ae_review' || c.status === 'prepared' ? (
         <Notice tone={colors.amber}>
-          {`Waiting for approval – ${c.status === 'ae_review' ? 'with the Assistant Engineer to check, then the Senior Electrical Engineer' : 'with the Senior Electrical Engineer'}. Submitted ${fmtDateTime(c.submitted_at)}. The invoice, signed IPC and final measurement sheets can be uploaded once it is approved.`}
+          {`IPA pending (Interim Payment Approval) – ${c.status === 'ae_review' ? 'with the Assistant Engineer to check, then the Senior Electrical Engineer' : 'with the Senior Electrical Engineer'}. Submitted ${fmtDateTime(c.submitted_at)}. The invoice, signed IPC and final measurement sheets can be uploaded once IPA is approved.`}
         </Notice>
       ) : c.status === 'returned' ? (
         <Notice tone={colors.red}>{`Returned: ${c.return_note ?? ''}\nSee the comments marked in red below, correct the IPC / sheets and submit again.`}</Notice>
       ) : c.status === 'verified' || c.status === 'approved' || c.status === 'paid' ? (
         <Notice tone={colors.green}>
-          {`IPC approved by the Senior Electrical Engineer${c.verified_at ? ` on ${fmtDateTime(c.verified_at)}` : ''}. Now record the invoice with the signed IPC and the corrected (final) measurement sheets.`}
+          {`IPA approved (Interim Payment Approval) by the Senior Electrical Engineer${c.verified_at ? ` on ${fmtDateTime(c.verified_at)}` : ''}. Now record the invoice with the IPA-approved IPC with signatures and the corrected (final) measurement sheets.`}
         </Notice>
       ) : null}
 
@@ -165,7 +165,7 @@ export default function SubCertPage() {
             }}
           />
         ) : null}
-        {reviewer ? <Button title={c.status === 'ae_review' ? 'Checked – send to the SEE' : 'Approve IPC'} onPress={() => decide(true)} /> : null}
+        {reviewer ? <Button title={c.status === 'ae_review' ? 'Checked – send to the SEE' : 'Approve – IPA'} onPress={() => decide(true)} /> : null}
         {reviewer ? <Button variant="danger" title="Return with comments" onPress={() => decide(false)} /> : null}
         {later ? <Button title={c.status === 'approved' ? 'Record payment' : 'Approve'} onPress={() => decide(true)} /> : null}
         {later && c.status === 'verified' ? <Button variant="danger" title="Return" onPress={() => decide(false)} /> : null}

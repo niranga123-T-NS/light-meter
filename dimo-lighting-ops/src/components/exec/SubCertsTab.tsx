@@ -43,7 +43,7 @@ export function SubCertsTab({ p }: { p: ExecProject }) {
     <>
       <Section title="Payment certificates (IPC)" right={canRecord && p.status === 'active' ? <Button small title="+ Submit IPC" onPress={prepare} /> : null}>
         <CertRows rows={data?.certs ?? []} empty={sub ? 'No IPC submitted by you yet' : undefined} />
-        <Muted>The IPC with its measurement sheets is checked by the AE (when a supervisor submits it), then approved by the SEE. Only then can the invoice, signed IPC and final measurement sheets be uploaded.</Muted>
+        <Muted>The IPC with its measurement sheets is checked by the AE (when a supervisor submits it), then given Interim Payment Approval (IPA) by the SEE. Until IPA it shows “IPA pending”; only then can the invoice, signed IPC and final measurement sheets be uploaded.</Muted>
       </Section>
       <Section
         title="Subcontractor invoices"
@@ -55,7 +55,7 @@ export function SubCertsTab({ p }: { p: ExecProject }) {
       >
         {canRecord ? <Notice tone={colors.blue}>{SINV_NOTICE}</Notice> : null}
         <SubInvoiceRows rows={data?.invoices ?? []} />
-        <Muted>Recorded against an IPC approved by the SEE, with the signed IPC and final measurement sheets · a supervisor&apos;s invoice is checked by the AE · approved by the SEE, then Operations · then the physical documents go to the office.</Muted>
+        <Muted>Recorded against an IPA-approved IPC, with the signed IPC and final measurement sheets · a supervisor&apos;s invoice is checked by the AE · approved by the SEE, then Operations · then the physical documents go to the office.</Muted>
       </Section>
     </>
   );

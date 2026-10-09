@@ -137,7 +137,7 @@ export default function SubInvoicePage() {
       ) : null}
 
       <DocSlot title="Invoice copy" entity="sub_invoice" entityId={v.id} kind="sinv_doc" files={files} canAdd={editable} canMarkUp={reviewer} required={editable} onChange={reload} />
-      <DocSlot title="IPC – approved and signed" entity="sub_invoice" entityId={v.id} kind="ipc_signed" files={files} canAdd={editable} canMarkUp={reviewer} required={editable} onChange={reload} />
+      <DocSlot title="IPC – IPA approved, with signatures" entity="sub_invoice" entityId={v.id} kind="ipc_signed" files={files} canAdd={editable} canMarkUp={reviewer} required={editable} onChange={reload} />
       <DocSlot title="Measurement sheets – corrected (final)" entity="sub_invoice" entityId={v.id} kind="measure_final" files={files} canAdd={editable} canMarkUp={reviewer} required={editable} onChange={reload} />
 
       {marked.length ? (
