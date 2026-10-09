@@ -561,6 +561,7 @@ export type SubCert = {
   jm_scope: string | null;
   jm_date: string | null;
   jm_note: string | null;
+  jm_scheduled_by: string | null;
   jm_submitted_at: string | null;
   jm_ae_by: string | null;
   jm_see_by: string | null;
