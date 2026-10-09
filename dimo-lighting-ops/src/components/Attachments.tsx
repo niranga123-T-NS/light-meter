@@ -10,6 +10,8 @@ import { useDialog } from './dialog';
 import { Button, Card, ListRow, Muted, Row, Section } from './ui';
 
 export const KIND_LABELS: Record<string, string> = {
+  sinv_doc: 'Invoice copy (PDF / photo)',
+  sinv_markup: 'Marked-up copy',
   inquiry_doc: 'Inquiry document',
   visit_photo: 'Photo / business card',
   visit_doc: 'Document',
