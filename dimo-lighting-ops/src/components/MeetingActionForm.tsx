@@ -27,7 +27,10 @@ export function MeetingActionForm({
   onSave,
   onCancel,
   fixedProject,
+  kinds,
 }: {
+  /** Action types offered (default: all) */
+  kinds?: ActionKind[];
   owners: Profile[];
   defaultOwner: string | null;
   /** A project meeting: the project and its customer are filled in from the project (not chosen) */
@@ -70,7 +73,7 @@ export function MeetingActionForm({
         required
         value={a.kind}
         onChange={(v) => setKind(v as ActionKind)}
-        options={ACTION_KINDS.map((k) => ({ value: k.value, label: k.label }))}
+        options={ACTION_KINDS.filter((k) => !kinds || kinds.includes(k.value)).map((k) => ({ value: k.value, label: k.label }))}
       />
       <Muted>{ACTION_KINDS.find((k) => k.value === a.kind)?.hint}</Muted>
       <Field label={visit ? 'Purpose of the visit' : 'Action'} required multiline value={a.action} onChangeText={(v) => set({ action: v })} />
