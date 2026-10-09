@@ -29,7 +29,7 @@ export default function DebtDetail() {
     return { debt: d as Debt, log: (log ?? []) as LogRow[], collections: (col ?? []) as Collection[] };
   }, [id]);
 
-  // Correct an uploaded debt (Operations Executive, with a reason); the next upload still updates it from the file
+  // Correct a debt (Operations Executive, with a reason) – uploaded or added here; the next upload still updates it from the file
   const editDetails = async (d: Debt) => {
     const r = await dialog.prompt({
       title: `Edit debtor – ${d.invoice_no}`,
@@ -245,6 +245,22 @@ export default function DebtDetail() {
           {ops && d.is_legal ? <Button variant="secondary" title="Close legal case" onPress={() => legal(true)} /> : null}
           {canAssign ? <Button variant="secondary" title={d.sales_person_id ? 'Change sales person' : 'Assign sales person'} onPress={assign} /> : null}
           {ops && d.source !== 'sample' ? <Button variant="secondary" title="✎ Edit" onPress={() => editDetails(d)} /> : null}
+          {ops && d.source !== 'sample' && !['cleared', 'collected_confirmed'].includes(d.status) ? (
+            <Button
+              variant="ghost"
+              title="Remove"
+              onPress={async () => {
+                const r = await dialog.prompt({
+                  title: `Remove ${d.invoice_no}?`,
+                  message: 'For a wrong or duplicate entry – it is cleared and kept in the history with the reason.',
+                  fields: [{ key: 'r', label: 'Reason', type: 'multiline', required: true }],
+                  confirmLabel: 'Remove',
+                  danger: true,
+                });
+                if (r) await dialog.run(async () => { await rpc('remove_debt', { p_debt: d.id, p_reason: r.r }); await reload(); }, 'Removed');
+              }}
+            />
+          ) : null}
         </Row>
         {ops && d.source === 'sample' ? <Muted>This debt comes from a sample sale – its details are changed on the sample. The status can be updated here.</Muted> : null}
         {!ops && d.is_legal ? <Muted>Legal status is maintained by the Operations Executive.</Muted> : null}
