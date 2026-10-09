@@ -1,3 +1,4 @@
+import { View } from 'react-native';
 import { useState } from 'react';
 import { CustomerPicker, ProjectPicker } from '@/components/pickers';
 import { Button, Card, DateField, Field, Muted, Row, Select, Toggle } from '@/components/ui';
@@ -25,9 +26,12 @@ export function MeetingActionForm({
   defaultOwner,
   onSave,
   onCancel,
+  fixedProject,
 }: {
   owners: Profile[];
   defaultOwner: string | null;
+  /** A project meeting: the project and its customer are filled in from the project (not chosen) */
+  fixedProject?: { project_id: string | null; organization_id: string | null; project: string; customer: string | null };
   onSave: (a: ActionDraft) => Promise<void>;
   onCancel: () => void;
 }) {
@@ -36,8 +40,8 @@ export function MeetingActionForm({
     action: '',
     owner_id: defaultOwner,
     due_date: addDaysISO(todayISO(), 7),
-    project_id: null,
-    organization_id: null,
+    project_id: fixedProject?.project_id ?? null,
+    organization_id: fixedProject?.organization_id ?? null,
     unit_id: null,
     new_project: '',
     new_customer: '',
@@ -79,7 +83,12 @@ export function MeetingActionForm({
         searchable
       />
       <DateField label={visit ? 'Visit by' : 'Due'} required={visit} value={a.due_date} onChange={(v) => set({ due_date: v })} />
-      {visit ? null : (
+      {fixedProject ? (
+        <View style={{ paddingVertical: 4 }}>
+          <Muted>{`Project: ${fixedProject.project}`}</Muted>
+          <Muted>{`Customer: ${fixedProject.customer ?? '—'}`}</Muted>
+        </View>
+      ) : visit ? null : (
         <Toggle
           label="New project / customer – not in the system yet"
           value={isNew}
@@ -89,7 +98,7 @@ export function MeetingActionForm({
           }}
         />
       )}
-      {isNew && !visit ? (
+      {fixedProject ? null : isNew && !visit ? (
         <>
           <Field label="New project" value={a.new_project} onChangeText={(v) => set({ new_project: v })} placeholder="e.g. Hilton Colombo refurbishment" />
           <Field label="New customer" value={a.new_customer} onChangeText={(v) => set({ new_customer: v })} placeholder="e.g. Hilton Colombo" />
