@@ -22,6 +22,7 @@ export default function NewTest() {
   const [project, setProject] = useState<string | null>(params.project ?? null);
   const [f, setF] = useState({ area: null as string | null, system: '', test_type: 'Insulation resistance', instrument_id: null as string | null, witness: '', note: '', result: null as string | null });
   const [queue, setQueue] = useState<Queued[]>([]);
+  const [customArea, setCustomArea] = useState(false);
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((s) => ({ ...s, [k]: v }));
   const { data } = useLoad(async () => {
     const [p, i] = await Promise.all([
@@ -47,6 +48,7 @@ export default function NewTest() {
     if (!proj) return setError('Choose the project');
     if (!queue.length) return setError('Upload the reading documents (at least one)');
     if (!f.result) return setError('State the result – pass or fail');
+    if (customArea && !f.area?.trim()) return setError('Type the area, or choose one from the list');
     await dialog.run(async () => {
       const id = await rpc<string>('record_test', { p_exec: proj, p: { ...f, area: f.area ?? '', instrument_id: f.instrument_id ?? '', rows: [] } });
       for (const q of queue) await uploadAttachment('test_record', id, q.kind, q.file);
@@ -61,7 +63,21 @@ export default function NewTest() {
       <Section title="Test">
         <Card>
           <Select label="Project" required value={proj} onChange={setProject} options={(data?.projects ?? []).map((p) => ({ value: p.id, label: `${p.code ?? ''} ${p.name}` }))} />
-          <Select label="Area" value={f.area} onChange={(v) => set('area', v)} options={EXEC_AREAS.filter((a) => areas.includes(a.value)).map((a) => ({ value: a.value, label: a.label }))} />
+          <Select
+            label="Area"
+            searchable
+            value={customArea ? '__other' : f.area}
+            onChange={(v) => {
+              setCustomArea(v === '__other');
+              set('area', v === '__other' ? '' : v);
+            }}
+            options={[
+              ...EXEC_AREAS.filter((a) => areas.includes(a.value)).map((a) => ({ value: a.value, label: `${a.label} · project area` })),
+              ...EXEC_AREAS.filter((a) => !areas.includes(a.value)).map((a) => ({ value: a.value, label: a.label })),
+              { value: '__other', label: 'Other – type your own…' },
+            ]}
+          />
+          {customArea ? <Field label="Area (your own)" required value={f.area ?? ''} onChangeText={(v) => set('area', v)} placeholder="e.g. Basement car park, Guard house, Pump room" /> : null}
           <Field label="System / circuit (e.g. DB-2, Level 3 emergency)" required value={f.system} onChangeText={(v) => set('system', v)} />
           <Select
             label="Test"
