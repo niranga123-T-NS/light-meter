@@ -40,7 +40,7 @@ const TABS: Tab[] = [
   { key: 'qa', label: 'QA', roles: INTERNAL },
   { key: 'documents', label: 'Documents' },
   { key: 'handover', label: 'Handover', roles: INTERNAL },
-  { key: 'subcerts', label: 'Subcontractor certificates', roles: ['senior_elec_engineer', 'sm_projects', 'gm', 'operations_exec', 'assistant_engineer'] },
+  { key: 'subcerts', label: 'Subcontractor IPC & invoices', roles: ['senior_elec_engineer', 'sm_projects', 'gm', 'operations_exec', 'assistant_engineer', 'sub_supervisor'] },
   { key: 'billing', label: 'Billing', roles: ['senior_elec_engineer', 'sm_projects', 'gm', 'operations_exec', 'assistant_engineer'] },
 ];
 

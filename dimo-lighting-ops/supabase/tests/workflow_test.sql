@@ -5192,5 +5192,73 @@ begin
 end $$;
 reset role;
 
+-- Subcontractor invoices: recorded against a verified IPC, SEE then Operations, returned with a marked-up copy
+reset role;
+update public.profiles set active = true where id = (select id from u where role = 'sub_supervisor');
+insert into public.exec_members (exec_project_id, user_id, member_role)
+select current_setting('test.ex')::uuid, (select id from u where role = 'sub_supervisor'), 'sub_supervisor'
+ where not exists (select 1 from public.exec_members where exec_project_id = current_setting('test.ex')::uuid and user_id = (select id from u where role = 'sub_supervisor') and active);
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare iid uuid;
+begin
+  assert exists (select 1 from public.sub_invoice_certs(current_setting('test.ex')::uuid) where id = current_setting('test.spc')::uuid), 'verified IPC offered';
+  iid := public.create_sub_invoice(current_setting('test.spc')::uuid, '{"invoice_no":"LE/INV/0042","invoice_date":"2026-10-05","amount":"700,000"}');
+  perform set_config('test.sinv', iid::text, false);
+  begin perform public.submit_sub_invoice(iid); assert false, 'copy needed';
+  exception when others then assert sqlerrm = 'Attach the invoice copy (PDF or photos)', sqlerrm; end;
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_invoice', iid, 'sinv_doc', 'sub_invoice/' || iid || '/inv.pdf', 'inv.pdf');
+  perform public.submit_sub_invoice(iid);
+  assert (select status from public.sub_invoices where id = iid) = 'submitted', 'submitted';
+  begin perform public.decide_sub_invoice(iid, true); assert false, 'not the sub';
+  exception when others then assert sqlerrm = 'The Senior Electrical Engineer approves first', sqlerrm; end;
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'sub_supervisor') and title = 'Invoice recorded – for reference only'
+                  and body like '%physical documents must be submitted to the DIMO Lighting Solutions office%'), 'submitter told';
+end $$;
+-- An invoice needs a verified IPC
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare cid uuid;
+begin
+  cid := public.prepare_sub_cert(current_setting('test.ex')::uuid, '{"subcontractor":"Lanka Electricals","period":"Oct 2026","gross":"1500000","previous":"1000000"}');
+  begin perform public.create_sub_invoice(cid, '{"invoice_no":"X1","invoice_date":"2026-10-08","amount":"1"}'); assert false, 'IPC first';
+  exception when others then assert sqlerrm like 'The payment certificate (IPC and measurement sheets) must be verified%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare iid uuid := current_setting('test.sinv')::uuid;
+begin
+  -- the SEE marks the copy in red and returns it
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_invoice', iid, 'sinv_markup', 'sub_invoice/' || iid || '/marked.pdf', 'Marked up – inv.pdf');
+  assert public.decide_sub_invoice(iid, false, 'Retention not deducted') = 'returned', 'returned';
+end $$;
+reset role;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare iid uuid := current_setting('test.sinv')::uuid;
+begin
+  assert exists (select 1 from public.attachments where entity_id = iid and kind = 'sinv_markup'), 'submitter sees the marked-up copy';
+  begin insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_invoice', iid, 'sinv_markup', 'x', 'x'); assert false, 'no markup by sub';
+  exception when others then null; end;
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('sub_invoice', iid, 'sinv_doc', 'sub_invoice/' || iid || '/inv2.pdf', 'inv2.pdf');
+  perform public.submit_sub_invoice(iid, '{"amount":"630000"}');
+  assert (select revision = 1 and amount = 630000 from public.sub_invoices where id = iid), 'resubmitted';
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select public.decide_sub_invoice(current_setting('test.sinv')::uuid, true);
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare iid uuid := current_setting('test.sinv')::uuid;
+begin
+  assert public.decide_sub_invoice(iid, true) = 'approved', 'ops approved';
+  perform public.receive_sub_invoice_docs(iid, 'Originals received 09 Oct');
+  assert (select status from public.sub_invoices where id = iid) = 'docs_received', 'docs received';
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'sub_supervisor') and title = 'Approved – submit the physical documents'), 'told to bring documents';
+end $$;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

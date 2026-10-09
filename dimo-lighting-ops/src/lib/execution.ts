@@ -568,6 +568,45 @@ export const CERT_STATUS: Record<SubCert['status'], string> = {
   returned: 'Returned',
 };
 
+// ---- Subcontractor invoices: recorded for reference against a verified IPC; SEE → Operations; then the physical documents ----
+export type SubInvoice = {
+  id: string;
+  code: string;
+  exec_project_id: string;
+  sub_cert_id: string;
+  subcontractor: string;
+  invoice_no: string;
+  invoice_date: string;
+  amount: number;
+  note: string | null;
+  status: 'draft' | 'submitted' | 'see_approved' | 'approved' | 'returned' | 'docs_received' | 'cancelled';
+  revision: number;
+  created_by: string;
+  created_at: string;
+  submitted_at: string | null;
+  see_by: string | null;
+  see_at: string | null;
+  ops_by: string | null;
+  ops_at: string | null;
+  returned_by: string | null;
+  returned_at: string | null;
+  return_note: string | null;
+  docs_received_at: string | null;
+  docs_note: string | null;
+};
+export const SINV_STATUS: Record<SubInvoice['status'], { label: string; tone: 'grey' | 'amber' | 'blue' | 'green' | 'red' }> = {
+  draft: { label: 'Draft – attach the copy and submit', tone: 'grey' },
+  submitted: { label: 'With the Senior Electrical Engineer', tone: 'amber' },
+  see_approved: { label: 'With the Operations Executive', tone: 'amber' },
+  approved: { label: 'Approved – submit the physical documents', tone: 'blue' },
+  returned: { label: 'Returned with comments', tone: 'red' },
+  docs_received: { label: 'Physical documents received', tone: 'green' },
+  cancelled: { label: 'Withdrawn', tone: 'grey' },
+};
+/** Shown wherever an invoice is recorded: the record is for reference, the originals go to the office */
+export const SINV_NOTICE =
+  'This submission is for recording purposes only. The physical documents must be submitted to the DIMO Lighting Solutions office for processing – you will be told here when they can be submitted.';
+
 // ---- Hand-over to execution (Operations requests a won project / SEE enters a pre-system project; SM Projects approves) ----
 export type ExecRequest = {
   id: string;
