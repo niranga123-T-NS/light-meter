@@ -13,6 +13,11 @@ import type { HseRecord } from '@/lib/hse';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 
+type SubItem = { id: string; ae_item_id: string | null; title: string; zone: string | null; qty: number | null; unit: string | null; additional: boolean; status: 'planned' | 'done' | 'partial' | 'not_done'; done_qty: number | null; result_note: string | null };
+type SubEdit = { status: string; done_qty: number | null; note: string };
+/** The Sri Lanka date of a timestamp */
+const slDay = (ts: string | null) => (ts ? new Date(new Date(ts).getTime() + 330 * 60000).toISOString().slice(0, 10) : '');
+
 /** Daily report: supervisors by 18:00 (to the Assistant Engineers), Assistant Engineers by 20:00 (to the Senior Electrical Engineer). */
 export default function NewReport() {
   const me = useMe();
@@ -24,6 +29,8 @@ export default function NewReport() {
   const [files, setFiles] = useState<PickedFile[]>([]);
   const [edits, setEdits] = useState<Record<string, ItemEdit>>({});
   const [tbt, setTbt] = useState<string[]>([]);
+  const [subEdits, setSubEdits] = useState<Record<string, SubEdit>>({});
+  const [permitSel, setPermitSel] = useState<string[]>([]);
   const [tbtSeen, setTbtSeen] = useState('');
   const [f, setF] = useState({
     project: params.project ?? null as string | null,
@@ -52,7 +59,7 @@ export default function NewReport() {
   // Pre-fill from the day's plan results and (for an Assistant Engineer) the supervisors' reports
   const { data: day } = useLoad(async () => {
     if (!proj) return null;
-    const [its, earlier, reps, plans, talks] = await Promise.all([
+    const [its, earlier, reps, plans, talks, subs, ptws] = await Promise.all([
       supabase.from('exec_plan_items').select('*').eq('exec_project_id', proj).eq('day', f.date).order('created_at'),
       // earlier activities of the last two weeks still without a result
       supabase.from('exec_plan_items').select('*').eq('exec_project_id', proj).eq('status', 'planned').lt('day', f.date).gte('day', addDaysISO(f.date, -14)).order('day'),
@@ -61,7 +68,19 @@ export default function NewReport() {
       // toolbox talks recorded on the TBT form that day (numbered automatically)
       supabase.from('hse_records').select('*').eq('exec_project_id', proj).eq('form_code', 'TBT-01')
         .gte('starts_at', `${f.date}T00:00:00+05:30`).lt('starts_at', `${addDaysISO(f.date, 1)}T00:00:00+05:30`).order('starts_at'),
+      // Supervisor: the day's works of the own approved plan, and the own approved work permits of the day
+      sup
+        ? supabase.from('sub_plan_items').select('*, sub_plans!inner(supervisor_id, exec_project_id, status)').eq('day', f.date)
+            .eq('sub_plans.supervisor_id', me.id).eq('sub_plans.exec_project_id', proj).eq('sub_plans.status', 'approved').order('created_at')
+        : Promise.resolve({ data: [] }),
+      sup
+        ? supabase.from('hse_records').select('*').eq('exec_project_id', proj).eq('created_by', me.id).like('code', 'PTW-%').in('status', ['active', 'closed'])
+            .lt('starts_at', `${addDaysISO(f.date, 1)}T00:00:00+05:30`).gte('ends_at', `${f.date}T00:00:00+05:30`).order('starts_at')
+        : Promise.resolve({ data: [] }),
     ]);
+    const subItems = (subs.data ?? []) as unknown as SubItem[];
+    const permits = ((ptws.data ?? []) as HseRecord[]).filter((r) => slDay(r.starts_at) <= f.date && f.date <= slDay(r.ends_at));
+    const { data: ln } = subItems.length ? await supabase.from('sub_plan_item_permits').select('*').in('item_id', subItems.map((x) => x.id)) : { data: [] };
     // Supervisor: own toolbox talks. Assistant Engineer: every toolbox talk of the project that day.
     const tbts = ((talks.data ?? []) as HseRecord[]).filter((t) => !sup || t.created_by === me.id);
     const myPlans = new Set(((plans.data ?? []) as Pick<ExecPlan, 'id' | 'ae_id' | 'status'>[]).filter((x) => x.ae_id === me.id && x.status === 'approved').map((x) => x.id));
@@ -76,7 +95,7 @@ export default function NewReport() {
     const waiting = ((its.data ?? []) as PlanItem[]).filter((i) =>
       i.source === 'supervisor' ? i.acceptance === 'pending' && (!sup || i.supervisor_id === me.id) : !sup && !!allPlans.find((x) => x.id === i.plan_id && x.ae_id === me.id && x.status !== 'approved'),
     );
-    return { items, waiting, tbts, reps: (reps.data ?? []) as ExecReport[] };
+    return { items, waiting, tbts, reps: (reps.data ?? []) as ExecReport[], subItems, permits, links: (ln ?? []) as { item_id: string; permit_id: string }[] };
   }, [proj, f.date, sup]);
   // Pre-fill once per project and day (guarded set during render instead of an effect)
   const prefillKey = day ? `${proj}|${f.date}` : null;
@@ -84,6 +103,8 @@ export default function NewReport() {
   if (day && prefillKey && filled !== prefillKey) {
     setFilled(prefillKey);
     setEdits({});
+    setSubEdits(Object.fromEntries(day.subItems.filter((x) => x.status !== 'planned').map((x) => [x.id, { status: x.status, done_qty: x.done_qty, note: x.result_note ?? '' }])));
+    setPermitSel(day.permits.map((r) => r.id));
   }
   // Toolbox talks recorded for the day are ticked and linked automatically (also ones recorded after opening the form)
   const tbtKey = day ? `${prefillKey}|${day.tbts.map((t) => t.id).join(',')}` : '';
@@ -107,11 +128,25 @@ export default function NewReport() {
     const changed = (day?.items ?? []).filter((it) => itemChanged(it, edits[it.id]));
     const linked = f.toolbox_talk ? tbt.filter((x) => day?.tbts.some((t) => t.id === x)) : [];
     if (f.toolbox_talk && !linked.length && !f.toolbox_topic.trim()) return setError(day?.tbts.length ? 'Tick the toolbox talk held' : 'Record the toolbox talk (TBT form) or enter the topic');
+    // Supervisor: every work of the day's plan gets a result (works from the engineers' plan reported in A carry that result)
+    const inA = new Set((day?.items ?? []).map((i) => i.id));
+    const subOwn = (day?.subItems ?? []).filter((x) => !x.ae_item_id || !inA.has(x.ae_item_id));
+    const noResult = subOwn.find((x) => !subEdits[x.id]?.status || subEdits[x.id].status === 'planned');
+    if (sup && noResult) return setError(`Give the result of “${noResult.title}” (your plan for the day)`);
+    const noWhy = subOwn.find((x) => (subEdits[x.id]?.status === 'partial' || subEdits[x.id]?.status === 'not_done') && !subEdits[x.id].note.trim());
+    if (sup && noWhy) return setError(`Give the reason for “${noWhy.title}”`);
+    const worked = subOwn.some((x) => subEdits[x.id]?.status === 'done' || subEdits[x.id]?.status === 'partial') || changed.some((it) => edits[it.id].status === 'done' || edits[it.id].status === 'partial');
+    if (sup && worked && !permitSel.length) return setError(day?.permits.length ? 'Tick the work permit(s) the work was done under' : 'No approved work permit of yours for this day – work needs a permit');
     const noReason = changed.find((it) => (edits[it.id].status === 'partial' || edits[it.id].status === 'not_done') && !edits[it.id].note.trim());
     if (noReason) return setError(`Give the reason for “${noReason.title}”`);
     await dialog.run(async () => {
       const items = changed.map((it) => ({ id: it.id, status: edits[it.id].status, done_qty: edits[it.id].done_qty ?? '', note: edits[it.id].note }));
-      const id = await rpc<string>('submit_exec_report', { p_exec: proj, p_date: f.date, p: { ...f, crew_count: f.crew_count ?? '', items, toolbox_records: linked, toolbox_topic: linked.length ? '' : f.toolbox_topic } });
+      const subItems = subOwn.map((x) => ({ id: x.id, status: subEdits[x.id].status, done_qty: subEdits[x.id].done_qty ?? '', note: subEdits[x.id].note }));
+      const id = await rpc<string>('submit_exec_report', {
+        p_exec: proj,
+        p_date: f.date,
+        p: { ...f, crew_count: f.crew_count ?? '', items, toolbox_records: linked, toolbox_topic: linked.length ? '' : f.toolbox_topic, sub_items: subItems, permit_ids: permitSel },
+      });
       for (const it of changed) {
         const ids: string[] = [];
         for (const x of edits[it.id].photos) ids.push((await uploadAttachment('exec_report', id, 'item_photo', x)).id);
@@ -159,6 +194,58 @@ export default function NewReport() {
         ) : null}
         {day?.items.length ? <ReportItems items={day.items} edits={edits} onChange={(id, e) => setEdits((s) => ({ ...s, [id]: e }))} people={people} day={f.date} /> : null}
       </Section>
+      {sup ? (
+        <Section title={`My plan and work permits of the day (${day?.subItems.length ?? 0})`}>
+          <Card style={{ gap: 6 }}>
+            {day?.subItems.length ? (
+              day.subItems.map((x) => {
+                const fromA = !!x.ae_item_id && day.items.some((i) => i.id === x.ae_item_id);
+                const e = subEdits[x.id] ?? { status: '', done_qty: null, note: '' };
+                const pms = day.links.filter((l) => l.item_id === x.id).map((l) => day.permits.find((r) => r.id === l.permit_id)?.code).filter(Boolean);
+                return (
+                  <View key={x.id} style={{ gap: 4, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.line }}>
+                    <Row wrap gap={6} style={{ alignItems: 'center' }}>
+                      <Text style={{ color: colors.ink, fontWeight: '600', flexShrink: 1 }}>{`${x.title}${x.zone ? ` · ${x.zone}` : ''}${x.qty != null ? ` · ${x.qty} ${x.unit ?? ''}` : ''}`}</Text>
+                      {x.additional ? <Pill label="Additional" tone={colors.blue} /> : null}
+                      <Pill label={pms.length ? `Permit ${pms.join(', ')}` : 'No permit linked'} tone={pms.length ? colors.green : colors.amber} />
+                    </Row>
+                    {fromA ? (
+                      <Muted>Result taken from section A (engineers&apos; plan).</Muted>
+                    ) : (
+                      <Grid min={180}>
+                        <Select
+                          label="Result"
+                          required
+                          value={e.status || null}
+                          onChange={(v) => setSubEdits((s) => ({ ...s, [x.id]: { ...e, status: v ?? '' } }))}
+                          options={[{ value: 'done', label: 'Done' }, { value: 'partial', label: 'Partly done' }, { value: 'not_done', label: 'Not done' }]}
+                        />
+                        <NumberField label={`Quantity done${x.unit ? ` (${x.unit})` : ''}`} value={e.done_qty} onChange={(v) => setSubEdits((s) => ({ ...s, [x.id]: { ...e, done_qty: v } }))} />
+                        <Field label="Details / reason" value={e.note} onChangeText={(v) => setSubEdits((s) => ({ ...s, [x.id]: { ...e, note: v } }))} />
+                      </Grid>
+                    )}
+                  </View>
+                );
+              })
+            ) : (
+              <Muted>No approved plan of yours for this day.</Muted>
+            )}
+            <Muted style={{ marginTop: 4 }}>Work permits the work was done under</Muted>
+            {day?.permits.length ? (
+              day.permits.map((r) => (
+                <Toggle
+                  key={r.id}
+                  value={permitSel.includes(r.id)}
+                  onChange={(v) => setPermitSel((s) => (v ? [...s, r.id] : s.filter((x) => x !== r.id)))}
+                  label={`${r.code} · ${String(r.header.location ?? '')} · ${fmtTime(r.starts_at)}–${fmtTime(r.ends_at)}${r.status === 'closed' ? ' · closed' : ''}`}
+                />
+              ))
+            ) : (
+              <Notice tone={colors.amber}>{`No approved work permit of yours for ${fmtDate(f.date)}.`}</Notice>
+            )}
+          </Card>
+        </Section>
+      ) : null}
       <Section title="B. Work on site">
         <Card>
           <Field label="Work done" required multiline value={f.work_done} onChangeText={(v) => set('work_done', v)} placeholder="Summary of the day's work" />

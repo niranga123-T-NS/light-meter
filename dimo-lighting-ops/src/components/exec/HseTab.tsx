@@ -151,7 +151,7 @@ export function HseTab({ p, mode = 'all' }: { p: ExecProject; mode?: 'all' | 'pe
           <Stat label="Permits waiting" value={s?.permits_waiting ?? 0} tone={s?.permits_waiting ? 'amber' : undefined} />
           <Stat label="Permits active" value={s?.permits_active ?? 0} />
         </Grid>
-        <Muted>Request a permit to work for each shift of work – an Assistant Engineer of the project approves it. Every work in your plan needs an approved permit for its day.</Muted>
+        <Muted>Request the work permits for each day&apos;s planned work – and for any work not in the plan. Tomorrow&apos;s permits go to the Assistant Engineer before 20:00 today; an AE approves each one.</Muted>
         {permitList}
       </View>
     );
@@ -294,7 +294,12 @@ function RecordList({ rows, forms, people, empty, sub }: { rows: HseRecord[]; fo
             title={`${r.code} · ${formName(f)}`}
             subtitle={`${sub(r)} · ${people[r.created_by]?.full_name ?? ''}`}
             highlight={permit && r.status === 'submitted' ? colors.amber : undefined}
-            right={<Pill label={st.label} tone={st.tone} />}
+            right={
+              <Row gap={4}>
+                {permit && r.late_request ? <Pill label="Late request" tone={colors.red} /> : null}
+                <Pill label={st.label} tone={st.tone} />
+              </Row>
+            }
           />
         );
       })}

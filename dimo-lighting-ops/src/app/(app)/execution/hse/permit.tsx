@@ -4,22 +4,25 @@ import { Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { AnswerRow, allAnswered } from '@/components/exec/HseBits';
 import { TestingBanner } from '@/components/Testing';
-import { Button, Card, colors, DateField, ErrorBanner, Field, Grid, Loading, Muted, Notice, Row, Screen, Section, Segmented, Select } from '@/components/ui';
-import { fmtDate, todayISO } from '@/lib/format';
+import { Button, Card, colors, DateField, ErrorBanner, Field, Grid, Loading, Muted, Notice, Row, Screen, Section, Segmented, Select, Toggle } from '@/components/ui';
+import { useMe } from '@/lib/auth';
+import { addDaysISO, fmtDate, todayISO } from '@/lib/format';
 import { formName, loadHseForms, slTime, type Answer, type HseEquipment, type HseRecord } from '@/lib/hse';
 import { useLoad } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 
 /** Request a permit to work: Section A work details, Section B control measures (all Yes / N/A), then an Assistant Engineer of the project approves. */
 export default function PermitRequest() {
-  const params = useLocalSearchParams<{ project: string; form: string; carry?: string }>();
+  const params = useLocalSearchParams<{ project: string; form: string; carry?: string; day?: string; items?: string }>();
+  const me = useMe();
+  const sup = me.role === 'sub_supervisor';
   // Several permit types in one go: this one, then the rest – the work details carry over
   const queue = (params.form ?? '').split(',').filter(Boolean);
   const current = queue[0];
   const rest = queue.slice(1);
   const carried = (() => {
     try {
-      return params.carry ? (JSON.parse(params.carry) as { h: Record<string, string>; day: string | null; from: string; to: string }) : null;
+      return params.carry ? (JSON.parse(params.carry) as { h: Record<string, string>; day: string | null; from: string; to: string; items?: string[] }) : null;
     } catch {
       return null;
     }
@@ -29,7 +32,21 @@ export default function PermitRequest() {
   const [answers, setAnswers] = useState<Record<string, Answer>>({});
   const [h, setH] = useState<Record<string, string>>(carried?.h ?? { shift: 'day' });
   const [readings, setReadings] = useState<Record<string, string>>({});
-  const [day, setDay] = useState<string | null>(carried?.day ?? todayISO());
+  const [day, setDay] = useState<string | null>(carried?.day ?? params.day ?? todayISO());
+  // Planned works of the supervisor's plan this permit covers (none ticked = work not in the plan)
+  const [openedAt] = useState(() => Date.now());
+  const [picked, setPicked] = useState<string[]>(carried?.items ?? (params.items ? params.items.split(',').filter(Boolean) : []));
+  const { data: planned } = useLoad(async () => {
+    if (!sup || !day) return [] as { id: string; title: string; zone: string | null; additional: boolean }[];
+    const { data: rows } = await supabase
+      .from('sub_plan_items')
+      .select('id, title, zone, additional, sub_plans!inner(supervisor_id, exec_project_id, status)')
+      .eq('day', day)
+      .eq('sub_plans.supervisor_id', me.id)
+      .eq('sub_plans.exec_project_id', params.project)
+      .order('created_at');
+    return (rows ?? []) as unknown as { id: string; title: string; zone: string | null; additional: boolean }[];
+  }, [sup, day, params.project, me.id]);
   const [from, setFrom] = useState(carried?.from ?? '08:00');
   const [to, setTo] = useState(carried?.to ?? '17:00');
   const [equipment, setEquipment] = useState<string | null>(null);
@@ -97,10 +114,12 @@ export default function PermitRequest() {
         p_exec: params.project,
         p: { form_code: f.code, answers, starts_at: start, ends_at: end, equipment_id: equipment, tbt_id: tbt, header: { ...h, readings } },
       });
+      const covered = picked.filter((x) => (planned ?? []).some((i) => i.id === x));
+      if (covered.length) await rpc('link_permit_plan_items', { p_permit: id, p_items: covered });
       if (rest.length) {
-        // next permit type: same work details, fresh controls
+        // next permit type: same work details and planned works, fresh controls
         const keep = { location: h.location, description: h.description, in_charge: h.in_charge, mobile: h.mobile, shift: h.shift };
-        router.replace({ pathname: '/execution/hse/permit', params: { project: params.project, form: rest.join(','), carry: JSON.stringify({ h: keep, day, from, to }) } });
+        router.replace({ pathname: '/execution/hse/permit', params: { project: params.project, form: rest.join(','), carry: JSON.stringify({ h: keep, day, from, to, items: covered }) } });
       } else router.replace(`/execution/hse/form/${id}`);
     }, rest.length ? `Requested – now the next permit (${rest.length} more)` : 'Requested – an Assistant Engineer of the project approves it before work starts');
   };
@@ -115,6 +134,28 @@ export default function PermitRequest() {
         <Text style={{ fontWeight: '700', fontSize: 16, color: colors.ink }}>{`PERMIT TO WORK · ${f.title}`}</Text>
         <Muted>{`${f.doc_no} · ${f.issue} · issued ${fmtDate(f.issue_date)} · the permit number is given when you submit`}</Muted>
       </Card>
+      {sup ? (
+        <Section title="Planned work this permit covers">
+          <Card style={{ gap: 4 }}>
+            {(planned ?? []).length ? (
+              (planned ?? []).map((i) => (
+                <Toggle
+                  key={i.id}
+                  value={picked.includes(i.id)}
+                  onChange={(v) => setPicked((s) => (v ? [...s, i.id] : s.filter((x) => x !== i.id)))}
+                  label={`${i.title}${i.zone ? ` · ${i.zone}` : ''}${i.additional ? ' · additional' : ''}`}
+                />
+              ))
+            ) : (
+              <Muted>{`Nothing in your plan for ${day ? fmtDate(day) : 'this day'}.`}</Muted>
+            )}
+            <Muted>Leave all unticked for work that is not in the plan.</Muted>
+          </Card>
+        </Section>
+      ) : null}
+      {day && openedAt > Date.parse(`${addDaysISO(day, -1)}T20:00:00+05:30`) ? (
+        <Notice tone={colors.amber}>{`Permits for ${fmtDate(day)} were due to the AE by 20:00 on ${fmtDate(addDaysISO(day, -1))} – this request is marked late.`}</Notice>
+      ) : null}
       <Section title="Section A – Work details">
         <Card>
           <Grid min={260}>

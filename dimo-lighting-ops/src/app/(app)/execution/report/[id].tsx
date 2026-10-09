@@ -8,9 +8,12 @@ import { useMe } from '@/lib/auth';
 import { printDailyReport, type DailyReport } from '@/lib/dailyReportPdf';
 import { ITEM_STATUS, REPORT_STATUS, type ExecProject } from '@/lib/execution';
 import { ROLE_LABELS } from '@/lib/roles';
-import { fmtDate, fmtDateTimeY } from '@/lib/format';
+import { fmtDate, fmtDateTimeY, fmtTime } from '@/lib/format';
+import type { HseRecord } from '@/lib/hse';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
+
+type SubUpdate = { id: string; title: string; zone: string | null; qty: number | null; unit: string | null; status: keyof typeof ITEM_STATUS; done_qty: number | null; note: string | null; permits: string[] };
 
 /** One daily report: the Assistant Engineer verifies a supervisor's report; the Senior Electrical Engineer reviews an engineer's. */
 export default function ReportScreen() {
@@ -21,7 +24,9 @@ export default function ReportScreen() {
   const { data, error, reload } = useLoad(async () => {
     const { data: r, error: e } = await supabase.from('exec_reports').select('*, exec_projects(*)').eq('id', id).single();
     if (e) throw new Error(e.message);
-    return r as DailyReport & { exec_projects: ExecProject | null };
+    const rep = r as DailyReport & { exec_projects: ExecProject | null; permit_ids?: string[]; sub_plan_updates?: SubUpdate[] };
+    const { data: pm } = rep.permit_ids?.length ? await supabase.from('hse_records').select('id, code, header, starts_at, ends_at, status').in('id', rep.permit_ids) : { data: [] };
+    return { ...rep, permits: (pm ?? []) as Pick<HseRecord, 'id' | 'code' | 'header' | 'starts_at' | 'ends_at' | 'status'>[] };
   }, [id]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const r = data;
@@ -61,6 +66,33 @@ export default function ReportScreen() {
               </Row>
             ))}
           </View>
+        ) : null}
+        {r.sub_plan_updates?.length ? (
+          <View style={{ gap: 4, marginTop: 4 }}>
+            <Text style={{ fontWeight: '700', color: colors.text }}>Supervisor&apos;s plan for the day</Text>
+            {r.sub_plan_updates.map((it) => (
+              <Row key={it.id} gap={6} wrap style={{ alignItems: 'center', paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: colors.line }}>
+                <Pill label={ITEM_STATUS[it.status]} tone={it.status === 'done' ? colors.green : it.status === 'partial' ? colors.amber : it.status === 'not_done' ? colors.red : colors.grey} />
+                <Text style={{ flex: 1, minWidth: 180, color: colors.ink }}>
+                  {`${it.title}${it.zone ? ` – ${it.zone}` : ''}${it.qty != null ? ` · ${it.done_qty ?? 0}/${it.qty} ${it.unit ?? ''}` : it.done_qty != null ? ` · ${it.done_qty} ${it.unit ?? ''}` : ''}${it.note ? ` · ${it.note}` : ''}`}
+                </Text>
+                <Pill label={it.permits?.length ? `Permit ${it.permits.join(', ')}` : 'No permit linked'} tone={it.permits?.length ? colors.green : colors.amber} />
+              </Row>
+            ))}
+          </View>
+        ) : null}
+        {r.level === 'supervisor' ? (
+          <KeyValue
+            label="Work permits"
+            value={r.permits.length ? r.permits.map((x) => `${x.code} · ${String(x.header.location ?? '')} · ${fmtTime(x.starts_at)}–${fmtTime(x.ends_at)}`).join('\n') : 'None referred'}
+          />
+        ) : null}
+        {r.permits.length ? (
+          <Row wrap gap={6}>
+            {r.permits.map((x) => (
+              <Button key={x.id} small variant="ghost" title={`Open ${x.code}`} onPress={() => router.push(`/execution/hse/form/${x.id}`)} />
+            ))}
+          </Row>
         ) : null}
         <KeyValue label="Work done" value={r.work_done} />
         {r.inspections ? <KeyValue label="Inspections and tests" value={r.inspections} /> : null}
