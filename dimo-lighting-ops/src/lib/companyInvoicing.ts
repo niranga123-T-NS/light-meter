@@ -1,4 +1,4 @@
-import { fyEnd, fyMonths, fyStart, LINES, type BusinessLine } from './finance';
+import { budgetMonths, fyEnd, fyMonths, fyStart, LINES, type BusinessLine } from './finance';
 import { fetchAll } from './mgmtReport';
 
 // Company invoicing against the budget list – every business line and every budgeted project, with or without a sales
@@ -25,14 +25,6 @@ export async function companyInvoicing(fy: number, upTo: string): Promise<Compan
   for (const r of [b, a, s]) if (r.error) throw new Error(r.error.message);
   const months = fyMonths(fy);
   const ytd = new Set(months.filter((m) => m <= upTo));
-  const monthsOf = (x: Budget): { month: string; amount: number }[] => {
-    const inv = x.budget_invoices.filter((i) => i.month >= fyStart(fy) && i.month <= fyEnd(fy));
-    if (x.budget_invoices.length) return inv.map((i) => ({ month: i.month.slice(0, 7) + '-01', amount: Number(i.amount) }));
-    const from = x.order_month && x.order_month.slice(0, 7) + '-01' > fyStart(fy) ? x.order_month.slice(0, 7) + '-01' : fyStart(fy);
-    if (from > fyEnd(fy) || !(Number(x.budget_value) > 0)) return [];
-    const ms = months.filter((m) => m >= from);
-    return ms.map((m) => ({ month: m, amount: Number(x.budget_value) / ms.length }));
-  };
   const lineOfSecured = new Map((s.data as { id: string; business_line: BusinessLine | null }[]).map((x) => [x.id, x.business_line]));
   const acc = new Map<string, LineInvoicing>();
   const row = (line: BusinessLine | 'none') => {
@@ -45,7 +37,7 @@ export async function companyInvoicing(fy: number, upTo: string): Promise<Compan
     const r = row(x.business_line ?? 'none');
     let fyB = 0;
     let ytdB = 0;
-    for (const m of monthsOf(x)) {
+    for (const m of budgetMonths(x, fy)) {
       fyB += m.amount;
       if (ytd.has(m.month)) ytdB += m.amount;
     }

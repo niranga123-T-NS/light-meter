@@ -273,6 +273,18 @@ export function addMonths(iso: string, n: number) {
 export const fyMonths = (fy: number) => Array.from({ length: 12 }, (_, i) => addMonths(fyStart(fy), i));
 export const inFy = (iso: string, fy: number) => iso >= fyStart(fy) && iso <= fyEnd(fy);
 
+/** A budgeted project's invoicing by month in the year – the same rule as the sales targets: its invoice months, else its
+ * value spread evenly from its order month (April if none) to March. */
+export function budgetMonths(b: { budget_value: number; order_month: string | null; budget_invoices: { month: string; amount: number }[] }, fy: number) {
+  const m1 = (iso: string) => `${iso.slice(0, 7)}-01`;
+  if (b.budget_invoices.length)
+    return b.budget_invoices.filter((i) => i.month >= fyStart(fy) && i.month <= fyEnd(fy)).map((i) => ({ month: m1(i.month), amount: Number(i.amount) }));
+  const from = b.order_month && m1(b.order_month) > fyStart(fy) ? m1(b.order_month) : fyStart(fy);
+  if (from > fyEnd(fy) || !(Number(b.budget_value) > 0)) return [];
+  const ms = fyMonths(fy).filter((m) => m >= from);
+  return ms.map((m) => ({ month: m, amount: Number(b.budget_value) / ms.length }));
+}
+
 // ---------------------------------------------------------------------------
 // Money in millions for cards and tables
 // ---------------------------------------------------------------------------

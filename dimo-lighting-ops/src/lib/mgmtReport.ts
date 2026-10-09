@@ -1,6 +1,7 @@
 import { actualPct, plannedPct, type Activity } from './programme';
 import {
   addMonths,
+  budgetMonths,
   findLine,
   fmtMonth,
   fyLabel,
@@ -194,7 +195,9 @@ export async function buildManagementReport(month: string): Promise<MgmtReport> 
   const allocs = allocR as Allocation[];
   const budget = budR as (BudgetProject & { budget_invoices: BudgetInvoice[] })[];
   const secLine = (sid: string) => (secR as SecuredProject[]).find((x) => x.id === sid)?.business_line ?? allLines.find((l) => l.secured_id === sid)?.business_line ?? null;
-  const budFor = (ms: string[], bl?: string) => sum(budget.filter((b) => !bl || b.business_line === bl), (b) => sum(b.budget_invoices.filter((i) => ms.includes(i.month)), (i) => n(i.amount)));
+  // Budget by month as on the dashboard and the targets: invoice months, else the value spread from the order month to March
+  const budMonths = budget.map((b) => ({ line: b.business_line, months: budgetMonths(b, fy) }));
+  const budFor = (ms: string[], bl?: string) => sum(budMonths.filter((b) => !bl || b.line === bl), (b) => sum(b.months.filter((i) => ms.includes(i.month)), (i) => i.amount));
   const invFor = (ms: string[], bl?: string) => sum(allocs.filter((a) => ms.includes(a.month) && (!bl || secLine(a.secured_id) === bl)), (a) => n(a.amount));
   const fcFor = (m: string, bl?: string) => sum(lines.filter((l) => l.forecast_month === m && (!bl || l.business_line === bl)), (l) => n(l.amount));
   const slippedL = lines.filter((l) => l.forecast_month < now && n(l.remaining) > 0.5);
