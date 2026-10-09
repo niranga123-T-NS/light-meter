@@ -34,6 +34,7 @@ export type Profile = {
   manager_id: string | null;
   project_types: ProjectType[];
   avatar_path: string | null;
+  company?: string | null;
   active: boolean;
   digest_mode: boolean;
   notification_prefs: Record<string, unknown>;
