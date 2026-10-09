@@ -5589,8 +5589,43 @@ begin
   assert (select count(*) from public.sub_plan_items where sub_plan_id = sp) = 2, 'picked + additional';
   begin perform public.update_sub_plan_item(x, 'done'); assert false, 'approval first';
   exception when others then assert sqlerrm = 'The plan must be approved first', sqlerrm; end;
+  begin perform public.submit_sub_plan(sp); assert false, 'permits first';
+  exception when others then assert sqlerrm like 'Each planned work needs an approved work permit for its day – not yet: %Clear debris at Level 2%', sqlerrm; end;
+  perform set_config('test.spday', (select day from public.sub_plan_items where id = x)::text, false);
+end $$;
+reset role;
+-- (the permits are moved to the planned day; a programme activity of ABC Electricals runs that week)
+do $$ declare d date := current_setting('test.spday')::date;
+begin
+  insert into public.exec_wbs (exec_project_id, code, name) values (current_setting('test.ex')::uuid, 'S1', 'Subcontract works');
+  update public.hse_records set starts_at = (d + time '08:00') at time zone 'Asia/Colombo', ends_at = (d + time '17:00') at time zone 'Asia/Colombo'
+   where id = current_setting('test.subptw2')::uuid;
+  update public.hse_records set starts_at = (d + 1 + time '08:00') at time zone 'Asia/Colombo', ends_at = (d + 1 + time '17:00') at time zone 'Asia/Colombo'
+   where id = current_setting('test.subptw1')::uuid;
+  insert into public.exec_activities (exec_project_id, wbs_id, code, name, duration, subcontractor, es, ef, unit)
+  values (current_setting('test.ex')::uuid, (select id from public.exec_wbs where exec_project_id = current_setting('test.ex')::uuid limit 1),
+          'SUB-A1', 'Containment Level 3', 3, 'ABC Electricals', d - 1, d + 1, 'm');
+  insert into public.exec_activities (exec_project_id, wbs_id, code, name, duration, subcontractor, es, ef)
+  values (current_setting('test.ex')::uuid, (select id from public.exec_wbs where exec_project_id = current_setting('test.ex')::uuid limit 1),
+          'SUB-L1', 'Lanka cabling', 3, 'Lanka Electricals', d - 1, d + 1);
+end $$;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare sp uuid := current_setting('test.sp')::uuid; d date := current_setting('test.spday')::date; act uuid; it uuid;
+begin
+  assert not exists (select 1 from public.sub_plan_activities(sp) where code = 'SUB-L1'), 'another company''s activity not offered';
+  select id into act from public.sub_plan_activities(sp) where code = 'SUB-A1';
+  assert act is not null, 'own company''s programme activity offered';
+  perform public.pick_sub_plan_activity(sp, act, d, true);
+  assert (select picked from public.sub_plan_activities(sp) where id = act) = array[d], 'activity picked for the day';
+  select id into it from public.sub_plan_items where sub_plan_id = sp and additional;
+  begin perform public.set_sub_plan_permit(it, current_setting('test.subptw1')::uuid); assert false, 'wrong day';
+  exception when others then assert sqlerrm like 'Permit % does not cover %', sqlerrm; end;
+  for it in select id from public.sub_plan_items where sub_plan_id = sp loop
+    perform public.set_sub_plan_permit(it, current_setting('test.subptw2')::uuid);
+  end loop;
+  assert (select count(*) from public.sub_plan_items where sub_plan_id = sp and permit_id is not null) = 3, 'permits linked';
   perform public.submit_sub_plan(sp);
-  begin perform public.pick_sub_plan_item(sp, ae, false); assert false, 'locked';
+  begin perform public.pick_sub_plan_item(sp, (select ae_item_id from public.sub_plan_items where sub_plan_id = sp and ae_item_id is not null), false); assert false, 'locked';
   exception when others then assert sqlerrm like 'The plan is submitted%', sqlerrm; end;
 end $$;
 reset role;

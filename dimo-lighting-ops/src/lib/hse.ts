@@ -79,7 +79,7 @@ export const EQUIP_STATUS: Record<HseEquipment['status'], { label: string; tone:
   off_site: { label: 'Off site', tone: colors.grey },
 };
 export const PERMIT_STATUS: Record<HseRecord['status'], { label: string; tone: string }> = {
-  submitted: { label: 'Waiting for EHS approval', tone: colors.amber },
+  submitted: { label: 'Waiting for AE approval', tone: colors.amber },
   active: { label: 'Active', tone: colors.green },
   closed: { label: 'Closed', tone: colors.grey },
   rejected: { label: 'Not approved', tone: colors.red },
