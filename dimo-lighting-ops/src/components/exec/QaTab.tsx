@@ -4,7 +4,7 @@ import { Text } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, Empty, ListRow, Muted, Notice, Pill, Row, Section } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import type { ExecMember, ExecProject, Ncr, TestRecord } from '@/lib/execution';
+import { areaLabel, type ExecMember, type ExecProject, type Ncr, type TestRecord } from '@/lib/execution';
 import { fmtDate, fmtDateTime, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { QA_STATUS, type QaReport } from '@/lib/qaReport';
@@ -129,7 +129,7 @@ export function QaTab({ p }: { p: ExecProject }) {
                 title={`${t.code} · ${t.test_type} – ${t.system}${(data?.testFiles ?? []).some((f) => f.entity_id === t.id) ? ` · 📎 ${(data?.testFiles ?? []).filter((f) => f.entity_id === t.id).length}` : ''}`}
                 subtitle={
                   <>
-                    <Muted>{[people[t.performed_by]?.full_name, fmtDateTime(t.performed_at), t.witness ? `witness ${t.witness}` : null, t.note].filter(Boolean).join(' · ')}</Muted>
+                    <Muted>{[t.area ? areaLabel(t.area) : null, people[t.performed_by]?.full_name, fmtDateTime(t.performed_at), t.witness ? `witness ${t.witness}` : null, t.note].filter(Boolean).join(' · ')}</Muted>
                     {open === t.id ? (
                       <>
                         {t.rows.map((r, i) => (

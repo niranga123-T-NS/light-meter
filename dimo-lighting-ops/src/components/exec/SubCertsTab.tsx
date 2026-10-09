@@ -125,7 +125,6 @@ export function SubCertsTab({ p }: { p: ExecProject }) {
           ? [{ key: 'vars', label: 'Variations in this cycle (each measured and submitted separately)', type: 'multiselect' as const, options: (data?.varOpts ?? []).map((v) => ({ value: v.id, label: `${v.vo_no || v.code} · ${v.title}` })) }]
           : []),
         { key: 'jm_scope', label: 'Work / areas to measure', type: 'multiline' },
-        { key: 'retention_pct', label: 'Retention % (for the IPC)', initial: '10' },
       ],
       confirmLabel: 'Request',
     });
