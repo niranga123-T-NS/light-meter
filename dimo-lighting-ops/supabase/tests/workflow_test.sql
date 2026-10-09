@@ -5840,5 +5840,23 @@ do $$ begin
 end $$;
 rollback to savepoint on_hold;
 
+
+-- Subcontractor supervisor's home: progress of each appointed project
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare x jsonb;
+begin
+  select e into x from jsonb_array_elements(public.sub_home_summary()) e where e ->> 'id' = current_setting('test.ex');
+  assert x is not null, 'appointed project listed';
+  assert (x -> 'activities' ->> 'n')::int >= 1, 'company activities counted: ' || x::text;
+  assert x -> 'activities' ? 'progress' and x -> 'today' ? 'checked_in' and x ? 'certs', 'summary parts';
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin
+  begin perform public.sub_home_summary(); assert false, 'supervisors only';
+  exception when others then assert sqlerrm = 'For subcontractor supervisors', sqlerrm; end;
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
