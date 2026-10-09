@@ -6,11 +6,12 @@ import { TeamTargetCard } from '@/components/TargetCharts';
 import { useMe } from '@/lib/auth';
 import { companyInvoicing } from '@/lib/companyInvoicing';
 import { fyLabel, fyOf, thisMonth, type Performance } from '@/lib/finance';
-import { AGEING_COLOURS, AGEING_ORDER, fmtDate, fmtMoney, fmtNumber, fmtWorkDays, human, SLA_COLOURS } from '@/lib/format';
+import { AGEING_COLOURS, AGEING_ORDER, fmtDate, fmtMoney, fmtNumber, fmtWorkDays, human, SLA_COLOURS, todayISO } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import { projectTypeLabel } from '@/lib/roles';
 import { rpc, supabase } from '@/lib/supabase';
 import { DesignHolds } from './DesignHolds';
+import { StageTimes, type Journey, type StageTime } from './StageTimes';
 import { Avatar, Button, Card, colors, DateField, ErrorBanner, Grid, H1, ListRow, Muted, Pill, Row, Screen, Section, Stat } from '../ui';
 
 type Dash = {
@@ -19,7 +20,9 @@ type Dash = {
   deadlines_at_risk: { id: string; code: string; project_name: string; customer_name: string; customer_deadline: string; status: string; sla_colour: string; days_left: number; owner: string | null }[];
   delay_reasons: { team: string; reason: string; n: number }[];
   sla_performance: { team: string; closed: number; on_time_pct: number | null; avg_hours: number | null }[];
-  sla_by_stage: { stage: string; n: number; avg_hours: number; p90_hours: number }[];
+  sla_by_stage: StageTime[];
+  journey?: Journey | null;
+  work_hours_per_day?: number;
   sales_activity: { id: string; full_name: string; avatar_path: string | null; visits: number; unplanned: number; gps_pct: number | null; plans_on_time: number; inquiries: number; duplicate_alerts: number }[];
   pipeline: { project_type: string; active_projects: number; lighting_value_lkr: number | null; weighted_lkr: number | null; dormant_on_hold_lkr: number | null; active_usd: number | null; active_lkr: number | null }[];
   funnel: { received: number; in_design: number; in_estimation: number; quoted: number; won: number; lost: number; won_value_lkr: number | null; lost_reasons: Record<string, number> };
@@ -203,21 +206,13 @@ export function ExecDashboard() {
                 />
               ))}
             </Grid>
-            <Card style={{ marginTop: 8 }}>
-              <Text style={{ fontWeight: '700', marginBottom: 6 }}>Time per stage (working days, average · 90th percentile)</Text>
-              {data.sla_by_stage.map((s, i) => (
-                <Row key={s.stage} style={{ justifyContent: 'space-between', paddingVertical: 3 }}>
-                  <Text style={i === 0 ? { color: colors.red, fontWeight: '700' } : undefined}>
-                    {human(s.stage)}
-                    {i === 0 ? ' · slowest stage' : ''}
-                  </Text>
-                  <Text>
-                    {fmtWorkDays(s.avg_hours)} · {fmtWorkDays(s.p90_hours)} ({s.n})
-                  </Text>
-                </Row>
-              ))}
-              {!data.sla_by_stage.length ? <Muted>No completed stages in this period.</Muted> : null}
-            </Card>
+            <StageTimes
+              stages={data.sla_by_stage}
+              journey={data.journey ?? null}
+              hoursPerDay={Number(data.work_hours_per_day ?? 9)}
+              from={from ?? `${todayISO().slice(0, 8)}01`}
+              to={to ?? todayISO()}
+            />
           </Section>
 
           <Section title="Sales activity">
