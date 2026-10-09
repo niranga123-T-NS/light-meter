@@ -3,6 +3,7 @@ import { Text, View } from 'react-native';
 import { BarChart, CHART, LineChart } from '@/components/charts';
 import { pctTone } from '@/components/financeTones';
 import { Card, colors, Grid, Muted, Progress, Row } from '@/components/ui';
+import type { CompanyInvoicing } from '@/lib/companyInvoicing';
 import { amt, fmtMonth, fmtMonthShort, fmtPct, fyMonths, mn, pct, ytd, type InvoiceLine, type PerfPerson } from '@/lib/finance';
 
 const M = 1e6;
@@ -145,7 +146,7 @@ const title = {
 };
 
 /** SM Projects / GM dashboard: the team's year to date – budget vs secured vs invoiced – and each sales person; taps to Targets. */
-export function TeamTargetCard({ people, upTo }: { people: PerfPerson[]; upTo: string | null }) {
+export function TeamTargetCard({ people, upTo, company }: { people: PerfPerson[]; upTo: string | null; company?: CompanyInvoicing | null }) {
   const rows = people.map((p) => ({ p, y: ytd(p, upTo) })).sort((a, b) => b.y.score - a.y.score);
   const t = rows.reduce(
     (a, { y }) => ({ st: a.st + y.securedTarget, s: a.s + y.secured, it: a.it + y.invoiceTarget, i: a.i + y.invoiced, fy: a.fy + y.fyInvoiceTarget, fyi: a.fyi + y.fyInvoiced }),
@@ -169,9 +170,45 @@ export function TeamTargetCard({ people, upTo }: { people: PerfPerson[]; upTo: s
     <Card onPress={() => router.push('/finance/targets')}>
       <View style={{ gap: 10 }}>
         {bar('Secured vs budget · year to date', t.s, t.st)}
-        {bar('Invoiced vs budget · year to date', t.i, t.it)}
-        {bar('Invoiced vs full-year invoicing budget', t.fyi, t.fy)}
+        {/* Invoicing: the whole company – every business line and budgeted project, with or without a sales person */}
+        {bar('Invoiced vs budget · year to date · all business lines', company ? company.total.ytdInvoiced : t.i, company ? company.total.ytdBudget : t.it)}
+        {bar('Invoiced vs full-year invoicing budget · all business lines', company ? company.total.fyInvoiced : t.fyi, company ? company.total.fyBudget : t.fy)}
       </View>
+      {company ? (
+        <View style={{ marginTop: 12 }}>
+          <Text style={{ fontWeight: '700', color: colors.ink, marginBottom: 4 }}>{`Invoicing by business line (LKR Mn) · year to date to ${fmtMonth(company.upTo)}`}</Text>
+          {[{ label: 'Business line', head: true, ytdBudget: 0, ytdInvoiced: 0, fyBudget: 0 }, ...company.lines.map((l) => ({ ...l, head: false })), { label: 'Total', head: false, ...company.total, total: true }].map(
+            (l, k) => {
+              const v = pct(l.ytdInvoiced, l.ytdBudget);
+              const bold = l.head || 'total' in l;
+              return (
+                <Row key={k} wrap style={{ borderTopWidth: k ? 1 : 0, borderTopColor: colors.line, paddingVertical: 4 }}>
+                  <Text style={{ flex: 1, minWidth: 170, color: l.head ? colors.muted : colors.ink, fontWeight: bold ? '700' : '400' }}>{l.label}</Text>
+                  {(l.head
+                    ? ['Budget YTD', 'Invoiced YTD', '%', 'Full-year budget']
+                    : [mn(l.ytdBudget), mn(l.ytdInvoiced), l.ytdBudget ? fmtPct(v) : '—', mn(l.fyBudget)]
+                  ).map((c, j) => (
+                    <Text
+                      key={j}
+                      style={{
+                        width: 96,
+                        textAlign: 'right',
+                        fontWeight: bold ? '700' : '400',
+                        color: l.head ? colors.muted : j === 2 && l.ytdBudget ? pctTone(v) : colors.ink,
+                      }}
+                    >
+                      {c}
+                    </Text>
+                  ))}
+                </Row>
+              );
+            },
+          )}
+          {company.noSalesPerson.count ? (
+            <Muted>{`${company.noSalesPerson.count} budgeted project(s) have no sales person (${mn(company.noSalesPerson.fyBudget)} Mn this year) – included above, but not in anyone's target. Assign them in the budget list.`}</Muted>
+          ) : null}
+        </View>
+      ) : null}
       {rows.length ? (
         <View style={{ marginTop: 12, gap: 6 }}>
           {rows.map(({ p, y }) => (
@@ -187,7 +224,7 @@ export function TeamTargetCard({ people, upTo }: { people: PerfPerson[]; upTo: s
         <Muted>No targets for this year yet – fill them from the budget list in Targets.</Muted>
       )}
       <View style={{ marginTop: 8 }}>
-        <Muted>LKR Mn · budget from the budget list · secured = projects won / marked secured · invoiced = invoices recorded · tap for details</Muted>
+        <Muted>LKR Mn · budget from the budget list (invoice months, or spread from the order month to March) · secured = projects won / marked secured · invoiced = invoices recorded · the rows per person are their own targets · tap for details</Muted>
       </View>
     </Card>
   );

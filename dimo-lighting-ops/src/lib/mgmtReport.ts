@@ -101,7 +101,7 @@ const pctTxt = (a: number, b: number) => (b ? `${Math.round((a / b) * 100)}%` : 
 const days = (a: string, b: string) => Math.round((Date.parse(b) - Date.parse(a)) / 86400000);
 
 /** Every row of a query – the server returns at most 1,000 rows per request, so read page by page. */
-async function all(table: string, select: string, order: string, filter?: (q: any) => any): Promise<{ data: unknown[]; error: { message: string } | null }> {
+export async function fetchAll(table: string, select: string, order: string, filter?: (q: any) => any): Promise<{ data: unknown[]; error: { message: string } | null }> {
   const out: unknown[] = [];
   for (let from = 0; ; from += 1000) {
     let q = supabase.from(table).select(select);
@@ -122,27 +122,27 @@ export async function buildManagementReport(month: string): Promise<MgmtReport> 
 
   const q = await Promise.all([
     supabase.from('or_uploads').select('*').lte('month', month).order('month', { ascending: false }).limit(1),
-    all('invoice_line_status', '*', 'id'),
-    all('invoice_allocations', '*', 'id'),
-    all('budget_projects', '*, budget_invoices(*)', 'id', (x) => x.eq('fy', fy)),
-    all('secured_projects', '*', 'id'),
+    fetchAll('invoice_line_status', '*', 'id'),
+    fetchAll('invoice_allocations', '*', 'id'),
+    fetchAll('budget_projects', '*, budget_invoices(*)', 'id', (x) => x.eq('fy', fy)),
+    fetchAll('secured_projects', '*', 'id'),
     // won / lost and open quotations follow the inquiries (as on the dashboards); a tender group counts once
-    all('inquiries', 'id, status, order_value, currency, order_date, updated_at, tender_group_id, variation_id, quotations(quoted_value, currency, revision)', 'id', (x) =>
+    fetchAll('inquiries', 'id, status, order_value, currency, order_date, updated_at, tender_group_id, variation_id, quotations(quoted_value, currency, revision)', 'id', (x) =>
       x.in('status', ['won', 'lost', 'quotation_released', 'returned_to_sales', 'submitted_to_client', 'awaiting_client_approval', 'client_approved']).is('variation_id', null),
     ),
     // open debtors – as on the Debtors screen (amount = outstanding as per the latest upload)
-    all('debts', '*', 'id', (x) => x.not('status', 'in', '(collected_confirmed,cleared)')),
-    all('retentions', '*', 'id', (x) => x.in('status', ['held', 'claimed'])),
-    all('bonds', '*', 'id', (x) => x.eq('status', 'active')),
-    all('exec_projects', '*', 'id', (x) => x.eq('status', 'active')),
-    all('exec_programmes', '*', 'exec_project_id'),
-    all('exec_activities', 'id, exec_project_id, duration, pct, bl_start, bl_finish', 'id'),
-    all('exec_cost_lines', 'exec_project_id, budget, committed, actual', 'id'),
-    all('hse_reports', 'exec_project_id, kind, status, lost_time, occurred_at', 'id'),
-    all('variations', 'status, value_lkr, smp_at, gm_at, raised_at', 'id'),
-    all('exec_invoice_triggers', 'line_id, ready_at', 'line_id', (x) => x.not('ready_at', 'is', null)),
-    all('warranty_claims', 'status, logged_at, cost_amount, recovered_amount', 'id'),
-    all('invoice_line_changes', 'id, line_id, from_month, to_month, reason, status, requested_at, decided_at', 'id', (x) => x.in('status', ['approved', 'recorded'])),
+    fetchAll('debts', '*', 'id', (x) => x.not('status', 'in', '(collected_confirmed,cleared)')),
+    fetchAll('retentions', '*', 'id', (x) => x.in('status', ['held', 'claimed'])),
+    fetchAll('bonds', '*', 'id', (x) => x.eq('status', 'active')),
+    fetchAll('exec_projects', '*', 'id', (x) => x.eq('status', 'active')),
+    fetchAll('exec_programmes', '*', 'exec_project_id'),
+    fetchAll('exec_activities', 'id, exec_project_id, duration, pct, bl_start, bl_finish', 'id'),
+    fetchAll('exec_cost_lines', 'exec_project_id, budget, committed, actual', 'id'),
+    fetchAll('hse_reports', 'exec_project_id, kind, status, lost_time, occurred_at', 'id'),
+    fetchAll('variations', 'status, value_lkr, smp_at, gm_at, raised_at', 'id'),
+    fetchAll('exec_invoice_triggers', 'line_id, ready_at', 'line_id', (x) => x.not('ready_at', 'is', null)),
+    fetchAll('warranty_claims', 'status, logged_at, cost_amount, recovered_amount', 'id'),
+    fetchAll('invoice_line_changes', 'id, line_id, from_month, to_month, reason, status, requested_at, decided_at', 'id', (x) => x.in('status', ['approved', 'recorded'])),
     supabase.from('exchange_rates').select('usd_to_lkr, month').order('month', { ascending: false }).limit(1),
   ]);
   // Sales people: the same figures as Finance → Targets (secured = this year's part of each win, invoiced = recorded invoices)
