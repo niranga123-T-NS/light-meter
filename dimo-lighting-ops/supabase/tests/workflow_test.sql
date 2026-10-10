@@ -3692,20 +3692,29 @@ reset role;
 -- Execution step 7b: tests with instruments, NCRs, snags, dossier, stage gates with override, cost and subcontractor certificates
 reset role;
 do $$ begin
-  insert into public.test_instruments (name, serial_no, calibration_due) values ('Megger MIT420', 'MG-OLD', current_date - 1), ('Fluke 1664', 'FL-01', current_date + 90);
+  insert into public.instruments (code, name, serial_no, cal_status, cal_expiry) values ('INS-T1', 'Megger MIT420', 'MG-OLD', 'calibrated', current_date - 1),
+    ('INS-T2', 'Fluke 1664', 'FL-01', 'calibrated', current_date + 90);
+  insert into public.instruments (code, name, serial_no, condition) values ('INS-T3', 'Broken tester', 'BR-01', 'out_of_order');
 end $$;
 select pg_temp.act_as('assistant_engineer'); set role authenticated;
 do $$ declare t uuid;
 begin
   begin perform public.record_test(current_setting('test.ex')::uuid, jsonb_build_object('system', 'DB-2', 'test_type', 'Insulation resistance',
-      'instrument_id', (select id from public.test_instruments where serial_no = 'MG-OLD'), 'rows', jsonb_build_array(jsonb_build_object('param', 'L-E', 'unit', 'MΩ', 'min', 1, 'value', 50))));
-    assert false, 'expired calibration';
-  exception when others then assert sqlerrm like 'Calibration of Megger MIT420%expired%', sqlerrm; end;
+      'instrument_id', (select id from public.instruments where serial_no = 'MG-OLD'), 'rows', jsonb_build_array(jsonb_build_object('param', 'L-E', 'unit', 'MΩ', 'min', 1, 'value', 50))));
+    assert false, 'uncalibrated must be confirmed';
+  exception when others then assert sqlerrm like 'Megger MIT420 is not calibrated (expired%confirm%', sqlerrm; end;
+  begin perform public.record_test(current_setting('test.ex')::uuid, jsonb_build_object('system', 'DB-2', 'test_type', 'Insulation resistance', 'result', 'pass',
+      'instrument_id', (select id from public.instruments where serial_no = 'BR-01'))); assert false, 'out of order';
+  exception when others then assert sqlerrm like 'Broken tester is out of order%', sqlerrm; end;
+  t := public.record_test(current_setting('test.ex')::uuid, jsonb_build_object('system', 'DB-1', 'test_type', 'Insulation resistance', 'result', 'pass',
+      'instrument_id', (select id from public.instruments where serial_no = 'MG-OLD'), 'accept_uncalibrated', true));
+  assert (select uncalibrated and result = 'pass' from public.test_records where id = t), 'uncalibrated test saved and marked';
   t := public.record_test(current_setting('test.ex')::uuid, jsonb_build_object('system', 'DB-2', 'test_type', 'Insulation resistance',
-      'instrument_id', (select id from public.test_instruments where serial_no = 'FL-01'),
+      'instrument_id', (select id from public.instruments where serial_no = 'FL-01'),
       'rows', jsonb_build_array(jsonb_build_object('param', 'L-E', 'unit', 'MΩ', 'min', 1, 'value', 50), jsonb_build_object('param', 'N-E', 'unit', 'MΩ', 'min', 1, 'value', 0.4))));
   perform set_config('test.tr', t::text, false);
   assert (select result from public.test_records where id = t) = 'fail', 'auto fail';
+  assert not (select uncalibrated from public.test_records where id = t), 'calibrated instrument';
   assert exists (select 1 from public.ncrs where test_record_id = t and status = 'open'), 'NCR raised';
   perform set_config('test.snag', public.raise_snag(current_setting('test.ex')::uuid, '{"location":"Lobby","description":"Scratched diffuser","responsible":"Subcontractor","priority":"high"}')::text, false);
   begin perform public.close_snag(current_setting('test.snag')::uuid); assert false, 'after photo needed';

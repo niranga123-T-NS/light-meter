@@ -22,13 +22,13 @@ export function QaTab({ p }: { p: ExecProject }) {
   return (
     <View style={{ gap: 8 }}>
       <Segmented value={part} onChange={setPart} options={[{ value: 'qa', label: 'Tests & NCRs' }, { value: 'instruments', label: 'Instruments' }]} />
-      {part === 'qa' ? <QaRecords p={p} /> : <InstrumentsView project={p} />}
+      {part === 'qa' ? <QaRecords p={p} onInstruments={() => setPart('instruments')} /> : <InstrumentsView project={p} />}
     </View>
   );
 }
 
 /** Inspection and test records (auto pass / fail), verification by the SEE, and NCRs to closure. */
-function QaRecords({ p }: { p: ExecProject }) {
+function QaRecords({ p, onInstruments }: { p: ExecProject; onInstruments: () => void }) {
   const me = useMe();
   const dialog = useDialog();
   const people = usePeople();
@@ -126,7 +126,7 @@ function QaRecords({ p }: { p: ExecProject }) {
         right={
           <Row gap={6}>
             {canRecord && p.status === 'active' ? <Button small title="+ Record test" onPress={() => router.push({ pathname: '/execution/test/new', params: { project: p.id } })} /> : null}
-            <Button small variant="ghost" title="Instruments" onPress={() => router.push('/execution/instruments')} />
+            <Button small variant="ghost" title="Instruments" onPress={onInstruments} />
           </Row>
         }
       >
@@ -141,7 +141,7 @@ function QaRecords({ p }: { p: ExecProject }) {
                 title={`${t.code} · ${t.test_type} – ${t.system}${(data?.testFiles ?? []).some((f) => f.entity_id === t.id) ? ` · 📎 ${(data?.testFiles ?? []).filter((f) => f.entity_id === t.id).length}` : ''}`}
                 subtitle={
                   <>
-                    <Muted>{[t.area ? areaLabel(t.area) : null, people[t.performed_by]?.full_name, fmtDateTime(t.performed_at), t.witness ? `witness ${t.witness}` : null, t.note].filter(Boolean).join(' · ')}</Muted>
+                    <Muted>{[t.area ? areaLabel(t.area) : null, people[t.performed_by]?.full_name, fmtDateTime(t.performed_at), t.witness ? `witness ${t.witness}` : null, t.uncalibrated ? '⚠ uncalibrated instrument' : null, t.note].filter(Boolean).join(' · ')}</Muted>
                     {open === t.id ? (
                       <>
                         {t.rows.map((r, i) => (
