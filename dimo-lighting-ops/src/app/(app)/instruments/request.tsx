@@ -5,6 +5,7 @@ import { useDialog } from '@/components/dialog';
 import { LocationPicker } from '@/components/LocationPicker';
 import { TestingBanner } from '@/components/Testing';
 import { Button, Card, colors, DateField, ErrorBanner, Field, Grid, Loading, Muted, Notice, Row, Screen, Section, Select, Toggle } from '@/components/ui';
+import { useMe } from '@/lib/auth';
 import type { ExecProject } from '@/lib/execution';
 import { addDaysISO, fmtDate, todayISO } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
@@ -16,6 +17,8 @@ import { rpc, supabase } from '@/lib/supabase';
 export default function RequestInstrument() {
   const params = useLocalSearchParams<{ instrument?: string; project?: string }>();
   const dialog = useDialog();
+  const me = useMe();
+  const [again, setAgain] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [inst, setInst] = useState<string | null>(params.instrument ?? null);
   const [project, setProject] = useState<string | null>(params.project ?? null);
@@ -46,6 +49,7 @@ export default function RequestInstrument() {
   const out = i ? data.live.find((r) => r.instrument_id === i.id && r.status === 'issued') : null;
   const queue = i ? data.live.filter((r) => r.instrument_id === i.id && r.status !== 'issued') : [];
   const proj = data.projects.find((p) => p.id === project);
+  const mineOpen = i ? data.live.filter((r) => r.instrument_id === i.id && r.requested_by === me.id) : [];
 
   const here = async () => {
     const f = await siteFix();
@@ -59,6 +63,7 @@ export default function RequestInstrument() {
     if (notListed && !projectText.trim()) return setError('Enter the project');
     if (!from || !to || to < from) return setError('Enter the dates you need it from and to');
     if (!pin) return setError('Pin the location where it will be used');
+    if (mineOpen.length && !again) return setError('You already have an open request for this instrument – tick to confirm you need another');
     if (cal && !cal.ok && !accept) return setError('This instrument is not calibrated – tick to confirm you will use it uncalibrated');
     await dialog.run(async () => {
       await rpc('request_instrument', {
@@ -73,6 +78,7 @@ export default function RequestInstrument() {
           lng: pin.lng,
           address,
           accept_uncalibrated: accept,
+          confirm_multiple: again,
         },
       });
       router.replace(params.project ? `/execution/${params.project}?tab=qa` : '/instruments');
@@ -91,11 +97,19 @@ export default function RequestInstrument() {
             required
             searchable
             value={inst}
-            onChange={(v) => { setInst(v); setAccept(false); }}
+            onChange={(v) => { setInst(v); setAccept(false); setAgain(false); }}
             options={data.instruments.filter((x) => x.condition === 'ok').map((x) => ({ value: x.id, label: `${x.code ?? ''} ${instrumentTitle(x)}`, hint: calState(x).label }))}
           />
           {i && cal ? (
             <>
+              {mineOpen.length ? (
+                <>
+                  <Notice tone={colors.amber}>
+                    {`You already have ${mineOpen.length} open request(s) for this instrument (${mineOpen.map((r) => `${fmtDate(r.need_from)} – ${fmtDate(r.need_to)}`).join(', ')}). Another one is allowed but should not be the practice – Operations is told.`}
+                  </Notice>
+                  <Toggle label="I need another request" value={again} onChange={setAgain} />
+                </>
+              ) : null}
               {out ? <Notice tone={colors.blue}>{`In use until ${fmtDate(out.due_back)}${queue.length ? ` · ${queue.length} request(s) before you` : ''} – you are told when it comes back.`}</Notice> : queue.length ? <Notice tone={colors.blue}>{`${queue.length} request(s) before you.`}</Notice> : null}
               {!cal.ok ? (
                 <>

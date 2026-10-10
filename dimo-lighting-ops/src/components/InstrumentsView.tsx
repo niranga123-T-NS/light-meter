@@ -265,7 +265,7 @@ export function InstrumentsView({ project }: { project?: ExecProject }) {
               h: '',
               w: 110,
               v: (i) =>
-                i.condition === 'ok' && !live.some((r) => r.instrument_id === i.id && r.requested_by === me.id) ? <Button small variant="secondary" title="Request" onPress={() => request(i)} /> : '',
+                i.condition === 'ok' ? <Button small variant="secondary" title="Request" onPress={() => request(i)} /> : '',
             },
           ]}
         />

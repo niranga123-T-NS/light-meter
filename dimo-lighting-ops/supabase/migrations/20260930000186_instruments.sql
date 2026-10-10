@@ -158,7 +158,7 @@ end $$;
 create or replace function public.request_instrument(p_instrument uuid, p jsonb) returns uuid
 language plpgsql security definer set search_path = public as $$
 declare i public.instruments; rid uuid; f date := nullif(p ->> 'need_from', '')::date; t date := nullif(p ->> 'need_to', '')::date;
-        today date := (now() at time zone app.tz())::date; unc boolean; busy boolean; ops uuid[] := app.role_users('operations_exec');
+        today date := (now() at time zone app.tz())::date; unc boolean; busy boolean; ops uuid[] := app.role_users('operations_exec'); mine int; recent int;
 begin
   perform app.require(app.my_role() is not null and not app.is_sub(), 'Instruments are requested by DIMO staff');
   select * into i from public.instruments where id = p_instrument and not removed;
@@ -169,8 +169,11 @@ begin
   perform app.require(nullif(p ->> 'lat', '') is not null and nullif(p ->> 'lng', '') is not null, 'Pin the location where it will be used');
   unc := not app.instrument_calibrated(i);
   perform app.require(not unc or coalesce((p ->> 'accept_uncalibrated')::boolean, false), 'This instrument is not calibrated – confirm that you will use it uncalibrated');
-  perform app.require(not exists (select 1 from public.instrument_requests where instrument_id = i.id and requested_by = auth.uid() and status in ('waiting', 'ready', 'issued')),
-    'You already have a request for this instrument');
+  -- More than one request for the same instrument is allowed, but should not be the practice: confirmed, and Operations is told
+  select count(*) into mine from public.instrument_requests where instrument_id = i.id and requested_by = auth.uid() and status in ('waiting', 'ready', 'issued');
+  select count(*) into recent from public.instrument_requests where instrument_id = i.id and requested_by = auth.uid() and requested_at > now() - interval '30 days';
+  perform app.require(mine = 0 or coalesce((p ->> 'confirm_multiple')::boolean, false),
+    format('You already have %s open request(s) for this instrument – confirm to request it again', mine));
   insert into public.instrument_requests (code, instrument_id, exec_project_id, project_text, purpose, need_from, need_to, site_lat, site_lng, site_address, uncalibrated)
   values (app.next_code('INR'), i.id, nullif(p ->> 'exec_project_id', '')::uuid, nullif(btrim(p ->> 'project_text'), ''), nullif(btrim(p ->> 'purpose'), ''), f, t,
           (p ->> 'lat')::double precision, (p ->> 'lng')::double precision, nullif(btrim(p ->> 'address'), ''), unc)
@@ -179,6 +182,11 @@ begin
   perform app.notify_many(ops, 'instrument', case when busy then 'Instrument requested – in use / queued' else 'Instrument requested' end,
     format('%s · %s · %s to %s%s', app.instrument_head(i), app.display_name(auth.uid()), to_char(f, 'DD Mon'), to_char(t, 'DD Mon'),
            case when unc then ' · NOT CALIBRATED' else '' end), case when unc then 'critical' else 'normal' end::public.priority, 'instrument', i.id, app.instrument_url(i.id), null, true);
+  if mine > 0 or recent >= 3 then
+    perform app.notify_many(ops, 'instrument', 'Repeated instrument request',
+      format('%s · %s has %s open and %s request(s) in 30 days for it', app.instrument_head(i), app.display_name(auth.uid()), mine + 1, recent + 1),
+      'normal', 'instrument', i.id, app.instrument_url(i.id));
+  end if;
   if unc then
     perform app.notify(auth.uid(), 'instrument', 'You requested an uncalibrated instrument',
       app.instrument_head(i) || case when i.cal_expiry is not null then ' · calibration expired ' || to_char(i.cal_expiry, 'DD Mon YYYY') else ' · not calibrated' end ||

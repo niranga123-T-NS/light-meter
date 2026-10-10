@@ -6093,7 +6093,16 @@ begin
   begin perform public.request_instrument(b, jsonb_build_object('project_text', 'X', 'need_from', current_date, 'need_to', current_date, 'lat', 6.9, 'lng', 79.8)); assert false, 'uncal';
   exception when others then assert sqlerrm like 'This instrument is not calibrated%', sqlerrm; end;
   perform public.request_instrument(b, jsonb_build_object('project_text', 'X', 'need_from', current_date, 'need_to', current_date, 'lat', 6.9, 'lng', 79.8, 'accept_uncalibrated', true));
+  begin perform public.request_instrument(b, jsonb_build_object('project_text', 'Y', 'need_from', current_date + 5, 'need_to', current_date + 6, 'lat', 6.9, 'lng', 79.8, 'accept_uncalibrated', true)); assert false, 'confirm';
+  exception when others then assert sqlerrm like 'You already have 1 open request(s)%', sqlerrm; end;
+  perform public.request_instrument(b, jsonb_build_object('project_text', 'Y', 'need_from', current_date + 5, 'need_to', current_date + 6, 'lat', 6.9, 'lng', 79.8, 'accept_uncalibrated', true, 'confirm_multiple', true));
 end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'operations_exec') and title = 'Repeated instrument request'), 'ops told of the repeat';
+end $$;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin null; end $$;
 reset role;
 do $$ begin
   assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'asm_building') and title = 'You requested an uncalibrated instrument'), 'requester warned';

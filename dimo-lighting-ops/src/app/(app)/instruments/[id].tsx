@@ -94,7 +94,7 @@ export default function InstrumentScreen() {
         {i.condition === 'out_of_order' ? <Notice tone={colors.red}>{`Out of order – ${i.fault_note ?? ''}`}</Notice> : null}
         {!cal.ok ? <Notice tone={colors.amber}>Not calibrated: it can be used, but you and Operations are alerted when you request it, and readings may not be accepted.</Notice> : null}
         <Row wrap gap={6} style={{ marginTop: 6 }}>
-          {!i.removed && i.condition === 'ok' && !live.some((r) => r.requested_by === me.id) ? (
+          {!i.removed && i.condition === 'ok' ? (
             <Button title="Request" onPress={() => router.push({ pathname: '/instruments/request', params: { instrument: i.id } })} />
           ) : null}
           {ops && !i.removed ? (
