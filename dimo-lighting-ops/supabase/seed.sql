@@ -119,6 +119,7 @@ insert into public.master_lists (list_name, value, grp, tags, sort_order) values
 ('visit_category', 'Specialist Contractor', null, '{}'::text[], 9),
 ('visit_category', 'Government / Authority', null, '{}'::text[], 10),
 ('visit_category', 'Developer', null, '{}'::text[], 11),
+('visit_category', 'Project Management', null, '{}'::text[], 12),
 ('visit_outcome', 'Positive', null, '{}'::text[], 1),
 ('visit_outcome', 'Neutral', null, '{}'::text[], 2),
 ('visit_outcome', 'Negative', null, '{}'::text[], 3),
