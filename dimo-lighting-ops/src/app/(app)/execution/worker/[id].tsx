@@ -104,7 +104,7 @@ export default function WorkerView() {
               <Muted>{LETTER_STEP[w.police_status]}</Muted>
             </Row>
             {ps === 'flagged' && w.police_due_at ? <Muted>{`Submit by ${fmtDateTimeY(w.police_due_at)} – after that the worker is blocked until the report is submitted.`}</Muted> : null}
-            {ps === 'blocked' ? <Notice tone={colors.red}>{`Blocked${w.police_blocked_at ? ` since ${fmtDateTimeY(w.police_blocked_at)}` : ''}: no site work, induction or toolbox talk until the police report is submitted.`}</Notice> : null}
+            {ps === 'blocked' ? <Notice tone={colors.red}>{`Blocked${w.police_blocked_at ? ` since ${fmtDateTimeY(w.police_blocked_at)}` : ''}: no site work, induction or toolbox meeting until the police report is submitted.`}</Notice> : null}
             {w.police_status === 'rejected' && w.police_note ? <Notice tone={colors.red}>{`Report returned by ${people[w.police_decided_by ?? '']?.full_name ?? ''}: ${w.police_note}`}</Notice> : null}
             {w.police_letter_requested_at && w.police_status === 'letter_requested' ? <Muted>{`Letter requested by ${people[w.police_letter_requested_by ?? '']?.full_name ?? ''} · ${fmtDateTimeY(w.police_letter_requested_at)}`}</Muted> : null}
             {w.police_letter_no ? <Muted>{`Letter ${w.police_letter_no} · released ${fmtDate(w.police_letter_issued_at)} by ${people[w.police_letter_issued_by ?? '']?.full_name ?? ''} · valid until ${fmtDate(w.police_letter_valid_until)}`}</Muted> : null}

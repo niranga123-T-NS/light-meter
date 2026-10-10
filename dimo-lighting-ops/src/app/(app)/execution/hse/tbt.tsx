@@ -60,13 +60,13 @@ export default function ToolboxTalk() {
         p: { header: h, answers: Object.fromEntries(Object.entries(ticks).filter(([, v]) => v).map(([k]) => [k, { a: 'yes' }])), participants, permit_id: permit },
       });
       router.replace(`/execution/hse/form/${id}`);
-    }, 'Toolbox talk recorded');
+    }, 'Toolbox meeting recorded');
   };
 
   return (
     <Screen maxWidth={860}>
-      <Stack.Screen options={{ title: 'Toolbox talk' }} />
-      <TestingBanner what="Toolbox talks" />
+      <Stack.Screen options={{ title: 'Toolbox meeting' }} />
+      <TestingBanner what="Toolbox meetings" />
       <ErrorBanner message={error} />
       <Card style={{ gap: 2 }}>
         <Text style={{ fontWeight: '700', fontSize: 16, color: colors.ink }}>{formName(f)}</Text>
@@ -122,7 +122,7 @@ export default function ToolboxTalk() {
       </Section>
       <Row gap={8} style={{ justifyContent: 'flex-end' }}>
         <Button variant="secondary" title="Cancel" onPress={() => router.back()} />
-        <Button title="Save toolbox talk" onPress={save} />
+        <Button title="Save toolbox meeting" onPress={save} />
       </Row>
     </Screen>
   );

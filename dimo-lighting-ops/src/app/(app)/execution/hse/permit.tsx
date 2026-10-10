@@ -183,7 +183,7 @@ export default function PermitRequest() {
               </View>
             ) : x.key === 'tbt_no' && data.tbts.length ? (
               <Select key={x.key} label={x.label} value={tbt} onChange={(v) => { setTbt(v || null); set('tbt_no', data.tbts.find((t) => t.id === v)?.code ?? ''); }}
-                options={[{ value: '', label: '— later (the toolbox talk links itself) —' }, ...data.tbts.map((t) => ({ value: t.id, label: `${t.code} · ${String(t.header.activity ?? '').slice(0, 50)}` }))]} />
+                options={[{ value: '', label: '— later (the toolbox meeting links itself) —' }, ...data.tbts.map((t) => ({ value: t.id, label: `${t.code} · ${String(t.header.activity ?? '').slice(0, 50)}` }))]} />
             ) : (
               <Field key={x.key} label={x.label} value={h[x.key] ?? ''} onChangeText={(v) => set(x.key, v)} />
             ),

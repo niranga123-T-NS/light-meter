@@ -6,7 +6,7 @@ import { TestingBanner } from '@/components/Testing';
 import { Button, Card, colors, Empty, Grid, ListRow, Muted, Pill, Row, Section, Segmented, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import type { ExecMember, ExecProject, HseReport } from '@/lib/execution';
-import { fmtDate, fmtDateTimeY, todayISO } from '@/lib/format';
+import { fmtDate, fmtDateTimeY, fmtTime, todayISO } from '@/lib/format';
 import { EQUIP_STATUS, formName, loadHseForms, PERMIT_STATUS, type HseEquipment, type HseForm, type HseRecord, type HseSummary, type Induction } from '@/lib/hse';
 import { fillInductionRegister } from '@/lib/hseFill';
 import { useLoad, usePeople } from '@/lib/hooks';
@@ -15,9 +15,10 @@ import { HseRows } from './HseRows';
 
 type Part = 'equipment' | 'permits' | 'tbt' | 'people' | 'reports';
 
-/** HSE for one project: equipment checklists, permits to work, toolbox talks, induction & training, and incident reports.
- *  For a subcontractor supervisor the permits live in the Planning tab (`mode="permits"`) and HSE has the rest (`"noPermits"`). */
-export function HseTab({ p, mode = 'all' }: { p: ExecProject; mode?: 'all' | 'permits' | 'noPermits' }) {
+/** HSE for one project: equipment checklists, permits to work, toolbox meetings, induction & training, and incident reports.
+ *  Permits and toolbox meetings live in the Plan / Planning tab (`mode="permits"` / `"tbt"`); the HSE tab has the rest (`"noPermits"`).
+ *  Assistant Engineers (and subcontractor supervisors, for their own work) create them; the SEE and management see them. */
+export function HseTab({ p, mode = 'all' }: { p: ExecProject; mode?: 'all' | 'permits' | 'tbt' | 'noPermits' }) {
   const me = useMe();
   const people = usePeople();
   const dialog = useDialog();
@@ -114,7 +115,7 @@ export function HseTab({ p, mode = 'all' }: { p: ExecProject; mode?: 'all' | 'pe
   const setEhs = async () => {
     const r = await dialog.prompt({
       title: 'EHS Officers on this project',
-      message: 'Ticked Assistant Engineers approve and close permits and sign checklists and toolbox talks. With none ticked, any Assistant Engineer of the project can.',
+      message: 'Ticked Assistant Engineers approve and close permits and sign checklists and toolbox meetings. With none ticked, any Assistant Engineer of the project can.',
       fields: [{ key: 'u', label: 'EHS Officers', type: 'multiselect', options: aes.map((m) => ({ value: m.user_id, label: people[m.user_id]?.full_name ?? '' })), initial: ehs.map((m) => m.user_id).join(',') }],
       confirmLabel: 'Save',
     });
@@ -134,14 +135,17 @@ export function HseTab({ p, mode = 'all' }: { p: ExecProject; mode?: 'all' | 'pe
   const tbts = rec.filter((r) => r.form_code === 'TBT-01');
   const trainings = rec.filter((r) => r.form_code === 'TR-01');
   const lastCheck = (e: HseEquipment) => rec.find((r) => r.equipment_id === e.id && form(r.form_code)?.kind !== 'permit');
+  const makesPermits = me.role === 'assistant_engineer' || me.role === 'sub_supervisor';
+  const permitSub = (r: HseRecord) => `${String(r.header.location ?? '')} · ${fmtDateTimeY(r.starts_at)} – ${fmtDateTimeY(r.ends_at)}`;
+  const tbtSub = (r: HseRecord) => `${fmtTime(r.starts_at)}${r.tbt_late ? ' (late)' : ''} · ${String(r.header.location ?? '')} · ${r.participants.length} participants · ${String(r.header.activity ?? '').slice(0, 80)}`;
   const permitList = (
     <>
-      {canWork && me.role !== 'trainee' ? (
+      {makesPermits ? (
         <Row gap={6}>
           <Button small title="+ Permit to work" onPress={newPermit} />
         </Row>
       ) : null}
-      <RecordList rows={permits} forms={forms} people={people} empty="No permits yet" sub={(r) => `${String(r.header.location ?? '')} · ${fmtDateTimeY(r.starts_at)} – ${fmtDateTimeY(r.ends_at)}`} />
+      <RecordList rows={permits} forms={forms} people={people} empty="No permits yet" sub={permitSub} />
     </>
   );
   if (mode === 'permits')
@@ -150,16 +154,45 @@ export function HseTab({ p, mode = 'all' }: { p: ExecProject; mode?: 'all' | 'pe
         <Grid min={150} max={4}>
           <Stat label="Permits waiting" value={s?.permits_waiting ?? 0} tone={s?.permits_waiting ? 'amber' : undefined} />
           <Stat label="Permits active" value={s?.permits_active ?? 0} />
+          <Stat label="Late requests" value={permits.filter((r) => r.late_request).length} tone={permits.some((r) => r.late_request) ? 'red' : undefined} />
         </Grid>
-        <Muted>Request the work permits for each day&apos;s planned work – and for any work not in the plan. Tomorrow&apos;s permits go to the Assistant Engineer before 20:00 today; an AE approves each one.</Muted>
-        {permitList}
+        <Muted>
+          {makesPermits
+            ? 'Request the work permits for each day’s planned work – and for any work not in the plan. Tomorrow’s permits go to the Assistant Engineer before 20:00 today; an AE approves each one.'
+            : 'Work permits of the project, day by day – requested by the Assistant Engineers and the subcontractor supervisors, approved by an AE.'}
+        </Muted>
+        {makesPermits ? (
+          <Row gap={6}>
+            <Button small title="+ Permit to work" onPress={newPermit} />
+          </Row>
+        ) : null}
+        <ByDay rows={permits} forms={forms} people={people} empty="No permits yet" sub={permitSub} />
       </View>
     );
+  if (mode === 'tbt') {
+    const late = tbts.filter((r) => r.tbt_late).length;
+    return (
+      <View style={{ gap: 8 }}>
+        <Grid min={150} max={4}>
+          <Stat label="Toolbox meetings today" value={tbts.filter((r) => slDate(r.starts_at) === today).length} />
+          <Stat label="Held late (after 08:50)" value={late} tone={late ? 'red' : undefined} />
+          <Stat label="All toolbox meetings" value={tbts.length} />
+        </Grid>
+        <Muted>Toolbox meeting at 08:30 every working day – held by the Assistant Engineers and the subcontractor supervisors (after checking in on site).</Muted>
+        {me.role === 'assistant_engineer' ? (
+          <Row gap={6}>
+            <Button small title="+ Toolbox meeting" onPress={() => router.push({ pathname: '/execution/hse/tbt', params: { project: p.id } })} />
+          </Row>
+        ) : null}
+        <ByDay rows={tbts} forms={forms} people={people} empty="No toolbox meetings yet" sub={tbtSub} />
+      </View>
+    );
+  }
   const withPermits = mode === 'all';
 
   return (
     <Section title="HSE">
-      <TestingBanner what="HSE forms – checklists, permits, toolbox talks, induction and training" />
+      <TestingBanner what={withPermits ? "HSE forms – checklists, permits, toolbox meetings, induction and training" : "HSE forms – equipment checklists, induction and training"} />
       <Grid min={150} max={6}>
         {withPermits ? <Stat label="Permits waiting" value={s?.permits_waiting ?? 0} tone={s?.permits_waiting ? 'amber' : undefined} onPress={() => setPart('permits')} /> : null}
         {withPermits ? <Stat label="Permits active" value={s?.permits_active ?? 0} onPress={() => setPart('permits')} /> : null}
@@ -179,7 +212,7 @@ export function HseTab({ p, mode = 'all' }: { p: ExecProject; mode?: 'all' | 'pe
           { value: 'equipment', label: 'Equipment checks' },
           ...(withPermits ? [{ value: 'permits' as const, label: 'Permits', badge: s?.permits_waiting || undefined }] : []),
           // a subcontractor supervisor holds the toolbox meeting from the Planning tab
-          ...(withPermits ? [{ value: 'tbt' as const, label: 'Toolbox talks' }] : []),
+          ...(withPermits ? [{ value: 'tbt' as const, label: 'Toolbox meetings' }] : []),
           { value: 'people', label: 'Induction & training' },
           { value: 'reports', label: 'Incident reports' },
         ]}
@@ -222,16 +255,7 @@ export function HseTab({ p, mode = 'all' }: { p: ExecProject; mode?: 'all' | 'pe
           </>
         ) : null}
         {part === 'permits' && withPermits ? permitList : null}
-        {part === 'tbt' && withPermits ? (
-          <>
-            {canWork ? (
-              <Row gap={6}>
-                <Button small title="+ Toolbox talk" onPress={() => router.push({ pathname: '/execution/hse/tbt', params: { project: p.id } })} />
-              </Row>
-            ) : null}
-            <RecordList rows={tbts} forms={forms} people={people} empty="No toolbox talks yet" sub={(r) => `${String(r.header.location ?? '')} · ${r.participants.length} participants · ${String(r.header.activity ?? '').slice(0, 80)}`} />
-          </>
-        ) : null}
+        {part === 'tbt' && withPermits ? <ByDay rows={tbts} forms={forms} people={people} empty="No toolbox meetings yet" sub={tbtSub} /> : null}
         {part === 'people' ? (
           <>
             <Row gap={6} wrap>
@@ -276,6 +300,28 @@ export function HseTab({ p, mode = 'all' }: { p: ExecProject; mode?: 'all' | 'pe
         ) : null}
       </View>
     </Section>
+  );
+}
+
+/** The Sri Lanka date of a timestamp */
+const slDate = (ts: string | null) => (ts ? new Date(new Date(ts).getTime() + 330 * 60000).toISOString().slice(0, 10) : '');
+
+/** Records day by day (newest day first) – the daily track of permits / toolbox meetings */
+function ByDay({ rows, forms, people, empty, sub }: { rows: HseRecord[]; forms: HseForm[]; people: Record<string, { full_name: string } | undefined>; empty: string; sub: (r: HseRecord) => string }) {
+  if (!rows.length) return <Empty title={empty} />;
+  const days = [...new Set(rows.map((r) => slDate(r.starts_at ?? r.created_at)))].sort().reverse();
+  return (
+    <View style={{ gap: 8 }}>
+      {days.map((d) => {
+        const list = rows.filter((r) => slDate(r.starts_at ?? r.created_at) === d).sort((a, b) => String(a.starts_at).localeCompare(String(b.starts_at)));
+        return (
+          <View key={d} style={{ gap: 4 }}>
+            <Text style={{ fontWeight: '700', color: colors.text }}>{`${fmtDate(d)}${d === todayISO() ? ' · today' : ''} · ${list.length}`}</Text>
+            <RecordList rows={list} forms={forms} people={people} empty={empty} sub={sub} />
+          </View>
+        );
+      })}
+    </View>
   );
 }
 

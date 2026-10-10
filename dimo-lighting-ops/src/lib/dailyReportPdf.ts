@@ -142,7 +142,7 @@ export async function printDailyReport(r: DailyReport, project: ExecProject, peo
   d.section(`${ae ? 'D' : 'C'}. Health and safety`);
   d.keyValues(
     [
-      ['Toolbox talk', r.toolbox_talk ? `Held – ${r.toolbox_topic ?? ''}` : 'Not held'],
+      ['Toolbox meeting', r.toolbox_talk ? `Held – ${r.toolbox_topic ?? ''}` : 'Not held'],
       ['Daily safety check', r.safety_check ? 'Done' : 'Not done'],
       ['HSE notes', r.hse_notes ?? ''],
     ],

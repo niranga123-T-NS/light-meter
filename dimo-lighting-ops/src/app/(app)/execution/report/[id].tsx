@@ -99,7 +99,7 @@ export default function ReportScreen() {
         {r.delays ? <KeyValue label="Delays" value={r.delays} /> : null}
         {r.issues ? <KeyValue label="Issues / needs" value={r.issues} /> : null}
         {r.work_next ? <KeyValue label="Planned for tomorrow" value={r.work_next} /> : null}
-        <KeyValue label="Safety" value={`${r.toolbox_talk ? `Toolbox talk: ${r.toolbox_topic}` : 'No toolbox talk'} · ${r.safety_check ? 'safety check done' : 'no safety check'}${r.hse_notes ? ` · ${r.hse_notes}` : ''}`} />
+        <KeyValue label="Safety" value={`${r.toolbox_talk ? `Toolbox meeting: ${r.toolbox_topic}` : 'No toolbox meeting'} · ${r.safety_check ? 'safety check done' : 'no safety check'}${r.hse_notes ? ` · ${r.hse_notes}` : ''}`} />
         {r.weather || r.visitors ? <KeyValue label="Weather / visitors" value={[r.weather, r.visitors].filter(Boolean).join(' · ')} /> : null}
         <Row wrap gap={6} style={{ marginTop: 8 }}>
           {canReview ? (
