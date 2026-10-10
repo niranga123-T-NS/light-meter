@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { Card, colors, Empty, ListRow, Pill, Row } from '@/components/ui';
-import { MR_STATUS, type MaterialRequest } from '@/lib/execution';
-import { fmtDate, fmtMoney, todayISO } from '@/lib/format';
+import { MR_STATUS, mrDaysLate, type MaterialRequest } from '@/lib/execution';
+import { fmtDate, fmtDateTime, todayISO } from '@/lib/format';
 import { usePeople } from '@/lib/hooks';
 
 export const mrTone = (s: MaterialRequest['status']) =>
@@ -13,7 +13,7 @@ export function MaterialRows({ rows, projectName, empty = 'No material requests'
   return (
     <Card style={{ padding: 0, overflow: 'hidden' }}>
       {rows.map((m) => {
-        const late = !['received', 'rejected', 'cancelled'].includes(m.status) && m.required_date < todayISO();
+        const late = mrDaysLate(m, todayISO());
         return (
           <ListRow
             key={m.id}
@@ -21,12 +21,12 @@ export function MaterialRows({ rows, projectName, empty = 'No material requests'
             onPress={() => router.push(`/execution/material/${m.id}`)}
             highlight={late ? colors.red : undefined}
             title={`${m.code}${m.purpose ? ` – ${m.purpose}` : ''}`}
-            subtitle={[projectName?.(m.exec_project_id), `needed ${fmtDate(m.required_date)}`, m.po_no ? `PO ${m.po_no}` : null, people[m.requested_by]?.full_name]
+            subtitle={[projectName?.(m.exec_project_id), `needed ${fmtDate(m.required_date)}`, m.delivery_at ? `delivery ${fmtDateTime(m.delivery_at)}` : null, m.po_no ? `SAP ${m.po_no}` : null, people[m.requested_by]?.full_name]
               .filter(Boolean)
               .join(' · ')}
             right={
               <Row gap={4}>
-                {m.est_value_lkr ? <Pill label={fmtMoney(m.est_value_lkr, 'LKR')} /> : null}
+                {late ? <Pill label={`${late} d late`} tone={colors.red} solid={late > 2} /> : null}
                 <Pill label={MR_STATUS[m.status]} tone={mrTone(m.status)} />
               </Row>
             }

@@ -3645,10 +3645,11 @@ begin
 end $$;
 reset role;
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
-do $$ begin assert public.decide_material_request(current_setting('test.mr')::uuid, true) = 'pending_smp', 'above limit → SMP'; end $$;
-reset role;
-select pg_temp.act_as('sm_projects'); set role authenticated;
-select public.decide_material_request(current_setting('test.mr')::uuid, true);
+do $$ begin
+  -- no money in the request: approved by the SEE whatever its size
+  assert (select est_value_lkr is null from public.material_requests where id = current_setting('test.mr')::uuid), 'no value kept';
+  assert public.decide_material_request(current_setting('test.mr')::uuid, true) = 'approved', 'SEE approves';
+end $$;
 reset role;
 select pg_temp.act_as('operations_exec'); set role authenticated;
 select public.order_material_request(current_setting('test.mr')::uuid, 'PO-5521', 'Philips', current_date + 4);
@@ -5897,6 +5898,104 @@ begin
   assert not exists (select 1 from public.exec_dossier where exec_project_id = e and not removed and area = 'Extra works'), 'area gone';
 end $$;
 reset role;
+
+
+-- Materials without money: delivery date and time, reminders and delays, custody, issues against the day's task, special
+-- release, usage back to the store, low stock
+savepoint materials2;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare e uuid := current_setting('test.ex')::uuid; m uuid;
+begin
+  m := public.raise_material_request(e, jsonb_build_object('required_date', current_date + 2, 'activity_id', (select id from public.exec_activities where code = 'SUB-A1'),
+    'est_value', 999, 'lines', jsonb_build_array(jsonb_build_object('custom', true, 'item', 'Cable tray 100mm', 'unit', 'm', 'qty', 50, 'est_rate', 10))));
+  perform set_config('test.mt', m::text, false);
+  m := public.raise_material_request(e, jsonb_build_object('required_date', current_date + 1,
+    'lines', jsonb_build_array(jsonb_build_object('custom', true, 'item', 'Cable ties', 'unit', 'nos', 'qty', 100))));
+  perform set_config('test.mg', m::text, false);
+  m := public.raise_material_request(e, jsonb_build_object('required_date', current_date + 1,
+    'lines', jsonb_build_array(jsonb_build_object('custom', true, 'item', 'Junction box', 'unit', 'nos', 'qty', 10))));
+  perform set_config('test.ml', m::text, false);
+  assert (select est_rate is null from public.material_request_lines where mr_id = current_setting('test.mt')::uuid), 'no rates kept';
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select public.decide_material_request(current_setting('test.mt')::uuid, true), public.decide_material_request(current_setting('test.mg')::uuid, true),
+       public.decide_material_request(current_setting('test.ml')::uuid, true);
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ begin
+  perform public.schedule_delivery(current_setting('test.mt')::uuid, now() + interval '20 hours');
+  assert (select status = 'ordered' and delivery_at is not null from public.material_requests where id = current_setting('test.mt')::uuid), 'delivery scheduled';
+  begin perform public.schedule_delivery(current_setting('test.mt')::uuid, now() + interval '30 hours'); assert false, 'reason for later';
+  exception when others then assert sqlerrm = 'Give the reason for the later delivery', sqlerrm; end;
+  perform public.schedule_delivery(current_setting('test.mg')::uuid, now() + interval '20 hours');
+  perform public.schedule_delivery(current_setting('test.ml')::uuid, now() + interval '2 hours');
+end $$;
+reset role;
+do $$ declare ops uuid := (select id from u where role = 'operations_exec'); see uuid := (select id from u where role = 'senior_elec_engineer');
+begin
+  perform public.materials_tick(now());
+  assert exists (select 1 from public.notifications where recipient_id = ops and title = 'Material delivery coming'), 'Operations reminded';
+  assert exists (select 1 from public.notifications where recipient_id = see and title = 'Material delivery coming'), 'SEE reminded';
+  -- the junction boxes never arrive: 3 days late → SEE; 5 days → SM Projects
+  perform public.materials_tick(now() + interval '3 days');
+  assert (select delay_level from public.material_requests where id = current_setting('test.ml')::uuid) = 1, 'SEE told';
+  assert exists (select 1 from public.notifications where recipient_id = see and title like 'Material delivery 3 days late'), 'SEE notified of the delay';
+  perform public.materials_tick(now() + interval '5 days');
+  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'sm_projects') and title like 'Material delivery 5 days late'), 'SM Projects notified';
+end $$;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare l uuid;
+begin
+  select id into l from public.material_request_lines where mr_id = current_setting('test.mt')::uuid;
+  perform public.receive_material(current_setting('test.mt')::uuid, jsonb_build_array(jsonb_build_object('line_id', l, 'qty', 50)), null, null, 'client');
+  select id into l from public.material_request_lines where mr_id = current_setting('test.mg')::uuid;
+  perform public.receive_material(current_setting('test.mg')::uuid, jsonb_build_array(jsonb_build_object('line_id', l, 'qty', 100)));
+  assert (select balance = 50 and custody = 'client' from public.store_balances(current_setting('test.ex')::uuid) where item = 'Cable tray 100mm'), 'client custody balance';
+end $$;
+reset role;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare e uuid := current_setting('test.ex')::uuid; sp uuid := current_setting('test.sp')::uuid; t_rel uuid; t_un uuid; r jsonb;
+begin
+  select id into t_rel from public.sub_plan_items where sub_plan_id = sp and ae_item_id = (select id from public.exec_plan_items where title = 'Containment L3 east');
+  select id into t_un from public.sub_plan_items where sub_plan_id = sp and additional;
+  r := public.issue_material(e, jsonb_build_object('item', 'Cable tray 100mm', 'qty', 20, 'custody', 'client', 'task_kind', 'sub', 'task_id', t_rel, 'issued_to', 'Nimal'));
+  assert r ->> 'status' = 'issued', 'related to the task: issued';
+  perform set_config('test.mi1', r ->> 'id', false);
+  r := public.issue_material(e, jsonb_build_object('item', 'Cable tray 100mm', 'qty', 5, 'custody', 'client', 'task_kind', 'sub', 'task_id', t_un, 'issued_to', 'Kamal'));
+  assert r ->> 'status' = 'blocked', 'not for this task: blocked';
+  perform set_config('test.mi2', r ->> 'id', false);
+  begin perform public.issue_material(e, jsonb_build_object('item', 'Cable ties', 'qty', 500, 'custody', 'dimo', 'task_kind', 'sub', 'task_id', t_un)); assert false, 'stock';
+  exception when others then assert sqlerrm like 'Only 100 nos in the store%', sqlerrm; end;
+  r := public.issue_material(e, jsonb_build_object('item', 'Cable ties', 'qty', 30, 'custody', 'dimo', 'task_kind', 'sub', 'task_id', t_un));
+  assert r ->> 'status' = 'issued', 'general material: issued for any task';
+  perform set_config('test.mi3', r ->> 'id', false);
+  assert public.request_issue_release(current_setting('test.mi2')::uuid, 'Short of tray for the debris route') = 'pending_ae', 'asks the AE';
+  -- usage is needed before the daily report
+  begin perform public.submit_exec_report(e, current_date, jsonb_build_object('crew_count', 3, 'work_done', 'x')); assert false, 'usage first';
+  exception when others then assert sqlerrm like 'Record the material usage of the day first%', sqlerrm; end;
+  perform public.report_material_usage(current_setting('test.mi1')::uuid, 18, 'Containment L3 east bay 1-3');
+  perform public.report_material_usage(current_setting('test.mi3')::uuid, 30, 'Tying cables');
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'senior_elec_engineer') and title like 'Material issue blocked%'), 'SEE alerted of the block';
+  assert (select balance from public.store_balances_all(current_setting('test.ex')::uuid) where item = 'Cable tray 100mm') = 32, '50 - 20 + 2 unused back';
+end $$;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin
+  assert public.decide_issue_release(current_setting('test.mi2')::uuid, true) = 'pending_see', 'client custody: SEE too';
+  perform public.set_store_item(current_setting('test.ex')::uuid, 'Cable ties', 'dimo', 80, true, 'No more ties needed');
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin
+  assert public.decide_issue_release(current_setting('test.mi2')::uuid, true) = 'issued', 'SEE clears it';
+  assert (select balance from public.store_balances(current_setting('test.ex')::uuid) where item = 'Cable tray 100mm') = 27, 'released from the store';
+  assert (select low and ignore_low from public.store_balances(current_setting('test.ex')::uuid) where item = 'Cable ties'), 'low stock warning ignored';
+end $$;
+reset role;
+rollback to savepoint materials2;
 
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

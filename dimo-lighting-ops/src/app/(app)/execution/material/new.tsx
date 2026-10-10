@@ -7,7 +7,6 @@ import { TestingBanner } from '@/components/Testing';
 import { Button, Card, colors, DateField, ErrorBanner, Field, Grid, Muted, NumberField, Row, Screen, Section, Segmented, Select, Toggle } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import type { ExecProject } from '@/lib/execution';
-import { fmtMoney } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 
@@ -45,7 +44,6 @@ export default function NewMaterialRequest() {
   const [purpose, setPurpose] = useState('');
   const [deliverTo, setDeliverTo] = useState('');
   const [contact, setContact] = useState('');
-  const [value, setValue] = useState<number | null>(null);
   const [lines, setLines] = useState<Line[]>([blank()]);
   const [picking, setPicking] = useState<number | null>(null);
   const { data: projects } = useLoad(async () => {
@@ -60,7 +58,6 @@ export default function NewMaterialRequest() {
     return (data ?? []) as { id: string; code: string; name: string; es: string | null }[];
   }, [proj]);
   const setLine = (i: number, l: Partial<Line>) => setLines((s) => s.map((x, k) => (k === i ? { ...x, ...l } : x)));
-  const total = lines.reduce((s, l) => s + (l.rate ?? 0) * (l.qty ?? 0), 0);
 
   const save = async () => {
     setError(null);
@@ -80,7 +77,6 @@ export default function NewMaterialRequest() {
           purpose,
           deliver_to: deliverTo,
           site_contact: contact,
-          est_value: value ?? '',
           lines: used.map((l) => ({
             catalog_id: l.custom ? null : l.catalog?.id,
             custom: l.custom,
@@ -90,7 +86,6 @@ export default function NewMaterialRequest() {
             brand: l.brand,
             unit: l.unit || l.catalog?.unit || '',
             qty: l.qty ?? '',
-            est_rate: sub ? '' : (l.rate ?? ''),
             note: l.note,
           })),
         },
@@ -126,14 +121,11 @@ export default function NewMaterialRequest() {
             <Field label="Deliver to" value={deliverTo} onChangeText={setDeliverTo} placeholder="Site store, zone, or address" />
           </Grid>
           <Field label="Site contact (name and phone)" value={contact} onChangeText={setContact} />
-          {sub ? (
-            <Muted>The Assistant Engineer checks your request and sends it for approval.</Muted>
-          ) : (
-            <>
-              <NumberField label="Estimated value (LKR) – blank uses the items’ rates" value={value} onChange={setValue} />
-              <Muted>{`Items’ estimated total ${fmtMoney(total, 'LKR')}. Above LKR 1 Mn SM Projects approves too.`}</Muted>
-            </>
-          )}
+          <Muted>
+            {sub
+              ? 'The Assistant Engineer checks your request and sends it to the Senior Electrical Engineer. Prices and values are handled in SAP.'
+              : 'The Senior Electrical Engineer approves it; Operations orders it and sets the delivery date and time. Prices and values are handled in SAP.'}
+          </Muted>
         </Card>
       </Section>
 
@@ -178,9 +170,7 @@ export default function NewMaterialRequest() {
             <Grid min={150}>
               <NumberField label="Quantity" required value={l.qty} onChange={(v) => setLine(i, { qty: v })} />
               <Field label="Unit" required value={l.unit || l.catalog?.unit || ''} onChangeText={(v) => setLine(i, { unit: v })} placeholder="nos, m, set" />
-              {!sub ? <NumberField label="Estimated rate (LKR)" value={l.rate} onChange={(v) => setLine(i, { rate: v })} /> : null}
             </Grid>
-            {!sub && l.rate && l.qty ? <Muted>{`Line estimate ${fmtMoney(l.rate * l.qty, 'LKR')}`}</Muted> : null}
             <Field label="Note" value={l.note} onChangeText={(v) => setLine(i, { note: v })} />
           </Card>
         ))}
