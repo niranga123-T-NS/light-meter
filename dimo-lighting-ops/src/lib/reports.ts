@@ -1,6 +1,6 @@
 import type { Column, Section } from './export';
 import { AGEING_COLOURS, AGEING_ORDER, fmtDate, fmtMoney, human, WORKING_HOURS_PER_DAY, inquiryTitle } from './format';
-import { projectTypeLabel, ROLE_SHORT } from './roles';
+import { PROJECT_TYPES, projectTypeLabel, ROLE_SHORT } from './roles';
 import { rpc, supabase } from './supabase';
 import type { Debt, Inquiry, Profile, Project, Quotation, Sample, SlaClock, Visit } from './types';
 
@@ -14,6 +14,8 @@ export type Filters = {
   threshold: number | null;
   term: string | null;
   groupBy: 'sales_person' | 'client';
+  /** inquiries_by_category: what the columns count by */
+  category?: 'customer' | 'project_type' | 'route';
 };
 
 export type Built = { columns: Column<Record<string, unknown>>[]; sections: Section<Record<string, unknown>>[]; filterText: string; currencyNote?: string; landscape?: boolean };
@@ -118,6 +120,52 @@ export async function buildReport(key: string, f: Filters, people: Record<string
             const rows = list.map(toRow);
             return { heading, rows, totals: { Project: `${rows.length} projects`, 'Lighting value': totalsByCurrency(rows, 'lighting_value', usd), Weighted: totalsByCurrency(rows, 'weighted_value', usd) } };
           }),
+      };
+    }
+    case 'inquiries_by_category': {
+      const by = f.category ?? 'customer';
+      let q = supabase
+        .from('inquiries')
+        .select('id, sales_person_id, submitted_at, status, route, project_type, organizations!inquiries_organization_id_fkey(visit_category)')
+        .not('submitted_at', 'is', null)
+        .gte('submitted_at', f.from)
+        .lte('submitted_at', `${f.to}T23:59:59`);
+      if (f.projectType) q = q.eq('project_type', f.projectType);
+      const [{ data, error }, { data: cats }] = await Promise.all([
+        q,
+        supabase.from('master_lists').select('value, sort_order').eq('list_name', 'visit_category').order('sort_order'),
+      ]);
+      if (error) throw new Error(error.message);
+      type Inq = { sales_person_id: string; route: string; project_type: string | null; organizations: { visit_category: string | null } | null };
+      const ROUTES: Record<string, string> = { A: 'A – design + estimation', B: 'B – estimation only', C: 'C – design only' };
+      const catOf = (i: Inq) =>
+        by === 'route' ? (ROUTES[i.route] ?? i.route) : by === 'project_type' ? projectTypeLabel(i.project_type) : (i.organizations?.visit_category ?? 'Not set');
+      const list = (data ?? []) as unknown as Inq[];
+      const order =
+        by === 'route'
+          ? Object.values(ROUTES)
+          : by === 'project_type'
+            ? PROJECT_TYPES.map((t) => t.label)
+            : ((cats ?? []) as { value: string }[]).map((c) => c.value);
+      const seen = Array.from(new Set(list.map(catOf)));
+      const keys = [...order.filter((c) => seen.includes(c)), ...seen.filter((c) => !order.includes(c)).sort()];
+      const persons = Array.from(new Set(list.map((i) => i.sales_person_id)));
+      const rows: Row[] = persons
+        .map((p) => {
+          const mine = list.filter((i) => i.sales_person_id === p);
+          const r: Row = { person: name(p) || '—', total: mine.length };
+          keys.forEach((k, n) => (r[`c${n}`] = mine.filter((i) => catOf(i) === k).length || ''));
+          return r;
+        })
+        .sort((a, b) => Number(b.total) - Number(a.total));
+      const totals: Record<string, string | number> = { 'Sales person': 'Total', Total: list.length };
+      keys.forEach((k) => (totals[k] = list.filter((i) => catOf(i) === k).length));
+      const label = by === 'route' ? 'route' : by === 'project_type' ? 'project type' : 'customer category';
+      return {
+        filterText: `Inquiries submitted ${period} by sales person and ${label}${typeText}`,
+        columns: [col('Sales person', 'person'), col('Total', 'total', 'right'), ...keys.map((k, n) => col(k, `c${n}`, 'right'))],
+        sections: [{ rows, totals: rows.length ? totals : undefined }],
+        landscape: keys.length > 6,
       };
     }
     case 'client_view': {
