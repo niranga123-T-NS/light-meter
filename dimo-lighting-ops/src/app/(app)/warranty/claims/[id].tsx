@@ -1,6 +1,9 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { Text } from 'react-native';
+import { useState } from 'react';
+import { Platform, Text } from 'react-native';
 import { Attachments } from '@/components/Attachments';
+import { ClaimSiteCard } from '@/components/ClaimSiteCard';
+import { LocationPicker } from '@/components/LocationPicker';
 import { useDialog } from '@/components/dialog';
 import { C_TONE } from '@/components/warrantyTones';
 import { Button, Card, colors, ErrorBanner, KeyValue, Loading, Muted, Notice, Pill, Row, Screen, Section } from '@/components/ui';
@@ -20,6 +23,7 @@ export default function ClaimDetail() {
   const me = useMe();
   const people = usePeople();
   const dialog = useDialog();
+  const [pending, setPending] = useState<{ a: string; visit: string | null } | null>(null);
   const { data, error, reload } = useLoad(async () => {
     const { data: c, error: e } = await supabase.from('warranty_claims').select('*').eq('id', id).single();
     if (e) throw new Error(e.message);
@@ -31,7 +35,11 @@ export default function ClaimDetail() {
       supabase.from('profiles').select('id, full_name, role').in('role', ['assistant_engineer', 'senior_elec_engineer']).eq('active', true).order('full_name'),
     ]);
     const rmaIds = (((await supabase.from('manufacturer_claim_items').select('rma_id').eq('claim_id', id)).data ?? []) as { rma_id: string }[]).map((x) => x.rma_id);
+    const proj = (w as Warranty | null)?.project_id
+      ? ((await supabase.from('projects').select('lat, lng').eq('id', (w as Warranty).project_id!).maybeSingle()).data as { lat: number | null; lng: number | null } | null)
+      : null;
     return {
+      proj,
       rmaIds: [...new Set(rmaIds)],
       c: claim,
       w: w as Warranty | null,
@@ -255,9 +263,17 @@ export default function ClaimDetail() {
                 onPress={async () => {
                   const x = await dialog.prompt({
                     title: stage === 'verify' ? 'Verify the claim (invoice / contract no., our supply) and assign the site inspection' : 'Assign the site inspection',
-                    fields: [{ key: 'a', label: 'Engineer', type: 'select', required: true, options: engineerOptions, initial: c.assignee_id ?? undefined }],
+                    message: 'Next, pick the site on the map – the engineer checks in there before recording the inspection.',
+                    fields: [
+                      { key: 'a', label: 'Engineer', type: 'select', required: true, options: engineerOptions, initial: c.assignee_id ?? undefined },
+                      { key: 'v', label: 'Visit date', type: 'date', initial: c.visit_on ?? today },
+                    ],
+                    confirmLabel: Platform.OS === 'web' ? 'Next – site on the map' : 'Assign',
                   });
-                  if (x) await run('assign_warranty_claim', { p_id: c.id, p_assignee: x.a }, 'Assigned – engineer notified');
+                  if (!x) return;
+                  // Web: the SEE picks the site on the map; phones: the site already set or the project's location
+                  if (Platform.OS === 'web') setPending({ a: x.a, visit: x.v || null });
+                  else await run('assign_warranty_claim', { p_id: c.id, p_assignee: x.a, p_visit: x.v || null }, 'Assigned – engineer notified');
                 }}
               />
             ) : null}
@@ -392,6 +408,19 @@ export default function ClaimDetail() {
           </Row>
         ) : null}
       </Card>
+      <ClaimSiteCard c={c} query={[w?.site, w?.project_name].filter(Boolean).join(' ')} onChange={reload} />
+      <LocationPicker
+        visible={!!pending}
+        title="Site of the inspection – pick the point the engineer checks in at"
+        query={[w?.site, w?.project_name].filter(Boolean).join(' ')}
+        initial={c.site_lat != null && c.site_lng != null ? { lat: c.site_lat, lng: c.site_lng } : data.proj?.lat != null && data.proj?.lng != null ? { lat: data.proj.lat, lng: data.proj.lng } : null}
+        onClose={() => setPending(null)}
+        onSave={async (pt) => {
+          if (!pending) return;
+          const ok = await run('assign_warranty_claim', { p_id: c.id, p_assignee: pending.a, p_lat: pt.lat, p_lng: pt.lng, p_visit: pending.visit }, 'Assigned – engineer notified');
+          if (ok) setPending(null);
+        }}
+      />
 
       <Attachments entityType="warranty_claim" entityId={c.id} kinds={['claim_photo']} title="Photos and documents (customer letter, inspection photos, completion note)" canUpload={worker && open} allowCamera />
       {c.report_id ? <Attachments entityType="warranty_report" entityId={c.report_id} kinds={['report_photo']} title="Photos from the sales visit" canUpload={false} /> : null}
