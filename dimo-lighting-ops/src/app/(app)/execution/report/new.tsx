@@ -97,6 +97,14 @@ export default function NewReport() {
     );
     return { items, waiting, tbts, reps: (reps.data ?? []) as ExecReport[], subItems, permits, links: (ln ?? []) as { item_id: string; permit_id: string }[] };
   }, [proj, f.date, sup]);
+  // Material issued by me and not yet accounted for – the usage must be recorded before the daily report
+  const { data: unused } = useLoad(async () => {
+    if (!proj) return [];
+    const { data } = await supabase.from('material_issues').select('id, code, item, qty, unit, day').eq('exec_project_id', proj).eq('issued_by', me.id)
+      .eq('status', 'issued').is('used_qty', null).lte('day', f.date).order('day');
+    return (data ?? []) as { id: string; code: string; item: string; qty: number; unit: string; day: string }[];
+  }, [proj, f.date]);
+  const needUsage = !!unused?.length;
   // Pre-fill once per project and day (guarded set during render instead of an effect)
   const prefillKey = day ? `${proj}|${f.date}` : null;
   const [filled, setFilled] = useState<string | null>(null);
@@ -128,6 +136,7 @@ export default function NewReport() {
   const save = async () => {
     setError(null);
     if (!proj) return setError('Choose the project');
+    if (needUsage) return setError('Record the usage of the material you issued first (Materials) – the store balances are adjusted from it');
     if (needTbt) return setError('Hold and record the day’s toolbox meeting first – no daily report without it');
     const changed = (day?.items ?? []).filter((it) => itemChanged(it, edits[it.id]));
     const linked = f.toolbox_talk ? tbt.filter((x) => day?.tbts.some((t) => t.id === x)) : [];
@@ -172,6 +181,13 @@ export default function NewReport() {
       </Card>
       {needTbt ? (
         <Notice tone={colors.red}>{`No toolbox meeting recorded for ${fmtDate(f.date)} – hold it first (Planning tab: check in on site, then Toolbox meeting). No daily report without it.`}</Notice>
+      ) : null}
+      {needUsage ? (
+        <Notice tone={colors.red}>
+          {`Record the usage of the material you issued before the report (${sup ? 'Planning → Materials' : 'project Materials tab'}): ${unused!
+            .map((u) => `${u.code} ${u.item} × ${u.qty} ${u.unit} (${fmtDate(u.day)})`)
+            .join('; ')}`}
+        </Notice>
       ) : null}
       <Section title="Report details">
         <Card>
@@ -322,7 +338,7 @@ export default function NewReport() {
       <Muted style={{ marginTop: 4 }}>{`After you submit, the PDF report is available on the report${sup ? '' : ' to you and the Senior Electrical Engineer'}.`}</Muted>
       <Row gap={8} style={{ justifyContent: 'flex-end' }}>
         <Button variant="secondary" title="Cancel" onPress={() => router.back()} />
-        <Button title="Submit report" disabled={needTbt} onPress={save} />
+        <Button title="Submit report" disabled={needTbt || needUsage} onPress={save} />
       </Row>
     </Screen>
   );

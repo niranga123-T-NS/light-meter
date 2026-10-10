@@ -1,42 +1,46 @@
 import { router } from 'expo-router';
 import { useDialog } from '@/components/dialog';
-import { Button, Card, Empty, ListRow, Muted, Row, Section } from '@/components/ui';
+import { Button, Row, Section } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { STORE_KINDS, storeBalance, type ExecProject, type MaterialRequest, type StoreMove } from '@/lib/execution';
-import { fmtDateTime, fmtNumber } from '@/lib/format';
+import { CUSTODY, STORE_KINDS, type ExecMember, type ExecProject, type MaterialRequest } from '@/lib/execution';
 import { useLoad, usePeople } from '@/lib/hooks';
+import { exportMaterialsReport } from '@/lib/materialsReport';
+import { ROLE_LABELS } from '@/lib/roles';
 import { rpc, supabase } from '@/lib/supabase';
+import { MaterialIssues, StoreBalances, type Balance } from './MaterialStore';
 import { MaterialRows } from './MaterialRows';
 
-/** Material requests of the project and the site store (balance from receipts, issues, returns and transfers). */
+/** The project's materials: requests and deliveries (history), the site store by custody, and the materials issued to the work. */
 export function MaterialsTab({ p }: { p: ExecProject }) {
   const me = useMe();
   const dialog = useDialog();
   const people = usePeople();
   const { data, reload } = useLoad(async () => {
-    const [m, s] = await Promise.all([
+    const [m, mem] = await Promise.all([
       supabase.from('material_requests').select('*').eq('exec_project_id', p.id).order('requested_at', { ascending: false }),
-      supabase.from('store_moves').select('*').eq('exec_project_id', p.id).order('at', { ascending: false }),
+      supabase.from('exec_members').select('*').eq('exec_project_id', p.id).eq('active', true),
     ]);
-    return { mrs: (m.data ?? []) as MaterialRequest[], moves: (s.data ?? []) as StoreMove[] };
+    return { mrs: (m.data ?? []) as MaterialRequest[], members: (mem.data ?? []) as ExecMember[] };
   }, [p.id]);
+  const aeOfProject = me.role === 'assistant_engineer' && !!data?.members.some((x) => x.user_id === me.id && x.member_role === 'assistant_engineer');
   const canRequest = me.role === 'senior_elec_engineer' || me.role === 'assistant_engineer';
-  const canMove = me.role !== 'gm';
-  const balance = storeBalance(data?.moves ?? []);
+  const canMove = aeOfProject || me.role === 'senior_elec_engineer' || me.role === 'operations_exec';
 
+  // Returns and transfers between sites (issues to the work go through "Issue material")
   const move = async () => {
+    const bal = await rpc<Balance[]>('store_balances', { p_exec: p.id });
     const res = await dialog.prompt({
-      title: 'Store movement',
+      title: 'Return / transfer',
       fields: [
-        { key: 'k', label: 'Movement', type: 'select', required: true, options: STORE_KINDS, initial: 'issue' },
-        { key: 'i', label: 'Item', type: 'select', required: true, options: balance.map((b) => ({ value: b.item, label: `${b.item} · ${fmtNumber(b.qty)} ${b.unit} in store` })) },
+        { key: 'k', label: 'Movement', type: 'select', required: true, options: STORE_KINDS.filter((k) => k.value !== 'issue'), initial: 'transfer_out' },
+        { key: 'i', label: 'Item', type: 'select', required: true, options: bal.map((b) => ({ value: b.item, label: `${b.item} · ${b.balance} ${b.unit} (${CUSTODY.find((c) => c.value === b.custody)?.label})` })) },
         { key: 'q', label: 'Quantity', required: true },
-        { key: 'n', label: 'Where / note' },
+        { key: 'n', label: 'Where / note', required: true },
       ],
       confirmLabel: 'Record',
     });
     if (!res) return;
-    const b = balance.find((x) => x.item === res.i);
+    const b = bal.find((x) => x.item === res.i);
     await dialog.run(async () => {
       await rpc('store_move', { p_exec: p.id, p_kind: res.k, p_item: res.i, p_unit: b?.unit ?? 'nos', p_qty: Number(res.q), p_note: res.n || null });
       await reload();
@@ -45,34 +49,24 @@ export function MaterialsTab({ p }: { p: ExecProject }) {
 
   return (
     <>
+      {me.role === 'senior_elec_engineer' || me.role === 'sm_projects' || me.role === 'gm' ? (
+        <Row style={{ justifyContent: 'flex-end' }}>
+          <Button small variant="secondary" title="Materials report (PDF)" onPress={() => dialog.run(() => exportMaterialsReport(p, people, `${me.full_name} – ${ROLE_LABELS[me.role]}`))} />
+        </Row>
+      ) : null}
       <Section
-        title="Material requests"
+        title="Material requests and deliveries"
         right={canRequest && p.status === 'active' ? <Button small title="+ Request" onPress={() => router.push({ pathname: '/execution/material/new', params: { project: p.id } })} /> : null}
       >
         <MaterialRows rows={data?.mrs ?? []} />
       </Section>
-      <Section title="Site store" right={canMove && balance.length ? <Button small variant="secondary" title="Issue / return / transfer" onPress={move} /> : null}>
-        {balance.length ? (
-          <Card style={{ padding: 0, overflow: 'hidden' }}>
-            {balance.map((b) => (
-              <ListRow key={b.item} title={b.item} right={<Muted>{`${fmtNumber(b.qty)} ${b.unit}`}</Muted>} />
-            ))}
-          </Card>
-        ) : (
-          <Empty title="Nothing received yet" hint="Deliveries recorded against material requests come into the site store" />
-        )}
-        {data?.moves.length ? (
-          <Card style={{ marginTop: 8 }}>
-            <Muted>Latest movements</Muted>
-            {data.moves.slice(0, 15).map((x) => (
-              <Row key={x.id} style={{ justifyContent: 'space-between' }} wrap>
-                <Muted>{`${STORE_KINDS.find((k) => k.value === x.kind)?.label ?? 'Receipt'} · ${x.item} · ${fmtNumber(x.qty)} ${x.unit}${x.note ? ` · ${x.note}` : ''}`}</Muted>
-                <Muted>{`${people[x.by_id]?.full_name ?? ''} · ${fmtDateTime(x.at)}`}</Muted>
-              </Row>
-            ))}
-          </Card>
-        ) : null}
-      </Section>
+      <StoreBalances p={p} aeOfProject={aeOfProject} />
+      {canMove ? (
+        <Row>
+          <Button small variant="ghost" title="Return / transfer" onPress={move} />
+        </Row>
+      ) : null}
+      <MaterialIssues p={p} aeOfProject={aeOfProject} onChange={reload} />
     </>
   );
 }

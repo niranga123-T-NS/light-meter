@@ -7,12 +7,17 @@ import { mrTone } from '@/components/exec/MaterialRows';
 import { TestingBanner } from '@/components/Testing';
 import { Button, Card, colors, ErrorBanner, Field, KeyValue, ListRow, Loading, Muted, Notice, NumberField, Pill, Row, Screen, Section, Select } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { MR_STATUS, type ExecMember, type MaterialReceipt, type MaterialRequest, type MrLine } from '@/lib/execution';
-import { fmtDate, fmtDateTime, fmtMoney, fmtNumber, todayISO } from '@/lib/format';
+import { CUSTODY, MR_STATUS, mrDaysLate, type ExecMember, type MaterialReceipt, type MaterialRequest, type MrLine } from '@/lib/execution';
+import { fmtDate, fmtDateTime, fmtNumber, fmtTime, todayISO } from '@/lib/format';
+import { slTime } from '@/lib/hse';
+import { loadSubcontractors } from '@/lib/subcontractors';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 
 /** One material request: approvals, the order (PO), and deliveries received into the site store. */
+/** The Sri Lanka date of a timestamp */
+const slDay = (ts: string) => new Date(new Date(ts).getTime() + 330 * 60000).toISOString().slice(0, 10);
+
 export default function MaterialScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const me = useMe();
@@ -21,6 +26,8 @@ export default function MaterialScreen() {
   const [recv, setRecv] = useState<Record<string, number | null> | null>(null);
   const [recvNote, setRecvNote] = useState('');
   const [recvSup, setRecvSup] = useState<string | null>(null);
+  const [recvCustody, setRecvCustody] = useState<string>('dimo');
+  const [recvCompany, setRecvCompany] = useState<string | null>(null);
   const { data, error, reload } = useLoad(async () => {
     const { data: m, error: e } = await supabase.from('material_requests').select('*, exec_projects(name, code)').eq('id', id).single();
     if (e) throw new Error(e.message);
@@ -30,7 +37,13 @@ export default function MaterialScreen() {
       supabase.from('material_receipts').select('*').eq('mr_id', id).order('recorded_at', { ascending: false }),
       supabase.from('exec_members').select('*').eq('exec_project_id', mr.exec_project_id).eq('active', true),
     ]);
-    return { m: mr, lines: (l.data ?? []) as MrLine[], receipts: (rc.data ?? []) as MaterialReceipt[], members: (mem.data ?? []) as ExecMember[] };
+    return {
+      m: mr,
+      lines: (l.data ?? []) as MrLine[],
+      receipts: (rc.data ?? []) as MaterialReceipt[],
+      members: (mem.data ?? []) as ExecMember[],
+      subs: await loadSubcontractors(mr.exec_project_id).catch(() => []),
+    };
   }, [id]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const { m, lines, receipts, members } = data;
@@ -41,6 +54,8 @@ export default function MaterialScreen() {
   const canAeReview = m.status === 'ae_review' && (isAe || me.role === 'senior_elec_engineer');
   const canDecide = (m.status === 'submitted' && me.role === 'senior_elec_engineer') || (m.status === 'pending_smp' && me.role === 'sm_projects');
   const canOrder = m.status === 'approved' && me.role === 'operations_exec';
+  const canSchedule = ['approved', 'ordered', 'part_received'].includes(m.status) && me.role === 'operations_exec';
+  const late = mrDaysLate(m, todayISO());
   const canReceive = ['ordered', 'part_received'].includes(m.status) && !pendingReceipt && (isAe || isSub || me.role === 'senior_elec_engineer' || me.role === 'operations_exec');
   // Who acknowledges a pending delivery: the AE side (if not yet) and the named supervisor (if not yet)
   const canAck = (r: MaterialReceipt) =>
@@ -49,18 +64,13 @@ export default function MaterialScreen() {
   const aeReview = async (forward: boolean) => {
     const res = await dialog.prompt({
       title: forward ? 'Forward to the Senior Electrical Engineer' : 'Return to the supervisor',
-      fields: forward
-        ? [
-            { key: 'v', label: 'Estimated value (LKR)', required: true },
-            { key: 'n', label: 'Note', type: 'multiline' },
-          ]
-        : [{ key: 'n', label: 'Reason', type: 'multiline', required: true }],
+      fields: forward ? [{ key: 'n', label: 'Note', type: 'multiline' }] : [{ key: 'n', label: 'Reason', type: 'multiline', required: true }],
       confirmLabel: forward ? 'Forward' : 'Return',
       danger: !forward,
     });
     if (res)
       await dialog.run(async () => {
-        await rpc('ae_review_material_request', { p_id: m.id, p_forward: forward, p_note: res.n || null, p_est_value: res.v ? Number(res.v.replace(/,/g, '')) : null });
+        await rpc('ae_review_material_request', { p_id: m.id, p_forward: forward, p_note: res.n || null });
         await reload();
       }, forward ? 'Sent to the Senior Electrical Engineer' : 'Returned');
   };
@@ -82,15 +92,33 @@ export default function MaterialScreen() {
   };
   const order = async () => {
     const res = await dialog.prompt({
-      title: 'Order placed',
+      title: 'Ordered in SAP',
+      message: 'Then set the delivery date and time once the delivery is ready.',
       fields: [
-        { key: 'po', label: 'PO number', required: true },
-        { key: 's', label: 'Supplier' },
-        { key: 'd', label: 'Expected delivery', type: 'date', required: true, initial: m.required_date },
+        { key: 'po', label: 'SAP order / PO reference (optional)' },
+        { key: 's', label: 'Supplier (optional)' },
       ],
       confirmLabel: 'Save',
     });
-    if (res) await dialog.run(async () => { await rpc('order_material_request', { p_id: m.id, p_po: res.po, p_supplier: res.s || null, p_expected: res.d }); await reload(); }, 'The site is told');
+    if (res) await dialog.run(async () => { await rpc('order_material_request', { p_id: m.id, p_po: res.po || null, p_supplier: res.s || null, p_expected: null }); await reload(); }, 'The site is told');
+  };
+  // Operations sets (or moves) the delivery date and time; the site, the SEE and the requester are told
+  const schedule = async () => {
+    const moving = !!m.delivery_at;
+    const res = await dialog.prompt({
+      title: moving ? 'Move the delivery' : 'Delivery ready – set the date and time',
+      fields: [
+        { key: 'd', label: 'Delivery date', type: 'date', required: true, initial: m.delivery_at ? slDay(m.delivery_at) : m.required_date },
+        { key: 't', label: 'Time (24h)', required: true, initial: m.delivery_at ? fmtTime(m.delivery_at) : '09:00' },
+        { key: 'n', label: moving ? 'Reason for the new date' : 'Note (vehicle, contact…)', type: 'multiline', required: moving },
+      ],
+      confirmLabel: 'Save',
+    });
+    if (res)
+      await dialog.run(async () => {
+        await rpc('schedule_delivery', { p_id: m.id, p_at: slTime(res.d, res.t), p_note: res.n || null });
+        await reload();
+      }, 'Delivery set – the site and the SEE are told');
   };
   const receive = async () => {
     if (!recv) return;
@@ -100,6 +128,8 @@ export default function MaterialScreen() {
         p_lines: Object.entries(recv).map(([line_id, qty]) => ({ line_id, qty: qty ?? 0 })),
         p_note: recvNote || null,
         p_supervisor: isSub ? null : recvSup,
+        p_custody: recvCustody,
+        p_company: recvCustody === 'subcontractor' ? recvCompany : null,
       });
       setRecv(null);
       setRecvNote('');
@@ -120,17 +150,21 @@ export default function MaterialScreen() {
         {m.deliver_to ? <KeyValue label="Deliver to" value={m.deliver_to} /> : null}
         {m.site_contact ? <KeyValue label="Site contact" value={m.site_contact} /> : null}
         {m.purpose ? <KeyValue label="For" value={m.purpose} /> : null}
-        {m.est_value_lkr ? <KeyValue label="Estimated value" value={fmtMoney(m.est_value_lkr, 'LKR')} /> : null}
         <KeyValue label="Requested by" value={`${people[m.requested_by]?.full_name ?? ''} · ${fmtDateTime(m.requested_at)}`} />
-        {m.po_no ? <KeyValue label="Order" value={`PO ${m.po_no}${m.supplier ? ` · ${m.supplier}` : ''} · expected ${fmtDate(m.expected_date)}`} /> : null}
+        {m.po_no || m.supplier ? <KeyValue label="Order" value={[m.po_no ? `SAP ${m.po_no}` : null, m.supplier].filter(Boolean).join(' · ')} /> : null}
+        <KeyValue
+          label="Delivery"
+          value={m.delivery_at ? `${fmtDateTime(m.delivery_at)}${m.reschedules ? ` · moved ${m.reschedules}×` : ''}${m.delivery_note ? ` · ${m.delivery_note}` : ''}` : ['approved', 'ordered'].includes(m.status) ? 'Not set yet – Operations sets it when the delivery is ready' : '—'}
+        />
         {m.decision_note ? <Notice tone={m.status === 'rejected' ? colors.red : colors.blue}>{m.decision_note}</Notice> : null}
-        {m.expected_date && ['ordered', 'part_received'].includes(m.status) && m.expected_date < todayISO() ? <Notice tone={colors.red}>Delivery is late</Notice> : null}
+        {late ? <Notice tone={colors.red}>{`Delivery ${late} day${late === 1 ? '' : 's'} late${late > 4 ? ' – SM Projects told' : late > 2 ? ' – the SEE told' : ''}`}</Notice> : null}
         <Row wrap gap={6} style={{ marginTop: 8 }}>
           {canAeReview ? <Button title="Forward to SEE" onPress={() => aeReview(true)} /> : null}
           {canAeReview ? <Button variant="secondary" title="Return" onPress={() => aeReview(false)} /> : null}
           {canDecide ? <Button title="Approve" onPress={() => decide(true)} /> : null}
           {canDecide ? <Button variant="secondary" title="Reject" onPress={() => decide(false)} /> : null}
-          {canOrder ? <Button title="Record the order" onPress={order} /> : null}
+          {canOrder ? <Button variant="secondary" title="Ordered in SAP" onPress={order} /> : null}
+          {canSchedule ? <Button title={m.delivery_at ? 'Move the delivery' : 'Set delivery date & time'} onPress={schedule} /> : null}
           {canReceive && !recv ? (
             <Button
               title="Record a delivery"
@@ -154,7 +188,6 @@ export default function MaterialScreen() {
                 l.category,
                 l.spec ? `Spec: ${l.spec}` : null,
                 l.brand ? `Make: ${l.brand}` : null,
-                l.est_rate != null && me.role !== 'sub_supervisor' ? `Est. ${fmtMoney(l.est_rate, 'LKR')} / ${l.unit}` : null,
                 l.note,
               ]
                 .filter(Boolean)
@@ -178,6 +211,10 @@ export default function MaterialScreen() {
                 onChange={(v) => setRecvSup(v || null)}
                 options={[{ value: '', label: 'No subcontractor involved' }, ...supervisors.map((x) => ({ value: x.user_id, label: people[x.user_id]?.full_name ?? '—' }))]}
               />
+            ) : null}
+            <Select label="Custody" required value={recvCustody} onChange={(v) => setRecvCustody(v ?? 'dimo')} options={CUSTODY.map((x) => ({ value: x.value, label: x.label }))} />
+            {recvCustody === 'subcontractor' && !isSub ? (
+              <Select label="Subcontractor" required value={recvCompany} onChange={setRecvCompany} options={data.subs.map((s) => ({ value: s.name, label: s.name }))} />
             ) : null}
             <Field label="Shortages / damages" multiline value={recvNote} onChangeText={setRecvNote} />
             <Muted>
