@@ -88,6 +88,11 @@ export function navFor(role: Role): NavItem[] {
     const at = items.findIndex((i) => i.href === '/visits');
     items.splice(at < 0 ? items.length : at + 1, 0, { href: '/map', label: 'Map', icon: '⌖' });
   }
+  // Instruments: everyone except the project teams (under each project's QA tab) and subcontractors
+  if (!['sub_supervisor', 'senior_elec_engineer', 'assistant_engineer', 'trainee', 'sys_admin'].includes(role)) {
+    const at = items.findIndex((i) => i.href === '/reports');
+    items.splice(at < 0 ? items.length : at, 0, { href: '/instruments', label: 'Instruments', icon: '⚖', testing: true });
+  }
   return [...items.slice(0, 1), meetings, ...items.slice(1)];
 }
 

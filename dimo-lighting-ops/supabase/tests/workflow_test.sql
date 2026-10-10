@@ -6068,5 +6068,95 @@ end $$;
 reset role;
 rollback to savepoint materials2;
 
+-- Instruments: register, queue, issue to an owner, return → next in the queue, extension moves the queue --------
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare a uuid; b uuid;
+begin
+  a := public.save_instrument('{"name":"Lux meter","make":"Konica Minolta","model":"T-10A","serial_no":"LM-001","category":"Photometry"}');
+  b := public.save_instrument('{"name":"Insulation tester","make":"Megger","model":"MIT430","serial_no":"IR-77"}');
+  perform set_config('test.insa', a::text, false); perform set_config('test.insb', b::text, false);
+  begin perform public.set_instrument_calibration(a, '{"status":"calibrated"}'); assert false, 'expiry';
+  exception when others then assert sqlerrm = 'Enter the calibration expiry date', sqlerrm; end;
+  perform public.set_instrument_calibration(a, jsonb_build_object('status', 'calibrated', 'date', current_date - 30, 'expiry', current_date + 335, 'cert_no', 'CAL-55'));
+  assert (select code like 'INS-%' from public.instruments where id = a), 'numbered';
+end $$;
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ declare a uuid := current_setting('test.insa')::uuid; b uuid := current_setting('test.insb')::uuid; r uuid;
+begin
+  begin perform public.save_instrument('{"name":"x"}'); assert false, 'ops only';
+  exception when others then assert sqlerrm like 'The Operations Executive%', sqlerrm; end;
+  begin perform public.request_instrument(a, jsonb_build_object('need_from', current_date, 'need_to', current_date + 2, 'lat', 6.9, 'lng', 79.8)); assert false, 'project';
+  exception when others then assert sqlerrm like 'Choose the project%', sqlerrm; end;
+  r := public.request_instrument(a, jsonb_build_object('project_text', 'Hotel lobby retrofit (not listed)', 'need_from', current_date, 'need_to', current_date + 2, 'lat', 6.9, 'lng', 79.8));
+  perform set_config('test.insr1', r::text, false);
+  begin perform public.request_instrument(b, jsonb_build_object('project_text', 'X', 'need_from', current_date, 'need_to', current_date, 'lat', 6.9, 'lng', 79.8)); assert false, 'uncal';
+  exception when others then assert sqlerrm like 'This instrument is not calibrated%', sqlerrm; end;
+  perform public.request_instrument(b, jsonb_build_object('project_text', 'X', 'need_from', current_date, 'need_to', current_date, 'lat', 6.9, 'lng', 79.8, 'accept_uncalibrated', true));
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'asm_building') and title = 'You requested an uncalibrated instrument'), 'requester warned';
+  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'operations_exec') and body like '%NOT CALIBRATED%'), 'ops warned';
+end $$;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare r uuid;
+begin
+  r := public.request_instrument(current_setting('test.insa')::uuid, jsonb_build_object('exec_project_id', current_setting('test.ex'), 'need_from', current_date + 1, 'need_to', current_date + 4, 'lat', 6.9, 'lng', 79.8));
+  perform set_config('test.insr2', r::text, false);
+end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare r1 uuid := current_setting('test.insr1')::uuid; r2 uuid := current_setting('test.insr2')::uuid;
+begin
+  perform public.ready_instrument(r1);
+  perform public.issue_instrument(r1, (select id from u where role = 'asm_building'), current_date + 2);
+  begin perform public.issue_instrument(r2, (select id from u where role = 'senior_elec_engineer'), current_date + 3); assert false, 'one at a time';
+  exception when others then assert sqlerrm like 'The instrument is still out%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+select public.request_instrument_extension(current_setting('test.insr1')::uuid, current_date + 4, 'Second floor readings');
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare r2 uuid := current_setting('test.insr2')::uuid;
+begin
+  assert public.decide_instrument_extension(current_setting('test.insr1')::uuid, true) = 1, 'queue moved';
+  assert (select need_from = current_date + 3 and need_to = current_date + 6 from public.instrument_requests where id = r2), 'next request moved by 2 days';
+  assert public.return_instrument(current_setting('test.insr1')::uuid) = r2, 'next in the queue';
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'senior_elec_engineer') and title = 'Instrument you requested is back'), 'next told';
+  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'senior_elec_engineer') and title = 'Your instrument dates moved'), 'dates moved told';
+end $$;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ begin
+  perform public.ready_instrument(current_setting('test.insr2')::uuid);
+  perform public.issue_instrument(current_setting('test.insr2')::uuid, (select id from u where role = 'assistant_engineer'), current_date);
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'senior_elec_engineer') and title = 'Instrument ready to collect'), 'ready told';
+  assert public.instruments_tick(now() + interval '2 days') = 1, 'overdue';
+  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'assistant_engineer') and title = 'Instrument overdue'), 'owner told overdue';
+end $$;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ begin
+  begin perform public.remove_instrument(current_setting('test.insa')::uuid, 'Lost'); assert false, 'out';
+  exception when others then assert sqlerrm like 'It is out with someone%', sqlerrm; end;
+  perform public.return_instrument(current_setting('test.insr2')::uuid, 'out_of_order', 'Display cracked');
+  assert (select condition = 'out_of_order' from public.instruments where id = current_setting('test.insa')::uuid), 'out of order';
+  perform public.remove_instrument(current_setting('test.insa')::uuid, 'Written off');
+end $$;
+reset role;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ begin
+  assert not exists (select 1 from public.instruments), 'subcontractors do not see instruments';
+  begin perform public.request_instrument(current_setting('test.insb')::uuid, '{}'); assert false, 'sub';
+  exception when others then assert sqlerrm = 'Instruments are requested by DIMO staff', sqlerrm; end;
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

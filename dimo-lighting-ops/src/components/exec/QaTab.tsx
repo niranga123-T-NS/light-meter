@@ -1,8 +1,9 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Text } from 'react-native';
+import { Text, View } from 'react-native';
+import { InstrumentsView } from '@/components/InstrumentsView';
 import { useDialog } from '@/components/dialog';
-import { Button, Card, colors, Empty, ListRow, Muted, Notice, Pill, Row, Section } from '@/components/ui';
+import { Button, Card, colors, Empty, ListRow, Muted, Notice, Pill, Row, Section, Segmented } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { areaLabel, type ExecMember, type ExecProject, type Ncr, type TestRecord } from '@/lib/execution';
 import { fmtDate, fmtDateTime, todayISO } from '@/lib/format';
@@ -15,8 +16,19 @@ import { TestDocs } from './TestDocs';
 
 const testTone = (t: TestRecord) => (t.result === 'fail' ? colors.red : t.status === 'verified' ? colors.green : colors.amber);
 
-/** Inspection and test records (auto pass / fail), verification by the SEE, and NCRs to closure. */
+/** The QA tab: inspection and test records and NCRs, and the testing / site instruments for the project. */
 export function QaTab({ p }: { p: ExecProject }) {
+  const [part, setPart] = useState<'qa' | 'instruments'>('qa');
+  return (
+    <View style={{ gap: 8 }}>
+      <Segmented value={part} onChange={setPart} options={[{ value: 'qa', label: 'Tests & NCRs' }, { value: 'instruments', label: 'Instruments' }]} />
+      {part === 'qa' ? <QaRecords p={p} /> : <InstrumentsView project={p} />}
+    </View>
+  );
+}
+
+/** Inspection and test records (auto pass / fail), verification by the SEE, and NCRs to closure. */
+function QaRecords({ p }: { p: ExecProject }) {
   const me = useMe();
   const dialog = useDialog();
   const people = usePeople();
