@@ -1,6 +1,6 @@
 import { router, Stack } from 'expo-router';
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Text, View } from 'react-native';
 import { DataTable } from '@/components/DataTable';
 import { useDialog } from '@/components/dialog';
 import { ListUpload } from '@/components/ListUpload';
@@ -12,7 +12,6 @@ import {
   BUDGET_TEMPLATE,
   downloadXlsx,
   fmtMonth,
-  fmtMonthShort,
   fmtPct,
   fyLabel,
   fyOf,
@@ -253,13 +252,26 @@ export default function BudgetScreen() {
                 { h: 'GP %', w: 80, right: true, v: (r) => (r.budget_gp_pct == null ? '—' : fmtPct(Number(r.budget_gp_pct))) },
                 { h: 'Order month', w: 100, v: (r) => fmtMonth(r.order_month) },
                 {
-                  h: 'Invoice months',
-                  w: 220,
+                  h: 'Invoice plan (LKR)',
+                  w: 260,
                   v: (r) =>
-                    r.budget_invoices
-                      .sort((a, b) => a.month.localeCompare(b.month))
-                      .map((i) => `${fmtMonthShort(i.month)} ${mn(i.amount)}`)
-                      .join(', ') || '—',
+                    r.budget_invoices.length ? (
+                      <View style={{ gap: 2 }}>
+                        {[...r.budget_invoices]
+                          .sort((a, b) => a.month.localeCompare(b.month))
+                          .map((i) => (
+                            <Row key={i.id} gap={6} style={{ justifyContent: 'space-between' }}>
+                              <Text style={{ color: colors.text, width: 72 }}>{fmtMonth(i.month)}</Text>
+                              <Text style={{ color: colors.ink, flex: 1, textAlign: 'right' }}>{amt(i.amount)}</Text>
+                              <Text style={{ color: colors.muted, width: 40, textAlign: 'right' }}>
+                                {Number(r.budget_value) ? `${Math.round((Number(i.amount) / Number(r.budget_value)) * 100)}%` : ''}
+                              </Text>
+                            </Row>
+                          ))}
+                      </View>
+                    ) : (
+                      '—'
+                    ),
                 },
               ]}
             />
