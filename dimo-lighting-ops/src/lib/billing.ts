@@ -40,10 +40,15 @@ export type Ipc = {
   measurement: string | null;
   prepared_by: string;
   prepared_at: string;
-  status: 'prepared' | 'certified' | 'returned';
+  status: 'prepared' | 'submitted' | 'certified' | 'returned';
   certified_value: number | null;
   certified_at: string | null;
   note: string | null;
+  submitted_on?: string | null;
+  submitted_ref?: string | null;
+  cert_date?: string | null;
+  cert_ref?: string | null;
+  adjusted?: boolean;
 };
 
 export const TRIGGER_KINDS: { value: TriggerKind; label: string }[] = [
@@ -56,11 +61,11 @@ export const TRIGGER_KINDS: { value: TriggerKind; label: string }[] = [
 
 export const CHECK_STATUS: { value: InvoiceCheck['status']; label: string }[] = [
   { value: 'on_track', label: 'On track' },
-  { value: 'ready', label: 'Work done – payment certificate to submit' },
+  { value: 'ready', label: 'Work done – IPA to raise in SAP' },
   { value: 'slipping', label: 'Slipping – propose a later month' },
 ];
 
-export const IPC_STATUS: Record<Ipc['status'], string> = { prepared: 'With the SEE', certified: 'Certified', returned: 'Returned to correct' };
+export const IPC_STATUS: Record<Ipc['status'], string> = { prepared: 'With the SEE', submitted: 'IPA with the client / consultant', certified: 'Certified', returned: 'Returned to correct' };
 
 /** Roles that see the money */
 export const BILLING_ROLES = ['senior_elec_engineer', 'sm_projects', 'gm', 'operations_exec'];
@@ -113,14 +118,14 @@ export const RISK: Record<BillingRow['status'], { label: string; tone: 'green' |
   green: { label: 'On track', tone: 'green' },
   amber: { label: 'At risk', tone: 'amber' },
   red: { label: 'Will miss the month', tone: 'red' },
-  ready: { label: 'Certificate approved – to invoice', tone: 'blue' },
+  ready: { label: 'Certified – invoice in SAP', tone: 'blue' },
   no_trigger: { label: 'No trigger', tone: 'red' },
   no_date: { label: 'No forecast date', tone: 'grey' },
 };
 /** What the line waits for, in words */
 export function billingStep(r: BillingRow, fmt: (d: string) => string) {
-  if (r.stage === 'invoice') return 'Payment certificate approved – Operations raises the invoice';
-  if (r.stage === 'certificate') return r.cert_id ? `Payment certificate ${r.cert_code ?? ''} with the client` : 'Work done – submit the payment certificate';
+  if (r.stage === 'invoice') return 'Certified – Operations raises the invoice in SAP';
+  if (r.stage === 'certificate') return 'Work done – IPA in SAP, waiting for the client / consultant to certify';
   if (!r.kind) return 'Set the trigger';
   if (!r.forecast_date) return `${r.trigger_label} · invoice deadline ${fmt(r.deadline)}`;
   return `${r.trigger_label} · expected ${fmt(r.forecast_date)} · deadline ${fmt(r.deadline)} (${r.float_days} working days)`;

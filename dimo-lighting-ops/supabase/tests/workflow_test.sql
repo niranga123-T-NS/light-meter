@@ -4322,9 +4322,80 @@ do $$ declare e uuid := current_setting('test.exlegacy')::uuid; ov numeric := (s
 begin
   assert public.record_variation_client(current_setting('test.varb')::uuid, true, '{"vo_no":"VO-11"}') = 'secured_updated', 'legacy project: linked secured project updated';
   assert (select order_value from public.secured_projects where id = current_setting('test.bsec')::uuid) = ov + 900000, 'order value';
-  assert (select qty = 2 and rate = 450000 and section = 'Variations' from public.exec_boq_items where exec_project_id = e and source = 'variation'), 'in the BOQ';
+  assert (select qty = 2 and rate = 450000 and section like 'Variation VO-11 – %' from public.exec_boq_items where exec_project_id = e and source = 'variation'), 'in the BOQ';
   assert (select total from public.exec_boqs where exec_project_id = e) = 27600000, 'BOQ total';
 end $$;
+-- Bill tab: IPA submitted to the client, quantities adjusted at certification, BOQ progress ------------------------
+do $$ declare iid uuid := current_setting('test.ipcq2')::uuid; e uuid := current_setting('test.exlegacy')::uuid; val numeric; p jsonb;
+begin
+  perform public.submit_ipc_to_client(iid, current_date, 'IPA-05');
+  assert (select status = 'submitted' and submitted_ref = 'IPA-05' from public.exec_ipcs where id = iid), 'IPA submitted';
+  val := public.record_ipc_certification(iid, jsonb_build_object('ref', 'Consultant cert 5',
+    'lines', jsonb_build_array(jsonb_build_object('boq_item_id', (select id from bq where item_no = '2.3'), 'cert_qty', 14))));
+  assert val = 300000, 'certified at the adjusted quantities ' || val;
+  assert (select status = 'certified' and adjusted and certified_value = 300000 from public.exec_ipcs where id = iid), 'adjusted';
+  p := public.boq_progress(e);
+  assert (select (x ->> 'cert')::numeric = 14 and (x ->> 'to_date')::numeric = 16 from jsonb_array_elements(p -> 'items') x where x ->> 'item_no' = '2.3'), 'progress: measured vs certified';
+  assert (p ->> 'certified_total')::numeric = 8600000, 'certified to date ' || (p ->> 'certified_total');
+  -- A variation approved by the client, added by the SEE: separate section in the BOQ
+  begin perform public.add_approved_variation(e, '{"vo_no":"VO-12","title":"Extra DB","lines":[]}'); assert false, 'lines';
+  exception when others then assert sqlerrm = 'Add the lines – description and amount', sqlerrm; end;
+  perform public.add_approved_variation(e, '{"vo_no":"VO-12","title":"Extra DB at the pavilion","lines":[{"description":"DB 12-way","unit":"nos","qty":2,"rate":100000},{"description":"Testing","amount":50000}]}');
+  assert (select count(*) = 2 and sum(amount) = 250000 and min(section) like 'Variation VO-12 – %' from public.exec_boq_items where exec_project_id = e and item_no like 'VO-12/%'), 'in the BOQ';
+  assert (select status = 'client_accepted' and direct and client_value_lkr = 250000 from public.variations where vo_no = 'VO-12'), 'variation recorded';
+  begin perform public.add_approved_variation(e, '{"vo_no":"VO-12","title":"Again","lines":[{"description":"x","amount":1}]}'); assert false, 'dup';
+  exception when others then assert sqlerrm = 'This VO number is already in the BOQ', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare e uuid := current_setting('test.exlegacy')::uuid; p jsonb := public.boq_progress(current_setting('test.exlegacy')::uuid);
+begin
+  assert not (p -> 'items' -> 1 ? 'rate') and p -> 'certified_total' = 'null'::jsonb, 'AE: quantities only';
+  assert (select count(*) from jsonb_array_elements(public.claim_context(e) -> 'items') x where x ->> 'source' = 'variation') = 3, 'AE measures variation items separately';
+end $$;
+reset role;
+-- Pending variation: agreed dates, late → SM Projects and DGM / GM
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare v uuid;
+begin
+  v := public.raise_variation(current_setting('test.exlegacy')::uuid, '{"vtype":"addition","reason":"client_instruction","title":"Car park lights","description":"Four poles"}');
+  perform set_config('test.varp', v::text, false);
+  perform public.screen_variation(v, 'C', '{"value":"600000"}');
+  assert (select dimo_due = current_date + 7 from public.variations where id = v), 'DIMO part agreed in a week';
+  assert (select x ->> 'stage' from jsonb_array_elements(public.project_variations(current_setting('test.exlegacy')::uuid)) x where x ->> 'id' = v::text) = 'dimo_approval', 'stage';
+end $$;
+reset role;
+do $$ declare v uuid := current_setting('test.varp')::uuid;
+begin
+  assert public.variations_tick(now() + interval '9 days') >= 1, 'late';
+  assert exists (select 1 from public.notifications where entity_id = v and title like 'Variation late%' and recipient_id = (select id from u where role = 'gm')), 'DGM / GM told';
+  assert exists (select 1 from public.notifications where entity_id = v and title like 'Variation late%' and recipient_id = (select id from u where role = 'sm_projects')), 'SM Projects told';
+  assert public.variations_tick(now() + interval '9 days') = 0, 'once per step';
+end $$;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+select public.decide_exec_variation(current_setting('test.varp')::uuid, true);
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare v uuid := current_setting('test.varp')::uuid; e uuid := current_setting('test.exlegacy')::uuid;
+begin
+  assert (select x ->> 'stage' from jsonb_array_elements(public.project_variations(e)) x where x ->> 'id' = v::text) = 'to_submit', 'DIMO part done – to submit';
+  begin perform public.submit_variation_to_client(v, '{}'); assert false, 'due';
+  exception when others then assert sqlerrm like 'Set the date agreed%', sqlerrm; end;
+  perform public.submit_variation_to_client(v, jsonb_build_object('due', current_date + 5, 'ref', 'Letter 22'));
+  assert (select x ->> 'stage' from jsonb_array_elements(public.project_variations(e)) x where x ->> 'id' = v::text) = 'with_client', 'with the client';
+end $$;
+reset role;
+insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name, uploaded_by)
+values ('variation', current_setting('test.varp')::uuid, 'var_doc', 'variation/test/vo3.pdf', 'vo3.pdf', (select id from u where role = 'senior_elec_engineer'));
+do $$ begin assert public.variations_tick(now() + interval '6 days') = 1, 'client late'; end $$;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare v uuid := current_setting('test.varp')::uuid; e uuid := current_setting('test.exlegacy')::uuid;
+begin
+  perform public.record_variation_client(v, true, '{"vo_no":"VO-13","lines":[{"description":"Pole 8 m with lantern","unit":"nos","qty":4,"rate":130000}]}');
+  assert (select client_value_lkr = 520000 and status = 'client_accepted' from public.variations where id = v), 'value adjusted by the client';
+  assert (select sum(amount) = 520000 from public.exec_boq_items where variation_id = v), 'lines in the BOQ';
+end $$;
+
 -- Revised upload keeps measured items (rates changed, item dropped)
 do $$ declare e uuid := current_setting('test.exlegacy')::uuid;
 begin

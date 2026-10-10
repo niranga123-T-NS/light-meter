@@ -93,7 +93,7 @@ export function MgmtReportView({ r }: { r: MgmtReport }) {
           <Stat label="Invoiced" value={mn(r.invoicing.month.invoiced)} tone={tone(r.invoicing.month.invoiced, r.invoicing.month.budget)} />
           <Stat label={`Year-end outlook vs ${mn(r.invoicing.fyBudget)} budget`} value={mn(r.invoicing.outlook)} tone={tone(r.invoicing.outlook, r.invoicing.fyBudget)} />
           <Stat label={`Slipped (${r.invoicing.slipped.count})`} value={mn(r.invoicing.slipped.value)} tone={r.invoicing.slipped.count ? 'red' : undefined} />
-          <Stat label="Payment certificate approved – to invoice" value={mn(r.invoicing.ready)} />
+          <Stat label="Certified – to invoice in SAP" value={mn(r.invoicing.ready)} />
           {r.invoicing.moves ? (
             <Stat
               label={`Moved to a later month YTD (${r.invoicing.moves.count}) · DIMO execution ${mn(r.invoicing.moves.dimoValue)}`}

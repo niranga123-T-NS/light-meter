@@ -97,9 +97,12 @@ export default function NewClaimScreen() {
             <Chip label="All items" on={filter === 'all'} onPress={() => setFilter('all')} />
             <Chip label="Measured only" on={filter === 'done'} onPress={() => setFilter('done')} />
           </Row>
-          {bySection(shown).map((g) => (
-            <Section key={g.section} title={g.section}>
-              <Card style={{ padding: 0, overflow: 'hidden' }}>
+          {bySection(shown).map((g, gi, all) => (
+            <Section key={g.section} title={g.items[0]?.source === 'variation' ? `Approved variation – ${g.section.replace(/^Variation /, '')}` : g.section}>
+              {g.items[0]?.source === 'variation' && all[gi - 1]?.items[0]?.source !== 'variation' ? (
+                <Notice tone={colors.blue}>Approved variations (non-BOQ items) – measure them separately from the contract BOQ below.</Notice>
+              ) : null}
+              <Card style={{ padding: 0, overflow: 'hidden', borderLeftWidth: g.items[0]?.source === 'variation' ? 4 : 0, borderLeftColor: colors.blue }}>
                 {g.items.map((i) =>
                   i.heading ? (
                     <Text key={i.id} style={{ paddingHorizontal: 12, paddingTop: 10, paddingBottom: 4, fontWeight: '700', color: colors.ink }}>{i.description}</Text>
