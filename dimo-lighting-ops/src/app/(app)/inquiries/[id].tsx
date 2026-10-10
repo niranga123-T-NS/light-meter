@@ -13,6 +13,7 @@ import { useMe } from '@/lib/auth';
 import { isTender, type Split } from '@/lib/deadlines';
 import { openAttachment } from '@/lib/files';
 import { daysBetween, endOfWorkDay, fmtDate, fmtDateISO, fmtDateTime, fmtMoney, human, INQUIRY_STATUS_LABEL, todayISO, inquiryTitle, fmtDateDash } from '@/lib/format';
+import { editInquiryWin, OPEN_INQUIRY } from '@/lib/inquiryWin';
 import { useLoad, useMasters, usePeople } from '@/lib/hooks';
 import { isDesigner, isEstimator, isSales, projectTypeLabel } from '@/lib/roles';
 import { rpc, supabase } from '@/lib/supabase';
@@ -485,6 +486,12 @@ export default function InquiryDetail() {
             />
           ) : null}
           <KeyValue label="Sales person" value={people[i.sales_person_id]?.full_name ?? '—'} />
+          {mineAsSales && i.win_probability != null ? (
+            <View>
+              <KeyValue label="Win probability" value={`${i.win_probability}%${i.est_value != null ? ` · expected ${fmtMoney(i.est_value, i.currency)}` : ''}`} />
+              {OPEN_INQUIRY(i.status) ? <Button small variant="ghost" title="Change" onPress={() => editInquiryWin(dialog, i, () => reload())} /> : null}
+            </View>
+          ) : null}
           {i.design_required_by ? <KeyValue label="Design required by" value={fmtDate(i.design_required_by)} /> : null}
           {i.quotation_required_by ? <KeyValue label="Quotation required by" value={fmtDate(i.quotation_required_by)} /> : null}
         </Row>

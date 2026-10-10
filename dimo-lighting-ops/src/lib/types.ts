@@ -182,6 +182,8 @@ export type InquiryStatus =
 export type Inquiry = {
   id: string;
   code: string;
+  win_probability?: number | null;
+  est_value?: number | null;
   tender_group_id?: string | null;
   copied_from_inquiry_id?: string | null;
   project_id: string;

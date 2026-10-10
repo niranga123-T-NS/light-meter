@@ -6,6 +6,7 @@ import { Button, Card, colors, DateField, ErrorBanner, Field, KeyValue, Loading,
 import { captureLocation, TenderResultForm } from '@/components/VisitBits';
 import { useMe } from '@/lib/auth';
 import { fmtDate, fmtDateTime, fmtMoney, fmtNumber } from '@/lib/format';
+import { OPEN_INQUIRY } from '@/lib/inquiryWin';
 import { useLoad, useMasters, usePeople } from '@/lib/hooks';
 import { isSales } from '@/lib/roles';
 import { rpc, supabase } from '@/lib/supabase';
@@ -52,6 +53,25 @@ export default function VisitDetail() {
     const { data: p } = await supabase.from('projects').select('*').eq('id', v.project_id).maybeSingle();
     const project = p as Project | null;
     if (!project) return;
+    // With open inquiries the project's % comes from them: update each inquiry's %
+    const { data: iq } = await supabase.from('inquiries').select('id, code, inquiry_name, status, win_probability, est_value, currency').eq('project_id', project.id);
+    const open = ((iq ?? []) as { id: string; code: string; inquiry_name: string | null; status: string; win_probability: number | null; est_value: number | null; currency: string }[]).filter((x) => OPEN_INQUIRY(x.status));
+    if (open.length) {
+      const res = await dialog.prompt({
+        title: 'Update win probability?',
+        message: `${project.name} is at ${project.win_probability}% – from its ${open.length === 1 ? 'inquiry' : `${open.length} open inquiries`}. Keep or change each inquiry’s %.`,
+        confirmLabel: 'Save',
+        fields: open.map((x) => ({ key: x.id, label: `${x.code}${x.inquiry_name ? ` · ${x.inquiry_name}` : ''} – win %`, required: true, initial: String(x.win_probability ?? project.win_probability) })),
+      });
+      if (!res) return;
+      const changed = open.filter((x) => Number(res[x.id]) !== (x.win_probability ?? project.win_probability));
+      if (changed.some((x) => !(Number(res[x.id]) >= 0 && Number(res[x.id]) <= 100))) return dialog.toast('Win probability is 0 – 100', 'error');
+      if (!changed.length) return;
+      await dialog.run(async () => {
+        for (const x of changed) await rpc('set_inquiry_probability', { p_inquiry: x.id, p_pct: Number(res[x.id]) });
+      }, 'Updated – the project’s % follows its inquiries');
+      return;
+    }
     // Wizard tick on for this project: score it with the wizard instead of entering the % by hand
     if (project.use_wizard) {
       if (await dialog.confirm('Update the win probability?', `${project.name} is at ${project.win_probability}%. This project uses the Win Probability Wizard.`, { confirmLabel: 'Open the wizard' }))
