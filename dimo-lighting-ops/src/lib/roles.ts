@@ -282,7 +282,7 @@ export type ReportDef = { key: string; title: string; area: 'Sales' | 'Projects'
 export const REPORTS: ReportDef[] = [
   { key: 'visits', title: 'Visit report and plan-vs-actual', area: 'Sales', access: { asm: 'Own', smp: 'Team', gm: 'All' } },
   { key: 'scorecard', title: 'Salesperson KPI scorecard', area: 'Sales', access: { asm: 'Own', smp: 'Team', gm: 'All' } },
-  { key: 'inquiries_by_category', title: 'Inquiries by sales person and category', area: 'Sales', access: { asm: 'Own', smp: 'Team', gm: 'All' } },
+  { key: 'inquiries_by_category', title: 'Visits and inquiries by sales person and category', area: 'Sales', access: { asm: 'Own', smp: 'Team', gm: 'All' } },
   { key: 'pipeline', title: 'Project pipeline and stage movement', area: 'Projects', access: { asm: 'Own', smp: 'Team', gm: 'All' } },
   { key: 'win_probability', title: 'Win-probability project list', area: 'Projects', access: { smp: 'Team', gm: 'All' } },
   { key: 'project_term', title: 'Short / medium / long term project lists', area: 'Projects', access: { gm: 'All' } },

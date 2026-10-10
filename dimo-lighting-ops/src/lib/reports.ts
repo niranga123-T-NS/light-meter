@@ -124,48 +124,81 @@ export async function buildReport(key: string, f: Filters, people: Record<string
     }
     case 'inquiries_by_category': {
       const by = f.category ?? 'customer';
-      let q = supabase
+      let iq = supabase
         .from('inquiries')
-        .select('id, sales_person_id, submitted_at, status, route, project_type, organizations!inquiries_organization_id_fkey(visit_category)')
+        .select('id, sales_person_id, visit_id, submitted_at, route, project_type, organizations!inquiries_organization_id_fkey(visit_category)')
         .not('submitted_at', 'is', null)
         .gte('submitted_at', f.from)
         .lte('submitted_at', `${f.to}T23:59:59`);
-      if (f.projectType) q = q.eq('project_type', f.projectType);
-      const [{ data, error }, { data: cats }] = await Promise.all([
-        q,
+      let vq = supabase.from('visits').select('id, sales_person_id, visit_category, project_type').gte('checkin_at', f.from).lte('checkin_at', `${f.to}T23:59:59`);
+      if (f.projectType) {
+        iq = iq.eq('project_type', f.projectType);
+        vq = vq.eq('project_type', f.projectType);
+      }
+      const [{ data, error }, { data: vdata, error: verr }, { data: cats }] = await Promise.all([
+        iq,
+        vq,
         supabase.from('master_lists').select('value, sort_order').eq('list_name', 'visit_category').order('sort_order'),
       ]);
-      if (error) throw new Error(error.message);
-      type Inq = { sales_person_id: string; route: string; project_type: string | null; organizations: { visit_category: string | null } | null };
+      if (error || verr) throw new Error((error ?? verr)!.message);
+      type Inq = { sales_person_id: string; visit_id: string | null; route: string; project_type: string | null; organizations: { visit_category: string | null } | null };
+      type Vis = { sales_person_id: string; visit_category: string | null; project_type: string | null };
       const ROUTES: Record<string, string> = { A: 'A – design + estimation', B: 'B – estimation only', C: 'C – design only' };
-      const catOf = (i: Inq) =>
+      const inqCat = (i: Inq) =>
         by === 'route' ? (ROUTES[i.route] ?? i.route) : by === 'project_type' ? projectTypeLabel(i.project_type) : (i.organizations?.visit_category ?? 'Not set');
-      const list = (data ?? []) as unknown as Inq[];
+      // Visits have no route: in the route view they are counted only in the person's total
+      const visCat = (v: Vis) => (by === 'route' ? null : by === 'project_type' ? projectTypeLabel(v.project_type) : (v.visit_category ?? 'Not set'));
+      const inqs = (data ?? []) as unknown as Inq[];
+      const vis = (vdata ?? []) as Vis[];
       const order =
-        by === 'route'
-          ? Object.values(ROUTES)
-          : by === 'project_type'
-            ? PROJECT_TYPES.map((t) => t.label)
-            : ((cats ?? []) as { value: string }[]).map((c) => c.value);
-      const seen = Array.from(new Set(list.map(catOf)));
+        by === 'route' ? Object.values(ROUTES) : by === 'project_type' ? PROJECT_TYPES.map((x) => x.label) : ((cats ?? []) as { value: string }[]).map((c) => c.value);
+      const seen = Array.from(new Set([...inqs.map(inqCat), ...vis.map(visCat).filter((c): c is string => !!c)]));
       const keys = [...order.filter((c) => seen.includes(c)), ...seen.filter((c) => !order.includes(c)).sort()];
-      const persons = Array.from(new Set(list.map((i) => i.sales_person_id)));
-      const rows: Row[] = persons
-        .map((p) => {
-          const mine = list.filter((i) => i.sales_person_id === p);
-          const r: Row = { person: name(p) || '—', total: mine.length };
-          keys.forEach((k, n) => (r[`c${n}`] = mine.filter((i) => catOf(i) === k).length || ''));
-          return r;
-        })
-        .sort((a, b) => Number(b.total) - Number(a.total));
-      const totals: Record<string, string | number> = { 'Sales person': 'Total', Total: list.length };
-      keys.forEach((k) => (totals[k] = list.filter((i) => catOf(i) === k).length));
-      const label = by === 'route' ? 'route' : by === 'project_type' ? 'project type' : 'customer category';
+      const line = (label: string, v: Vis[] | null, i: Inq[]): Row => {
+        const fromVisit = i.filter((x) => x.visit_id).length;
+        return {
+          label,
+          visits: v ? v.length : '—',
+          inquiries: i.length,
+          from_visit: fromVisit,
+          per_inquiry: v && i.length ? (v.length / i.length).toFixed(1) : '—',
+          conversion: v && v.length ? `${Math.round((100 * fromVisit) / v.length)}%` : '—',
+        };
+      };
+      const persons = Array.from(new Set([...inqs.map((i) => i.sales_person_id), ...vis.map((v) => v.sales_person_id)])).sort((a, b) =>
+        name(a).localeCompare(name(b)),
+      );
+      const mineI = (p: string) => inqs.filter((i) => i.sales_person_id === p);
+      const mineV = (p: string) => vis.filter((v) => v.sales_person_id === p);
+      const totalsOf = (label: string, v: Vis[], i: Inq[]) => {
+        const r = line(label, v, i);
+        return { [CAT]: label, Visits: r.visits as number, Inquiries: r.inquiries as number, 'From a visit': r.from_visit as number, 'Visits per inquiry': r.per_inquiry as string, 'Visits that led to an inquiry': r.conversion as string };
+      };
+      const label = by === 'route' ? 'Route' : by === 'project_type' ? 'Project type' : 'Customer category';
+      const CAT = `Sales person / ${label.toLowerCase()}`;
+      const summary = {
+        heading: 'All sales persons',
+        rows: persons.map((p) => line(name(p) || '—', mineV(p), mineI(p))),
+        totals: totalsOf('Total', vis, inqs),
+      };
+      const perPerson = persons.map((p) => ({
+        heading: name(p) || '—',
+        rows: keys
+          .map((k) => line(k, by === 'route' ? null : mineV(p).filter((v) => visCat(v) === k), mineI(p).filter((i) => inqCat(i) === k)))
+          .filter((r) => r.visits !== 0 || r.inquiries !== 0),
+        totals: totalsOf(`${name(p)} – total`, mineV(p), mineI(p)),
+      }));
       return {
-        filterText: `Inquiries submitted ${period} by sales person and ${label}${typeText}`,
-        columns: [col('Sales person', 'person'), col('Total', 'total', 'right'), ...keys.map((k, n) => col(k, `c${n}`, 'right'))],
-        sections: [{ rows, totals: rows.length ? totals : undefined }],
-        landscape: keys.length > 6,
+        filterText: `Visits (by check-in) and inquiries (by submission) ${period} by sales person and ${label.toLowerCase()}${typeText}${by === 'route' ? ' – visits have no route, so they show in the totals only' : ''}`,
+        columns: [
+          col(CAT, 'label'),
+          col('Visits', 'visits', 'right'),
+          col('Inquiries', 'inquiries', 'right'),
+          col('From a visit', 'from_visit', 'right'),
+          col('Visits per inquiry', 'per_inquiry', 'right'),
+          col('Visits that led to an inquiry', 'conversion', 'right'),
+        ],
+        sections: persons.length ? [summary, ...perPerson] : [],
       };
     }
     case 'client_view': {
