@@ -53,11 +53,15 @@ export function MeetingsTab({ p }: { p: ExecProject }) {
         ]
           .filter(Boolean)
           .join(' · ')}
+        wrapRight
         right={
-          <Pill
-            label={m.status === 'published' ? 'Published' : m.meeting_date === today ? 'Today' : past ? 'To publish' : 'Called'}
-            tone={m.status === 'published' ? colors.green : m.meeting_date === today ? colors.blue : past ? colors.red : colors.amber}
-          />
+          <Row gap={6} wrap>
+            {m.status === 'published' ? <Button small variant="secondary" title="Status review" onPress={() => router.push(`/meeting/review/${m.id}`)} /> : null}
+            <Pill
+              label={m.status === 'published' ? 'Published' : m.meeting_date === today ? 'Today' : past ? 'To publish' : 'Called'}
+              tone={m.status === 'published' ? colors.green : m.meeting_date === today ? colors.blue : past ? colors.red : colors.amber}
+            />
+          </Row>
         }
         onPress={() => router.push(`/meeting/${m.id}`)}
       />
