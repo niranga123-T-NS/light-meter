@@ -1,0 +1,19 @@
+name: tts-sinhala-tmp
+on:
+  push:
+    branches: [tts-sinhala-tmp]
+    paths: [clips.json]
+permissions:
+  contents: write
+jobs:
+  tts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - run: pip install edge-tts
+      - run: python make.py
+      - run: |
+          git config user.name "github-actions" && git config user.email "github-actions@users.noreply.github.com"
+          git add si_edge && git commit -m "Sinhala clips" && git push
