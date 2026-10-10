@@ -65,7 +65,7 @@ export default function NewReport() {
       supabase.from('exec_plan_items').select('*').eq('exec_project_id', proj).eq('status', 'planned').lt('day', f.date).gte('day', addDaysISO(f.date, -14)).order('day'),
       sup ? Promise.resolve({ data: [] }) : supabase.from('exec_reports').select('*').eq('exec_project_id', proj).eq('report_date', f.date).eq('level', 'supervisor'),
       sup ? Promise.resolve({ data: [] }) : supabase.from('exec_plans').select('id, ae_id, status').eq('exec_project_id', proj),
-      // toolbox talks recorded on the TBT form that day (numbered automatically)
+      // toolbox meetings recorded on the TBT form that day (numbered automatically)
       supabase.from('hse_records').select('*').eq('exec_project_id', proj).eq('form_code', 'TBT-01')
         .gte('starts_at', `${f.date}T00:00:00+05:30`).lt('starts_at', `${addDaysISO(f.date, 1)}T00:00:00+05:30`).order('starts_at'),
       // Supervisor: the day's works of the own approved plan, and the own approved work permits of the day
@@ -81,7 +81,7 @@ export default function NewReport() {
     const subItems = (subs.data ?? []) as unknown as SubItem[];
     const permits = ((ptws.data ?? []) as HseRecord[]).filter((r) => slDay(r.starts_at) <= f.date && f.date <= slDay(r.ends_at));
     const { data: ln } = subItems.length ? await supabase.from('sub_plan_item_permits').select('*').in('item_id', subItems.map((x) => x.id)) : { data: [] };
-    // Supervisor: own toolbox talks. Assistant Engineer: every toolbox talk of the project that day.
+    // Supervisor: own toolbox meetings. Assistant Engineer: every toolbox meeting of the project that day.
     const tbts = ((talks.data ?? []) as HseRecord[]).filter((t) => !sup || t.created_by === me.id);
     const myPlans = new Set(((plans.data ?? []) as Pick<ExecPlan, 'id' | 'ae_id' | 'status'>[]).filter((x) => x.ae_id === me.id && x.status === 'approved').map((x) => x.id));
     const okPlans = new Set(((plans.data ?? []) as Pick<ExecPlan, 'id' | 'status'>[]).filter((x) => x.status === 'approved').map((x) => x.id));
@@ -106,7 +106,7 @@ export default function NewReport() {
     setSubEdits(Object.fromEntries(day.subItems.filter((x) => x.status !== 'planned').map((x) => [x.id, { status: x.status, done_qty: x.done_qty, note: x.result_note ?? '' }])));
     setPermitSel(day.permits.map((r) => r.id));
   }
-  // Toolbox talks recorded for the day are ticked and linked automatically (also ones recorded after opening the form)
+  // Toolbox meetings recorded for the day are ticked and linked automatically (also ones recorded after opening the form)
   const tbtKey = day ? `${prefillKey}|${day.tbts.map((t) => t.id).join(',')}` : '';
   if (day && tbtKey !== tbtSeen) {
     setTbtSeen(tbtKey);
@@ -131,7 +131,7 @@ export default function NewReport() {
     if (needTbt) return setError('Hold and record the day’s toolbox meeting first – no daily report without it');
     const changed = (day?.items ?? []).filter((it) => itemChanged(it, edits[it.id]));
     const linked = f.toolbox_talk ? tbt.filter((x) => day?.tbts.some((t) => t.id === x)) : [];
-    if (f.toolbox_talk && !linked.length && !f.toolbox_topic.trim()) return setError(day?.tbts.length ? 'Tick the toolbox talk held' : 'Record the toolbox talk (TBT form) or enter the topic');
+    if (f.toolbox_talk && !linked.length && !f.toolbox_topic.trim()) return setError(day?.tbts.length ? 'Tick the toolbox meeting held' : 'Record the toolbox meeting (TBT form) or enter the topic');
     // Supervisor: every work of the day's plan gets a result (works from the engineers' plan reported in A carry that result)
     const inA = new Set((day?.items ?? []).map((i) => i.id));
     const subOwn = (day?.subItems ?? []).filter((x) => !x.ae_item_id || !inA.has(x.ae_item_id));
@@ -281,10 +281,10 @@ export default function NewReport() {
       ) : null}
       <Section title={`${sup ? 'C' : 'D'}. Health and safety`}>
         <Card>
-          <Toggle label="Toolbox talk held" value={f.toolbox_talk} onChange={(v) => set('toolbox_talk', v)} />
+          <Toggle label="Toolbox meeting held" value={f.toolbox_talk} onChange={(v) => set('toolbox_talk', v)} />
           {f.toolbox_talk && day?.tbts.length ? (
             <View style={{ gap: 4 }}>
-              <Muted>{`Toolbox talk ${day.tbts.length > 1 ? 'records' : 'record'} of this day – number taken from the TBT form`}</Muted>
+              <Muted>{`Toolbox meeting ${day.tbts.length > 1 ? 'records' : 'record'} of this day – number taken from the TBT form`}</Muted>
               {day.tbts.map((t) => (
                 <Toggle
                   key={t.id}
@@ -297,8 +297,8 @@ export default function NewReport() {
           ) : null}
           {f.toolbox_talk && day && !day.tbts.length ? (
             <View style={{ gap: 6 }}>
-              <Notice tone={colors.amber}>{`No toolbox talk recorded for ${fmtDate(f.date)} yet. Record it on the TBT form – its number is then linked here automatically.`}</Notice>
-              {proj ? <Button small title="Record toolbox talk (TBT form)" onPress={() => router.push({ pathname: '/execution/hse/tbt', params: { project: proj } })} /> : null}
+              <Notice tone={colors.amber}>{`No toolbox meeting recorded for ${fmtDate(f.date)} yet. Record it on the TBT form – its number is then linked here automatically.`}</Notice>
+              {proj ? <Button small title="Record toolbox meeting (TBT form)" onPress={() => router.push({ pathname: '/execution/hse/tbt', params: { project: proj } })} /> : null}
               <Field label="…or type the topic (if no TBT record)" value={f.toolbox_topic} onChangeText={(v) => set('toolbox_topic', v)} />
             </View>
           ) : null}

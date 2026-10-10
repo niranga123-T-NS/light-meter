@@ -15,7 +15,7 @@ import { rpc, supabase } from '@/lib/supabase';
 
 const ANS = { yes: { t: 'Yes', c: colors.green }, no: { t: 'No', c: colors.red }, na: { t: 'N/A', c: colors.grey } } as const;
 
-/** One HSE form as recorded: checklist, permit, toolbox talk or training – sign-offs, permit approval / closing and the PDF. */
+/** One HSE form as recorded: checklist, permit, toolbox meeting or training – sign-offs, permit approval / closing and the PDF. */
 export default function HseFormView() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const me = useMe();
@@ -84,7 +84,7 @@ export default function HseFormView() {
           {r.header.tbt_no && related?.form_code !== 'TBT-01' ? <KeyValue label="TBT number" value={String(r.header.tbt_no)} /> : null}
           {r.header.title ? <KeyValue label="Title" value={String(r.header.title)} /> : null}
           {r.header.man_hours !== undefined ? <KeyValue label="Man-hours" value={String(r.header.man_hours)} /> : null}
-          {related ? <KeyValue label={related.form_code === 'TBT-01' ? 'Toolbox talk' : 'Permit'} value={related.code} /> : null}
+          {related ? <KeyValue label={related.form_code === 'TBT-01' ? 'Toolbox meeting' : 'Permit'} value={related.code} /> : null}
         </Row>
         {r.header.description ? <Muted>{String(r.header.description)}</Muted> : null}
         <Row gap={8} wrap style={{ marginTop: 4 }}>
@@ -181,7 +181,7 @@ export default function HseFormView() {
       ) : null}
 
       {f.kind === 'tbt' ? (
-        <Section title="Toolbox talk">
+        <Section title="Toolbox meeting">
           <Card style={{ gap: 6 }}>
             <Text style={{ fontWeight: '600', color: colors.text }}>Activity / work programme</Text>
             <Text style={{ color: colors.ink }}>{String(r.header.activity ?? '')}</Text>

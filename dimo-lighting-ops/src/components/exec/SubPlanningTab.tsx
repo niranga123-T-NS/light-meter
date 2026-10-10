@@ -5,9 +5,9 @@ import type { ExecProject } from '@/lib/execution';
 import { HseTab } from './HseTab';
 import { SubPlanView } from './SubPlanView';
 
-/** The subcontractor supervisor's Planning tab: the weekly / daily plan and the work permits each planned work needs. */
+/** The subcontractor supervisor's Planning tab: the weekly / daily plan, the work permits and the toolbox meetings. */
 export function SubPlanningTab({ p }: { p: ExecProject }) {
-  const [part, setPart] = useState<'plan' | 'permits'>('plan');
+  const [part, setPart] = useState<'plan' | 'permits' | 'tbt'>('plan');
   return (
     <View style={{ gap: 8 }}>
       <Segmented
@@ -16,9 +16,10 @@ export function SubPlanningTab({ p }: { p: ExecProject }) {
         options={[
           { value: 'plan', label: 'Plan' },
           { value: 'permits', label: 'Work permits' },
+          { value: 'tbt', label: 'Toolbox meetings' },
         ]}
       />
-      {part === 'plan' ? <SubPlanView project={p.id} fixedProject /> : <HseTab p={p} mode="permits" />}
+      {part === 'plan' ? <SubPlanView project={p.id} fixedProject /> : <HseTab p={p} mode={part} />}
     </View>
   );
 }

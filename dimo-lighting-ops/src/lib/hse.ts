@@ -1,7 +1,7 @@
 import { colors } from '@/components/ui';
 import { supabase } from './supabase';
 
-// DIMO OHS forms: equipment checklists, first-aid kit, permits to work, toolbox talks, induction and training.
+// DIMO OHS forms: equipment checklists, first-aid kit, permits to work, toolbox meetings, induction and training.
 
 export type HseItem = { no: string; text: string; critical?: boolean; req?: string; purpose?: string };
 export type HseForm = {
@@ -55,6 +55,7 @@ export type HseRecord = {
   ends_at: string | null;
   related_id: string | null;
   late_request?: boolean;
+  tbt_late?: boolean;
   hse_report_id: string | null;
   corrective_date: string | null;
   corrective_note: string | null;

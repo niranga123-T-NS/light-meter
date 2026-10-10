@@ -52,11 +52,43 @@ export function HandoverTab({ p, onChange }: { p: ExecProject; onChange: () => v
   };
   const closeSnag = (s: Snag) => dialog.run(async () => { await rpc('close_snag', { p_id: s.id }); await reload(); }, 'Closed');
   const markItem = (d: DossierItem, done: boolean) => dialog.run(async () => { await rpc('complete_dossier_item', { p_id: d.id, p_done: done }); await reload(); }, done ? 'Done' : 'Reopened');
+  const canDossier = (isSee || isAe || me.role === 'operations_exec') && p.status === 'active';
+  const addItem = async (area?: string) => {
+    const r = await dialog.prompt({
+      title: area ? `Add a document – ${areaLabel(area)}` : 'Add a dossier document',
+      fields: [
+        ...(area ? [] : [{ key: 'a', label: 'Area (an existing one or a new name)', required: true, initial: '' }]),
+        { key: 'i', label: 'Document', required: true },
+        { key: 'm', label: 'Needed for handover', type: 'select' as const, required: true, initial: 'yes', options: [{ value: 'yes', label: 'Mandatory' }, { value: 'no', label: 'Optional' }] },
+      ],
+      confirmLabel: 'Add',
+    });
+    if (!r) return;
+    const known = EXEC_AREAS.find((x) => x.label.toLowerCase() === (r.a ?? '').trim().toLowerCase())?.value;
+    await dialog.run(async () => {
+      await rpc('add_dossier_item', { p_exec: p.id, p_area: area ?? known ?? r.a, p_item: r.i, p_mandatory: r.m === 'yes' });
+      await reload();
+    }, 'Added');
+  };
+  const removeItem = async (d: DossierItem) => {
+    if (!(await dialog.confirm('Remove from the dossier?', `${d.item} – it is not needed for this project.`, { confirmLabel: 'Remove', danger: true }))) return;
+    await dialog.run(async () => {
+      await rpc('remove_dossier_item', { p_id: d.id });
+      await reload();
+    }, 'Removed');
+  };
+  const removeArea = async (a: string) => {
+    if (!(await dialog.confirm(`Remove the area “${areaLabel(a)}”?`, 'All its documents are taken off the dossier.', { confirmLabel: 'Remove area', danger: true }))) return;
+    await dialog.run(async () => {
+      await rpc('remove_dossier_area', { p_exec: p.id, p_area: a });
+      await reload();
+    }, 'Area removed');
+  };
   const makeDossier = () => dialog.run(async () => { await rpc('ensure_dossier', { p_exec: p.id }); await reload(); }, 'Dossier items created from the project areas');
 
   const snags = data?.snags ?? [];
   const openSnags = snags.filter((s) => s.status === 'open');
-  const dossier = data?.dossier ?? [];
+  const dossier = (data?.dossier ?? []).filter((d) => !d.removed);
   const areas = [...new Set(dossier.map((d) => d.area))];
 
   return (
@@ -102,12 +134,27 @@ export function HandoverTab({ p, onChange }: { p: ExecProject; onChange: () => v
 
       <Section
         title={`Handover dossier (${dossier.filter((d) => d.done).length} / ${dossier.length})`}
-        right={(isSee || isAe || me.role === 'operations_exec') && p.status === 'active' ? <Button small variant="secondary" title={dossier.length ? 'Add new areas' : 'Create from the areas'} onPress={makeDossier} /> : null}
+        right={
+          canDossier ? (
+            <Row gap={6}>
+              {dossier.length ? <Button small variant="secondary" title="+ Document" onPress={() => addItem()} /> : null}
+              <Button small variant="secondary" title={dossier.length ? 'Add new areas' : 'Create from the areas'} onPress={makeDossier} />
+            </Row>
+          ) : null
+        }
       >
         {areas.length ? (
           areas.map((a) => (
             <Card key={a} style={{ padding: 0, overflow: 'hidden', marginBottom: 8 }}>
-              <Muted style={{ padding: 10, fontWeight: '700' }}>{areaLabel(a)}</Muted>
+              <Row style={{ justifyContent: 'space-between', alignItems: 'center', paddingRight: 8 }}>
+                <Muted style={{ padding: 10, fontWeight: '700' }}>{areaLabel(a)}</Muted>
+                {canDossier ? (
+                  <Row gap={4}>
+                    <Button small variant="ghost" title="+ Document" onPress={() => addItem(a)} />
+                    <Button small variant="ghost" title="Remove area" onPress={() => removeArea(a)} />
+                  </Row>
+                ) : null}
+              </Row>
               {dossier
                 .filter((d) => d.area === a)
                 .map((d) => (
@@ -122,9 +169,12 @@ export function HandoverTab({ p, onChange }: { p: ExecProject; onChange: () => v
                         {openItem === d.id ? (
                           <>
                             <Attachments entityType="dossier_item" entityId={d.id} kinds={['dossier_doc']} title="Document" canUpload={!d.done && me.role !== 'gm' && me.role !== 'sm_projects'} />
-                            {me.role !== 'gm' && me.role !== 'sm_projects' ? (
-                              <Button small variant={d.done ? 'secondary' : 'primary'} title={d.done ? 'Reopen' : 'Mark done'} onPress={() => markItem(d, !d.done)} />
-                            ) : null}
+                            <Row gap={6} wrap>
+                              {me.role !== 'gm' && me.role !== 'sm_projects' ? (
+                                <Button small variant={d.done ? 'secondary' : 'primary'} title={d.done ? 'Reopen' : 'Mark done'} onPress={() => markItem(d, !d.done)} />
+                              ) : null}
+                              {canDossier && !d.done ? <Button small variant="ghost" title="Remove from dossier" onPress={() => removeItem(d)} /> : null}
+                            </Row>
                           </>
                         ) : null}
                       </>

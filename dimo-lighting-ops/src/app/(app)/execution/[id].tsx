@@ -73,7 +73,7 @@ export default function ExecProjectScreen() {
       {t === 'reports' ? <ReportsTab p={p} /> : null}
       {t === 'variations' ? <VariationsTab p={p} /> : null}
       {t === 'planning' ? <SubPlanningTab p={p} /> : null}
-      {t === 'hse' ? <HseTab p={p} mode={me.role === 'sub_supervisor' ? 'noPermits' : 'all'} /> : null}
+      {t === 'hse' ? <HseTab p={p} mode="noPermits" /> : null}
       {t === 'workers' ? <WorkersTab p={p} /> : null}
       {t === 'materials' ? <MaterialsTab p={p} /> : null}
       {t === 'qa' ? <QaTab p={p} /> : null}

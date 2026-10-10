@@ -528,7 +528,7 @@ export const GATE_CHECKLIST: Record<number, string[]> = {
   2: ['Testing and commissioning complete, witnessed by the client', 'As-built drawings and O&M manuals submitted', 'Client training done', 'Handover certificate signed by the client'],
   3: ['Defects liability period ended – defects closed', 'Final account agreed', 'Warranty registered', 'Retention release requested'],
 };
-export type DossierItem = { id: string; exec_project_id: string; area: string; item: string; mandatory: boolean; done: boolean; done_by: string | null; done_at: string | null };
+export type DossierItem = { id: string; exec_project_id: string; area: string; item: string; mandatory: boolean; done: boolean; done_by: string | null; done_at: string | null; removed?: boolean; custom?: boolean };
 export type CostLine = {
   id: string;
   exec_project_id: string;

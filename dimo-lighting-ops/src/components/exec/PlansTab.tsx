@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Button, Muted, Row, Section } from '@/components/ui';
+import { Button, Muted, Row, Section, Segmented } from '@/components/ui';
+import { HseTab } from './HseTab';
 import { useMe } from '@/lib/auth';
 import { weekOf, type ExecMember, type ExecProject, type PlanItem } from '@/lib/execution';
 import { addDaysISO, fmtDate, todayISO } from '@/lib/format';
@@ -9,8 +10,27 @@ import { loadProgramme } from '@/lib/programme';
 import { MyPlanEditor } from './MyPlanEditor';
 import { PlanWeek } from './PlanWeek';
 
-/** The project's week: every engineer's plan items and supervisor additions, with results. */
+/** The project's week: every engineer's plan items and supervisor additions, with results – and the day's work permits and
+ *  toolbox meetings. */
 export function PlansTab({ p }: { p: ExecProject }) {
+  const [part, setPart] = useState<'plan' | 'permits' | 'tbt'>('plan');
+  return (
+    <Section title="Plan">
+      <Segmented
+        value={part}
+        onChange={setPart}
+        options={[
+          { value: 'plan', label: 'Plan' },
+          { value: 'permits', label: 'Work permits' },
+          { value: 'tbt', label: 'Toolbox meetings' },
+        ]}
+      />
+      {part === 'plan' ? <PlanWeekView p={p} /> : <HseTab p={p} mode={part} />}
+    </Section>
+  );
+}
+
+function PlanWeekView({ p }: { p: ExecProject }) {
   const me = useMe();
   const [week, setWeek] = useState(weekOf(todayISO()));
   const { data, reload } = useLoad(async () => {
@@ -23,8 +43,8 @@ export function PlansTab({ p }: { p: ExecProject }) {
   // An Assistant Engineer on this project plans right here
   const myAe = me.role === 'assistant_engineer' && !!data?.members.some((m) => m.user_id === me.id && m.member_role === 'assistant_engineer');
   return (
-    <Section title="Plan">
-      <Row wrap gap={6} style={{ alignItems: 'center', marginBottom: 8 }}>
+    <>
+      <Row wrap gap={6} style={{ alignItems: 'center', marginBottom: 8, marginTop: 8 }}>
         <Button small variant="secondary" title="‹ Week" onPress={() => setWeek(addDaysISO(week, -7))} />
         <Muted>{`Week of ${fmtDate(week)}`}</Muted>
         <Button small variant="secondary" title="Week ›" onPress={() => setWeek(addDaysISO(week, 7))} />
@@ -34,6 +54,6 @@ export function PlansTab({ p }: { p: ExecProject }) {
       {data ? (
         <PlanWeek week={week} items={data.items} project={p.id} supervisors={data.members.filter((m) => m.member_role === 'sub_supervisor')} canResult={me.role !== 'trainee'} onChange={reload} programme={data.programme} />
       ) : null}
-    </Section>
+    </>
   );
 }

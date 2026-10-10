@@ -5090,7 +5090,7 @@ do $$ declare e uuid := current_setting('test.ex')::uuid; t uuid := (select id f
 begin
   begin perform public.submit_exec_report(e, current_date - 1, jsonb_build_object('crew_count', 4, 'work_done', 'x', 'toolbox_talk', true, 'toolbox_records', jsonb_build_array(other)));
     assert false, 'wrong day';
-  exception when others then assert sqlerrm like 'The toolbox talk must be one of this project on the report day%', sqlerrm; end;
+  exception when others then assert sqlerrm like 'The toolbox meeting must be one of this project on the report day%', sqlerrm; end;
   r := public.submit_exec_report(e, current_date - 1, jsonb_build_object('crew_count', 4, 'work_done', 'Cable pulling', 'toolbox_talk', true, 'toolbox_records', jsonb_build_array(t)));
   assert (select toolbox_records = array[t] and toolbox_topic like (select code from public.hse_records where id = t) || ' – Cable pulling%' from public.exec_reports where id = r), 'TBT number on the report';
 end $$;
@@ -5873,6 +5873,28 @@ select pg_temp.act_as('assistant_engineer'); set role authenticated;
 do $$ begin
   begin perform public.sub_home_summary(); assert false, 'supervisors only';
   exception when others then assert sqlerrm = 'For subcontractor supervisors', sqlerrm; end;
+end $$;
+reset role;
+
+
+-- Permits and toolbox meetings: Assistant Engineers (and supervisors) create them, the SEE does not; dossier add / remove
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare e uuid := current_setting('test.ex')::uuid; d uuid; n int;
+begin
+  begin perform public.request_permit(e, '{"form_code":"PTW-01"}'); assert false, 'SEE does not request permits';
+  exception when others then assert sqlerrm like 'An Assistant Engineer or the subcontractor supervisor requests permits%', sqlerrm; end;
+  begin perform public.save_tbt(e, '{"header":{"activity":"x","hazards":"y"},"participants":[{"name":"A"}]}'); assert false, 'SEE does not hold toolbox meetings';
+  exception when others then assert sqlerrm like 'You are not on this project%' or sqlerrm like 'An Assistant Engineer or the subcontractor supervisor holds%', sqlerrm; end;
+  perform public.ensure_dossier(e);
+  d := public.add_dossier_item(e, 'Extra works', 'Generator handover certificate', true);
+  assert (select custom and not removed from public.exec_dossier where id = d), 'custom item added';
+  select id into d from public.exec_dossier where exec_project_id = e and not custom limit 1;
+  perform public.remove_dossier_item(d);
+  perform public.ensure_dossier(e);
+  assert (select removed from public.exec_dossier where id = d), 'removed item stays removed when areas are added again';
+  n := public.remove_dossier_area(e, 'Extra works');
+  assert n = 1, 'area removed';
+  assert not exists (select 1 from public.exec_dossier where exec_project_id = e and not removed and area = 'Extra works'), 'area gone';
 end $$;
 reset role;
 
