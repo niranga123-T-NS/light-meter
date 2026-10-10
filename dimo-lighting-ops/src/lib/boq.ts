@@ -47,7 +47,7 @@ export const BOQ_STATUS: Record<Boq['status'], { label: string; tone: 'amber' | 
 };
 
 /** Item row as the AE sees it (no rates) */
-export type MeasureItem = { id: string; section: string | null; item_no: string | null; description: string; unit: string | null; qty: number | null; heading: boolean; last_qty: number | null };
+export type MeasureItem = { id: string; section: string | null; item_no: string | null; description: string; unit: string | null; qty: number | null; heading: boolean; last_qty: number | null; source?: 'boq' | 'variation' };
 export type StoreItem = { item: string; unit: string; balance: number };
 export type ClaimContext = {
   boq: { status: Boq['status']; version: number; mos_pct: number } | null;
@@ -57,7 +57,7 @@ export type ClaimContext = {
 };
 
 export type IpcDetail = {
-  lines: { boq_item_id: string; section?: string; item_no?: string; description: string; unit?: string; boq_qty?: number; qty_to_date: number; prev_qty?: number; rate?: number; value?: number }[];
+  lines: { boq_item_id: string; section?: string; item_no?: string; description: string; unit?: string; boq_qty?: number; qty_to_date: number; prev_qty?: number; cert_qty?: number; source?: 'boq' | 'variation'; rate?: number; value?: number }[];
   mos: { item: string; unit: string; qty: number; boq_item_id: string; boq_item: string; rate?: number; value?: number }[];
   mos_pct?: number;
   values?: { work_value: number; mos_value: number; gross_value: number; previous_certified: number; previous_mos: number; suggested: number };
@@ -83,3 +83,26 @@ export function bySection<T extends { section: string | null }>(items: T[]) {
   }
   return out;
 }
+
+/** Progress per BOQ item (boq_progress): contract quantity, measured to date (last measurement), the one before, certified to date */
+export type BoqProgress = {
+  last: { id: string; code: string; period: string; status: string } | null;
+  certified: { id: string; code: string; period: string; cert_date: string | null } | null;
+  certified_total: number | null;
+  items: {
+    id: string;
+    section: string | null;
+    item_no: string | null;
+    description: string;
+    unit: string | null;
+    qty: number | null;
+    heading: boolean;
+    source: 'boq' | 'variation';
+    variation_id?: string;
+    to_date?: number;
+    prev?: number;
+    cert?: number;
+    rate?: number;
+    amount?: number;
+  }[];
+};

@@ -304,6 +304,39 @@ export type Variation = {
   vo_no: string | null;
   client_at: string | null;
   client_note: string | null;
+  dimo_due?: string | null;
+  client_due?: string | null;
+  client_submitted_on?: string | null;
+  client_submit_ref?: string | null;
+  client_value_lkr?: number | null;
+  direct?: boolean;
+};
+/** A project variation with where it is (project_variations) */
+export type VarStage = 'screening' | 'design' | 'estimation' | 'dimo_approval' | 'to_submit' | 'with_client' | 'closed';
+export type ProjVariation = Pick<Variation, 'id' | 'code' | 'title' | 'vtype' | 'status' | 'route' | 'vo_no' | 'inquiry_status' | 'client_at' | 'raised_at'> & {
+  value_lkr?: number | null;
+  client_value_lkr?: number | null;
+  stage: VarStage;
+  stage_label: string;
+  due: string | null;
+  days_late: number;
+  dimo_due: string | null;
+  client_due: string | null;
+  client_submitted_on: string | null;
+  client_submit_ref: string | null;
+  direct: boolean;
+  design_done: boolean;
+  estimation_done: boolean;
+};
+/** Next action of a pending variation, in words */
+export const VAR_NEXT: Record<VarStage, string> = {
+  screening: 'SEE to screen it',
+  design: 'Design to finish, then Estimation prices it',
+  estimation: 'Estimation to price it',
+  dimo_approval: 'SM Projects (and DGM / GM above the limit) to approve',
+  to_submit: 'DIMO part done – SEE to submit it to the client / consultant',
+  with_client: 'Waiting for the client / consultant – record their approval',
+  closed: '',
 };
 export const VAR_TYPES = [
   { value: 'addition', label: 'Addition' },

@@ -1,4 +1,4 @@
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Text } from 'react-native';
 import { useShellCounts } from '@/components/AppShell';
 import { Attachments } from '@/components/Attachments';
@@ -8,7 +8,7 @@ import { TestingBanner } from '@/components/Testing';
 import { Button, Card, colors, ErrorBanner, KeyValue, Loading, Muted, Notice, Pill, Row, Screen } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { DESIGN_SCOPE, ESTIMATION_BASIS, ESTIMATION_SCOPE } from '@/lib/constants';
-import { VAR_REASONS, VAR_ROUTES, VAR_STATUS, type Variation } from '@/lib/execution';
+import { VAR_NEXT, VAR_REASONS, VAR_ROUTES, VAR_STATUS, type ProjVariation, type Variation } from '@/lib/execution';
 import { addDaysISO, fmtDate, fmtDateTime, fmtMoney, human, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
@@ -23,7 +23,8 @@ export default function VariationScreen() {
   const { data, error, reload } = useLoad(async () => {
     const { data: v, error: e } = await supabase.from('variations').select('*, exec_projects(name, code)').eq('id', id).single();
     if (e) throw new Error(e.message);
-    return v as Variation & { exec_projects: { name: string; code: string } | null };
+    const all = await rpc<ProjVariation[]>('project_variations', { p_exec: (v as Variation).exec_project_id }).catch(() => [] as ProjVariation[]);
+    return { ...(v as Variation & { exec_projects: { name: string; code: string } | null }), pv: all.find((x) => x.id === id) };
   }, [id]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const v = data;
@@ -153,6 +154,31 @@ export default function VariationScreen() {
       }, approve ? 'Recorded' : 'Rejected');
   };
 
+  const pv = v.pv;
+  const submitClient = async () => {
+    const r = await dialog.prompt({
+      title: 'Submitted to the client / consultant',
+      fields: [
+        { key: 'date', label: 'Submitted on', type: 'date', required: true, initial: todayISO() },
+        { key: 'due', label: 'Answer agreed by', type: 'date', required: true, initial: addDaysISO(todayISO(), 14) },
+        { key: 'ref', label: 'Letter / reference' },
+      ],
+      confirmLabel: 'Record',
+    });
+    if (r) await dialog.run(async () => { await rpc('submit_variation_to_client', { p_id: v.id, p: r }); await after(); }, 'Recorded – SM Projects and DGM / GM are told if it runs late');
+  };
+  const moveDue = async () => {
+    const r = await dialog.prompt({
+      title: 'Move the agreed date',
+      message: pv ? `${pv.stage_label}${pv.due ? ` · agreed ${fmtDate(pv.due)}` : ''}` : undefined,
+      fields: [
+        { key: 'd', label: 'New agreed date', type: 'date', required: true },
+        { key: 'r', label: 'Reason', type: 'multiline', required: true },
+      ],
+      confirmLabel: 'Save',
+    });
+    if (r) await dialog.run(async () => { await rpc('set_variation_due', { p_id: v.id, p_due: r.d, p_reason: r.r }); await after(); }, 'Saved – SM Projects told');
+  };
   const client = async (accepted: boolean) => {
     const r = await dialog.prompt({
       title: accepted ? "Client accepted – record the variation order" : 'Client rejected',
@@ -198,6 +224,15 @@ export default function VariationScreen() {
         {v.smp_at ? <KeyValue label="SM Projects" value={`${people[v.smp_by ?? '']?.full_name ?? ''} · ${fmtDateTime(v.smp_at)}${v.smp_note ? ` · ${v.smp_note}` : ''}`} /> : null}
         {v.gm_at ? <KeyValue label="DGM / GM" value={`${people[v.gm_by ?? '']?.full_name ?? ''} · ${fmtDateTime(v.gm_at)}${v.gm_note ? ` · ${v.gm_note}` : ''}`} /> : null}
         {v.vo_no ? <KeyValue label="Client" value={`VO ${v.vo_no} · ${fmtDate(v.client_at)}${v.client_note ? ` · ${v.client_note}` : ''}`} /> : null}
+        {v.client_submitted_on ? (
+          <KeyValue label="Submitted to the client" value={`${fmtDate(v.client_submitted_on)}${v.client_submit_ref ? ` · ${v.client_submit_ref}` : ''} · answer agreed by ${fmtDate(v.client_due)}`} />
+        ) : null}
+        {v.client_value_lkr != null ? <KeyValue label="Approved by the client" value={`${v.client_value_lkr > 0 ? '+' : '−'}${fmtMoney(Math.abs(v.client_value_lkr), 'LKR')} · in the BOQ as a separate variation`} /> : null}
+        {pv && pv.stage !== 'closed' ? (
+          <Notice tone={pv.days_late > 0 ? colors.red : colors.amber}>
+            {`${pv.stage_label}${pv.due ? ` · agreed ${fmtDate(pv.due)}` : ''}${pv.days_late > 0 ? ` · ${pv.days_late} day(s) late – SM Projects and DGM / GM told` : ''}\nNext: ${VAR_NEXT[pv.stage]}`}
+          </Notice>
+        ) : null}
         {v.decision_note ? <Notice tone={colors.blue}>{v.decision_note}</Notice> : null}
         <Row wrap gap={6} style={{ marginTop: 8 }}>
           {see && v.status === 'raised' ? <Button title="Screen" onPress={screen} /> : null}
@@ -209,10 +244,12 @@ export default function VariationScreen() {
           ) : null}
           {(see || me.role === 'sm_projects') && v.status === 'approved' ? (
             <>
-              <Button title="Client accepted" onPress={() => client(true)} />
+              {!v.client_submitted_on ? <Button variant="secondary" title="Submitted to client" onPress={submitClient} /> : null}
+              <Button title="Client approved" onPress={() => router.push(`/execution/variation/accept?variation=${v.id}`)} />
               <Button variant="secondary" title="Client rejected" onPress={() => client(false)} />
             </>
           ) : null}
+          {(see || me.role === 'sm_projects') && pv && !['closed', 'screening'].includes(pv.stage) ? <Button variant="ghost" title="Move agreed date" onPress={moveDue} /> : null}
           {(v.raised_by === me.id || see || me.role === 'sm_projects') && ['raised', 'pending_smp', 'pending_gm', 'approved'].includes(v.status) ? (
             <Button
               variant="ghost"
