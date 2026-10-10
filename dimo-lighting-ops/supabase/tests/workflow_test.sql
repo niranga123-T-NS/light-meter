@@ -1522,15 +1522,32 @@ do $$ begin
   assert exists (select 1 from public.notifications where kind = 'warranty_claim_to_assign' and recipient_id = (select id from u where role = 'senior_elec_engineer')), 'Senior Elec. Engineer asked to assign';
 end $$;
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
-select public.assign_warranty_claim((select id from public.warranty_claims), (select id from u where role = 'assistant_engineer'));
+select public.assign_warranty_claim((select id from public.warranty_claims), (select id from u where role = 'assistant_engineer'), 6.9271, 79.8612);
 reset role;
 do $$ begin
   assert exists (select 1 from public.notifications where kind = 'warranty_claim_opened' and recipient_id = (select id from u where role = 'asm_building')), 'sales person told';
   assert exists (select 1 from public.notifications where kind = 'warranty_claim_assigned' and recipient_id = (select id from u where role = 'assistant_engineer')), 'engineer told';
 end $$;
+-- The engineer checks in at the claim site (set by the SEE on assignment) before recording the inspection
 select pg_temp.act_as('assistant_engineer'); set role authenticated;
-select public.record_claim_inspection((select id from public.warranty_claims), current_date, 'Driver failures – batch fault');
+do $$ declare cid uuid := (select id from public.warranty_claims); r jsonb;
+begin
+  assert (select site_lat = 6.9271 from public.warranty_claims where id = cid), 'site set on assignment';
+  begin perform public.record_claim_inspection(cid, current_date, 'x'); assert false, 'check in first';
+  exception when others then assert sqlerrm like 'Check in at the site first%', sqlerrm; end;
+  r := public.claim_checkin(cid, 6.9600, 79.8612, 20);
+  assert not (r ->> 'within')::boolean, 'away';
+  begin perform public.record_claim_inspection(cid, current_date, 'x'); assert false, 'still away';
+  exception when others then assert sqlerrm like 'Check in at the site first%', sqlerrm; end;
+  r := public.claim_checkin(cid, 6.9275, 79.8615, 15);
+  assert (r ->> 'within')::boolean, 'on site';
+  perform public.record_claim_inspection(cid, current_date, 'Driver failures – batch fault');
+end $$;
 reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'claim_checkin' and recipient_id = (select id from u where role = 'senior_elec_engineer')
+                 and title like 'Check-in away from the claim site%'), 'SEE told of the away check-in';
+end $$;
 select pg_temp.act_as('operations_exec'); set role authenticated;
 do $$ begin
   perform public.decide_warranty_claim((select id from public.warranty_claims), 'covered', null, 'manufacturing_defect');
@@ -1642,14 +1659,14 @@ begin
 end $$;
 select pg_temp.act_as('operations_exec'); set role authenticated;
 do $$ begin
-  perform public.assign_warranty_claim(current_setting('test.sc')::uuid, (select id from u where role = 'assistant_engineer'));
+  perform public.assign_warranty_claim(current_setting('test.sc')::uuid, (select id from u where role = 'assistant_engineer'), 6.9271, 79.8612);
   raise exception 'Operations assigned an engineer';
 exception when others then if sqlerrm not like '%Only the Senior Electrical Engineer assigns%' then raise; end if;
 end $$;
 select public.verify_warranty_claim(current_setting('test.sc')::uuid, 'INV-26-04412 checked');
 reset role;
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
-select public.assign_warranty_claim(current_setting('test.sc')::uuid, (select id from u where role = 'assistant_engineer'));
+select public.assign_warranty_claim(current_setting('test.sc')::uuid, (select id from u where role = 'assistant_engineer'), 6.9271, 79.8612);
 reset role;
 do $$ begin
   assert (select verified_at is not null from public.warranty_claims where id = current_setting('test.sc')::uuid), 'verified on assignment';
@@ -2061,9 +2078,10 @@ do $$ begin
 end $$;
 reset role;
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
-select public.assign_warranty_claim(current_setting('test.fc')::uuid, (select id from u where role = 'assistant_engineer'));
+select public.assign_warranty_claim(current_setting('test.fc')::uuid, (select id from u where role = 'assistant_engineer'), 6.9271, 79.8612);
 reset role;
 select pg_temp.act_as('assistant_engineer'); set role authenticated;
+select public.claim_checkin(current_setting('test.fc')::uuid, 6.9272, 79.8612, 10);
 select public.record_claim_inspection(current_setting('test.fc')::uuid, current_date, 'Surge marks on drivers, no surge protection at the DB');
 reset role;
 do $$ begin
@@ -2154,7 +2172,7 @@ select 'warranty_claim', x::uuid, 'claim_photo', 'test/' || x || '.jpg', 'p.jpg'
   from unnest(array[current_setting('test.fr'), current_setting('test.fq')]) x;
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
 select public.decide_warranty_claim(current_setting('test.fr')::uuid, 'rejected', 'Bollards are not our supply', 'not_dimo_supply');
-select public.assign_warranty_claim(current_setting('test.fq')::uuid, (select id from u where role = 'assistant_engineer'));
+select public.assign_warranty_claim(current_setting('test.fq')::uuid, (select id from u where role = 'assistant_engineer'), 6.9271, 79.8612);
 select public.record_claim_inspection(current_setting('test.fq')::uuid, current_date, 'Diffusers cracked by impact');
 select public.decide_warranty_claim(current_setting('test.fq')::uuid, 'chargeable', 'Impact damage', 'misuse_damage');
 reset role;

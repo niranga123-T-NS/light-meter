@@ -627,6 +627,10 @@ export type WarrantyLine = {
 
 export type WarrantyClaim = {
   id: string;
+  site_lat?: number | null;
+  site_lng?: number | null;
+  site_radius_m?: number | null;
+  visit_on?: string | null;
   code: string;
   warranty_id: string;
   line_id: string | null;
