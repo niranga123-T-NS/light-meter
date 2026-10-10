@@ -3,7 +3,7 @@ import { Button, Card, colors, ListRow, Pill, Row, Section } from '@/components/
 import { useDialog } from '@/components/dialog';
 import { fmtDate, fmtDateTime, todayISO } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
-import { kindLabel } from '@/lib/meetingActions';
+import { kindLabel, REVIEW_STATES, reviewLabel } from '@/lib/meetingActions';
 import { ROLE_SHORT } from '@/lib/roles';
 import { rpc, supabase } from '@/lib/supabase';
 import type { Role } from '@/lib/types';
@@ -31,6 +31,11 @@ export type MyAction = {
   line_status: string | null;
   assign_by: string | null;
   meeting_id: string;
+  review_state: string | null;
+  review_note: string | null;
+  review_at: string | null;
+  review_due: string | null;
+  reviewed: boolean;
 };
 
 const PARTS: { part: MyAction['my_part']; title: string }[] = [
@@ -70,6 +75,23 @@ export function MeetingActions() {
       }, 'Confirmed – SM Projects and the team are told');
   };
 
+  const statusUpdate = async (a: MyAction) => {
+    const r = await dialog.prompt({
+      title: 'Status update',
+      message: `${a.action}${a.review_due ? ` · before the next meeting ${fmtDateTime(a.review_due)}` : ''}`,
+      fields: [
+        { key: 's', label: 'Status', type: 'select', required: true, options: REVIEW_STATES, initial: a.review_state ?? undefined },
+        { key: 'n', label: 'Progress / what is holding it', type: 'multiline', required: true },
+      ],
+      confirmLabel: 'Post update',
+    });
+    if (r)
+      await dialog.run(async () => {
+        await rpc('review_meeting_action', { p_id: a.id, p_state: r.s, p_note: r.n });
+        await reload();
+      }, 'Update posted – it shows in the meeting status review');
+  };
+
   const appoint = async (a: MyAction) => {
     const team = await rpc<{ id: string; full_name: string; role: Role }[]>('meeting_action_team', { p_id: a.id }).catch(() => []);
     const r = await dialog.prompt({
@@ -106,6 +128,8 @@ export function MeetingActions() {
       `meeting ${fmtDate(a.meeting_date)}`,
       a.due_date ? `${a.kind === 'visit' ? 'visit by' : 'due'} ${fmtDate(a.due_date)}${a.due_date < today ? ' – overdue' : ''}` : null,
       a.my_part === 'assign' && a.assign_by ? `appoint by ${fmtDateTime(a.assign_by)}${a.assign_by < now ? ' – late, GM / DGM told' : ''}` : null,
+      a.review_state ? `last update: ${reviewLabel(a.review_state).toLowerCase()} ${fmtDateTime(a.review_at)} – ${a.review_note}` : null,
+      !a.reviewed && a.review_due ? `status update due before ${fmtDateTime(a.review_due)}` : null,
     ];
     return parts.filter(Boolean).join(' · ');
   };
@@ -138,6 +162,12 @@ export function MeetingActions() {
                     right={
                       <Row gap={6} wrap>
                         {vs ? <Pill label={vs.label} tone={vs.tone} /> : null}
+                        {a.review_state ? (
+                          <Pill label={reviewLabel(a.review_state)} tone={a.review_state === 'blocked' ? colors.red : a.review_state === 'delayed' ? colors.amber : colors.green} />
+                        ) : null}
+                        {part === 'do' || part === 'visit' || part === 'track' ? (
+                          <Button small variant={a.reviewed ? 'ghost' : 'secondary'} title="Status update" onPress={() => statusUpdate(a)} />
+                        ) : null}
                         {part === 'visit' ? (
                           <Button
                             small

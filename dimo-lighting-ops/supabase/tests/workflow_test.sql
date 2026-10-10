@@ -2735,6 +2735,47 @@ do $$ begin
   assert exists (select 1 from public.notifications where title like 'Not appointed – estimation task%' and recipient_id = (select id from u where role = 'sm_projects')), 'SM Projects told of the delay';
   assert not exists (select 1 from public.notifications where title like 'Not appointed – design task%'), 'appointed task not escalated';
 end $$;
+-- Status review before the next meeting: reminders, updates by the person doing it, the review on the meeting line
+do $$ declare m public.sales_meetings; nxt timestamptz;
+begin
+  select * into m from public.sales_meetings where id = current_setting('test.m2')::uuid;
+  nxt := app.next_meeting_starts(m);
+  assert nxt > now(), 'next meeting ahead';
+  assert public.meeting_review_tick(nxt - interval '30 minutes') >= 2, 'review tick';
+  assert exists (select 1 from public.notifications where title = 'Status update needed before the next meeting'
+                 and recipient_id = (select owner_id from public.sales_meeting_actions where meeting_id = m.id and kind = 'estimation')), 'doer reminded';
+  assert exists (select 1 from public.notifications where title = 'Actions without a status update' and recipient_id = (select id from u where role = 'sm_projects')), 'host told';
+  perform set_config('test.estrole', (select role::text from public.profiles where id = (select owner_id from public.sales_meeting_actions where meeting_id = m.id and kind = 'estimation')), false);
+end $$;
+select pg_temp.act_as('lighting_designer'); set role authenticated;
+do $$ begin
+  begin perform public.review_meeting_action((select id from public.sales_meeting_actions where meeting_id = current_setting('test.m2')::uuid and kind = 'design'), 'on_track', 'x');
+    assert false, 'done already';
+  exception when others then assert sqlerrm = 'Already done', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as(current_setting('test.estrole')); set role authenticated;
+do $$ declare aid uuid := (select id from public.sales_meeting_actions where meeting_id = current_setting('test.m2')::uuid and kind = 'estimation');
+begin
+  assert not (select reviewed from public.my_meeting_actions() where id = aid), 'not reviewed yet';
+  begin perform public.review_meeting_action(aid, 'blocked', ' '); assert false, 'note needed';
+  exception when others then assert sqlerrm = 'Write a short status note', sqlerrm; end;
+  perform public.review_meeting_action(aid, 'blocked', 'Waiting for the façade drawings from the client');
+  assert (select reviewed and review_state = 'blocked' from public.my_meeting_actions() where id = aid), 'reviewed';
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ declare r jsonb := public.meeting_status_review(current_setting('test.m2')::uuid);
+begin
+  assert r is not null and jsonb_array_length(r -> 'items') >= 3, 'all actions of the meeting';
+  assert (select count(*) from jsonb_array_elements(r -> 'items') i where not (i ->> 'updated')::boolean) = 2, 'two open tasks still without an update';
+  assert (select bool_and((i ->> 'updated')::boolean) from jsonb_array_elements(r -> 'items') i where i ->> 'status' = 'done' or i ->> 'kind' = 'estimation'), 'done and reviewed count as updated';
+  assert (select i -> 'last' ->> 'state' from jsonb_array_elements(r -> 'items') i where i ->> 'kind' = 'estimation') = 'blocked', 'latest update shown';
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where title = 'Meeting action blocked' and recipient_id = (select id from u where role = 'sm_projects')), 'host told of the block';
+end $$;
 
 -- Team meetings: Estimation (SM Estimation) and Design (Design Manager), same flow, one Meetings tab ---------------------
 do $$ declare d date := current_date + 9; begin

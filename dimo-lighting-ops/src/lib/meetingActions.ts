@@ -29,3 +29,12 @@ export function ownerRoles(k: ActionKind): Role[] | null {
 }
 
 export const isTeamKind = (k: string) => k === 'design' || k === 'estimation' || k === 'execution';
+
+/** Status update of an open meeting action, posted before the next meeting starts. */
+export type ReviewState = 'on_track' | 'delayed' | 'blocked';
+export const REVIEW_STATES: { value: ReviewState; label: string }[] = [
+  { value: 'on_track', label: 'On track' },
+  { value: 'delayed', label: 'Delayed' },
+  { value: 'blocked', label: 'Blocked – needs help' },
+];
+export const reviewLabel = (s: string | null | undefined) => REVIEW_STATES.find((x) => x.value === s)?.label ?? 'No update';

@@ -177,7 +177,15 @@ export function TeamMeetingsPanel({ team }: { team: Team }) {
                         ? 'Invited · pack not generated yet'
                         : 'Draft'
                 }
-                right={<Pill label={m.status === 'published' ? 'Published' : 'Draft'} tone={m.status === 'published' ? colors.green : colors.amber} />}
+                wrapRight
+                right={
+                  <Row gap={6} wrap>
+                    {m.status === 'published' ? (
+                      <Button small variant="secondary" title="Status review" onPress={() => router.push(`/meeting/review/${m.id}`)} />
+                    ) : null}
+                    <Pill label={m.status === 'published' ? 'Published' : 'Draft'} tone={m.status === 'published' ? colors.green : colors.amber} />
+                  </Row>
+                }
                 onPress={() => router.push(`/meeting/${m.id}`)}
               />
             ))
