@@ -17,7 +17,7 @@ export default function ReportScreen() {
   const people = usePeople();
   const dialog = useDialog();
   const def = reportsFor(me.role).find((r) => r.key === key);
-  const [f, setF] = useState<Filters>({ from: addDaysISO(todayISO(), -30), to: todayISO(), projectType: null, threshold: 50, term: null, groupBy: 'sales_person' });
+  const [f, setF] = useState<Filters>({ from: addDaysISO(todayISO(), -30), to: todayISO(), projectType: null, threshold: 50, term: null, groupBy: 'sales_person', category: 'customer' });
   const [applied, setApplied] = useState(f);
 
   const { data, error, loading } = useLoad(async () => {
@@ -72,6 +72,20 @@ export default function ReportScreen() {
                   { value: 'short', label: 'Short term' },
                   { value: 'medium', label: 'Medium term' },
                   { value: 'long', label: 'Long term' },
+                ]}
+              />
+            </View>
+          ) : null}
+          {key === 'inquiries_by_category' ? (
+            <View style={{ minWidth: 200 }}>
+              <Select
+                label="Category"
+                value={f.category ?? 'customer'}
+                onChange={(v) => setF((s) => ({ ...s, category: v as Filters['category'] }))}
+                options={[
+                  { value: 'customer', label: 'Customer category' },
+                  { value: 'project_type', label: 'Project type' },
+                  { value: 'route', label: 'Route (A / B / C)' },
                 ]}
               />
             </View>
