@@ -1,4 +1,6 @@
-import { Linking } from 'react-native';
+import { useState } from 'react';
+import { Linking, Platform } from 'react-native';
+import { LocationPicker } from '@/components/LocationPicker';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, KeyValue, Muted, Notice, Row, Section } from '@/components/ui';
 import { useMe } from '@/lib/auth';
@@ -13,6 +15,7 @@ export function SiteLocationCard({ p, onChange }: { p: ExecProject; onChange?: (
   const me = useMe();
   const people = usePeople();
   const dialog = useDialog();
+  const [picking, setPicking] = useState(false);
   const can = me.role === 'senior_elec_engineer' || me.role === 'sm_projects';
   const save = (lat: number, lng: number, radius: number) =>
     dialog.run(async () => {
@@ -55,10 +58,22 @@ export function SiteLocationCard({ p, onChange }: { p: ExecProject; onChange?: (
         )}
         <Row wrap gap={6} style={{ marginTop: 6 }}>
           {p.site_lat != null && p.site_lng != null ? <Button small variant="ghost" title="Open in Maps" onPress={() => Linking.openURL(mapLink(p.site_lat!, p.site_lng!))} /> : null}
+          {can && Platform.OS === 'web' ? <Button small variant="secondary" title={p.site_lat != null ? 'Change on map' : 'Pick on the map'} onPress={() => setPicking(true)} /> : null}
           {can ? <Button small variant="secondary" title="Use my current location" onPress={here} /> : null}
           {can ? <Button small variant="secondary" title="Enter coordinates" onPress={enter} /> : null}
         </Row>
       </Card>
+      <LocationPicker
+        visible={picking}
+        title="Project site – pick the point supervisors check in at"
+        query={[p.site_address, p.name].filter(Boolean).join(' ')}
+        initial={p.site_lat != null && p.site_lng != null ? { lat: p.site_lat, lng: p.site_lng } : null}
+        onClose={() => setPicking(false)}
+        onSave={async (pt) => {
+          await save(pt.lat, pt.lng, p.site_radius_m ?? 300);
+          setPicking(false);
+        }}
+      />
     </Section>
   );
 }
