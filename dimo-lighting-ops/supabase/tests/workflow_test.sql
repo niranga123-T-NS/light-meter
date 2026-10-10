@@ -2994,7 +2994,9 @@ end $$;
 select pg_temp.act_as('asm_building'); set role authenticated;
 do $$ declare rid uuid;
 begin
-  rid := public.request_project_change('00000000-0000-0000-0000-00000000b001', '{"win_probability":15}', 'Consultant shortlisted us');
+  begin perform public.request_project_change('00000000-0000-0000-0000-00000000b001', '{"win_probability":15}', 'Consultant shortlisted us'); assert false, 'from inquiries';
+  exception when others then assert sqlerrm like 'This project''s win probability comes from its inquiries%', sqlerrm; end;
+  rid := public.request_project_change('00000000-0000-0000-0000-00000000b001', '{"city":"Hikkaduwa"}', 'Moved');
   perform public.withdraw_project_change(rid);
   assert (select status from public.project_change_requests where id = rid) = 'withdrawn', 'withdrawn';
   rid := public.request_project_change('00000000-0000-0000-0000-00000000b001', '{"name":"ABC Hotels – Beach Resort – Matara"}', 'Renamed by the client');
@@ -3165,6 +3167,10 @@ values ('00000000-0000-0000-0000-00000000b001', '00000000-0000-0000-0000-0000000
 reset role;
 
 -- Win Probability Wizard (testing): tick per project, scores kept; a sales person's result goes to SM Projects
+-- (its earlier inquiries are closed here: a project with open inquiries takes its % from them)
+select set_config('app.workflow', '1', false);
+update public.inquiries set status = 'cancelled' where project_id = '00000000-0000-0000-0000-00000000b001' and app.inquiry_open(status);
+select set_config('app.workflow', '', false);
 update public.projects set status = 'active', milestone = 'brand_specified', win_probability = 50 where id = '00000000-0000-0000-0000-00000000b001';
 delete from public.project_change_requests where project_id = '00000000-0000-0000-0000-00000000b001' and status = 'pending';
 select pg_temp.act_as('asm_infra'); set role authenticated;
@@ -6166,6 +6172,48 @@ do $$ begin
   exception when others then assert sqlerrm = 'Instruments are requested by DIMO staff', sqlerrm; end;
 end $$;
 reset role;
+
+-- Win probability per inquiry: the project follows its inquiries; a won inquiry closes only itself -----------
+select set_config('request.jwt.claim.sub', '', false);
+insert into public.projects (id, name, project_type, organization_id, expected_duration_months, project_term, lighting_value, owner_id, win_probability)
+values ('00000000-0000-0000-0000-00000000b0f1', 'Phased resort', 'hospitality', '00000000-0000-0000-0000-00000000a001', 12, 'medium', 10000000,
+        (select id from u where role = 'asm_building'), 40);
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ declare p uuid := '00000000-0000-0000-0000-00000000b0f1'; a uuid; b uuid;
+begin
+  assert (select win_probability from public.projects where id = p) = 40, 'own % before any inquiry';
+  insert into public.inquiries (project_id, organization_id, route, duty_status, customer_deadline, scope_description, estimation_scope, estimation_basis, inquiry_name, win_probability, est_value)
+  values (p, '00000000-0000-0000-0000-00000000a001', 'B', 'duty_paid', current_date + 20, 'Phase 1', '{fixtures}', 'supply_commission', 'Phase 1', 60, 1000000) returning id into a;
+  assert (select win_probability from public.projects where id = p) = 60, 'one inquiry: project = inquiry';
+  insert into public.inquiries (project_id, organization_id, route, duty_status, customer_deadline, scope_description, estimation_scope, estimation_basis, inquiry_name, win_probability, est_value)
+  values (p, '00000000-0000-0000-0000-00000000a001', 'B', 'duty_paid', current_date + 20, 'Phase 2', '{fixtures}', 'supply_commission', 'Phase 2', 20, 3000000) returning id into b;
+  assert (select win_probability from public.projects where id = p) = 30, 'weighted by value';
+  assert public.set_inquiry_probability(a, 80) = 35, 'changes with the inquiry';
+  begin perform public.set_project_probability(p, 'brand_specified', 70); assert false, 'from inquiries';
+  exception when others then assert sqlerrm like 'This project''s win probability comes from its inquiries%', sqlerrm; end;
+  perform set_config('test.pha', a::text, false); perform set_config('test.phb', b::text, false);
+end $$;
+reset role;
+-- Phase 1 won: in the order book at once, the project stays open on Phase 2
+select set_config('app.workflow', '1', false);
+update public.inquiries set status = 'submitted_to_client' where id in (current_setting('test.pha')::uuid, current_setting('test.phb')::uuid);
+select set_config('app.workflow', '', false);
+select pg_temp.act_as('asm_building'); set role authenticated;
+select public.record_inquiry_result(current_setting('test.pha')::uuid, 'won', null, null, 1100000, current_date);
+reset role;
+do $$ declare p uuid := '00000000-0000-0000-0000-00000000b0f1';
+begin
+  assert (select milestone <> 'won' and status = 'active' and win_probability = 20 from public.projects where id = p), 'still open on the other inquiry';
+  assert (select order_value = 1100000 from public.secured_projects where project_id = p), 'won part secured';
+end $$;
+select pg_temp.act_as('asm_building'); set role authenticated;
+select public.record_inquiry_result(current_setting('test.phb')::uuid, 'won', null, null, 2900000, current_date);
+reset role;
+do $$ declare p uuid := '00000000-0000-0000-0000-00000000b0f1';
+begin
+  assert (select milestone = 'won' and win_probability = 100 from public.projects where id = p), 'project won when none is left open';
+  assert (select order_value = 4000000 from public.secured_projects where project_id = p), 'second win added';
+end $$;
 
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

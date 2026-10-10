@@ -7,6 +7,7 @@ import { useMe } from '@/lib/auth';
 import { MILESTONES } from '@/lib/constants';
 import { type ChangeRequest, FIELD_LABEL, showValue } from '@/lib/projectChanges';
 import { fmtDate, fmtDateTime, fmtMoney, human, fmtDateDash } from '@/lib/format';
+import { editInquiryWin, OPEN_INQUIRY } from '@/lib/inquiryWin';
 import { useLoad, useMasters, usePeople } from '@/lib/hooks';
 import { isSales, projectTypeLabel } from '@/lib/roles';
 import { rpc, supabase } from '@/lib/supabase';
@@ -95,6 +96,8 @@ export default function ProjectDetail() {
     }, approve ? 'Approved – the project is updated' : 'Not approved – the sales person is told');
   };
   const ms = MILESTONES.find((m) => m.value === p.milestone);
+  // With inquiries, the project's % is worked out from its open inquiries
+  const openInq = inquiries.filter((i) => OPEN_INQUIRY(i.status));
   const met = new Set([...stakeholders.map((s) => s.category), ...visits.map((v) => v.visit_category)]);
 
   // The win probability is the sales person's own estimate – independent of the milestone
@@ -236,7 +239,10 @@ export default function ProjectDetail() {
           <KeyValue label="Sales person" value={people[p.owner_id]?.full_name ?? '—'} />
           <KeyValue label="Stage" value={p.stage} />
           <KeyValue label="Milestone" value={ms?.label ?? p.milestone} />
-          <KeyValue label="Win probability" value={`${p.win_probability}% · ${p.use_wizard ? 'Win Probability Wizard' : 'entered by the sales person'}`} />
+          <KeyValue
+            label="Win probability"
+            value={`${p.win_probability}% · ${openInq.length ? `from ${openInq.length === 1 ? 'its inquiry' : `${openInq.length} open inquiries, weighted by value`}` : p.use_wizard ? 'Win Probability Wizard' : 'entered by the sales person'}`}
+          />
           <KeyValue label="Lighting value" value={fmtMoney(p.lighting_value, p.currency)} />
           <KeyValue label="Weighted" value={fmtMoney(p.lighting_value == null ? null : (p.lighting_value * p.win_probability) / 100, p.currency)} />
           <KeyValue label="Project value" value={fmtMoney(p.project_value, p.currency)} />
@@ -247,7 +253,23 @@ export default function ProjectDetail() {
           <KeyValue label="Last activity" value={fmtDateTime(p.last_activity_at)} />
         </Row>
         {/* Win Probability Wizard (testing): a tick per project – manual entry or the wizard */}
-        {canEdit && !['won', 'lost', 'cancelled', 'completed'].includes(p.status) ? (
+        {openInq.length && !['won', 'lost', 'cancelled', 'completed'].includes(p.status) ? (
+          <Card style={{ marginTop: 8, padding: 0, overflow: 'hidden' }}>
+            {openInq.map((i) => (
+              <ListRow
+                key={i.id}
+                title={`${i.code}${i.inquiry_name ? ` · ${i.inquiry_name}` : ''}`}
+                subtitle={`${human(i.status)}${i.est_value != null ? ` · expected ${fmtMoney(i.est_value, i.currency)}` : ''}`}
+                right={
+                  <Row gap={6}>
+                    <Pill label={`${i.win_probability ?? p.win_probability}%`} tone={colors.blue} />
+                    {canEdit ? <Button small variant="secondary" title="Change" onPress={() => editInquiryWin(dialog, i, () => reload())} /> : null}
+                  </Row>
+                }
+              />
+            ))}
+          </Card>
+        ) : canEdit && !['won', 'lost', 'cancelled', 'completed'].includes(p.status) ? (
           <Row wrap gap={10} style={{ marginTop: 6, alignItems: 'center' }}>
             <Toggle
               label="Use the Win Probability Wizard"
@@ -318,7 +340,7 @@ export default function ProjectDetail() {
         ) : null}
         {canEdit && manager ? (
           <Row wrap gap={6} style={{ marginTop: 8 }}>
-            <Button small title="Win probability" onPress={changeProbability} />
+            {openInq.length ? null : <Button small title="Win probability" onPress={changeProbability} />}
             <Button small variant="secondary" title="Milestone" onPress={changeMilestone} />
             <Button small variant="secondary" title="Stage" onPress={() => editField('stage')} />
             <Button small variant="secondary" title="Specification" onPress={() => editField('spec_status')} />

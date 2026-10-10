@@ -120,8 +120,27 @@ export default function NewInquiry() {
       expectation_notes: f.expectation_notes || null,
       scope_description: f.scope_description || null,
     };
+    // Each new inquiry asks for its win probability – the project's % is worked out from its inquiries
+    let win: { win_probability: number; est_value: number | null } | null = null;
+    if (!params.edit) {
+      const { data: pr } = await supabase.from('projects').select('win_probability').eq('id', f.project_id).maybeSingle();
+      const cur = (pr as { win_probability: number } | null)?.win_probability;
+      const r = await dialog.prompt({
+        title: 'Win probability of this inquiry',
+        message: `Your estimate of winning this inquiry${cur != null ? ` (the project is at ${cur}%)` : ''}. The project’s % follows its inquiries – weighted by value when there are several.`,
+        fields: [
+          { key: 'pct', label: 'Win probability %', required: true, initial: cur != null ? String(cur) : '' },
+          { key: 'value', label: `Expected value of this inquiry (${f.duty_status === 'duty_free' ? 'USD' : 'LKR'}) – the quoted value replaces it once released` },
+        ],
+        confirmLabel: 'Continue',
+      });
+      if (!r) return;
+      const pct = Number(r.pct);
+      if (!(pct >= 0 && pct <= 100)) return setError('Win probability is 0 – 100');
+      win = { win_probability: pct, est_value: r.value?.trim() ? Number(r.value.replace(/,/g, '')) : null };
+    }
     await dialog.run(async () => {
-      const q = params.edit ? supabase.from('inquiries').update(row).eq('id', params.edit).select('id').single() : supabase.from('inquiries').insert(row).select('id').single();
+      const q = params.edit ? supabase.from('inquiries').update(row).eq('id', params.edit).select('id').single() : supabase.from('inquiries').insert({ ...row, ...win }).select('id').single();
       const { data, error: e } = await q;
       if (e) throw new Error(e.message);
       if (addAnother) {
