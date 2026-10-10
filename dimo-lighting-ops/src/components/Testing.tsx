@@ -5,7 +5,7 @@ import { colors } from './ui';
  * New execution-module features are marked "Testing" until the business confirms them.
  * To remove every marker at once, set TESTING_FEATURES to false.
  */
-export const TESTING_FEATURES = true;
+export const TESTING_FEATURES = false;
 
 /** Small tag beside a menu item or title */
 export function TestingTag({ dark }: { dark?: boolean }) {
