@@ -18,15 +18,21 @@ export function useLoad<T>(loader: () => Promise<T>, deps: unknown[] = []) {
   });
   const depKey = JSON.stringify(deps);
 
+  // Only the latest call may set the result: an older call finishing later must not overwrite it
+  const seq = useRef(0);
   const reload = useCallback(async () => {
+    const mine = ++seq.current;
     setLoading(true);
     try {
-      setData(await loaderRef.current());
+      const value = await loaderRef.current();
+      if (mine !== seq.current) return;
+      setData(value);
       setError(null);
     } catch (e) {
+      if (mine !== seq.current) return;
       setError(e instanceof Error ? e.message : String(e));
     } finally {
-      setLoading(false);
+      if (mine === seq.current) setLoading(false);
     }
   }, []);
 

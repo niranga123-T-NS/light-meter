@@ -165,9 +165,16 @@ export async function buildReport(key: string, f: Filters, people: Record<string
           conversion: v && v.length ? `${Math.round((100 * fromVisit) / v.length)}%` : '—',
         };
       };
-      const persons = Array.from(new Set([...inqs.map((i) => i.sales_person_id), ...vis.map((v) => v.sales_person_id)])).sort((a, b) =>
-        name(a).localeCompare(name(b)),
-      );
+      const ids = Array.from(new Set([...inqs.map((i) => i.sales_person_id), ...vis.map((v) => v.sales_person_id)]));
+      // Names not loaded yet (the people list arrives separately) are looked up here
+      const missing = ids.filter((id) => !people[id]);
+      const extra: Record<string, string> = {};
+      if (missing.length) {
+        const { data: ps } = await supabase.from('profiles').select('id, full_name').in('id', missing);
+        for (const x of (ps ?? []) as { id: string; full_name: string }[]) extra[x.id] = x.full_name;
+      }
+      const who = (id: string) => name(id) || extra[id] || '—';
+      const persons = ids.sort((a, b) => who(a).localeCompare(who(b)));
       const mineI = (p: string) => inqs.filter((i) => i.sales_person_id === p);
       const mineV = (p: string) => vis.filter((v) => v.sales_person_id === p);
       const totalsOf = (label: string, v: Vis[], i: Inq[]) => {
@@ -178,15 +185,15 @@ export async function buildReport(key: string, f: Filters, people: Record<string
       const CAT = `Sales person / ${label.toLowerCase()}`;
       const summary = {
         heading: 'All sales persons',
-        rows: persons.map((p) => line(name(p) || '—', mineV(p), mineI(p))),
+        rows: persons.map((p) => line(who(p), mineV(p), mineI(p))),
         totals: totalsOf('Total', vis, inqs),
       };
       const perPerson = persons.map((p) => ({
-        heading: name(p) || '—',
+        heading: who(p),
         rows: keys
           .map((k) => line(k, by === 'route' ? null : mineV(p).filter((v) => visCat(v) === k), mineI(p).filter((i) => inqCat(i) === k)))
           .filter((r) => r.visits !== 0 || r.inquiries !== 0),
-        totals: totalsOf(`${name(p)} – total`, mineV(p), mineI(p)),
+        totals: totalsOf(`${who(p)} – total`, mineV(p), mineI(p)),
       }));
       return {
         filterText: `Visits (by check-in) and inquiries (by submission) ${period} by sales person and ${label.toLowerCase()}${typeText}${by === 'route' ? ' – visits have no route, so they show in the totals only' : ''}`,
