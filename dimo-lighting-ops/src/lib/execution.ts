@@ -509,7 +509,6 @@ export const DQ_STATUS: Record<DesignQuery['status'], string> = {
 };
 
 // ---- QA / QC, handover, cost (step 7b) ----
-export type Instrument = { id: string; name: string; model: string | null; serial_no: string; calibration_due: string; active: boolean };
 export type TestRow = { param: string; unit: string | null; min: number | null; max: number | null; value: number; pass: boolean };
 export type TestRecord = {
   id: string;
@@ -519,6 +518,7 @@ export type TestRecord = {
   system: string;
   test_type: string;
   instrument_id: string | null;
+  uncalibrated: boolean;
   rows: TestRow[];
   result: 'pass' | 'fail';
   witness: string | null;

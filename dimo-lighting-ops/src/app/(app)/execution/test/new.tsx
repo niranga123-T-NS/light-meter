@@ -5,8 +5,8 @@ import { useDialog } from '@/components/dialog';
 import { pickTestDoc, TEST_DOC_KINDS } from '@/components/exec/TestDocs';
 import { TestingBanner } from '@/components/Testing';
 import { Button, Card, colors, ErrorBanner, Field, Muted, Notice, Row, Screen, Section, Select } from '@/components/ui';
-import { EXEC_AREAS, type ExecProject, type Instrument } from '@/lib/execution';
-import { fmtDate, todayISO } from '@/lib/format';
+import { EXEC_AREAS, type ExecProject } from '@/lib/execution';
+import { calState, instrumentTitle, type Instrument } from '@/lib/instruments';
 import { useLoad } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 import { uploadAttachment, type PickedFile } from '@/lib/files';
@@ -27,14 +27,15 @@ export default function NewTest() {
   const { data } = useLoad(async () => {
     const [p, i] = await Promise.all([
       supabase.from('exec_projects').select('*').eq('status', 'active').order('name'),
-      supabase.from('test_instruments').select('*').eq('active', true).order('name'),
+      supabase.from('instruments').select('*').eq('removed', false).eq('condition', 'ok').order('name'),
     ]);
     return { projects: (p.data ?? []) as ExecProject[], instruments: (i.data ?? []) as Instrument[] };
   });
   const proj = project ?? data?.projects[0]?.id ?? null;
   const areas = data?.projects.find((p) => p.id === proj)?.areas ?? [];
   const inst = data?.instruments.find((i) => i.id === f.instrument_id);
-  const expired = !!inst && inst.calibration_due < todayISO();
+  const cal = inst ? calState(inst) : null;
+  const uncalibrated = !!cal && !cal.ok;
   const add = async (kind: string, photo: boolean, camera = false) => {
     try {
       const file = await pickTestDoc(photo, camera);
@@ -49,8 +50,10 @@ export default function NewTest() {
     if (!queue.length) return setError('Upload the reading documents (at least one)');
     if (!f.result) return setError('State the result – pass or fail');
     if (customArea && !f.area?.trim()) return setError('Type the area, or choose one from the list');
+    if (uncalibrated && !(await dialog.confirm('Uncalibrated instrument', `${inst?.name} – ${cal?.label}. The test is marked as done with an uncalibrated instrument, and you, the Operations Executive and the SEE are alerted. Save anyway?`, { confirmLabel: 'Save anyway' })))
+      return;
     await dialog.run(async () => {
-      const id = await rpc<string>('record_test', { p_exec: proj, p: { ...f, area: f.area ?? '', instrument_id: f.instrument_id ?? '', rows: [] } });
+      const id = await rpc<string>('record_test', { p_exec: proj, p: { ...f, area: f.area ?? '', instrument_id: f.instrument_id ?? '', accept_uncalibrated: uncalibrated, rows: [] } });
       for (const q of queue) await uploadAttachment('test_record', id, q.kind, q.file);
       router.replace({ pathname: '/execution/[id]', params: { id: proj, tab: 'qa' } });
     }, 'Recorded – the Senior Electrical Engineer verifies it');
@@ -90,9 +93,10 @@ export default function NewTest() {
             label="Instrument"
             value={f.instrument_id}
             onChange={(v) => set('instrument_id', v)}
-            options={(data?.instruments ?? []).map((i) => ({ value: i.id, label: `${i.name} · ${i.serial_no} · calibrated to ${fmtDate(i.calibration_due)}` }))}
+            searchable
+            options={(data?.instruments ?? []).map((i) => ({ value: i.id, label: `${i.code ? `${i.code} · ` : ''}${instrumentTitle(i)} · ${calState(i).label}` }))}
           />
-          {expired ? <Notice tone={colors.red}>{`Calibration of ${inst?.name} expired on ${fmtDate(inst?.calibration_due)} – the test cannot be saved with it.`}</Notice> : null}
+          {uncalibrated ? <Notice tone={colors.amber}>{`${inst?.name}: ${cal?.label}. You can still save the test – it is marked as done with an uncalibrated instrument, and the Operations Executive and the SEE are alerted.`}</Notice> : null}
           <Field label="Witness (client / consultant)" value={f.witness} onChangeText={(v) => set('witness', v)} />
         </Card>
       </Section>
@@ -136,7 +140,7 @@ export default function NewTest() {
       </Section>
       <Row gap={8} style={{ justifyContent: 'flex-end' }}>
         <Button variant="secondary" title="Cancel" onPress={() => router.back()} />
-        <Button title="Save test" onPress={save} disabled={expired || !queue.length || !f.result} />
+        <Button title="Save test" onPress={save} disabled={!queue.length || !f.result} />
       </Row>
     </Screen>
   );
