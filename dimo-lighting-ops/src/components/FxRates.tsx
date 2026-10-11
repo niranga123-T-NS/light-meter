@@ -176,7 +176,46 @@ export function FxTable({ board, full }: { board: FxBoard; full?: boolean }) {
   );
 }
 
-/** Home dashboard card (GM / DGM, SM Projects, Estimation team) */
+/** The short table for the Home tab: one line per currency, the dates underneath; the rest is on the Exchange rates tab */
+export function FxShort({ board }: { board: FxBoard }) {
+  const cb = board.cbsl.rows, bk = board.combank.rows, cu = board.customs.rows;
+  const cols: [string, (c: Ccy) => number | null | undefined, number][] = [
+    ['CBSL', (c) => rateOf(cb, c)?.mid, 2],
+    ['TT buy', (c) => rateOf(bk, c)?.tt_buy, 2],
+    ['TT sell', (c) => rateOf(bk, c)?.tt_sell, 2],
+    ['3 m sell', (c) => rateOf(bk, c)?.sell_3m, 2],
+    ['Customs', (c) => rateOf(cu, c)?.mid, 2],
+  ];
+  const cell = { flex: 1, minWidth: 64, alignItems: 'flex-end' as const };
+  const weekday = new Date(board.today).getDay() % 6 !== 0;
+  return (
+    <View style={{ gap: 2 }}>
+      <View style={{ flexDirection: 'row', paddingBottom: 4, borderBottomWidth: 1, borderColor: colors.line }}>
+        <View style={{ width: 48 }} />
+        {cols.map(([h]) => (
+          <View key={h} style={cell}>
+            <Text style={{ fontSize: 11, fontWeight: '700', color: colors.muted }}>{h}</Text>
+          </View>
+        ))}
+      </View>
+      {FX_CCY.map((c) => (
+        <View key={c} style={{ flexDirection: 'row', paddingVertical: 4, borderBottomWidth: 1, borderColor: colors.line }}>
+          <Text style={{ width: 48, fontWeight: '700', color: colors.ink }}>{c}</Text>
+          {cols.map(([h, v, dp]) => (
+            <View key={h} style={cell}>
+              <Text style={{ color: colors.ink, fontWeight: h === 'TT sell' || h === 'CBSL' ? '700' : '400', fontVariant: ['tabular-nums'] }}>{fmtRate(v(c), dp)}</Text>
+            </View>
+          ))}
+        </View>
+      ))}
+      <Text style={{ fontSize: 11, color: weekday && board.combank.date !== board.today ? colors.amber : colors.muted, marginTop: 4 }}>
+        {`LKR per unit · CBSL ${board.cbsl.date ? fmtDate(board.cbsl.date) : '—'} · ComBank ${board.combank.date ? fmtDate(board.combank.date) : '—'}${weekday && board.combank.date !== board.today ? ' (today’s not in yet)' : ''} · Customs ${cu.length ? range(board.customs.date, cu[0]?.valid_to) : 'not yet'}`}
+      </Text>
+    </View>
+  );
+}
+
+/** Home dashboard card (GM / DGM, SM Projects, Estimation team, Operations Executive) – the short table */
 export function FxCard() {
   const me = useMe();
   const show = FX_SEES.includes(me.role);
@@ -189,26 +228,13 @@ export function FxCard() {
         <Button
           small
           variant={FX_UPLOAD.includes(me.role) && data && data.combank.date !== data.today && new Date(data.today).getDay() % 6 !== 0 ? 'primary' : 'ghost'}
-          title={FX_UPLOAD.includes(me.role) && data && data.combank.date !== data.today && new Date(data.today).getDay() % 6 !== 0 ? 'Upload today’s bank rates' : 'All rates & trend'}
+          title={FX_UPLOAD.includes(me.role) && data && data.combank.date !== data.today && new Date(data.today).getDay() % 6 !== 0 ? 'Upload today’s bank rates' : 'More →'}
           onPress={() => router.push('/fx')}
         />
       }
     >
-      <Card style={{ gap: 10 }}>
-        {data ? (
-          <>
-            <FxTable board={data} />
-            <Row wrap gap={16}>
-              {FX_CCY.map((c) => (
-                <View key={c} style={{ flex: 1, minWidth: 220 }}>
-                  <FxTrend board={data} ccy={c} days={30} height={90} combank={false} />
-                </View>
-              ))}
-            </Row>
-          </>
-        ) : (
-          <Muted>Loading the rates…</Muted>
-        )}
+      <Card style={{ gap: 6 }}>
+        {data ? <FxShort board={data} /> : <Muted>Loading the rates…</Muted>}
       </Card>
     </Section>
   );
