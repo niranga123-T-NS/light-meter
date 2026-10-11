@@ -93,13 +93,17 @@ def parse_customs(text):
     m = re.search(r'From\s+(\d{1,2}[.,/-]\d{1,2}[.,/-]\d{4})\s+to\s+(\d{1,2}[.,/-]\d{1,2}[.,/-]\d{4})', text, re.I)
     if m:
         res['from'], res['to'] = dmy(m.group(1).replace(',', '.')), dmy(m.group(2).replace(',', '.'))
-    for c in CCY:
-        # the code column is followed by the rate (4 decimals, thousands with a comma)
-        m = re.search(rf'\b{c}\b[^\d\n]*([\d][\d,]*[.,]\d{{4}})\b', text)
-        if m:
-            v = m.group(1)
-            v = v[:-5].replace(',', '').replace('.', '') + '.' + v[-4:]
-            res[c] = float(v)
+    # OCR of the scanned table is noisy ("—3 76.8259", "USDollr"): find each row by its names, take the last rate on the line
+    keys = {'USD': ('usd', 'us dollar', 'usa'), 'EUR': ('eur',), 'GBP': ('gbp', 'sterling', 'united kingdom')}
+    for line in text.splitlines():
+        low = line.lower()
+        for c, names in keys.items():
+            if c in res or not any(n in low for n in names):
+                continue
+            nums = re.findall(r'(\d[\d,\s]*[.,]\s?\d{4})(?!\d)', line)
+            if nums:
+                v = re.sub(r'[\s,]', '', nums[-1][:-5]) + '.' + nums[-1][-4:]
+                res[c] = float(v.replace('..', '.'))
     return res
 
 

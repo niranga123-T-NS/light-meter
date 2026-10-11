@@ -17,8 +17,12 @@ jobs:
           python3 -c "
           import fx_fetch as f
           e,u=f.customs_latest(); t=f.ocr_pdf(f.get(u,True)); open('fxprobe/ocr.txt','w').write(t)
-          for u2 in ['https://www.customs.gov.lk/wp-content/uploads/2026/09/er20260914.pdf','https://www.customs.gov.lk/wp-content/uploads/2026/07/er20260720_1.pdf','https://www.customs.gov.lk/wp-content/uploads/2026/08/er10082026.pdf']:
-              print(u2, f.parse_customs(f.ocr_pdf(f.get(u2,True))))
+          import re
+          page=f.get('https://www.customs.gov.lk/exchange-rates/')
+          links=re.findall(r'href=\"([^\"]+er[^\"]*2026[^\"]*\.pdf)\"', page)[:10]
+          for u2 in links:
+              try: print(u2, f.parse_customs(f.ocr_pdf(f.get(u2,True))))
+              except Exception as ex: print(u2, 'ERR', ex)
           " 2>&1 | tee fxprobe/more.txt
       - run: |
           git config user.name probe; git config user.email probe@users.noreply.github.com
