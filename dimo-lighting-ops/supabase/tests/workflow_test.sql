@@ -6725,6 +6725,41 @@ do $$ begin
 end $$;
 rollback to savepoint defects1;
 
+-- Invoicing forecast: lead times by origin, the supply / supply & installation split, settings
+do $$ declare s jsonb;
+begin
+  assert app.forecast_lead_days('european') = 88, 'EU: (7 + 4.5 + 1) weeks = 87.5 → 88 days';
+  assert app.forecast_lead_days('chinese') = 60, 'CN: (4.5 + 3 + 1) weeks = 59.5 → 60 days';
+  assert app.forecast_lead_days('unknown') = 88, 'unknown origin taken as European';
+  s := app.forecast_schedule('2026-11-10', 'chinese', 'supply', 3);
+  assert jsonb_array_length(s) = 1 and s -> 0 ->> 'month' = '2027-01-01' and (s -> 0 ->> 'pct')::numeric = 100, 'supply: all on delivery (10 Nov + 60 days → Jan)';
+  s := app.forecast_schedule('2026-11-10', 'european', 'supply_install', 6);
+  assert s -> 0 ->> 'month' = '2027-02-01' and (s -> 0 ->> 'pct')::numeric = 70, 'material 70% on delivery (10 Nov + 88 days → Feb)';
+  assert (select sum((x ->> 'pct')::numeric) from jsonb_array_elements(s) x) = 100, 'adds up to 100%';
+  assert (select count(*) from jsonb_array_elements(s) x where x ->> 'kind' = 'progress') = 3, 'installation over the 3 months left of 6';
+  assert (select x ->> 'month' from jsonb_array_elements(s) x where x ->> 'kind' = 'retention') = '2028-05-01', 'retention after the 12-month DLP';
+end $$;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ declare f jsonb;
+begin
+  f := public.invoicing_forecast(2026);
+  assert f ? 'projects' and f ? 'secured' and f ? 'invoiced' and (f -> 'settings' ->> 'eu_mfg_weeks')::numeric = 7, 'forecast with settings';
+  assert not exists (select 1 from jsonb_array_elements(f -> 'projects') x where x ->> 'milestone' in ('won', 'lost')), 'only potential projects';
+  assert not exists (select 1 from jsonb_array_elements(f -> 'projects') x where (x ->> 'award_used')::date < (f ->> 'today')::date), 'past award dates moved to today';
+  begin perform public.save_forecast_settings('{"eu_mfg_weeks":8,"eu_sea_weeks":5,"cn_mfg_weeks":6,"cn_sea_weeks":3,"clearing_weeks":1,"material_pct":70,"install_pct":25,"retention_pct":10,"dlp_months":12}');
+    assert false, '105%';
+  exception when others then assert sqlerrm like 'Material + installation + retention must add up%', sqlerrm; end;
+  perform public.save_forecast_settings('{"eu_mfg_weeks":8,"eu_sea_weeks":5,"cn_mfg_weeks":6,"cn_sea_weeks":3,"clearing_weeks":1,"material_pct":60,"install_pct":30,"retention_pct":10,"dlp_months":12,"unknown_origin":"european"}');
+  assert app.forecast_lead_days('european') = 98, 'new EU lead: 14 weeks';
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin
+  begin perform public.invoicing_forecast(2026); assert false, 'not for engineers';
+  exception when others then assert sqlerrm like 'The invoicing forecast is for%', sqlerrm; end;
+end $$;
+reset role;
+
 -- Execution data only for the people who need it: Operations sees materials, handover, IPCs and billing,
 -- not the programme, plans, daily reports, HSE, QA, snags or design queries
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
