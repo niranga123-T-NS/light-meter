@@ -7,7 +7,7 @@ import { TestingBanner } from '@/components/Testing';
 import { Button, Card, colors, DateField, ErrorBanner, Field, Grid, Loading, Muted, Notice, Pill, Row, Screen, Section, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { IPC_STATUS, type Ipc } from '@/lib/billing';
-import type { IpcDetail } from '@/lib/boq';
+import { itemNo, type IpcDetail } from '@/lib/boq';
 import { fmtMonth } from '@/lib/finance';
 import { fmtDate, fmtDateTime, fmtMoney, fmtNumber, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
@@ -143,8 +143,8 @@ export default function ClaimScreen() {
             keyOf={(l) => l.boq_item_id}
             edge={(l) => (l.cert_qty != null && l.cert_qty !== l.qty_to_date ? colors.amber : l.qty_to_date !== (l.prev_qty ?? 0) ? colors.blue : undefined)}
             columns={[
-              { h: 'Item', w: 70, v: (l) => l.item_no ?? '' },
-              { h: 'Description', w: 300, v: (l) => l.description },
+              { h: 'Item', w: 70, v: (l) => itemNo(l.item_no) },
+              { h: 'Description', w: 300, grow: true, v: (l) => l.description },
               { h: 'Unit', w: 55, v: (l) => l.unit ?? '' },
               { h: 'BOQ qty', w: 80, right: true, v: (l) => (l.boq_qty == null ? '' : fmtNumber(l.boq_qty, 2)) },
               { h: 'Previous', w: 80, right: true, v: (l) => fmtNumber(l.prev_qty ?? 0, 2) },

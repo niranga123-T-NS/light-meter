@@ -7,6 +7,7 @@ import { varTone } from '@/components/exec/VariationRows';
 import { TestingBanner } from '@/components/Testing';
 import { Button, Card, colors, ErrorBanner, KeyValue, Loading, Muted, Notice, Pill, Row, Screen } from '@/components/ui';
 import { useMe } from '@/lib/auth';
+import { itemNo } from '@/lib/boq';
 import { DESIGN_SCOPE, ESTIMATION_BASIS, ESTIMATION_SCOPE } from '@/lib/constants';
 import { VAR_NEXT, VAR_REASONS, VAR_ROUTES, VAR_STATUS, type ProjVariation, type Variation } from '@/lib/execution';
 import { addDaysISO, fmtDate, fmtDateTime, fmtMoney, human, todayISO } from '@/lib/format';
@@ -81,7 +82,7 @@ export default function VariationScreen() {
               label: 'BOQ items',
               type: 'multiselect',
               required: true,
-              options: items.map((i) => ({ value: i.id, label: `${i.item_no ? `${i.item_no} ` : ''}${i.description}`, group: i.section, hint: `${fmtMoney(i.rate, 'LKR')} / ${i.unit ?? 'unit'}` })),
+              options: items.map((i) => ({ value: i.id, label: `${i.item_no ? `${itemNo(i.item_no)} ` : ''}${i.description}`, group: i.section, hint: `${fmtMoney(i.rate, 'LKR')} / ${i.unit ?? 'unit'}` })),
             },
           ],
           confirmLabel: 'Next',
@@ -91,7 +92,7 @@ export default function VariationScreen() {
         const x = await dialog.prompt({
           title: 'Quantities',
           fields: [
-            ...chosen.map((i) => ({ key: `q_${i.id}`, label: `${i.item_no ? `${i.item_no} ` : ''}${i.description} (${i.unit ?? 'qty'})`, required: true })),
+            ...chosen.map((i) => ({ key: `q_${i.id}`, label: `${i.item_no ? `${itemNo(i.item_no)} ` : ''}${i.description} (${i.unit ?? 'qty'})`, required: true })),
             { key: 'cost', label: 'Cost (LKR, optional – gives the margin)' },
             { key: 'time_days', label: 'Time impact (days)' },
             { key: 'note', label: 'Note', type: 'multiline' as const },

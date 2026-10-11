@@ -4,7 +4,7 @@ import { Text, TextInput, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { TestingBanner } from '@/components/Testing';
 import { Button, Card, Chip, colors, DateField, ErrorBanner, Field, Loading, Muted, Notice, Row, Screen, Section, Select, useWide } from '@/components/ui';
-import { bySection, type ClaimContext, type MeasureItem } from '@/lib/boq';
+import { bySection, itemNo, type ClaimContext, type MeasureItem } from '@/lib/boq';
 import { fmtNumber, todayISO } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import { rpc } from '@/lib/supabase';
@@ -54,7 +54,7 @@ export default function NewClaimScreen() {
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const live = (data.boq?.version ?? 0) > 0;
   const priced = data.items.filter((i) => !i.heading);
-  const boqOpts = priced.map((i) => ({ value: i.id, label: `${i.item_no ? `${i.item_no} ` : ''}${i.description}`, hint: i.unit ?? undefined }));
+  const boqOpts = priced.map((i) => ({ value: i.id, label: `${i.item_no ? `${itemNo(i.item_no)} ` : ''}${i.description}`, hint: i.unit ?? undefined }));
   const changed = (i: MeasureItem) => (qty[i.id] ?? '') !== (i.last_qty == null ? '' : String(Number(i.last_qty)));
   const shown = filter === 'done' ? data.items.filter((i) => i.heading || (qty[i.id] ?? '') !== '') : data.items;
 
@@ -112,7 +112,7 @@ export default function NewClaimScreen() {
                       style={{ flexDirection: wide ? 'row' : 'column', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: changed(i) ? '#EFF6FF' : undefined }}
                     >
                       <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text style={{ color: colors.ink }}>{`${i.item_no ? `${i.item_no}  ` : ''}${i.description}`}</Text>
+                        <Text style={{ color: colors.ink }}>{`${i.item_no ? `${itemNo(i.item_no)}  ` : ''}${i.description}`}</Text>
                         <Muted>{`BOQ ${i.qty == null ? '—' : fmtNumber(Number(i.qty), 2)} ${i.unit ?? ''}${i.last_qty != null ? ` · last claim ${fmtNumber(Number(i.last_qty), 2)}` : ''}`}</Muted>
                       </View>
                       <Row gap={6} style={{ alignItems: 'center' }}>

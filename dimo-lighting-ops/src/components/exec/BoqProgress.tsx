@@ -4,7 +4,7 @@ import { DataTable, type Column } from '@/components/DataTable';
 import { useDialog } from '@/components/dialog';
 import { Button, Chip, colors, Grid, Muted, Notice, Row, Section, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { bySection, type BoqProgress } from '@/lib/boq';
+import { bySection, itemNo, type BoqProgress } from '@/lib/boq';
 import type { ExecProject } from '@/lib/execution';
 import { exportExcel } from '@/lib/export';
 import { fmtMonth } from '@/lib/finance';
@@ -44,8 +44,8 @@ export function BoqProgressView({ p, money }: { p: ExecProject; money: boolean }
   const certVal = sum(all, (i) => val(i, i.cert));
 
   const columns: Column<Item>[] = [
-    { h: 'Item', w: 80, v: (i) => i.item_no ?? '', bold: true },
-    { h: 'Description', w: 300, v: (i) => i.description, bold: false },
+    { h: 'Item', w: 70, v: (i) => itemNo(i.item_no), bold: true },
+    { h: 'Description', w: 320, grow: true, v: (i) => i.description, bold: false },
     { h: 'Unit', w: 55, v: (i) => (i.heading ? '' : (i.unit ?? '')) },
     { h: 'BOQ qty', w: 85, right: true, v: (i) => n(i.qty) },
     { h: 'Previous', w: 85, right: true, v: (i) => n(i.prev) },
@@ -81,7 +81,7 @@ export function BoqProgressView({ p, money }: { p: ExecProject; money: boolean }
   const exportSap = () =>
     dialog.run(async () => {
       const cols = [
-        { header: 'Item', value: (i: Item) => i.item_no ?? '', width: 10 },
+        { header: 'Item', value: (i: Item) => itemNo(i.item_no), width: 10 },
         { header: 'Description', value: (i: Item) => i.description, width: 50 },
         { header: 'Unit', value: (i: Item) => (i.heading ? '' : (i.unit ?? '')), width: 8 },
         { header: 'BOQ qty', value: (i: Item) => (i.qty == null ? null : Number(i.qty)), width: 12 },

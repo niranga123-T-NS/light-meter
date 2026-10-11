@@ -46,7 +46,7 @@ export function parseBoqSheets(sheets: { sheet: string; data: unknown[][] }[], f
       let rate = parseNum(row[hd.rt]);
       const amount = hd.amount >= 0 ? parseNum(row[hd.amount]) : null;
       let unit = hd.unit >= 0 ? cellStr(row[hd.unit]) || null : null;
-      const item_no = hd.item >= 0 ? cellStr(row[hd.item]) || null : null;
+      const item_no = hd.item >= 0 ? itemNo(row[hd.item]) || null : null;
       if (qty == null && rate == null && amount == null) {
         if (BILL_HEADING.test(description) && bills.length <= 1) {
           section = description;
@@ -71,3 +71,10 @@ export function parseBoqSheets(sheets: { sheet: string; data: unknown[][] }[], f
   return { fileName, sheets: out };
 }
 
+/** BOQ item number without Excel's floating-point noise ("1.2000000000000002" → "1.2") */
+export function itemNo(v: unknown): string {
+  if (v == null) return '';
+  if (typeof v === 'number') return String(Number(v.toPrecision(10)));
+  const t = String(v).trim();
+  return /^\d+\.\d{8,}$/.test(t) ? String(Number(Number(t).toPrecision(10))) : t;
+}
