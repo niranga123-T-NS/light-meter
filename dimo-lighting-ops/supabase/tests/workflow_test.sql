@@ -6265,5 +6265,53 @@ begin
   assert (select order_value = 4000000 from public.secured_projects where project_id = p), 'second win added';
 end $$;
 
+-- SAP stock: upload → preview → confirm, values only for GM / SM Projects / Operations, category corrections, alerts ----------
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  begin perform public.stage_stock_upload('{"as_at":"2026-08-31","profit_center":"2230"}', '[{"material":"1"}]'); assert false, 'ops only';
+  exception when others then assert sqlerrm like 'The Operations Executive uploads%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare s1 uuid; s2 uuid; s3 uuid;
+begin
+  s1 := public.stage_stock_upload('{"as_at":"2026-08-31","profit_center":"2230","company_code":"DM01"}', '[{"material": "2200031816", "old_material": "IG211GDE-S", "mpn": "211GDE-S", "description": "JUNG ROTARY DIMMER INSERT", "uom": "EA", "category": "Lighting Solutions", "sub_category": "Accessories", "class": "Indoor - Accessories", "sub_class": "Dimmers", "brand": "Jung", "qty": 1, "value": 25, "unit_cost": 25, "currency": "LKR", "sap_na": false, "q1": 0, "v1": 0, "q2": 0, "v2": 0, "q3": 1, "v3": 25, "q4": 0, "v4": 0, "q5": 0, "v5": 0, "q6": 0, "v6": 0}, {"material": "2200031817", "old_material": "IG4058075261716-S", "mpn": "4058075261716-S", "description": "LEDVANCE LEDVANCE FL 10W 800LM IP65", "uom": "EA", "category": "Lighting Solutions", "sub_category": "Accessories", "class": "Indoor - Accessories", "sub_class": "Dimmers", "brand": "Jung", "qty": 1, "value": 25, "unit_cost": 25, "currency": "LKR", "sap_na": false, "q1": 0, "v1": 0, "q2": 0, "v2": 0, "q3": 0, "v3": 0, "q4": 0, "v4": 0, "q5": 0, "v5": 0, "q6": 1, "v6": 25}, {"material": "2200031818", "old_material": "IG.BY-Z1024E-21590", "mpn": ".BY-Z1024E-21590", "description": "BAIYI SURFACE MOUNTED DOWN LIGHT", "uom": "EA", "category": "Lighting Solutions", "sub_category": "Accessories", "class": "Indoor - Accessories", "sub_class": "Dimmers", "brand": "Jung", "qty": 1, "value": 6812.59, "unit_cost": 6812.59, "currency": "LKR", "sap_na": false, "q1": 0, "v1": 0, "q2": 0, "v2": 0, "q3": 0, "v3": 0, "q4": 0, "v4": 0, "q5": 0, "v5": 0, "q6": 1, "v6": 6812.59}, {"material": "2200031819", "old_material": "IG0507C 10-S", "mpn": "0507C10-S", "description": "INTEVISION BURRIED LIGHT 10W 3K P67", "uom": "EA", "category": "Lighting Solutions", "sub_category": "Accessories", "class": "Indoor - Accessories", "sub_class": "Dimmers", "brand": "Jung", "qty": 1, "value": 25, "unit_cost": 25, "currency": "LKR", "sap_na": false, "q1": 0, "v1": 0, "q2": 0, "v2": 0, "q3": 0, "v3": 0, "q4": 0, "v4": 0, "q5": 0, "v5": 0, "q6": 1, "v6": 25}]');
+  assert (select item_count = 4 and status = 'preview' from public.stock_snapshots where id = s1), 'staged';
+  assert (select (warnings ->> 'uncategorised')::int = 0 and (warnings ->> 'ageing_mismatch')::int = 0 from public.stock_snapshots where id = s1), 'clean lines';
+  perform public.confirm_stock_upload(s1);
+  s2 := public.stage_stock_upload('{"as_at":"2026-09-30","profit_center":"2230","company_code":"DM01"}', '[{"material": "2200031816", "old_material": "IG211GDE-S", "mpn": "211GDE-S", "description": "JUNG ROTARY DIMMER INSERT", "uom": "EA", "category": "Lighting Solutions", "sub_category": "Accessories", "class": "Indoor - Accessories", "sub_class": "Dimmers", "brand": "Jung", "qty": 1, "value": 25, "unit_cost": 25, "currency": "LKR", "sap_na": false, "q1": 0, "v1": 0, "q2": 0, "v2": 0, "q3": 0, "v3": 0, "q4": 1, "v4": 25, "q5": 0, "v5": 0, "q6": 0, "v6": 0}, {"material": "2200031817", "old_material": "IG4058075261716-S", "mpn": "4058075261716-S", "description": "LEDVANCE LEDVANCE FL 10W 800LM IP65", "uom": "EA", "category": "Lighting Solutions", "sub_category": "Accessories", "class": "Indoor - Accessories", "sub_class": "Dimmers", "brand": "Jung", "qty": 10, "value": 25000, "unit_cost": 25, "currency": "LKR", "sap_na": false, "q1": 9, "v1": 22500, "q2": 0, "v2": 0, "q3": 0, "v3": 0, "q4": 0, "v4": 0, "q5": 0, "v5": 0, "q6": 1, "v6": 25}, {"material": "2200031818", "old_material": "IG.BY-Z1024E-21590", "mpn": ".BY-Z1024E-21590", "description": "BAIYI SURFACE MOUNTED DOWN LIGHT", "uom": "EA", "category": "Lighting Solutions", "sub_category": "Accessories", "class": "Indoor - Accessories", "sub_class": "Dimmers", "brand": "Jung", "qty": 1, "value": 6812.59, "unit_cost": 6812.59, "currency": "LKR", "sap_na": false, "q1": 0, "v1": 0, "q2": 0, "v2": 0, "q3": 0, "v3": 0, "q4": 0, "v4": 0, "q5": 0, "v5": 0, "q6": 1, "v6": 6812.59}, {"material": "2200031819", "old_material": "IG0507C 10-S", "mpn": "0507C10-S", "description": "INTEVISION BURRIED LIGHT 10W 3K P67", "uom": "EA", "category": "Lighting Solutions", "sub_category": "Accessories", "class": "Indoor - Accessories", "sub_class": "Dimmers", "brand": "Jung", "qty": 1, "value": 25, "unit_cost": 25, "currency": "LKR", "sap_na": false, "q1": 0, "v1": 0, "q2": 0, "v2": 0, "q3": 0, "v3": 0, "q4": 0, "v4": 0, "q5": 0, "v5": 0, "q6": 1, "v6": 25}, {"material": "2200099999", "description": "NEW LED PANEL 600x600", "uom": "EA", "category": "Other", "sub_category": "<dummy>", "qty": 5, "value": 150000, "q1": 5, "v1": 150000, "q2": 0, "v2": 0, "q3": 0, "v3": 0, "q4": 0, "v4": 0, "q5": 0, "v5": 0, "q6": 0, "v6": 0}]');
+  assert (select (warnings ->> 'uncategorised')::int from public.stock_snapshots where id = s2) = 1, 'new item has no SAP category';
+  perform public.confirm_stock_upload(s2);
+  -- Same date again → reason required, the old one is replaced
+  s3 := public.stage_stock_upload('{"as_at":"2026-09-30","profit_center":"2230"}', '[{"material": "2200031816", "old_material": "IG211GDE-S", "mpn": "211GDE-S", "description": "JUNG ROTARY DIMMER INSERT", "uom": "EA", "category": "Lighting Solutions", "sub_category": "Accessories", "class": "Indoor - Accessories", "sub_class": "Dimmers", "brand": "Jung", "qty": 1, "value": 25, "unit_cost": 25, "currency": "LKR", "sap_na": false, "q1": 0, "v1": 0, "q2": 0, "v2": 0, "q3": 0, "v3": 0, "q4": 1, "v4": 25, "q5": 0, "v5": 0, "q6": 0, "v6": 0}, {"material": "2200031817", "old_material": "IG4058075261716-S", "mpn": "4058075261716-S", "description": "LEDVANCE LEDVANCE FL 10W 800LM IP65", "uom": "EA", "category": "Lighting Solutions", "sub_category": "Accessories", "class": "Indoor - Accessories", "sub_class": "Dimmers", "brand": "Jung", "qty": 10, "value": 25000, "unit_cost": 25, "currency": "LKR", "sap_na": false, "q1": 9, "v1": 22500, "q2": 0, "v2": 0, "q3": 0, "v3": 0, "q4": 0, "v4": 0, "q5": 0, "v5": 0, "q6": 1, "v6": 25}, {"material": "2200031818", "old_material": "IG.BY-Z1024E-21590", "mpn": ".BY-Z1024E-21590", "description": "BAIYI SURFACE MOUNTED DOWN LIGHT", "uom": "EA", "category": "Lighting Solutions", "sub_category": "Accessories", "class": "Indoor - Accessories", "sub_class": "Dimmers", "brand": "Jung", "qty": 1, "value": 6812.59, "unit_cost": 6812.59, "currency": "LKR", "sap_na": false, "q1": 0, "v1": 0, "q2": 0, "v2": 0, "q3": 0, "v3": 0, "q4": 0, "v4": 0, "q5": 0, "v5": 0, "q6": 1, "v6": 6812.59}, {"material": "2200031819", "old_material": "IG0507C 10-S", "mpn": "0507C10-S", "description": "INTEVISION BURRIED LIGHT 10W 3K P67", "uom": "EA", "category": "Lighting Solutions", "sub_category": "Accessories", "class": "Indoor - Accessories", "sub_class": "Dimmers", "brand": "Jung", "qty": 1, "value": 25, "unit_cost": 25, "currency": "LKR", "sap_na": false, "q1": 0, "v1": 0, "q2": 0, "v2": 0, "q3": 0, "v3": 0, "q4": 0, "v4": 0, "q5": 0, "v5": 0, "q6": 1, "v6": 25}, {"material": "2200099999", "description": "NEW LED PANEL 600x600", "uom": "EA", "category": "Other", "sub_category": "<dummy>", "qty": 5, "value": 150000, "q1": 5, "v1": 150000, "q2": 0, "v2": 0, "q3": 0, "v3": 0, "q4": 0, "v4": 0, "q5": 0, "v5": 0, "q6": 0, "v6": 0}]');
+  begin perform public.confirm_stock_upload(s3); assert false, 'reason';
+  exception when others then assert sqlerrm like 'A stock report as at 30 Sep 2026 is already confirmed%', sqlerrm; end;
+  perform public.confirm_stock_upload(s3, 'Re-run after SAP correction');
+  assert (select status from public.stock_snapshots where id = s2) = 'replaced', 'replaced';
+  assert (select count(*) from public.stock_snapshot_list()) = 2, 'two months listed';
+  perform public.set_stock_override('2200099999', '{"category":"Lighting Solutions","sub_category":"Indoor","brand":"Philips"}');
+  assert (select category = 'Lighting Solutions' and corrected from public.stock_lines(s3) where material = '2200099999'), 'correction applied';
+  assert (select value is not null and prev_qty is not null from public.stock_lines(s3) where material = '2200031817'), 'ops sees values and last month';
+  perform set_config('test.stock', s3::text, false);
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where title = 'SAP stock report uploaded' and recipient_id = (select id from u where role = 'gm')), 'GM told';
+  assert exists (select 1 from public.notifications where title = 'Stock moved into older age bands' and recipient_id = (select id from u where role = 'operations_exec')), 'ageing alert';
+  assert exists (select 1 from public.notifications where title = 'Stock value changed by more than 10%' and recipient_id = (select id from u where role = 'sm_projects')), 'value change alert';
+  assert public.stock_tick('2026-11-06 09:00+05:30') = 1, 'October not uploaded by the 5th';
+  assert public.stock_tick('2026-10-06 09:00+05:30') = 0, 'September is in';
+end $$;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  assert (select count(*) from public.stock_lines(current_setting('test.stock')::uuid)) = 5, 'sales see the lines';
+  assert (select bool_and(value is null and v6 is null) from public.stock_lines(current_setting('test.stock')::uuid)), 'but no values';
+  assert (select total_value is null from public.stock_snapshot_list() limit 1), 'no totals in money';
+  assert not exists (select 1 from public.stock_items), 'raw table hidden';
+  begin perform public.set_stock_override('2200099999', '{"category":"x"}'); assert false, 'ops only';
+  exception when others then assert sqlerrm like 'The Operations Executive corrects%', sqlerrm; end;
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
