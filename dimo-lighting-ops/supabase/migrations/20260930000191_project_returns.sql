@@ -197,7 +197,7 @@ create trigger material_request_lines_return_out after update of received_qty on
   for each row execute function app.book_return_out();
 
 -- Similar items in the SAP stock (latest report, quantity on hand) and the Project returns (available), for choosing materials
-create or replace function public.stock_matches(p_text text, p_mpn text default null) returns jsonb
+create or replace function public.stock_matches(p_text text, p_mpn text default null, p_source text default null) returns jsonb
 language plpgsql stable security definer set search_path = public as $$
 declare words text[]; res jsonb;
 begin
@@ -223,17 +223,20 @@ begin
            null::text as age
       from public.project_return_items r where not r.removed
   ), allm as (
-    select * from sap where score > 0 union all select * from ret where score > 0 and available > 0
+    select * from sap where score > 0 and coalesce(p_source, 'sap') = 'sap'
+    union all select * from ret where score > 0 and available > 0 and coalesce(p_source, 'returns') = 'returns'
   )
   select coalesce(jsonb_agg(to_jsonb(x) order by x.score desc, x.available desc), '[]') into res
-    from (select * from allm where score >= greatest(1, least(2, cardinality(words))) order by score desc, available desc limit 12) x;
+    -- One source (the step-by-step search): any word matches, up to 25; both sources (the check): closer matches only, up to 12
+    from (select * from allm where score >= case when p_source is not null then 1 else greatest(1, least(2, cardinality(words))) end
+          order by score desc, available desc limit case when p_source is not null then 25 else 12 end) x;
   return res;
 end $$;
 
 revoke execute on function public.add_project_returns(jsonb, text), public.update_project_return(uuid, jsonb), public.adjust_project_return(uuid, numeric, text),
-  public.project_returns(), public.project_leftovers(uuid), public.return_leftovers(uuid, jsonb), public.stock_matches(text, text) from public, anon;
+  public.project_returns(), public.project_leftovers(uuid), public.return_leftovers(uuid, jsonb), public.stock_matches(text, text, text) from public, anon;
 grant execute on function public.add_project_returns(jsonb, text), public.update_project_return(uuid, jsonb), public.adjust_project_return(uuid, numeric, text),
-  public.project_returns(), public.project_leftovers(uuid), public.return_leftovers(uuid, jsonb), public.stock_matches(text, text) to authenticated;
+  public.project_returns(), public.project_leftovers(uuid), public.return_leftovers(uuid, jsonb), public.stock_matches(text, text, text) to authenticated;
 
 -- Handover (DLP) checks: leftover material (copied from 20260930000183 with the new check)
 create or replace function app.gate_checks(p_exec uuid, p_gate int) returns jsonb

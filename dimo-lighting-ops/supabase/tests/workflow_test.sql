@@ -6361,6 +6361,8 @@ do $$ declare m uuid; e uuid := current_setting('test.ex')::uuid;
 begin
   assert exists (select 1 from jsonb_array_elements(public.stock_matches('Floodlight 200W')) x where x ->> 'source' = 'returns' and x ->> 'ref' = current_setting('test.ret')), 'similar item found';
   assert exists (select 1 from jsonb_array_elements(public.stock_matches('anything', 'FL200-40')) x where x ->> 'ref' = current_setting('test.ret')), 'same part number found';
+  assert (select bool_and(x ->> 'source' = 'returns') from jsonb_array_elements(public.stock_matches('floodlight', null, 'returns')) x), 'one source only';
+  assert jsonb_array_length(public.stock_matches('floodlight', null, 'returns')) >= 1, 'single word is enough in the step search';
   begin perform public.raise_material_request(e, jsonb_build_object('required_date', current_date + 3,
       'lines', jsonb_build_array(jsonb_build_object('return_item_id', current_setting('test.ret'), 'qty', 20)))); assert false, 'not enough';
   exception when others then assert sqlerrm like 'Only 10 nos of LED floodlight%', sqlerrm; end;
