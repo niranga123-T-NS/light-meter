@@ -1,0 +1,3 @@
+https://www.customs.gov.lk/wp-content/uploads/2026/09/er20260914.pdf {'from': '2026-09-14', 'to': '2026-09-20', 'GBP': 449.7115}
+https://www.customs.gov.lk/wp-content/uploads/2026/07/er20260720_1.pdf {'from': '2026-07-20', 'to': '2026-07-26', 'GBP': 458.9058}
+https://www.customs.gov.lk/wp-content/uploads/2026/08/er10082026.pdf {'from': '2026-08-10', 'to': '2026-08-16'}
