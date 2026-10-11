@@ -153,7 +153,8 @@ export function KeyValue({ label, value, wide }: { label: string; value: ReactNo
 export function Stat({ label, value, tone, onPress, sub }: { label: string; value: ReactNode; tone?: 'red' | 'amber' | 'green'; onPress?: () => void; sub?: string }) {
   return (
     <Card onPress={onPress} style={{ minHeight: 84, flexGrow: 1 }}>
-      <Text style={[styles.statValue, tone && { color: colors[tone] }]}>{value}</Text>
+      {/* Long amounts (LKR 7,500,000.00) shrink to stay on one line instead of breaking */}
+      <Text style={[styles.statValue, typeof value === 'string' && value.length > 12 && { fontSize: value.length > 16 ? 19 : 22 }, tone && { color: colors[tone] }]}>{value}</Text>
       <Text style={styles.muted}>{label}</Text>
       {sub ? <Text style={[styles.muted, { fontSize: 12, marginTop: 2 }]}>{sub}</Text> : null}
     </Card>

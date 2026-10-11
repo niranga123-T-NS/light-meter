@@ -1,10 +1,12 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Card, colors, Empty, Row } from './ui';
 
 export type Column<T> = {
   h: string;
   w: number;
+  /** Takes the spare width on wide screens (e.g. a description) – never narrower than w */
+  grow?: boolean;
   right?: boolean;
   /** Text, or any element */
   v: (row: T) => ReactNode;
@@ -32,13 +34,19 @@ export function DataTable<T>({
   footer?: (string | ReactNode)[];
   rowStyle?: (row: T) => object | undefined;
 }) {
+  // A "grow" column takes the spare width of a wide screen (fixed widths keep the text wrapping)
+  const [avail, setAvail] = useState(0);
+  const fixed = columns.reduce((t, c) => t + c.w, 0) + (edge ? 4 : 0);
+  const growN = columns.filter((c) => c.grow).length;
+  const extra = growN && avail > fixed ? Math.floor((avail - fixed) / growN) : 0;
+  const wid = (c: Column<T>) => ({ width: c.w + (c.grow ? extra : 0) });
   return (
     <Card style={{ padding: 0, overflow: 'hidden' }}>
-      <ScrollView horizontal>
+      <ScrollView horizontal onLayout={(e) => setAvail(Math.floor(e.nativeEvent.layout.width))}>
         <View>
           <Row gap={0} style={{ backgroundColor: colors.bg, borderBottomWidth: 1, borderBottomColor: colors.line }}>
             {columns.map((c, ci) => (
-              <Text key={`${c.h}${ci}`} style={[cell, { width: c.w, fontWeight: '700', textAlign: c.right ? 'right' : 'left', color: colors.muted }]}>
+              <Text key={`${c.h}${ci}`} style={[cell, wid(c), { fontWeight: '700', textAlign: c.right ? 'right' : 'left', color: colors.muted }]}>
                 {c.h}
               </Text>
             ))}
@@ -57,12 +65,12 @@ export function DataTable<T>({
                   return typeof v === 'string' || typeof v === 'number' || v == null ? (
                     <Text
                       key={`${c.h}${ci}`}
-                      style={[cell, { width: c.w, textAlign: c.right ? 'right' : 'left', fontVariant: c.right ? ['tabular-nums'] : undefined }, c.bold && { fontWeight: '700' }, c.tone?.(r) ? { color: c.tone(r) } : null]}
+                      style={[cell, wid(c), { textAlign: c.right ? 'right' : 'left', fontVariant: c.right ? ['tabular-nums'] : undefined }, c.bold && { fontWeight: '700' }, c.tone?.(r) ? { color: c.tone(r) } : null]}
                     >
                       {v ?? ''}
                     </Text>
                   ) : (
-                    <View key={`${c.h}${ci}`} style={[cell, { width: c.w, overflow: 'hidden', alignItems: c.right ? 'flex-end' : 'flex-start' }]}>
+                    <View key={`${c.h}${ci}`} style={[cell, wid(c), { overflow: 'hidden', alignItems: c.right ? 'flex-end' : 'flex-start' }]}>
                       {v}
                     </View>
                   );
@@ -80,7 +88,7 @@ export function DataTable<T>({
           {footer && rows.length ? (
             <Row gap={0} style={{ backgroundColor: colors.soft, borderLeftWidth: edge ? 4 : 0, borderLeftColor: 'transparent' }}>
               {columns.map((c, i) => (
-                <Text key={`${c.h}${i}`} style={[cell, { width: c.w, fontWeight: '700', textAlign: c.right ? 'right' : 'left', fontVariant: ['tabular-nums'] }]}>
+                <Text key={`${c.h}${i}`} style={[cell, wid(c), { fontWeight: '700', textAlign: c.right ? 'right' : 'left', fontVariant: ['tabular-nums'] }]}>
                   {footer[i] ?? ''}
                 </Text>
               ))}

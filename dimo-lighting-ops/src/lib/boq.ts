@@ -3,7 +3,7 @@ import { bytesOf } from './finance';
 import type { PickedFile } from './files';
 import { parseBoqSheets, type ParsedBoq } from './boqParse';
 
-export { parseBoqSheets, type ParsedBoq, type ParsedItem, type ParsedSheet } from './boqParse';
+export { itemNo, parseBoqSheets, type ParsedBoq, type ParsedItem, type ParsedSheet } from './boqParse';
 
 // Contract BOQ: upload (one sheet or split into bills / sections), measurement by quantity, Material on Site
 
@@ -106,3 +106,4 @@ export type BoqProgress = {
     amount?: number;
   }[];
 };
+

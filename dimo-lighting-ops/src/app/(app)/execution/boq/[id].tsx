@@ -8,7 +8,7 @@ import { TestingBanner } from '@/components/Testing';
 import { Button, Card, Chip, colors, ErrorBanner, Grid, Loading, Muted, Notice, Pill, Row, Screen, Section, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { BILLING_ROLES } from '@/lib/billing';
-import { BOQ_STATUS, bySection, readBoqFile, type Boq, type BoqItem, type ParsedBoq } from '@/lib/boq';
+import { BOQ_STATUS, bySection, itemNo, readBoqFile, type Boq, type BoqItem, type ParsedBoq } from '@/lib/boq';
 import type { ExecProject } from '@/lib/execution';
 import { pickDocument } from '@/lib/files';
 import { fmtDateTime, fmtMoney, fmtNumber } from '@/lib/format';
@@ -188,8 +188,8 @@ export default function BoqScreen() {
                 rows={g.items}
                 keyOf={(_, i) => String(i)}
                 columns={[
-                  { h: 'Item', w: 70, v: (i) => i.item_no ?? '' },
-                  { h: 'Description', w: 380, v: (i) => <Text style={{ color: colors.ink, fontWeight: i.qty == null ? '700' : '400' }}>{i.description}</Text> },
+                  { h: 'Item', w: 70, v: (i) => itemNo(i.item_no) },
+                  { h: 'Description', w: 320, grow: true, v: (i) => <Text style={{ color: colors.ink, fontWeight: i.qty == null ? '700' : '400' }}>{i.description}</Text> },
                   { h: 'Unit', w: 60, v: (i) => i.unit ?? '' },
                   { h: 'Qty', w: 80, right: true, v: (i) => (i.qty == null ? '' : fmtNumber(i.qty, 2)) },
                   { h: 'Rate', w: 110, right: true, v: (i) => (i.rate == null ? '' : fmtNumber(i.rate, 2)) },
@@ -209,8 +209,8 @@ export default function BoqScreen() {
                 keyOf={(i) => i.id}
                 edge={(i) => (i.source === 'variation' ? colors.blue : undefined)}
                 columns={[
-                  { h: 'Item', w: 80, v: (i) => i.item_no ?? '' },
-                  { h: 'Description', w: 380, v: (i) => <Text style={{ color: colors.ink, fontWeight: i.heading ? '700' : '400' }}>{i.description}</Text> },
+                  { h: 'Item', w: 70, v: (i) => itemNo(i.item_no) },
+                  { h: 'Description', w: 320, grow: true, v: (i) => <Text style={{ color: colors.ink, fontWeight: i.heading ? '700' : '400' }}>{i.description}</Text> },
                   { h: 'Unit', w: 60, v: (i) => i.unit ?? '' },
                   { h: 'Qty', w: 80, right: true, v: (i) => (i.qty == null ? '' : fmtNumber(Number(i.qty), 2)) },
                   { h: 'Rate', w: 110, right: true, v: (i) => (i.rate == null ? '' : fmtNumber(Number(i.rate), 2)) },
