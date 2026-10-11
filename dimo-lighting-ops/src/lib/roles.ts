@@ -75,6 +75,7 @@ export const EXEC_NAV = {
   documents: { href: '/execution/documents', label: 'Documents', icon: '❏', testing: true } as NavItem,
   queries: { href: '/execution/queries', label: 'Design queries', icon: '?', testing: true } as NavItem,
   certs: { href: '/execution/certs', label: 'Subcontractor invoices', icon: '⧉', testing: true } as NavItem,
+  scrap: { href: '/execution/scrap', label: 'Scrap disposal', icon: '♻', pilot: true } as NavItem,
 };
 
 
@@ -145,6 +146,7 @@ function baseNav(role: Role): NavItem[] {
         EXEC_NAV.portfolio,
         EXEC_NAV.hse,
         EXEC_NAV.materials,
+        EXEC_NAV.scrap,
         EXEC_NAV.certs,
         EXEC_NAV.access,
         { href: '/samples', label: 'Samples', icon: '⬚' },
@@ -173,6 +175,7 @@ function baseNav(role: Role): NavItem[] {
         { href: '/warranty', label: 'Warranty', icon: '⛉' },
         { href: '/engineering', label: 'Engineering jobs', icon: '▣' },
         EXEC_NAV.portfolio,
+        EXEC_NAV.scrap,
         EXEC_NAV.access,
         { href: '/samples', label: 'Samples', icon: '⬚' },
         { href: '/finance/pnl', label: 'P&L', icon: '▥' },
@@ -231,6 +234,7 @@ function baseNav(role: Role): NavItem[] {
         { href: '/finance/invoicing', label: 'Invoicing', icon: '⧉' },
         EXEC_NAV.portfolio,
         EXEC_NAV.materials,
+        EXEC_NAV.scrap,
         EXEC_NAV.documents,
         EXEC_NAV.certs,
         approvals,
@@ -246,6 +250,7 @@ function baseNav(role: Role): NavItem[] {
         EXEC_NAV.variations,
         EXEC_NAV.hse,
         EXEC_NAV.materials,
+        EXEC_NAV.scrap,
         EXEC_NAV.queries,
         EXEC_NAV.certs,
         approvals,
@@ -264,6 +269,7 @@ function baseNav(role: Role): NavItem[] {
         EXEC_NAV.variations,
         EXEC_NAV.hse,
         EXEC_NAV.materials,
+        EXEC_NAV.scrap,
         EXEC_NAV.queries,
         { href: '/warranty', label: 'Warranty', icon: '⛉' },
       ];

@@ -49,11 +49,14 @@ export function MaterialsTab({ p }: { p: ExecProject }) {
 
   return (
     <>
-      {me.role === 'senior_elec_engineer' || me.role === 'sm_projects' || me.role === 'gm' ? (
-        <Row style={{ justifyContent: 'flex-end' }}>
+      <Row wrap gap={8} style={{ justifyContent: 'flex-end' }}>
+        {['senior_elec_engineer', 'sm_projects', 'gm', 'operations_exec'].includes(me.role) || aeOfProject ? (
+          <Button small variant="secondary" title="♻ Scrap disposal" onPress={() => router.push({ pathname: '/execution/scrap', params: { project: p.id } })} />
+        ) : null}
+        {me.role === 'senior_elec_engineer' || me.role === 'sm_projects' || me.role === 'gm' ? (
           <Button small variant="secondary" title="Materials report (PDF)" onPress={() => dialog.run(() => exportMaterialsReport(p, people, `${me.full_name} – ${ROLE_LABELS[me.role]}`))} />
-        </Row>
-      ) : null}
+        ) : null}
+      </Row>
       <Section
         title="Material requests and deliveries"
         right={canRequest && p.status === 'active' ? <Button small title="+ Request" onPress={() => router.push({ pathname: '/execution/material/new', params: { project: p.id } })} /> : null}
