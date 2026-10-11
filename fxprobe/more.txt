@@ -1,10 +1,12 @@
-https://www.customs.gov.lk/wp-content/uploads/2026/10/er05102026.pdf {'from': '2026-10-05', 'to': '2026-10-11', 'EUR': 376.8259, 'GBP': 442.3564, 'USD': 335.1947}
-https://www.customs.gov.lk/wp-content/uploads/2026/09/er28092026.pdf {'from': '2026-09-28', 'to': '2026-10-04'}
-https://www.customs.gov.lk/wp-content/uploads/2026/09/er21092026.pdf {'from': '2026-09-21', 'to': '2026-09-27', 'EUR': 385.909, 'GBP': 449.0675}
-https://www.customs.gov.lk/wp-content/uploads/2026/09/er20260914.pdf {'from': '2026-09-14', 'to': '2026-09-20', 'GBP': 449.7115}
-https://www.customs.gov.lk/wp-content/uploads/2026/09/er07092026.pdf {'from': '2026-09-07', 'to': '2026-09-13', 'USD': 332.8821}
-https://www.customs.gov.lk/wp-content/uploads/2026/08/er31082026.pdf {'from': '2026-08-31', 'to': '2026-09-06'}
-https://www.customs.gov.lk/wp-content/uploads/2026/08/er24082026.pdf {'from': '2026-08-24', 'to': '2026-08-30', 'EUR': 390.8856, 'GBP': 436.1613, 'USD': 334.2331}
-https://www.customs.gov.lk/wp-content/uploads/2026/08/er17082026.pdf {'from': '2026-08-17', 'to': '2026-08-23', 'EUR': 389.9078}
-https://www.customs.gov.lk/wp-content/uploads/2026/08/er10082026.pdf {'from': '2026-08-10', 'to': '2026-08-16', 'USD': 340.1598}
-https://www.customs.gov.lk/wp-content/uploads/2026/08/er20260803.pdf {'from': '2026-08-03', 'to': '2026-08-09', 'EUR': 891.822, 'USD': 340.3301}
+Traceback (most recent call last):
+  File "<string>", line 15, in <module>
+  File "/usr/lib/python3.12/subprocess.py", line 548, in run
+    with Popen(*popenargs, **kwargs) as process:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/subprocess.py", line 1026, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "/usr/lib/python3.12/subprocess.py", line 1955, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: 'convert'
+er05102026.pdf plain {'from': '2026-10-05', 'to': '2026-10-11', 'EUR': 376.8259, 'GBP': 442.3564, 'USD': 335.1947}
+    ['[12 [Eurozone | Ss(Euro~S—Ctéi‘“;C™*C*C‘*d’SCOC@EURR | —3 76.8259', '14 [Hongkong | HK [HongKong Dollar | HKD [42.7217', '48 [United Kingdom | GB [Sterling Pound | GBP__| 442.3564', 'Pay JUSA__——*| us |USDollr | _usD__| 335.1947']
