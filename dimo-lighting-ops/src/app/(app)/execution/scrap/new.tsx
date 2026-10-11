@@ -1,7 +1,6 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
-import { TestingBanner } from '@/components/Testing';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, ErrorBanner, Field, Loading, Muted, Notice, NumberField, Row, Screen, Section, Segmented, Select } from '@/components/ui';
 import { useMe } from '@/lib/auth';
@@ -88,7 +87,6 @@ export default function NewScrap() {
   return (
     <Screen maxWidth={900}>
       <Stack.Screen options={{ title: params.id ? 'Change scrap disposal' : 'New scrap disposal' }} />
-      <TestingBanner what="Scrap disposal" always />
       {data.existing?.d.return_note ? <Notice tone={colors.red}>{`Returned: ${data.existing.d.return_note}`}</Notice> : null}
       <Section title="Where and why">
         <Card style={{ gap: 4 }}>

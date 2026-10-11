@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 import { Text, View } from 'react-native';
 import { ProjectReturnsView } from '@/components/ProjectReturnsView';
 import { AgeBars, LineAge, lkr, lkrM, VALUE_ROLES } from '@/components/StockBits';
-import { TestingBanner } from '@/components/Testing';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, Empty, ErrorBanner, Grid, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section, Segmented, Select, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
@@ -35,7 +34,6 @@ export default function Stock() {
     return (
       <Screen maxWidth={1100}>
         <Stack.Screen options={{ title: 'Stock' }} />
-        <TestingBanner what="Stock" always />
         {tabs}
         <ProjectReturnsView />
       </Screen>
@@ -85,7 +83,6 @@ function SapStock({ tabs }: { tabs: ReactNode }) {
     return (
       <Screen maxWidth={1100}>
         <Stack.Screen options={{ title: 'Stock' }} />
-      <TestingBanner what="Stock" always />
       {tabs}
         {header}
         <Card>
@@ -118,7 +115,6 @@ function SapStock({ tabs }: { tabs: ReactNode }) {
   return (
     <Screen maxWidth={1100}>
       <Stack.Screen options={{ title: 'Stock' }} />
-      <TestingBanner what="Stock" always />
       {tabs}
       {header}
       <Muted>{`SAP stock ageing report · profit centre ${cur.profit_center} · as at ${fmtDate(cur.as_at)} · uploaded ${fmtDate(cur.confirmed_at)}${cur.replace_reason ? ` · replaced: ${cur.replace_reason}` : ''}`}</Muted>
