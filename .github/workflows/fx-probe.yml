@@ -20,8 +20,8 @@ jobs:
           found=re.findall(r'href=\"([^\"]+\.pdf)\"[^>]*>\s*Effective from (\d\d\.\d\d\.\d{4})', page)[:12]
           hist=f.cbsl('2026-06-01')
           for u2,e in found:
-              eff=f.dmy(e); ref=hist[max(d for d in hist if d<eff)]
-              print(u2.split('/')[-1], f.read_customs(f.get(u2,True), ref))
+              eff=f.dmy(e); refs=[hist[d] for d in sorted(hist, reverse=True) if d<eff][:5]
+              print(u2.split('/')[-1], f.read_customs(f.get(u2,True), refs))
           " 2>&1 | tee fxprobe/more.txt
       - run: |
           git config user.name probe; git config user.email probe@users.noreply.github.com

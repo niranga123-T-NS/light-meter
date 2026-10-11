@@ -86,18 +86,8 @@ def tess(img, *args):
     return subprocess.run(['tesseract', img, '-', *args], capture_output=True, text=True).stdout
 
 
-def ocr_pdf(data):
-    """Full text of the PDF (for the dates and as a second reading)"""
-    with tempfile.TemporaryDirectory() as tmp:
-        return '\n'.join(tess(i, '--psm', '6') for i in page_images(data, tmp))
-
-
 NUM = re.compile(r'(\d[\d,\s]*[.,]\s?\d{4})(?!\d)')
-ANCHOR = {
-    'USD': re.compile(r'^(usd|u5d|usp|uso|usa)\W*$|dollr|^us$', re.I),
-    'EUR': re.compile(r'^(eu?rr?|euro)\W*$', re.I),
-    'GBP': re.compile(r'^(gbp|g8p|gbf|cbp|sterling|kingdom)\W*$', re.I),
-}
+NAMES = {'USD': ('usd', 'us dollar', 'usa'), 'EUR': ('eur',), 'GBP': ('gbp', 'sterling', 'united kingdom')}
 
 
 def to_num(v):
@@ -105,78 +95,77 @@ def to_num(v):
     return float(v.replace('..', '.'))
 
 
-def row_readings(data):
-    """{ccy: [values]} – each currency's row found from its code / name, the rate cell cut out and read as digits only"""
+def ocr_texts(data):
+    """OCR of the schedule page in a few ways (plain, enlarged grey, black-and-white, column mode) – each misreads different digits"""
     from PIL import Image, ImageOps
-    out = {c: [] for c in CCY}
+    out = []
     with tempfile.TemporaryDirectory() as tmp:
         for img in page_images(data, tmp):
-            words = []
-            for ln in tess(img, '--psm', '6', 'tsv').splitlines()[1:]:
-                p = ln.split('\t')
-                if len(p) == 12 and p[11].strip():
-                    words.append((int(p[6]), int(p[7]), int(p[8]), int(p[9]), p[11].strip()))
-            nums = [w for w in words if NUM.search(w[4])]
-            if len(nums) < 10:
-                continue  # not the schedule page
-            page = Image.open(img).convert('L')
-            # the rate column: where the right-hand numbers start
-            lefts = sorted(w[0] for w in nums if w[0] > page.width * 0.5)
-            col = (lefts[len(lefts) // 10] if lefts else int(page.width * 0.7)) - 15
-            rh = sorted(w[3] for w in words)[len(words) // 2]
-            for c, rx in ANCHOR.items():
-                for x, y, w, h, t in words:
-                    if not rx.search(t):
-                        continue
-                    yc = y + h / 2
-                    box = (col, max(0, int(yc - rh * 1.0)), page.width, int(yc + rh * 1.0))
-                    cell = ImageOps.autocontrast(page.crop(box), cutoff=1)
-                    cell = cell.resize((cell.width * 3, cell.height * 3), Image.LANCZOS)
-                    for k, im in enumerate((cell, cell.point(lambda v: 255 if v > 150 else 0))):
-                        f = os.path.join(tmp, f'cell{k}.png')
-                        im.save(f)
-                        m = NUM.search(tess(f, '--psm', '7', '-c', 'tessedit_char_whitelist=0123456789.,'))
-                        if m:
-                            out[c].append(to_num(m.group(1)))
+            out.append(tess(img, '--psm', '6'))
+            g = ImageOps.autocontrast(Image.open(img).convert('L'), cutoff=1)
+            g = g.resize((g.width * 2, g.height * 2), Image.LANCZOS)
+            for k, (im, psm) in enumerate(((g, '6'), (g.point(lambda v: 255 if v > 140 else 0), '6'), (g, '4'))):
+                f = os.path.join(tmp, f'v{k}.png')
+                im.save(f)
+                out.append(tess(f, '--psm', psm))
     return out
 
 
 def parse_customs(text):
-    """{'from', 'to', 'USD', 'EUR', 'GBP'} from the OCR text of the schedule"""
-    res = {}
+    """{'from', 'to', ccy: [readings]} from one OCR text (the rate is the last number on the currency's line)"""
+    res = {c: [] for c in CCY}
     m = re.search(r'From\s+(\d{1,2}[.,/-]\d{1,2}[.,/-]\d{4})\s+to\s+(\d{1,2}[.,/-]\d{1,2}[.,/-]\d{4})', text, re.I)
     if m:
         res['from'], res['to'] = dmy(m.group(1).replace(',', '.')), dmy(m.group(2).replace(',', '.'))
-    # OCR of the scanned table is noisy ("—3 76.8259", "USDollr"): find each row by its names, take the last rate on the line
-    keys = {'USD': ('usd', 'us dollar', 'usa'), 'EUR': ('eur',), 'GBP': ('gbp', 'sterling', 'united kingdom')}
     for line in text.splitlines():
         low = line.lower()
-        for c, names in keys.items():
-            if c in res or not any(n in low for n in names):
-                continue
-            nums = NUM.findall(line)
-            if nums:
-                res[c] = to_num(nums[-1])
+        for c, names in NAMES.items():
+            if any(n in low for n in names):
+                nums = NUM.findall(line)
+                if nums:
+                    try:
+                        res[c].append(to_num(nums[-1]))
+                    except ValueError:
+                        pass
     return res
 
 
-def read_customs(data, ref):
-    """The schedule's dates and USD / EUR / GBP. A value is taken when it is near the Central Bank rate (ref) and either
-    two readings agree or the digits-only reading of the cell gives it."""
-    text = ocr_pdf(data)
-    full = parse_customs(text)
-    rows = row_readings(data)
-    res = {k: full[k] for k in ('from', 'to') if k in full}
-    for c in CCY:
-        near = lambda v: ref.get(c) and abs(v / ref[c] - 1) < 0.04
-        votes = [v for v in rows[c] if near(v)]
-        if c in full and near(full[c]):
-            votes.append(full[c])
-        best = max(set(votes), key=votes.count) if votes else None
-        if best is not None and (votes.count(best) >= 2 or best in rows[c]):
-            res[c] = best
-        print(f'  {c}: cell readings {rows[c]}, text reading {full.get(c)}, CBSL {ref.get(c)} -> {res.get(c)}')
-    return res
+def read_customs(data, refs):
+    """The schedule's dates and USD / EUR / GBP.
+
+    Customs sets all three from one Central Bank day with one common factor (e.g. 1.013827 in the week from 05.10.2026), so
+    two currencies whose readings give the same factor confirm each other; the third is then taken where a reading also
+    fits, else worked out from the factor. refs: [CBSL rates of the days before the schedule, newest first]."""
+    reads = {c: set() for c in CCY}
+    dates = {}
+    for t in ocr_texts(data):
+        p = parse_customs(t)
+        for c in CCY:
+            reads[c].update(p[c])
+        for k in ('from', 'to'):
+            if k in p:
+                dates.setdefault(k, p[k])
+    print('  readings:', {c: sorted(v) for c, v in reads.items()})
+    for ref in refs:
+        if not all(ref.get(c) for c in CCY):
+            continue
+        ks = [(v / ref[c], c, v) for c in CCY for v in reads[c] if 0.9 < v / ref[c] < 1.1]
+        pair = next(((k1 + k2) / 2 for k1, c1, _ in ks for k2, c2, _ in ks if c1 < c2 and abs(k1 - k2) < 3e-6), None)
+        if pair is None:
+            continue
+        res, worked = dict(dates), []
+        for c in CCY:
+            hit = [v for k, cc, v in ks if cc == c and abs(k - pair) < 3e-6]
+            if hit:
+                res[c] = hit[0]
+            else:
+                res[c] = round(ref[c] * pair, 4)
+                worked.append(c)
+        res['factor'] = round(pair, 6)
+        if worked:
+            res['worked_out'] = worked
+        return res
+    return dates
 
 
 def main():
@@ -195,13 +184,10 @@ def main():
     print('Customs newest schedule:', eff, url)
     if eff and (DRY or not last.get('customs') or eff > last['customs']):
         try:
-            # the Central Bank rate of the week before the schedule, to tell a good reading from a misread one
-            ref_day = max([d for d in rates if d < eff] or [None]) if rates else None
-            ref = rates.get(ref_day, {}) if ref_day else {}
-            if not ref:
-                back = cbsl((dt.date.fromisoformat(eff) - dt.timedelta(days=10)).isoformat())
-                ref = back[max(d for d in back if d < eff)] if any(d < eff for d in back) else {}
-            c = read_customs(get(url, binary=True), ref)
+            # the Central Bank days before the schedule (Customs works from one of them)
+            hist = cbsl((dt.date.fromisoformat(eff) - dt.timedelta(days=12)).isoformat())
+            refs = [hist[d] for d in sorted(hist, reverse=True) if d < eff][:5]
+            c = read_customs(get(url, binary=True), refs)
             c.setdefault('from', eff)
             if c.get('from') != eff:
                 print(f'::warning::Customs: the PDF says from {c.get("from")}, the link says {eff} – using the link')
