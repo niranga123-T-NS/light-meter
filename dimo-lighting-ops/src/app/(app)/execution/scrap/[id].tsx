@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { Attachments } from '@/components/Attachments';
 import { DataTable } from '@/components/DataTable';
-import { TestingBanner } from '@/components/Testing';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, ErrorBanner, KeyValue, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section } from '@/components/ui';
 import type { Attachment } from '@/lib/types';
@@ -150,7 +149,6 @@ export default function ScrapScreen() {
   return (
     <Screen maxWidth={1000} onRefresh={reload}>
       <Stack.Screen options={{ title: d.code }} />
-      <TestingBanner what="Scrap disposal" always />
       <Row wrap gap={8} style={{ alignItems: 'center' }}>
         <Text style={{ fontSize: 20, fontWeight: '700', color: colors.ink, flex: 1 }}>{`Scrap disposal ${d.code}`}</Text>
         <Pill label={st.label} tone={st.tone} solid />

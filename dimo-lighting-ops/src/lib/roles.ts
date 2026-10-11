@@ -75,7 +75,7 @@ export const EXEC_NAV = {
   documents: { href: '/execution/documents', label: 'Documents', icon: '❏', testing: true } as NavItem,
   queries: { href: '/execution/queries', label: 'Design queries', icon: '?', testing: true } as NavItem,
   certs: { href: '/execution/certs', label: 'Subcontractor invoices', icon: '⧉', testing: true } as NavItem,
-  scrap: { href: '/execution/scrap', label: 'Scrap disposal', icon: '♻', pilot: true } as NavItem,
+  scrap: { href: '/execution/scrap', label: 'Scrap disposal', icon: '♻' } as NavItem,
 };
 
 
@@ -97,7 +97,7 @@ export function navFor(role: Role): NavItem[] {
   // SAP stock: Operations uploads; GM / DGM and SM Projects see values; other office roles see quantities and ageing
   if (!['sub_supervisor', 'trainee', 'sys_admin'].includes(role)) {
     const at = items.findIndex((i) => i.href === '/reports');
-    items.splice(at < 0 ? items.length : at, 0, { href: '/stock', label: 'Stock', icon: '▤', pilot: true });
+    items.splice(at < 0 ? items.length : at, 0, { href: '/stock', label: 'Stock', icon: '▤' });
   }
   return [...items.slice(0, 1), meetings, ...items.slice(1)];
 }

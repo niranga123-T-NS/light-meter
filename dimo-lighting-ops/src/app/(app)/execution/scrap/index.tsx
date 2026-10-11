@@ -1,6 +1,5 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { TestingBanner } from '@/components/Testing';
 import { Button, Card, Empty, ErrorBanner, Grid, ListRow, Loading, Muted, Pill, Row, Screen, Segmented, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import type { ExecProject } from '@/lib/execution';
@@ -54,7 +53,6 @@ export default function ScrapList() {
   return (
     <Screen maxWidth={1100}>
       <Stack.Screen options={{ title: 'Scrap disposal' }} />
-      <TestingBanner what="Scrap disposal" always />
       <Muted>
         Scrap from a project&apos;s site store, the Project returns, or old material removed on site. Raised by the SEE or the project&apos;s Assistant Engineers, approved
         by SM Projects and then the DGM / GM, and disposed free of charge (with the reason) or sold (with quotations).
