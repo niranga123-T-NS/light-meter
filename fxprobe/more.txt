@@ -1,48 +1,24 @@
-  USD: cell readings [], text reading 335.1947, CBSL 330.6231 -> None
-  EUR: cell readings [], text reading 376.8259, CBSL 371.6865 -> None
-  GBP: cell readings [], text reading 442.3564, CBSL 436.3233 -> None
-er05102026.pdf {'from': '2026-10-05', 'to': '2026-10-11'}
-  USD: cell readings [], text reading None, CBSL 330.3522 -> None
-  EUR: cell readings [], text reading None, CBSL 375.8417 -> None
-  GBP: cell readings [], text reading None, CBSL 436.6595 -> None
+  readings: {'USD': [335.1947], 'EUR': [76.8259, 376.8259], 'GBP': [442.3564]}
+er05102026.pdf {'from': '2026-10-05', 'to': '2026-10-11', 'USD': 335.1947, 'EUR': 376.8259, 'GBP': 442.3564, 'factor': 1.013827}
+  readings: {'USD': [], 'EUR': [980.9127], 'GBP': []}
 er28092026.pdf {'from': '2026-09-28', 'to': '2026-10-04'}
-  USD: cell readings [], text reading None, CBSL 332.1338 -> None
-  EUR: cell readings [], text reading 385.909, CBSL 381.3228 -> None
-  GBP: cell readings [], text reading 449.0675, CBSL 443.7308 -> None
-er21092026.pdf {'from': '2026-09-21', 'to': '2026-09-27'}
-  USD: cell readings [], text reading None, CBSL 328.5966 -> None
-  EUR: cell readings [], text reading None, CBSL 381.3692 -> None
-  GBP: cell readings [], text reading 449.7115, CBSL 443.6711 -> None
-er20260914.pdf {'from': '2026-09-14', 'to': '2026-09-20'}
-  USD: cell readings [], text reading 332.8821, CBSL 328.3642 -> None
-  EUR: cell readings [], text reading None, CBSL 381.8547 -> None
-  GBP: cell readings [], text reading None, CBSL 444.3917 -> None
-er07092026.pdf {'from': '2026-09-07', 'to': '2026-09-13'}
-  USD: cell readings [], text reading None, CBSL 328.6088 -> None
-  EUR: cell readings [], text reading None, CBSL 382.7635 -> None
-  GBP: cell readings [], text reading None, CBSL 446.6122 -> None
-er31082026.pdf {'from': '2026-08-31', 'to': '2026-09-06'}
-  USD: cell readings [], text reading 334.2331, CBSL 330.1657 -> None
-  EUR: cell readings [], text reading 390.8856, CBSL 386.1288 -> None
-  GBP: cell readings [], text reading 436.1613, CBSL 450.6101 -> None
-er24082026.pdf {'from': '2026-08-24', 'to': '2026-08-30'}
-  USD: cell readings [], text reading None, CBSL 333.5952 -> None
-  EUR: cell readings [], text reading 389.9078, CBSL 384.8354 -> None
-  GBP: cell readings [], text reading None, CBSL 450.0533 -> None
+  readings: {'USD': [], 'EUR': [385.909], 'GBP': [449.0675]}
+er21092026.pdf {'from': '2026-09-21', 'to': '2026-09-27', 'USD': 336.1284, 'EUR': 385.909, 'GBP': 449.0675, 'factor': 1.012027, 'worked_out': ['USD']}
+  readings: {'USD': [333.0703], 'EUR': [386.5614], 'GBP': [449.7115]}
+er20260914.pdf {'from': '2026-09-14', 'to': '2026-09-20', 'USD': 333.0703, 'EUR': 386.5614, 'GBP': 449.7115, 'factor': 1.013615}
+  readings: {'USD': [332.8821], 'EUR': [57207.1086], 'GBP': [450.5, 450.506]}
+er07092026.pdf {'from': '2026-09-07', 'to': '2026-09-13', 'USD': 332.8821, 'EUR': 387.1086, 'GBP': 450.506, 'factor': 1.013759, 'worked_out': ['EUR']}
+  readings: {'USD': [332.6603], 'EUR': [387.4874], 'GBP': [452.1041, 452.1241]}
+er31082026.pdf {'from': '2026-08-31', 'to': '2026-09-06', 'USD': 332.6643, 'EUR': 387.4874, 'GBP': 452.1241, 'factor': 1.012342, 'worked_out': ['USD']}
+  readings: {'USD': [334.2331], 'EUR': [390.8856], 'GBP': [436.1613, 456.1613]}
+er24082026.pdf {'from': '2026-08-24', 'to': '2026-08-30', 'USD': 334.2331, 'EUR': 390.8856, 'GBP': 456.1613, 'factor': 1.012319}
+  readings: {'USD': [], 'EUR': [389.9078], 'GBP': []}
 er17082026.pdf {'from': '2026-08-17', 'to': '2026-08-23'}
-  USD: cell readings [], text reading 340.1598, CBSL 335.4267 -> None
-  EUR: cell readings [], text reading None, CBSL 386.5122 -> None
-  GBP: cell readings [], text reading None, CBSL 451.2831 -> None
-er10082026.pdf {'from': '2026-08-10', 'to': '2026-08-16'}
-  USD: cell readings [18.1693, 18.1693], text reading 340.3301, CBSL 336.0466 -> None
-  EUR: cell readings [], text reading 891.822, CBSL 386.8905 -> None
-  GBP: cell readings [], text reading None, CBSL 452.1507 -> None
-er20260803.pdf {'from': '2026-08-03', 'to': '2026-08-09'}
-  USD: cell readings [], text reading None, CBSL 336.2576 -> None
-  EUR: cell readings [], text reading None, CBSL 382.7957 -> None
-  GBP: cell readings [], text reading None, CBSL 447.8615 -> None
-er27072026.pdf {'from': '2026-07-27', 'to': '2026-08-02'}
-  USD: cell readings [], text reading None, CBSL 336.3055 -> None
-  EUR: cell readings [], text reading 389.828, CBSL 384.6999 -> None
-  GBP: cell readings [], text reading 458.9058, CBSL 452.869 -> None
-er20260720_1.pdf {'from': '2026-07-20', 'to': '2026-07-26'}
+  readings: {'USD': [340.1598], 'EUR': [39.9661, 89.9661, 91.9661], 'GBP': [457.651]}
+er10082026.pdf {'from': '2026-08-10', 'to': '2026-08-16', 'USD': 340.1598, 'EUR': 391.9661, 'GBP': 457.651, 'factor': 1.014111, 'worked_out': ['EUR']}
+  readings: {'USD': [340.3301], 'EUR': [891.822], 'GBP': [457.9141]}
+er20260803.pdf {'from': '2026-08-03', 'to': '2026-08-09', 'USD': 340.3301, 'EUR': 391.8221, 'GBP': 457.9141, 'factor': 1.012747, 'worked_out': ['EUR']}
+  readings: {'USD': [340.7938], 'EUR': [387.9597], 'GBP': []}
+er27072026.pdf {'from': '2026-07-27', 'to': '2026-08-02', 'USD': 340.7938, 'EUR': 387.9597, 'GBP': 453.9033, 'factor': 1.01349, 'worked_out': ['GBP']}
+  readings: {'USD': [], 'EUR': [89.828, 389.828, 889.828], 'GBP': [438.9058, 458.9038, 458.9058]}
+er20260720_1.pdf {'from': '2026-07-20', 'to': '2026-07-26', 'USD': 340.7885, 'EUR': 389.828, 'GBP': 458.9058, 'factor': 1.01333, 'worked_out': ['USD']}
