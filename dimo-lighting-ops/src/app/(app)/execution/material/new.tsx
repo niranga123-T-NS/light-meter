@@ -1,5 +1,5 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 import { CatalogPicker, type CatalogItem } from '@/components/CatalogPicker';
 import { StockMatches } from '@/components/StockMatches';
@@ -27,8 +27,13 @@ type Line = {
   fromReturn: StockMatch | null;
   /** An SAP stock item to issue instead of buying */
   fromSap: StockMatch | null;
+  /** Stock matched, but the engineer orders new – with the reason */
+  orderNew: boolean;
+  newReason: string;
+  /** Stock matched this line (a choice is then required) */
+  matched: boolean;
 };
-const blank = (): Line => ({ catalog: null, custom: false, item: '', category: null, spec: '', brand: '', unit: '', qty: null, rate: null, note: '', fromReturn: null, fromSap: null });
+const blank = (): Line => ({ catalog: null, custom: false, item: '', category: null, spec: '', brand: '', unit: '', qty: null, rate: null, note: '', fromReturn: null, fromSap: null, orderNew: false, newReason: '', matched: false });
 const CATEGORIES = [
   'Indoor luminaires', 'Outdoor luminaires', 'Road lighting', 'Floodlighting', 'Sports lighting', 'Tunnel lighting', 'Facade lighting', 'Emergency lighting',
   'Central battery systems', 'Airport systems (AGL)', 'Airport systems', 'Cables', 'Cable accessories', 'Containment', 'Switchgear',
@@ -64,6 +69,11 @@ export default function NewMaterialRequest() {
     return (data ?? []) as { id: string; code: string; name: string; es: string | null }[];
   }, [proj]);
   const setLine = (i: number, l: Partial<Line>) => setLines((s) => s.map((x, k) => (k === i ? { ...x, ...l } : x)));
+  // Each line's matches box reports whether stock matched (stable callbacks, so it does not loop)
+  const onFound = useMemo(
+    () => lines.map((_, i) => (found: boolean) => setLines((s) => s.map((x, k) => (k === i && x.matched !== found ? { ...x, matched: found } : x)))),
+    [lines.length], // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const save = async () => {
     setError(null);
@@ -72,6 +82,8 @@ export default function NewMaterialRequest() {
     const used = lines.filter((l) => l.catalog || l.custom || l.fromReturn);
     if (!used.length) return setError('Add at least one item – choose it from the catalogue, or tick “Not in the catalogue”');
     const bad = used.findIndex((l) => (l.custom && !l.fromReturn && !l.item.trim()) || !l.qty || !(l.unit || l.catalog?.unit || l.fromReturn?.unit));
+    const undecided = used.findIndex((l) => l.matched && !l.fromReturn && !l.fromSap && !(l.orderNew && l.newReason.trim()));
+    if (undecided >= 0) return setError(`Item ${lines.indexOf(used[undecided]) + 1} is in stock – take it from Project returns or SAP stock, or choose “Order new” with the reason`);
     const over = used.findIndex((l) => l.fromReturn && (l.qty ?? 0) > l.fromReturn.available);
     if (over >= 0) return setError(`Item ${lines.indexOf(used[over]) + 1}: only ${used[over].fromReturn?.available} ${used[over].fromReturn?.unit} available in Project returns`);
     if (bad >= 0) return setError(`Item ${lines.indexOf(used[bad]) + 1}: give the ${used[bad].custom && !used[bad].item.trim() ? 'description' : 'quantity and unit'}`);
@@ -90,6 +102,8 @@ export default function NewMaterialRequest() {
             custom: l.custom && !l.fromReturn,
             return_item_id: l.fromReturn?.ref ?? null,
             sap_material: l.fromSap?.ref ?? null,
+            order_new: l.orderNew && !l.fromReturn && !l.fromSap,
+            order_new_reason: l.orderNew && !l.fromReturn && !l.fromSap ? l.newReason : null,
             item: l.fromReturn ? l.fromReturn.item : l.custom ? l.item : l.catalog?.name,
             category: l.custom ? l.category : l.catalog?.category,
             spec: l.spec,
@@ -172,9 +186,12 @@ export default function NewMaterialRequest() {
             {l.catalog || (l.custom && l.item.trim().length >= 3) || l.fromReturn ? (
               <StockMatches
                 text={l.fromReturn?.item ?? (l.custom ? l.item : `${l.catalog?.name ?? ''}`)}
-                chosen={{ returnId: l.fromReturn?.ref, sapMaterial: l.fromSap?.ref }}
-                onUseReturn={(m) => setLine(i, { fromReturn: m, fromSap: m ? null : l.fromSap, unit: m?.unit ?? l.unit, qty: m && (l.qty ?? 0) > m.available ? m.available : l.qty })}
-                onUseSap={(m) => setLine(i, { fromSap: m, fromReturn: m ? null : l.fromReturn })}
+                chosen={{ returnId: l.fromReturn?.ref, sapMaterial: l.fromSap?.ref, orderNew: l.orderNew, reason: l.newReason }}
+                onUseReturn={(m) => setLine(i, { fromReturn: m, fromSap: m ? null : l.fromSap, orderNew: m ? false : l.orderNew, unit: m?.unit ?? l.unit, qty: m && (l.qty ?? 0) > m.available ? m.available : l.qty })}
+                onUseSap={(m) => setLine(i, { fromSap: m, fromReturn: m ? null : l.fromReturn, orderNew: m ? false : l.orderNew })}
+                onOrderNew={(on) => setLine(i, { orderNew: on, fromReturn: on ? null : l.fromReturn, fromSap: on ? null : l.fromSap })}
+                onReason={(v) => setLine(i, { newReason: v })}
+                onFound={onFound[i]}
               />
             ) : null}
             {l.fromReturn ? <Muted style={{ color: colors.green }}>{`From Project returns: ${l.fromReturn.item} – reserved when you send the request, booked out when received on site.`}</Muted> : null}

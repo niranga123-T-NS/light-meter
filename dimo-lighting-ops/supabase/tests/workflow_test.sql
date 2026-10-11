@@ -6370,6 +6370,17 @@ begin
   perform set_config('test.rmr', m::text, false);
   assert (select available = 6 and reserved = 4 from public.project_returns() where id = current_setting('test.ret')::uuid), 'reserved';
   assert (select sap_material = '2200031816' from public.material_request_lines where mr_id = m and item = 'Mast bracket'), 'SAP stock item noted';
+  -- In stock → take it, or order new with the reason
+  begin perform public.raise_material_request(e, jsonb_build_object('required_date', current_date + 3,
+      'lines', jsonb_build_array(jsonb_build_object('custom', true, 'item', 'LED floodlight 200W IP66', 'unit', 'nos', 'qty', 2)))); assert false, 'choice needed';
+  exception when others then assert sqlerrm like 'LED floodlight 200W IP66 is held in the SAP stock or Project returns%', sqlerrm; end;
+  begin perform public.raise_material_request(e, jsonb_build_object('required_date', current_date + 3,
+      'lines', jsonb_build_array(jsonb_build_object('custom', true, 'item', 'LED floodlight 200W IP66', 'unit', 'nos', 'qty', 2, 'order_new', true)))); assert false, 'reason needed';
+  exception when others then assert sqlerrm like '%give the reason for ordering new%', sqlerrm; end;
+  m := public.raise_material_request(e, jsonb_build_object('required_date', current_date + 3,
+    'lines', jsonb_build_array(jsonb_build_object('custom', true, 'item', 'LED floodlight 200W IP66', 'unit', 'nos', 'qty', 2, 'order_new', true,
+                                                  'order_new_reason', 'Client specified 5700K – returns stock is 4000K'))));
+  assert (select source_choice = 'new' and order_new_reason like 'Client specified%' from public.material_request_lines where mr_id = m), 'order new recorded';
 end $$;
 reset role;
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;

@@ -4,8 +4,9 @@
 --  * Before a project is handed over (DLP), every item still in the site store under DIMO's custody must be returned – either to
 --    SAP (with the SAP return reference) or to the Project returns stock. Until then the handover cannot be requested, and SM
 --    Projects cannot approve it with an override.
---  * When material is requested, matching items in the SAP stock and the Project returns are shown. Choosing a Project-returns
---    item reserves it; it is booked out of the returns stock when it is received on site.
+--  * When material is requested, matching items in the SAP stock and the Project returns are shown. The engineer takes a
+--    Project-returns item (reserved, booked out of the returns stock when it is received on site), names an SAP stock item, or
+--    chooses "Order new" with the reason – one of the three is required whenever stock matches.
 
 create table public.project_return_items (
   id uuid primary key default gen_random_uuid(),
@@ -39,6 +40,9 @@ create index on public.project_return_moves (item_id);
 
 alter table public.material_request_lines add column if not exists return_item_id uuid references public.project_return_items (id);
 alter table public.material_request_lines add column if not exists sap_material text;
+-- What the engineer chose when stock matched: from Project returns, from SAP stock, or order new (with the reason)
+alter table public.material_request_lines add column if not exists source_choice text check (source_choice in ('returns', 'sap', 'new'));
+alter table public.material_request_lines add column if not exists order_new_reason text;
 
 alter table public.project_return_items enable row level security;
 alter table public.project_return_moves enable row level security;
@@ -315,7 +319,7 @@ end $$;
 -- Material requests may take an item from the Project returns stock (reserved) or name an SAP stock item (copied from 20260930000184)
 create or replace function public.raise_material_request(p_exec uuid, p jsonb) returns uuid
 language plpgsql security definer set search_path = public as $$
-declare m public.material_requests; l jsonb; n int := 0; ri public.project_return_items; rid uuid; avail numeric; sapm text; sub boolean := app.has_role('sub_supervisor'); c public.material_catalog; cid int; nm text;
+declare m public.material_requests; l jsonb; n int := 0; ri public.project_return_items; rid uuid; avail numeric; sapm text; onew boolean; why text; sub boolean := app.has_role('sub_supervisor'); c public.material_catalog; cid int; nm text;
         act uuid := nullif(p ->> 'activity_id', '')::uuid; est numeric := 0; rate numeric;
 begin
   perform app.require(app.has_role('senior_elec_engineer') or app.is_project_ae(p_exec) or (sub and app.is_exec_member(p_exec)),
@@ -331,6 +335,8 @@ begin
     cid := nullif(l ->> 'catalog_id', '')::int;
     rid := nullif(l ->> 'return_item_id', '')::uuid;
     sapm := nullif(btrim(l ->> 'sap_material'), '');
+    onew := coalesce((l ->> 'order_new')::boolean, false);
+    why := nullif(btrim(l ->> 'order_new_reason'), '');
     continue when cid is null and rid is null and coalesce(btrim(l ->> 'item'), '') = '';
     c := null; ri := null;
     if rid is not null then
@@ -349,11 +355,17 @@ begin
       perform app.require(coalesce((l ->> 'custom')::boolean, false), 'Choose the item from the catalogue, or tick “not in the catalogue” and describe it');
       nm := btrim(l ->> 'item');
     end if;
+    -- Stock first: when the same or a similar item is held, the engineer takes it, or orders new with the reason
+    if ri.id is null and sapm is null and jsonb_array_length(public.stock_matches(nm)) > 0 then
+      perform app.require(onew, format('%s is held in the SAP stock or Project returns – take it from there, or choose "Order new" with the reason', nm));
+      perform app.require(why is not null, format('%s: give the reason for ordering new although it is in stock', nm));
+    end if;
     perform app.require(nullif(l ->> 'qty', '')::numeric > 0 and coalesce(btrim(coalesce(nullif(l ->> 'unit', ''), ri.unit, c.unit)), '') <> '', 'Each item needs a quantity and unit');
     rate := null;
-    insert into public.material_request_lines (mr_id, item, unit, qty, catalog_id, category, spec, brand, custom, est_rate, note, return_item_id, sap_material)
+    insert into public.material_request_lines (mr_id, item, unit, qty, catalog_id, category, spec, brand, custom, est_rate, note, return_item_id, sap_material, source_choice, order_new_reason)
     values (m.id, nm, coalesce(nullif(btrim(l ->> 'unit'), ''), ri.unit, c.unit), (l ->> 'qty')::numeric, c.id, coalesce(c.category, ri.category, nullif(btrim(l ->> 'category'), '')),
-            nullif(btrim(l ->> 'spec'), ''), nullif(btrim(l ->> 'brand'), ''), c.id is null and ri.id is null, rate, nullif(btrim(l ->> 'note'), ''), ri.id, sapm);
+            nullif(btrim(l ->> 'spec'), ''), nullif(btrim(l ->> 'brand'), ''), c.id is null and ri.id is null, rate, nullif(btrim(l ->> 'note'), ''), ri.id, sapm,
+            case when ri.id is not null then 'returns' when sapm is not null then 'sap' when onew then 'new' end, case when ri.id is null and sapm is null then why end);
     est := est + coalesce(rate, 0) * (l ->> 'qty')::numeric;
     n := n + 1;
   end loop;

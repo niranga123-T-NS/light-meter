@@ -432,6 +432,8 @@ export type MrLine = {
   return_item_id?: string | null;
   /** SAP stock material to issue instead of buying */
   sap_material?: string | null;
+  source_choice?: 'returns' | 'sap' | 'new' | null;
+  order_new_reason?: string | null;
 };
 export type StoreMove = { id: string; exec_project_id: string; kind: string; item: string; unit: string; qty: number; ref: string | null; note: string | null; by_id: string; at: string };
 export const MR_STATUS: Record<MaterialRequest['status'], string> = {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
-import { Button, colors, Muted, Pill, Row } from '@/components/ui';
+import { Button, colors, Field, Muted, Pill, Row } from '@/components/ui';
 import { fmtDate, fmtNumber } from '@/lib/format';
 import { conditionTone, type StockMatch } from '@/lib/returns';
 import { rpc } from '@/lib/supabase';
@@ -15,12 +15,20 @@ export function StockMatches({
   chosen,
   onUseReturn,
   onUseSap,
+  onOrderNew,
+  onReason,
+  onFound,
 }: {
   text: string;
   mpn?: string | null;
-  chosen: { returnId?: string | null; sapMaterial?: string | null };
+  chosen: { returnId?: string | null; sapMaterial?: string | null; orderNew?: boolean; reason?: string };
   onUseReturn: (m: StockMatch | null) => void;
   onUseSap: (m: StockMatch | null) => void;
+  /** Buy new although stock matches – with the reason */
+  onOrderNew: (on: boolean) => void;
+  onReason: (v: string) => void;
+  /** Tells the form whether stock matched (then a choice is required) */
+  onFound?: (found: boolean) => void;
 }) {
   const q = text.trim();
   const key = `${q}|${mpn ?? ''}`;
@@ -40,6 +48,11 @@ export function StockMatches({
     };
   }, [key, q, mpn, enough]);
   const list = enough && res?.key === key ? res.list : null;
+  const found = !!list?.length;
+  useEffect(() => {
+    onFound?.(found);
+  }, [found, onFound]);
+  useEffect(() => () => onFound?.(false), [onFound]);
   if (!list?.length) return null;
   const returns = list.filter((m) => m.source === 'returns');
   const sap = list.filter((m) => m.source === 'sap');
@@ -85,6 +98,19 @@ export function StockMatches({
           <Muted style={{ marginTop: 4 }}>SAP stock</Muted>
           {sap.map(row)}
         </>
+      ) : null}
+      <Row gap={8} style={{ alignItems: 'center', paddingVertical: 4, borderTopWidth: 1, borderTopColor: colors.line, marginTop: 4 }}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: colors.ink, fontWeight: chosen.orderNew ? '700' : '500' }}>None of these – order new</Text>
+          <Muted>Give the reason (different specification, condition, quantity …)</Muted>
+        </View>
+        <Button small variant={chosen.orderNew ? 'primary' : 'secondary'} title={chosen.orderNew ? 'Order new ✓' : 'Order new'} onPress={() => onOrderNew(!chosen.orderNew)} />
+      </Row>
+      {chosen.orderNew ? (
+        <Field label="Reason for ordering new" required value={chosen.reason ?? ''} onChangeText={onReason} placeholder="e.g. client specified 5700K – the returns stock is 4000K" />
+      ) : null}
+      {!chosen.returnId && !chosen.sapMaterial && !chosen.orderNew ? (
+        <Muted style={{ color: colors.red, marginTop: 4 }}>Choose one: take from Project returns, use SAP stock, or order new.</Muted>
       ) : null}
     </View>
   );
