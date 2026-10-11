@@ -256,6 +256,7 @@ function baseNav(role: Role): NavItem[] {
         approvals,
         EXEC_NAV.team,
         { href: '/warranty', label: 'Warranty & defects', icon: '⛉' },
+        { href: '/bonds', label: 'Bonds', icon: '⛨' },
         { href: '/projects', label: 'Projects', icon: '◆' },
         reports,
       ];

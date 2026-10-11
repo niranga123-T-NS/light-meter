@@ -6760,6 +6760,78 @@ do $$ begin
 end $$;
 reset role;
 
+-- Project securities: the SEE submits the performance bond and advance, enters the bonds, invoices the advance, records receipts;
+-- 14 days late → SM Projects / GM alerted, block (stops material requests) or extend; full receipt lifts the block
+savepoint sec1;
+update public.exec_projects set status = 'active', contract_value_lkr = 10000000, see_id = (select id from u where role = 'senior_elec_engineer')
+ where id = current_setting('test.ex')::uuid;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin
+  begin perform public.submit_securities(current_setting('test.ex')::uuid, '{"pb_pct":10,"ap_pct":20}'); assert false, 'AE cannot';
+  exception when others then assert sqlerrm like 'The Senior Electrical Engineer submits%', sqlerrm; end;
+  begin perform public.exec_securities_view(current_setting('test.ex')::uuid); assert false, 'AEs do not see the money';
+  exception when others then assert sqlerrm = 'Not allowed', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare e uuid := current_setting('test.ex')::uuid; v jsonb; b uuid;
+begin
+  perform public.submit_securities(e, '{"pb_pct":10,"ap_pct":20}');
+  assert (select pb_value = 1000000 and ap_value = 2000000 from public.exec_securities where exec_project_id = e), 'values from the % of the contract';
+  begin perform public.record_advance_invoice(e, jsonb_build_object('invoice_no', 'ADV-1', 'date', current_date)); assert false, 'bond first';
+  exception when others then assert sqlerrm = 'Enter the advance payment bond first', sqlerrm; end;
+  b := public.save_project_bond(e, jsonb_build_object('bond_type', 'performance', 'bond_no', 'PB-778', 'bank', 'BOC', 'issue_date', current_date, 'expiry_date', current_date + 400, 'category', 'industrial'));
+  assert (select bond_value = 1000000 and exec_project_id = e and bond_type = 'performance' from public.bonds where id = b), 'performance bond linked to the project';
+  perform public.save_project_bond(e, jsonb_build_object('bond_type', 'advance_payment', 'bond_no', 'APB-12', 'bank', 'BOC', 'issue_date', current_date, 'expiry_date', current_date + 200, 'category', 'industrial'));
+  begin perform public.save_project_bond(e, jsonb_build_object('bond_type', 'advance_payment', 'bond_no', 'APB-13', 'bank', 'BOC', 'issue_date', current_date, 'expiry_date', current_date + 200, 'category', 'industrial'));
+    assert false, 'only one';
+  exception when others then assert sqlerrm like 'This bond is already recorded%', sqlerrm; end;
+  assert (select count(*) from public.bonds where exec_project_id = e) = 2, 'the SEE sees the project bonds (Bonds tab)';
+  perform public.record_advance_invoice(e, jsonb_build_object('invoice_no', 'ADV-1', 'date', current_date));
+  assert (select adv_invoice_amount = 2000000 and adv_due_date = current_date + 14 from public.exec_securities where exec_project_id = e), 'due in 14 days';
+  perform public.record_advance_receipt(e, jsonb_build_object('amount', 500000, 'date', current_date, 'ref', 'CHQ 1001'));
+  v := public.exec_securities_view(e);
+  assert v ->> 'status' = 'part_received' and (v ->> 'received')::numeric = 500000, 'part payment';
+  begin perform public.record_advance_receipt(e, jsonb_build_object('amount', 1600000, 'date', current_date)); assert false, 'more than due';
+  exception when others then assert sqlerrm like 'Only %is still due', sqlerrm; end;
+  begin perform public.submit_securities(e, '{"pb_pct":5,"ap_pct":20}'); assert false, 'locked after invoicing';
+  exception when others then assert sqlerrm like 'The advance is already invoiced%', sqlerrm; end;
+end $$;
+reset role;
+do $$ begin
+  assert not exists (select 1 from public.invoice_allocations a join public.secured_projects s on s.id = a.secured_id where a.invoice_no = 'ADV-1'), 'not in invoicing';
+end $$;
+-- 20 days later: late → SM Projects and GM alerted
+select public.securities_tick(now() + interval '20 days');
+do $$ begin
+  assert exists (select 1 from public.notifications where title like 'Advance payment not received – 6 day(s) late' and recipient_id = (select id from u where role = 'gm')), 'GM alerted';
+  assert exists (select 1 from public.notifications where title like 'Advance payment not received%' and recipient_id = (select id from u where role = 'sm_projects')), 'SM Projects alerted';
+end $$;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  begin perform public.decide_advance_delay(current_setting('test.ex')::uuid, 'block', ''); assert false, 'reason';
+  exception when others then assert sqlerrm = 'Give the reason', sqlerrm; end;
+  perform public.decide_advance_delay(current_setting('test.ex')::uuid, 'block', 'Client has not paid the balance advance');
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin
+  begin perform public.raise_material_request(current_setting('test.ex')::uuid, jsonb_build_object('required_date', current_date + 5,
+          'lines', jsonb_build_array(jsonb_build_object('custom', true, 'item', 'LED downlight 12W', 'unit', 'nos', 'qty', 4, 'order_new', true, 'order_new_reason', 'x'))));
+    assert false, 'blocked';
+  exception when others then assert sqlerrm like 'This project is blocked%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare e uuid := current_setting('test.ex')::uuid;
+begin
+  perform public.record_advance_receipt(e, jsonb_build_object('amount', 1500000, 'date', current_date, 'ref', 'TT 5521'));
+  assert (select not blocked and adv_received_at is not null from public.exec_securities where exec_project_id = e), 'received → unblocked';
+  assert public.exec_securities_view(e) ->> 'status' = 'received', 'status received';
+end $$;
+reset role;
+rollback to savepoint sec1;
+
 -- Execution data only for the people who need it: Operations sees materials, handover, IPCs and billing,
 -- not the programme, plans, daily reports, HSE, QA, snags or design queries
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
