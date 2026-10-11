@@ -9,23 +9,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq tesseract-ocr poppler-utils > /dev/null
       - run: |
-          mkdir out; cd out
-          UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36'
-          i=0
-          for u in \
-            "https://api.frankfurter.dev/v2/providers" \
-            "https://api.frankfurter.dev/v2/rates?providers=CBSL&base=USD&quotes=LKR,EUR,GBP" \
-            "https://api.frankfurter.dev/v2/rates?providers=CBSL&base=LKR" \
-            "https://api.frankfurter.dev/v2/rates?from=2026-09-25&providers=CBSL&base=USD&quotes=LKR" \
-            "https://frankfurter.dev/providers/cbsl/" \
-            "https://frankfurter.dev/docs/" \
-            https://www.customs.gov.lk/wp-content/uploads/2026/10/er05102026.pdf \
-            https://www.customs.gov.lk/wp-content/uploads/2026/09/er20260914.pdf ; do
-            i=$((i+1)); echo "== $i $u" | tee -a index.txt
-            curl -sS -L -m 40 -A "$UA" -o "q$i.bin" -w "%{http_code} %{size_download} %{url_effective}\n" "$u" 2>&1 | tee -a index.txt || true
-          done
-          ls -la
+          mkdir -p fxprobe
+          BACKFILL_DAYS=20 python3 fx_fetch.py --dry-run 2>&1 | tee fxprobe/dry.txt
+          # OCR text of the latest schedule for checking
+          python3 -c "
+          import fx_fetch as f
+          e,u=f.customs_latest(); t=f.ocr_pdf(f.get(u,True)); open('fxprobe/ocr.txt','w').write(t)
+          for u2 in ['https://www.customs.gov.lk/wp-content/uploads/2026/09/er20260914.pdf','https://www.customs.gov.lk/wp-content/uploads/2026/07/er20260720_1.pdf','https://www.customs.gov.lk/wp-content/uploads/2026/08/er10082026.pdf']:
+              print(u2, f.parse_customs(f.ocr_pdf(f.get(u2,True))))
+          " 2>&1 | tee fxprobe/more.txt
       - run: |
           git config user.name probe; git config user.email probe@users.noreply.github.com
-          rm -rf fxprobe; mv out fxprobe; git add fxprobe; git commit -m "probe output [skip ci]"; git push
+          git add fxprobe; git commit -m "probe output [skip ci]"; git push
