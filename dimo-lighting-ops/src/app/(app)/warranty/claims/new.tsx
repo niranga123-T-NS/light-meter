@@ -8,6 +8,7 @@ import { PROJECT_TYPES } from '@/lib/roles';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 import type { Warranty, WarrantyLine, WarrantyReport } from '@/lib/types';
+import type { Defect } from '@/lib/defects';
 import { isWarrantyDesk, REPORTED_VIA } from '@/lib/warranty';
 import { useMe } from '@/lib/auth';
 
@@ -19,7 +20,7 @@ function addMonthsISO(iso: string, n: number) {
 
 /** Log a warranty claim (Operations Executive, Senior Electrical Engineer) – from a customer, or from an issue a sales person reported. */
 export default function ClaimNew() {
-  const params = useLocalSearchParams<{ warranty?: string; report?: string }>();
+  const params = useLocalSearchParams<{ warranty?: string; report?: string; defect?: string }>();
   const dialog = useDialog();
   const me = useMe();
   const desk = isWarrantyDesk(me.role);
@@ -27,7 +28,7 @@ export default function ClaimNew() {
   const people = usePeople();
   const [warrantyId, setWarrantyId] = useState<string | null>(params.warranty ?? null);
   const [lineId, setLineId] = useState<string>('');
-  const [via, setVia] = useState(params.report ? 'sales_visit' : 'customer_call');
+  const [via, setVia] = useState(params.report ? 'sales_visit' : params.defect ? 'site_inspection' : 'customer_call');
   const [desc, setDesc] = useState<string | null>(null);
   const [qty, setQty] = useState<number | null | undefined>(undefined);
   const [loc, setLoc] = useState<string | null>(null);
@@ -44,10 +45,12 @@ export default function ClaimNew() {
       supabase.from('warranty_lines').select('*').order('sort_order').limit(10000),
       params.report ? supabase.from('warranty_reports').select('*').eq('id', params.report).maybeSingle() : Promise.resolve({ data: null }),
     ]);
-    return { warranties: (w.data ?? []) as Warranty[], lines: (l.data ?? []) as WarrantyLine[], report: r.data as WarrantyReport | null };
-  }, [params.report]);
+    const d = params.defect ? await supabase.from('project_defects').select('*').eq('id', params.defect).maybeSingle() : { data: null };
+    return { warranties: (w.data ?? []) as Warranty[], lines: (l.data ?? []) as WarrantyLine[], report: r.data as WarrantyReport | null, defect: d.data as Defect | null };
+  }, [params.report, params.defect]);
   if (!data) return <Screen>{loadErr ? <ErrorBanner message={loadErr} /> : <Loading />}</Screen>;
   const report = data.report;
+  const defect = data.defect;
   const today = todayISO();
   const norm = (s: string) => s.trim().toLowerCase();
   // Warranties of the reported customer first
@@ -61,9 +64,11 @@ export default function ClaimNew() {
   const inWarranty = line ? line.end_date >= today : lines.some((l) => l.end_date >= today);
   const entry = mode ?? (data.warranties.length || params.warranty ? 'list' : 'manual');
   const manualEnd = man.start_date && Number(man.months) > 0 ? addMonthsISO(man.start_date, Number(man.months)) : null;
-  const description = desc ?? report?.description ?? '';
+  const description = desc ?? report?.description ?? (defect ? `${defect.title} – ${defect.inspection ?? ''}` : '');
   const quantity = qty === undefined ? (report?.quantity ?? null) : qty;
-  const location = loc ?? report?.location ?? '';
+  const location = loc ?? report?.location ?? (defect ? [defect.site, defect.location].filter(Boolean).join(' · ') : '');
+  // From a defect the SEE keeps the engineer who inspected it
+  const engineer = assignee ?? (see ? (defect?.assignee_id ?? null) : null);
 
   const save = () => {
     setError(null);
@@ -102,10 +107,11 @@ export default function ClaimNew() {
             : {}),
           reported_via: via,
           report_id: report?.id ?? '',
+          defect_id: defect?.id ?? '',
           description,
           quantity: quantity == null ? '' : String(quantity),
           location,
-          assignee_id: assignee ?? '',
+          assignee_id: engineer ?? '',
         },
       });
       router.replace(`/warranty/claims/${cid}`);
@@ -116,6 +122,11 @@ export default function ClaimNew() {
     <Screen maxWidth={760}>
       <Stack.Screen options={{ title: desk ? 'Log warranty claim' : 'Raise warranty claim' }} />
       <ErrorBanner message={error} />
+      {defect ? (
+        <Notice tone={colors.blue}>
+          {`From project defect ${defect.code} – ${defect.project_name}: ${defect.title}. Inspection by ${people[defect.inspected_by ?? '']?.full_name ?? '—'}: ${(defect.inspection ?? '').replace(/\.$/, '')}. Choose the warranty of the product (or enter it for an older project); the defect then moves to product warranty.`}
+        </Notice>
+      ) : null}
       {report ? (
         <Notice tone={colors.blue}>
           {`Reported from a visit by ${people[report.sales_person_id]?.full_name ?? '—'} on ${fmtDateTime(report.created_at)}: ${report.customer}${report.project_name ? ` – ${report.project_name}` : ''} · ${report.description}${report.site_contact ? ` · site contact ${report.site_contact}` : ''}`}
@@ -228,7 +239,7 @@ export default function ClaimNew() {
           <NumberField label="Quantity" value={quantity} onChange={(v) => setQty(v)} />
           <Field label="Location on site" value={location} onChangeText={setLoc} />
           {see ? (
-            <PersonPicker label="Assign to engineer (site inspection)" roles={['assistant_engineer', 'senior_elec_engineer']} value={assignee} onChange={(v) => setAssignee(v || null)} />
+            <PersonPicker label="Assign to engineer (site inspection)" roles={['assistant_engineer', 'senior_elec_engineer']} value={engineer} onChange={(v) => setAssignee(v || null)} />
           ) : (
             <Muted>
               {desk

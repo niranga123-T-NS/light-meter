@@ -1,7 +1,7 @@
 import { colors } from '@/components/ui';
 
 /** Project defects: faults in the work DIMO installed (product faults go to product warranty claims). */
-export type DefectStatus = 'reported' | 'open' | 'assigned' | 'rectified' | 'closed' | 'rejected';
+export type DefectStatus = 'reported' | 'open' | 'assigned' | 'rectified' | 'closed' | 'rejected' | 'warranty';
 export type Defect = {
   id: string;
   code: string;
@@ -30,6 +30,11 @@ export type Defect = {
   due_date: string | null;
   assigned_by: string | null;
   assigned_at: string | null;
+  inspection: string | null;
+  cause: 'installation' | 'product' | 'damage' | 'other' | null;
+  inspected_by: string | null;
+  inspected_at: string | null;
+  warranty_claim_id: string | null;
   rectification: string | null;
   rectified_by: string | null;
   rectified_at: string | null;
@@ -48,6 +53,7 @@ export const DEFECT_STATUS: Record<DefectStatus, { label: string; tone: string }
   rectified: { label: 'Rectified – to check', tone: colors.blue },
   closed: { label: 'Closed', tone: colors.green },
   rejected: { label: 'Not accepted', tone: colors.grey },
+  warranty: { label: 'Moved to product warranty', tone: colors.blue },
 };
 export const SEVERITY = [
   { value: 'critical', label: 'Critical – safety, or an area without light (2 days)' },
@@ -73,6 +79,12 @@ export const RESPONSIBLE = [
   { value: 'subcontractor', label: 'Subcontractor – back-charge' },
   { value: 'client', label: 'Client / others – chargeable' },
   { value: 'manufacturer', label: 'Manufacturer – raise a product warranty claim' },
+];
+export const CAUSE = [
+  { value: 'installation', label: 'Installation / workmanship' },
+  { value: 'product', label: 'The product supplied (manufacturing fault)' },
+  { value: 'damage', label: 'Damage by others / misuse' },
+  { value: 'other', label: 'Other' },
 ];
 export const PHASE: Record<Defect['phase'], string> = { works: 'During the works', dlp: 'In the DLP', after_dlp: 'After the DLP', outside: 'Project not in execution' };
 export const labelOf = (list: { value: string; label: string }[], v: string | null) => list.find((x) => x.value === v)?.label ?? v ?? '—';

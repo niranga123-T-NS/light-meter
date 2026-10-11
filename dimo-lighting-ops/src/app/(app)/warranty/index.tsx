@@ -28,8 +28,8 @@ import {
 
 type Tab = 'warranties' | 'claims' | 'reports' | 'brands' | 'rma' | 'mfr';
 
-/** Who works with project defects (the Operations Executive keeps product warranty only) */
-const DEFECT_ROLES = ['asm_building', 'asm_infra', 'sm_projects', 'gm', 'senior_elec_engineer', 'assistant_engineer'];
+/** Who works with project defects (the Operations Executive creates product warranty claims from product faults) */
+const DEFECT_ROLES = ['asm_building', 'asm_infra', 'sm_projects', 'gm', 'senior_elec_engineer', 'assistant_engineer', 'operations_exec'];
 
 /** Warranty and defects: product warranty (warranties, claims, manufacturers) and project defects, as two sub-tabs. */
 export default function WarrantyAndDefects({ myDay }: { myDay?: boolean } = {}) {

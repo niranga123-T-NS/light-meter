@@ -226,7 +226,7 @@ function baseNav(role: Role): NavItem[] {
         { href: '/debtors', label: 'All Debtors', icon: '₨' },
         { href: '/retentions', label: 'Retentions', icon: '⛁' },
         { href: '/bonds', label: 'Bonds', icon: '⛨' },
-        { href: '/warranty', label: 'Warranty', icon: '⛉' },
+        { href: '/warranty', label: 'Warranty & defects', icon: '⛉' },
         { href: '/samples', label: 'Samples', icon: '⬚' },
         { href: '/finance/upload', label: 'OR Upload', icon: '⇪' },
         { href: '/finance/budget', label: 'Budget list', icon: '◫' },

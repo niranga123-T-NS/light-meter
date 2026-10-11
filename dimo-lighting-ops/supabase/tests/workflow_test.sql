@@ -6602,7 +6602,7 @@ end $$;
 reset role;
 select pg_temp.act_as('operations_exec'); set role authenticated;
 do $$ begin
-  assert not exists (select 1 from public.project_defects), 'Operations does not see project defects';
+  assert exists (select 1 from public.project_defects where id = current_setting('test.def1')::uuid), 'Operations sees project defects';
   begin perform public.log_defect(jsonb_build_object('project_name', 'X', 'title', 'x', 'description', 'something is broken here', 'category', 'other', 'severity', 'minor'));
     assert false, 'not Operations';
   exception when others then assert sqlerrm like 'Sales persons report defects%', sqlerrm; end;
@@ -6646,6 +6646,12 @@ reset role;
 select pg_temp.act_as('assistant_engineer'); set role authenticated;
 do $$ declare d2 uuid := current_setting('test.def2')::uuid;
 begin
+  begin perform public.rectify_defect(d2, 'Replaced both drivers and tested'); assert false, 'inspection first';
+  exception when others then assert sqlerrm = 'Record the inspection first', sqlerrm; end;
+  begin perform public.inspect_defect(d2, 'Drivers burnt – water in the junction box', 'installation'); assert false, 'inspection photo';
+  exception when others then assert sqlerrm = 'Attach a photo from the inspection', sqlerrm; end;
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('project_defect', d2, 'defect_photo', 'defect/' || d2 || '/insp.jpg', 'insp.jpg');
+  perform public.inspect_defect(d2, 'Drivers burnt – water in the junction box', 'installation');
   begin perform public.rectify_defect(d2, 'Replaced both drivers and tested'); assert false, 'after photo';
   exception when others then assert sqlerrm = 'Attach a photo after the rectification', sqlerrm; end;
   insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('project_defect', d2, 'defect_after', 'defect/' || d2 || '/after.jpg', 'after.jpg');
@@ -6685,6 +6691,38 @@ begin
   assert (select status from public.project_defects where id = d2) = 'closed', 'closed';
 end $$;
 reset role;
+-- A defect caused by the product supplied → a product warranty claim (SEE or Operations), and the defect moves to product warranty
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select public.assign_defect(current_setting('test.def1')::uuid, jsonb_build_object('assignee_id', (select id from u where role = 'assistant_engineer'), 'responsible', 'manufacturer'));
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare d1 uuid := current_setting('test.def1')::uuid;
+begin
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('project_defect', d1, 'defect_photo', 'defect/' || d1 || '/insp.jpg', 'insp.jpg');
+  perform public.inspect_defect(d1, 'Drivers of four fittings failing – flicker before switching off', 'product');
+  begin perform public.log_warranty_claim(jsonb_build_object('defect_id', d1)); assert false, 'AE cannot';
+  exception when others then assert sqlerrm like 'Only Operations, the Senior Electrical Engineer%' or sqlerrm like 'The SEE or the Operations Executive%', sqlerrm; end;
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where title like 'Defect inspected – product fault%' and entity_id = current_setting('test.def1')::uuid
+                 and recipient_id = (select id from u where role = 'operations_exec')), 'Operations told to create the claim';
+end $$;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare d1 uuid := current_setting('test.def1')::uuid; cid uuid;
+begin
+  cid := public.log_warranty_claim(jsonb_build_object('defect_id', d1, 'quantity', '4',
+    'manual', jsonb_build_object('project_name', 'Car park – Sample', 'customer', 'ABC COMPANY PVT LTD', 'category', 'industrial', 'invoice_no', 'INV-2026-0101',
+                                 'start_date', '2026-03-01', 'months', '36', 'product_group', 'LED street lights', 'brand', 'Philips')));
+  assert (select status = 'warranty' and warranty_claim_id = cid from public.project_defects where id = d1), 'defect moved to product warranty';
+  assert (select defect_id = d1 and reported_via = 'site_inspection' and description like 'Lights flicker – Drivers%' from public.warranty_claims where id = cid), 'claim linked to the defect';
+  begin perform public.log_warranty_claim(jsonb_build_object('defect_id', d1, 'warranty_id', (select warranty_id from public.warranty_claims where id = cid))); assert false, 'only once';
+  exception when others then assert sqlerrm like 'Only a defect inspected as a product fault%', sqlerrm; end;
+end $$;
+reset role;
+do $$ begin
+  assert not exists (select 1 from public.project_defects where id = current_setting('test.def1')::uuid and status in ('reported', 'open', 'assigned', 'rectified')), 'no longer an open defect';
+end $$;
 rollback to savepoint defects1;
 
 -- Execution data only for the people who need it: Operations sees materials, handover, IPCs and billing,

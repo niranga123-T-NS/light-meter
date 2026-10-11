@@ -629,6 +629,8 @@ export type WarrantyLine = {
 
 export type WarrantyClaim = {
   id: string;
+  /** Created from a project defect inspected as a product fault */
+  defect_id?: string | null;
   site_lat?: number | null;
   site_lng?: number | null;
   site_radius_m?: number | null;

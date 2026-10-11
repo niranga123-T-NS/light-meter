@@ -1,10 +1,11 @@
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Text } from 'react-native';
 import { Attachments } from '@/components/Attachments';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, ErrorBanner, KeyValue, ListRow, Loading, Notice, Pill, Row, Screen, Section } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import {
+  CAUSE,
   DEFECT_CATEGORY,
   DEFECT_MANAGERS,
   DEFECT_OPEN,
@@ -42,7 +43,10 @@ export default function DefectScreen() {
   const st = DEFECT_STATUS[d.status];
   const manager = DEFECT_MANAGERS.includes(me.role);
   const projectAe = me.role === 'assistant_engineer' && members.some((x) => x.user_id === me.id && x.member_role === 'assistant_engineer');
-  const canRectify = d.status === 'assigned' && (d.assignee_id === me.id || manager || projectAe);
+  const engineer = d.status === 'assigned' && (d.assignee_id === me.id || manager || projectAe);
+  const canRectify = engineer && !!d.inspected_at && d.cause !== 'product';
+  // Product fault found at the inspection: the SEE or the Operations Executive opens the product warranty claim
+  const canClaim = d.status === 'assigned' && d.cause === 'product' && (me.role === 'senior_elec_engineer' || me.role === 'operations_exec');
   const late = d.status === 'assigned' && !!d.due_date && d.due_date < todayISO();
   const pn = (u: string | null) => (u ? (people[u]?.full_name ?? '') : '');
   // Engineers to assign: the project's AEs first, then every AE and SEE
@@ -84,6 +88,22 @@ export default function DefectScreen() {
         await reload();
       }, 'Assigned – the engineer is told');
   };
+  const inspect = async () => {
+    const r = await dialog.prompt({
+      title: 'Record the inspection',
+      message: 'Attach a photo from the inspection first (Photos below).',
+      fields: [
+        { key: 'f', label: 'What you found', type: 'multiline', required: true, initial: d.inspection ?? undefined },
+        { key: 'c', label: 'Cause', type: 'select', required: true, initial: d.cause ?? undefined, options: CAUSE },
+      ],
+      confirmLabel: 'Save',
+    });
+    if (r)
+      await dialog.run(async () => {
+        await rpc('inspect_defect', { p_id: d.id, p_finding: r.f, p_cause: r.c });
+        await reload();
+      }, r.c === 'product' ? 'Saved – the SEE / Operations create the product warranty claim' : 'Inspection saved');
+  };
   const rectify = async () => {
     const r = await dialog.prompt({
       title: 'Rectified',
@@ -122,8 +142,13 @@ export default function DefectScreen() {
       {late ? <Notice tone={colors.red}>{`Overdue – due ${fmtDate(d.due_date)}`}</Notice> : null}
       {d.status === 'rejected' ? <Notice tone={colors.grey}>{`Not accepted by ${pn(d.verified_by)}: ${d.reject_reason ?? ''}`}</Notice> : null}
       {d.reopen_count ? <Notice tone={colors.amber}>{`Reopened ${d.reopen_count} time(s) – last: ${d.last_reopen_reason ?? ''}`}</Notice> : null}
-      {d.responsible === 'manufacturer' && DEFECT_OPEN.includes(d.status) ? (
-        <Notice tone={colors.blue}>The manufacturer is responsible – raise a product warranty claim for the faulty items.</Notice>
+      {d.status === 'assigned' && d.cause === 'product' ? (
+        <Notice tone={colors.blue}>
+          The inspection found a fault in the product supplied. The SEE or the Operations Executive creates a product warranty claim – the defect then moves to product warranty.
+        </Notice>
+      ) : null}
+      {d.status === 'warranty' && d.warranty_claim_id ? (
+        <Notice tone={colors.blue}>Moved to product warranty – the claim continues there (inspection, decision, manufacturer claim).</Notice>
       ) : null}
 
       <Card>
@@ -139,6 +164,7 @@ export default function DefectScreen() {
             value={`${pn(d.assignee_id)} · due ${fmtDate(d.due_date)} · ${labelOf(RESPONSIBLE, d.responsible)}${d.responsible_company ? ` (${d.responsible_company})` : ''}`}
           />
         ) : null}
+        {d.inspected_at ? <KeyValue label="Inspection" value={`${d.inspection} · cause: ${labelOf(CAUSE, d.cause)} · ${pn(d.inspected_by)} · ${fmtDateTime(d.inspected_at)}`} /> : null}
         {d.rectification ? <KeyValue label="Rectification" value={`${d.rectification} · ${pn(d.rectified_by)} · ${fmtDateTime(d.rectified_at)}`} /> : null}
         {d.closed_at ? <KeyValue label="Closed" value={`${pn(d.closed_by)} · ${fmtDateTime(d.closed_at)}${d.close_note ? ` · ${d.close_note}` : ''}`} /> : null}
       </Card>
@@ -158,6 +184,8 @@ export default function DefectScreen() {
             ['Reported', true, `${pn(d.reported_by)} · ${fmtDateTime(d.reported_at)}`],
             ['Verified', !!d.verified_at && d.status !== 'rejected', d.verified_at ? `${pn(d.verified_by)} · ${fmtDateTime(d.verified_at)}` : 'SEE / SM Projects'],
             ['Assigned', !!d.assigned_at, d.assigned_at ? `${pn(d.assigned_by)} → ${pn(d.assignee_id)} · ${fmtDateTime(d.assigned_at)}` : 'SEE / SM Projects'],
+            ['Inspected', !!d.inspected_at, d.inspected_at ? `${pn(d.inspected_by)} · ${labelOf(CAUSE, d.cause)}` : 'the engineer, on site, with a photo'],
+            ...(d.status === 'warranty' ? [['Moved to product warranty', true, 'a product warranty claim was created'] as [string, boolean, string]] : []),
             ['Rectified', !!d.rectified_at && d.status !== 'assigned', d.rectified_at ? `${pn(d.rectified_by)} · ${fmtDateTime(d.rectified_at)}` : 'the engineer, with an after photo'],
             ['Closed', d.status === 'closed', d.closed_at ? `${pn(d.closed_by)} · ${fmtDateTime(d.closed_at)}` : 'SEE / SM Projects, after checking'],
           ].map(([t, done, sub]) => (
@@ -174,6 +202,13 @@ export default function DefectScreen() {
           </>
         ) : null}
         {manager && ['reported', 'open', 'assigned'].includes(d.status) ? <Button title={d.assignee_id ? 'Reassign' : 'Assign'} variant={d.status === 'assigned' ? 'secondary' : 'primary'} onPress={assign} /> : null}
+        {engineer && d.cause !== 'product' ? (
+          <Button title={d.inspected_at ? 'Change the inspection' : 'Record the inspection'} variant={d.inspected_at ? 'secondary' : 'primary'} onPress={inspect} />
+        ) : null}
+        {engineer && d.cause === 'product' && !canClaim ? <Button variant="secondary" title="Change the inspection" onPress={inspect} /> : null}
+        {canClaim ? <Button title="Create product warranty claim" onPress={() => router.push({ pathname: '/warranty/claims/new', params: { defect: d.id } })} /> : null}
+        {canClaim ? <Button variant="secondary" title="Change the inspection" onPress={inspect} /> : null}
+        {d.status === 'warranty' && d.warranty_claim_id ? <Button variant="secondary" title="Open the warranty claim" onPress={() => router.push(`/warranty/claims/${d.warranty_claim_id}`)} /> : null}
         {canRectify ? <Button title="Record the rectification" onPress={rectify} /> : null}
         {manager && d.status === 'rectified' ? (
           <>

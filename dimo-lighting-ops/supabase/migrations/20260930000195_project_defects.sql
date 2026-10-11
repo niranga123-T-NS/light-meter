@@ -5,11 +5,14 @@
 --  * The SEE or SM Projects verifies a reported defect (or rejects it with the reason) and assigns it: the engineer, who is responsible
 --    (DIMO, a subcontractor – back-charge –, the client – chargeable –, or the manufacturer – raise a warranty claim) and the due date
 --    (by severity: critical 2 days, major 7 days, minor 14 days unless set).
---  * The engineer records the rectification with an after photo → "Rectified"; the SEE or SM Projects closes it, or reopens it.
+--  * The engineer inspects the defect on site (finding, cause, photo). When the cause is the product supplied, the SEE or the Operations
+--    Executive creates a product warranty claim from it: the defect moves to product warranty (linked both ways).
+--  * Otherwise the engineer records the rectification with an after photo → "Rectified"; the SEE or SM Projects closes it, or reopens it.
 --  * Alerts: new defects → the SEE and SM Projects (critical → GM / DGM too); overdue → the engineer and the SEE every morning,
 --    3+ days overdue → SM Projects; reported but not verified for a working day → the SEE and SM Projects.
 --  * The project cannot be closed after the DLP while a defect is still open.
---  * Seen by the SEE, SM Projects, GM / DGM, the project's team, the person who reported it and the project's sales person.
+--  * Seen by the SEE, SM Projects, GM / DGM, the Operations Executive, the project's team, the person who reported it and the
+--    project's sales person.
 
 create table public.project_defects (
   id uuid primary key default gen_random_uuid(),
@@ -27,7 +30,7 @@ create table public.project_defects (
   source text not null check (source in ('sales', 'client', 'site', 'dlp_inspection')),
   client_ref text,
   phase text not null check (phase in ('works', 'dlp', 'after_dlp', 'outside')),
-  status text not null check (status in ('reported', 'open', 'assigned', 'rectified', 'closed', 'rejected')),
+  status text not null check (status in ('reported', 'open', 'assigned', 'rectified', 'closed', 'rejected', 'warranty')),
   reported_by uuid not null default auth.uid() references public.profiles (id),
   reported_at timestamptz not null default now(),
   verified_by uuid references public.profiles (id),
@@ -39,6 +42,11 @@ create table public.project_defects (
   due_date date,
   assigned_by uuid references public.profiles (id),
   assigned_at timestamptz,
+  inspection text,
+  cause text check (cause in ('installation', 'product', 'damage', 'other')),
+  inspected_by uuid references public.profiles (id),
+  inspected_at timestamptz,
+  warranty_claim_id uuid references public.warranty_claims (id) on delete set null,
   rectification text,
   rectified_by uuid references public.profiles (id),
   rectified_at timestamptz,
@@ -62,7 +70,7 @@ language sql stable security definer set search_path = public as $$ select app.h
 create or replace function app.can_read_defect(p_id uuid) returns boolean
 language sql stable security definer set search_path = public as $$
   select exists (select 1 from public.project_defects d where d.id = p_id
-                 and (d.reported_by = auth.uid() or d.assignee_id = auth.uid() or app.has_role('senior_elec_engineer', 'sm_projects', 'gm')
+                 and (d.reported_by = auth.uid() or d.assignee_id = auth.uid() or app.has_role('senior_elec_engineer', 'sm_projects', 'gm', 'operations_exec')
                       or (d.exec_project_id is not null and app.is_exec_team(d.exec_project_id))
                       or (d.project_id is not null and exists (select 1 from public.projects p where p.id = d.project_id and p.owner_id = auth.uid()))))
 $$;
@@ -179,6 +187,25 @@ begin
     case when d.severity = 'critical' then 'critical'::public.priority else 'normal'::public.priority end, 'project_defect', p_id, '/warranty/defects/' || p_id);
 end $$;
 
+-- Inspection on site by the engineer: what was found and the cause. A product fault → the SEE / Operations create a product warranty claim.
+create or replace function public.inspect_defect(p_id uuid, p_finding text, p_cause text) returns void
+language plpgsql security definer set search_path = public as $$
+declare d public.project_defects;
+begin
+  select * into d from public.project_defects where id = p_id for update;
+  perform app.require(found, 'Defect not found');
+  perform app.require(d.status = 'assigned', 'Assign the defect first');
+  perform app.require(d.assignee_id = auth.uid() or app.defect_manager() or (d.exec_project_id is not null and app.is_project_ae(d.exec_project_id)), 'The assigned engineer inspects the defect');
+  perform app.require(length(btrim(coalesce(p_finding, ''))) >= 10, 'Describe what you found');
+  perform app.require(p_cause in ('installation', 'product', 'damage', 'other'), 'Choose the cause');
+  perform app.require(exists (select 1 from public.attachments where entity_type = 'project_defect' and entity_id = p_id and kind = 'defect_photo' and archived_at is null),
+    'Attach a photo from the inspection');
+  update public.project_defects set inspection = btrim(p_finding), cause = p_cause, inspected_by = auth.uid(), inspected_at = now(), updated_at = now() where id = p_id;
+  perform app.notify_many(array(select x from unnest(app.defect_people(d) || case when p_cause = 'product' then app.role_users('operations_exec') else '{}'::uuid[] end) x where x <> auth.uid()),
+    'defect', case when p_cause = 'product' then 'Defect inspected – product fault: create a product warranty claim' else 'Project defect inspected' end,
+    app.defect_head(d) || ' · ' || btrim(p_finding), 'normal', 'project_defect', p_id, '/warranty/defects/' || p_id);
+end $$;
+
 -- Rectified: what was done, with an after photo
 create or replace function public.rectify_defect(p_id uuid, p_action text) returns void
 language plpgsql security definer set search_path = public as $$
@@ -188,6 +215,7 @@ begin
   perform app.require(found, 'Defect not found');
   perform app.require(d.status = 'assigned', 'Assign the defect first');
   perform app.require(d.assignee_id = auth.uid() or app.defect_manager() or (d.exec_project_id is not null and app.is_project_ae(d.exec_project_id)), 'The assigned engineer records the rectification');
+  perform app.require(d.inspected_at is not null, 'Record the inspection first');
   perform app.require(length(btrim(coalesce(p_action, ''))) >= 10, 'Describe what was done');
   perform app.require(exists (select 1 from public.attachments where entity_type = 'project_defect' and entity_id = p_id and kind = 'defect_after' and archived_at is null),
     'Attach a photo after the rectification');
@@ -248,6 +276,103 @@ begin
     perform cron.schedule('defect-tick', '20 3 * * *', 'select public.defect_tick()');   -- 08:50 Sri Lanka time
   end if;
 end $$;
+
+-- A product warranty claim can be created from a project defect inspected as a product fault
+alter table public.warranty_claims add column if not exists defect_id uuid references public.project_defects (id) on delete set null;
+CREATE OR REPLACE FUNCTION public.log_warranty_claim(p_data jsonb)
+ RETURNS uuid
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  w public.warranties;
+  ln public.warranty_lines;
+  r public.warranty_reports;
+  c public.warranty_claims;
+  today date := (now() at time zone app.tz())::date;
+  inw boolean;
+  via text := coalesce(nullif(p_data ->> 'reported_via', ''), 'customer_call');
+  asg uuid := nullif(p_data ->> 'assignee_id', '')::uuid;
+  desk boolean := app.is_warranty_desk();
+  df public.project_defects;
+begin
+  perform app.require(desk or app.is_sales_person() or app.has_role('sm_projects'),
+    'Only Operations, the Senior Electrical Engineer, sales persons and SM Projects raise warranty claims');
+  -- From a project defect inspected as a product fault (the SEE or Operations): the defect moves to product warranty
+  if nullif(p_data ->> 'defect_id', '') is not null then
+    perform app.require(desk, 'The SEE or the Operations Executive creates the product warranty claim from a defect');
+    select * into df from public.project_defects where id = (p_data ->> 'defect_id')::uuid for update;
+    perform app.require(df.id is not null, 'Defect not found');
+    perform app.require(df.status = 'assigned' and df.inspected_at is not null and df.cause = 'product', 'Only a defect inspected as a product fault moves to product warranty');
+    if coalesce(btrim(p_data ->> 'description'), '') = '' then
+      p_data := p_data || jsonb_build_object('description', df.title || ' – ' || df.inspection);
+    end if;
+    if coalesce(btrim(p_data ->> 'location'), '') = '' then p_data := p_data || jsonb_build_object('location', concat_ws(' · ', df.site, df.location)); end if;
+    p_data := p_data || jsonb_build_object('reported_via', 'site_inspection');
+    via := 'site_inspection';
+  end if;
+  -- Older project with no warranty record yet: the details entered with the claim create it (and its item)
+  if nullif(p_data ->> 'warranty_id', '') is null and jsonb_typeof(p_data -> 'manual') = 'object' then
+    p_data := p_data || app.quick_warranty(p_data -> 'manual');
+  end if;
+  select * into w from public.warranties where id = nullif(p_data ->> 'warranty_id', '')::uuid;
+  perform app.require(w.id is not null and w.status = 'active', 'Choose the warranty (find it by invoice / contract number, customer or project)');
+  perform app.require(desk or app.can_read_warranty(w.id), 'You can raise claims only on warranties of your own projects or categories');
+  -- Raised by sales / SM Projects: Operations or the Senior Electrical Engineer verify it and assign the engineer
+  if not desk then
+    perform app.require(nullif(p_data ->> 'report_id', '') is null, 'Operations or the Senior Electrical Engineer convert reported issues');
+  end if;
+  if not app.has_role('senior_elec_engineer') then asg := null; end if;  -- only the Senior Electrical Engineer assigns engineers
+  if nullif(p_data ->> 'line_id', '') is not null then
+    select * into ln from public.warranty_lines where id = (p_data ->> 'line_id')::uuid and warranty_id = w.id;
+    perform app.require(ln.id is not null, 'The line does not belong to this warranty');
+    inw := ln.end_date >= today;
+  else
+    inw := exists (select 1 from public.warranty_lines where warranty_id = w.id and end_date >= today);
+  end if;
+  if nullif(p_data ->> 'report_id', '') is not null then
+    select * into r from public.warranty_reports where id = (p_data ->> 'report_id')::uuid for update;
+    perform app.require(r.id is not null and r.status = 'reported', 'This reported issue is already handled');
+    via := 'sales_visit';
+  end if;
+  perform app.require(via in ('customer_call', 'customer_email', 'customer_letter', 'sales_visit', 'site_inspection', 'other'), 'Choose how it was reported');
+  perform app.require(coalesce(nullif(btrim(p_data ->> 'description'), ''), r.description, '') <> '', 'Describe the failure');
+  perform app.check_engineer(asg);
+  insert into public.warranty_claims (warranty_id, line_id, reported_via, report_id, reported_by, description, quantity, location, in_warranty,
+    assignee_id, assigned_at, needs_verification)
+  values (w.id, ln.id, via, r.id, coalesce(r.sales_person_id, case when not desk then auth.uid() end),
+    coalesce(nullif(btrim(p_data ->> 'description'), ''), r.description),
+    coalesce(nullif(p_data ->> 'quantity', '')::numeric, r.quantity), coalesce(nullif(btrim(p_data ->> 'location'), ''), r.location), inw,
+    asg, case when asg is not null then now() end, not desk)
+  returning * into c;
+  if df.id is not null then
+    update public.warranty_claims set defect_id = df.id where id = c.id;
+    update public.project_defects set status = 'warranty', warranty_claim_id = c.id, updated_at = now() where id = df.id;
+    perform app.notify_many(array(select x from unnest(app.defect_people(df)) x where x <> auth.uid()), 'defect', 'Project defect moved to product warranty',
+      app.defect_head(df) || ' · claim ' || c.code, 'normal', 'project_defect', df.id, '/warranty/defects/' || df.id);
+  end if;
+  insert into public.warranty_log (warranty_id, claim_id, kind, note)
+  values (w.id, c.id, 'claim_logged', format('Claim %s logged (%s)%s', c.code, case when inw then 'in warranty' else 'out of warranty' end,
+          coalesce(' · assigned to ' || app.display_name(asg), '')));
+  if r.id is not null then
+    update public.warranty_reports set status = 'converted', claim_id = c.id, handled_by = auth.uid(), handled_at = now() where id = r.id;
+    perform app.notify(r.sales_person_id, 'warranty_claim_opened', 'Claim opened from your visit report', app.claim_head(c),
+      'normal', 'warranty_claim', c.id, app.claim_url(c.id));
+  end if;
+  perform app.notify_many(array[w.owner_id] || app.role_users('operations_exec', 'senior_elec_engineer', 'sm_projects'), 'warranty_claim_logged',
+    case when desk then 'Warranty claim logged' else format('Warranty claim raised by %s – verify and assign', coalesce(app.display_name(auth.uid()), 'sales')) end
+      || case when inw then '' else ' – out of warranty' end, app.claim_head(c), 'normal', 'warranty_claim', c.id, app.claim_url(c.id), null, not desk);
+  if asg is null then
+    perform app.notify_many(app.role_users('senior_elec_engineer'), 'warranty_claim_to_assign', 'Assign an engineer to warranty claim ' || c.code,
+      app.claim_head(c), 'normal', 'warranty_claim', c.id, app.claim_url(c.id), null, true);
+  end if;
+  if asg is not null then
+    perform app.notify(asg, 'warranty_claim_assigned', 'Warranty claim assigned to you – inspect the site', app.claim_head(c),
+      'normal', 'warranty_claim', c.id, app.claim_url(c.id));
+  end if;
+  return c.id;
+end $function$;
 
 -- Close-out after the DLP: all project defects closed
 CREATE OR REPLACE FUNCTION app.gate_checks(p_exec uuid, p_gate integer)

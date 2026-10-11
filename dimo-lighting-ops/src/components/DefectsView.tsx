@@ -17,7 +17,7 @@ export function DefectsView({ header }: { header?: ReactNode }) {
   const people = usePeople();
   const sales = isSales(me.role);
   const manager = DEFECT_MANAGERS.includes(me.role);
-  const [filter, setFilter] = useState<Filter>(manager || me.role === 'assistant_engineer' ? 'mine' : 'open');
+  const [filter, setFilter] = useState<Filter>(manager || me.role === 'assistant_engineer' || me.role === 'operations_exec' ? 'mine' : 'open');
   const [project, setProject] = useState('');
   const today = todayISO();
   const { data, error, loading, reload } = useLoad(async () => {
@@ -29,7 +29,10 @@ export function DefectsView({ header }: { header?: ReactNode }) {
   const late = (d: Defect) => d.status === 'assigned' && !!d.due_date && d.due_date < today;
   // Waiting for me: verify / assign / check (managers), rectify (the engineer)
   const waiting = (d: Defect) =>
-    (manager && ['reported', 'open', 'rectified'].includes(d.status)) || (d.status === 'assigned' && d.assignee_id === me.id) || (sales && d.reported_by === me.id && DEFECT_OPEN.includes(d.status));
+    (manager && ['reported', 'open', 'rectified'].includes(d.status)) ||
+    (d.status === 'assigned' && d.assignee_id === me.id) ||
+    ((manager || me.role === 'operations_exec') && d.status === 'assigned' && d.cause === 'product') ||
+    (sales && d.reported_by === me.id && DEFECT_OPEN.includes(d.status));
   const rows = all
     .filter((d) => (filter === 'mine' ? waiting(d) : filter === 'open' ? DEFECT_OPEN.includes(d.status) : filter === 'closed' ? !DEFECT_OPEN.includes(d.status) : true))
     .sort((a, b) => Number(late(b)) - Number(late(a)) || Number(b.severity === 'critical') - Number(a.severity === 'critical'));
