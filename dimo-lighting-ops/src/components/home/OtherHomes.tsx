@@ -1,3 +1,4 @@
+import { FxCard } from '@/components/FxRates';
 import { router, Stack } from 'expo-router';
 import { Text, View } from 'react-native';
 import { MeetingActions } from '@/components/MeetingActions';
@@ -46,6 +47,7 @@ export function OpsHome() {
         <Button title="Upload debtors list" icon="⇪" onPress={() => router.push('/debtors/upload')} />
         <Button title="Samples queue" variant="secondary" onPress={() => router.push('/samples')} />
       </Row>
+      <FxCard />
       <WeekMeetings />
       <MeetingActions />
       {data?.passed.length ? (

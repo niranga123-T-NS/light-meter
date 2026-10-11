@@ -50,7 +50,7 @@ export async function pickImage(fromCamera = false, square = false): Promise<Pic
   };
 }
 
-async function readBytes(f: PickedFile): Promise<ArrayBuffer> {
+export async function readBytes(f: PickedFile): Promise<ArrayBuffer> {
   if (f.webFile) return f.webFile.arrayBuffer();
   if (Platform.OS === 'web') return (await fetch(f.uri)).arrayBuffer();
   return new FsFile(f.uri).arrayBuffer();

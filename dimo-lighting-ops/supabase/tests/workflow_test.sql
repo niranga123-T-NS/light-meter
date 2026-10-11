@@ -6866,6 +6866,72 @@ end $$;
 reset role;
 rollback to savepoint tool1;
 
+-- Exchange rates: CBSL and Customs from the fetch workflow (secret), Commercial Bank by the AM Estimation, board, reminder
+savepoint fx1;
+insert into vault.decrypted_secrets values ('dispatch_secret', 'fx-test-secret') on conflict (name) do update set decrypted_secret = excluded.decrypted_secret;
+do $$ declare r jsonb; begin
+  begin perform public.fx_ingest('wrong', '{}'); assert false, 'secret';
+  exception when others then assert sqlerrm like '%Not allowed%', sqlerrm; end;
+  r := public.fx_ingest('fx-test-secret', jsonb_build_object('cbsl', jsonb_build_array(
+    jsonb_build_object('date', current_date - 1, 'USD', 330.62, 'EUR', 371.10, 'GBP', 437.9),
+    jsonb_build_object('date', current_date, 'USD', 330.96, 'EUR', 371.50, 'GBP', 438.2))));
+  assert (r ->> 'cbsl')::int = 6, r::text;
+  -- a misread Customs rate (far from CBSL) is refused
+  begin perform public.fx_ingest('fx-test-secret', jsonb_build_object('customs', jsonb_build_object('from', current_date - 2, 'to', current_date + 4, 'USD', 35.19, 'EUR', 376.8, 'GBP', 442.3))); assert false, 'sanity';
+  exception when others then assert sqlerrm like '%too far%', sqlerrm; end;
+  r := public.fx_ingest('fx-test-secret', jsonb_build_object('customs', jsonb_build_object('from', current_date - 2, 'to', current_date + 4, 'USD', 335.1947, 'EUR', 376.8259, 'GBP', 442.3564, 'ref', 'er.pdf')));
+  assert (r ->> 'customs')::int = 3, r::text;
+  assert (public.fx_last_dates('fx-test-secret') ->> 'cbsl')::date = current_date, 'last dates';
+end $$;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin
+  assert (select count(*) from public.fx_rates) = 0, 'AE does not see the rates';
+  begin perform public.fx_board(30); assert false, 'board';
+  exception when others then assert sqlerrm like '%Not allowed%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('am_estimation'); set role authenticated;
+do $$ begin
+  begin perform public.save_combank_rates('{}'); assert false, 'estimation cannot upload';
+  exception when others then assert sqlerrm like '%Operations Executive%', sqlerrm; end;
+  assert (select count(*) from public.fx_rates) > 0, 'estimation sees the rates';
+end $$;
+reset role;
+select public.fx_tick();
+do $$ begin
+  if extract(isodow from current_date) <= 5 then
+    assert exists (select 1 from public.notifications n join public.profiles p on p.id = n.recipient_id where p.role = 'operations_exec' and n.dedupe_key = 'fx_combank:' || current_date), 'reminder';
+  end if;
+end $$;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare b jsonb; rr jsonb := jsonb_build_object(
+    'USD', jsonb_build_object('mid', '330.75', 'tt_buy', 326.95, 'tt_sell', 334.75, 'lc_sell', 335.15, 'sell_1m', 336.95, 'sell_2m', 339.35, 'sell_3m', 341.75, 'buy_7d', 326.60, 'buy_1m', 325.42, 'buy_2m', 323.89, 'buy_3m', 322.33),
+    'EUR', jsonb_build_object('cross_usd', 1.1225, 'tt_buy', 365.35, 'tt_sell', 377.19, 'sell_3m', 386.82, 'buy_3m', 361.61),
+    'GBP', jsonb_build_object('cross_usd', 1.3241, 'tt_buy', 431.26, 'tt_sell', 444.63, 'sell_3m', 454.35, 'buy_3m', 425.30)); begin
+  begin perform public.save_combank_rates(jsonb_build_object('date', current_date, 'rates', jsonb_set(rr, '{USD,tt_sell}', '300'))); assert false, 'buy above sell';
+  exception when others then assert sqlerrm like '%below the buying%', sqlerrm; end;
+  begin perform public.save_combank_rates(jsonb_build_object('date', current_date + 1, 'rates', rr)); assert false, 'future';
+  exception when others then assert sqlerrm like '%future%', sqlerrm; end;
+  perform public.save_combank_rates(jsonb_build_object('date', current_date, 'rates', rr, 'ref', 'Indicative_Rate_Report.pdf'));
+  perform public.save_combank_rates(jsonb_build_object('date', current_date, 'rates', rr));   -- again: replaces
+  assert (select count(*) from public.fx_rates where source = 'combank') = 3, 'three currencies';
+  assert (select sell_3m from public.fx_rates where source = 'combank' and currency = 'USD') = 341.75, 'forward';
+  assert (select ref from public.fx_rates where source = 'combank' and currency = 'USD') = 'Indicative_Rate_Report.pdf', 'ref kept';
+  b := public.fx_board(30);
+  assert jsonb_array_length(b -> 'combank' -> 'rows') = 3 and (b -> 'cbsl' ->> 'date')::date = current_date, b::text;
+  assert (b -> 'cbsl' -> 'rows' -> 0 -> 'prev' ->> 'mid') is not null, 'previous for the change';
+  assert (b -> 'customs' -> 'rows' -> 0 ->> 'valid_to')::date = current_date + 4, 'customs validity';
+  -- a corrected Customs schedule entered by hand is not overwritten by the next automatic reading
+  perform public.save_customs_rates(jsonb_build_object('from', current_date - 2, 'to', current_date + 4, 'USD', 335.2, 'EUR', 376.83, 'GBP', 442.36));
+end $$;
+reset role;
+do $$ begin
+  perform public.fx_ingest('fx-test-secret', jsonb_build_object('customs', jsonb_build_object('from', current_date - 2, 'to', current_date + 4, 'USD', 335.1947, 'EUR', 376.8259, 'GBP', 442.3564)));
+  assert (select mid from public.fx_rates where source = 'customs' and currency = 'USD') = 335.2, 'manual kept';
+  assert exists (select 1 from public.notifications where dedupe_key = 'fx_combank:' || current_date and read_at is not null) or extract(isodow from current_date) > 5, 'reminder cleared';
+end $$;
+rollback to savepoint fx1;
+
 -- Execution data only for the people who need it: Operations sees materials, handover, IPCs and billing,
 -- not the programme, plans, daily reports, HSE, QA, snags or design queries
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
