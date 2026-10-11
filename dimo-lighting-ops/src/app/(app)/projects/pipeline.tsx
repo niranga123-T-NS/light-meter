@@ -226,7 +226,7 @@ export default function Pipeline() {
           </Muted>
           <Row gap={6}>
             {filtered ? <Button small variant="ghost" title="Clear filters" onPress={() => setF({ person: ALL, line: ALL, type: ALL, term: ALL, duty: ALL, stage: ALL, band: ALL, flag: ALL })} /> : null}
-            <Button small variant="secondary" title="Invoicing forecast" onPress={() => router.push('/finance/forecast')} />
+            <Button small variant="secondary" title="Invoicing forecast" onPress={() => router.push({ pathname: '/finance/invoicing', params: { view: 'forecast' } })} />
             <Button small title="Management report (PDF)" onPress={report} />
           </Row>
         </Row>

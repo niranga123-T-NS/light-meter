@@ -1,8 +1,9 @@
-import { router, Stack } from 'expo-router';
-import { useState } from 'react';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { useState, type ReactNode } from 'react';
 import { Text, View } from 'react-native';
 import { BarChart, CHART, LineChart } from '@/components/charts';
 import { BillingRiskSection } from '@/components/BillingRiskSection';
+import { InvoicingForecast } from '@/components/InvoicingForecast';
 import { DataTable } from '@/components/DataTable';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, ErrorBanner, Grid, Loading, Muted, Notice, Pill, Row, Screen, Section, Segmented, Select, Stat } from '@/components/ui';
@@ -39,7 +40,29 @@ import { rpc, supabase } from '@/lib/supabase';
 type Tab = 'month' | 'slipped' | 'pending' | 'moved';
 
 /** Invoicing by month: budget vs forecast vs invoiced, the invoices due, slipped and moved. */
-export default function Invoicing() {
+/** Who sees the forecast sub-tab (the same people as the forecast itself) */
+const FORECAST_ROLES = ['asm_building', 'asm_infra', 'sm_projects', 'gm'];
+
+/** Invoicing, with the invoicing forecast as a sub-tab */
+export default function InvoicingTabs() {
+  const me = useMe();
+  const params = useLocalSearchParams<{ view?: string }>();
+  const canForecast = FORECAST_ROLES.includes(me.role);
+  const view = canForecast && params.view === 'forecast' ? 'forecast' : 'invoicing';
+  const header = canForecast ? (
+    <Segmented
+      value={view}
+      onChange={(v) => router.setParams({ view: v === 'invoicing' ? undefined : v })}
+      options={[
+        { value: 'invoicing', label: 'Invoicing' },
+        { value: 'forecast', label: 'Invoicing forecast' },
+      ]}
+    />
+  ) : null;
+  return view === 'forecast' ? <InvoicingForecast header={header} /> : <Invoicing header={header} />;
+}
+
+function Invoicing({ header }: { header?: ReactNode }) {
   const me = useMe();
   const people = usePeople();
   const dialog = useDialog();
@@ -65,7 +88,7 @@ export default function Invoicing() {
       latest: thisMonth() as string | null,
     };
   }, [fy]);
-  if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
+  if (!data) return <Screen>{header}{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
 
   const keep = (l: { business_line: string | null; sales_person_id: string | null }) => (!line || l.business_line === line) && (!person || l.sales_person_id === person);
   const lines = data.lines.filter((l) => l.project_status === 'open' && l.schedule_status === 'approved' && keep(l));
@@ -186,6 +209,7 @@ export default function Invoicing() {
   return (
     <Screen maxWidth={1250}>
       <Stack.Screen options={{ title: 'Invoicing' }} />
+      {header}
       <Row wrap gap={8}>
         <View style={{ width: 180 }}>
           <Select label="Month" value={month} onChange={setMonth} options={months.map((m) => ({ value: m, label: fmtMonth(m) }))} />
