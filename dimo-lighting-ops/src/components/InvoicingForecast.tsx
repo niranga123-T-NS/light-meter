@@ -199,29 +199,48 @@ export function InvoicingForecast({ header }: { header?: ReactNode }) {
 
       <Section title="Month by month">
         <Card>
-          <Row gap={6} style={{ alignItems: 'flex-end', height: 184 }}>
-            {rows.map((r) => (
-              <View key={r.m} style={{ flex: 1, alignItems: 'center', gap: 2 }}>
-                <Text style={{ fontSize: 10, color: colors.muted }}>{r.total ? lkrM(r.total) : ''}</Text>
-                <View style={{ width: '70%', height: 120, justifyContent: 'flex-end' }}>
-                  {r.tgt ? (
-                    <View style={{ position: 'absolute', left: -4, right: -4, bottom: Math.min(120, (120 * r.tgt) / maxBar), height: 2, backgroundColor: colors.red }} />
-                  ) : null}
-                  <View style={{ height: (120 * r.pipe) / maxBar, backgroundColor: '#93C5FD' }} />
-                  <View style={{ height: (120 * r.sec) / maxBar, backgroundColor: colors.blue }} />
-                  <View style={{ height: (120 * r.inv) / maxBar, backgroundColor: colors.green }} />
+          <Row gap={6} style={{ alignItems: 'flex-end' }}>
+            {rows.map((r) => {
+              const over = r.tgt > maxBar;
+              return (
+                <View key={r.m} style={{ flex: 1, alignItems: 'center', gap: 2 }}>
+                  <View style={{ width: '70%', height: 140, justifyContent: 'flex-end', alignItems: 'stretch' }}>
+                    {r.tgt ? (
+                      <View
+                        style={{
+                          position: 'absolute',
+                          left: -4,
+                          right: -4,
+                          bottom: over ? 138 : (120 * r.tgt) / maxBar,
+                          height: 0,
+                          borderTopWidth: 2,
+                          borderColor: colors.red,
+                          borderStyle: over ? 'dashed' : 'solid',
+                        }}
+                      />
+                    ) : null}
+                    {/* the projected total sits on its own bar */}
+                    <Text style={{ fontSize: 10, color: colors.ink, textAlign: 'center', marginBottom: 2 }}>{r.total ? lkrM(r.total) : ''}</Text>
+                    <View style={{ height: (120 * r.pipe) / maxBar, backgroundColor: '#93C5FD' }} />
+                    <View style={{ height: (120 * r.sec) / maxBar, backgroundColor: colors.blue }} />
+                    <View style={{ height: (120 * r.inv) / maxBar, backgroundColor: colors.green }} />
+                  </View>
+                  <Text style={{ fontSize: 11, color: r.m === data.this_month ? colors.brand : colors.ink, fontWeight: r.m === data.this_month ? '700' : '400' }}>{mLabel(r.m)}</Text>
+                  {/* the month's target, always – ▲ when the line is above the chart */}
+                  <Text style={{ fontSize: 9, color: colors.red, minHeight: 12 }}>{r.tgt ? `${over ? '▲ ' : ''}T ${lkrM(r.tgt)}` : ''}</Text>
                 </View>
-                <Text style={{ fontSize: 11, color: r.m === data.this_month ? colors.brand : colors.ink, fontWeight: r.m === data.this_month ? '700' : '400' }}>{mLabel(r.m)}</Text>
-                <Text style={{ fontSize: 9, color: colors.red, minHeight: 12 }}>{r.tgt > maxBar ? `▲ ${lkrM(r.tgt)}` : ''}</Text>
-              </View>
-            ))}
+              );
+            })}
           </Row>
           <Row wrap gap={10} style={{ marginTop: 6 }}>
             <Pill label="Invoiced" tone={colors.green} solid />
             <Pill label="Secured – to invoice" tone={colors.blue} solid />
             <Pill label="Potential (weighted)" tone="#60A5FA" />
-            {tot.tgt ? <Pill label="— Invoice target (▲ under the month when above the chart)" tone={colors.red} /> : null}
           </Row>
+          <Muted style={{ marginTop: 4 }}>
+            The figure on each bar is the month&apos;s projected total. Red line and red &ldquo;T&rdquo; figure = the month&apos;s invoice target; ▲ and a dashed line at the top = the
+            target is above the chart.
+          </Muted>
         </Card>
         <DataTable
           rows={rows}
