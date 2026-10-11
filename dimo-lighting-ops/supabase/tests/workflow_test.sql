@@ -3801,6 +3801,24 @@ do $$ begin
   exception when others then assert sqlerrm = 'Attach the document first', sqlerrm; end;
   perform public.verify_test(current_setting('test.tr')::uuid, true);
   assert exists (select 1 from jsonb_array_elements(public.preview_gate(current_setting('test.ex')::uuid) -> 'checks') x where x ->> 'check' = 'No open NCR' and not (x ->> 'ok')::boolean), 'NCR blocks gate';
+  -- Leftover DIMO material blocks the handover until it is returned to SAP or to Project returns
+  if exists (select 1 from public.project_leftovers(current_setting('test.ex')::uuid)) then
+    begin perform public.request_gate(current_setting('test.ex')::uuid, '{"as_built":true}', 'Ready for handover', current_date); assert false, 'leftovers block';
+    exception when others then assert sqlerrm like 'Return the leftover material%', sqlerrm; end;
+    assert exists (select 1 from jsonb_array_elements(public.preview_gate(current_setting('test.ex')::uuid) -> 'checks') x
+                   where x ->> 'check' like 'Leftover material%' and not (x ->> 'ok')::boolean and (x ->> 'hard')::boolean), 'leftover check shown';
+    begin perform public.return_leftovers(current_setting('test.ex')::uuid,
+      (select jsonb_agg(jsonb_build_object('item', item, 'qty', balance, 'dest', 'sap')) from public.project_leftovers(current_setting('test.ex')::uuid))); assert false, 'SAP ref';
+    exception when others then assert sqlerrm like '%enter the SAP return reference', sqlerrm; end;
+    -- Part of each item back to SAP, the rest into Project returns
+    perform public.return_leftovers(current_setting('test.ex')::uuid,
+      (select jsonb_agg(x) from (
+         select jsonb_build_object('item', item, 'qty', floor(balance / 2), 'dest', 'sap', 'sap_ref', 'RET-4500012') x from public.project_leftovers(current_setting('test.ex')::uuid) where floor(balance / 2) > 0
+         union all
+         select jsonb_build_object('item', item, 'qty', balance - floor(balance / 2), 'dest', 'returns', 'condition', 'good', 'location', 'Ratmalana store bay 3')
+           from public.project_leftovers(current_setting('test.ex')::uuid)) y));
+    assert not exists (select 1 from public.project_leftovers(current_setting('test.ex')::uuid)), 'all returned';
+  end if;
   perform set_config('test.gate', public.request_gate(current_setting('test.ex')::uuid, '{"as_built":true}', 'Ready for handover', current_date)::text, false);
   perform public.save_cost_line(current_setting('test.ex')::uuid, null, '{"cost_code":"material","description":"Fixtures","budget":"1000000","committed":"900000","actual":"300000"}');
   perform public.advance_sub_cert(current_setting('test.spc')::uuid, true);
@@ -6312,6 +6330,83 @@ do $$ begin
   exception when others then assert sqlerrm like 'The Operations Executive corrects%', sqlerrm; end;
 end $$;
 reset role;
+
+-- Project returns: register, matching when requesting material, reservation and booking out on receipt -------------------
+savepoint returns1;
+update public.exec_projects set status = 'active' where id = current_setting('test.ex')::uuid;
+do $$ begin
+  assert exists (select 1 from public.project_return_items where origin = 'dlp' and source_exec_project_id = current_setting('test.ex')::uuid), 'DLP leftovers went to Project returns';
+  assert exists (select 1 from public.store_moves where exec_project_id = current_setting('test.ex')::uuid and ref like 'SAP return RET-4500012'), 'SAP return recorded';
+end $$;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  begin perform public.add_project_returns('[{"item":"x","unit":"nos","qty":1}]'); assert false, 'not sales';
+  exception when others then assert sqlerrm like 'Operations, the SEE or SM Projects%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare i uuid;
+begin
+  begin perform public.add_project_returns('[{"item":"LED floodlight 200W IP66","unit":"nos"}]', 'upload'); assert false, 'qty';
+  exception when others then assert sqlerrm like 'Line 1 (LED floodlight 200W IP66): enter the quantity', sqlerrm; end;
+  assert public.add_project_returns('[{"item":"LED floodlight 200W IP66 4000K","mpn":"FL200-40","unit":"nos","qty":"10","condition":"Good","location":"Bay 1","source_text":"Galle stadium"},
+                                      {"item":"Cable gland 20mm","unit":"nos","qty":40}]', 'upload') = 2, 'two added';
+  select id into i from public.project_return_items where mpn = 'FL200-40';
+  perform set_config('test.ret', i::text, false);
+  assert (select balance = 10 and available = 10 and source = 'Galle stadium' from public.project_returns() where id = i), 'balance 10';
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare m uuid; e uuid := current_setting('test.ex')::uuid;
+begin
+  assert exists (select 1 from jsonb_array_elements(public.stock_matches('Floodlight 200W')) x where x ->> 'source' = 'returns' and x ->> 'ref' = current_setting('test.ret')), 'similar item found';
+  assert exists (select 1 from jsonb_array_elements(public.stock_matches('anything', 'FL200-40')) x where x ->> 'ref' = current_setting('test.ret')), 'same part number found';
+  assert (select bool_and(x ->> 'source' = 'returns') from jsonb_array_elements(public.stock_matches('floodlight', null, 'returns')) x), 'one source only';
+  assert jsonb_array_length(public.stock_matches('floodlight', null, 'returns')) >= 1, 'single word is enough in the step search';
+  begin perform public.raise_material_request(e, jsonb_build_object('required_date', current_date + 3,
+      'lines', jsonb_build_array(jsonb_build_object('return_item_id', current_setting('test.ret'), 'qty', 20)))); assert false, 'not enough';
+  exception when others then assert sqlerrm like 'Only 10 nos of LED floodlight%', sqlerrm; end;
+  m := public.raise_material_request(e, jsonb_build_object('required_date', current_date + 3,
+    'lines', jsonb_build_array(jsonb_build_object('return_item_id', current_setting('test.ret'), 'qty', 4),
+                               jsonb_build_object('custom', true, 'item', 'Mast bracket', 'unit', 'nos', 'qty', 2, 'sap_material', '2200031816'))));
+  perform set_config('test.rmr', m::text, false);
+  assert (select available = 6 and reserved = 4 from public.project_returns() where id = current_setting('test.ret')::uuid), 'reserved';
+  assert (select sap_material = '2200031816' from public.material_request_lines where mr_id = m and item = 'Mast bracket'), 'SAP stock item noted';
+  -- In stock → take it, or order new with the reason
+  begin perform public.raise_material_request(e, jsonb_build_object('required_date', current_date + 3,
+      'lines', jsonb_build_array(jsonb_build_object('custom', true, 'item', 'LED floodlight 200W IP66', 'unit', 'nos', 'qty', 2)))); assert false, 'choice needed';
+  exception when others then assert sqlerrm like 'LED floodlight 200W IP66 is held in the SAP stock or Project returns%', sqlerrm; end;
+  begin perform public.raise_material_request(e, jsonb_build_object('required_date', current_date + 3,
+      'lines', jsonb_build_array(jsonb_build_object('custom', true, 'item', 'LED floodlight 200W IP66', 'unit', 'nos', 'qty', 2, 'order_new', true)))); assert false, 'reason needed';
+  exception when others then assert sqlerrm like '%give the reason for ordering new%', sqlerrm; end;
+  m := public.raise_material_request(e, jsonb_build_object('required_date', current_date + 3,
+    'lines', jsonb_build_array(jsonb_build_object('custom', true, 'item', 'LED floodlight 200W IP66', 'unit', 'nos', 'qty', 2, 'order_new', true,
+                                                  'order_new_reason', 'Client specified 5700K – returns stock is 4000K'))));
+  assert (select source_choice = 'new' and order_new_reason like 'Client specified%' from public.material_request_lines where mr_id = m), 'order new recorded';
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select public.decide_material_request(current_setting('test.rmr')::uuid, true);
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+select public.schedule_delivery(current_setting('test.rmr')::uuid, now() + interval '5 hours');
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+select public.receive_material(current_setting('test.rmr')::uuid,
+  (select jsonb_agg(jsonb_build_object('line_id', id, 'qty', qty)) from public.material_request_lines where mr_id = current_setting('test.rmr')::uuid));
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare i uuid := current_setting('test.ret')::uuid;
+begin
+  assert (select balance = 6 and reserved = 0 and available = 6 from public.project_returns() where id = i), 'booked out on receipt';
+  assert exists (select 1 from public.project_return_moves where item_id = i and kind = 'out' and qty = -4), 'out move';
+  begin perform public.adjust_project_return(i, -7, 'count'); assert false, 'below zero';
+  exception when others then assert sqlerrm like 'The balance cannot go below%', sqlerrm; end;
+  perform public.adjust_project_return(i, -1, 'One fitting damaged in the store');
+  assert (select balance from public.project_returns() where id = i) = 5, 'adjusted';
+end $$;
+reset role;
+rollback to savepoint returns1;
 
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

@@ -185,6 +185,9 @@ export default function MaterialScreen() {
               title={`${l.item}${l.custom ? '  (custom item)' : ''}`}
               subtitle={[
                 `${fmtNumber(l.qty)} ${l.unit} requested · ${fmtNumber(l.received_qty)} received`,
+                l.return_item_id ? 'FROM PROJECT RETURNS – issue from the returns stock, do not buy' : null,
+                l.sap_material ? `SAP STOCK ${l.sap_material} – issue from SAP, do not buy` : null,
+                l.source_choice === 'new' ? `ORDER NEW although in stock – ${l.order_new_reason ?? ''}` : null,
                 l.category,
                 l.spec ? `Spec: ${l.spec}` : null,
                 l.brand ? `Make: ${l.brand}` : null,
@@ -265,6 +268,7 @@ export default function MaterialScreen() {
           </Card>
         </Section>
       ) : null}
+      <Attachments entityType="material_request" entityId={m.id} kinds={['datasheet']} title="Datasheets and drawings of the items" canUpload={me.role !== 'gm' && !['received', 'rejected', 'cancelled'].includes(m.status)} />
       <Attachments entityType="material_request" entityId={m.id} kinds={['mr_doc', 'grn_photo']} title="Delivery notes and photos" allowCamera canUpload={me.role !== 'gm'} />
     </Screen>
   );

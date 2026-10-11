@@ -96,7 +96,7 @@ export function navFor(role: Role): NavItem[] {
   // SAP stock: Operations uploads; GM / DGM and SM Projects see values; other office roles see quantities and ageing
   if (!['sub_supervisor', 'trainee', 'sys_admin'].includes(role)) {
     const at = items.findIndex((i) => i.href === '/reports');
-    items.splice(at < 0 ? items.length : at, 0, { href: '/stock', label: 'Stock (SAP)', icon: '▤', pilot: true });
+    items.splice(at < 0 ? items.length : at, 0, { href: '/stock', label: 'Stock', icon: '▤', pilot: true });
   }
   return [...items.slice(0, 1), meetings, ...items.slice(1)];
 }

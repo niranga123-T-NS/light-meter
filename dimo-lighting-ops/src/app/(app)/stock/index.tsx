@@ -1,9 +1,11 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
+import type { ReactNode } from 'react';
 import { Text, View } from 'react-native';
+import { ProjectReturnsView } from '@/components/ProjectReturnsView';
 import { AgeBars, LineAge, lkr, lkrM, VALUE_ROLES } from '@/components/StockBits';
 import { TestingBanner } from '@/components/Testing';
 import { useDialog } from '@/components/dialog';
-import { Button, Card, colors, Empty, ErrorBanner, Grid, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section, Select, Stat } from '@/components/ui';
+import { Button, Card, colors, Empty, ErrorBanner, Grid, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section, Segmented, Select, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { fmtDate, fmtNumber } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
@@ -15,8 +17,34 @@ import { rpc } from '@/lib/supabase';
 const aged1y = (l: StockLine) => l.q4 + l.q5 + l.q6;
 const aged1yValue = (l: StockLine) => (l.v4 ?? 0) + (l.v5 ?? 0) + (l.v6 ?? 0);
 
+/** Stock: two sub-tabs – the SAP stock (monthly ageing report) and the Project returns (leftover material from projects). */
+export default function Stock() {
+  const params = useLocalSearchParams<{ tab?: string }>();
+  const tab = params.tab === 'returns' ? 'returns' : 'sap';
+  const tabs = (
+    <Segmented
+      value={tab}
+      onChange={(v) => router.setParams({ tab: v === 'sap' ? undefined : v })}
+      options={[
+        { value: 'sap', label: 'SAP stock' },
+        { value: 'returns', label: 'Project returns' },
+      ]}
+    />
+  );
+  if (tab === 'returns')
+    return (
+      <Screen maxWidth={1100}>
+        <Stack.Screen options={{ title: 'Stock' }} />
+        <TestingBanner what="Stock" always />
+        {tabs}
+        <ProjectReturnsView />
+      </Screen>
+    );
+  return <SapStock tabs={tabs} />;
+}
+
 /** SAP stock: the monthly ageing report – totals, value / quantity by age, categories, the oldest items and the trend. */
-export default function StockDashboard() {
+function SapStock({ tabs }: { tabs: ReactNode }) {
   const me = useMe();
   const dialog = useDialog();
   const params = useLocalSearchParams<{ s?: string }>();
@@ -28,7 +56,7 @@ export default function StockDashboard() {
     const lines = cur ? await rpc<StockLine[]>('stock_lines', { p_snapshot: cur.id }) : [];
     return { snaps, cur, lines };
   }, [params.s]);
-  if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
+  if (!data) return <Screen>{tabs}{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const { snaps, cur, lines } = data;
 
   const header = (
@@ -56,8 +84,9 @@ export default function StockDashboard() {
   if (!cur)
     return (
       <Screen maxWidth={1100}>
-        <Stack.Screen options={{ title: 'Stock (SAP)' }} />
-      <TestingBanner what="Stock (SAP)" always />
+        <Stack.Screen options={{ title: 'Stock' }} />
+      <TestingBanner what="Stock" always />
+      {tabs}
         {header}
         <Card>
           <Empty title="No SAP stock report yet" hint={ops ? 'Upload the monthly SAP stock ageing report (Excel) as it comes from SAP.' : 'The Operations Executive uploads the SAP stock report every month.'} />
@@ -88,8 +117,9 @@ export default function StockDashboard() {
 
   return (
     <Screen maxWidth={1100}>
-      <Stack.Screen options={{ title: 'Stock (SAP)' }} />
-      <TestingBanner what="Stock (SAP)" always />
+      <Stack.Screen options={{ title: 'Stock' }} />
+      <TestingBanner what="Stock" always />
+      {tabs}
       {header}
       <Muted>{`SAP stock ageing report · profit centre ${cur.profit_center} · as at ${fmtDate(cur.as_at)} · uploaded ${fmtDate(cur.confirmed_at)}${cur.replace_reason ? ` · replaced: ${cur.replace_reason}` : ''}`}</Muted>
       <Grid min={180} max={5}>

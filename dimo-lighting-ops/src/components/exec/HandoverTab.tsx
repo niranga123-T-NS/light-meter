@@ -8,6 +8,7 @@ import { fmtDate, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 import { GateCard } from './GateCard';
+import { LeftoverMaterial } from './LeftoverMaterial';
 
 const areaLabel = (a: string) => EXEC_AREAS.find((x) => x.value === a)?.label ?? a;
 
@@ -94,6 +95,7 @@ export function HandoverTab({ p, onChange }: { p: ExecProject; onChange: () => v
   return (
     <>
       <Section title="Hand over to the client">
+        {p.stage <= 2 ? <LeftoverMaterial p={p} onChange={onChange} /> : null}
         <GateCard p={p} gate={2} onChange={onChange} />
       </Section>
 

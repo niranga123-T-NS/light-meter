@@ -60,6 +60,7 @@ export const KIND_LABELS: Record<string, string> = {
   var_doc: 'Variation order / client letter',
   var_photo: 'Photo',
   mr_doc: 'Delivery note',
+  datasheet: 'Datasheet / drawing / photo',
   grn_photo: 'Delivery photo',
   doc_file: 'Document file',
   dq_file: 'Sketch / drawing',
