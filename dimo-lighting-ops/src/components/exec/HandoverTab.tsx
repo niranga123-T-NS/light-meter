@@ -99,40 +99,43 @@ export function HandoverTab({ p, onChange }: { p: ExecProject; onChange: () => v
         <GateCard p={p} gate={2} onChange={onChange} />
       </Section>
 
-      <Section title={`Snags (${openSnags.length} open)`} right={(isSee || isAe || me.role === 'sm_projects') && p.status === 'active' ? <Button small title="+ Snag" onPress={raiseSnag} /> : null}>
-        {snags.length ? (
-          <Card style={{ padding: 0, overflow: 'hidden' }}>
-            {snags.map((s) => (
-              <ListRow
-                key={s.id}
-                wrapRight
-                onPress={() => setOpenSnag(openSnag === s.id ? null : s.id)}
-                highlight={s.status === 'open' && s.due_date && s.due_date < todayISO() ? colors.red : undefined}
-                title={`${s.location} – ${s.description}`}
-                subtitle={
-                  <>
-                    <Muted>{[s.responsible, s.due_date ? `due ${fmtDate(s.due_date)}` : null, s.closed_at ? `closed ${fmtDate(s.closed_at)}` : null].filter(Boolean).join(' · ')}</Muted>
-                    {openSnag === s.id ? (
-                      <>
-                        <Attachments entityType="snag" entityId={s.id} kinds={['snag_before', 'snag_after']} title="Before / after photos" allowCamera canUpload={s.status === 'open' && (isSee || isAe)} />
-                        {s.status === 'open' && (isSee || isAe) ? <Button small title="Close (needs the after photo)" onPress={() => closeSnag(s)} /> : null}
-                      </>
-                    ) : null}
-                  </>
-                }
-                right={
-                  <Row gap={4}>
-                    {s.priority === 'high' ? <Pill label="High" tone={colors.red} /> : null}
-                    <Pill label={s.status === 'open' ? 'Open' : 'Closed'} tone={s.status === 'open' ? colors.amber : colors.green} />
-                  </Row>
-                }
-              />
-            ))}
-          </Card>
-        ) : (
-          <Empty title="No snags" />
-        )}
-      </Section>
+      {/* Snags are site work – the execution team only, not the Operations Executive */}
+      {me.role !== 'operations_exec' ? (
+        <Section title={`Snags (${openSnags.length} open)`} right={(isSee || isAe || me.role === 'sm_projects') && p.status === 'active' ? <Button small title="+ Snag" onPress={raiseSnag} /> : null}>
+          {snags.length ? (
+            <Card style={{ padding: 0, overflow: 'hidden' }}>
+              {snags.map((s) => (
+                <ListRow
+                  key={s.id}
+                  wrapRight
+                  onPress={() => setOpenSnag(openSnag === s.id ? null : s.id)}
+                  highlight={s.status === 'open' && s.due_date && s.due_date < todayISO() ? colors.red : undefined}
+                  title={`${s.location} – ${s.description}`}
+                  subtitle={
+                    <>
+                      <Muted>{[s.responsible, s.due_date ? `due ${fmtDate(s.due_date)}` : null, s.closed_at ? `closed ${fmtDate(s.closed_at)}` : null].filter(Boolean).join(' · ')}</Muted>
+                      {openSnag === s.id ? (
+                        <>
+                          <Attachments entityType="snag" entityId={s.id} kinds={['snag_before', 'snag_after']} title="Before / after photos" allowCamera canUpload={s.status === 'open' && (isSee || isAe)} />
+                          {s.status === 'open' && (isSee || isAe) ? <Button small title="Close (needs the after photo)" onPress={() => closeSnag(s)} /> : null}
+                        </>
+                      ) : null}
+                    </>
+                  }
+                  right={
+                    <Row gap={4}>
+                      {s.priority === 'high' ? <Pill label="High" tone={colors.red} /> : null}
+                      <Pill label={s.status === 'open' ? 'Open' : 'Closed'} tone={s.status === 'open' ? colors.amber : colors.green} />
+                    </Row>
+                  }
+                />
+              ))}
+            </Card>
+          ) : (
+            <Empty title="No snags" />
+          )}
+        </Section>
+      ) : null}
 
       <Section
         title={`Handover dossier (${dossier.filter((d) => d.done).length} / ${dossier.length})`}

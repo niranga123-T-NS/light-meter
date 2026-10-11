@@ -6408,5 +6408,35 @@ end $$;
 reset role;
 rollback to savepoint returns1;
 
+-- Execution data only for the people who need it: Operations sees materials, handover, IPCs and billing,
+-- not the programme, plans, daily reports, HSE, QA, snags or design queries
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin
+  assert (select count(*) from public.exec_plans) > 0 and (select count(*) from public.exec_reports) > 0
+     and (select count(*) from public.exec_activities) > 0 and (select count(*) from public.hse_records) > 0, 'team reads its data';
+  perform set_config('test.team_mr', (select count(*)::text from public.material_requests), false);
+end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare e uuid;
+begin
+  assert (select count(*) from public.exec_projects) > 0, 'Operations still sees the projects';
+  assert (select count(*)::text from public.material_requests) = current_setting('test.team_mr'), 'and every material request';
+  assert (select count(*) from public.exec_activities) > 0, 'activities stay readable for billing';
+  assert not exists (select 1 from public.exec_plans) and not exists (select 1 from public.exec_plan_items), 'no plans';
+  assert not exists (select 1 from public.exec_reports) and not exists (select 1 from public.site_checkins), 'no daily reports or check-ins';
+  assert not exists (select 1 from public.exec_programmes) and not exists (select 1 from public.exec_wbs)
+     and not exists (select 1 from public.exec_activity_deps) and not exists (select 1 from public.exec_progress_snapshots), 'no programme';
+  assert not exists (select 1 from public.hse_records) and not exists (select 1 from public.hse_reports)
+     and not exists (select 1 from public.hse_inductions) and not exists (select 1 from public.hse_equipment), 'no HSE / permits';
+  assert not exists (select 1 from public.test_records) and not exists (select 1 from public.ncrs) and not exists (select 1 from public.qa_reports)
+     and not exists (select 1 from public.snags) and not exists (select 1 from public.design_queries), 'no QA, snags or design queries';
+  assert not exists (select 1 from public.exec_workers), 'no workers';
+  select id into e from public.exec_projects limit 1;
+  begin perform public.hse_summary(e); assert false, 'HSE summary refused';
+  exception when others then assert sqlerrm = 'Not allowed', sqlerrm; end;
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
