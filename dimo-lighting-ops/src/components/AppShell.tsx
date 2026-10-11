@@ -129,7 +129,7 @@ function SideLink({ item, active, badge }: { item: NavItem; active: boolean; bad
       >
         <Text style={{ color: active ? '#fff' : '#9CA3AF', width: 18, textAlign: 'center' }}>{item.icon}</Text>
         <Text style={{ color: active ? '#fff' : '#D1D5DB', flex: 1, fontWeight: active ? '600' : '400' }}>{item.label}</Text>
-        {item.testing ? <TestingTag dark /> : null}
+        {item.testing || item.pilot ? <TestingTag dark always={item.pilot} /> : null}
         <Badge count={badge} />
       </Pressable>
     </Link>
