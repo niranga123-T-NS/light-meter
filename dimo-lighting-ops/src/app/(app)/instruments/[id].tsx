@@ -9,10 +9,10 @@ import { useMe } from '@/lib/auth';
 import type { ExecProject } from '@/lib/execution';
 import { fmtDate, todayISO } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
-import { calState, instrumentTitle, type Instrument, type InstrumentRequest } from '@/lib/instruments';
+import { calState, instrumentTitle, KIND_LABEL, type Instrument, type InstrumentRequest } from '@/lib/instruments';
 import { rpc, supabase } from '@/lib/supabase';
 
-/** One instrument: details, condition, calibration and its report (Operations uploads, members download), queue and history. */
+/** One instrument or tool (tools have no calibration): details, condition, calibration and its report (Operations uploads, members download), queue and history. */
 export default function InstrumentScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const me = useMe();
@@ -36,7 +36,7 @@ export default function InstrumentScreen() {
   const run = (fn: string, args: Record<string, unknown>, ok: string) => dialog.run(async () => { await rpc(fn, args); await reload(); }, ok);
 
   const edit = async () => {
-    const res = await dialog.prompt({ title: 'Edit the instrument', fields: INSTRUMENT_FIELDS(i), confirmLabel: 'Save' });
+    const res = await dialog.prompt({ title: i.kind === 'tool' ? 'Edit the tool' : 'Edit the instrument', fields: INSTRUMENT_FIELDS(i), confirmLabel: 'Save' });
     if (res) await run('save_instrument', { p: { ...res, id: i.id } }, 'Saved');
   };
   const condition = async () => {
@@ -81,16 +81,16 @@ export default function InstrumentScreen() {
             <Pill label={cal.label} tone={cal.tone} />
           </Row>
         </Row>
-        <KeyValue label="Instrument" value={instrumentTitle(i)} />
-        {i.category ? <KeyValue label="Type" value={i.category} /> : null}
+        <KeyValue label={KIND_LABEL[i.kind]} value={instrumentTitle(i)} />
+        {i.category ? <KeyValue label="Category" value={i.category} /> : null}
         {i.asset_no ? <KeyValue label="Asset number" value={i.asset_no} /> : null}
         {i.range_spec ? <KeyValue label="Range / accuracy" value={i.range_spec} /> : null}
         {i.home ? <KeyValue label="Kept at" value={i.home} /> : null}
         {i.notes ? <KeyValue label="Notes" value={i.notes} /> : null}
-        <KeyValue
+        {i.kind === 'tool' ? null : <KeyValue
           label="Calibration"
           value={i.cal_status === 'calibrated' ? `Done ${fmtDate(i.cal_date)} · expires ${fmtDate(i.cal_expiry)}${i.cal_cert_no ? ` · cert ${i.cal_cert_no}` : ''}${i.cal_lab ? ` · ${i.cal_lab}` : ''}` : 'Not calibrated'}
-        />
+        />}
         {i.condition === 'out_of_order' ? <Notice tone={colors.red}>{`Out of order – ${i.fault_note ?? ''}`}</Notice> : null}
         {!cal.ok ? <Notice tone={colors.amber}>Not calibrated: it can be used, but you and Operations are alerted when you request it, and readings may not be accepted.</Notice> : null}
         <Row wrap gap={6} style={{ marginTop: 6 }}>
@@ -100,14 +100,14 @@ export default function InstrumentScreen() {
           {ops && !i.removed ? (
             <>
               <Button variant="secondary" title="Edit" onPress={edit} />
-              <Button variant="secondary" title="Calibration" onPress={calibration} />
+              {i.kind === 'tool' ? null : <Button variant="secondary" title="Calibration" onPress={calibration} />}
               <Button variant="secondary" title={i.condition === 'out_of_order' ? 'Back in service' : 'Out of order'} onPress={condition} />
               <Button variant="ghost" title="Remove" onPress={remove} />
             </>
           ) : null}
         </Row>
       </Card>
-      <Attachments entityType="instrument" entityId={i.id} kinds={['cal_report']} title="Calibration certificate / test report" canUpload={ops && !i.removed} />
+      {i.kind === 'tool' ? null : <Attachments entityType="instrument" entityId={i.id} kinds={['cal_report']} title="Calibration certificate / test report" canUpload={ops && !i.removed} />}
       <Section title={`Now and next (${live.length})`}>
         <RequestRows rows={live} instruments={[i]} projects={data.projects} onChange={reload} showInstrument={false} />
       </Section>

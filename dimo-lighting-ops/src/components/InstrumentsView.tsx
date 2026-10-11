@@ -8,18 +8,29 @@ import { useMe } from '@/lib/auth';
 import type { ExecProject } from '@/lib/execution';
 import { addDaysISO, fmtDate, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
-import { calState, daysOverdue, instrumentTitle, REQ_STATUS, reqTone, type Instrument, type InstrumentRequest } from '@/lib/instruments';
+import { calState, daysOverdue, instrumentTitle, KIND_LABEL, REQ_STATUS, reqTone, type Instrument, type InstrumentRequest } from '@/lib/instruments';
 import { mapLink } from '@/lib/site';
 import { rpc, supabase } from '@/lib/supabase';
 
 export const INSTRUMENT_FIELDS = (i?: Partial<Instrument>) => [
-  { key: 'name', label: 'Instrument', required: true, initial: i?.name ?? '' },
-  { key: 'category', label: 'Type / category (e.g. Photometry, Insulation, Earth)', initial: i?.category ?? '' },
+  {
+    key: 'kind',
+    label: 'Instrument or tool',
+    type: 'select' as const,
+    required: true,
+    initial: i?.kind ?? 'instrument',
+    options: [
+      { value: 'instrument', label: 'Measuring instrument – calibrated' },
+      { value: 'tool', label: 'Tool – no calibration' },
+    ],
+  },
+  { key: 'name', label: 'Name', required: true, initial: i?.name ?? '' },
+  { key: 'category', label: 'Category (e.g. Photometry, Insulation, Crimping, Lifting)', initial: i?.category ?? '' },
   { key: 'make', label: 'Make', initial: i?.make ?? '' },
   { key: 'model', label: 'Model', initial: i?.model ?? '' },
   { key: 'serial_no', label: 'Serial number', initial: i?.serial_no ?? '' },
   { key: 'asset_no', label: 'Asset number', initial: i?.asset_no ?? '' },
-  { key: 'range_spec', label: 'Range / accuracy', initial: i?.range_spec ?? '' },
+  { key: 'range_spec', label: 'Range / accuracy / capacity', initial: i?.range_spec ?? '' },
   { key: 'home', label: 'Kept at', initial: i?.home ?? '' },
   { key: 'notes', label: 'Notes', type: 'multiline' as const, initial: i?.notes ?? '' },
 ];
@@ -176,6 +187,7 @@ export function InstrumentsView({ project }: { project?: ExecProject }) {
   const ops = me.role === 'operations_exec';
   const [q, setQ] = useState('');
   const [show, setShow] = useState<'active' | 'all'>('active');
+  const [kind, setKind] = useState<'all' | 'instrument' | 'tool'>('all');
   const today = todayISO();
   const { data, reload } = useLoad(async () => {
     const [i, r, p] = await Promise.all([
@@ -191,31 +203,32 @@ export function InstrumentsView({ project }: { project?: ExecProject }) {
   const out = (i: Instrument) => live.find((r) => r.instrument_id === i.id && r.status === 'issued');
   const queue = (i: Instrument) => live.filter((r) => r.instrument_id === i.id && r.status !== 'issued');
   const ql = q.trim().toLowerCase();
-  const shown = instruments.filter((i) => !ql || `${i.code} ${instrumentTitle(i)} ${i.category ?? ''} ${i.asset_no ?? ''}`.toLowerCase().includes(ql));
+  const shown = instruments.filter((i) => (kind === 'all' || i.kind === kind) && (!ql || `${i.code} ${instrumentTitle(i)} ${i.category ?? ''} ${i.asset_no ?? ''}`.toLowerCase().includes(ql)));
   const overdue = live.filter((r) => daysOverdue(r, today) > 0);
   const relevant = (r: InstrumentRequest) => (project ? r.exec_project_id === project.id : ops || r.requested_by === me.id || r.owner_id === me.id);
   const reqRows = requests.filter((r) => relevant(r) && (show === 'all' || ['waiting', 'ready', 'issued'].includes(r.status)));
 
   const add = async () => {
-    const res = await dialog.prompt({ title: 'Add an instrument', fields: INSTRUMENT_FIELDS(), confirmLabel: 'Add' });
+    const res = await dialog.prompt({ title: 'Add an instrument or tool', fields: INSTRUMENT_FIELDS(), confirmLabel: 'Add' });
     if (res)
       await dialog.run(async () => {
         const id = await rpc<string>('save_instrument', { p: res });
         await reload();
         router.push(`/instruments/${id}`);
-      }, 'Added – record the calibration and upload the report on its page');
+      }, res.kind === 'tool' ? 'Tool added' : 'Added – record the calibration and upload the report on its page');
   };
   const request = (i: Instrument) => router.push({ pathname: '/instruments/request', params: { instrument: i.id, ...(project ? { project: project.id } : {}) } });
 
   return (
     <View style={{ gap: 10 }}>
       <Grid min={140}>
-        <Stat label="Instruments" value={instruments.length} />
+        <Stat label="Instruments" value={instruments.filter((i) => i.kind !== 'tool').length} />
+        <Stat label="Tools" value={instruments.filter((i) => i.kind === 'tool').length} />
         <Stat label="Available" value={instruments.filter((i) => i.condition === 'ok' && !out(i)).length} tone="green" />
         <Stat label="In use" value={instruments.filter((i) => out(i)).length} />
         <Stat label="Overdue" value={overdue.length} tone={overdue.length ? 'red' : undefined} />
         <Stat label="Out of order" value={instruments.filter((i) => i.condition === 'out_of_order').length} tone={instruments.some((i) => i.condition === 'out_of_order') ? 'amber' : undefined} />
-        <Stat label="Not calibrated / expired" value={instruments.filter((i) => !calState(i, today).ok).length} />
+        <Stat label="Instruments not calibrated / expired" value={instruments.filter((i) => !calState(i, today).ok).length} />
       </Grid>
       <Section
         title={project ? 'Requests for this project' : ops ? 'Requests and instruments out' : 'My requests'}
@@ -228,17 +241,23 @@ export function InstrumentsView({ project }: { project?: ExecProject }) {
       >
         <RequestRows rows={reqRows} instruments={instruments} projects={data?.projects ?? []} onChange={reload} />
       </Section>
-      <Section title={`Instrument list (${instruments.length})`} right={ops ? <Button small title="+ Instrument" onPress={add} /> : null}>
+      <Section title={`Instruments and tools (${instruments.length})`} right={ops ? <Button small title="+ Instrument / tool" onPress={add} /> : null}>
+        <Row gap={6} wrap>
+          <Chip label="All" on={kind === 'all'} onPress={() => setKind('all')} />
+          <Chip label="Instruments" on={kind === 'instrument'} onPress={() => setKind('instrument')} />
+          <Chip label="Tools" on={kind === 'tool'} onPress={() => setKind('tool')} />
+        </Row>
         <Field label="Search" value={q} onChangeText={setQ} placeholder="Name, make, model, serial, code" />
         <DataTable
           rows={shown}
           keyOf={(i) => i.id}
           onPress={(i) => router.push(`/instruments/${i.id}`)}
           edge={(i) => (i.condition === 'out_of_order' ? colors.red : out(i) ? (daysOverdue(out(i)!, today) ? colors.red : colors.blue) : colors.green)}
-          emptyTitle={ops ? 'No instruments yet – add them with “+ Instrument”' : 'No instruments listed yet'}
+          emptyTitle={ops ? 'Nothing listed yet – add with “+ Instrument / tool”' : 'Nothing listed yet'}
           columns={[
             { h: 'Code', w: 110, v: (i) => i.code ?? '', bold: true },
-            { h: 'Instrument', w: 280, v: (i) => `${i.name}\n${[[i.make, i.model].filter(Boolean).join(' '), i.serial_no ? `S/N ${i.serial_no}` : null].filter(Boolean).join(' · ')}` },
+            { h: 'Type', w: 100, v: (i) => KIND_LABEL[i.kind] },
+            { h: 'Name', w: 280, v: (i) => `${i.name}\n${[[i.make, i.model].filter(Boolean).join(' '), i.serial_no ? `S/N ${i.serial_no}` : null].filter(Boolean).join(' · ')}` },
             {
               h: 'Status',
               w: 230,
@@ -269,7 +288,7 @@ export function InstrumentsView({ project }: { project?: ExecProject }) {
             },
           ]}
         />
-        <Muted>Tap an instrument for its details, calibration report and history. Uncalibrated instruments can be used – you and Operations are alerted.</Muted>
+        <Muted>Tap an item for its details, calibration report and history. Tools have no calibration. Uncalibrated instruments can be used – you and Operations are alerted.</Muted>
       </Section>
       {ops ? null : (
         <Muted>{`Operations Executive: ${Object.values(people).filter((p) => p.active && p.role === 'operations_exec').map((p) => p.full_name).join(', ') || '—'}`}</Muted>

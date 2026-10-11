@@ -4,6 +4,7 @@ import { fmtDate, todayISO } from './format';
 export type Instrument = {
   id: string;
   code: string | null;
+  kind: 'instrument' | 'tool';
   name: string;
   category: string | null;
   make: string | null;
@@ -58,8 +59,11 @@ export const instrumentTitle = (i: Pick<Instrument, 'name' | 'make' | 'model' | 
 
 const days = (a: string, b: string) => Math.round((Date.parse(a) - Date.parse(b)) / 864e5);
 
+export const KIND_LABEL = { instrument: 'Instrument', tool: 'Tool' } as const;
+
 /** Calibration in words and colour: valid (green), expiring within 30 days (amber), expired / not calibrated (red / grey) */
 export function calState(i: Instrument, today = todayISO()) {
+  if (i.kind === 'tool') return { ok: true, label: 'Tool – no calibration', tone: colors.grey };
   if (i.cal_status !== 'calibrated' || !i.cal_expiry) return { ok: false, label: 'Not calibrated', tone: colors.grey };
   const left = days(i.cal_expiry, today);
   if (left < 0) return { ok: false, label: `Calibration expired ${fmtDate(i.cal_expiry)}`, tone: colors.red, expired: true };
