@@ -84,7 +84,7 @@ export function GateCard({ p, gate, onChange }: { p: ExecProject; gate: 2 | 3; o
           <Checks checks={data.preview?.checks ?? pending.checks} />
           {me.role === 'sm_projects' ? (
             <Row gap={6} style={{ marginTop: 6 }}>
-              <Button title="Approve" onPress={() => decide(pending, true)} />
+              <Button title="Approve" onPress={() => decide(pending, true)} disabled={(data.preview?.checks ?? pending.checks).some((c) => c.hard && !c.ok)} />
               <Button variant="secondary" title="Do not approve" onPress={() => decide(pending, false)} />
             </Row>
           ) : null}
@@ -100,8 +100,11 @@ export function GateCard({ p, gate, onChange }: { p: ExecProject; gate: 2 | 3; o
                   <Chip key={x} label={`${tick[x] ? '✓ ' : ''}${x}`} on={!!tick[x]} onPress={() => setTick((s) => ({ ...s, [x]: !s[x] }))} />
                 ))}
               </Row>
+              {(data.preview?.checks ?? []).some((c) => c.hard && !c.ok) ? (
+                <Notice tone={colors.red}>{(data.preview?.checks ?? []).filter((c) => c.hard && !c.ok).map((c) => `${c.check} – ${c.detail}. This must be done first (no override).`).join('\n')}</Notice>
+              ) : null}
               <Row style={{ marginTop: 6 }}>
-                <Button title={gate === 2 ? 'Hand over to the client' : 'Close the project'} onPress={request} />
+                <Button title={gate === 2 ? 'Hand over to the client' : 'Close the project'} onPress={request} disabled={(data.preview?.checks ?? []).some((c) => c.hard && !c.ok)} />
               </Row>
             </>
           ) : (

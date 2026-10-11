@@ -428,6 +428,10 @@ export type MrLine = {
   custom?: boolean;
   est_rate?: number | null;
   note?: string | null;
+  /** Taken from the Project returns stock */
+  return_item_id?: string | null;
+  /** SAP stock material to issue instead of buying */
+  sap_material?: string | null;
 };
 export type StoreMove = { id: string; exec_project_id: string; kind: string; item: string; unit: string; qty: number; ref: string | null; note: string | null; by_id: string; at: string };
 export const MR_STATUS: Record<MaterialRequest['status'], string> = {
@@ -555,7 +559,7 @@ export type Snag = {
   raised_at: string;
   closed_at: string | null;
 };
-export type GateCheck = { check: string; ok: boolean; detail: string };
+export type GateCheck = { check: string; ok: boolean; detail: string; /** cannot be overridden */ hard?: boolean };
 export type ExecGate = {
   id: string;
   exec_project_id: string;

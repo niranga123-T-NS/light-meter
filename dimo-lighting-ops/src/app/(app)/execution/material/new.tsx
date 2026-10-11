@@ -2,12 +2,14 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { CatalogPicker, type CatalogItem } from '@/components/CatalogPicker';
+import { StockMatches } from '@/components/StockMatches';
 import { useDialog } from '@/components/dialog';
 import { TestingBanner } from '@/components/Testing';
 import { Button, Card, colors, DateField, ErrorBanner, Field, Grid, Muted, NumberField, Row, Screen, Section, Segmented, Select, Toggle } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import type { ExecProject } from '@/lib/execution';
 import { useLoad } from '@/lib/hooks';
+import type { StockMatch } from '@/lib/returns';
 import { rpc, supabase } from '@/lib/supabase';
 
 type Line = {
@@ -21,8 +23,12 @@ type Line = {
   qty: number | null;
   rate: number | null;
   note: string;
+  /** Taken from the Project returns stock (reserved) */
+  fromReturn: StockMatch | null;
+  /** An SAP stock item to issue instead of buying */
+  fromSap: StockMatch | null;
 };
-const blank = (): Line => ({ catalog: null, custom: false, item: '', category: null, spec: '', brand: '', unit: '', qty: null, rate: null, note: '' });
+const blank = (): Line => ({ catalog: null, custom: false, item: '', category: null, spec: '', brand: '', unit: '', qty: null, rate: null, note: '', fromReturn: null, fromSap: null });
 const CATEGORIES = [
   'Indoor luminaires', 'Outdoor luminaires', 'Road lighting', 'Floodlighting', 'Sports lighting', 'Tunnel lighting', 'Facade lighting', 'Emergency lighting',
   'Central battery systems', 'Airport systems (AGL)', 'Airport systems', 'Cables', 'Cable accessories', 'Containment', 'Switchgear',
@@ -63,9 +69,11 @@ export default function NewMaterialRequest() {
     setError(null);
     if (!proj) return setError('Choose the project');
     if (!required) return setError('Set the date the material is needed on site');
-    const used = lines.filter((l) => l.catalog || l.custom);
+    const used = lines.filter((l) => l.catalog || l.custom || l.fromReturn);
     if (!used.length) return setError('Add at least one item – choose it from the catalogue, or tick “Not in the catalogue”');
-    const bad = used.findIndex((l) => (l.custom && !l.item.trim()) || !l.qty || !(l.unit || l.catalog?.unit));
+    const bad = used.findIndex((l) => (l.custom && !l.fromReturn && !l.item.trim()) || !l.qty || !(l.unit || l.catalog?.unit || l.fromReturn?.unit));
+    const over = used.findIndex((l) => l.fromReturn && (l.qty ?? 0) > l.fromReturn.available);
+    if (over >= 0) return setError(`Item ${lines.indexOf(used[over]) + 1}: only ${used[over].fromReturn?.available} ${used[over].fromReturn?.unit} available in Project returns`);
     if (bad >= 0) return setError(`Item ${lines.indexOf(used[bad]) + 1}: give the ${used[bad].custom && !used[bad].item.trim() ? 'description' : 'quantity and unit'}`);
     await dialog.run(async () => {
       const id = await rpc<string>('raise_material_request', {
@@ -79,12 +87,14 @@ export default function NewMaterialRequest() {
           site_contact: contact,
           lines: used.map((l) => ({
             catalog_id: l.custom ? null : l.catalog?.id,
-            custom: l.custom,
-            item: l.custom ? l.item : l.catalog?.name,
+            custom: l.custom && !l.fromReturn,
+            return_item_id: l.fromReturn?.ref ?? null,
+            sap_material: l.fromSap?.ref ?? null,
+            item: l.fromReturn ? l.fromReturn.item : l.custom ? l.item : l.catalog?.name,
             category: l.custom ? l.category : l.catalog?.category,
             spec: l.spec,
             brand: l.brand,
-            unit: l.unit || l.catalog?.unit || '',
+            unit: l.unit || l.catalog?.unit || l.fromReturn?.unit || '',
             qty: l.qty ?? '',
             note: l.note,
           })),
@@ -159,6 +169,16 @@ export default function NewMaterialRequest() {
                 <Select label="Category" value={l.category} onChange={(v) => setLine(i, { category: v })} options={CATEGORIES} />
               </Grid>
             ) : null}
+            {l.catalog || (l.custom && l.item.trim().length >= 3) || l.fromReturn ? (
+              <StockMatches
+                text={l.fromReturn?.item ?? (l.custom ? l.item : `${l.catalog?.name ?? ''}`)}
+                chosen={{ returnId: l.fromReturn?.ref, sapMaterial: l.fromSap?.ref }}
+                onUseReturn={(m) => setLine(i, { fromReturn: m, fromSap: m ? null : l.fromSap, unit: m?.unit ?? l.unit, qty: m && (l.qty ?? 0) > m.available ? m.available : l.qty })}
+                onUseSap={(m) => setLine(i, { fromSap: m, fromReturn: m ? null : l.fromReturn })}
+              />
+            ) : null}
+            {l.fromReturn ? <Muted style={{ color: colors.green }}>{`From Project returns: ${l.fromReturn.item} – reserved when you send the request, booked out when received on site.`}</Muted> : null}
+            {l.fromSap ? <Muted style={{ color: colors.blue }}>{`SAP stock ${l.fromSap.ref} noted – Operations issues it from SAP instead of buying.`}</Muted> : null}
             <Field
               label="Specification / further description"
               multiline

@@ -185,6 +185,8 @@ export default function MaterialScreen() {
               title={`${l.item}${l.custom ? '  (custom item)' : ''}`}
               subtitle={[
                 `${fmtNumber(l.qty)} ${l.unit} requested · ${fmtNumber(l.received_qty)} received`,
+                l.return_item_id ? 'FROM PROJECT RETURNS – issue from the returns stock, do not buy' : null,
+                l.sap_material ? `SAP STOCK ${l.sap_material} – issue from SAP, do not buy` : null,
                 l.category,
                 l.spec ? `Spec: ${l.spec}` : null,
                 l.brand ? `Make: ${l.brand}` : null,
