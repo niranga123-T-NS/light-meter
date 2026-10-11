@@ -1,7 +1,8 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { MyDayMeetings } from '@/components/WeekMeetings';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { ScrollView, Text, View } from 'react-native';
+import { DefectsView } from '@/components/DefectsView';
 import { useDialog } from '@/components/dialog';
 import { C_TONE, R_TONE, W_TONE } from '@/components/warrantyTones';
 import { Button, Card, colors, Empty, ErrorBanner, Grid, ListRow, Muted, Pill, Row, Screen, Segmented, Select, Stat } from '@/components/ui';
@@ -27,8 +28,31 @@ import {
 
 type Tab = 'warranties' | 'claims' | 'reports' | 'brands' | 'rma' | 'mfr';
 
-/** Warranty tab: completion records / warranties, claims, issues reported from visits and the brand view. */
-export default function WarrantyHome({ myDay }: { myDay?: boolean } = {}) {
+/** Who works with project defects (the Operations Executive keeps product warranty only) */
+const DEFECT_ROLES = ['asm_building', 'asm_infra', 'sm_projects', 'gm', 'senior_elec_engineer', 'assistant_engineer'];
+
+/** Warranty and defects: product warranty (warranties, claims, manufacturers) and project defects, as two sub-tabs. */
+export default function WarrantyAndDefects({ myDay }: { myDay?: boolean } = {}) {
+  const me = useMe();
+  const params = useLocalSearchParams<{ area?: string }>();
+  const defects = DEFECT_ROLES.includes(me.role);
+  const area = defects && params.area === 'defects' ? 'defects' : 'warranty';
+  const header = defects ? (
+    <Segmented
+      value={area}
+      onChange={(v) => router.setParams({ area: v === 'warranty' ? undefined : v, tab: undefined })}
+      options={[
+        { value: 'warranty', label: 'Product warranty' },
+        { value: 'defects', label: 'Project defects' },
+      ]}
+    />
+  ) : null;
+  if (area === 'defects') return <DefectsView header={header} />;
+  return <ProductWarranty myDay={myDay} header={header} />;
+}
+
+/** Product warranty: completion records / warranties, claims, issues reported from visits and the brand view. */
+function ProductWarranty({ myDay, header }: { myDay?: boolean; header?: ReactNode }) {
   const me = useMe();
   const people = usePeople();
   const dialog = useDialog();
@@ -136,7 +160,8 @@ export default function WarrantyHome({ myDay }: { myDay?: boolean } = {}) {
 
   return (
     <Screen refreshing={loading} onRefresh={reload} maxWidth={1300}>
-      <Stack.Screen options={{ title: 'Warranty' }} />
+      <Stack.Screen options={{ title: header ? 'Warranty & defects' : 'Warranty' }} />
+      {header}
       <ErrorBanner message={error} />
       {myDay ? <MyDayMeetings /> : null}
       <Row wrap gap={8} style={{ justifyContent: 'flex-end' }}>

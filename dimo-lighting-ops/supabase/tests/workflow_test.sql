@@ -6472,6 +6472,15 @@ begin
   exception when others then assert sqlerrm like 'Quotations are added before%', sqlerrm; end;
 end $$;
 reset role;
+select pg_temp.act_as('trainee'); set role authenticated;
+do $$ begin assert not exists (select 1 from public.scrap_disposals), 'trainees do not see scrap'; end $$;
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin assert not exists (select 1 from public.scrap_disposals) and not exists (select 1 from public.scrap_lines), 'sales do not see scrap'; end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ begin assert exists (select 1 from public.scrap_disposals where id = current_setting('test.scr')::uuid), 'Operations sees scrap'; end $$;
+reset role;
 select pg_temp.act_as('sm_projects'); set role authenticated;
 do $$ declare d uuid := current_setting('test.scr')::uuid;
 begin
@@ -6574,6 +6583,109 @@ do $$ begin
   assert (select count(*) from public.notifications where title = 'Offcuts building up – Cable 2.5mm' and recipient_id = (select id from u where role = 'assistant_engineer')) = 1, 'once a week';
 end $$;
 rollback to savepoint scrap1;
+
+-- Project defects: sales report, SM Projects / SEE / AE log, verify, assign, rectify (after photo), close / reopen, alerts, close-out check
+savepoint defects1;
+update public.exec_projects set status = 'active', stage = 3 where id = current_setting('test.ex')::uuid;
+select set_config('test.defproj', (select id::text from public.projects where owner_id = (select id from u where role = 'asm_building') order by created_at limit 1), false);
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ declare d uuid;
+begin
+  begin perform public.log_defect(jsonb_build_object('project_id', current_setting('test.defproj'), 'title', 'Lights flicker', 'description', 'short', 'category', 'lighting', 'severity', 'major'));
+    assert false, 'description';
+  exception when others then assert sqlerrm like 'Describe the defect%', sqlerrm; end;
+  d := public.log_defect(jsonb_build_object('project_id', current_setting('test.defproj'), 'location', 'Car park poles 4–7', 'title', 'Lights flicker',
+         'description', 'Customer says four car park lights flicker every evening', 'category', 'lighting', 'severity', 'major', 'client_ref', 'Email 10 Oct'));
+  perform set_config('test.def1', d::text, false);
+  assert (select status = 'reported' and source = 'sales' and code like 'DEF-%' from public.project_defects where id = d), 'reported by sales, to verify';
+end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ begin
+  assert not exists (select 1 from public.project_defects), 'Operations does not see project defects';
+  begin perform public.log_defect(jsonb_build_object('project_name', 'X', 'title', 'x', 'description', 'something is broken here', 'category', 'other', 'severity', 'minor'));
+    assert false, 'not Operations';
+  exception when others then assert sqlerrm like 'Sales persons report defects%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('asm_infra'); set role authenticated;
+do $$ begin assert not exists (select 1 from public.project_defects where id = current_setting('test.def1')::uuid), 'another sales person does not see it'; end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare d uuid;
+begin
+  d := public.log_defect(jsonb_build_object('exec_project_id', current_setting('test.ex'), 'location', 'Mast M3', 'title', 'Floodlight not working',
+         'description', 'Two floodlights on mast M3 not lighting after the storm', 'category', 'lighting', 'severity', 'critical', 'source', 'dlp_inspection'));
+  perform set_config('test.def2', d::text, false);
+  assert (select status = 'open' and phase = 'dlp' and verified_by = auth.uid() from public.project_defects where id = d), 'logged open, in the DLP';
+  begin perform public.assign_defect(d, '{}'); assert false, 'AE cannot assign';
+  exception when others then assert sqlerrm = 'The SEE or SM Projects assigns defects', sqlerrm; end;
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'defect' and entity_id = current_setting('test.def2')::uuid and title = 'Critical project defect'
+                 and recipient_id = (select id from u where role = 'gm')), 'GM told of a critical defect';
+  assert exists (select 1 from public.notifications where kind = 'defect' and entity_id = current_setting('test.def1')::uuid and title like 'Project defect reported%'
+                 and recipient_id = (select id from u where role = 'senior_elec_engineer')), 'SEE told to verify';
+end $$;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare d1 uuid := current_setting('test.def1')::uuid; d2 uuid := current_setting('test.def2')::uuid; ae uuid := (select id from u where role = 'assistant_engineer');
+begin
+  begin perform public.verify_defect(d1, false); assert false, 'reason';
+  exception when others then assert sqlerrm = 'Give the reason', sqlerrm; end;
+  perform public.verify_defect(d1, true);
+  assert (select status from public.project_defects where id = d1) = 'open', 'verified';
+  begin perform public.assign_defect(d2, jsonb_build_object('assignee_id', ae)); assert false, 'responsible';
+  exception when others then assert sqlerrm like 'Who is responsible%', sqlerrm; end;
+  begin perform public.assign_defect(d2, jsonb_build_object('assignee_id', ae, 'responsible', 'subcontractor')); assert false, 'company';
+  exception when others then assert sqlerrm = 'Name the subcontractor (back-charge)', sqlerrm; end;
+  perform public.assign_defect(d2, jsonb_build_object('assignee_id', ae, 'responsible', 'subcontractor', 'responsible_company', 'Lanka Electricals'));
+  assert (select status = 'assigned' and due_date = (now() at time zone app.tz())::date + 2 from public.project_defects where id = d2), 'critical: due in 2 days';
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare d2 uuid := current_setting('test.def2')::uuid;
+begin
+  begin perform public.rectify_defect(d2, 'Replaced both drivers and tested'); assert false, 'after photo';
+  exception when others then assert sqlerrm = 'Attach a photo after the rectification', sqlerrm; end;
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('project_defect', d2, 'defect_after', 'defect/' || d2 || '/after.jpg', 'after.jpg');
+  perform public.rectify_defect(d2, 'Replaced both drivers and tested');
+  begin perform public.close_defect(d2, true); assert false, 'AE cannot close';
+  exception when others then assert sqlerrm like 'The SEE or SM Projects closes%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ declare d2 uuid := current_setting('test.def2')::uuid;
+begin
+  begin perform public.close_defect(d2, false); assert false, 'reopen reason';
+  exception when others then assert sqlerrm = 'Why is it reopened?', sqlerrm; end;
+  perform public.close_defect(d2, false, 'One floodlight still off at night');
+  assert (select status = 'assigned' and reopen_count = 1 from public.project_defects where id = d2), 'reopened';
+end $$;
+reset role;
+-- the close-out check, and the overdue alerts
+do $$ declare c jsonb := app.gate_checks(current_setting('test.ex')::uuid, 3);
+begin
+  assert exists (select 1 from jsonb_array_elements(c) x where x ->> 'check' = 'All project defects closed' and not (x ->> 'ok')::boolean and (x ->> 'hard')::boolean), 'close-out blocked';
+end $$;
+update public.project_defects set due_date = (now() at time zone app.tz())::date - 4 where id = current_setting('test.def2')::uuid;
+select public.defect_tick(now());
+do $$ begin
+  assert exists (select 1 from public.notifications where title = 'Project defect 4 day(s) overdue' and entity_id = current_setting('test.def2')::uuid
+                 and recipient_id = (select id from u where role = 'assistant_engineer')), 'engineer told';
+  assert exists (select 1 from public.notifications where title = 'Project defect 4 days overdue' and recipient_id = (select id from u where role = 'sm_projects')), 'SM Projects after 3 days';
+end $$;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+select public.rectify_defect(current_setting('test.def2')::uuid, 'Replaced the third driver as well, all on');
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare d2 uuid := current_setting('test.def2')::uuid;
+begin
+  perform public.close_defect(d2, true, 'Checked at night with the client');
+  assert (select status from public.project_defects where id = d2) = 'closed', 'closed';
+end $$;
+reset role;
+rollback to savepoint defects1;
 
 -- Execution data only for the people who need it: Operations sees materials, handover, IPCs and billing,
 -- not the programme, plans, daily reports, HSE, QA, snags or design queries

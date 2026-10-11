@@ -120,7 +120,7 @@ function baseNav(role: Role): NavItem[] {
         { href: '/debtors', label: 'My Debtors', icon: '₨' },
         { href: '/retentions', label: 'Retentions', icon: '⛁' },
         { href: '/bonds', label: 'Bonds', icon: '⛨' },
-        { href: '/warranty', label: 'Warranty', icon: '⛉' },
+        { href: '/warranty', label: 'Warranty & defects', icon: '⛉' },
         { href: '/samples', label: 'Samples', icon: '⬚' },
         { href: '/finance/my', label: 'My Target', icon: '◉' },
         { href: '/finance/secured', label: 'Secured', icon: '◇' },
@@ -141,7 +141,7 @@ function baseNav(role: Role): NavItem[] {
         { href: '/debtors', label: 'Debtors', icon: '₨' },
         { href: '/retentions', label: 'Retentions', icon: '⛁' },
         { href: '/bonds', label: 'Bonds', icon: '⛨' },
-        { href: '/warranty', label: 'Warranty', icon: '⛉' },
+        { href: '/warranty', label: 'Warranty & defects', icon: '⛉' },
         { href: '/engineering', label: 'Engineering jobs', icon: '▣' },
         EXEC_NAV.portfolio,
         EXEC_NAV.hse,
@@ -172,7 +172,7 @@ function baseNav(role: Role): NavItem[] {
         { href: '/debtors', label: 'Debtors', icon: '₨' },
         { href: '/retentions', label: 'Retentions', icon: '⛁' },
         { href: '/bonds', label: 'Bonds', icon: '⛨' },
-        { href: '/warranty', label: 'Warranty', icon: '⛉' },
+        { href: '/warranty', label: 'Warranty & defects', icon: '⛉' },
         { href: '/engineering', label: 'Engineering jobs', icon: '▣' },
         EXEC_NAV.portfolio,
         EXEC_NAV.scrap,
@@ -255,7 +255,7 @@ function baseNav(role: Role): NavItem[] {
         EXEC_NAV.certs,
         approvals,
         EXEC_NAV.team,
-        { href: '/warranty', label: 'Warranty', icon: '⛉' },
+        { href: '/warranty', label: 'Warranty & defects', icon: '⛉' },
         { href: '/projects', label: 'Projects', icon: '◆' },
         reports,
       ];
@@ -271,7 +271,7 @@ function baseNav(role: Role): NavItem[] {
         EXEC_NAV.materials,
         EXEC_NAV.scrap,
         EXEC_NAV.queries,
-        { href: '/warranty', label: 'Warranty', icon: '⛉' },
+        { href: '/warranty', label: 'Warranty & defects', icon: '⛉' },
       ];
     case 'trainee':
       return [{ href: '/', label: 'My Day', icon: '⌂' }, EXEC_NAV.mine, { href: '/engineering', label: 'Tasks & instructions', icon: '▣' }, EXEC_NAV.hse];

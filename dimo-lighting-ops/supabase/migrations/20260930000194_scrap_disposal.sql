@@ -1,4 +1,5 @@
 -- Scrap disposal: scrap material from a project's site store, from the Project returns, or found on site (e.g. old fittings removed).
+--  * Seen only by the AEs (their projects), the SEE, the Operations Executive, SM Projects and the DGM / GM.
 --  * Raised by the SEE (any project, or the central store) or the project's Assistant Engineers, with the items, quantities, condition,
 --    where the scrap is kept, why it is scrap, and photos.
 --  * Two ways to dispose: free of charge (FOC / no cost – who takes it and the reason) or sell (quotations attached; the best quote is
@@ -74,12 +75,13 @@ create index on public.scrap_quotes (disposal_id);
 alter table public.scrap_disposals add constraint scrap_disposals_selected_quote_fkey
   foreign key (selected_quote_id) references public.scrap_quotes (id) on delete set null;
 
--- Who sees a scrap request: the requester, the SEE, SM Projects, GM / DGM, Operations, and the project's team
+-- Who sees scrap: only the SEE, SM Projects, GM / DGM, the Operations Executive and the project's Assistant Engineers
+-- (not trainees, supervisors, sales or other teams)
 create or replace function app.can_read_scrap(p_id uuid) returns boolean
 language sql stable security definer set search_path = public as $$
   select exists (select 1 from public.scrap_disposals d where d.id = p_id
-                 and (d.requested_by = auth.uid() or app.has_role('senior_elec_engineer', 'sm_projects', 'gm', 'operations_exec')
-                      or (d.exec_project_id is not null and app.is_exec_team(d.exec_project_id))))
+                 and (app.has_role('senior_elec_engineer', 'sm_projects', 'gm', 'operations_exec')
+                      or (app.has_role('assistant_engineer') and (d.requested_by = auth.uid() or (d.exec_project_id is not null and app.is_project_ae(d.exec_project_id))))))
 $$;
 -- Who raises / edits / records: the SEE, or an AE of the project
 create or replace function app.can_raise_scrap(p_exec uuid) returns boolean
