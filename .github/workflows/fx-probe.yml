@@ -15,14 +15,23 @@ jobs:
           BACKFILL_DAYS=20 python3 fx_fetch.py --dry-run 2>&1 | tee fxprobe/dry.txt
           # OCR text of the latest schedule for checking
           python3 -c "
-          import fx_fetch as f
-          e,u=f.customs_latest(); t=f.ocr_pdf(f.get(u,True)); open('fxprobe/ocr.txt','w').write(t)
-          import re
+          import fx_fetch as f, re, subprocess, glob, os, tempfile
           page=f.get('https://www.customs.gov.lk/exchange-rates/')
           links=re.findall(r'href=\"([^\"]+er[^\"]*2026[^\"]*\.pdf)\"', page)[:10]
           for u2 in links:
-              try: print(u2, f.parse_customs(f.ocr_pdf(f.get(u2,True))))
-              except Exception as ex: print(u2, 'ERR', ex)
+              d=f.get(u2,True)
+              with tempfile.TemporaryDirectory() as tmp:
+                  open(tmp+'/a.pdf','wb').write(d)
+                  subprocess.run(['pdfimages','-all',tmp+'/a.pdf',tmp+'/img'],check=True)
+                  big=[i for i in sorted(glob.glob(tmp+'/img-*')) if os.path.getsize(i)>100000][-1:]
+                  for i in big:
+                      for name,pre,psm in [('plain',None,'6'),('gray2x',['-resize','200%','-colorspace','Gray','-normalize'],'6'),('thr',['-resize','200%','-colorspace','Gray','-threshold','55%'],'6'),('gray2x4',['-resize','200%','-colorspace','Gray','-normalize'],'4')]:
+                          src=i
+                          if pre:
+                              src=tmp+'/p.png'; subprocess.run(['convert',i]+pre+[src],check=True)
+                          t=subprocess.run(['tesseract',src,'-','--psm',psm],capture_output=True,text=True).stdout
+                          lines=[l for l in t.splitlines() if re.search(r'usd|eur|gbp|sterling|dollar \||us dollar|united',l,re.I)]
+                          print(u2.split('/')[-1], name, f.parse_customs(t)); print('   ', lines)
           " 2>&1 | tee fxprobe/more.txt
       - run: |
           git config user.name probe; git config user.email probe@users.noreply.github.com
