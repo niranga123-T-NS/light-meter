@@ -7,7 +7,7 @@ import { Button, Card, Chip, colors, ErrorBanner, Grid, Loading, Muted, Notice, 
 import { useMe } from '@/lib/auth';
 import { exportExcel, exportPdf, type Column } from '@/lib/export';
 import { fyMonths, fyOf, lineLabel, LINES } from '@/lib/finance';
-import { fmtDate, fmtMoney, todayISO } from '@/lib/format';
+import { fmtDate, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { ROLE_SHORT } from '@/lib/roles';
 import { rpc } from '@/lib/supabase';
@@ -47,6 +47,10 @@ const ORIGIN = { european: 'European', chinese: 'Chinese', unknown: 'Not known' 
 const BASIS = { supply: 'Supply', supply_install: 'Supply & install' } as const;
 const mLabel = (m: string) => new Date(`${m.slice(0, 10)}T00:00:00`).toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
 const lkrM = (v: number) => `${(v / 1e6).toFixed(1)}M`;
+/** Whole rupees with separators – the column heading says LKR */
+const n0 = (v: number) => Math.round(v).toLocaleString('en-US');
+/** Short form for the summary cards: LKR 918.0 M / LKR 2.90 Bn */
+const big = (v: number) => (Math.abs(v) >= 1e9 ? `LKR ${(v / 1e9).toFixed(2)} Bn` : `LKR ${(v / 1e6).toFixed(1)} M`);
 
 /** Invoicing forecast for the financial year: invoiced + secured still to invoice + potential projects (by award date, origin lead time and basis). */
 export default function InvoicingForecast() {
@@ -82,7 +86,7 @@ export default function InvoicingForecast() {
   const contributing = projects.filter((p) => thisFy(p) > 0).sort((a, b) => thisFy(b) - thisFy(a));
   const later = projects.filter((p) => thisFy(p) === 0);
   const flags = projects.filter((p) => p.no_value || p.award_from === 'none' || p.award_from === 'passed');
-  const maxBar = Math.max(...rows.map((r) => Math.max(r.total, r.tgt)), 1);
+  const maxBar = Math.max(...rows.map((r) => r.total), 1) * 1.25;
   const s = data.settings;
   const owners = [...new Set(data.projects.map((p) => p.owner_id))];
   const filters = [owner ? people[owner]?.full_name : 'All sales persons', line ? lineLabel(line) : 'All business lines', minPct ? `win ≥ ${minPct}%` : 'all win %'].join(' · ');
@@ -177,32 +181,37 @@ export default function InvoicingForecast() {
               ))}
             </Row>
           </View>
-          <Button variant="secondary" title="PDF" onPress={() => exportIt('pdf')} />
-          <Button variant="secondary" title="Excel" onPress={() => exportIt('excel')} />
+        </Row>
+        <Row gap={8} style={{ justifyContent: 'flex-end', marginTop: 8 }}>
+          <Button small variant="secondary" title="PDF" onPress={() => exportIt('pdf')} />
+          <Button small variant="secondary" title="Excel" onPress={() => exportIt('excel')} />
         </Row>
       </Card>
 
-      <Grid min={190}>
-        <Stat label="Invoiced so far" value={fmtMoney(tot.inv, 'LKR')} />
-        <Stat label="Secured – still to invoice" value={fmtMoney(tot.sec, 'LKR')} />
-        <Stat label="Potential projects (weighted)" value={fmtMoney(tot.pipe, 'LKR')} sub={`${fmtMoney(unweighted, 'LKR')} if all are won`} />
-        <Stat label="Projected for the year" value={fmtMoney(tot.total, 'LKR')} tone={tot.tgt && tot.total < tot.tgt ? 'amber' : 'green'} />
-        {tot.tgt ? <Stat label="Invoice target" value={fmtMoney(tot.tgt, 'LKR')} sub={`${tot.total >= tot.tgt ? 'Ahead by' : 'Short by'} ${fmtMoney(Math.abs(tot.total - tot.tgt), 'LKR')}`} tone={tot.total >= tot.tgt ? 'green' : 'red'} /> : null}
+      <Grid min={160} max={5}>
+        <Stat label="Invoiced so far" value={big(tot.inv)} />
+        <Stat label="Secured – still to invoice" value={big(tot.sec)} />
+        <Stat label="Potential projects (weighted)" value={big(tot.pipe)} sub={`${big(unweighted)} if all are won`} />
+        <Stat label="Projected for the year" value={big(tot.total)} tone={tot.tgt && tot.total < tot.tgt ? 'amber' : 'green'} />
+        {tot.tgt ? <Stat label="Invoice target" value={big(tot.tgt)} sub={`${tot.total >= tot.tgt ? 'Ahead by' : 'Short by'} ${big(Math.abs(tot.total - tot.tgt))} (${Math.round((100 * tot.total) / tot.tgt)}% of target)`} tone={tot.total >= tot.tgt ? 'green' : 'red'} /> : null}
       </Grid>
 
       <Section title="Month by month">
         <Card>
-          <Row gap={6} style={{ alignItems: 'flex-end', height: 170 }}>
+          <Row gap={6} style={{ alignItems: 'flex-end', height: 184 }}>
             {rows.map((r) => (
               <View key={r.m} style={{ flex: 1, alignItems: 'center', gap: 2 }}>
                 <Text style={{ fontSize: 10, color: colors.muted }}>{r.total ? lkrM(r.total) : ''}</Text>
                 <View style={{ width: '70%', height: 120, justifyContent: 'flex-end' }}>
-                  {r.tgt ? <View style={{ position: 'absolute', left: -4, right: -4, bottom: (120 * r.tgt) / maxBar, height: 2, backgroundColor: colors.red }} /> : null}
+                  {r.tgt ? (
+                    <View style={{ position: 'absolute', left: -4, right: -4, bottom: Math.min(120, (120 * r.tgt) / maxBar), height: 2, backgroundColor: colors.red }} />
+                  ) : null}
                   <View style={{ height: (120 * r.pipe) / maxBar, backgroundColor: '#93C5FD' }} />
                   <View style={{ height: (120 * r.sec) / maxBar, backgroundColor: colors.blue }} />
                   <View style={{ height: (120 * r.inv) / maxBar, backgroundColor: colors.green }} />
                 </View>
                 <Text style={{ fontSize: 11, color: r.m === data.this_month ? colors.brand : colors.ink, fontWeight: r.m === data.this_month ? '700' : '400' }}>{mLabel(r.m)}</Text>
+                <Text style={{ fontSize: 9, color: colors.red, minHeight: 12 }}>{r.tgt > maxBar ? `▲ ${lkrM(r.tgt)}` : ''}</Text>
               </View>
             ))}
           </Row>
@@ -210,7 +219,7 @@ export default function InvoicingForecast() {
             <Pill label="Invoiced" tone={colors.green} solid />
             <Pill label="Secured – to invoice" tone={colors.blue} solid />
             <Pill label="Potential (weighted)" tone="#60A5FA" />
-            {tot.tgt ? <Pill label="— Invoice target" tone={colors.red} /> : null}
+            {tot.tgt ? <Pill label="— Invoice target (▲ under the month when above the chart)" tone={colors.red} /> : null}
           </Row>
         </Card>
         <DataTable
@@ -218,15 +227,15 @@ export default function InvoicingForecast() {
           keyOf={(r) => r.m}
           rowStyle={(r) => (r.past ? { opacity: 0.75 } : undefined)}
           columns={[
-            { h: 'Month', w: 90, v: (r) => mLabel(r.m), bold: true },
-            { h: 'Invoiced', w: 140, right: true, v: (r) => (r.inv ? fmtMoney(r.inv, 'LKR') : '') },
-            { h: 'Secured to invoice', w: 150, right: true, v: (r) => (r.sec ? fmtMoney(r.sec, 'LKR') : '') },
-            { h: 'Potential (weighted)', w: 150, right: true, v: (r) => (r.pipe ? fmtMoney(r.pipe, 'LKR') : '') },
-            { h: 'Projected', w: 150, right: true, bold: true, v: (r) => fmtMoney(r.total, 'LKR') },
-            { h: 'Target', w: 140, right: true, v: (r) => (r.tgt ? fmtMoney(r.tgt, 'LKR') : '') },
-            { h: 'Gap', w: 140, right: true, tone: (r) => (r.tgt ? (r.total >= r.tgt ? colors.green : colors.red) : undefined), v: (r) => (r.tgt ? fmtMoney(r.total - r.tgt, 'LKR') : '') },
+            { h: 'Month', w: 70, grow: true, v: (r) => mLabel(r.m), bold: true },
+            { h: 'Invoiced (LKR)', w: 125, right: true, v: (r) => (r.inv ? n0(r.inv) : '–') },
+            { h: 'Secured to invoice', w: 130, right: true, v: (r) => (r.sec ? n0(r.sec) : '–') },
+            { h: 'Potential (weighted)', w: 135, right: true, v: (r) => (r.pipe ? n0(r.pipe) : '–') },
+            { h: 'Projected', w: 130, right: true, bold: true, v: (r) => n0(r.total) },
+            { h: 'Target', w: 130, right: true, v: (r) => (r.tgt ? n0(r.tgt) : '–') },
+            { h: 'Gap', w: 130, right: true, tone: (r) => (r.tgt ? (r.total >= r.tgt ? colors.green : colors.red) : undefined), v: (r) => (r.tgt ? `${r.total >= r.tgt ? '+' : '−'}${n0(Math.abs(r.total - r.tgt))}` : '–') },
           ]}
-          footer={['Year', fmtMoney(tot.inv, 'LKR'), fmtMoney(tot.sec, 'LKR'), fmtMoney(tot.pipe, 'LKR'), fmtMoney(tot.total, 'LKR'), tot.tgt ? fmtMoney(tot.tgt, 'LKR') : '', tot.tgt ? fmtMoney(tot.total - tot.tgt, 'LKR') : '']}
+          footer={['Year', n0(tot.inv), n0(tot.sec), n0(tot.pipe), n0(tot.total), tot.tgt ? n0(tot.tgt) : '–', tot.tgt ? `${tot.total >= tot.tgt ? '+' : '−'}${n0(Math.abs(tot.total - tot.tgt))}` : '–']}
         />
       </Section>
 
@@ -236,20 +245,20 @@ export default function InvoicingForecast() {
           keyOf={(p) => p.id}
           onPress={(p) => router.push(`/projects/${p.id}`)}
           columns={[
-            { h: 'Project', w: 260, grow: true, v: (p) => <Text style={{ color: colors.ink }}>{`${p.name}\n`}<Text style={{ color: colors.muted, fontSize: 12 }}>{`${p.customer} · ${people[p.owner_id]?.full_name ?? ''}`}</Text></Text> },
-            { h: 'Win %', w: 60, right: true, v: (p) => `${p.win_probability}%` },
-            { h: 'Value', w: 150, right: true, v: (p) => fmtMoney(p.value_lkr, 'LKR') },
-            { h: 'Award', w: 110, v: (p) => fmtDate(p.award_used), tone: (p) => (p.award_from === 'passed' || p.award_from === 'none' ? colors.amber : undefined) },
-            { h: 'Origin', w: 90, v: (p) => ORIGIN[p.origin] + (p.origin_from === 'default' ? ' *' : '') },
-            { h: 'Basis', w: 120, v: (p) => BASIS[p.basis] + (p.basis_from === 'assumed' ? ' *' : '') },
-            { h: 'Delivery', w: 110, v: (p) => fmtDate(p.delivery_date) },
-            { h: 'This FY (weighted)', w: 140, right: true, bold: true, v: (p) => fmtMoney(thisFy(p), 'LKR') },
+            { h: 'Project', w: 200, grow: true, v: (p) => <Text style={{ color: colors.ink }}>{`${p.name}\n`}<Text style={{ color: colors.muted, fontSize: 12 }}>{`${p.customer} · ${people[p.owner_id]?.full_name ?? ''}`}</Text></Text> },
+            { h: 'Win %', w: 55, right: true, v: (p) => `${p.win_probability}%` },
+            { h: 'Value (LKR)', w: 115, right: true, v: (p) => n0(p.value_lkr) },
+            { h: 'Award', w: 95, v: (p) => fmtDate(p.award_used), tone: (p) => (p.award_from === 'passed' || p.award_from === 'none' ? colors.amber : undefined) },
+            { h: 'Origin', w: 95, v: (p) => ORIGIN[p.origin] + (p.origin_from === 'default' ? ' *' : '') },
+            { h: 'Basis', w: 115, v: (p) => BASIS[p.basis] + (p.basis_from === 'assumed' ? ' *' : '') },
+            { h: 'Delivery', w: 95, v: (p) => fmtDate(p.delivery_date) },
+            { h: 'This FY weighted (LKR)', w: 150, right: true, bold: true, v: (p) => n0(thisFy(p)) },
           ]}
-          footer={['Total', '', fmtMoney(contributing.reduce((t, p) => t + p.value_lkr, 0), 'LKR'), '', '', '', '', fmtMoney(tot.pipe, 'LKR')]}
+          footer={['Total', '', n0(contributing.reduce((t, p) => t + p.value_lkr, 0)), '', '', '', '', n0(tot.pipe)]}
           emptyTitle="No potential project reaches invoicing this year"
         />
         <Muted>* assumed – the inquiry does not say (origin: European unless set below; basis: short-term projects as supply, others as supply & installation).</Muted>
-        {later.length ? <Muted>{`${later.length} more potential project(s) invoice only after 31 March – ${fmtMoney(later.reduce((t, p) => t + p.weighted_lkr, 0), 'LKR')} weighted.`}</Muted> : null}
+        {later.length ? <Muted>{`${later.length} more potential project(s) invoice only after 31 March – ${big(later.reduce((t, p) => t + p.weighted_lkr, 0))} weighted.`}</Muted> : null}
       </Section>
 
       {flags.length ? (
