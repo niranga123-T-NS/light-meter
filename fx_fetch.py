@@ -70,21 +70,75 @@ def customs_latest():
     return max(found) if found else (None, None)
 
 
+def page_images(data, tmp):
+    """The scanned pages of the PDF (full resolution), else the rendered pages"""
+    pdf = os.path.join(tmp, 'er.pdf')
+    open(pdf, 'wb').write(data)
+    subprocess.run(['pdfimages', '-all', pdf, os.path.join(tmp, 'img')], check=True)
+    imgs = [i for i in sorted(glob.glob(os.path.join(tmp, 'img-*'))) if os.path.getsize(i) > 100_000]
+    if not imgs:
+        subprocess.run(['pdftoppm', '-r', '300', '-png', pdf, os.path.join(tmp, 'page')], check=True)
+        imgs = sorted(glob.glob(os.path.join(tmp, 'page*.png')))
+    return imgs
+
+
+def tess(img, *args):
+    return subprocess.run(['tesseract', img, '-', *args], capture_output=True, text=True).stdout
+
+
 def ocr_pdf(data):
+    """Full text of the PDF (for the dates and as a second reading)"""
     with tempfile.TemporaryDirectory() as tmp:
-        pdf = os.path.join(tmp, 'er.pdf')
-        open(pdf, 'wb').write(data)
-        # the pages are scanned images: take them out at full resolution, else render the pages
-        subprocess.run(['pdfimages', '-all', pdf, os.path.join(tmp, 'img')], check=True)
-        imgs = sorted(glob.glob(os.path.join(tmp, 'img-*')))
-        imgs = [i for i in imgs if os.path.getsize(i) > 100_000]
-        if not imgs:
-            subprocess.run(['pdftoppm', '-r', '300', '-png', pdf, os.path.join(tmp, 'page')], check=True)
-            imgs = sorted(glob.glob(os.path.join(tmp, 'page*.png')))
-        text = ''
-        for i in imgs:
-            text += subprocess.run(['tesseract', i, '-', '--psm', '6'], capture_output=True, text=True, check=True).stdout + '\n'
-        return text
+        return '\n'.join(tess(i, '--psm', '6') for i in page_images(data, tmp))
+
+
+NUM = re.compile(r'(\d[\d,\s]*[.,]\s?\d{4})(?!\d)')
+ANCHOR = {
+    'USD': re.compile(r'^(usd|u5d|usp|uso|usa)\W*$|dollr|^us$', re.I),
+    'EUR': re.compile(r'^(eu?rr?|euro)\W*$', re.I),
+    'GBP': re.compile(r'^(gbp|g8p|gbf|cbp|sterling|kingdom)\W*$', re.I),
+}
+
+
+def to_num(v):
+    v = re.sub(r'[\s,]', '', v[:-5]) + '.' + v[-4:]
+    return float(v.replace('..', '.'))
+
+
+def row_readings(data):
+    """{ccy: [values]} – each currency's row found from its code / name, the rate cell cut out and read as digits only"""
+    from PIL import Image, ImageOps
+    out = {c: [] for c in CCY}
+    with tempfile.TemporaryDirectory() as tmp:
+        for img in page_images(data, tmp):
+            words = []
+            for ln in tess(img, '--psm', '6', 'tsv').splitlines()[1:]:
+                p = ln.split('\t')
+                if len(p) == 12 and p[11].strip():
+                    words.append((int(p[6]), int(p[7]), int(p[8]), int(p[9]), p[11].strip()))
+            nums = [w for w in words if NUM.search(w[4])]
+            if len(nums) < 10:
+                continue  # not the schedule page
+            page = Image.open(img).convert('L')
+            # the rate column: where the right-hand numbers start
+            lefts = sorted(w[0] for w in nums if w[0] > page.width * 0.5)
+            col = (lefts[len(lefts) // 10] if lefts else int(page.width * 0.7)) - 15
+            rh = sorted(w[3] for w in words)[len(words) // 2]
+            for c, rx in ANCHOR.items():
+                for x, y, w, h, t in words:
+                    if not rx.search(t):
+                        continue
+                    yc = y + h / 2
+                    box = (col, max(0, int(yc - rh * 1.0)), page.width, int(yc + rh * 1.0))
+                    cell = ImageOps.autocontrast(page.crop(box), cutoff=1)
+                    cell = cell.resize((cell.width * 3, cell.height * 3), Image.LANCZOS)
+                    for k, im in enumerate((cell, cell.point(lambda v: 255 if v > 150 else 0))):
+                        f = os.path.join(tmp, f'cell{k}.png')
+                        im.save(f)
+                        m = NUM.search(tess(f, '--psm', '7', '-c', 'tessedit_char_whitelist=0123456789.,'))
+                        if m:
+                            out[c].append(to_num(m.group(1)))
+    return out
 
 
 def parse_customs(text):
@@ -100,10 +154,28 @@ def parse_customs(text):
         for c, names in keys.items():
             if c in res or not any(n in low for n in names):
                 continue
-            nums = re.findall(r'(\d[\d,\s]*[.,]\s?\d{4})(?!\d)', line)
+            nums = NUM.findall(line)
             if nums:
-                v = re.sub(r'[\s,]', '', nums[-1][:-5]) + '.' + nums[-1][-4:]
-                res[c] = float(v.replace('..', '.'))
+                res[c] = to_num(nums[-1])
+    return res
+
+
+def read_customs(data, ref):
+    """The schedule's dates and USD / EUR / GBP. A value is taken when it is near the Central Bank rate (ref) and either
+    two readings agree or the digits-only reading of the cell gives it."""
+    text = ocr_pdf(data)
+    full = parse_customs(text)
+    rows = row_readings(data)
+    res = {k: full[k] for k in ('from', 'to') if k in full}
+    for c in CCY:
+        near = lambda v: ref.get(c) and abs(v / ref[c] - 1) < 0.04
+        votes = [v for v in rows[c] if near(v)]
+        if c in full and near(full[c]):
+            votes.append(full[c])
+        best = max(set(votes), key=votes.count) if votes else None
+        if best is not None and (votes.count(best) >= 2 or best in rows[c]):
+            res[c] = best
+        print(f'  {c}: cell readings {rows[c]}, text reading {full.get(c)}, CBSL {ref.get(c)} -> {res.get(c)}')
     return res
 
 
@@ -123,7 +195,13 @@ def main():
     print('Customs newest schedule:', eff, url)
     if eff and (DRY or not last.get('customs') or eff > last['customs']):
         try:
-            c = parse_customs(ocr_pdf(get(url, binary=True)))
+            # the Central Bank rate of the week before the schedule, to tell a good reading from a misread one
+            ref_day = max([d for d in rates if d < eff] or [None]) if rates else None
+            ref = rates.get(ref_day, {}) if ref_day else {}
+            if not ref:
+                back = cbsl((dt.date.fromisoformat(eff) - dt.timedelta(days=10)).isoformat())
+                ref = back[max(d for d in back if d < eff)] if any(d < eff for d in back) else {}
+            c = read_customs(get(url, binary=True), ref)
             c.setdefault('from', eff)
             if c.get('from') != eff:
                 print(f'::warning::Customs: the PDF says from {c.get("from")}, the link says {eff} – using the link')

@@ -15,26 +15,13 @@ jobs:
           BACKFILL_DAYS=20 python3 fx_fetch.py --dry-run 2>&1 | tee fxprobe/dry.txt
           # OCR text of the latest schedule for checking
           python3 -c "
-          import fx_fetch as f, re, subprocess, glob, os, tempfile
+          import fx_fetch as f, re, datetime as dt
           page=f.get('https://www.customs.gov.lk/exchange-rates/')
-          links=re.findall(r'href=\"([^\"]+er[^\"]*2026[^\"]*\.pdf)\"', page)[:10]
-          for u2 in links:
-              d=f.get(u2,True)
-              with tempfile.TemporaryDirectory() as tmp:
-                  open(tmp+'/a.pdf','wb').write(d)
-                  subprocess.run(['pdfimages','-all',tmp+'/a.pdf',tmp+'/img'],check=True)
-                  big=[i for i in sorted(glob.glob(tmp+'/img-*')) if os.path.getsize(i)>100000][-1:]
-                  for i in big:
-                      for name,pre,psm in [('plain',None,'6'),('gray2x','g','6'),('thr','thr','6'),('gray2x4','g','4'),('gray2x11','g','11')]:
-                          src=i
-                          if pre:
-                              from PIL import Image, ImageOps
-                              im=Image.open(i).convert('L'); im=im.resize((im.width*2, im.height*2), Image.LANCZOS); im=ImageOps.autocontrast(im, cutoff=1)
-                              if pre=='thr': im=im.point(lambda x: 255 if x>140 else 0)
-                              src=tmp+'/p.png'; im.save(src)
-                          t=subprocess.run(['tesseract',src,'-','--psm',psm],capture_output=True,text=True).stdout
-                          lines=[l for l in t.splitlines() if re.search(r'usd|eur|gbp|sterling|dollar \||us dollar|united',l,re.I)]
-                          print(u2.split('/')[-1], name, f.parse_customs(t)); print('   ', lines)
+          found=re.findall(r'href=\"([^\"]+\.pdf)\"[^>]*>\s*Effective from (\d\d\.\d\d\.\d{4})', page)[:12]
+          hist=f.cbsl('2026-06-01')
+          for u2,e in found:
+              eff=f.dmy(e); ref=hist[max(d for d in hist if d<eff)]
+              print(u2.split('/')[-1], f.read_customs(f.get(u2,True), ref))
           " 2>&1 | tee fxprobe/more.txt
       - run: |
           git config user.name probe; git config user.email probe@users.noreply.github.com
