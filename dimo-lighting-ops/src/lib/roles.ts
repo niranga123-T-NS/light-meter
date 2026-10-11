@@ -56,7 +56,7 @@ export const isEstimator = (r?: Role | null) => r === 'am_estimation' || r === '
 export const isManager = (r?: Role | null) =>
   r === 'gm' || r === 'sm_projects' || r === 'design_manager' || r === 'sm_estimation';
 
-export type NavItem = { href: string; label: string; icon: string; badgeKey?: 'approvals' | 'notifications' | 'delayed'; testing?: boolean };
+export type NavItem = { href: string; label: string; icon: string; badgeKey?: 'approvals' | 'notifications' | 'delayed'; testing?: boolean; /** Shown as Testing even when the global markers are off */ pilot?: boolean };
 
 /** Execution-module menu items – marked Testing until confirmed */
 export const EXEC_NAV = {
@@ -96,7 +96,7 @@ export function navFor(role: Role): NavItem[] {
   // SAP stock: Operations uploads; GM / DGM and SM Projects see values; other office roles see quantities and ageing
   if (!['sub_supervisor', 'trainee', 'sys_admin'].includes(role)) {
     const at = items.findIndex((i) => i.href === '/reports');
-    items.splice(at < 0 ? items.length : at, 0, { href: '/stock', label: 'Stock (SAP)', icon: '▤' });
+    items.splice(at < 0 ? items.length : at, 0, { href: '/stock', label: 'Stock (SAP)', icon: '▤', pilot: true });
   }
   return [...items.slice(0, 1), meetings, ...items.slice(1)];
 }

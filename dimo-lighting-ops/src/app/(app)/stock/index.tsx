@@ -1,6 +1,7 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Text, View } from 'react-native';
 import { AgeBars, LineAge, lkr, lkrM, VALUE_ROLES } from '@/components/StockBits';
+import { TestingBanner } from '@/components/Testing';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, Empty, ErrorBanner, Grid, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section, Select, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
@@ -56,6 +57,7 @@ export default function StockDashboard() {
     return (
       <Screen maxWidth={1100}>
         <Stack.Screen options={{ title: 'Stock (SAP)' }} />
+      <TestingBanner what="Stock (SAP)" always />
         {header}
         <Card>
           <Empty title="No SAP stock report yet" hint={ops ? 'Upload the monthly SAP stock ageing report (Excel) as it comes from SAP.' : 'The Operations Executive uploads the SAP stock report every month.'} />
@@ -87,6 +89,7 @@ export default function StockDashboard() {
   return (
     <Screen maxWidth={1100}>
       <Stack.Screen options={{ title: 'Stock (SAP)' }} />
+      <TestingBanner what="Stock (SAP)" always />
       {header}
       <Muted>{`SAP stock ageing report · profit centre ${cur.profit_center} · as at ${fmtDate(cur.as_at)} · uploaded ${fmtDate(cur.confirmed_at)}${cur.replace_reason ? ` · replaced: ${cur.replace_reason}` : ''}`}</Muted>
       <Grid min={180} max={5}>

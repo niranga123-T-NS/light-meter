@@ -3,6 +3,7 @@ import { router, Stack } from 'expo-router';
 import { useState } from 'react';
 import { readSheet } from 'read-excel-file/universal';
 import { AgeBars, lkr } from '@/components/StockBits';
+import { TestingBanner } from '@/components/Testing';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, ErrorBanner, Grid, ListRow, Muted, Notice, Pill, Row, Screen, Section, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
@@ -96,6 +97,7 @@ export default function StockUpload() {
   return (
     <Screen maxWidth={1000}>
       <Stack.Screen options={{ title: 'Upload SAP stock report' }} />
+      <TestingBanner what="Stock (SAP)" always />
       <ErrorBanner message={error} />
       <Card>
         <Muted>

@@ -1,6 +1,7 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { Text, View } from 'react-native';
 import { AgeBars, lkr, VALUE_ROLES } from '@/components/StockBits';
+import { TestingBanner } from '@/components/Testing';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, Empty, ErrorBanner, Grid, KeyValue, ListRow, Loading, Muted, Pill, Row, Screen, Section } from '@/components/ui';
 import { useMe } from '@/lib/auth';
@@ -53,6 +54,7 @@ export default function StockItem() {
   return (
     <Screen maxWidth={900}>
       <Stack.Screen options={{ title: line.description ?? line.material }} />
+      <TestingBanner what="Stock (SAP)" always />
       <Card>
         <Row wrap gap={8} style={{ justifyContent: 'space-between', alignItems: 'center' }}>
           <Text style={{ fontSize: 18, fontWeight: '700', color: colors.ink, flexShrink: 1 }}>{line.description}</Text>

@@ -2,6 +2,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
 import { LineAge, lkr, VALUE_ROLES } from '@/components/StockBits';
+import { TestingBanner } from '@/components/Testing';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, Empty, ErrorBanner, ListRow, Loading, Muted, Pill, Row, Screen, Section, Select, styles } from '@/components/ui';
 import { useMe } from '@/lib/auth';
@@ -49,6 +50,7 @@ export default function StockList() {
   return (
     <Screen maxWidth={1100}>
       <Stack.Screen options={{ title: `Stock list – ${fmtDate(cur.as_at)}` }} />
+      <TestingBanner what="Stock (SAP)" always />
       <Card>
         <TextInput value={q} onChangeText={setQ} placeholder="Search description, part number or material number" placeholderTextColor={colors.faint} style={styles.input} />
         <Row wrap gap={8}>
