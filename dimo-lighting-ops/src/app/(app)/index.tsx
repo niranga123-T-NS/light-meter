@@ -1,6 +1,7 @@
 import { AdminHome, OpsHome } from '@/components/home/OtherHomes';
 import { ExecDashboard } from '@/components/home/ExecDashboard';
 import { EngineerHome } from '@/components/home/EngineerHome';
+import { FxCard } from '@/components/FxRates';
 import { DesignBoard, EstimationBoard } from '@/components/home/JobBoards';
 import { SalesHome } from '@/components/home/SalesHome';
 import { MyDayMeetings } from '@/components/WeekMeetings';
@@ -20,7 +21,16 @@ export default function Home() {
     case 'sm_estimation':
     case 'am_estimation':
     case 'estimation_exec':
-      return <EstimationBoard header={<MyDayMeetings />} />;
+      return (
+        <EstimationBoard
+          header={
+            <>
+              <MyDayMeetings />
+              <FxCard />
+            </>
+          }
+        />
+      );
     case 'gm':
     case 'sm_projects':
       return <ExecDashboard />;

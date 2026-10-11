@@ -106,6 +106,7 @@ function baseNav(role: Role): NavItem[] {
   const home: NavItem = { href: '/', label: 'Home', icon: '⌂' };
   const approvals: NavItem = { href: '/approvals', label: 'Approvals', icon: '✓', badgeKey: 'approvals' };
   const reports: NavItem = { href: '/reports', label: 'Reports', icon: '▤' };
+  const fx: NavItem = { href: '/fx', label: 'Exchange rates', icon: '$' };
   const brands: NavItem = { href: '/brands', label: 'Brands', icon: '◈' };
   switch (role) {
     case 'asm_building':
@@ -156,6 +157,7 @@ function baseNav(role: Role): NavItem[] {
         { href: '/finance/budget', label: 'Budget list', icon: '◫' },
         { href: '/finance/targets', label: 'Targets', icon: '◉' },
         { href: '/scorecard', label: 'Scorecards', icon: '★' },
+        fx,
         reports,
         { href: '/admin', label: 'Team & lists', icon: '⚙' },
       ];
@@ -184,6 +186,7 @@ function baseNav(role: Role): NavItem[] {
         { href: '/finance/budget', label: 'Budget list', icon: '◫' },
         { href: '/finance/targets', label: 'Targets', icon: '◉' },
         { href: '/scorecard', label: 'Scorecards', icon: '★' },
+        fx,
         reports,
         { href: '/admin', label: 'Settings', icon: '⚙' },
       ];
@@ -214,11 +217,12 @@ function baseNav(role: Role): NavItem[] {
         { href: '/finance/budget', label: 'Budget list', icon: '◫' },
         { href: '/finance/targets', label: 'Targets', icon: '◉' },
         brands,
+        fx,
         reports,
       ];
     case 'am_estimation':
     case 'estimation_exec':
-      return [{ href: '/', label: 'My Estimates', icon: '⌂' }, { href: '/jobs', label: 'All my jobs', icon: '▣' }, brands, reports];
+      return [{ href: '/', label: 'My Estimates', icon: '⌂' }, { href: '/jobs', label: 'All my jobs', icon: '▣' }, brands, fx, reports];
     case 'operations_exec':
       return [
         { href: '/', label: 'Home', icon: '⌂' },

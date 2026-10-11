@@ -8,3 +8,7 @@ grant usage on schema public to authenticated, anon;
 alter default privileges in schema public grant all on tables to authenticated;
 alter default privileges in schema public grant all on sequences to authenticated;
 alter default privileges in schema public grant execute on functions to authenticated;
+
+-- Vault (secrets) – only what the functions read
+create schema if not exists vault;
+create table if not exists vault.decrypted_secrets (name text primary key, decrypted_secret text);

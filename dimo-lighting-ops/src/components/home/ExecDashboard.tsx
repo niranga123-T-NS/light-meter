@@ -1,4 +1,5 @@
 import { router, Stack } from 'expo-router';
+import { FxCard } from '@/components/FxRates';
 import { MyDayMeetings } from '@/components/WeekMeetings';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
@@ -87,6 +88,7 @@ export function ExecDashboard() {
         <Muted>Updated {data ? new Date(data.generated_at).toLocaleTimeString('en-GB') : '—'}</Muted>
       </Row>
       <MyDayMeetings />
+      <FxCard />
       <Row wrap gap={8} style={{ marginTop: 8 }}>
         <View style={{ minWidth: 260, flex: 1 }}>
           <DateField label="From" value={from} onChange={setFrom} quick={[]} hint="Default: start of this month" />
