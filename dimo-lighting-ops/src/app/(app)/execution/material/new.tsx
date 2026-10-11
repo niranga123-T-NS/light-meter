@@ -11,6 +11,7 @@ import { useMe } from '@/lib/auth';
 import type { ExecProject } from '@/lib/execution';
 import { useLoad } from '@/lib/hooks';
 import type { StockMatch } from '@/lib/returns';
+import { pickDocument, type PickedFile, uploadAttachment } from '@/lib/files';
 import { rpc, supabase } from '@/lib/supabase';
 
 type Line = {
@@ -35,8 +36,10 @@ type Line = {
   newReason: string;
   /** Stock matched this line (a choice is then required) */
   matched: boolean;
+  /** Datasheets, drawings, photos – uploaded with the request */
+  files: PickedFile[];
 };
-const blank = (): Line => ({ kind: 'new', catalog: null, custom: false, item: '', category: null, spec: '', brand: '', unit: '', qty: null, rate: null, note: '', fromReturn: null, fromSap: null, orderNew: false, newReason: '', matched: false });
+const blank = (): Line => ({ kind: 'new', catalog: null, custom: false, item: '', category: null, spec: '', brand: '', unit: '', qty: null, rate: null, note: '', fromReturn: null, fromSap: null, orderNew: false, newReason: '', matched: false, files: [] });
 const CATEGORIES = [
   'Indoor luminaires', 'Outdoor luminaires', 'Road lighting', 'Floodlighting', 'Sports lighting', 'Tunnel lighting', 'Facade lighting', 'Emergency lighting',
   'Central battery systems', 'Airport systems (AGL)', 'Airport systems', 'Cables', 'Cable accessories', 'Containment', 'Switchgear',
@@ -120,6 +123,9 @@ export default function NewMaterialRequest() {
           })),
         },
       });
+      // Datasheets go with the request, named after their item
+      for (const l of used)
+        for (const f of l.files) await uploadAttachment('material_request', id, 'datasheet', { ...f, name: `Item ${used.indexOf(l) + 1} – ${l.item || l.catalog?.name || ''} – ${f.name}`.slice(0, 180) });
       router.replace(`/execution/material/${id}`);
     }, sub ? 'Sent to the Assistant Engineer' : 'Requested – the Senior Electrical Engineer approves it');
   };
@@ -237,6 +243,28 @@ export default function NewMaterialRequest() {
               )}
             </Grid>
             <Field label="Note" value={l.note} onChangeText={(v) => setLine(i, { note: v })} />
+            {l.kind === 'new' ? (
+              <View style={{ gap: 4 }}>
+                <Row gap={8} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Muted>Datasheets, drawings, photos (PDF, images, Excel – up to 50 MB each)</Muted>
+                  <Button
+                    small
+                    variant="secondary"
+                    title="+ Attach"
+                    onPress={async () => {
+                      const f = await pickDocument();
+                      if (f) setLine(i, { files: [...l.files, f] });
+                    }}
+                  />
+                </Row>
+                {l.files.map((f, k) => (
+                  <Row key={`${f.name}${k}`} gap={8} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Text style={{ color: colors.ink, flexShrink: 1 }}>{`📄 ${f.name}`}</Text>
+                    <Button small variant="ghost" title="Remove" onPress={() => setLine(i, { files: l.files.filter((_, x) => x !== k) })} />
+                  </Row>
+                ))}
+              </View>
+            ) : null}
           </Card>
         ))}
         {adding ? (
