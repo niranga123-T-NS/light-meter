@@ -6408,6 +6408,323 @@ end $$;
 reset role;
 rollback to savepoint returns1;
 
+-- Scrap disposal: AE / SEE raise, SM Projects then DGM / GM approve, free of charge (reason) or sell (quotations), store booked out, alerts
+savepoint scrap1;
+update public.exec_projects set status = 'active' where id = current_setting('test.ex')::uuid;
+insert into public.store_moves (exec_project_id, kind, item, unit, qty, custody, at) values
+  (current_setting('test.ex')::uuid, 'receipt', 'Scrap test cable 16mm', 'm', 100, 'dimo', now() - interval '5 days'),
+  (current_setting('test.ex')::uuid, 'receipt', 'Idle bracket', 'nos', 10, 'dimo', now() - interval '40 days'),
+  (current_setting('test.ex')::uuid, 'receipt', 'Cable 2.5mm', 'm', 100, 'dimo', now() - interval '20 days'),
+  (current_setting('test.ex')::uuid, 'return', 'Cable 2.5mm', 'm', 5, 'dimo', now() - interval '10 days'),
+  (current_setting('test.ex')::uuid, 'return', 'Cable 2.5mm', 'm', 5, 'dimo', now() - interval '6 days'),
+  (current_setting('test.ex')::uuid, 'return', 'Cable 2.5mm', 'm', 5, 'dimo', now() - interval '2 days');
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  begin perform public.save_scrap_disposal(null, jsonb_build_object('exec_project_id', current_setting('test.ex'), 'location', 'x', 'scrap_reason', 'x', 'method', 'foc', 'lines', '[]'::jsonb));
+    assert false, 'sales cannot raise';
+  exception when others then assert sqlerrm like 'The SEE or the project''s Assistant Engineers%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare e uuid := current_setting('test.ex')::uuid; d uuid; q1 uuid; q2 uuid; p jsonb;
+begin
+  p := jsonb_build_object('exec_project_id', e, 'location', 'Site store yard', 'scrap_reason', 'Offcuts and damaged fittings after the works', 'method', 'sell',
+         'lines', jsonb_build_array(jsonb_build_object('source', 'store', 'item', 'Scrap test cable 16mm', 'unit', 'm', 'qty', 120, 'condition', 'offcut')));
+  begin perform public.save_scrap_disposal(null, p); assert false, 'more than in the store';
+  exception when others then assert sqlerrm like 'Line 1: only 100 m of Scrap test cable 16mm is free%', sqlerrm; end;
+  p := jsonb_set(p, '{lines}', jsonb_build_array(jsonb_build_object('source', 'store', 'item', 'Scrap test cable 16mm', 'unit', 'm', 'qty', 60, 'condition', 'offcut'),
+                                                 jsonb_build_object('source', 'other', 'item', 'Old metal halide fittings removed', 'unit', 'nos', 'qty', 12, 'condition', 'removed')));
+  d := public.save_scrap_disposal(null, p);
+  perform set_config('test.scr', d::text, false);
+  assert (select code like 'SCR-%' and status = 'draft' from public.scrap_disposals where id = d), 'draft with a code';
+  assert app.scrap_store_free(e, 'Scrap test cable 16mm', null) = 40, 'held by the draft';
+  begin perform public.submit_scrap_disposal(d); assert false, 'photo';
+  exception when others then assert sqlerrm = 'Add at least one photo of the scrap', sqlerrm; end;
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('scrap_disposal', d, 'scrap_photo', 'scrap/' || d || '/1.jpg', '1.jpg');
+  begin perform public.submit_scrap_disposal(d); assert false, 'quotes';
+  exception when others then assert sqlerrm = 'Sell: add the quotations', sqlerrm; end;
+  q1 := public.add_scrap_quote(d, '{"buyer":"ABC Metals","amount_lkr":50000}');
+  q2 := public.add_scrap_quote(d, '{"buyer":"Lanka Scrap","amount_lkr":65000,"valid_until":"2026-12-31"}');
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('scrap_quote', q1, 'scrap_quote', 'scrap/' || q1 || '.pdf', 'q1.pdf');
+  begin perform public.submit_scrap_disposal(d, q2); assert false, 'quote document';
+  exception when others then assert sqlerrm = 'Sell: attach the quotation document to every quotation', sqlerrm; end;
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('scrap_quote', q2, 'scrap_quote', 'scrap/' || q2 || '.pdf', 'q2.pdf');
+  begin perform public.submit_scrap_disposal(d, q1); assert false, 'lower quote';
+  exception when others then assert sqlerrm = 'The chosen quotation is not the highest – give the reason', sqlerrm; end;
+  perform public.submit_scrap_disposal(d, q1, 'Lanka Scrap cannot collect before December');
+  assert (select status = 'pending_smp' and selected_quote_id = q1 and quote_reason like 'Lanka Scrap%' from public.scrap_disposals where id = d), 'lower quote with the reason';
+  perform set_config('test.scrq', q2::text, false);
+  perform public.cancel_scrap_disposal(d, 'Resubmit with the best quote') ;
+  update public.scrap_disposals set status = 'draft' where id = d;
+end $$;
+reset role;
+update public.scrap_disposals set status = 'draft' where id = current_setting('test.scr')::uuid;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare d uuid := current_setting('test.scr')::uuid; q2 uuid := current_setting('test.scrq')::uuid; e uuid := current_setting('test.ex')::uuid; p jsonb;
+begin
+  p := jsonb_build_object('exec_project_id', e, 'location', 'Site store yard', 'scrap_reason', 'Offcuts and damaged fittings after the works', 'method', 'sell');
+  perform public.submit_scrap_disposal(d, q2);
+  assert (select status = 'pending_smp' and selected_quote_id = q2 and quote_reason is null from public.scrap_disposals where id = d), 'with SM Projects';
+  begin perform public.save_scrap_disposal(null, jsonb_set(p, '{lines}', jsonb_build_array(jsonb_build_object('source', 'store', 'item', 'Scrap test cable 16mm', 'unit', 'm', 'qty', 50, 'condition', 'offcut'))));
+    assert false, 'already held';
+  exception when others then assert sqlerrm like 'Line 1: only 40 m%', sqlerrm; end;
+  begin perform public.add_scrap_quote(d, '{"buyer":"X","amount_lkr":1}'); assert false, 'submitted';
+  exception when others then assert sqlerrm like 'Quotations are added before%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('trainee'); set role authenticated;
+do $$ begin assert not exists (select 1 from public.scrap_disposals), 'trainees do not see scrap'; end $$;
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin assert not exists (select 1 from public.scrap_disposals) and not exists (select 1 from public.scrap_lines), 'sales do not see scrap'; end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ begin assert exists (select 1 from public.scrap_disposals where id = current_setting('test.scr')::uuid), 'Operations sees scrap'; end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ declare d uuid := current_setting('test.scr')::uuid;
+begin
+  assert exists (select 1 from public.notifications where kind = 'scrap' and entity_id = d and recipient_id = auth.uid()), 'SM Projects told';
+  assert exists (select 1 from public.my_pending_approvals() where source = 'scrap' and id = d and step = 'SM Projects'), 'in the Approvals tab';
+  begin perform public.decide_scrap_disposal(d, 'return'); assert false, 'reason';
+  exception when others then assert sqlerrm = 'Give the reason', sqlerrm; end;
+  perform public.decide_scrap_disposal(d, 'approve');
+  assert (select status from public.scrap_disposals where id = d) = 'pending_dgm', 'to the DGM';
+  begin perform public.decide_scrap_disposal(d, 'approve'); assert false, 'not SMP now';
+  exception when others then assert sqlerrm = 'Waiting for the DGM / GM', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ declare d uuid := current_setting('test.scr')::uuid;
+begin
+  assert exists (select 1 from public.my_pending_approvals() where source = 'scrap' and id = d and step = 'DGM / GM'), 'DGM sees it';
+  perform public.decide_scrap_disposal(d, 'approve', 'Sell to the highest bidder');
+  assert (select status from public.scrap_disposals where id = d) = 'approved', 'approved';
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'scrap' and entity_id = current_setting('test.scr')::uuid and title like 'Scrap sale approved%'
+                 and recipient_id = (select id from u where role = 'operations_exec')), 'Operations told to invoice the buyer';
+end $$;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare d uuid := current_setting('test.scr')::uuid; e uuid := current_setting('test.ex')::uuid;
+begin
+  begin perform public.record_scrap_disposal(d, '{"date":"2026-10-01","ref":"INV-1","amount":65000}'); assert false, 'evidence';
+  exception when others then assert sqlerrm like 'Attach the evidence%', sqlerrm; end;
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('scrap_disposal', d, 'scrap_evidence', 'scrap/' || d || '/gp.pdf', 'gatepass.pdf');
+  begin perform public.record_scrap_disposal(d, jsonb_build_object('date', current_date)); assert false, 'sale ref';
+  exception when others then assert sqlerrm like 'Enter the receipt / invoice reference%', sqlerrm; end;
+  perform public.record_scrap_disposal(d, jsonb_build_object('date', current_date, 'ref', 'OR-2026-1188', 'amount', 65000));
+  assert (select status = 'disposed' and amount_received = 65000 from public.scrap_disposals where id = d), 'disposed';
+  assert (select balance from public.scrap_store_items(e) where item = 'Scrap test cable 16mm') = 40, 'booked out of the site store';
+  assert exists (select 1 from public.store_moves where exec_project_id = e and kind = 'transfer_out' and ref = (select code from public.scrap_disposals where id = d)), 'store move with the code';
+end $$;
+reset role;
+-- Free of charge from the Project returns (SEE, no project), returned once by SM Projects
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ begin
+  perform public.add_project_returns('[{"item":"Broken diffusers","unit":"nos","qty":8,"condition":"damaged","location":"Ratmalana bay 2"}]');
+  perform set_config('test.scrret', (select id::text from public.project_return_items where item = 'Broken diffusers'), false);
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare d uuid; i uuid := current_setting('test.scrret')::uuid; p jsonb;
+begin
+  p := jsonb_build_object('location', 'Ratmalana store', 'scrap_reason', 'Cracked, no spares', 'method', 'foc',
+         'lines', jsonb_build_array(jsonb_build_object('source', 'returns', 'return_item_id', i, 'qty', 8, 'condition', 'damaged')));
+  d := public.save_scrap_disposal(null, p);
+  perform set_config('test.scr2', d::text, false);
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('scrap_disposal', d, 'scrap_photo', 'scrap/' || d || '/1.jpg', '1.jpg');
+  begin perform public.submit_scrap_disposal(d); assert false, 'who takes it';
+  exception when others then assert sqlerrm = 'Free of charge: who takes the scrap?', sqlerrm; end;
+  perform public.save_scrap_disposal(d, p || '{"foc_to":"Municipal council waste yard"}');
+  begin perform public.submit_scrap_disposal(d); assert false, 'FOC reason';
+  exception when others then assert sqlerrm = 'Free of charge: give the reason it is not sold', sqlerrm; end;
+  perform public.save_scrap_disposal(d, p || '{"foc_to":"Municipal council waste yard","foc_reason":"No buyer for broken polycarbonate"}');
+  perform public.submit_scrap_disposal(d);
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+select public.decide_scrap_disposal(current_setting('test.scr2')::uuid, 'return', 'Add a photo of the labels');
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare d uuid := current_setting('test.scr2')::uuid;
+begin
+  assert (select status = 'returned' and return_note like 'Add a photo%' from public.scrap_disposals where id = d), 'returned with the note';
+  assert exists (select 1 from public.notifications where kind = 'scrap' and entity_id = d and title = 'Scrap disposal returned for changes' and recipient_id = auth.uid()), 'SEE told';
+  perform public.submit_scrap_disposal(d);
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+select public.decide_scrap_disposal(current_setting('test.scr2')::uuid, 'approve');
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+select public.decide_scrap_disposal(current_setting('test.scr2')::uuid, 'approve');
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare d uuid := current_setting('test.scr2')::uuid;
+begin
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('scrap_disposal', d, 'scrap_evidence', 'scrap/' || d || '/gp.pdf', 'gp.pdf');
+  perform public.record_scrap_disposal(d, jsonb_build_object('date', current_date, 'ref', 'GP-0042'));
+  assert app.return_balance(current_setting('test.scrret')::uuid) = 0, 'booked out of the Project returns';
+end $$;
+reset role;
+-- Alerts: idle material and offcuts building up → the AEs and the SEE
+select public.scrap_tick(now());
+do $$ declare ae uuid := (select id from u where role = 'assistant_engineer');
+begin
+  assert exists (select 1 from public.notifications where recipient_id = ae and title = 'Possible scrap building up – idle material' and body like '%Idle bracket 10 nos%'), 'idle material alert';
+  assert not exists (select 1 from public.notifications where recipient_id = ae and title like 'Possible scrap%' and body like '%Scrap test cable%'), 'recently moved items not flagged';
+  assert exists (select 1 from public.notifications where recipient_id = ae and title = 'Offcuts building up – Cable 2.5mm'), 'offcut alert';
+  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'senior_elec_engineer') and title = 'Offcuts building up – Cable 2.5mm'), 'SEE told too';
+end $$;
+select public.scrap_tick(now());
+do $$ begin
+  assert (select count(*) from public.notifications where title = 'Offcuts building up – Cable 2.5mm' and recipient_id = (select id from u where role = 'assistant_engineer')) = 1, 'once a week';
+end $$;
+rollback to savepoint scrap1;
+
+-- Project defects: sales report, SM Projects / SEE / AE log, verify, assign, rectify (after photo), close / reopen, alerts, close-out check
+savepoint defects1;
+update public.exec_projects set status = 'active', stage = 3 where id = current_setting('test.ex')::uuid;
+select set_config('test.defproj', (select id::text from public.projects where owner_id = (select id from u where role = 'asm_building') order by created_at limit 1), false);
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ declare d uuid;
+begin
+  begin perform public.log_defect(jsonb_build_object('project_id', current_setting('test.defproj'), 'title', 'Lights flicker', 'description', 'short', 'category', 'lighting', 'severity', 'major'));
+    assert false, 'description';
+  exception when others then assert sqlerrm like 'Describe the defect%', sqlerrm; end;
+  d := public.log_defect(jsonb_build_object('project_id', current_setting('test.defproj'), 'location', 'Car park poles 4–7', 'title', 'Lights flicker',
+         'description', 'Customer says four car park lights flicker every evening', 'category', 'lighting', 'severity', 'major', 'client_ref', 'Email 10 Oct'));
+  perform set_config('test.def1', d::text, false);
+  assert (select status = 'reported' and source = 'sales' and code like 'DEF-%' from public.project_defects where id = d), 'reported by sales, to verify';
+end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.project_defects where id = current_setting('test.def1')::uuid), 'Operations sees project defects';
+  begin perform public.log_defect(jsonb_build_object('project_name', 'X', 'title', 'x', 'description', 'something is broken here', 'category', 'other', 'severity', 'minor'));
+    assert false, 'not Operations';
+  exception when others then assert sqlerrm like 'Sales persons report defects%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('asm_infra'); set role authenticated;
+do $$ begin assert not exists (select 1 from public.project_defects where id = current_setting('test.def1')::uuid), 'another sales person does not see it'; end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare d uuid;
+begin
+  d := public.log_defect(jsonb_build_object('exec_project_id', current_setting('test.ex'), 'location', 'Mast M3', 'title', 'Floodlight not working',
+         'description', 'Two floodlights on mast M3 not lighting after the storm', 'category', 'lighting', 'severity', 'critical', 'source', 'dlp_inspection'));
+  perform set_config('test.def2', d::text, false);
+  assert (select status = 'open' and phase = 'dlp' and verified_by = auth.uid() from public.project_defects where id = d), 'logged open, in the DLP';
+  begin perform public.assign_defect(d, '{}'); assert false, 'AE cannot assign';
+  exception when others then assert sqlerrm = 'The SEE or SM Projects assigns defects', sqlerrm; end;
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'defect' and entity_id = current_setting('test.def2')::uuid and title = 'Critical project defect'
+                 and recipient_id = (select id from u where role = 'gm')), 'GM told of a critical defect';
+  assert exists (select 1 from public.notifications where kind = 'defect' and entity_id = current_setting('test.def1')::uuid and title like 'Project defect reported%'
+                 and recipient_id = (select id from u where role = 'senior_elec_engineer')), 'SEE told to verify';
+end $$;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare d1 uuid := current_setting('test.def1')::uuid; d2 uuid := current_setting('test.def2')::uuid; ae uuid := (select id from u where role = 'assistant_engineer');
+begin
+  begin perform public.verify_defect(d1, false); assert false, 'reason';
+  exception when others then assert sqlerrm = 'Give the reason', sqlerrm; end;
+  perform public.verify_defect(d1, true);
+  assert (select status from public.project_defects where id = d1) = 'open', 'verified';
+  begin perform public.assign_defect(d2, jsonb_build_object('assignee_id', ae)); assert false, 'responsible';
+  exception when others then assert sqlerrm like 'Who is responsible%', sqlerrm; end;
+  begin perform public.assign_defect(d2, jsonb_build_object('assignee_id', ae, 'responsible', 'subcontractor')); assert false, 'company';
+  exception when others then assert sqlerrm = 'Name the subcontractor (back-charge)', sqlerrm; end;
+  perform public.assign_defect(d2, jsonb_build_object('assignee_id', ae, 'responsible', 'subcontractor', 'responsible_company', 'Lanka Electricals'));
+  assert (select status = 'assigned' and due_date = (now() at time zone app.tz())::date + 2 from public.project_defects where id = d2), 'critical: due in 2 days';
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare d2 uuid := current_setting('test.def2')::uuid;
+begin
+  begin perform public.rectify_defect(d2, 'Replaced both drivers and tested'); assert false, 'inspection first';
+  exception when others then assert sqlerrm = 'Record the inspection first', sqlerrm; end;
+  begin perform public.inspect_defect(d2, 'Drivers burnt – water in the junction box', 'installation'); assert false, 'inspection photo';
+  exception when others then assert sqlerrm = 'Attach a photo from the inspection', sqlerrm; end;
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('project_defect', d2, 'defect_photo', 'defect/' || d2 || '/insp.jpg', 'insp.jpg');
+  perform public.inspect_defect(d2, 'Drivers burnt – water in the junction box', 'installation');
+  begin perform public.rectify_defect(d2, 'Replaced both drivers and tested'); assert false, 'after photo';
+  exception when others then assert sqlerrm = 'Attach a photo after the rectification', sqlerrm; end;
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('project_defect', d2, 'defect_after', 'defect/' || d2 || '/after.jpg', 'after.jpg');
+  perform public.rectify_defect(d2, 'Replaced both drivers and tested');
+  begin perform public.close_defect(d2, true); assert false, 'AE cannot close';
+  exception when others then assert sqlerrm like 'The SEE or SM Projects closes%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ declare d2 uuid := current_setting('test.def2')::uuid;
+begin
+  begin perform public.close_defect(d2, false); assert false, 'reopen reason';
+  exception when others then assert sqlerrm = 'Why is it reopened?', sqlerrm; end;
+  perform public.close_defect(d2, false, 'One floodlight still off at night');
+  assert (select status = 'assigned' and reopen_count = 1 from public.project_defects where id = d2), 'reopened';
+end $$;
+reset role;
+-- the close-out check, and the overdue alerts
+do $$ declare c jsonb := app.gate_checks(current_setting('test.ex')::uuid, 3);
+begin
+  assert exists (select 1 from jsonb_array_elements(c) x where x ->> 'check' = 'All project defects closed' and not (x ->> 'ok')::boolean and (x ->> 'hard')::boolean), 'close-out blocked';
+end $$;
+update public.project_defects set due_date = (now() at time zone app.tz())::date - 4 where id = current_setting('test.def2')::uuid;
+select public.defect_tick(now());
+do $$ begin
+  assert exists (select 1 from public.notifications where title = 'Project defect 4 day(s) overdue' and entity_id = current_setting('test.def2')::uuid
+                 and recipient_id = (select id from u where role = 'assistant_engineer')), 'engineer told';
+  assert exists (select 1 from public.notifications where title = 'Project defect 4 days overdue' and recipient_id = (select id from u where role = 'sm_projects')), 'SM Projects after 3 days';
+end $$;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+select public.rectify_defect(current_setting('test.def2')::uuid, 'Replaced the third driver as well, all on');
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare d2 uuid := current_setting('test.def2')::uuid;
+begin
+  perform public.close_defect(d2, true, 'Checked at night with the client');
+  assert (select status from public.project_defects where id = d2) = 'closed', 'closed';
+end $$;
+reset role;
+-- A defect caused by the product supplied → a product warranty claim (SEE or Operations), and the defect moves to product warranty
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select public.assign_defect(current_setting('test.def1')::uuid, jsonb_build_object('assignee_id', (select id from u where role = 'assistant_engineer'), 'responsible', 'manufacturer'));
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare d1 uuid := current_setting('test.def1')::uuid;
+begin
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('project_defect', d1, 'defect_photo', 'defect/' || d1 || '/insp.jpg', 'insp.jpg');
+  perform public.inspect_defect(d1, 'Drivers of four fittings failing – flicker before switching off', 'product');
+  begin perform public.log_warranty_claim(jsonb_build_object('defect_id', d1)); assert false, 'AE cannot';
+  exception when others then assert sqlerrm like 'Only Operations, the Senior Electrical Engineer%' or sqlerrm like 'The SEE or the Operations Executive%', sqlerrm; end;
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where title like 'Defect inspected – product fault%' and entity_id = current_setting('test.def1')::uuid
+                 and recipient_id = (select id from u where role = 'operations_exec')), 'Operations told to create the claim';
+end $$;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare d1 uuid := current_setting('test.def1')::uuid; cid uuid;
+begin
+  cid := public.log_warranty_claim(jsonb_build_object('defect_id', d1, 'quantity', '4',
+    'manual', jsonb_build_object('project_name', 'Car park – Sample', 'customer', 'ABC COMPANY PVT LTD', 'category', 'industrial', 'invoice_no', 'INV-2026-0101',
+                                 'start_date', '2026-03-01', 'months', '36', 'product_group', 'LED street lights', 'brand', 'Philips')));
+  assert (select status = 'warranty' and warranty_claim_id = cid from public.project_defects where id = d1), 'defect moved to product warranty';
+  assert (select defect_id = d1 and reported_via = 'site_inspection' and description like 'Lights flicker – Drivers%' from public.warranty_claims where id = cid), 'claim linked to the defect';
+  begin perform public.log_warranty_claim(jsonb_build_object('defect_id', d1, 'warranty_id', (select warranty_id from public.warranty_claims where id = cid))); assert false, 'only once';
+  exception when others then assert sqlerrm like 'Only a defect inspected as a product fault%', sqlerrm; end;
+end $$;
+reset role;
+do $$ begin
+  assert not exists (select 1 from public.project_defects where id = current_setting('test.def1')::uuid and status in ('reported', 'open', 'assigned', 'rectified')), 'no longer an open defect';
+end $$;
+rollback to savepoint defects1;
+
 -- Execution data only for the people who need it: Operations sees materials, handover, IPCs and billing,
 -- not the programme, plans, daily reports, HSE, QA, snags or design queries
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;

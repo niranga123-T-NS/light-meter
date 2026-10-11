@@ -77,6 +77,12 @@ export default function ClaimDetail() {
   return (
     <Screen maxWidth={860}>
       <Stack.Screen options={{ title: c.code }} />
+      {c.defect_id ? (
+        <Row wrap gap={8} style={{ alignItems: 'center' }}>
+          <Muted style={{ flex: 1 }}>Created from a project defect inspected as a product fault.</Muted>
+          <Button small variant="secondary" title="Open the project defect" onPress={() => router.push(`/warranty/defects/${c.defect_id}`)} />
+        </Row>
+      ) : null}
       <Card style={{ borderLeftWidth: 5, borderLeftColor: C_TONE[stage] }}>
         <Row wrap style={{ justifyContent: 'space-between' }}>
           <Text style={{ fontSize: 18, fontWeight: '700' }}>{c.code}</Text>

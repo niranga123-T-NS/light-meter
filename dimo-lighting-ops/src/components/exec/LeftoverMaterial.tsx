@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { Text } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, ListRow, Muted, Notice, Pill, Row } from '@/components/ui';
@@ -74,8 +75,8 @@ export function LeftoverMaterial({ p, onChange }: { p: ExecProject; onChange: ()
       {left.length ? (
         <>
           <Notice tone={colors.amber}>
-            The handover (DLP) cannot be requested until every leftover item under DIMO&apos;s custody is returned – to SAP or to the Project returns stock. Client&apos;s and
-            subcontractors&apos; material is not included.
+            The handover (DLP) cannot be requested until every leftover item under DIMO&apos;s custody is returned – to SAP or to the Project returns stock – or disposed as
+            scrap (approved by SM Projects and the DGM / GM). Client&apos;s and subcontractors&apos; material is not included.
           </Notice>
           {left.map((l) => (
             <ListRow
@@ -85,9 +86,10 @@ export function LeftoverMaterial({ p, onChange }: { p: ExecProject; onChange: ()
               right={can ? <Button small title="Return" onPress={() => returnOne(l)} /> : null}
             />
           ))}
-          {can && left.length > 1 ? (
-            <Row style={{ justifyContent: 'flex-end' }}>
-              <Button small variant="secondary" title="Return all to Project returns" onPress={returnAll} />
+          {can ? (
+            <Row wrap gap={8} style={{ justifyContent: 'flex-end' }}>
+              <Button small variant="secondary" title="♻ Scrap disposal" onPress={() => router.push({ pathname: '/execution/scrap/new', params: { project: p.id } })} />
+              {left.length > 1 ? <Button small variant="secondary" title="Return all to Project returns" onPress={returnAll} /> : null}
             </Row>
           ) : null}
         </>
