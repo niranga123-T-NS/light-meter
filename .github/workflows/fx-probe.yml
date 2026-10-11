@@ -2,10 +2,13 @@ name: fx probe (temporary)
 on:
   push:
     branches: [claude/fx-probe]
+permissions:
+  contents: write
 jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - run: |
           mkdir out; cd out
           UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36'
@@ -25,7 +28,6 @@ jobs:
             curl -sS -L -m 40 -A "$UA" -o "p$i.html" -w "%{http_code} %{size_download} %{url_effective}\n" "$u" 2>&1 | tee -a index.txt || true
           done
           ls -la
-      - uses: actions/upload-artifact@v4
-        with:
-          name: fx-probe
-          path: out
+      - run: |
+          git config user.name probe; git config user.email probe@users.noreply.github.com
+          rm -rf fxprobe; mv out fxprobe; git add fxprobe; git commit -m "probe output [skip ci]"; git push
