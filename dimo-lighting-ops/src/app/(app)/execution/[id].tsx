@@ -26,20 +26,22 @@ import { supabase } from '@/lib/supabase';
 import type { Role } from '@/lib/types';
 
 type Tab = { key: string; label: string; roles?: Role[] };
-const INTERNAL: Role[] = ['senior_elec_engineer', 'sm_projects', 'gm', 'operations_exec', 'assistant_engineer', 'trainee'];
+/** The execution team – the Operations Executive is not in it (sees only materials, documents, handover, IPCs and billing) */
+const TEAM: Role[] = ['senior_elec_engineer', 'sm_projects', 'gm', 'assistant_engineer', 'trainee'];
+const INTERNAL: Role[] = [...TEAM, 'operations_exec'];
 const TABS: Tab[] = [
   { key: 'overview', label: 'Overview' },
-  { key: 'team', label: 'Project team', roles: INTERNAL },
-  { key: 'meetings', label: 'Meetings', roles: INTERNAL },
-  { key: 'programme', label: 'Programme', roles: INTERNAL },
-  { key: 'plans', label: 'Plan', roles: INTERNAL },
+  { key: 'team', label: 'Project team', roles: TEAM },
+  { key: 'meetings', label: 'Meetings', roles: TEAM },
+  { key: 'programme', label: 'Programme', roles: TEAM },
+  { key: 'plans', label: 'Plan', roles: TEAM },
   { key: 'planning', label: 'Planning', roles: ['sub_supervisor'] },
-  { key: 'reports', label: 'Daily reports' },
-  { key: 'variations', label: 'Variations', roles: ['senior_elec_engineer', 'sm_projects', 'gm', 'operations_exec', 'assistant_engineer'] },
-  { key: 'hse', label: 'HSE' },
+  { key: 'reports', label: 'Daily reports', roles: [...TEAM, 'sub_supervisor'] },
+  { key: 'variations', label: 'Variations', roles: ['senior_elec_engineer', 'sm_projects', 'gm', 'assistant_engineer'] },
+  { key: 'hse', label: 'HSE', roles: [...TEAM, 'sub_supervisor'] },
   { key: 'workers', label: 'Workers', roles: ['senior_elec_engineer', 'sm_projects', 'assistant_engineer', 'sub_supervisor'] },
   { key: 'materials', label: 'Materials', roles: INTERNAL },
-  { key: 'qa', label: 'QA', roles: INTERNAL },
+  { key: 'qa', label: 'QA', roles: TEAM },
   { key: 'documents', label: 'Documents' },
   { key: 'handover', label: 'Handover', roles: INTERNAL },
   { key: 'subcerts', label: 'Subcontractor IPC & invoices', roles: ['senior_elec_engineer', 'sm_projects', 'gm', 'operations_exec', 'assistant_engineer', 'sub_supervisor'] },
@@ -51,7 +53,7 @@ export default function ExecProjectScreen() {
   const { id, tab } = useLocalSearchParams<{ id: string; tab?: string }>();
   const me = useMe();
   // (old links to the removed Cost tab open the certificates)
-  const [t, setT] = useState(tab === 'cost' ? 'subcerts' : (tab ?? 'overview'));
+  const [want, setT] = useState(tab === 'cost' ? 'subcerts' : (tab ?? 'overview'));
   const { data, error, reload } = useLoad(async () => {
     const { data: p, error: e } = await supabase.from('exec_projects').select('*').eq('id', id).single();
     if (e) throw new Error(e.message);
@@ -60,6 +62,8 @@ export default function ExecProjectScreen() {
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const p = data;
   const tabs = TABS.filter((x) => !x.roles || x.roles.includes(me.role));
+  // A link to a tab this role does not see opens the Overview
+  const t = tabs.some((x) => x.key === want) ? want : 'overview';
   return (
     <Screen onRefresh={reload} maxWidth={1100}>
       <Stack.Screen options={{ title: p.code ?? 'Execution' }} />
@@ -77,7 +81,7 @@ export default function ExecProjectScreen() {
       {t === 'workers' ? <WorkersTab p={p} /> : null}
       {t === 'materials' ? <MaterialsTab p={p} /> : null}
       {t === 'qa' ? <QaTab p={p} /> : null}
-      {t === 'documents' ? <DocumentsTab p={p} queries={me.role !== 'sub_supervisor'} /> : null}
+      {t === 'documents' ? <DocumentsTab p={p} queries={TEAM.includes(me.role)} /> : null}
       {t === 'handover' ? <HandoverTab p={p} onChange={reload} /> : null}
       {t === 'subcerts' ? <SubCertsTab p={p} /> : null}
       {t === 'billing' ? <BillingTab key={p.secured_id ?? 'none'} p={p} onChange={reload} /> : null}
