@@ -35,8 +35,8 @@ export type FxBoard = {
   history: { s: FxSource; d: string; c: Ccy; mid: number | null; sell: number | null; buy: number | null; f3: number | null }[];
 };
 
-export const FX_SEES = ['gm', 'sm_projects', 'sm_estimation', 'am_estimation', 'estimation_exec', 'sys_admin'];
-export const FX_UPLOAD = ['am_estimation', 'sm_estimation'];
+export const FX_SEES = ['gm', 'sm_projects', 'sm_estimation', 'am_estimation', 'estimation_exec', 'operations_exec', 'sys_admin'];
+export const FX_UPLOAD = ['operations_exec'];
 
 export const SOURCE_LABEL: Record<FxSource, string> = {
   cbsl: 'Central Bank (CBSL) indicative',

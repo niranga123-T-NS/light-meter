@@ -242,6 +242,7 @@ function baseNav(role: Role): NavItem[] {
         EXEC_NAV.documents,
         EXEC_NAV.certs,
         approvals,
+        fx,
         reports,
       ];
     case 'senior_elec_engineer':

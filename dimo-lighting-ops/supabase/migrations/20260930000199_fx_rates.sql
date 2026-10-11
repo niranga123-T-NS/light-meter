@@ -1,10 +1,10 @@
--- Exchange rates on the Home dashboards of the GM / DGM, SM Projects and the Estimation team. Only USD, EUR and GBP.
+-- Exchange rates on the Home dashboards of the GM / DGM, SM Projects, the Estimation team and the Operations Executive. Only USD, EUR and GBP.
 --  * Central Bank (CBSL) daily indicative rates – fetched automatically every working day (GitHub workflow, through the
 --    open Frankfurter service that carries the CBSL series; the CBSL website itself refuses servers outside Sri Lanka).
---  * Commercial Bank of Ceylon – the AM Estimation uploads the bank's daily "Indicative Exchange Rates" report (Monday – Friday):
+--  * Commercial Bank of Ceylon – the Operations Executive uploads (web or phone) the bank's daily "Indicative Exchange Rates" report (Monday – Friday):
 --    TT buying / selling, LC, 1 / 2 / 3 months forward selling, discounted (forward) buying and the cross rates.
 --  * Sri Lanka Customs – the weekly schedule (effective from / to) read from the Customs website automatically; the
---    AM Estimation can enter or correct it when the automatic reading fails.
+--    Operations Executive can enter or correct it when the automatic reading fails.
 --  Cross rates (EUR/USD, GBP/USD, EUR/GBP) are worked out from each source.
 
 create table public.fx_rates (
@@ -34,9 +34,9 @@ create table public.fx_rates (
 create index on public.fx_rates (source, currency, rate_date desc);
 
 create or replace function app.sees_fx() returns boolean
-language sql stable as $$ select app.has_role('gm', 'sm_projects', 'sm_estimation', 'am_estimation', 'estimation_exec', 'sys_admin') $$;
+language sql stable as $$ select app.has_role('gm', 'sm_projects', 'sm_estimation', 'am_estimation', 'estimation_exec', 'operations_exec', 'sys_admin') $$;
 create or replace function app.fx_uploader() returns boolean
-language sql stable as $$ select app.has_role('am_estimation', 'sm_estimation') $$;
+language sql stable as $$ select app.has_role('operations_exec') $$;
 
 alter table public.fx_rates enable row level security;
 create policy fx_rates_read on public.fx_rates for select to authenticated using (app.sees_fx());
@@ -45,13 +45,13 @@ grant select on public.fx_rates to authenticated;
 create or replace function app.fx_num(v jsonb) returns numeric
 language sql immutable as $$ select nullif(replace(btrim(v #>> '{}'), ',', ''), '')::numeric $$;
 
--- The AM Estimation: the Commercial Bank report of a day. p: {date, doc_id, ref, rates: {USD: {mid, tt_buy, tt_sell, lc_sell, sell_1m, sell_2m, sell_3m,
+-- The Operations Executive: the Commercial Bank report of a day. p: {date, doc_id, ref, rates: {USD: {mid, tt_buy, tt_sell, lc_sell, sell_1m, sell_2m, sell_3m,
 -- buy_7d, buy_1m, buy_2m, buy_3m}, EUR: {cross_usd, ...}, GBP: {...}}}
 create or replace function public.save_combank_rates(p jsonb) returns void
 language plpgsql security definer set search_path = public as $$
 declare d date := nullif(p ->> 'date', '')::date; c text; r jsonb; n int := 0;
 begin
-  perform app.require(app.fx_uploader(), 'The AM Estimation uploads the Commercial Bank rates');
+  perform app.require(app.fx_uploader(), 'The Operations Executive uploads the Commercial Bank rates');
   perform app.require(d is not null and d <= (now() at time zone app.tz())::date, 'Enter the date of the report (not a future date)');
   foreach c in array array['USD', 'EUR', 'GBP'] loop
     r := p -> 'rates' -> c;
@@ -73,12 +73,12 @@ begin
   update public.notifications set read_at = coalesce(read_at, now()) where dedupe_key = 'fx_combank:' || d;
 end $$;
 
--- The AM Estimation: the Customs schedule when the automatic reading failed or was wrong. p: {from, to, USD, EUR, GBP, ref}
+-- The Operations Executive: the Customs schedule when the automatic reading failed or was wrong. p: {from, to, USD, EUR, GBP, ref}
 create or replace function public.save_customs_rates(p jsonb) returns void
 language plpgsql security definer set search_path = public as $$
 declare f date := nullif(p ->> 'from', '')::date; t date := nullif(p ->> 'to', '')::date; c text;
 begin
-  perform app.require(app.fx_uploader(), 'The AM Estimation enters the Customs rates');
+  perform app.require(app.fx_uploader(), 'The Operations Executive enters the Customs rates');
   perform app.require(f is not null and t is not null and t >= f, 'Enter the effective from and to dates');
   foreach c in array array['USD', 'EUR', 'GBP'] loop
     perform app.require(app.fx_num(p -> c) > 0, format('Enter the %s rate', c));
@@ -119,7 +119,7 @@ begin
   if p ? 'customs' and p -> 'customs' <> 'null'::jsonb then
     f := (p #>> '{customs,from}')::date; t := (p #>> '{customs,to}')::date;
     perform app.require(f is not null and t >= f, 'Customs: dates missing');
-    -- a reading far from the Central Bank rate is refused (the AM Estimation enters it instead)
+    -- a reading far from the Central Bank rate is refused (the Operations Executive enters it instead)
     foreach c in array array['USD', 'EUR', 'GBP'] loop
       v := app.fx_num(p -> 'customs' -> c);
       perform app.require(v > 0, 'Customs: ' || c || ' missing');
@@ -179,20 +179,20 @@ begin
   return res;
 end $$;
 
--- Working days 10:00: remind the AM Estimation when today's Commercial Bank report is not in yet
+-- Working days 09:00: remind the Operations Executive when today's Commercial Bank report is not in yet
 create or replace function public.fx_tick(p_at timestamptz default now()) returns int
 language plpgsql security definer set search_path = public as $$
 declare today date := (p_at at time zone app.tz())::date; n int := 0;
 begin
   if extract(isodow from today) <= 5 and not exists (select 1 from public.fx_rates where source = 'combank' and rate_date = today) then
-    perform app.notify_many(app.role_users('am_estimation'), 'fx', 'Upload today''s exchange rates',
+    perform app.notify_many(app.role_users('operations_exec'), 'fx', 'Upload today''s exchange rates',
       'The Commercial Bank indicative exchange rate report of ' || to_char(today, 'DD Mon YYYY') || ' is not uploaded yet (skip on bank holidays).',
       'normal', null, null, '/fx', 'fx_combank:' || today, false);
     n := n + 1;
   end if;
-  -- no Customs schedule in force (the automatic reading failed): ask the AM Estimation to enter it
+  -- no Customs schedule in force (the automatic reading failed): ask the Operations Executive to enter it
   if not exists (select 1 from public.fx_rates where source = 'customs' and rate_date <= today and coalesce(valid_to, rate_date + 6) >= today) then
-    perform app.notify_many(app.role_users('am_estimation'), 'fx', 'Enter this week''s Customs exchange rates',
+    perform app.notify_many(app.role_users('operations_exec'), 'fx', 'Enter this week''s Customs exchange rates',
       'The Sri Lanka Customs rates in force today could not be read from the Customs website – enter USD, EUR and GBP with the effective dates.',
       'normal', null, null, '/fx', 'fx_customs:' || today, false);
     n := n + 1;
@@ -202,11 +202,11 @@ end $$;
 
 do $$ begin
   if exists (select 1 from pg_extension where extname = 'pg_cron') then
-    perform cron.schedule('fx-tick', '30 4 * * *', 'select public.fx_tick()');
+    perform cron.schedule('fx-tick', '30 3 * * *', 'select public.fx_tick()');
   end if;
 end $$;
 
--- The uploaded reports are attachments of entity 'fx_report': read by everyone who sees the rates, uploaded by the AM / SM Estimation
+-- The uploaded reports are attachments of entity 'fx_report': read by everyone who sees the rates, uploaded by the Operations Executive
 CREATE OR REPLACE FUNCTION app.can_read_attachment(a attachments)
  RETURNS boolean
  LANGUAGE plpgsql

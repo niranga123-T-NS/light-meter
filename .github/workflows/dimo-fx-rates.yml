@@ -1,6 +1,6 @@
 # Exchange rates for the Home dashboards: the Central Bank of Sri Lanka daily indicative rates (USD, EUR, GBP) and the
 # Sri Lanka Customs weekly schedule (read with OCR from the scanned PDF on the Customs website). The Commercial Bank
-# report is uploaded in the app by the AM Estimation.
+# report is uploaded in the app by the Operations Executive.
 # Uses the same repository secrets as the backend deploy (SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF, DISPATCH_SECRET).
 name: DIMO – exchange rates
 

@@ -6890,19 +6890,20 @@ do $$ begin
   exception when others then assert sqlerrm like '%Not allowed%', sqlerrm; end;
 end $$;
 reset role;
-select pg_temp.act_as('estimation_exec'); set role authenticated;
+select pg_temp.act_as('am_estimation'); set role authenticated;
 do $$ begin
-  begin perform public.save_combank_rates('{}'); assert false, 'exec cannot upload';
-  exception when others then assert sqlerrm like '%AM Estimation%', sqlerrm; end;
+  begin perform public.save_combank_rates('{}'); assert false, 'estimation cannot upload';
+  exception when others then assert sqlerrm like '%Operations Executive%', sqlerrm; end;
+  assert (select count(*) from public.fx_rates) > 0, 'estimation sees the rates';
 end $$;
 reset role;
 select public.fx_tick();
 do $$ begin
   if extract(isodow from current_date) <= 5 then
-    assert exists (select 1 from public.notifications n join public.profiles p on p.id = n.recipient_id where p.role = 'am_estimation' and n.dedupe_key = 'fx_combank:' || current_date), 'reminder';
+    assert exists (select 1 from public.notifications n join public.profiles p on p.id = n.recipient_id where p.role = 'operations_exec' and n.dedupe_key = 'fx_combank:' || current_date), 'reminder';
   end if;
 end $$;
-select pg_temp.act_as('am_estimation'); set role authenticated;
+select pg_temp.act_as('operations_exec'); set role authenticated;
 do $$ declare b jsonb; rr jsonb := jsonb_build_object(
     'USD', jsonb_build_object('mid', '330.75', 'tt_buy', 326.95, 'tt_sell', 334.75, 'lc_sell', 335.15, 'sell_1m', 336.95, 'sell_2m', 339.35, 'sell_3m', 341.75, 'buy_7d', 326.60, 'buy_1m', 325.42, 'buy_2m', 323.89, 'buy_3m', 322.33),
     'EUR', jsonb_build_object('cross_usd', 1.1225, 'tt_buy', 365.35, 'tt_sell', 377.19, 'sell_3m', 386.82, 'buy_3m', 361.61),

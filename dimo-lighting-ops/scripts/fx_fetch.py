@@ -198,7 +198,7 @@ def main():
             if all(k in c for k in CCY):
                 customs = c
             else:
-                print('::warning::Customs: could not read all of USD, EUR and GBP – the AM Estimation is asked to enter them')
+                print('::warning::Customs: could not read all of USD, EUR and GBP – the Operations Executive is asked to enter them')
         except Exception as e:  # the Central Bank rates still go in
             print(f'::warning::Customs reading failed: {e}')
     if DRY:

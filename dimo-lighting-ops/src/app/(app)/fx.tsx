@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 import { useState } from 'react';
-import { Linking, Platform, Text, View } from 'react-native';
+import { Linking, Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { FxTable, FxTrend } from '@/components/FxRates';
 import { Button, Card, colors, ErrorBanner, Loading, Muted, Notice, Row, Screen, Section, Segmented } from '@/components/ui';
@@ -14,17 +14,17 @@ import { rpc } from '@/lib/supabase';
 
 const PERIODS = { '30': 30, '90': 90, '365': 365 } as const;
 
-/** Exchange rates: Central Bank, Commercial Bank (uploaded daily by the AM Estimation) and Customs, with the trend */
+/** Exchange rates: Central Bank, Commercial Bank (uploaded daily by the Operations Executive) and Customs, with the trend */
 export default function FxScreen() {
   const me = useMe();
   const dialog = useDialog();
   const [days, setDays] = useState<keyof typeof PERIODS>('90');
   const uploader = FX_UPLOAD.includes(me.role);
   const { data, error, loading, reload } = useLoad(async () => rpc<FxBoard>('fx_board', { p_days: 400 }), []);
-  if (!FX_SEES.includes(me.role)) return <Screen><Notice>Exchange rates are shown to the GM / DGM, SM Projects and the Estimation team.</Notice></Screen>;
+  if (!FX_SEES.includes(me.role)) return <Screen><Notice>Exchange rates are shown to the GM / DGM, SM Projects, the Estimation team and the Operations Executive.</Notice></Screen>;
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
 
-  // ---- AM Estimation: the Commercial Bank report ----
+  // ---- Operations Executive: the Commercial Bank report ----
   const save = async (date: string, rates: Partial<Record<Ccy, CombankRow>>, file?: { id: string; name: string }) => {
     const ok = await dialog.confirm(
       `Commercial Bank rates of ${fmtDate(date)}`,
@@ -106,13 +106,13 @@ export default function FxScreen() {
       <Stack.Screen options={{ title: 'Exchange rates' }} />
       <Muted>
         USD, EUR and GBP in rupees. Central Bank indicative rates come in automatically every working day; the Commercial Bank rates (TT, LC and forward) from the
-        bank&apos;s daily report uploaded by the AM Estimation (Monday – Friday); the Sri Lanka Customs rates from the weekly schedule on the Customs website.
+        bank&apos;s daily report uploaded by the Operations Executive (Monday – Friday); the Sri Lanka Customs rates from the weekly schedule on the Customs website.
       </Muted>
       {uploader ? (
         <Card style={{ gap: 6 }}>
           <Text style={{ fontWeight: '700', color: colors.ink }}>Commercial Bank report</Text>
           <Muted>
-            {data.combank.date === data.today ? `Today’s report is in (${fmtDate(data.today)}).` : `Upload today’s “Indicative Exchange Rates” PDF from the Commercial Bank${Platform.OS === 'web' ? '' : ' – reading the PDF works in the web portal; on the phone, type the rates in'}.`}
+            {data.combank.date === data.today ? `Today’s report is in (${fmtDate(data.today)}).` : 'Upload today’s “Indicative Exchange Rates” PDF from the Commercial Bank – from the computer or the phone (by 9:00 on working days).'}
           </Muted>
           <Row wrap gap={8}>
             <Button title="Upload the bank’s report (PDF)" onPress={upload} />

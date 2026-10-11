@@ -5,7 +5,7 @@ import Svg, { Line, Path, Text as SvgText } from 'react-native-svg';
 import { Button, Card, colors, Muted, Pill, Row, Section } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { fmtDate } from '@/lib/format';
-import { crossFromLkr, FX_CCY, FX_SEES, fmtCross, fmtRate, rateOf, type Ccy, type FxBoard, type FxRate } from '@/lib/fx';
+import { crossFromLkr, FX_CCY, FX_SEES, FX_UPLOAD, fmtCross, fmtRate, rateOf, type Ccy, type FxBoard, type FxRate } from '@/lib/fx';
 import { useLoad } from '@/lib/hooks';
 import { rpc } from '@/lib/supabase';
 
@@ -183,7 +183,17 @@ export function FxCard() {
   const { data } = useLoad(async () => (show ? rpc<FxBoard>('fx_board', { p_days: 30 }).catch(() => null) : null), [show]);
   if (!show) return null;
   return (
-    <Section title="Exchange rates" right={<Button small variant="ghost" title="All rates & trend" onPress={() => router.push('/fx')} />}>
+    <Section
+      title="Exchange rates"
+      right={
+        <Button
+          small
+          variant={FX_UPLOAD.includes(me.role) && data && data.combank.date !== data.today && new Date(data.today).getDay() % 6 !== 0 ? 'primary' : 'ghost'}
+          title={FX_UPLOAD.includes(me.role) && data && data.combank.date !== data.today && new Date(data.today).getDay() % 6 !== 0 ? 'Upload today’s bank rates' : 'All rates & trend'}
+          onPress={() => router.push('/fx')}
+        />
+      }
+    >
       <Card style={{ gap: 10 }}>
         {data ? (
           <>
