@@ -87,13 +87,13 @@ export default function RequestInstrument() {
 
   return (
     <Screen maxWidth={800}>
-      <Stack.Screen options={{ title: 'Request an instrument' }} />
+      <Stack.Screen options={{ title: 'Request an instrument or tool' }} />
       <TestingBanner what="Instruments" />
       <ErrorBanner message={error} />
       <Section title="Instrument">
         <Card>
           <Select
-            label="Instrument"
+            label="Instrument / tool"
             required
             searchable
             value={inst}
@@ -116,7 +116,7 @@ export default function RequestInstrument() {
                   <Notice tone={colors.red}>{`${cal.label}. It can be used, but you and the Operations Executive are alerted, and readings may not be accepted by the client / consultant.`}</Notice>
                   <Toggle label="I will use it uncalibrated" value={accept} onChange={setAccept} />
                 </>
-              ) : (
+              ) : i.kind === 'tool' ? null : (
                 <Muted>{`${cal.label}${i.cal_expiry ? ` until ${fmtDate(i.cal_expiry)}` : ''} – the calibration report is on the instrument’s page.`}</Muted>
               )}
             </>

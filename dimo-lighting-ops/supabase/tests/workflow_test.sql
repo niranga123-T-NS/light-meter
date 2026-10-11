@@ -6832,6 +6832,40 @@ end $$;
 reset role;
 rollback to savepoint sec1;
 
+-- Tools: no calibration, no uncalibrated alerts, not used for tests
+savepoint tool1;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare t uuid; begin
+  t := public.save_instrument('{"kind":"tool","name":"Hydraulic crimping tool","make":"Klauke","serial_no":"KL-9"}');
+  assert (select code like 'TOL-%' and kind = 'tool' from public.instruments where id = t), 'tool numbered';
+  begin perform public.set_instrument_calibration(t, jsonb_build_object('status', 'calibrated', 'expiry', current_date + 100)); assert false, 'tool cal';
+  exception when others then assert sqlerrm like '%Tools have no calibration%', sqlerrm; end;
+  perform set_config('test.tool', t::text, true);
+end $$;
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  perform public.request_instrument(current_setting('test.tool')::uuid, jsonb_build_object('project_text', 'Hotel lobby', 'need_from', current_date + 40, 'need_to', current_date + 41, 'lat', 6.9, 'lng', 79.8));
+  assert (select not uncalibrated from public.instrument_requests where instrument_id = current_setting('test.tool')::uuid), 'tool not uncalibrated';
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin
+  begin perform public.record_test(current_setting('test.ex')::uuid, jsonb_build_object('system', 'DB-1', 'test_type', 'IR', 'instrument_id', current_setting('test.tool'), 'result', 'pass')); assert false, 'tool test';
+  exception when others then assert sqlerrm like '%is a tool%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare i uuid; begin
+  -- an instrument changed to a tool loses its calibration details
+  i := public.save_instrument('{"name":"Old tester"}');
+  perform public.set_instrument_calibration(i, jsonb_build_object('status', 'calibrated', 'expiry', current_date + 100, 'cert_no', 'C1'));
+  perform public.save_instrument(jsonb_build_object('id', i, 'kind', 'tool', 'name', 'Old tester'));
+  assert (select cal_expiry is null and cal_cert_no is null from public.instruments where id = i), 'cal cleared';
+end $$;
+reset role;
+rollback to savepoint tool1;
+
 -- Execution data only for the people who need it: Operations sees materials, handover, IPCs and billing,
 -- not the programme, plans, daily reports, HSE, QA, snags or design queries
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;

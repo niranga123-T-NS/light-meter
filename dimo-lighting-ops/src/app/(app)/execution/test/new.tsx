@@ -27,7 +27,7 @@ export default function NewTest() {
   const { data } = useLoad(async () => {
     const [p, i] = await Promise.all([
       supabase.from('exec_projects').select('*').eq('status', 'active').order('name'),
-      supabase.from('instruments').select('*').eq('removed', false).eq('condition', 'ok').order('name'),
+      supabase.from('instruments').select('*').eq('removed', false).eq('kind', 'instrument').eq('condition', 'ok').order('name'),
     ]);
     return { projects: (p.data ?? []) as ExecProject[], instruments: (i.data ?? []) as Instrument[] };
   });
