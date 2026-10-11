@@ -17,12 +17,12 @@ import { ReportsTab } from '@/components/exec/ReportsTab';
 import { TeamTab } from '@/components/exec/TeamTab';
 import { VariationsTab } from '@/components/exec/VariationsTab';
 import { TestingBanner } from '@/components/Testing';
-import { colors, ErrorBanner, Loading, Muted, Screen, Segmented } from '@/components/ui';
+import { colors, ErrorBanner, Loading, Muted, Notice, Screen, Segmented } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { stageLabel, type ExecProject } from '@/lib/execution';
 import { useLoad } from '@/lib/hooks';
 import { WorkersTab } from '@/components/exec/WorkersTab';
-import { supabase } from '@/lib/supabase';
+import { rpc, supabase } from '@/lib/supabase';
 import type { Role } from '@/lib/types';
 
 type Tab = { key: string; label: string; roles?: Role[] };
@@ -57,10 +57,11 @@ export default function ExecProjectScreen() {
   const { data, error, reload } = useLoad(async () => {
     const { data: p, error: e } = await supabase.from('exec_projects').select('*').eq('id', id).single();
     if (e) throw new Error(e.message);
-    return p as ExecProject;
+    const block = await rpc<{ blocked: boolean; reason: string | null } | null>('exec_block_state', { p_exec: id }).catch(() => null);
+    return { p: p as ExecProject, block };
   }, [id]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const p = data;
+  const { p, block } = data;
   const tabs = TABS.filter((x) => !x.roles || x.roles.includes(me.role));
   // A link to a tab this role does not see opens the Overview
   const t = tabs.some((x) => x.key === want) ? want : 'overview';
@@ -70,6 +71,9 @@ export default function ExecProjectScreen() {
       <TestingBanner what="The execution module" />
       <Text style={{ fontSize: 20, fontWeight: '700', color: colors.ink }}>{p.name}</Text>
       <Muted>{stageLabel(p)}</Muted>
+      {block?.blocked ? (
+        <Notice tone={colors.red}>{`Blocked by SM Projects / GM until the advance payment is received${block.reason ? ` – ${block.reason}` : ''}. New material requests, orders, programme approval and subcontractor IPCs are on hold.`}</Notice>
+      ) : null}
       <Segmented value={t} onChange={setT} options={tabs.map((x) => ({ value: x.key, label: x.label }))} />
       {t === 'overview' ? <OverviewTab p={p} onTab={setT} onChange={reload} /> : null}
       {t === 'programme' ? <ProgrammeTab p={p} onChange={reload} /> : null}

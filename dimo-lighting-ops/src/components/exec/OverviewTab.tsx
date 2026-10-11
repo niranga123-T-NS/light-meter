@@ -9,6 +9,7 @@ import { fmtDate, fmtMoney } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { supabase } from '@/lib/supabase';
 import { GateCard } from './GateCard';
+import { SecuritiesCard } from './SecuritiesCard';
 import { SiteLocationCard } from './SiteLocationCard';
 
 /** Stage strip, project areas, site and dates. */
@@ -104,6 +105,7 @@ export function OverviewTab({ p, onTab, onChange }: { p: ExecProject; onTab: (t:
           <GateCard p={p} gate={3} onChange={onChange ?? (() => undefined)} />
         </Section>
       ) : null}
+      {['senior_elec_engineer', 'sm_projects', 'gm', 'operations_exec'].includes(me.role) ? <SecuritiesCard p={p} onChange={onChange} /> : null}
       <SiteLocationCard p={p} onChange={onChange} />
       <Section title="Project">
         <Card>
