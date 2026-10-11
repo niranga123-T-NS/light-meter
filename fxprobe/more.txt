@@ -1,100 +1,48 @@
-er05102026.pdf plain {'from': '2026-10-05', 'to': '2026-10-11', 'EUR': 376.8259, 'GBP': 442.3564, 'USD': 335.1947}
-    ['[12 [Eurozone | Ss(Euro~S—Ctéi‘“;C™*C*C‘*d’SCOC@EURR | —3 76.8259', '14 [Hongkong | HK [HongKong Dollar | HKD [42.7217', '48 [United Kingdom | GB [Sterling Pound | GBP__| 442.3564', 'Pay JUSA__——*| us |USDollr | _usD__| 335.1947']
-er05102026.pdf gray2x {'from': '2026-10-05', 'to': '2026-10-11', 'EUR': 376.8259, 'USD': 335.1947}
-    ['[Canada| CA” [Canadian Dollar | CAD | _ 235.6709', '12 [Eurozone | Sieur —Cts—“C;‘“‘YS SUR] 376.8259', '14 [Hongkong | HK [Hong KongDollar | HKD | 42.7217', '“ai [Singapore|___SG [Singapore Dollar |__SGD__| 261.7482', '(49 [USA SSS«dYSCSUS~*(USDollar ~——C—C*é‘Ls«=SCSD 335.1947']
-er05102026.pdf thr {'from': '2026-10-05', 'to': '2026-10-11', 'EUR': 376.8259, 'GBP': 442.3564}
-    ['(12 [Eurozone | sEuro————Cs—C“‘;‘“‘;‘Y EUR 376.8259', 'Tai |Singapore| SG |Singapore Dollar | __SGD__| 261.7482', '48 [United Kingdom GB [Sterling Pound | GBP | 442.3564']
-er05102026.pdf gray2x4 {'from': '2026-10-05', 'to': '2026-10-11', 'EUR': 76.8259, 'USD': 335.1947}
-    ['[12 [EuroZone | Suro, SCT SC EUR | ___—3:76.8259', '[14 [Hongkong | HK |HongKongDollar | HKD [42.7217', '"a1 |Singapore | SG [Singapore Dollar | SGD__| 261.7482', '[49 |USA| US |USDollar_ | uSD__| 335.1947']
-er05102026.pdf gray2x11 {'from': '2026-10-05', 'to': '2026-10-11'}
-    ['(12 [EuroZone | Bur', '14" |Hongkong | HK [HongKong Dollar | HKD | __42.7217']
-er28092026.pdf plain {'from': '2026-09-28', 'to': '2026-10-04'}
-    ['Ps [Brunei | BN [Brunei Dollar | BND | 261.7539]', '[6 Canada ‘| CA |Canadian Dollar | CAD | 236.7315]']
-er28092026.pdf gray2x {'from': '2026-09-28', 'to': '2026-10-04'}
-    ['r6s|tamda | CA > (Cumin Dollar | CADE aera', '14 [Fongkong | HK —|Fiong Kong Dollar | HKD | «2.6802']
-er28092026.pdf thr {'from': '2026-09-28', 'to': '2026-10-04'}
-    ['"1a [Buro Zone | [Euro | EUR | 309127', '~1¢” [Hongkong | HK —|fiong Kong Dollar | HKD | 22.6802']
-er28092026.pdf gray2x4 {'from': '2026-09-28', 'to': '2026-10-04', 'EUR': 980.9127}
-    ['[5 [Brunei S| ~SBN[BruneiDollar | BND | __261.7539', '[6 [Canada ——SSS«|~SCA ‘(Canadian Dollar | CAD | _236.7315', '[izs[Euro Zone wo OREM 980.9127']
-er28092026.pdf gray2x11 {'from': '2026-09-28', 'to': '2026-10-04'}
-    ['[BN [Brunei Dollar | BND | 261.7539', '[6 [Canada| CA |Canadian Dollar | CAD | 236.7315', '[14 Hongkong | HK |Hong Kong Dollar | _HKD__| 42.6862']
-er21092026.pdf plain {'from': '2026-09-21', 'to': '2026-09-27', 'EUR': 385.909, 'GBP': 449.0675}
-    ['1 [austalla | AU [Austrian Dollar | AUD | 239.2562', '-5-_[Brunei_| BN [Brunel Dollar | BND | ___263.3268', '[6 [Canada | CA [Canadian Dollar | CAD_| 240.3109', 'P12 BuoZone [feu —=——S—S—S*dSCSEUR | 385.9090', '[41 [Singapore | SG [Singapore Dollar | SGD | 263.5268', '| 48 |United Kingdom [GB [SterlingPound | GBP__ [449.0675]']
-er21092026.pdf gray2x {'from': '2026-09-21', 'to': '2026-09-27', 'EUR': 385.909, 'GBP': 449.0675}
-    ['CS [Brunet | BN [Brunei Dollar | _BND_| 63.5268', '76 [Canada| CA [Canadian Dollar | CAD] 040.3149', '[12 [BuoZone [| Jéwo +t ~=EUR | _——_—385.9090', '[29 |New Zealand | NZ |New Zealand Dollar | _NZD__| 192.2318', '[ai |Singapore | SG |Singupore Dollar | SGD | 263.5268', '45 |Taiwan | TW [Taiwan Dollar | TWD 10.5737', '[48 [United Kingdom | GB Sterling Pound | GBP | __449.0675']
-er21092026.pdf thr {'from': '2026-09-21', 'to': '2026-09-27', 'GBP': 449.0675}
-    ['i [australia [AU [Australian Dollar | AUD | ___ 239.2562', 'C5 [Brunet | BN [Brunei Dollar | BND | 063.5268', '76 |Caneda | CA [Canadian Dollar | CAD__| 2403149', '29” [New Zealand | NZ |NewZealand Dollar | NZD | 192.2318', '[41 |Singapore | SG [Singapore Dollar | SGD | 263.5268', '45 |Taiwan | TW [Taiwan Dollar | TWD 10.5737', '[48 [United Kingdom | GB Sterling Pound | GBP | 449.0675']
-er21092026.pdf gray2x4 {'from': '2026-09-21', 'to': '2026-09-27'}
-    ['CS [Brunel BN [Brunel Dollar | BND | 263.5268', '76 Canada| CA |Canadian Dollar | CAD_| 2403149', '729" |New Zealand | NZ [New Zealand Dollar | NZD | 192.2318', '41 [Singapore | SG [Singapore Dollar | SGD | 263.5268', '[45 [Taiwan | TW [Taiwan Dollar | TWD | _ 103737']
-er21092026.pdf gray2x11 {'from': '2026-09-21', 'to': '2026-09-27'}
-    ['41_|Singapore | SG |Singapore Dollar | SGD | 263.5268', '45 [Taiwan | TW [TaiwanDollar | TWD [10.5737']
-er20260914.pdf plain {'from': '2026-09-14', 'to': '2026-09-20', 'GBP': 449.7115}
-    ['35 [rawan TW [Taiwan Dollar | Two [10.5235', 'ag [United Kingdom | GB [SterlingPound | GBP [449.7115']
-er20260914.pdf gray2x {'from': '2026-09-14', 'to': '2026-09-20', 'GBP': 449.7115}
-    ['ig [Euro Zone CiEwro—SCSCS~<“—~“—~*~wSCEUR 586 5614', 'a8 United Kingdom [GB [SterlingPound |= GBP [449.7115']
-er20260914.pdf thr {'from': '2026-09-14', 'to': '2026-09-20', 'GBP': 449.7115, 'USD': 333.0708}
-    ['“Ge [United Kingdom [GB [SterlingPomd =| GBP [449.7115', '| a USA US [USDollar SSS SSD 333.0708,']
-er20260914.pdf gray2x4 {'from': '2026-09-14', 'to': '2026-09-20', 'EUR': 388.5614, 'GBP': 449.7115}
-    ['[12 [Bure Zone Euro ——SSSSCSCSC*~SCiUR 3 88.5614', 'Ze TUnited Kingdom [GB [Sterling Pond «| GBP 449.7115,']
-er20260914.pdf gray2x11 {'from': '2026-09-14', 'to': '2026-09-20'}
-    []
-er07092026.pdf plain {'from': '2026-09-07', 'to': '2026-09-13', 'USD': 332.8821}
-    ['§ [Canada| CA __|Camndian Dollar | CAD |___241.4113]', '39" [New Zealand | NZ |New Zealand Dollar | NZD] 196.4337', 'P49 {USA S| SSCS USDollar =| USD 332.8821']
-er07092026.pdf gray2x {'from': '2026-09-07', 'to': '2026-09-13', 'EUR': 57207.1086, 'GBP': 450.5, 'USD': 332.8821}
-    ['57 [Canada [CA] Camndian Dollar | CAD | 241.4113', 'alas Bare Zone eawined | Emews [Fun emcees | EUR [57 207.1086', '“1a [Hongkong | HK |Hong Kong Dollar | HKD_| 42.4570', 'Mas" Taiwan [TW [Taiwan Dollar | TWD__| 10.4911', '48 United Kingdom [GB [Sterling Pound | GBP __| 450.5000', 'rag_jUsA | us US Dollar | USD] 332.8821']
-er07092026.pdf thr {'from': '2026-09-07', 'to': '2026-09-13', 'GBP': 450.506, 'USD': 332.8821}
-    ['6 [Canada [CA [Canadian Dollar | CAD | __241.4113', '12 "|Euro Zoned dE —SSSCSCSC~sCSCURC—_—=«CS 71086', '14 [Hongkong | HK [HongKong Dollar | HKD | __ 42.4570]', '48 United Kingdom | GB [Sterling Pound | GBP | __ 450.5060', 'Tag [USA [US |USDollr | USD__[ _332.8821']
-er07092026.pdf gray2x4 {'from': '2026-09-07', 'to': '2026-09-13', 'GBP': 450.506, 'USD': 332.8821}
-    ['Tt Jaustralia | AU [Australian Dollar | AUD_[__239.9913', '6 |eanada [CA [Canadian Dollar | CAD | _241.4113', '12: {Euro Zone Samii [Ses Buy eos | BOR | 3871086', 'a1 |Singapore | SG |Singapore Dollar | _SGD__| 262.7636', '45 [Taiwan «| = TW__‘([TaiwanDollar | TWD 10.4911', '|48 [UnitedKingdom [GB [SterlingPound | GBP | 450.5060)', 'P49 [USAT SUS USDollar | USD 332.8821)']
-er07092026.pdf gray2x11 {'from': '2026-09-07', 'to': '2026-09-13', 'GBP': 430.506, 'USD': 332.8821}
-    ['Cia [Euro Zone =| Eur', '"48" [United Kingdom | GB [Sterling Pound_____| GBP] 430.5060', 'cag USA | US |US Dollar | USD__| 332.8821']
-er31082026.pdf plain {'from': '2026-08-31', 'to': '2026-09-06'}
-    []
-er31082026.pdf gray2x {'from': '2026-08-31', 'to': '2026-09-06', 'EUR': 387.4874, 'GBP': 45.1241, 'USD': 332.6603}
-    ['[é[Canads| CA [Canadian Dollar | __CAD__| 240.1562]', '[iz [Eurozone [feo] UR 387.4874', '| [ 29 |New Zealand [NZ [New Zealand Dollar | NZD | 198.3012', '[48 [United Kingdom | GB {Sterling Pound | GBP _| 45.1241]', "rag USA__—_'| US _|USDollar | usp | 332.6603]"]
-er31082026.pdf thr {'from': '2026-08-31', 'to': '2026-09-06', 'EUR': 387.4874, 'GBP': 450.1241, 'USD': 332.6603}
-    ['[Ss [Brnei_—_[ BN [Brunet Dollar | BND [261.7961', '[12 [euro Zone [euro] UR | 387.4874', '14 [Hongkong | HK [Hong Kong Dollar | HKD [42.4333', '[48 United Kingdom | GB __{Stesling Pound | GBP | 450.1241', "rag [USA —_'| US _|USDoltar | sD | 332.6603]"]
-er31082026.pdf gray2x4 {'from': '2026-08-31', 'to': '2026-09-06', 'GBP': 45.1241, 'USD': 332.6643}
-    ['37 ]Bnnei_|__BN_ [Brunet Dollar | BND | 261.7967', '[é|eanada | CA [Canadian Dollar |_CAD__ [240.1562', 'Tiz-euro Zone | |Bwro_—S~*~CSUR ‘987 4874', 'Tia [Hongkong | HK _|Hong Kong Dollar | HKD [42.4333', '[48 [United Kingdom | GB {Sterling Pound | GBP _| 45.1241]', 'ras [USA_____| US [USDollar___ | usb | 332.6643]']
-er31082026.pdf gray2x11 {'from': '2026-08-31', 'to': '2026-09-06', 'GBP': 452.1241}
-    ['[BN [Brunei Dollar |_BND', '[EUR __|', 'Tid [Hongkong | HK __|Hong Kong Dollar | HKD |', '| 29 [New Zealand [NZ [New Zealand Dollar | NZD | _198.3012)', '[a5 [Taiwan | TW |Taiwan Dollar | TWD | 10.5224]', '[48 |United Kingdom | GB {Sterling Pound | GBP_| 452.1241', 'p49 [USA | US US Dollar']
-er24082026.pdf plain {'from': '2026-08-24', 'to': '2026-08-30', 'EUR': 390.8856, 'GBP': 436.1613, 'USD': 334.2331}
-    ['[6 ]eanada | CA [Canadian Dollar | _CAD__| 242.7608 |', 'Piz |euroZone ‘| ———ifeuro—SSSCSC~*dCiUR [390.8856', '[14 [Rongkong | HK [HongKong Dollar | HKD | __42.6133]', 'aT [Singapore | SG _|Singapore Dollar | _SGD__| 263.1340]', '48 [United Kingdom | GB [Sterling Pound] GBP] 436.1613', 'p49 [USAT SUS USDollar =| USD 334.2331).']
-er24082026.pdf gray2x {'from': '2026-08-24', 'to': '2026-08-30', 'EUR': 390.8856, 'GBP': 436.1613, 'USD': 334.2331}
-    ['TT [Australia| __ AU__|Australian Dollar | AUD | __238.6424', '7 ]Canada] CA _|Canadian Dollar | CAD | 242.7608 |', 'P12 [Euro Zone | [Euro ~~~—+| EUR | 390.8856', '"ai |Singapore | SG _|Singapore Dollar | __SGD__| 263.1342]', '[45 [Taiwan | TW [Taiwan Dollar | TWD_| 10.4874', '[48 [United Kingdom | GB [Sterling Pound | GBP] 436.1613', '|49 [USAT US fUSDollar | USD 334.2331].']
-er24082026.pdf thr {'from': '2026-08-24', 'to': '2026-08-30', 'GBP': 436.1613, 'USD': 334.2331}
-    ['37 [rane] BN] Brunei Dollar | BND [263.1342', '[12 ]Euro Zone | |Euro———~—S~srCSC*iRUR*|——_—39. 886', '[14 Hongkong | HK [Hong Kong Dollar | HKD] 42.6133', 'WaT ]Singapore | SG [Singapore Dollar | _SGD__| 263.1342', '[45 [Taiwan | TW [Taiwan Dollar | TWD__| 10.4878', '[48 [United Kingdom | GB [Sterling Pound | GBP__| 436.1613', '}49 [USAT US fUSDollar =| USD 334.2331].']
-er24082026.pdf gray2x4 {'from': '2026-08-24', 'to': '2026-08-30', 'GBP': 456.1613, 'USD': 334.2331}
-    ['[Canadas] CA | Canadian Dollar | cad [247608', '[12 [Euro Zone | _|Euro—————S—~YCSCSiUR C~SC=«C90. 88S', '[14 [Hongkong | HK [Hong Kong Dollar | HKD_| 42.6133', '"aI [Singapore | SG _|Singapore Dollar | _SGD__| 263.1342', '[45 [Taiwan | _TW [Taiwan Dollar | TWD_| 10.4874', '[48 [United Kingdom | GB [Sterling Pound | GBP__| 456.1613', 'rap USA} US |USDollar_ | usb] 334.2331']
-er24082026.pdf gray2x11 {'from': '2026-08-24', 'to': '2026-08-30', 'GBP': 436.1613}
-    ['7 ]Canada] CA _|Canadian Dollar | CAD | 242.7608', '712 |Euro Zone', '[14 [Fongkong | HK _|Hong Kong Dollar | HKD | __ 42.6133', '"aT |Singapore | SG _|Singapore Dollar | _SGD__| 263.1342', '[45 [Taiwan | TW [Taiwan Dollar | TWD_| 10.4874', '748 [United Kingdom | GB [Sterling Pound | GBP__| 436.1613', '49 |USA| US US Dollar USD']
-er17082026.pdf plain {'from': '2026-08-17', 'to': '2026-08-23', 'EUR': 389.9078}
-    ['[s|Canada__ | CA_[Canadian Dollar | _CAD__| 242.6884 |', "Pi2 |EuroZone | Euro C‘dEC CS EURR__—|____—'389.9078 |"]
-er17082026.pdf gray2x {'from': '2026-08-17', 'to': '2026-08-23', 'EUR': 389.9078}
-    ['2 |EuroZone | CBr | EUR (389.9078']
-er17082026.pdf thr {'from': '2026-08-17', 'to': '2026-08-23', 'EUR': 389.9078}
-    ['P12 |EuroZone | CBr | EUR (389.9078']
-er17082026.pdf gray2x4 {'from': '2026-08-17', 'to': '2026-08-23', 'EUR': 389.9078}
-    ['2 |EuroZone | CBr | EUR (389.9078']
-er17082026.pdf gray2x11 {'from': '2026-08-17', 'to': '2026-08-23', 'EUR': 389.9078}
-    ['[6 [Canada| CA [Canadian Dollar | CAD | 242.6884', '[iz [Euro Zone | SSidEuro—SS~S SUR | _—_389.9078']
-er10082026.pdf plain {'from': '2026-08-10', 'to': '2026-08-16', 'USD': 340.1598}
-    ['7 fansite | AU [Australian Dollar | AUD | 238.9963', '2 [Euro Zone | ——iBwo—SSCS~S~dCSCSR «9.', '59 |New Zealand [_NZ__|New Zealand Dollar | Nzb__[ 199.6058', '| Pag |USA | US |USDollar ————«| usb [340.1598']
-er10082026.pdf gray2x {'from': '2026-08-10', 'to': '2026-08-16', 'EUR': 89.9661, 'GBP': 457.651, 'USD': 340.1598}
-    ['—Jaustralia—— LAU [Australian Dollar | __AUD__[__238.9963', '—S-Firneh [BN [Bnei Dollar | BND 265.1284', 'a [Euro Zone | Euro ——SSSCS~S~SSSRUR «89.9661,', ': 748 |United Kingdom | GB Sterling Pound | GBP__| 457.6510', 'Tap [USA _—| US USDollar | _USD__| 340.1598']
-er10082026.pdf thr {'from': '2026-08-10', 'to': '2026-08-16', 'EUR': 39.9661, 'GBP': 457.651, 'USD': 340.1598}
-    ['Jasin AU |Anstratian Dollar |__AUD [238.9963', '7 [EuroZone iio —SS*dY CUR | _«39.9661', '[48 [United Kingdom | GB [Sterling Pound | _OBP__| 457.6510', 'Tag [USA ‘| US USDollar | UsD__ | 340.1598']
-er10082026.pdf gray2x4 {'from': '2026-08-10', 'to': '2026-08-16', 'EUR': 91.9661, 'GBP': 457.651, 'USD': 340.1598}
-    ['[Australia «| AU _[Avstralion Dollar | —AUD__[ 238.9963', '—JBrne’ | BN [Brunei Dollar | BND | _265.1284', '7 TEuroZone | ido SSCSCSC*dCSCSEUR 91.9661', 'Tai [Singapore [SG Singapore Dollar |_SGD__| 265.1284', 'a8 [United Kingdom | GB [Sterling Pound___| BP | __457.6510', 'rag |USA| US |USDollar | usp__[ 340.1598']
-er10082026.pdf gray2x11 {'from': '2026-08-10', 'to': '2026-08-16', 'GBP': 457.651}
-    ['[12 [Euro Zone', 'Tai [Singapore [SG Singapore Dollar |_SGD__| 265.1284', '748 |United Kingdom | GB Sterling Pound | GBP__| 457.6510', 'rag JUSA | US |US Dollar']
-er20260803.pdf plain {'from': '2026-08-03', 'to': '2026-08-09', 'EUR': 891.822, 'USD': 340.3301}
-    ['Pia Soo Zeip tft os (Boo eh ee | EUR] 891.8220', 'rag JUSA | ~—US (US Dollar | USD 340.3301]']
-er20260803.pdf gray2x {'from': '2026-08-03', 'to': '2026-08-09', 'EUR': 391.822, 'USD': 340.3301}
-    ['a Buro Zone Euro —SSCSCSC~YSC BUR 391.8220', '“Ze [United Kingdom | GB |Sterling Pound | GBP__| 457.914', 'ap usa | US |usDollar | uSD_[ 340.3301']
-er20260803.pdf thr {'from': '2026-08-03', 'to': '2026-08-09', 'EUR': 591.822, 'GBP': 457.9141}
-    ['2 [eure Zone Ero —SSSC*CCER 591.8220', '“FU [Sineapore | SG [Singapore Dollar | SGD | 265.0959', '| “45 }Taiwan | TW _|TaiwanDollar | TWD | __(10.4862]', '7 |United Kingdom | GB |Sterling Pound | OBP__|___ 457.9141', 'Fay |USA| US |usDollr | _usd_|[ 3403201']
-er20260803.pdf gray2x4 {'from': '2026-08-03', 'to': '2026-08-09', 'GBP': 457.9141}
-    ['-F-New Zealand | NZ |New Zealand Dollar | N@D__[ 199.7938', '49 [USA] US (USDollar', '(GBP | 457.9141]', 'USD']
-er20260803.pdf gray2x11 {'from': '2026-08-03', 'to': '2026-08-09'}
-    ['New Zealand Dollar | _NZD__', 'GBP', 'USD']
+  USD: cell readings [], text reading 335.1947, CBSL 330.6231 -> None
+  EUR: cell readings [], text reading 376.8259, CBSL 371.6865 -> None
+  GBP: cell readings [], text reading 442.3564, CBSL 436.3233 -> None
+er05102026.pdf {'from': '2026-10-05', 'to': '2026-10-11'}
+  USD: cell readings [], text reading None, CBSL 330.3522 -> None
+  EUR: cell readings [], text reading None, CBSL 375.8417 -> None
+  GBP: cell readings [], text reading None, CBSL 436.6595 -> None
+er28092026.pdf {'from': '2026-09-28', 'to': '2026-10-04'}
+  USD: cell readings [], text reading None, CBSL 332.1338 -> None
+  EUR: cell readings [], text reading 385.909, CBSL 381.3228 -> None
+  GBP: cell readings [], text reading 449.0675, CBSL 443.7308 -> None
+er21092026.pdf {'from': '2026-09-21', 'to': '2026-09-27'}
+  USD: cell readings [], text reading None, CBSL 328.5966 -> None
+  EUR: cell readings [], text reading None, CBSL 381.3692 -> None
+  GBP: cell readings [], text reading 449.7115, CBSL 443.6711 -> None
+er20260914.pdf {'from': '2026-09-14', 'to': '2026-09-20'}
+  USD: cell readings [], text reading 332.8821, CBSL 328.3642 -> None
+  EUR: cell readings [], text reading None, CBSL 381.8547 -> None
+  GBP: cell readings [], text reading None, CBSL 444.3917 -> None
+er07092026.pdf {'from': '2026-09-07', 'to': '2026-09-13'}
+  USD: cell readings [], text reading None, CBSL 328.6088 -> None
+  EUR: cell readings [], text reading None, CBSL 382.7635 -> None
+  GBP: cell readings [], text reading None, CBSL 446.6122 -> None
+er31082026.pdf {'from': '2026-08-31', 'to': '2026-09-06'}
+  USD: cell readings [], text reading 334.2331, CBSL 330.1657 -> None
+  EUR: cell readings [], text reading 390.8856, CBSL 386.1288 -> None
+  GBP: cell readings [], text reading 436.1613, CBSL 450.6101 -> None
+er24082026.pdf {'from': '2026-08-24', 'to': '2026-08-30'}
+  USD: cell readings [], text reading None, CBSL 333.5952 -> None
+  EUR: cell readings [], text reading 389.9078, CBSL 384.8354 -> None
+  GBP: cell readings [], text reading None, CBSL 450.0533 -> None
+er17082026.pdf {'from': '2026-08-17', 'to': '2026-08-23'}
+  USD: cell readings [], text reading 340.1598, CBSL 335.4267 -> None
+  EUR: cell readings [], text reading None, CBSL 386.5122 -> None
+  GBP: cell readings [], text reading None, CBSL 451.2831 -> None
+er10082026.pdf {'from': '2026-08-10', 'to': '2026-08-16'}
+  USD: cell readings [18.1693, 18.1693], text reading 340.3301, CBSL 336.0466 -> None
+  EUR: cell readings [], text reading 891.822, CBSL 386.8905 -> None
+  GBP: cell readings [], text reading None, CBSL 452.1507 -> None
+er20260803.pdf {'from': '2026-08-03', 'to': '2026-08-09'}
+  USD: cell readings [], text reading None, CBSL 336.2576 -> None
+  EUR: cell readings [], text reading None, CBSL 382.7957 -> None
+  GBP: cell readings [], text reading None, CBSL 447.8615 -> None
+er27072026.pdf {'from': '2026-07-27', 'to': '2026-08-02'}
+  USD: cell readings [], text reading None, CBSL 336.3055 -> None
+  EUR: cell readings [], text reading 389.828, CBSL 384.6999 -> None
+  GBP: cell readings [], text reading 458.9058, CBSL 452.869 -> None
+er20260720_1.pdf {'from': '2026-07-20', 'to': '2026-07-26'}
