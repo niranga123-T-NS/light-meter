@@ -14,18 +14,16 @@ jobs:
           UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36'
           i=0
           for u in \
-            https://www.cbsl.gov.lk/cbsl_custom/param/ratewindow.php \
-            https://www.cbsl.gov.lk/en/rates-and-indicators/exchange-rates \
-            https://www.cbsl.gov.lk/en/rates-and-indicators/exchange-rates/daily-indicative-usd-rates \
-            https://www.cbsl.gov.lk/en/rates-and-indicators/exchange-rates/daily-buying-and-selling-rate \
-            https://www.cbsl.gov.lk/rates-and-indicators/exchange-rates \
-            https://www.combank.lk/rates-tariff \
-            https://www.customs.gov.lk/exchange-rates/ \
-            https://www.customs.gov.lk/ \
-            "https://api.frankfurter.dev/v1/latest?base=USD&symbols=EUR,GBP" \
-            "https://api.frankfurter.dev/v2/rates?providers=CBSL" ; do
+            "https://api.frankfurter.dev/v2/providers" \
+            "https://api.frankfurter.dev/v2/rates?providers=CBSL&base=USD&quotes=LKR,EUR,GBP" \
+            "https://api.frankfurter.dev/v2/rates?providers=CBSL&base=LKR" \
+            "https://api.frankfurter.dev/v2/rates?from=2026-09-25&providers=CBSL&base=USD&quotes=LKR" \
+            "https://frankfurter.dev/providers/cbsl/" \
+            "https://frankfurter.dev/docs/" \
+            https://www.customs.gov.lk/wp-content/uploads/2026/10/er05102026.pdf \
+            https://www.customs.gov.lk/wp-content/uploads/2026/09/er20260914.pdf ; do
             i=$((i+1)); echo "== $i $u" | tee -a index.txt
-            curl -sS -L -m 40 -A "$UA" -o "p$i.html" -w "%{http_code} %{size_download} %{url_effective}\n" "$u" 2>&1 | tee -a index.txt || true
+            curl -sS -L -m 40 -A "$UA" -o "q$i.bin" -w "%{http_code} %{size_download} %{url_effective}\n" "$u" 2>&1 | tee -a index.txt || true
           done
           ls -la
       - run: |
