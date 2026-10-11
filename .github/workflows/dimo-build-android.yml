@@ -72,6 +72,7 @@ jobs:
           url=$(jq -r '.[0].artifacts.buildUrl // .[0].artifacts.applicationArchiveUrl // empty' build.json)
           id=$(jq -r '.[0].id' build.json)
           project=$(jq -r '.[0].project.fullName // empty' build.json); project=${project#@}
+          echo "::notice title=Android download::$url"
           {
             echo "### Android build finished (${{ inputs.profile }})"
             echo ""
