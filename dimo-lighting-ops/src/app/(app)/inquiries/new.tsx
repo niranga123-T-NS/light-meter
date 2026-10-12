@@ -84,12 +84,12 @@ export default function NewInquiry() {
       });
     }
   }, [params.edit, params.visit, params.project]);
-  // From a quick calculation (Sales Tools): the room, target, fittings and existing lighting as the brief
+  // From a DLux calculation (Sales Tools): the room, target, fittings and existing lighting as the brief
   useEffect(() => {
     if (!params.calc || params.edit) return;
     supabase.from('quick_calcs').select('code, title, results').eq('id', params.calc).maybeSingle().then(({ data: q }) => {
       const brief = (q?.results as { brief?: string } | null)?.brief;
-      if (q && brief) setF((s) => ({ ...s, scope_description: s.scope_description || `${q.title} (quick calculation ${q.code})\n${brief}` }));
+      if (q && brief) setF((s) => ({ ...s, scope_description: s.scope_description || `${q.title} (DLux calculation ${q.code})\n${brief}` }));
     });
   }, [params.calc, params.edit]);
 

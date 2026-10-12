@@ -9,7 +9,7 @@ import { supabase } from '@/lib/supabase';
 
 type Tariff = { id: string; supplier: string; code: string; name: string; rate: number | null; note: string | null; effective_from: string | null; updated_by: string | null };
 
-/** Electricity tariffs for the savings in Quick calculations – the rates kept by SM Projects, GM / DGM or the Design Manager */
+/** Electricity tariffs for the savings in DLux calculations – the rates kept by SM Projects, GM / DGM or the Design Manager */
 export default function Tariffs() {
   const me = useMe();
   const dialog = useDialog();
@@ -46,7 +46,7 @@ export default function Tariffs() {
   return (
     <Screen maxWidth={900}>
       <Stack.Screen options={{ title: 'Electricity tariffs' }} />
-      <Muted>CEB and LECO customer categories used for the savings in Quick calculations. Enter the rates from the current PUCSL tariff schedule; until a rate is set, the sales person types the client’s rate.</Muted>
+      <Muted>CEB and LECO customer categories used for the savings in DLux calculations. Enter the rates from the current PUCSL tariff schedule; until a rate is set, the sales person types the client’s rate.</Muted>
       {missing ? <Notice tone={colors.amber}>{`${missing} categories have no rate yet.${editor ? ' Tap a row to set it.' : ''}`}</Notice> : null}
       <DataTable
         rows={data}

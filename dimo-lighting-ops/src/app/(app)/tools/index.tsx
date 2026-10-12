@@ -9,7 +9,7 @@ import { TOOLS_ROLES } from '@/lib/standards';
 
 type Tab = 'standards' | 'catalogs' | 'lux' | 'calc';
 
-/** Sales Tools: Standards, Catalogs, Lux meter (Android app only) and Quick calculations */
+/** Sales Tools: Standards, Catalogs, Lux meter (Android app only) and DLux lighting calculations */
 export default function SalesTools() {
   const me = useMe();
   const params = useLocalSearchParams<{ tab?: Tab }>();
@@ -27,7 +27,7 @@ export default function SalesTools() {
           { value: 'standards', label: 'Standards' },
           { value: 'catalogs', label: 'Catalogs' },
           ...(android ? [{ value: 'lux' as Tab, label: 'Lux meter' }] : []),
-          { value: 'calc', label: 'Quick calc' },
+          { value: 'calc', label: 'DLux' },
         ]}
       />
       {tab === 'standards' ? (
