@@ -7138,6 +7138,27 @@ end $$;
 reset role;
 rollback to savepoint qcalc;
 
+-- Alert schedules: GM / DGM see and change them; others cannot
+savepoint alerts;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ begin
+  assert jsonb_array_length(public.alert_schedules()) >= 40, 'all alert jobs listed';
+  begin perform public.set_alert_schedule('fx-tick', 'every day', true); assert false, 'bad schedule';
+  exception when others then assert sqlerrm like '%valid schedule%', sqlerrm; end;
+  begin perform public.set_alert_schedule('toolbox-tick', '* * * * *', true); assert false, 'too often';
+  exception when others then assert sqlerrm like '%5 minutes%', sqlerrm; end;
+  begin perform public.set_alert_schedule('nope', '0 3 * * *', true); assert false, 'unknown';
+  exception when others then assert sqlerrm like '%Unknown alert%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  begin perform public.alert_schedules(); assert false, 'gm only';
+  exception when others then assert sqlerrm like '%GM / DGM%', sqlerrm; end;
+end $$;
+reset role;
+rollback to savepoint alerts;
+
 -- High level user: view only, at most one day, ends by itself
 savepoint hl1;
 select pg_temp.act_as('gm'); set role authenticated;

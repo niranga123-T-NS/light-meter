@@ -3,13 +3,14 @@ import { useState } from 'react';
 import { useDialog } from '@/components/dialog';
 import { Avatar, Button, Card, colors, ErrorBanner, ListRow, Muted, Notice, Pill, Row, Screen, Section, Segmented } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { fmtDate, fmtWorkDays, todayISO, WORKING_HOURS_PER_DAY } from '@/lib/format';
-import { clearPeopleCache, loadMasters, useLoad } from '@/lib/hooks';
+import { fmtDate, fmtDateTime, fmtWorkDays, todayISO, WORKING_HOURS_PER_DAY } from '@/lib/format';
+import { clearPeopleCache, loadMasters, useLoad, usePeople } from '@/lib/hooks';
 import { PROJECT_TYPES, ROLE_LABELS, ROLE_SHORT } from '@/lib/roles';
+import { DAY_OPTIONS, daysLabel, describe, toCron, toPlan, type AlertJob } from '@/lib/alertSchedule';
 import { callFunction, rpc, supabase } from '@/lib/supabase';
 import type { Profile, Role } from '@/lib/types';
 
-type Tab = 'users' | 'masters' | 'sla' | 'settings' | 'calendar' | 'brands' | 'competitors';
+type Tab = 'users' | 'alerts' | 'masters' | 'sla' | 'settings' | 'calendar' | 'brands' | 'competitors';
 const ROLES = Object.keys(ROLE_LABELS) as Role[];
 
 /** Administration: users and roles, master lists, SLA rules, settings, holidays, exchange rates, brands, competitors. */
@@ -25,6 +26,7 @@ export default function Admin() {
         onChange={setTab}
         options={[
           { value: 'users', label: 'Users' },
+          ...(['gm', 'sys_admin'].includes(me.role) ? [{ value: 'alerts' as Tab, label: 'Alerts' }] : []),
           { value: 'masters', label: 'Master lists' },
           { value: 'sla', label: 'SLA rules' },
           { value: 'settings', label: 'Settings' },
@@ -35,10 +37,11 @@ export default function Admin() {
       />
       {me.role === 'gm' && tab === 'calendar' ? (
         <Notice>You can set the monthly USD → LKR exchange rate here. Holidays are entered by the System Administrator.</Notice>
-      ) : me.role !== 'sys_admin' && tab !== 'users' && tab !== 'competitors' ? (
+      ) : me.role !== 'sys_admin' && tab !== 'users' && tab !== 'competitors' && tab !== 'alerts' ? (
         <Notice>Changes to SLA settings and master data are made by the System Administrator and approved by GM / DGM.</Notice>
       ) : null}
       {tab === 'users' ? <Users /> : null}
+      {tab === 'alerts' ? <Alerts /> : null}
       {tab === 'masters' ? <Masters /> : null}
       {tab === 'sla' ? <SlaRules /> : null}
       {tab === 'settings' ? <Settings /> : null}
@@ -413,5 +416,103 @@ function Competitors() {
         ))}
       </Card>
     </Section>
+  );
+}
+
+/** Alerts: when each alert job runs and how often (Sri Lanka time), or paused – GM / DGM and the System Administrator */
+function Alerts() {
+  const dialog = useDialog();
+  const people = usePeople();
+  const { data, error, reload } = useLoad(() => rpc<AlertJob[]>('alert_schedules'));
+  if (!data) return error ? <ErrorBanner message={error} /> : <Muted>Loading…</Muted>;
+  const areas = [...new Set(data.map((a) => a.area))];
+
+  const edit = async (a: AlertJob) => {
+    const cur = toPlan(a.schedule ?? a.default_schedule) ?? { freq: 'daily' as const, every: 15, minute: 0, time: '09:00', days: '*' };
+    const dayOpts = DAY_OPTIONS.some((d) => d.value === cur.days) ? DAY_OPTIONS : [{ value: cur.days, label: `${daysLabel(cur.days)} (now)` }, ...DAY_OPTIONS];
+    const r = await dialog.prompt({
+      title: a.title,
+      message: `${a.description}. Times are Sri Lanka time. Now: ${describe(a.schedule)}${a.active === false ? ' (paused)' : ''}. Default: ${describe(a.default_schedule)}.`,
+      fields: [
+        {
+          key: 'freq',
+          label: 'How often',
+          type: 'select',
+          required: true,
+          initial: cur.freq === 'minutes' ? String(cur.every) : cur.freq,
+          options: [
+            { value: '5', label: 'Every 5 minutes' },
+            { value: '10', label: 'Every 10 minutes' },
+            { value: '15', label: 'Every 15 minutes' },
+            { value: '30', label: 'Every 30 minutes' },
+            { value: 'hourly', label: 'Every hour' },
+            { value: 'daily', label: 'Once a day, at a set time' },
+          ],
+        },
+        { key: 'time', label: 'Time (once a day) – HH:MM', initial: cur.time, hint: 'e.g. 09:00 or 16:30' },
+        { key: 'minute', label: 'Minute past the hour (every hour)', initial: String(cur.minute), hint: '0 – 59' },
+        { key: 'days', label: 'Days', type: 'select', required: true, initial: cur.days, options: dayOpts },
+        { key: 'on', label: 'Status', type: 'select', required: true, initial: a.active === false ? 'off' : 'on', options: [{ value: 'on', label: 'On' }, { value: 'off', label: 'Paused – no alerts sent' }] },
+        { key: 'reason', label: 'Reason for the change', type: 'multiline' },
+      ],
+      confirmLabel: 'Save',
+    });
+    if (!r) return;
+    const minutes = ['5', '10', '15', '30'].includes(r.freq);
+    if (r.freq === 'daily' && !/^([01]\d|2[0-3]):[0-5]\d$/.test(r.time.trim())) return dialog.toast('Enter the time as HH:MM, e.g. 09:00', 'error');
+    const minute = Number(r.minute);
+    if (r.freq === 'hourly' && !(Number.isInteger(minute) && minute >= 0 && minute <= 59)) return dialog.toast('Minute past the hour: 0 to 59', 'error');
+    const cron = toCron({ freq: minutes ? 'minutes' : (r.freq as 'hourly' | 'daily'), every: minutes ? Number(r.freq) : 60, minute, time: r.time.trim(), days: r.days });
+    await dialog.run(async () => {
+      await rpc('set_alert_schedule', { p_job: a.job, p_schedule: cron, p_active: r.on !== 'off', p_reason: r.reason || null });
+      await reload();
+    }, `Saved – ${describe(cron)}${r.on === 'off' ? ', paused' : ''}`);
+  };
+  const reset = async (a: AlertJob) => {
+    if (await dialog.confirm(`Back to the default for ${a.title}?`, describe(a.default_schedule), { confirmLabel: 'Reset' }))
+      await dialog.run(async () => {
+        await rpc('set_alert_schedule', { p_job: a.job, p_schedule: a.default_schedule, p_active: true, p_reason: 'Reset to the default' });
+        await reload();
+      }, 'Reset');
+  };
+
+  return (
+    <>
+      <Notice>
+        When each alert job runs and how often – in Sri Lanka time. A job that checks every few minutes sends each alert once, when it falls due; a daily job sends at
+        its time. The day and value limits inside the alerts (e.g. days before expiry) are under Settings. Every change is logged.
+      </Notice>
+      {areas.map((area) => (
+        <Section key={area} title={area}>
+          <Card style={{ padding: 0, overflow: 'hidden' }}>
+            {data
+              .filter((a) => a.area === area)
+              .map((a) => (
+                <ListRow
+                  key={a.job}
+                  title={a.title}
+                  subtitle={[
+                    a.description,
+                    a.recipients ? `To: ${a.recipients}` : null,
+                    a.last_run ? `Last run ${fmtDateTime(a.last_run.at)}${a.last_run.status !== 'succeeded' ? ` – ${a.last_run.status}` : ''}` : null,
+                    a.changed_at ? `Changed by ${people[a.changed_by ?? '']?.full_name ?? ''} · ${fmtDateTime(a.changed_at)}` : null,
+                  ]
+                    .filter(Boolean)
+                    .join('\n')}
+                  right={
+                    <Row gap={6} wrap style={{ justifyContent: 'flex-end' }}>
+                      <Pill label={!a.scheduled ? 'Not scheduled' : a.active === false ? 'Paused' : describe(a.schedule)} tone={!a.scheduled || a.active === false ? colors.grey : a.schedule === a.default_schedule ? colors.blue : colors.amber} />
+                      {a.scheduled ? <Button small variant="ghost" title="Change" onPress={() => edit(a)} /> : null}
+                      {a.scheduled && (a.schedule !== a.default_schedule || a.active === false) ? <Button small variant="ghost" title="Default" onPress={() => reset(a)} /> : null}
+                    </Row>
+                  }
+                  wrapRight
+                />
+              ))}
+          </Card>
+        </Section>
+      ))}
+      <Muted>Blue: default schedule · amber: changed · grey: paused.</Muted>
+    </>
   );
 }
