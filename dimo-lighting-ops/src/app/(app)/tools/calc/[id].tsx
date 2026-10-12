@@ -224,10 +224,10 @@ export default function QuickCalc() {
       rw: f.rw ?? 0.5,
       rf: f.rf ?? 0.2,
     };
-    const fit = { type: f.type, watts: f.watts ?? 0, lumens: f.lumens ?? 0, name: f.fname, lumL: f.lumL, lumW: f.lumW, rot: f.rot ?? 0, photo: f.dist === 'ies' ? photo : null };
+    const fit = { type: f.type, watts: f.watts ?? 0, lumens: f.lumens ?? 0, name: f.fname, lumL: f.lumL, lumW: f.lumW, rot: f.rot ?? 0, photo: f.dist === 'ies' && f.ies_id ? photo : null };
     const mf = f.mf ?? 0.8;
     const poly = outline(room);
-    if ((!room.drop && !(room.mount - room.plane > 0)) || !(fit.lumens > 0) || poly.length < 3 || (f.dist === 'ies' && !photo)) return { room, fit, mf, poly, positions: [] as Pt[], r: null, auto: null };
+    if ((!room.drop && !(room.mount - room.plane > 0)) || !(fit.lumens > 0) || poly.length < 3 || (f.dist === 'ies' && !!f.ies_id && !photo)) return { room, fit, mf, poly, positions: [] as Pt[], r: null, auto: null };
     const layout = f.layout ?? 'auto';
     const auto = layout !== 'auto' || f.count ? null : suggestCount(room, fit, mf, f.target ?? 300, f.uo);
     const positions: Lum[] =
@@ -304,7 +304,7 @@ export default function QuickCalc() {
   const lit = { lumL: f.lumL ?? (photo?.lenMm || ftype?.size[0] || 600), lumW: f.lumW ?? (photo?.widMm || ftype?.size[1] || 600), rot: f.rot ?? 0 };
   const surfaces: Surfaces = { ceiling: f.cCol ?? '#F5F5F2', walls: f.wCol ?? '#ECE7DA', floor: f.fCol ?? '#A7A39A' };
   const canLibrary = ['design_manager', 'lighting_designer', 'lighting_engineer', 'sm_projects', 'gm', 'sys_admin'].includes(me.role);
-  const photoLabel = f.dist === 'ies' && ies ? `IES file: ${ies.name}${ies.manufacturer ? ` (${ies.manufacturer})` : ''} · ${ies.beam}° beam` : `Modelled curve – ${ftype?.label ?? f.type}`;
+  const photoLabel = f.dist === 'ies' && ies && ies.id === f.ies_id ? `IES file: ${ies.name}${ies.manufacturer ? ` (${ies.manufacturer})` : ''} · ${ies.beam}° beam` : `Modelled curve – ${ftype?.label ?? f.type}`;
   const roofLabel = ROOFS.find((x) => x.value === (f.roof ?? 'flat'))?.label ?? 'Flat ceiling';
   const shapeText = f.shape === 'free' ? 'drawn plan' : f.shape === 'rect' ? `${f.length} × ${f.width} m` : f.shape === 'circle' ? `circle ${f.length} m across` : `${SHAPES.find((x) => x.value === f.shape)?.label} ${f.length} × ${f.width} m`;
   const ugr = f.ugrSheet ?? r?.ugr.max ?? null;
@@ -549,7 +549,7 @@ export default function QuickCalc() {
               ) : f.ies_id ? (
                 <Muted>Reading the IES file…</Muted>
               ) : (
-                <Notice tone={colors.amber}>Choose an IES file from the uploaded files, or browse and attach one.</Notice>
+                <Notice tone={colors.amber}>No IES file chosen – the result below uses the curve modelled on the fitting type until you choose or attach one.</Notice>
               )}
             </>
           ) : null}
@@ -730,7 +730,7 @@ export default function QuickCalc() {
           <Notice tone={colors.amber}>
             {f.shape === 'free' && f.closed === false
               ? 'Close the drawn plan (tap its first corner) to see the result.'
-              : f.dist === 'ies' && !photo
+              : f.dist === 'ies' && f.ies_id && !photo
                 ? 'Choose the IES file of the fitting to see the result.'
                 : (f.layout ?? 'auto') === 'manual' && !(f.lights ?? []).length
                   ? 'Place the fittings on the plan in ③ to see the result.'
