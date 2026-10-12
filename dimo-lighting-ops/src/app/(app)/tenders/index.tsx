@@ -6,14 +6,16 @@ import { useMe } from '@/lib/auth';
 import { fmtDate, fmtMoney } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import { supabase } from '@/lib/supabase';
-import { TENDER_EDITORS, TENDER_RESULT, tenderClient, tenderProject, type Tender, type TenderBid } from '@/lib/tenders';
+import { isQuote, resultLabel, TENDER_EDITORS, TENDER_RESULT, tenderClient, tenderProject, type Tender, type TenderBid } from '@/lib/tenders';
 
 type Filter = 'all' | 'opened' | 'won' | 'lost' | 'noboq';
+type Kind = 'all' | 'tender' | 'quotation';
 
-/** Tender results: every tender with our price, the bidders, the result and its BOQ – also past tenders entered by the Estimation team */
+/** Offers & competition: every tender and quotation with our price, the competitors, the result and its BOQ – also past ones entered by the Estimation team */
 export default function TenderList() {
   const me = useMe();
   const [filter, setFilter] = useState<Filter>('all');
+  const [kind, setKind] = useState<Kind>('all');
   const [q, setQ] = useState('');
   const { data, error, loading, reload } = useLoad(async () => {
     const t = await supabase.from('tenders').select('*').order('opening_date', { ascending: false }).limit(2000);
@@ -46,6 +48,7 @@ export default function TenderList() {
   };
   const shown = data.rows.filter(
     (t) =>
+      (kind === 'all' || (kind === 'quotation') === isQuote(t)) &&
       (filter === 'all' ||
         (filter === 'opened' && t.result_status === 'opened') ||
         (filter === 'won' && t.result_status === 'awarded_to_us') ||
@@ -55,10 +58,10 @@ export default function TenderList() {
   );
   return (
     <Screen maxWidth={1200} refreshing={loading} onRefresh={reload}>
-      <Stack.Screen options={{ title: 'Tender results' }} />
+      <Stack.Screen options={{ title: 'Offers & competition' }} />
       <Muted>
-        Every tender with our price, the other bidders and the result. Sales record them from the tender visit; the Estimation team can add past tenders, attach the BOQ
-        and fill in the competitors’ brands and item prices as they learn more – tap a tender, then a competitor.
+        Every tender and quotation with our price, the competitors and the result. Tenders come from the sales visit, quotations from “Record competitors” on the
+        inquiry; the Estimation team can add past ones, attach the BOQ and fill in the competitors’ brands and item prices as they learn more – tap a row, then a competitor.
       </Muted>
       <Row wrap gap={8} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
         <Segmented
@@ -72,22 +75,34 @@ export default function TenderList() {
             { value: 'noboq', label: 'BOQ missing', badge: data.rows.filter((t) => !data.boq.has(t.id)).length },
           ]}
         />
-        {canAdd ? <Button title="+ Tender result" onPress={() => router.push('/tenders/edit')} /> : null}
+        <Row gap={8}>
+          <Button variant="secondary" title="Competitors" onPress={() => router.push('/competitors')} />
+          {canAdd ? <Button title="+ Past tender / quotation" onPress={() => router.push('/tenders/edit')} /> : null}
+        </Row>
       </Row>
+      <Segmented
+        value={kind}
+        onChange={setKind}
+        options={[
+          { value: 'all', label: 'Tenders and quotations' },
+          { value: 'tender', label: 'Tenders', badge: data.rows.filter((t) => !isQuote(t)).length },
+          { value: 'quotation', label: 'Quotations', badge: data.rows.filter(isQuote).length },
+        ]}
+      />
       <Field label="Search" value={q} onChangeText={setQ} placeholder="Tender no., name, client or project" />
       <DataTable
         rows={shown}
         keyOf={(t) => t.id}
         onPress={(t) => router.push(`/tenders/${t.id}`)}
         edge={(t) => TENDER_RESULT[t.result_status].tone}
-        emptyTitle="No tender results"
+        emptyTitle="Nothing recorded yet"
         columns={[
-          { h: 'Opened', w: 95, v: (t) => fmtDate(t.opening_date) },
-          { h: 'Tender', w: 260, grow: true, v: (t) => `${t.tender_no} · ${t.tender_name}\n${tenderClient(t)} · ${tenderProject(t)}` },
+          { h: 'Date', w: 95, v: (t) => fmtDate(t.opening_date) },
+          { h: 'Tender / quotation', w: 260, grow: true, v: (t) => `${isQuote(t) ? 'Quotation ' : ''}${t.tender_no} · ${t.tender_name}\n${tenderClient(t)} · ${tenderProject(t)}` },
           { h: 'Our price', w: 140, right: true, v: (t) => (t.our_price != null ? fmtMoney(t.our_price, t.currency) : '—') },
           { h: 'Lowest bid', w: 140, right: true, v: (t) => (lowest(t) != null ? fmtMoney(lowest(t), t.currency) : '—') },
           { h: 'Position', w: 70, right: true, v: (t) => (rank(t) ? `L${rank(t)}` : '—') },
-          { h: 'Result', w: 180, v: (t) => <Pill label={TENDER_RESULT[t.result_status].label} tone={TENDER_RESULT[t.result_status].tone} /> },
+          { h: 'Result', w: 180, v: (t) => <Pill label={resultLabel(t)} tone={TENDER_RESULT[t.result_status].tone} /> },
           { h: 'BOQ', w: 90, v: (t) => (data.boq.has(t.id) ? <Pill label="Attached" tone={colors.green} /> : <Pill label="Missing" tone={colors.amber} />) },
         ]}
       />

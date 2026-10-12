@@ -1,4 +1,4 @@
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Text } from 'react-native';
 import { Attachments } from '@/components/Attachments';
 import { DataTable } from '@/components/DataTable';
@@ -8,7 +8,7 @@ import { useMe } from '@/lib/auth';
 import { fmtDateTime, fmtMoney, fmtNumber } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { supabase } from '@/lib/supabase';
-import { TENDER_EDITORS, type BidLine, type Tender, type TenderBid } from '@/lib/tenders';
+import { isQuote, TENDER_EDITORS, type BidLine, type Tender, type TenderBid } from '@/lib/tenders';
 
 const num = (v?: string) => (v ? Number(v.replace(/,/g, '')) : null);
 
@@ -34,6 +34,10 @@ export default function BidScreen() {
   const cur = t.currency;
   const canEdit = TENDER_EDITORS.includes(me.role) || t.sales_person_id === me.id;
   const total = lines.reduce((s, l) => s + Number(l.qty ?? 0) * Number(l.unit_price ?? 0), 0);
+  const both = lines.filter((l) => l.unit_price != null && l.our_unit_price != null && l.qty != null);
+  const oursTotal = both.reduce((s, l) => s + Number(l.qty) * Number(l.our_unit_price), 0);
+  const theirsTotal = both.reduce((s, l) => s + Number(l.qty) * Number(l.unit_price), 0);
+  const diff = (theirs: number, ours: number) => (ours ? `${theirs >= ours ? '+' : ''}${(((theirs - ours) / ours) * 100).toFixed(1)}%` : '—');
   const run = (fn: () => PromiseLike<{ error: { message: string } | null }>, ok: string) =>
     dialog.run(async () => {
       const { error: e } = await fn();
@@ -47,6 +51,7 @@ export default function BidScreen() {
       fields: [
         { key: 'p', label: `Bid price (${cur})`, initial: bid.bid_price != null ? String(bid.bid_price) : '' },
         { key: 'b', label: 'Brand(s)', hint: 'Comma separated', initial: (bid.brands ?? []).join(', ') },
+        { key: 'won', label: isQuote(t) ? 'Did they get the order?' : 'Were they awarded?', type: 'select', initial: bid.won ? 'yes' : 'no', options: [{ value: 'no', label: 'No' }, { value: 'yes', label: 'Yes – they won it' }] },
         { key: 'ok', label: 'Compliant', type: 'select', initial: bid.compliant ? 'yes' : 'no', options: [{ value: 'yes', label: 'Compliant' }, { value: 'no', label: 'Not compliant' }] },
         { key: 'd', label: 'Delivery period', initial: bid.delivery_period ?? '' },
         { key: 'v', label: 'Validity', initial: bid.validity ?? '' },
@@ -59,7 +64,7 @@ export default function BidScreen() {
         () =>
           supabase
             .from('tender_bids')
-            .update({ bid_price: num(r.p), brands: r.b.split(',').map((x) => x.trim()).filter(Boolean), compliant: r.ok !== 'no', delivery_period: r.d || null, validity: r.v || null, remarks: r.r || null, updated_by: me.id, updated_at: new Date().toISOString() })
+            .update({ won: r.won === 'yes', bid_price: num(r.p), brands: r.b.split(',').map((x) => x.trim()).filter(Boolean), compliant: r.ok !== 'no', delivery_period: r.d || null, validity: r.v || null, remarks: r.r || null, updated_by: me.id, updated_at: new Date().toISOString() })
             .eq('id', bid.id),
         'Saved',
       );
@@ -73,13 +78,14 @@ export default function BidScreen() {
         { key: 'model', label: 'Model', initial: l?.model ?? '' },
         { key: 'qty', label: 'Quantity', initial: l?.qty != null ? String(l.qty) : '' },
         { key: 'unit', label: 'Unit', initial: l?.unit ?? 'nos' },
-        { key: 'price', label: `Unit price (${cur})`, initial: l?.unit_price != null ? String(l.unit_price) : '' },
+        { key: 'price', label: `Their unit price (${cur})`, initial: l?.unit_price != null ? String(l.unit_price) : '' },
+        { key: 'ours', label: `Our unit price (${cur})`, hint: 'For comparison – from our quotation', initial: l?.our_unit_price != null ? String(l.our_unit_price) : '' },
         { key: 'rem', label: 'Remarks', initial: l?.remarks ?? '' },
       ],
       confirmLabel: l ? 'Save' : 'Add',
     });
     if (!r) return;
-    const row = { item: r.item.trim(), brand: r.brand || null, model: r.model || null, qty: num(r.qty), unit: r.unit || null, unit_price: num(r.price), remarks: r.rem || null, updated_by: me.id, updated_at: new Date().toISOString() };
+    const row = { item: r.item.trim(), brand: r.brand || null, model: r.model || null, qty: num(r.qty), unit: r.unit || null, unit_price: num(r.price), our_unit_price: num(r.ours), remarks: r.rem || null, updated_by: me.id, updated_at: new Date().toISOString() };
     await run(
       () => (l ? supabase.from('tender_bid_lines').update(row).eq('id', l.id) : supabase.from('tender_bid_lines').insert({ ...row, bid_id: bid.id, seq: (lines.at(-1)?.seq ?? 0) + 1 })),
       l ? 'Saved' : 'Added',
@@ -95,9 +101,12 @@ export default function BidScreen() {
       <Card style={{ gap: 4 }}>
         <Row style={{ justifyContent: 'space-between' }} wrap>
           <Text style={{ fontSize: 18, fontWeight: '700', color: colors.ink, flexShrink: 1 }}>{data.name}</Text>
-          {!bid.compliant ? <Pill label="Not compliant" tone={colors.red} /> : null}
+          <Row gap={6}>
+            {bid.won ? <Pill label="Won the order" tone={colors.red} solid /> : null}
+            {!bid.compliant ? <Pill label="Not compliant" tone={colors.red} /> : null}
+          </Row>
         </Row>
-        <Muted>{`${t.tender_no} · ${t.tender_name}`}</Muted>
+        <Muted>{`${isQuote(t) ? 'Quotation ' : ''}${t.tender_no} · ${t.tender_name}${t.our_price != null && bid.bid_price != null ? ` · ${diff(Number(bid.bid_price), Number(t.our_price))} against our ${fmtMoney(t.our_price, cur)}` : ''}`}</Muted>
         <KeyValue label="Bid price" value={bid.bid_price != null ? fmtMoney(bid.bid_price, cur) : 'Not known yet'} />
         <KeyValue label="Brand(s)" value={bid.brands?.length ? bid.brands.join(', ') : '—'} />
         {bid.delivery_period || bid.validity ? <KeyValue label="Delivery · validity" value={`${bid.delivery_period ?? '—'} · ${bid.validity ?? '—'}`} /> : null}
@@ -106,8 +115,13 @@ export default function BidScreen() {
         {canEdit ? (
           <Row style={{ marginTop: 6 }}>
             <Button variant="secondary" title="Change price, brands, remarks" onPress={editBid} />
+            <Button variant="ghost" title={`${data.name} – profile`} onPress={() => router.push(`/competitors/${bid.competitor_id}`)} />
           </Row>
-        ) : null}
+        ) : (
+          <Row style={{ marginTop: 6 }}>
+            <Button variant="ghost" title={`${data.name} – profile`} onPress={() => router.push(`/competitors/${bid.competitor_id}`)} />
+          </Row>
+        )}
       </Card>
 
       <Section title={`Item prices (${lines.length})`} right={canEdit ? <Button small title="+ Item" onPress={() => lineDialog()} /> : null}>
@@ -116,18 +130,30 @@ export default function BidScreen() {
           keyOf={(l) => l.id}
           onPress={canEdit ? (l) => lineDialog(l) : undefined}
           emptyTitle="No item prices yet"
-          footer={lines.length ? ['', 'Total of the items', '', '', '', fmtMoney(total, cur), ''] : undefined}
+          footer={lines.length ? ['', 'Total of the items', '', '', '', fmtMoney(total, cur), '', both.length ? diff(theirsTotal, oursTotal) : '', ...(canEdit ? [''] : [])] : undefined}
           columns={[
             { h: '#', w: 40, v: (l) => String(l.seq) },
-            { h: 'Item', w: 280, grow: true, v: (l) => l.item + (l.remarks ? `\n${l.remarks}` : '') },
-            { h: 'Brand · model', w: 180, v: (l) => [l.brand, l.model].filter(Boolean).join(' · ') || '—' },
-            { h: 'Qty', w: 90, right: true, v: (l) => (l.qty != null ? `${fmtNumber(l.qty, 0)} ${l.unit ?? ''}` : '—') },
-            { h: 'Unit price', w: 130, right: true, v: (l) => (l.unit_price != null ? fmtMoney(l.unit_price, cur) : '—') },
-            { h: 'Amount', w: 140, right: true, v: (l) => (l.qty != null && l.unit_price != null ? fmtMoney(Number(l.qty) * Number(l.unit_price), cur) : '—') },
-            { h: '', w: 90, v: (l) => (canEdit ? <Button small variant="ghost" title="Remove" onPress={() => removeLine(l)} /> : '') },
+            { h: 'Item', w: 220, grow: true, v: (l) => l.item + (l.remarks ? `\n${l.remarks}` : '') },
+            { h: 'Brand · model', w: 150, v: (l) => [l.brand, l.model].filter(Boolean).join(' · ') || '—' },
+            { h: 'Qty', w: 80, right: true, v: (l) => (l.qty != null ? `${fmtNumber(l.qty, 0)} ${l.unit ?? ''}` : '—') },
+            { h: 'Their unit price', w: 120, right: true, v: (l) => (l.unit_price != null ? fmtMoney(l.unit_price, cur) : '—') },
+            { h: 'Amount', w: 130, right: true, v: (l) => (l.qty != null && l.unit_price != null ? fmtMoney(Number(l.qty) * Number(l.unit_price), cur) : '—') },
+            { h: 'Our unit price', w: 120, right: true, v: (l) => (l.our_unit_price != null ? fmtMoney(l.our_unit_price, cur) : '—') },
+            {
+              h: 'vs ours',
+              w: 70,
+              right: true,
+              v: (l) =>
+                l.unit_price != null && l.our_unit_price != null ? (
+                  <Text style={{ fontWeight: '700', color: Number(l.unit_price) < Number(l.our_unit_price) ? colors.red : colors.green }}>{diff(Number(l.unit_price), Number(l.our_unit_price))}</Text>
+                ) : (
+                  '—'
+                ),
+            },
+            ...(canEdit ? [{ h: '', w: 80, v: (l: BidLine) => <Button small variant="ghost" title="Remove" onPress={() => removeLine(l)} /> }] : []),
           ]}
         />
-        <Muted>Tap an item to change it. Prices are as the competitor quoted them, for comparing with ours.</Muted>
+        <Muted>Tap an item to change it. Their prices are as the competitor quoted them; “vs ours” is red where they were cheaper than us, green where we were cheaper.</Muted>
       </Section>
 
       <Attachments entityType="tender_bid" entityId={bid.id} kinds={['competitor_prices', 'tender_doc']} title="Their price schedule and documents" canUpload={canEdit} />

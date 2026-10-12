@@ -7,11 +7,11 @@ import { useMe } from '@/lib/auth';
 import { fmtDate, fmtMoney } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { supabase } from '@/lib/supabase';
-import { TENDER_EDITORS, TENDER_RESULT, TENDER_TYPES, tenderClient, tenderProject, type Tender, type TenderBid } from '@/lib/tenders';
+import { isQuote, resultLabel, TENDER_EDITORS, TENDER_RESULT, TENDER_TYPES, tenderClient, tenderProject, type Tender, type TenderBid } from '@/lib/tenders';
 
 const num = (v?: string) => (v ? Number(v.replace(/,/g, '')) : null);
 
-/** One tender result: the tender, our bid and position, the BOQ (required) and the competitors – tap a competitor for their brands and item prices */
+/** One tender or quotation result: the tender / quotation, our bid and position, the BOQ (required) and the competitors – tap a competitor for their brands and item prices */
 export default function TenderScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const me = useMe();
@@ -48,6 +48,7 @@ export default function TenderScreen() {
   const rank = t.our_price != null ? 1 + priced.filter((p) => p < Number(t.our_price)).length : null;
   const sorted = [...bids].sort((a, b) => Number(a.bid_price ?? 9e15) - Number(b.bid_price ?? 9e15));
   const res = TENDER_RESULT[t.result_status];
+  const quote = isQuote(t);
 
   const addBidder = async () => {
     const r = await dialog.prompt({
@@ -88,30 +89,38 @@ export default function TenderScreen() {
 
   return (
     <Screen maxWidth={1000} onRefresh={reload}>
-      <Stack.Screen options={{ title: t.tender_no }} />
+      <Stack.Screen options={{ title: quote ? `Quotation ${t.tender_no}` : t.tender_no }} />
       <Card style={{ gap: 4 }}>
         <Row style={{ justifyContent: 'space-between' }} wrap>
           <Text style={{ fontSize: 18, fontWeight: '700', color: colors.ink, flexShrink: 1 }}>{`${t.tender_no} · ${t.tender_name}`}</Text>
-          <Pill label={res.label} tone={res.tone} solid />
+          <Pill label={resultLabel(t)} tone={res.tone} solid />
         </Row>
         <KeyValue label="Client" value={tenderClient(t, data.orgName)} />
         <KeyValue label="Project" value={tenderProject(t, data.projName)} />
-        <KeyValue label="Tender" value={`${TENDER_TYPES.find((x) => x.value === t.tender_type)?.label ?? t.tender_type} · closed ${fmtDate(t.closing_date)} · opened ${fmtDate(t.opening_date)} · ${t.currency}`} />
         <KeyValue
-          label="Our bid"
+          label={quote ? 'Quotation' : 'Tender'}
+          value={
+            quote
+              ? `Submitted ${fmtDate(t.closing_date)} · result ${fmtDate(t.opening_date)} · ${t.currency}`
+              : `${TENDER_TYPES.find((x) => x.value === t.tender_type)?.label ?? t.tender_type} · closed ${fmtDate(t.closing_date)} · opened ${fmtDate(t.opening_date)} · ${t.currency}`
+          }
+        />
+        <KeyValue
+          label={quote ? 'Our price' : 'Our bid'}
           value={`${t.our_price != null ? fmtMoney(t.our_price, t.currency) : '—'}${t.our_brands?.length ? ` · ${t.our_brands.join(', ')}` : ''}${rank ? ` · position L${rank}` : ''}${lowest != null && t.our_price != null && rank && rank > 1 ? ` · ${(((Number(t.our_price) - lowest) / Number(t.our_price)) * 100).toFixed(1)}% above the lowest` : ''}`}
         />
         {t.lost_reason ? <KeyValue label="Lost reason" value={t.lost_reason} /> : null}
         {t.evaluation_notes ? <KeyValue label="Evaluation notes" value={t.evaluation_notes} /> : null}
-        <Muted>{`${t.visit_id ? 'From the sales person’s tender visit' : 'Entered in the register'}${t.sales_person_id ? ` · sales person ${people[t.sales_person_id]?.full_name ?? ''}` : ''}${t.entered_by ? ` · entered by ${people[t.entered_by]?.full_name ?? ''}` : ''}`}</Muted>
+        <Muted>{`${t.inquiry_id ? 'From the inquiry and its quotation' : t.visit_id ? 'From the sales person’s tender visit' : 'Entered in the register'}${t.sales_person_id ? ` · sales person ${people[t.sales_person_id]?.full_name ?? ''}` : ''}${t.entered_by ? ` · entered by ${people[t.entered_by]?.full_name ?? ''}` : ''}`}</Muted>
         <Row gap={8} wrap style={{ marginTop: 6 }}>
           {canEdit ? <Button variant="secondary" title="Change" onPress={() => router.push({ pathname: '/tenders/edit', params: { id: t.id } })} /> : null}
+          {t.inquiry_id ? <Button variant="ghost" title="Open the inquiry" onPress={() => router.push(`/inquiries/${t.inquiry_id}`)} /> : null}
           {t.visit_id && (t.sales_person_id === me.id || me.role === 'sm_projects') ? <Button variant="ghost" title="Open the tender visit" onPress={() => router.push(`/visits/${t.visit_id}`)} /> : null}
         </Row>
       </Card>
 
-      {!data.hasBoq ? <Notice tone={colors.amber}>The tender BOQ is required – attach it below.</Notice> : null}
-      <Attachments entityType="tender" entityId={t.id} kinds={['tender_boq', 'tender_doc']} title="Tender BOQ and documents" canUpload={canEdit} onChange={reload} />
+      {!data.hasBoq ? <Notice tone={colors.amber}>{quote ? 'Attach the BOQ the client sent – it is needed to compare the item prices.' : 'The tender BOQ is required – attach it below.'}</Notice> : null}
+      <Attachments entityType="tender" entityId={t.id} kinds={['tender_boq', 'tender_doc']} title={quote ? 'BOQ and documents' : 'Tender BOQ and documents'} canUpload={canEdit} onChange={reload} />
 
       <Section title={`Competitors (${bids.length})`} right={canEdit ? <Button small title="+ Competitor" onPress={addBidder} /> : null}>
         <Card style={{ padding: 0, overflow: 'hidden' }}>
@@ -122,8 +131,9 @@ export default function TenderScreen() {
             <ListRow
               key={b.id}
               title={comp(b.competitor_id)}
-              subtitle={[b.brands?.length ? b.brands.join(', ') : null, b.compliant ? null : 'Not compliant', b.remarks].filter(Boolean).join(' · ') || 'Tap to add brands and item prices'}
+              subtitle={[b.won ? 'Won the order' : null, b.brands?.length ? b.brands.join(', ') : null, b.compliant ? null : 'Not compliant', b.remarks].filter(Boolean).join(' · ') || 'Tap to add brands and item prices'}
               right={<Text style={{ fontWeight: '700', color: b.compliant ? colors.ink : colors.muted }}>{b.bid_price != null ? fmtMoney(b.bid_price, t.currency) : 'price not known'}</Text>}
+              highlight={b.won ? colors.red : undefined}
               onPress={() => router.push(`/tenders/bid/${b.id}`)}
             />
           ))}
