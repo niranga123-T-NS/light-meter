@@ -80,7 +80,7 @@ const BLANK: Form = {
   setback: 0.5,
   tilt: 5,
   streetSide: 'C90',
-  dist: 'ies',
+  dist: 'model',
   ies_id: null,
   fname: '',
   watts: 100,
@@ -161,7 +161,8 @@ export default function RoadCalc() {
       streetSide: f.streetSide,
     };
     const lm = f.lumens ?? 0;
-    const ph = f.dist === 'ies' ? photo : lm > 0 ? roadModel(lm) : null;
+    // no IES file chosen yet: the typical road optic, so the simulation is always shown
+    const ph = f.dist === 'ies' && f.ies_id ? photo : lm > 0 ? roadModel(lm) : null;
     const mf = f.mf ?? 0.8;
     const res = ph ? roadCalc(road, ph, lm, f.watts ?? 0, mf) : null;
     return { road, ph, mf, res };
@@ -184,7 +185,7 @@ export default function RoadCalc() {
   const planW = Math.max(Math.min(screenW - 64, 820), 300);
   const plan = res ? roadPlanSvg(road, res, scale, planW) : null;
   const legend = plan ? legendSvg(plan.range, scale.palette, Math.min(planW - 20, 420)) : null;
-  const photoLabel = f.dist === 'ies' && ies ? `IES file: ${ies.name}${ies.manufacturer ? ` (${ies.manufacturer})` : ''}` : 'Typical road optic (approximate – use the IES file for the real result)';
+  const photoLabel = f.dist === 'ies' && ies && ies.id === f.ies_id ? `IES file: ${ies.name}${ies.manufacturer ? ` (${ies.manufacturer})` : ''}` : 'Typical road optic (approximate – use the IES file for the real result)';
   const ok = (b: boolean | undefined) => (b == null ? undefined : b ? 'green' : 'amber') as 'green' | 'amber' | undefined;
   const perKm = res ? (res.perField * 1000) / road.spacing : 0;
   const km = f.lengthKm ?? 1;
@@ -351,7 +352,7 @@ export default function RoadCalc() {
                   </View>
                 </Row>
               ) : !f.ies_id ? (
-                <Notice tone={colors.amber}>Choose the luminaire’s IES file, or browse and attach it.</Notice>
+                <Notice tone={colors.amber}>No IES file chosen – the result below uses a typical road optic until you choose or attach the luminaire’s IES file.</Notice>
               ) : (
                 <Muted>Reading the IES file…</Muted>
               )}
@@ -420,7 +421,7 @@ export default function RoadCalc() {
             {m ? <Muted>Luminance uniformity (Uo, Ul) needs the road surface’s r-table and is checked by the Design team.</Muted> : null}
           </>
         ) : (
-          <Notice tone={colors.amber}>{f.dist === 'ies' && !photo ? 'Choose the luminaire’s IES file to see the result.' : 'Complete the road width, pole spacing, height and the lumens to see the result.'}</Notice>
+          <Notice tone={colors.amber}>{f.dist === 'ies' && f.ies_id && !photo ? 'Reading the IES file…' : 'Complete the road width, pole spacing, height and the lumens to see the result.'}</Notice>
         )}
       </Section>
 
