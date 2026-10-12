@@ -20,7 +20,7 @@ export default function TenderScreen() {
   const { data, error, reload } = useLoad(async () => {
     const [t, b, c, boq] = await Promise.all([
       supabase.from('tenders').select('*').eq('id', id).single(),
-      supabase.from('tender_bids').select('*').eq('tender_id', id),
+      supabase.from('tender_bids').select('*, tender_bid_lines(count)').eq('tender_id', id),
       supabase.from('competitors').select('id, name, active').order('name'),
       supabase.from('attachments').select('id').eq('entity_type', 'tender').eq('entity_id', id).eq('kind', 'tender_boq').limit(1),
     ]);
@@ -32,7 +32,7 @@ export default function TenderScreen() {
     ]);
     return {
       t: tender,
-      bids: (b.data ?? []) as TenderBid[],
+      bids: (b.data ?? []) as (TenderBid & { tender_bid_lines: { count: number }[] })[],
       comps: (c.data ?? []) as { id: number; name: string; active: boolean }[],
       hasBoq: (boq.data ?? []).length > 0,
       orgName: (org.data as { name: string } | null)?.name ?? null,
@@ -131,7 +131,7 @@ export default function TenderScreen() {
             <ListRow
               key={b.id}
               title={comp(b.competitor_id)}
-              subtitle={[b.won ? 'Won the order' : null, b.brands?.length ? b.brands.join(', ') : null, b.compliant ? null : 'Not compliant', b.remarks].filter(Boolean).join(' · ') || 'Tap to add brands and item prices'}
+              subtitle={[b.won ? 'Won the order' : null, b.brands?.length ? b.brands.join(', ') : null, b.compliant ? null : 'Not compliant', b.remarks, b.tender_bid_lines?.[0]?.count ? `item prices (${b.tender_bid_lines[0].count})` : 'total only – tap to add item prices if known'].filter(Boolean).join(' · ')}
               right={<Text style={{ fontWeight: '700', color: b.compliant ? colors.ink : colors.muted }}>{b.bid_price != null ? fmtMoney(b.bid_price, t.currency) : 'price not known'}</Text>}
               highlight={b.won ? colors.red : undefined}
               onPress={() => router.push(`/tenders/bid/${b.id}`)}
