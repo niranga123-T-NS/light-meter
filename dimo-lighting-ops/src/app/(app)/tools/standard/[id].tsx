@@ -90,7 +90,7 @@ export default function StandardScreen() {
         {g.reviewed_at ? <Muted>{`Group reviewed on ${fmtDate(g.reviewed_at)}`}</Muted> : null}
         <Row wrap gap={8} style={{ marginTop: 6 }}>
           <Button title="Share with the client (DRAFT)" onPress={share} />
-          {s.vals?.em != null && ['indoor', 'outdoor', 'sports'].includes(s.grp) ? <Button variant="secondary" title="Use in Quick calc" onPress={() => router.push(`/tools/calc/new?std=${s.id}`)} /> : null}
+          {s.vals?.em != null && ['indoor', 'outdoor', 'sports'].includes(s.grp) ? <Button variant="secondary" title="Use in DLux" onPress={() => router.push(`/tools/calc/new?std=${s.id}`)} /> : null}
           {editor ? <Button variant="secondary" title="Change" onPress={edit} /> : null}
           {editor ? <Button variant="ghost" title="Remove" onPress={remove} /> : null}
         </Row>

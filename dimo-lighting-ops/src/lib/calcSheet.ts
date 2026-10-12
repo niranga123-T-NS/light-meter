@@ -1,6 +1,6 @@
 import { DIMO_LOGO_DATA_URI } from './brandLogoData';
 import { contours } from 'd3-contour';
-import { bbox, FITTING_TYPES, inside, type CalcResult, type FittingInput, type Pt, type RoomInput } from './lightcalc';
+import { bbox, FITTING_TYPES, inside, mountAt, roofAt, ROOFS, SHAPES, type CalcResult, type FittingInput, type Pt, type RoomInput } from './lightcalc';
 
 const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string);
 
@@ -126,13 +126,62 @@ export function legendSvg(range: { min: number; max: number }, pal: Palette, wid
   return { xml: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -1 ${widthPx} ${h + 22}" width="${widthPx}" height="${h + 22}">${cells}<rect x="0" y="0" width="${widthPx}" height="${h}" fill="none" stroke="#333"/>${ticks}</svg>`, width: widthPx, height: h + 22 };
 }
 
-/** The room in 3D: floor plane with the pseudo-colour, walls, the fittings at their height – turned by yaw / pitch (degrees) */
-export function room3dSvg(poly: Pt[], positions: Pt[], room: { height: number; mount: number; plane: number }, r: CalcResult | null, sc: Scale, fit: { lumL: number; lumW: number }, yaw: number, pitch: number, widthPx = 640, zoom = 1) {
+export type Surfaces = { ceiling: string; walls: string; floor: string };
+/** Common finishes; the reflectance is suggested from the colour (its light reflectance value) and can be changed */
+export const SURFACE_COLOURS: { hex: string; name: string }[] = [
+  { hex: '#F5F5F2', name: 'White' },
+  { hex: '#ECE7DA', name: 'Off-white' },
+  { hex: '#E8D9B5', name: 'Cream' },
+  { hex: '#CBB89A', name: 'Beige' },
+  { hex: '#C9CACC', name: 'Light grey' },
+  { hex: '#9A9C9E', name: 'Mid grey' },
+  { hex: '#A7A39A', name: 'Concrete' },
+  { hex: '#5B5E62', name: 'Dark grey' },
+  { hex: '#C8A377', name: 'Light wood' },
+  { hex: '#6E4B2F', name: 'Dark wood' },
+  { hex: '#BFD3E6', name: 'Pale blue' },
+  { hex: '#C8DCC0', name: 'Pale green' },
+  { hex: '#B5654A', name: 'Terracotta' },
+  { hex: '#2B2B2B', name: 'Black' },
+];
+/** Light reflectance value from a colour: the relative luminance, rounded to 0.05 (0.05–0.85) */
+export function reflectanceOf(hex: string) {
+  const m = hex.replace('#', '').match(/^([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
+  if (!m) return null;
+  const lin = (v: string) => {
+    const c = parseInt(v, 16) / 255;
+    return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  };
+  const y = 0.2126 * lin(m[1]) + 0.7152 * lin(m[2]) + 0.0722 * lin(m[3]);
+  return Math.min(0.85, Math.max(0.05, Math.round(y * 20) / 20));
+}
+const DEFAULT_SURFACES: Surfaces = { ceiling: '#F5F5F2', walls: '#ECE7DA', floor: '#A7A39A' };
+
+/** The room in 3D: floor, walls to the roof, the roof as a see-through frame, the working plane in pseudo-colour and the
+ *  fittings at their height – turned by yaw / pitch (degrees) */
+export function room3dSvg(
+  poly: Pt[],
+  positions: Pt[],
+  room: RoomInput,
+  r: CalcResult | null,
+  sc: Scale,
+  fit: { lumL: number; lumW: number; rot?: number },
+  yaw: number,
+  pitch: number,
+  widthPx = 640,
+  zoom = 1,
+  opts: { surfaces?: Surfaces; roof?: boolean } = {},
+) {
+  const col = opts.surfaces ?? DEFAULT_SURFACES;
+  const zr = roofAt(room, poly);
+  const mz = mountAt(room, poly);
+  const flat = (room.roof ?? 'flat') === 'flat' || !(room.rise && room.rise > 0);
   const b = bbox(poly);
+  const top = Math.max(room.height, ...Array.from({ length: 121 }, (_, i) => zr(b.x0 + ((i % 11) / 10) * (b.x1 - b.x0), b.y0 + (Math.floor(i / 11) / 10) * (b.y1 - b.y0))));
   const cx = (b.x0 + b.x1) / 2;
   const cy = (b.y0 + b.y1) / 2;
-  const cz = room.height / 2;
-  const diag = Math.hypot(b.x1 - b.x0, b.y1 - b.y0, room.height);
+  const cz = top / 2;
+  const diag = Math.hypot(b.x1 - b.x0, b.y1 - b.y0, top);
   const hPx = Math.round(widthPx * 0.68);
   const ya = (yaw * Math.PI) / 180;
   const pa = (pitch * Math.PI) / 180;
@@ -150,7 +199,7 @@ export function room3dSvg(poly: Pt[], positions: Pt[], room: { height: number; m
     return { x: x1 / d, y: -z2 / d, d };
   };
   // fit the room to the picture, then zoom about its centre
-  const corners = poly.flatMap((p) => [raw(p.x, p.y, 0), raw(p.x, p.y, room.height)]);
+  const corners = poly.flatMap((p) => [raw(p.x, p.y, 0), raw(p.x, p.y, Math.max(zr(p.x, p.y), room.height))]).concat([raw(cx, cy, top)]);
   const ex = { x0: Math.min(...corners.map((c) => c.x)), x1: Math.max(...corners.map((c) => c.x)), y0: Math.min(...corners.map((c) => c.y)), y1: Math.max(...corners.map((c) => c.y)) };
   const k = Math.min((widthPx * 0.9) / Math.max(ex.x1 - ex.x0, 1e-6), (hPx * 0.9) / Math.max(ex.y1 - ex.y0, 1e-6)) * zoom;
   const mx = (ex.x0 + ex.x1) / 2;
@@ -170,39 +219,80 @@ export function room3dSvg(poly: Pt[], positions: Pt[], room: { height: number; m
       .map((l) => `<path d="${l.rings.map((ring) => `M${ring.map((q) => { const v = P(q[0], q[1], zp); return `${v.x.toFixed(1)},${v.y.toFixed(1)}`; }).join('L')}Z`).join('')}" fill="${l.colour}" fill-rule="evenodd"/>`)
       .join('');
   }
-  // walls, drawn far to near; the near side lightly so the room stays visible
+  // walls up to the roof, drawn far to near; the near side lightly so the room stays visible
+  const steps = flat ? 1 : 16;
   const walls = poly
     .map((a, i) => {
       const c = poly[(i + 1) % poly.length];
-      const q = [P(a.x, a.y, 0), P(c.x, c.y, 0), P(c.x, c.y, room.height), P(a.x, a.y, room.height)];
-      return { q, depth: q.reduce((s, v) => s + v.d, 0) / 4 };
+      const topEdge = Array.from({ length: steps + 1 }, (_, j) => {
+        const t = 1 - j / steps;
+        const x = a.x + (c.x - a.x) * t;
+        const y = a.y + (c.y - a.y) * t;
+        return P(x, y, zr(x, y));
+      });
+      const q = [P(a.x, a.y, 0), P(c.x, c.y, 0), ...topEdge];
+      return { q, depth: q.reduce((s2, v) => s2 + v.d, 0) / q.length };
     })
     .sort((m, n) => n.depth - m.depth);
-  const mean = walls.reduce((s, w) => s + w.depth, 0) / Math.max(walls.length, 1);
-  const wallSvg = walls.map((w) => `<polygon points="${pts(w.q)}" fill="#9CA3AF" fill-opacity="${w.depth > mean ? 0.28 : 0.06}" stroke="#555" stroke-width="1"/>`).join('');
+  const mean = walls.reduce((s2, w) => s2 + w.depth, 0) / Math.max(walls.length, 1);
+  const wallSvg = walls.map((w) => `<polygon points="${pts(w.q)}" fill="${col.walls}" fill-opacity="${w.depth > mean ? 0.85 : 0.08}" stroke="#555" stroke-width="1"/>`).join('');
+  // the roof: a see-through frame of lines in both directions, kept inside the outline
+  let roofSvg = '';
+  if (opts.roof !== false) {
+    const lines: string[] = [];
+    const nL = 12;
+    const seg = 40;
+    const run = (fx: (t: number) => Pt) => {
+      let cur: string[] = [];
+      for (let j = 0; j <= seg; j++) {
+        const q = fx(j / seg);
+        if (inside(q, poly)) {
+          const v = P(q.x, q.y, zr(q.x, q.y));
+          cur.push(`${v.x.toFixed(1)},${v.y.toFixed(1)}`);
+        } else if (cur.length) {
+          if (cur.length > 1) lines.push(cur.join(' '));
+          cur = [];
+        }
+      }
+      if (cur.length > 1) lines.push(cur.join(' '));
+    };
+    for (let i = 1; i < nL; i++) {
+      const yy = b.y0 + ((b.y1 - b.y0) * i) / nL;
+      run((t) => ({ x: b.x0 + (b.x1 - b.x0) * t, y: yy }));
+      const xx = b.x0 + ((b.x1 - b.x0) * i) / nL;
+      run((t) => ({ x: xx, y: b.y0 + (b.y1 - b.y0) * t }));
+    }
+    roofSvg = lines.map((l) => `<polyline points="${l}" fill="none" stroke="#475569" stroke-opacity="${flat ? 0.18 : 0.4}" stroke-width="0.8"/>`).join('');
+  }
+  const rot = ((fit.rot ?? 0) * Math.PI) / 180;
   const hl = Math.max(fit.lumL, 60) / 2000;
   const hw = Math.max(fit.lumW, 60) / 2000;
+  const corner = (f: Pt, sx: number, sy: number) => ({ x: f.x + sx * hl * Math.cos(rot) - sy * hw * Math.sin(rot), y: f.y + sx * hl * Math.sin(rot) + sy * hw * Math.cos(rot) });
   const lums = positions
-    .map((f) => ({ q: [P(f.x - hl, f.y - hw, room.mount), P(f.x + hl, f.y - hw, room.mount), P(f.x + hl, f.y + hw, room.mount), P(f.x - hl, f.y + hw, room.mount)], f }))
+    .map((f) => {
+      const z = mz(f);
+      const q = [corner(f, -1, -1), corner(f, 1, -1), corner(f, 1, 1), corner(f, -1, 1)].map((c) => P(c.x, c.y, z));
+      return { q, f, z };
+    })
     .sort((m, n) => n.q[0].d - m.q[0].d)
-    .map(({ q, f }) => {
-      const top = P(f.x, f.y, room.mount);
+    .map(({ q, f, z }) => {
+      const t0 = P(f.x, f.y, z);
       const bottom = P(f.x, f.y, zp);
-      return `<line x1="${top.x.toFixed(1)}" y1="${top.y.toFixed(1)}" x2="${bottom.x.toFixed(1)}" y2="${bottom.y.toFixed(1)}" stroke="#F59E0B" stroke-opacity="0.35" stroke-width="1"/><polygon points="${pts(q)}" fill="#FFF7D6" stroke="#B45309" stroke-width="1.2"/>`;
+      const hang = zr(f.x, f.y) - z > 0.05 ? (() => { const rt = P(f.x, f.y, zr(f.x, f.y)); return `<line x1="${rt.x.toFixed(1)}" y1="${rt.y.toFixed(1)}" x2="${t0.x.toFixed(1)}" y2="${t0.y.toFixed(1)}" stroke="#333" stroke-width="0.8"/>`; })() : '';
+      return `${hang}<line x1="${t0.x.toFixed(1)}" y1="${t0.y.toFixed(1)}" x2="${bottom.x.toFixed(1)}" y2="${bottom.y.toFixed(1)}" stroke="#F59E0B" stroke-opacity="0.35" stroke-width="1"/><polygon points="${pts(q)}" fill="#FFF7D6" stroke="#B45309" stroke-width="1.2"/>`;
     })
     .join('');
-  const ceiling = poly.map((p) => P(p.x, p.y, room.height));
   const floor0 = poly.map((p) => P(p.x, p.y, 0));
   return {
     xml: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${widthPx} ${hPx}" width="${widthPx}" height="${hPx}">
 <rect width="${widthPx}" height="${hPx}" fill="#F8FAFC"/>
 <defs><clipPath id="wp"><polygon points="${pts(floor)}"/></clipPath></defs>
-<polygon points="${pts(floor0)}" fill="#E5E7EB" stroke="#555"/>
+<polygon points="${pts(floor0)}" fill="${col.floor}" stroke="#555"/>
 ${wallSvg}
 <g clip-path="url(#wp)">${bands}</g>
 <polygon points="${pts(floor)}" fill="none" stroke="#111" stroke-width="1.5"/>
 ${lums}
-<polygon points="${pts(ceiling)}" fill="none" stroke="#555" stroke-dasharray="4 3"/>
+${roofSvg}
 </svg>`,
     width: widthPx,
     height: hPx,
@@ -226,6 +316,10 @@ export type SheetInput = {
   scale: Scale;
   ugrLimit: number | null;
   ugrSheet: number | null;
+  surfaces: Surfaces;
+  /** e.g. "IES file: Thorn Omega Pro 600 (Thorn)" or "Modelled curve – panel" */
+  photoLabel: string;
+  polar: string | null;
   savings: { lines: [string, string][] } | null;
   by: string;
 };
@@ -237,7 +331,11 @@ export function calcSheetHtml(s: SheetInput) {
   const legend = legendSvg(plan.range, s.scale.palette, 420);
   const t = FITTING_TYPES.find((x) => x.key === s.fit.type);
   const size = t?.size ?? [600, 600];
-  const view3d = room3dSvg(s.poly, s.positions, s.room, s.r, s.scale, { lumL: s.fit.lumL ?? size[0], lumW: s.fit.lumW ?? size[1] }, 35, 55, 420);
+  const view3d = room3dSvg(s.poly, s.positions, s.room, s.r, s.scale, { lumL: s.fit.lumL ?? (s.fit.photo?.lenMm || size[0]), lumW: s.fit.lumW ?? (s.fit.photo?.widMm || size[1]), rot: s.fit.rot }, 35, 38, 420, 1, { surfaces: s.surfaces });
+  const roof = ROOFS.find((x) => x.value === (s.room.roof ?? 'flat'));
+  const pitched = (s.room.roof ?? 'flat') !== 'flat' && (s.room.rise ?? 0) > 0;
+  const shape = s.room.shape === 'free' ? 'Drawn plan' : (SHAPES.find((x) => x.value === s.room.shape)?.label ?? '');
+  const sw = (c: string) => `<span style="display:inline-block;width:10px;height:10px;border:1px solid #999;background:${esc(c)};vertical-align:-1px;margin-right:3px"></span>`;
   const ugr = s.ugrSheet ?? s.r.ugr.max;
   const ugrText = ugr == null ? '—' : ugr < 10 ? '&lt; 10' : ugr.toFixed(1);
   const ok = (b: boolean) => (b ? '<span style="color:#15803D">✓</span>' : '<span style="color:#B45309">✗</span>');
@@ -255,17 +353,19 @@ export function calcSheetHtml(s: SheetInput) {
 </style></head><body>
 <div class="wm">DRAFT – Indicative calculation</div>
 <header><img src="${DIMO_LOGO_DATA_URI}" alt="DIMO" style="height:42px;width:auto" />
-<div><h1>${esc(s.title)}</h1><div class="sub">Quick lighting calculation${s.code ? ` · ${esc(s.code)}` : ''} · ${esc(now)}</div></div></header>
+<div><h1>${esc(s.title)}</h1><div class="sub">DLux lighting calculation${s.code ? ` · ${esc(s.code)}` : ''} · ${esc(now)}</div></div></header>
 <div style="text-align:center">${plan.xml}</div>
 <div style="display:flex;align-items:center;justify-content:center;gap:10px;font-size:9px;color:#555;margin-top:2px">Illuminance on the working plane (lx)${legend.xml}</div>
 <div style="display:flex;align-items:center;gap:12px;margin-top:6px"><div>${view3d.xml.replace(/id="wp"/g, 'id="wp3"').replace(/url\(#wp\)/g, 'url(#wp3)')}</div>
-<div style="font-size:9px;color:#555">The room in 3D: the working plane in the same colours, the fittings at their mounting height.<br/><br/>Lines on the plan join points of equal light (isolux), in lux. Black marks with a stroke are the seated observers used for glare (UGR), looking into the room.</div></div>
+<div style="font-size:9px;color:#555">${s.polar ? `<div style="text-align:center">${s.polar}<br/>Light distribution (red C0–C180, blue C90–C270)</div><br/>` : ''}The room in 3D: the working plane in the same colours, the fittings at their mounting height.<br/><br/>Lines on the plan join points of equal light (isolux), in lux. Black marks with a stroke are the seated observers used for glare (UGR), looking into the room.</div></div>
 <div class="cols">
 <div><h2>Room and fittings</h2><table>
 ${row('Area · room index', `${s.r.A.toFixed(1)} m² · K ${s.r.K.toFixed(2)}`)}
-${row('Heights', `ceiling ${s.room.height} m · fittings ${s.room.mount} m · working plane ${s.room.plane} m`)}
-${row('Reflectances', `ceiling ${Math.round(s.room.rc * 100)}% · walls ${Math.round(s.room.rw * 100)}% · floor ${Math.round(s.room.rf * 100)}%`)}
-${row('Fitting', `${esc(s.fit.name || t?.label || '')} · ${s.fit.watts} W · ${s.fit.lumens} lm`)}
+${row('Shape · roof', `${esc(shape)} · ${esc(roof?.label ?? 'Flat ceiling')}${pitched ? `, ${s.room.rise} m rise` : ''}`)}
+${row('Heights', `${pitched ? 'walls' : 'ceiling'} ${s.room.height} m · fittings ${pitched && s.room.drop != null ? `${s.room.drop} m below the roof` : `${s.room.mount} m`} · working plane ${s.room.plane} m`)}
+${row('Surfaces (reflectance)', `${sw(s.surfaces.ceiling)}ceiling ${Math.round(s.room.rc * 100)}% · ${sw(s.surfaces.walls)}walls ${Math.round(s.room.rw * 100)}% · ${sw(s.surfaces.floor)}floor ${Math.round(s.room.rf * 100)}%`)}
+${row('Fitting', `${esc(s.fit.name || t?.label || '')} · ${s.fit.watts} W · ${s.fit.lumens} lm${s.fit.rot ? ' · turned 90°' : ''}`)}
+${row('Light distribution', esc(s.photoLabel))}
 ${row('Number of fittings', `<b>${s.positions.length}</b>`)}
 ${row('Maintenance factor', s.mf.toFixed(2))}
 </table></div>
@@ -279,6 +379,6 @@ ${row('Installed load', `${(s.r.watts / 1000).toFixed(2)} kW · ${s.r.wpm2.toFix
 ${s.source ? row('Standard', esc(s.source)) : ''}
 </table></div></div>
 ${s.savings ? `<h2>Energy and savings</h2><table>${s.savings.lines.map(([k, v]) => row(k, esc(v))).join('')}</table>` : ''}
-<div class="foot">DRAFT – Indicative calculation: point-by-point on the working plane with interreflections, from the fitting type and the data sheet watts and lumens; an empty room is assumed. UGR by the CIE 117 formula from the fitting's lit area – the manufacturer's UGR table is the reference. Final design by DIMO Lighting Design.<br/>Prepared by ${esc(s.by)} · DIMO Lighting Solutions</div>
+<div class="foot">DRAFT – Indicative calculation: point-by-point on the working plane with interreflections between the working plane, walls and roof, from the fitting's IES file or a curve modelled on its type, with the data sheet watts and lumens; an empty room is assumed. UGR by the CIE 117 formula from the fitting's lit area – the manufacturer's UGR table is the reference. Final design by DIMO Lighting Design.<br/>Prepared by ${esc(s.by)} · DIMO Lighting Solutions</div>
 </body></html>`;
 }

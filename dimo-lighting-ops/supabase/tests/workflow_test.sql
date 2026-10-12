@@ -6091,12 +6091,13 @@ begin
   perform public.materials_tick(now());
   assert exists (select 1 from public.notifications where recipient_id = ops and title = 'Material delivery coming'), 'Operations reminded';
   assert exists (select 1 from public.notifications where recipient_id = see and title = 'Material delivery coming'), 'SEE reminded';
-  -- the junction boxes never arrive: 3 days late → SEE; 5 days → SM Projects
-  perform public.materials_tick(now() + interval '3 days');
+  -- the junction boxes never arrive: more than 2 days late → SEE; more than 4 days → SM Projects
+  -- (ticks a day further on, so the delivery's Sri Lanka date crossing midnight does not matter)
+  perform public.materials_tick(now() + interval '4 days');
   assert (select delay_level from public.material_requests where id = current_setting('test.ml')::uuid) = 1, 'SEE told';
-  assert exists (select 1 from public.notifications where recipient_id = see and title like 'Material delivery 3 days late'), 'SEE notified of the delay';
-  perform public.materials_tick(now() + interval '5 days');
-  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'sm_projects') and title like 'Material delivery 5 days late'), 'SM Projects notified';
+  assert exists (select 1 from public.notifications where recipient_id = see and title like 'Material delivery % days late'), 'SEE notified of the delay';
+  perform public.materials_tick(now() + interval '6 days');
+  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'sm_projects') and title like 'Material delivery % days late'), 'SM Projects notified';
 end $$;
 select pg_temp.act_as('assistant_engineer'); set role authenticated;
 do $$ declare l uuid;
@@ -7119,7 +7120,7 @@ savepoint qcalc;
 select pg_temp.act_as('asm_building'); set role authenticated;
 do $$ declare q uuid; begin
   insert into public.quick_calcs (title, inputs, results) values ('Office 12 × 8 m', '{}'::jsonb, '{"em": 511}'::jsonb) returning id into q;
-  assert (select code like 'QC-%' from public.quick_calcs where id = q), 'numbered';
+  assert (select code like 'DLX-%' from public.quick_calcs where id = q), 'numbered DLX';
   perform set_config('test.qc', q::text, true);
   update public.electricity_tariffs set rate = 50 where supplier = 'CEB' and code = 'GP-1';
   assert not found, 'sales do not set tariffs';
@@ -7137,6 +7138,39 @@ do $$ begin
 end $$;
 reset role;
 rollback to savepoint qcalc;
+
+-- DLux IES files: the DIMO library kept by the Design team; a sales person's own file seen with the calculation using it
+savepoint ies;
+select pg_temp.act_as('lighting_designer'); set role authenticated;
+do $$ declare i uuid; begin
+  insert into public.ies_files (scope, name, file_name, lumens, watts, content) values ('library', 'Panel 600 34 W', 'p.ies', 4000, 34, 'IESNA:LM-63-2002') returning id into i;
+  perform set_config('test.ies_lib', i::text, true);
+end $$;
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ declare i uuid; q uuid; begin
+  assert exists (select 1 from public.ies_files where id = current_setting('test.ies_lib')::uuid), 'sales see the library';
+  begin
+    insert into public.ies_files (scope, name, file_name, content) values ('library', 'X', 'x.ies', 'x');
+    assert false, 'sales cannot add to the library';
+  exception when insufficient_privilege then null; end;
+  insert into public.ies_files (name, file_name, content) values ('Competitor high-bay', 'hb.ies', 'IESNA:LM-63-2002') returning id into i;
+  update public.ies_files set active = false where id = current_setting('test.ies_lib')::uuid;
+  assert not found, 'sales do not change the library';
+  insert into public.quick_calcs (title, inputs, results) values ('Store', jsonb_build_object('ies_id', i), '{}') returning id into q;
+  perform set_config('test.ies_own', i::text, true);
+end $$;
+reset role;
+select pg_temp.act_as('asm_infra'); set role authenticated;
+do $$ begin assert not exists (select 1 from public.ies_files where id = current_setting('test.ies_own')::uuid), 'another sales person does not see it'; end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin assert exists (select 1 from public.ies_files where id = current_setting('test.ies_own')::uuid), 'seen with the calculation that uses it'; end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ begin assert not exists (select 1 from public.ies_files), 'not for operations'; end $$;
+reset role;
+rollback to savepoint ies;
 
 -- Alert schedules: GM / DGM see and change them; others cannot
 savepoint alerts;

@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabase';
 
 type Row_ = { id: string; code: string; title: string; created_by: string; created_at: string; results: { em?: number; count?: number; uo?: number; savings?: { lkr?: number | null } | null } };
 
-/** Quick calculations: start a new one; my saved ones (managers and the Design team see everyone's) */
+/** DLux lighting calculations: start a new one; my saved ones (managers and the Design team see everyone's) */
 export function QuickCalcList() {
   const me = useMe();
   const people = usePeople();
@@ -21,7 +21,7 @@ export function QuickCalcList() {
   return (
     <>
       <Row gap={8} wrap>
-        <Button title="+ New calculation" onPress={() => router.push('/tools/calc/new')} />
+        <Button title="+ New DLux calculation" onPress={() => router.push('/tools/calc/new')} />
         <Button variant="secondary" title={tariffs ? 'Tariffs (set the rates)' : 'Tariffs'} onPress={() => router.push('/tools/tariffs')} />
       </Row>
       <Muted>Room, fitting, result and savings in a few minutes – share a DRAFT sheet with the client and turn it into an inquiry for the Design team.</Muted>

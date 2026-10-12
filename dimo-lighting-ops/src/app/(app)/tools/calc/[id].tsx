@@ -1,17 +1,20 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { useWindowDimensions } from 'react-native';
+import { Pressable, Text, useWindowDimensions, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 import { useDialog } from '@/components/dialog';
 import { ProjectPicker } from '@/components/pickers';
 import { Button, Card, colors, ErrorBanner, Field, Grid, Loading, Muted, Notice, NumberField, Row, Screen, Section, Segmented, Select, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
+import { IesPicker, type IesRow } from '@/components/tools/IesPicker';
+import { PlanDraw } from '@/components/tools/PlanDraw';
 import { Room3D } from '@/components/tools/Room3D';
-import { calcSheetHtml, legendSvg, PALETTES, planSvg, type Palette, type Scale } from '@/lib/calcSheet';
+import { calcSheetHtml, legendSvg, PALETTES, planSvg, reflectanceOf, SURFACE_COLOURS, type Palette, type Scale, type Surfaces } from '@/lib/calcSheet';
 import { printHtml } from '@/lib/export';
 import { fmtMoney, fmtNumber } from '@/lib/format';
 import { cached, useLoad } from '@/lib/hooks';
-import { autoLayout, calculate, FITTING_TYPES, MAINTENANCE, outline, REFLECTANCES, savings, suggestCount, type Pt, type RoomInput, type Shape } from '@/lib/lightcalc';
+import { autoLayout, calculate, FITTING_TYPES, MAINTENANCE, outline, REFLECTANCES, ROOFS, savings, SHAPES, suggestCount, type Pt, type Roof, type RoomInput, type Shape } from '@/lib/lightcalc';
+import { beamAngle, iesPhotometry, parseIes, polarSvg } from '@/lib/photometry';
 import { ROLE_SHORT } from '@/lib/roles';
 import type { Standard, StdGroupRow } from '@/lib/standards';
 import { supabase } from '@/lib/supabase';
@@ -26,7 +29,19 @@ type Form = {
   cutL: number | null;
   cutW: number | null;
   points: string;
-  height: number | null;
+  closed: boolean; // the drawn plan is closed
+  height: number | null; // wall height (the ceiling for a flat roof)
+  roof: Roof;
+  rise: number | null;
+  ridge: 'auto' | 'x' | 'y';
+  hang: boolean; // fittings hung below a pitched roof
+  drop: number | null;
+  cCol: string;
+  wCol: string;
+  fCol: string;
+  dist: 'model' | 'ies';
+  ies_id: string | null;
+  rot: number;
   mount: number | null;
   plane: number | null;
   refl: string;
@@ -70,7 +85,19 @@ const BLANK: Form = {
   cutL: 5,
   cutW: 3,
   points: '0,0; 12,0; 12,5; 7,5; 7,8; 0,8',
+  closed: true,
   height: 2.8,
+  roof: 'flat',
+  rise: 2,
+  ridge: 'auto',
+  hang: false,
+  drop: 1,
+  cCol: '#F5F5F2',
+  wCol: '#ECE7DA',
+  fCol: '#A7A39A',
+  dist: 'model',
+  ies_id: null,
+  rot: 0,
   mount: 2.8,
   plane: 0.8,
   refl: 'light',
@@ -112,7 +139,7 @@ const parsePoints = (t: string): Pt[] =>
     .filter((a) => a.length === 2 && a.every((x) => Number.isFinite(x)))
     .map(([x, y]) => ({ x, y }));
 
-/** Quick calculation: ① room ② fitting ③ result ④ savings – a DRAFT sheet for the client, saved and turned into an inquiry */
+/** DLux lighting calculation: ① room ② fitting ③ result ④ savings – a DRAFT sheet for the client, saved and turned into an inquiry */
 export default function QuickCalc() {
   const { id, std } = useLocalSearchParams<{ id: string; std?: string }>();
   const me = useMe();
@@ -138,7 +165,7 @@ export default function QuickCalc() {
     return { ...refs, calc };
   }, [id]);
 
-  // the form: a saved calculation, a space chosen in Standards ("Use in Quick calc"), or the defaults
+  // the form: a saved calculation, a space chosen in Standards ("Use in DLux"), or the defaults
   const preset = useMemo<Form | null>(() => {
     if (!data) return null;
     if (data.calc) return { ...BLANK, ...data.calc.inputs };
@@ -146,6 +173,17 @@ export default function QuickCalc() {
     return s ? { ...BLANK, std_id: s.id, title: s.space, target: Number(s.vals?.em) || BLANK.target, uo: s.vals?.uo != null ? Number(s.vals.uo) : null, ugrLimit: s.vals?.ugr != null ? Number(s.vals.ugr) : null } : BLANK;
   }, [data, std]);
   const f = form ?? preset;
+  // the IES file chosen: read and turned into the light distribution
+  const iesId = f?.dist === 'ies' ? f.ies_id : null;
+  const { data: ies, error: iesError } = useLoad(async () => {
+    if (!iesId) return null;
+    const { data: row, error: e } = await supabase.from('ies_files').select('id, name, manufacturer, content').eq('id', iesId).single();
+    if (e) throw new Error(e.message);
+    const d = parseIes(row.content as string);
+    const ph = iesPhotometry(d);
+    return { id: row.id as string, name: row.name as string, manufacturer: row.manufacturer as string | null, d, ph, polar: polarSvg(ph, 200), beam: beamAngle(ph) };
+  }, [iesId]);
+  const photo = ies && ies.id === iesId ? ies.ph : null;
 
   const calc = useMemo(() => {
     if (!f) return null;
@@ -155,22 +193,26 @@ export default function QuickCalc() {
       width: f.width ?? 0,
       cutL: f.cutL ?? undefined,
       cutW: f.cutW ?? undefined,
-      points: f.shape === 'free' ? parsePoints(f.points) : undefined,
+      points: f.shape === 'free' && f.closed !== false ? parsePoints(f.points) : undefined,
       height: f.height ?? 0,
+      roof: f.roof ?? 'flat',
+      rise: f.rise ?? 0,
+      ridge: f.ridge && f.ridge !== 'auto' ? f.ridge : undefined,
+      drop: f.hang ? (f.drop ?? 0) : null,
       mount: f.mount ?? f.height ?? 0,
       plane: f.plane ?? 0,
       rc: f.rc ?? 0.7,
       rw: f.rw ?? 0.5,
       rf: f.rf ?? 0.2,
     };
-    const fit = { type: f.type, watts: f.watts ?? 0, lumens: f.lumens ?? 0, name: f.fname, lumL: f.lumL, lumW: f.lumW };
+    const fit = { type: f.type, watts: f.watts ?? 0, lumens: f.lumens ?? 0, name: f.fname, lumL: f.lumL, lumW: f.lumW, rot: f.rot ?? 0, photo: f.dist === 'ies' ? photo : null };
     const mf = f.mf ?? 0.8;
     const poly = outline(room);
-    if (!(room.mount - room.plane > 0) || !(fit.lumens > 0) || poly.length < 3) return { room, fit, mf, poly, positions: [] as Pt[], r: null, auto: null };
+    if ((!room.drop && !(room.mount - room.plane > 0)) || !(fit.lumens > 0) || poly.length < 3 || (f.dist === 'ies' && !photo)) return { room, fit, mf, poly, positions: [] as Pt[], r: null, auto: null };
     const auto = f.count ? null : suggestCount(room, fit, mf, f.target ?? 300, f.uo);
     const positions = f.count ? autoLayout(poly, f.count, room) : (auto?.positions ?? []);
     return { room, fit, mf, poly, positions, r: calculate(room, fit, positions, mf), auto };
-  }, [f]);
+  }, [f, photo]);
 
   if (!data || !f || !calc) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const set = (p: Partial<Form>) => setForm({ ...f, ...p });
@@ -189,7 +231,12 @@ export default function QuickCalc() {
   const plan = planSvg(calc.poly, positions, r, scale, Math.max(planW, 280));
   const legend = legendSvg(plan.range, scale.palette, Math.min(Math.max(planW, 280) - 20, 420));
   const ftype = FITTING_TYPES.find((t) => t.key === f.type);
-  const lit = { lumL: f.lumL ?? ftype?.size[0] ?? 600, lumW: f.lumW ?? ftype?.size[1] ?? 600 };
+  const lit = { lumL: f.lumL ?? (photo?.lenMm || ftype?.size[0] || 600), lumW: f.lumW ?? (photo?.widMm || ftype?.size[1] || 600), rot: f.rot ?? 0 };
+  const surfaces: Surfaces = { ceiling: f.cCol ?? '#F5F5F2', walls: f.wCol ?? '#ECE7DA', floor: f.fCol ?? '#A7A39A' };
+  const canLibrary = ['design_manager', 'lighting_designer', 'lighting_engineer', 'sm_projects', 'gm', 'sys_admin'].includes(me.role);
+  const photoLabel = f.dist === 'ies' && ies ? `IES file: ${ies.name}${ies.manufacturer ? ` (${ies.manufacturer})` : ''} · ${ies.beam}° beam` : `Modelled curve – ${ftype?.label ?? f.type}`;
+  const roofLabel = ROOFS.find((x) => x.value === (f.roof ?? 'flat'))?.label ?? 'Flat ceiling';
+  const shapeText = f.shape === 'free' ? 'drawn plan' : f.shape === 'rect' ? `${f.length} × ${f.width} m` : f.shape === 'circle' ? `circle ${f.length} m across` : `${SHAPES.find((x) => x.value === f.shape)?.label} ${f.length} × ${f.width} m`;
   const ugr = f.ugrSheet ?? r?.ugr.max ?? null;
   const ugrText = ugr == null ? '—' : ugr < 10 ? '< 10' : ugr.toFixed(1);
 
@@ -207,9 +254,9 @@ export default function QuickCalc() {
       : null;
   const brief = () =>
     [
-      `Room: ${r?.A.toFixed(1)} m² (${f.shape === 'rect' ? `${f.length} × ${f.width} m` : f.shape === 'l' ? `L-shape ${f.length} × ${f.width} m less ${f.cutL} × ${f.cutW} m` : 'free outline'}), ceiling ${f.height} m, fittings at ${f.mount} m, working plane ${f.plane} m.`,
+      `Room: ${r?.A.toFixed(1)} m² (${shapeText}), ${roofLabel.toLowerCase()}${(f.roof ?? 'flat') !== 'flat' ? ` ${f.rise} m rise, walls ${f.height} m` : `, ceiling ${f.height} m`}, fittings ${f.hang && (f.roof ?? 'flat') !== 'flat' ? `${f.drop} m below the roof` : `at ${f.mount} m`}, working plane ${f.plane} m.`,
       `Target: ${f.target} lx${f.uo ? `, Uo ${f.uo}` : ''}${stdRow ? ` – ${stdRow.space} (${stdGroup?.source ?? ''})` : ''}.`,
-      `Indicative: ${positions.length} × ${f.fname || ftype?.label} ${f.watts} W / ${f.lumens} lm → ${Math.round(r?.em ?? 0)} lx average, Uo ${r?.uo.toFixed(2)}, Ud ${r?.ud.toFixed(2)}, UGR ${ugrText}, ${r?.wpm2.toFixed(1)} W/m².`,
+      `Indicative (${f.dist === 'ies' ? 'IES file' : 'modelled curve'}): ${positions.length} × ${f.fname || ftype?.label} ${f.watts} W / ${f.lumens} lm → ${Math.round(r?.em ?? 0)} lx average, Uo ${r?.uo.toFixed(2)}, Ud ${r?.ud.toFixed(2)}, UGR ${ugrText}, ${r?.wpm2.toFixed(1)} W/m².`,
       oldTotal ? `Existing: ${f.oldQty} × ${f.oldWatts} W ${f.oldDesc}`.trim() + '.' : '',
     ]
       .filter(Boolean)
@@ -257,10 +304,13 @@ export default function QuickCalc() {
           scale,
           ugrLimit: f.ugrLimit,
           ugrSheet: f.ugrSheet,
+          surfaces,
+          photoLabel,
+          polar: f.dist === 'ies' && ies ? ies.polar : null,
           savings: savingLines() ? { lines: savingLines() as [string, string][] } : null,
           by: `${me.full_name} – ${ROLE_SHORT[me.role]}`,
         }),
-        { key: 'quick_calc', filters: f.title || 'Quick calculation', title: `Lighting calculation – ${f.title || 'room'}` },
+        { key: 'quick_calc', filters: f.title || 'DLux calculation', title: `DLux lighting calculation – ${f.title || 'room'}` },
       );
     });
   const makeInquiry = async () => {
@@ -272,45 +322,104 @@ export default function QuickCalc() {
   const ok = (b: boolean) => (b ? 'green' : 'amber') as 'green' | 'amber';
   return (
     <Screen maxWidth={900}>
-      <Stack.Screen options={{ title: data.calc?.code ?? 'Quick calculation' }} />
-      <Notice tone={colors.blue}>Indicative calculation from the fitting type and the data sheet watts and lumens. Results are shared marked DRAFT; the final design is by DIMO Lighting Design.</Notice>
+      <Stack.Screen options={{ title: data.calc?.code ? `DLux · ${data.calc.code}` : 'DLux' }} />
+      <Notice tone={colors.blue}>DLux – indicative lighting calculation from the fitting’s IES file or a curve modelled on its type. Results are shared marked DRAFT; the final design is by DIMO Lighting Design.</Notice>
 
       <Section title="① Room">
         <Card style={{ gap: 4 }}>
           <Field label="Name" required value={f.title} onChangeText={(v) => set({ title: v })} placeholder="e.g. ABC Hotels – conference hall" />
           <ProjectPicker value={f.project_id} onChange={(p) => set({ project_id: p?.id ?? null })} label="Project (optional – needed to make an inquiry)" />
           <Segmented
-            value={f.shape}
-            onChange={(v) => set({ shape: v, count: null })}
+            value={f.shape === 'free' ? 'draw' : 'shape'}
+            onChange={(v) => {
+              if (v === 'draw' && f.shape !== 'free') {
+                // start the drawing from the shape chosen (Clear to start afresh)
+                const seed = f.shape === 'circle' ? [] : (calc.poly ?? []);
+                set({ shape: 'free', points: seed.map((p) => `${+p.x.toFixed(2)},${+p.y.toFixed(2)}`).join('; '), closed: seed.length >= 3, count: null });
+              } else if (v === 'shape' && f.shape === 'free') set({ shape: 'rect', count: null });
+            }}
             options={[
-              { value: 'rect', label: 'Square / rectangle' },
-              { value: 'l', label: 'L-shape' },
-              { value: 'free', label: 'Any shape' },
+              { value: 'draw', label: '✎ Draw the plan' },
+              { value: 'shape', label: 'Fixed shape' },
             ]}
           />
           {f.shape === 'free' ? (
-            <Field
-              label="Corners (x,y in metres, clockwise)"
-              multiline
-              value={f.points}
-              onChangeText={(v) => set({ points: v, count: null })}
-              hint="e.g. 0,0; 12,0; 12,5; 7,5; 7,8; 0,8 – walk round the room from one corner"
-            />
+            <>
+              <PlanDraw
+                points={parsePoints(f.points)}
+                closed={f.closed !== false}
+                width={Math.min(planW, 560)}
+                onChange={(pts, closed) => set({ points: pts.map((p) => `${p.x},${p.y}`).join('; '), closed, count: null })}
+              />
+              <Field
+                label="Corners (x,y in metres) – or type them"
+                multiline
+                value={f.points}
+                onChangeText={(v) => set({ points: v, closed: true, count: null })}
+                hint="e.g. 0,0; 12,0; 12,5; 7,5; 7,8; 0,8 – walk round the room from one corner"
+              />
+            </>
           ) : (
-            <Row gap={8} wrap>
-              <NumberField label="Length" suffix="m" value={f.length} onChange={(v) => set({ length: v, count: null })} />
-              <NumberField label="Width" suffix="m" value={f.width} onChange={(v) => set({ width: v, count: null })} />
-              {f.shape === 'l' ? (
-                <>
-                  <NumberField label="Cut-out length" suffix="m" value={f.cutL} onChange={(v) => set({ cutL: v, count: null })} />
-                  <NumberField label="Cut-out width" suffix="m" value={f.cutW} onChange={(v) => set({ cutW: v, count: null })} />
-                </>
-              ) : null}
-            </Row>
+            <>
+              <Segmented value={f.shape as Exclude<Shape, 'free'>} onChange={(v) => set({ shape: v, count: null })} options={SHAPES} />
+              <Row gap={8} wrap>
+                <NumberField label={f.shape === 'circle' ? 'Diameter' : 'Length'} suffix="m" value={f.length} onChange={(v) => set({ length: v, count: null })} />
+                {f.shape !== 'circle' ? <NumberField label="Width" suffix="m" value={f.width} onChange={(v) => set({ width: v, count: null })} /> : null}
+                {f.shape === 'l' || f.shape === 't' || f.shape === 'u' ? (
+                  <>
+                    <NumberField label={{ l: 'Cut-out length', t: 'Stem width', u: 'Opening width' }[f.shape]} suffix="m" value={f.cutL} onChange={(v) => set({ cutL: v, count: null })} />
+                    <NumberField label={{ l: 'Cut-out width', t: 'Top bar depth', u: 'Opening depth' }[f.shape]} suffix="m" value={f.cutW} onChange={(v) => set({ cutW: v, count: null })} />
+                  </>
+                ) : null}
+              </Row>
+            </>
           )}
+          <Select
+            label="Roof"
+            value={f.roof ?? 'flat'}
+            onChange={(v) => set({ roof: v as Roof, count: null })}
+            options={ROOFS.map((x) => ({ value: x.value, label: `${x.label} – ${x.hint}` }))}
+          />
           <Row gap={8} wrap>
-            <NumberField label="Ceiling height" suffix="m" value={f.height} onChange={(v) => set({ height: v, mount: f.mount === f.height ? v : f.mount, count: null })} />
-            <NumberField label="Fitting height" suffix="m" value={f.mount} onChange={(v) => set({ mount: v, count: null })} hint="Same as the ceiling for recessed" />
+            <NumberField
+              label={(f.roof ?? 'flat') === 'flat' ? 'Ceiling height' : 'Wall height (eaves)'}
+              suffix="m"
+              value={f.height}
+              onChange={(v) => set({ height: v, mount: f.mount === f.height ? v : f.mount, count: null })}
+              hint="The plan is extruded to this height"
+            />
+            {(f.roof ?? 'flat') !== 'flat' ? (
+              <>
+                <NumberField label={f.roof === 'sawtooth' ? 'Tooth height' : f.roof === 'barrel' ? 'Vault rise' : 'Roof rise (to the top)'} suffix="m" value={f.rise} onChange={(v) => set({ rise: v, count: null })} />
+                <Select
+                  label={f.roof === 'mono' ? 'Slope rises across' : f.roof === 'sawtooth' ? 'Teeth run along' : 'Ridge runs along'}
+                  value={f.ridge ?? 'auto'}
+                  onChange={(v) => set({ ridge: v as Form['ridge'], count: null })}
+                  options={[
+                    { value: 'auto', label: 'The longer side' },
+                    { value: 'x', label: 'The length (x)' },
+                    { value: 'y', label: 'The width (y)' },
+                  ]}
+                />
+              </>
+            ) : null}
+          </Row>
+          {(f.roof ?? 'flat') !== 'flat' ? (
+            <Segmented
+              value={f.hang ? 'hang' : 'fixed'}
+              onChange={(v) => set({ hang: v === 'hang', count: null })}
+              options={[
+                { value: 'fixed', label: 'Fittings at one height' },
+                { value: 'hang', label: 'Fittings hung below the roof' },
+              ]}
+            />
+          ) : null}
+          <Row gap={8} wrap>
+            {f.hang && (f.roof ?? 'flat') !== 'flat' ? (
+              <NumberField label="Hung below the roof" suffix="m" value={f.drop} onChange={(v) => set({ drop: v, count: null })} hint="Follows the roof slope" />
+            ) : (
+              <NumberField label="Fitting height" suffix="m" value={f.mount} onChange={(v) => set({ mount: v, count: null })} hint="Same as the ceiling for recessed" />
+            )}
             <NumberField label="Working plane" suffix="m" value={f.plane} onChange={(v) => set({ plane: v, count: null })} hint="0.8 desks · 0 floors" />
           </Row>
           <Select
@@ -328,22 +437,15 @@ export default function QuickCalc() {
             <NumberField label="Target uniformity Uo" value={f.uo} onChange={(v) => set({ uo: v, count: null })} hint="Empty = no uniformity target" />
             <NumberField label="Glare limit UGR" value={f.ugrLimit} onChange={(v) => set({ ugrLimit: v })} hint="From the standard – empty = none" />
           </Row>
-          <Select
-            label="Surfaces"
-            value={f.refl}
-            onChange={(v) => {
-              const p = REFLECTANCES.find((x) => x.key === v);
-              set(p ? { refl: v, rc: p.c, rw: p.w, rf: p.f, count: null } : { refl: v });
-            }}
-            options={[...REFLECTANCES.map((x) => ({ value: x.key, label: x.label })), { value: 'custom', label: 'My own values' }]}
-          />
-          {f.refl === 'custom' ? (
-            <Row gap={8} wrap>
-              <NumberField label="Ceiling (0–1)" value={f.rc} onChange={(v) => set({ rc: v, count: null })} />
-              <NumberField label="Walls (0–1)" value={f.rw} onChange={(v) => set({ rw: v, count: null })} />
-              <NumberField label="Floor (0–1)" value={f.rf} onChange={(v) => set({ rf: v, count: null })} />
-            </Row>
-          ) : null}
+          <Text style={{ fontWeight: '600', color: colors.ink, marginTop: 6 }}>Surfaces – colour and reflectance</Text>
+          <Row gap={6} wrap>
+            {REFLECTANCES.map((x) => (
+              <Button key={x.key} small variant="ghost" title={x.label.split(' (')[0]} onPress={() => set({ rc: x.c, rw: x.w, rf: x.f, count: null })} />
+            ))}
+          </Row>
+          <SurfaceRow label="Ceiling / roof" colour={surfaces.ceiling} value={f.rc} onColour={(c) => set({ cCol: c, rc: reflectanceOf(c) ?? f.rc, count: null })} onValue={(v) => set({ rc: v, count: null })} />
+          <SurfaceRow label="Walls" colour={surfaces.walls} value={f.rw} onColour={(c) => set({ wCol: c, rw: reflectanceOf(c) ?? f.rw, count: null })} onValue={(v) => set({ rw: v, count: null })} />
+          <SurfaceRow label="Floor" colour={surfaces.floor} value={f.rf} onColour={(c) => set({ fCol: c, rf: reflectanceOf(c) ?? f.rf, count: null })} onValue={(v) => set({ rf: v, count: null })} />
           <Select
             label="Maintenance"
             value={f.maint}
@@ -359,8 +461,43 @@ export default function QuickCalc() {
 
       <Section title="② Fitting">
         <Card style={{ gap: 4 }}>
+          <Segmented
+            value={f.dist ?? 'model'}
+            onChange={(v) => set({ dist: v, count: null })}
+            options={[
+              { value: 'ies', label: 'IES file' },
+              { value: 'model', label: 'Model by type (no IES)' },
+            ]}
+          />
+          {f.dist === 'ies' ? (
+            <>
+              <IesPicker
+                value={f.ies_id}
+                canLibrary={canLibrary}
+                onChange={(row: IesRow | null) =>
+                  set(row ? { ies_id: row.id, fname: row.name, lumens: row.lumens != null ? Math.round(row.lumens) : f.lumens, watts: row.watts ?? f.watts, lumL: null, lumW: null, count: null } : { ies_id: null, count: null })
+                }
+              />
+              {iesError ? <ErrorBanner message={iesError} /> : null}
+              {f.ies_id && ies && ies.id === f.ies_id ? (
+                <Row gap={12} wrap style={{ alignItems: 'center' }}>
+                  <SvgXml xml={ies.polar} width={200} height={200} />
+                  <View style={{ flex: 1, minWidth: 200, gap: 2 }}>
+                    <Text style={{ fontWeight: '600', color: colors.ink }}>{ies.name}</Text>
+                    <Muted>{`${ies.manufacturer ? `${ies.manufacturer} · ` : ''}${ies.d.lumens} lm in the file${ies.d.watts ? ` · ${ies.d.watts} W` : ''} · ${ies.beam}° beam · ${Math.round(ies.ph.up * 100)}% up`}</Muted>
+                    <Muted>{`Lit area ${Math.round(ies.d.lenMm)} × ${Math.round(ies.d.widMm)} mm`}</Muted>
+                    <Muted>Red: along the fitting (C0–C180) · blue: across (C90–C270). Lumens typed below scale the curve.</Muted>
+                  </View>
+                </Row>
+              ) : f.ies_id ? (
+                <Muted>Reading the IES file…</Muted>
+              ) : (
+                <Notice tone={colors.amber}>Choose an IES file from the uploaded files, or browse and attach one.</Notice>
+              )}
+            </>
+          ) : null}
           <Select
-            label="Type"
+            label={f.dist === 'ies' ? 'Type (for the name and default size)' : 'Type'}
             value={f.type}
             onChange={(v) => set({ type: v, count: null })}
             options={FITTING_TYPES.map((t) => ({ value: t.key, label: `${t.label} – ${t.hint}` }))}
@@ -376,7 +513,14 @@ export default function QuickCalc() {
             <NumberField label="Lit area width" suffix="mm" value={f.lumW} onChange={(v) => set({ lumW: v })} hint={`Empty = ${ftype?.size[1] ?? 600} mm`} />
             <NumberField label="UGR from the data sheet" value={f.ugrSheet} onChange={(v) => set({ ugrSheet: v })} hint="If given – used instead of the estimate" />
           </Row>
-          <Muted>When Catalogs are ready, pick the product and its IES file is used instead.</Muted>
+          <Segmented
+            value={String(f.rot ?? 0)}
+            onChange={(v) => set({ rot: Number(v), count: null })}
+            options={[
+              { value: '0', label: 'Fittings along the length' },
+              { value: '90', label: 'Turned 90°' },
+            ]}
+          />
         </Card>
       </Section>
 
@@ -399,7 +543,7 @@ export default function QuickCalc() {
                   <Muted>Lines join points of equal light (lux). White dots are the fittings; black marks are the seated observers for glare (UGR).</Muted>
                 </>
               ) : (
-                <Room3D poly={calc.poly} positions={positions} room={calc.room} r={r} scale={scale} fit={lit} width={Math.max(planW, 280)} />
+                <Room3D poly={calc.poly} positions={positions} room={calc.room} r={r} scale={scale} fit={lit} surfaces={surfaces} width={Math.max(planW, 280)} />
               )}
               <SvgXml xml={legend.xml} width={legend.width} height={legend.height} />
               <Muted>{`Illuminance on the working plane, ${plan.range.min}–${plan.range.max} lx`}</Muted>
@@ -421,7 +565,13 @@ export default function QuickCalc() {
             </Card>
           </>
         ) : (
-          <Notice tone={colors.amber}>Complete the room sizes, heights and the fitting lumens to see the result.</Notice>
+          <Notice tone={colors.amber}>
+            {f.shape === 'free' && f.closed === false
+              ? 'Close the drawn plan (tap its first corner) to see the result.'
+              : f.dist === 'ies' && !photo
+                ? 'Choose the IES file of the fitting to see the result.'
+                : 'Complete the room sizes, heights and the fitting lumens to see the result.'}
+          </Notice>
         )}
       </Section>
 
@@ -472,5 +622,31 @@ export default function QuickCalc() {
         <Button variant="secondary" title="Make inquiry" onPress={makeInquiry} />
       </Row>
     </Screen>
+  );
+}
+
+/** A room surface: its colour (from common finishes) and its reflectance – the colour suggests the reflectance */
+function SurfaceRow({ label, colour, value, onColour, onValue }: { label: string; colour: string; value: number | null; onColour: (c: string) => void; onValue: (v: number | null) => void }) {
+  const name = SURFACE_COLOURS.find((c) => c.hex.toLowerCase() === colour.toLowerCase())?.name ?? colour;
+  return (
+    <View style={{ gap: 4, paddingVertical: 4 }}>
+      <Row gap={8} wrap style={{ alignItems: 'flex-end' }}>
+        <View style={{ minWidth: 120, gap: 2 }}>
+          <Text style={{ fontSize: 13, color: colors.ink, fontWeight: '600' }}>{label}</Text>
+          <Muted>{name}</Muted>
+        </View>
+        <NumberField label="Reflectance (0–1)" value={value} onChange={onValue} />
+      </Row>
+      <Row gap={6} wrap>
+        {SURFACE_COLOURS.map((c) => (
+          <Pressable
+            key={c.hex}
+            accessibilityLabel={`${label}: ${c.name}`}
+            onPress={() => onColour(c.hex)}
+            style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: c.hex, borderWidth: c.hex.toLowerCase() === colour.toLowerCase() ? 3 : 1, borderColor: c.hex.toLowerCase() === colour.toLowerCase() ? colors.brand : '#94A3B8' }}
+          />
+        ))}
+      </Row>
+    </View>
   );
 }

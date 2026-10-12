@@ -2,23 +2,25 @@ import { useState } from 'react';
 import { PanResponder, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 import { Button, Muted, Row } from '@/components/ui';
-import { room3dSvg, type Scale } from '@/lib/calcSheet';
-import type { CalcResult, Pt } from '@/lib/lightcalc';
+import { room3dSvg, type Scale, type Surfaces } from '@/lib/calcSheet';
+import type { CalcResult, Pt, RoomInput } from '@/lib/lightcalc';
 
 type Props = {
   poly: Pt[];
   positions: Pt[];
-  room: { height: number; mount: number; plane: number };
+  room: RoomInput;
   r: CalcResult | null;
   scale: Scale;
-  fit: { lumL: number; lumW: number };
+  fit: { lumL: number; lumW: number; rot?: number };
+  surfaces: Surfaces;
   width: number;
 };
 const START = { yaw: 35, pitch: 55, zoom: 1 };
 
 /** The room in 3D – drag to turn it round and tilt it, buttons for a step at a time and zoom */
-export function Room3D({ poly, positions, room, r, scale, fit, width }: Props) {
+export function Room3D({ poly, positions, room, r, scale, fit, surfaces, width }: Props) {
   const [view, setView] = useState(START);
+  const [roof, setRoof] = useState(true);
   // turned by the movement since the last move, so no stored starting view is needed
   const [pan] = useState(() => {
     let last = { dx: 0, dy: 0 };
@@ -37,7 +39,7 @@ export function Room3D({ poly, positions, room, r, scale, fit, width }: Props) {
       },
     });
   });
-  const svg = room3dSvg(poly, positions, room, r, scale, fit, view.yaw, view.pitch, width, view.zoom);
+  const svg = room3dSvg(poly, positions, room, r, scale, fit, view.yaw, view.pitch, width, view.zoom, { surfaces, roof });
   const step = (p: Partial<typeof START>) => setView((v) => ({ ...v, ...p }));
   return (
     <View style={{ alignItems: 'center', gap: 6 }}>
@@ -53,6 +55,7 @@ export function Room3D({ poly, positions, room, r, scale, fit, width }: Props) {
         <Button small variant="secondary" title="＋" onPress={() => step({ zoom: Math.min(2.5, view.zoom * 1.2) })} />
         <Button small variant="secondary" title="－" onPress={() => step({ zoom: Math.max(0.5, view.zoom / 1.2) })} />
         <Button small variant="ghost" title="Top" onPress={() => step({ yaw: 0, pitch: 89 })} />
+        <Button small variant="ghost" title={roof ? 'Hide roof' : 'Show roof'} onPress={() => setRoof(!roof)} />
         <Button small variant="ghost" title="Reset" onPress={() => setView(START)} />
       </Row>
     </View>
