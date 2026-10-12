@@ -130,7 +130,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signIn: async (email, password) => {
         // Subcontractor supervisors sign in with their mobile number
         const id = email.trim();
-        const login = id.includes('@') ? id : `${normPhone(id)}@users.dimo-lighting-ops.app`;
+        // logins are stored in lower case – a tablet capitalising "Sampath.M…@…" must still match
+        const login = id.includes('@') ? id.toLowerCase() : `${normPhone(id)}@users.dimo-lighting-ops.app`;
         const { error: e } = await supabase.auth.signInWithPassword({ email: login, password });
         if (e) throw new Error(e.message);
       },
