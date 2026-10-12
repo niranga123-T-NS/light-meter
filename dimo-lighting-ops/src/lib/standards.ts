@@ -2,7 +2,7 @@ import { DIMO_LOGO_DATA_URI } from './brandLogoData';
 import { esc } from './export';
 import type { Role } from './types';
 
-export type StdGroup = 'indoor' | 'outdoor' | 'road' | 'sports' | 'emergency' | 'energy';
+export type StdGroup = 'indoor' | 'outdoor' | 'road' | 'sports' | 'emergency';
 export type StdGroupRow = { grp: StdGroup; title: string; source: string; sort: number; reviewed_at: string | null; reviewed_by: string | null; note: string | null };
 export type Standard = {
   id: string;
@@ -54,7 +54,6 @@ export const STD_COLS: Record<StdGroup, Col[]> = {
     { key: 'dur', label: 'Duration', text: true, explain: (v) => `Duration: ${v}` },
     { key: 'resp', label: 'Response', text: true, explain: (v) => `Response time: ${v}` },
   ],
-  energy: [{ key: 'lpd', label: 'Max LPD', unit: 'W/m²', explain: (v) => `Maximum lighting power density: ${v} W/m²` }],
 };
 
 /** Who opens Sales Tools, and who keeps the standards */

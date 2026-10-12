@@ -326,7 +326,6 @@ export type SheetInput = {
   source: string | null;
   target: number;
   uoTarget: number | null;
-  lpdLimit: number | null;
   scale: Scale;
   ugrLimit: number | null;
   ugrSheet: number | null;
@@ -399,7 +398,7 @@ ${row('Minimum · maximum', `${Math.round(s.r.emin)} lx · ${Math.round(s.r.emax
 ${row('Uniformity Uo = Emin / Em', `${s.r.uo.toFixed(2)}${s.uoTarget ? ` ${ok(s.r.uo >= s.uoTarget)} target ${s.uoTarget}` : ''}`)}
 ${row('Uniformity Ud = Emin / Emax', s.r.ud.toFixed(2))}
 ${row(s.ugrSheet != null ? 'Glare UGR (data sheet)' : 'Glare UGR (max, indicative)', `${ugrText}${s.ugrLimit != null && ugr != null ? ` ${ok(ugr <= s.ugrLimit)} limit ${s.ugrLimit}` : ''}`)}
-${row('Installed load', `${(s.r.watts / 1000).toFixed(2)} kW · ${s.r.wpm2.toFixed(1)} W/m²${s.lpdLimit ? ` ${ok(s.r.wpm2 <= s.lpdLimit)} SLSEA ${s.lpdLimit} W/m²` : ''}`)}
+${row('Installed load', `${(s.r.watts / 1000).toFixed(2)} kW · ${s.r.wpm2.toFixed(1)} W/m²`)}
 ${s.source ? row('Standard', esc(s.source)) : ''}
 </table></div></div>
 ${lightRows}
