@@ -121,6 +121,19 @@ Deno.serve(async (req) => {
         await admin.from('audit_log').insert({ user_id: caller.user.id, table_name: 'users', record_id: data.user.id, action: 'INVITE', new_data: { email, role: body.role, by_role: me.role } });
         return json({ id: data.user.id });
       }
+      case 'reset_password': {
+        // A new temporary password, shown once to the System Administrator / GM / DGM to hand over
+        if (!body.user_id) return json({ error: 'user_id is required' }, 400);
+        if (body.user_id === caller.user.id) return json({ error: 'Change your own password under Profile' }, 400);
+        const { data: target } = await admin.from('profiles').select('role, email').eq('id', body.user_id).maybeSingle();
+        if (!target) return json({ error: 'User not found' }, 404);
+        if (!isAdmin && target.role === 'sys_admin') return json({ error: 'Only the System Administrator changes System Administrator logins' }, 403);
+        const password = Array.from(crypto.getRandomValues(new Uint8Array(9)), (b) => 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789'[b % 56]).join('') + '7';
+        const { data: au, error } = await admin.auth.admin.updateUserById(body.user_id, { password, email_confirm: true });
+        if (error) return json({ error: error.message }, 400);
+        await admin.from('audit_log').insert({ user_id: caller.user.id, table_name: 'users', record_id: body.user_id, action: 'RESET_PASSWORD', new_data: { by_role: me.role } });
+        return json({ login: au.user?.email ?? target.email, password });
+      }
       case 'deactivate':
       case 'activate': {
         const active = body.action === 'activate';

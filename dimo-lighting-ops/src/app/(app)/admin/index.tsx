@@ -114,6 +114,23 @@ function Users() {
     }, 'Saved – changes apply at next login');
   };
 
+  // A new temporary password when someone cannot sign in – shown once, to hand over
+  const resetPassword = async (p: Profile) => {
+    if (!(await dialog.confirm(`Reset ${p.full_name}'s password?`, 'A new temporary password is made and shown to you once. Their old password stops working.', { confirmLabel: 'Reset' }))) return;
+    await dialog.run(async () => {
+      const r = await callFunction<{ login: string; password: string }>('admin-users', { action: 'reset_password', user_id: p.id });
+      await dialog.prompt({
+        title: `New login for ${p.full_name}`,
+        message: 'Hand this over now – it is not shown again. They can change it under Profile after signing in.',
+        fields: [
+          { key: 'l', label: 'Login', initial: r.login },
+          { key: 'p', label: 'Temporary password', initial: r.password },
+        ],
+        confirmLabel: 'Done',
+      });
+    });
+  };
+
   const transfer = async (p: Profile) => {
     const r = await dialog.prompt({
       title: `Transfer ${p.full_name}'s accounts`,
@@ -156,6 +173,7 @@ function Users() {
                 {mayChange(p) && p.avatar_path ? (
                   <Button small variant="ghost" title="Remove picture" onPress={() => dialog.run(async () => { await supabase.from('profiles').update({ avatar_path: null }).eq('id', p.id); await reload(); }, 'Picture removed')} />
                 ) : null}
+                {mayChange(p) && p.id !== me.id && p.active ? <Button small variant="ghost" title="Reset password" onPress={() => resetPassword(p)} /> : null}
                 {mayChange(p) && p.id !== me.id ? (
                   <Button
                     small
