@@ -8,7 +8,22 @@ const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
 export const isConfigured = Boolean(url && anonKey);
 
+// High level user (view only): while on, every database request is marked, and the database treats it as GM / DGM in a
+// read-only transaction (only the REST API – Edge Functions do not accept the extra header).
+let highLevelView = false;
+export function setHighLevelView(on: boolean) {
+  highLevelView = on;
+}
+const markedFetch: typeof fetch = (input, init) => {
+  const u = typeof input === 'string' ? input : input instanceof URL ? input.href : (input as Request).url;
+  if (!highLevelView || !u.includes('/rest/v1/')) return fetch(input, init);
+  const headers = new Headers(init?.headers);
+  headers.set('x-view-as', 'high_level');
+  return fetch(input, { ...init, headers });
+};
+
 export const supabase = createClient(url ?? 'http://localhost:54321', anonKey ?? 'missing-anon-key', {
+  global: { fetch: markedFetch },
   auth: {
     // Web uses localStorage (the default); native keeps the session in AsyncStorage.
     storage: Platform.OS === 'web' ? undefined : AsyncStorage,
@@ -43,6 +58,7 @@ function cleanError(message: string) {
   // The browser could not reach the server (no signal, Wi-Fi dropped, the request was cut off)
   if (/load failed|failed to fetch|networkerror|network request failed/i.test(message))
     return 'Connection problem – the request did not reach the server. Check the connection and try again.';
+  if (/read-only transaction/i.test(message)) return 'View only – you are viewing as a high level user. Switch back to your own view to make changes.';
   // Database rule messages are already written for users; strip Postgres prefixes.
   return message.replace(/^(ERROR:\s*)/i, '').replace(/^new row violates row-level security policy.*/i, 'You do not have permission to do that.');
 }
