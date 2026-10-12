@@ -18,6 +18,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   trainee: 'Trainee – Project Execution',
   sub_supervisor: 'Subcontractor Supervisor',
   sys_admin: 'System Administrator',
+  guest: 'High level user (temporary, from outside)',
 };
 
 export const ROLE_SHORT: Record<Role, string> = {
@@ -37,6 +38,7 @@ export const ROLE_SHORT: Record<Role, string> = {
   trainee: 'Trainee',
   sub_supervisor: 'Sub. Supervisor',
   sys_admin: 'System Admin',
+  guest: 'High level (temp.)',
 };
 
 export const PROJECT_TYPES: { value: ProjectType; label: string; line: 'Building' | 'Infrastructure' }[] = [
@@ -82,6 +84,8 @@ export const EXEC_NAV = {
 /** Navigation per role (Section 2 visibility rule and Section 10.2 dashboards). Everyone gets Meetings: the sales,
  * estimation and design meetings in one place (invitations, attendance, leave, packs and actions). */
 export function navFor(role: Role): NavItem[] {
+  // A person from outside has nothing of their own – only the high level view (GM / DGM menu) during the period
+  if (role === 'guest') return [{ href: '/', label: 'Home', icon: '⌂' }];
   const items = baseNav(role);
   const meetings: NavItem = { href: '/meetings', label: 'Meetings', icon: '◴' };
   // Sales map: web app only, for GM / DGM, SM Projects and sales – placed after Visits
@@ -293,6 +297,8 @@ function baseNav(role: Role): NavItem[] {
       return [{ href: '/', label: 'My Day', icon: '⌂' }, EXEC_NAV.myWork, { href: '/execution/sub-plan', label: 'My plan', icon: '▦', testing: true } as NavItem, EXEC_NAV.report, EXEC_NAV.materials, EXEC_NAV.hse];
     case 'sys_admin':
       return [{ href: '/', label: 'Home', icon: '⌂' }, { href: '/admin', label: 'Administration', icon: '⚙' }];
+    case 'guest':
+      return [home];
   }
 }
 
@@ -341,6 +347,7 @@ const COL: Record<Role, Col | null> = {
   trainee: null,
   sub_supervisor: null,
   sys_admin: null,
+  guest: null,
 };
 
 export function reportsFor(role: Role): (ReportDef & { scope: Scope })[] {

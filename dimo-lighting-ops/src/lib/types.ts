@@ -17,7 +17,9 @@ export type Role =
   | 'assistant_engineer'
   | 'trainee'
   | 'sub_supervisor'
-  | 'sys_admin';
+  | 'sys_admin'
+  /** A person from outside with temporary high level access only */
+  | 'guest';
 
 export type ProjectType = 'hospitality' | 'retail' | 'institutions' | 'commercial' | 'infrastructure' | 'industrial';
 export type Currency = 'USD' | 'LKR';

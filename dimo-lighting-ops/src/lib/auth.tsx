@@ -109,14 +109,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => sub.subscription.unsubscribe();
   }, [loadProfile]);
 
+  // A person from outside (guest) has no view of their own: during the period they always view as a high level user
+  const guest = profile?.role === 'guest';
+  const viewing = !!highLevel && (highLevelOn || guest);
+  useEffect(() => {
+    if (guest) setHighLevelView(!!highLevel);
+  }, [guest, highLevel]);
+
   const value = useMemo<AuthState>(
     () => ({
       session,
-      profile: profile && highLevelOn && highLevel ? { ...profile, role: 'gm' as Role } : profile,
-      role: profile && highLevelOn && highLevel ? ('gm' as Role) : (profile?.role ?? null),
+      profile: profile && viewing ? { ...profile, role: 'gm' as Role } : profile,
+      role: profile && viewing ? ('gm' as Role) : (profile?.role ?? null),
       realRole: profile?.role ?? null,
       highLevel,
-      highLevelOn: highLevelOn && !!highLevel,
+      highLevelOn: viewing,
       setHighLevelOn,
       loading,
       error,
@@ -138,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       reloadProfile: () => loadProfile(session),
     }),
-    [session, profile, loading, error, loadProfile, highLevel, highLevelOn, setHighLevelOn],
+    [session, profile, loading, error, loadProfile, highLevel, viewing, setHighLevelOn],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -5,6 +5,7 @@ import { FxCard } from '@/components/FxRates';
 import { DesignBoard, EstimationBoard } from '@/components/home/JobBoards';
 import { SalesHome } from '@/components/home/SalesHome';
 import { MyDayMeetings } from '@/components/WeekMeetings';
+import { GuestHome } from '@/components/home/GuestHome';
 import { useMe } from '@/lib/auth';
 
 /** Each role opens to its own dashboard (Section 9). */
@@ -41,6 +42,8 @@ export default function Home() {
     case 'trainee':
     case 'sub_supervisor':
       return <EngineerHome />;
+    case 'guest':
+      return <GuestHome />;
     default:
       return <AdminHome />;
   }
