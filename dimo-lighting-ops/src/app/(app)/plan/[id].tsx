@@ -26,6 +26,21 @@ type PvA = {
 };
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+// Shown days: an unplanned visit can fall on a Sunday too
+const WEEK_DAYS = [...DAYS, 'Sun'];
+type Unplanned = {
+  id: string;
+  checkin_at: string;
+  visit_category: string;
+  primary_objective: string;
+  outcome: string | null;
+  gps_verified: boolean | null;
+  organizations: { name: string } | null;
+  projects: { name: string } | null;
+};
+/** The Sri Lanka date (YYYY-MM-DD) of a timestamp */
+const slDate = (iso: string) => new Date(Date.parse(iso) + 5.5 * 36e5).toISOString().slice(0, 10);
+const slTime = (iso: string) => new Date(Date.parse(iso) + 5.5 * 36e5).toISOString().slice(11, 16);
 
 export default function PlanDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -59,8 +74,18 @@ export default function PlanDetail() {
             (a) => a.kind === 'visit' && a.line_status !== 'planned' && a.line_status !== 'completed',
           )
         : [];
+    // Unplanned visits of the week (checked in without a plan line) – shown in the week beside the planned ones
+    const { data: unpl } = await supabase
+      .from('visits')
+      .select('id, checkin_at, visit_category, primary_objective, outcome, gps_verified, organizations(name), projects(name)')
+      .eq('sales_person_id', plan.sales_person_id)
+      .eq('unplanned', true)
+      .gte('checkin_at', `${plan.week_start}T00:00:00+05:30`)
+      .lt('checkin_at', `${addDaysISO(plan.week_start, 7)}T00:00:00+05:30`)
+      .order('checkin_at');
     return {
       followups,
+      unplanned: (unpl ?? []) as unknown as Unplanned[],
       plan: plan as VisitPlan,
       lines: (lines ?? []) as PlanLine[],
       pva: pva[0] ?? null,
@@ -69,7 +94,7 @@ export default function PlanDetail() {
   }, [id]);
 
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const { plan, lines, pva, exception, followups } = data;
+  const { plan, lines, pva, exception, followups, unplanned } = data;
   const mine = plan.sales_person_id === me.id;
   const editable = mine && ['draft', 'returned', 'approved'].includes(plan.status);
   const manager = me.role === 'sm_projects' || me.role === 'gm';
@@ -294,12 +319,16 @@ export default function PlanDetail() {
         </Section>
       ) : null}
 
-      <Section title="Planned visits" right={editable ? <Button small title="+ Add visit" onPress={() => setAdding(true)} /> : undefined}>
+      <Section
+        title={unplanned.length ? `Planned visits and ${unplanned.length} unplanned` : 'Planned visits'}
+        right={editable ? <Button small title="+ Add visit" onPress={() => setAdding(true)} /> : undefined}
+      >
         {adding ? <AddLine planId={plan.id} weekStart={plan.week_start} onDone={() => { setAdding(false); reload(); }} /> : null}
-        {DAYS.map((d, i) => {
+        {WEEK_DAYS.map((d, i) => {
           const date = addDaysISO(plan.week_start, i);
           const dayLines = lines.filter((l) => l.planned_date === date);
-          if (!dayLines.length) return null;
+          const dayUnplanned = unplanned.filter((v) => slDate(v.checkin_at) === date);
+          if (!dayLines.length && !dayUnplanned.length) return null;
           return (
             <View key={d} style={{ marginBottom: 10 }}>
               <Muted style={{ fontWeight: '700', marginBottom: 4 }}>
@@ -366,11 +395,26 @@ export default function PlanDetail() {
                     }
                   />
                 ))}
+                {dayUnplanned.map((v) => (
+                  <ListRow
+                    key={v.id}
+                    title={`${slTime(v.checkin_at)} · ${v.organizations?.name ?? ''}`}
+                    subtitle={`${v.primary_objective} · ${v.visit_category}${v.projects?.name ? ` · ${v.projects.name}` : ''}${v.outcome ? ` · ${v.outcome}` : ' · report due'}`}
+                    highlight={colors.amber}
+                    onPress={() => router.push(`/visits/${v.id}`)}
+                    right={
+                      <Row gap={4} wrap>
+                        <Pill label="Unplanned" tone={colors.amber} />
+                        {v.gps_verified === false ? <Pill label="GPS not verified" tone={colors.red} /> : null}
+                      </Row>
+                    }
+                  />
+                ))}
               </Card>
             </View>
           );
         })}
-        {!lines.length && !adding ? <Muted>No visits planned yet.</Muted> : null}
+        {!lines.length && !unplanned.length && !adding ? <Muted>No visits planned yet.</Muted> : null}
       </Section>
     </Screen>
   );
