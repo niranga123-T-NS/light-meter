@@ -107,6 +107,7 @@ function baseNav(role: Role): NavItem[] {
   const approvals: NavItem = { href: '/approvals', label: 'Approvals', icon: '✓', badgeKey: 'approvals' };
   const reports: NavItem = { href: '/reports', label: 'Reports', icon: '▤' };
   const fx: NavItem = { href: '/fx', label: 'Exchange rates', icon: '$' };
+  const tenders: NavItem = { href: '/tenders', label: 'Tender results', icon: '⚑' };
   const brands: NavItem = { href: '/brands', label: 'Brands', icon: '◈' };
   switch (role) {
     case 'asm_building':
@@ -127,6 +128,7 @@ function baseNav(role: Role): NavItem[] {
         { href: '/finance/secured', label: 'Secured', icon: '◇' },
         { href: '/finance/invoicing', label: 'Invoicing', icon: '⧉' },
         { href: '/scorecard', label: 'Scorecard', icon: '★' },
+        tenders,
         reports,
       ];
     case 'sm_projects':
@@ -157,6 +159,7 @@ function baseNav(role: Role): NavItem[] {
         { href: '/finance/budget', label: 'Budget list', icon: '◫' },
         { href: '/finance/targets', label: 'Targets', icon: '◉' },
         { href: '/scorecard', label: 'Scorecards', icon: '★' },
+        tenders,
         fx,
         reports,
         { href: '/admin', label: 'Team & lists', icon: '⚙' },
@@ -186,6 +189,7 @@ function baseNav(role: Role): NavItem[] {
         { href: '/finance/budget', label: 'Budget list', icon: '◫' },
         { href: '/finance/targets', label: 'Targets', icon: '◉' },
         { href: '/scorecard', label: 'Scorecards', icon: '★' },
+        tenders,
         fx,
         reports,
         { href: '/admin', label: 'Settings', icon: '⚙' },
@@ -217,12 +221,15 @@ function baseNav(role: Role): NavItem[] {
         { href: '/finance/budget', label: 'Budget list', icon: '◫' },
         { href: '/finance/targets', label: 'Targets', icon: '◉' },
         brands,
+        tenders,
         fx,
         reports,
       ];
     case 'am_estimation':
     case 'estimation_exec':
-      return [{ href: '/', label: 'My Estimates', icon: '⌂' }, { href: '/jobs', label: 'All my jobs', icon: '▣' }, brands, fx, reports];
+      return role === 'am_estimation'
+        ? [{ href: '/', label: 'My Estimates', icon: '⌂' }, { href: '/jobs', label: 'All my jobs', icon: '▣' }, brands, tenders, fx, reports]
+        : [{ href: '/', label: 'My Estimates', icon: '⌂' }, { href: '/jobs', label: 'All my jobs', icon: '▣' }, brands, fx, reports];
     case 'operations_exec':
       return [
         { href: '/', label: 'Home', icon: '⌂' },

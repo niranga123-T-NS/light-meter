@@ -1,4 +1,5 @@
 import * as Location from 'expo-location';
+import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 import { fmtMoney } from '@/lib/format';
@@ -55,7 +56,7 @@ export function ObjectivePicker({
   );
 }
 
-type Bid = { competitor_id: number | null; bid_price: number | null; brands: string; compliant: boolean; remarks: string };
+type Bid = { id?: string; competitor_id: number | null; bid_price: number | null; brands: string; compliant: boolean; remarks: string };
 
 /**
  * Tender result form (Section 4.8) – mandatory before a Bid Submission or Tender Opening visit can be closed.
@@ -112,7 +113,8 @@ export function TenderResultForm({ visit, onSaved }: { visit: Visit; onSaved: ()
           next_action_date: data.next_action_date ?? '',
         });
         setBids(
-          (data.tender_bids ?? []).map((b: { competitor_id: number; bid_price: number; brands: string[]; compliant: boolean; remarks: string | null }) => ({
+          (data.tender_bids ?? []).map((b: { id: string; competitor_id: number; bid_price: number; brands: string[]; compliant: boolean; remarks: string | null }) => ({
+            id: b.id,
             competitor_id: b.competitor_id,
             bid_price: b.bid_price,
             brands: (b.brands ?? []).join(', '),
@@ -153,19 +155,35 @@ export function TenderResultForm({ visit, onSaved }: { visit: Visit; onSaved: ()
         next_action: f.next_action || null,
         next_action_date: f.next_action_date || null,
       };
+      // the client and project names, so the Estimation team (who do not see customers and projects) can read them
+      const [org, proj] = await Promise.all([
+        visit.organization_id ? supabase.from('organizations').select('name').eq('id', visit.organization_id).maybeSingle() : Promise.resolve({ data: null }),
+        supabase.from('projects').select('name').eq('id', visit.project_id).maybeSingle(),
+      ]);
+      Object.assign(row, { client_name: (org.data as { name: string } | null)?.name ?? null, project_name: (proj.data as { name: string } | null)?.name ?? null });
       let id = tenderId;
       if (id) {
         const { error } = await supabase.from('tenders').update(row).eq('id', id);
         if (error) throw new Error(error.message);
-        await supabase.from('tender_bids').delete().eq('tender_id', id);
+        // remove only the bids taken off the form – the others keep the details the Estimation team added (item prices, documents)
+        const keep = bids.filter((b) => b.id).map((b) => b.id as string);
+        const del = supabase.from('tender_bids').delete().eq('tender_id', id);
+        await (keep.length ? del.not('id', 'in', `(${keep.join(',')})`) : del);
       } else {
         const { data, error } = await supabase.from('tenders').insert(row).select('id').single();
         if (error) throw new Error(error.message);
         id = data.id;
         setTenderId(id);
       }
+      for (const b of bids.filter((x) => x.id && x.competitor_id)) {
+        const { error } = await supabase
+          .from('tender_bids')
+          .update({ competitor_id: b.competitor_id, bid_price: b.bid_price, brands: b.brands.split(',').map((x) => x.trim()).filter(Boolean), compliant: b.compliant, remarks: b.remarks || null })
+          .eq('id', b.id as string);
+        if (error) throw new Error(error.message);
+      }
       const rows = bids
-        .filter((b) => b.competitor_id && b.bid_price != null)
+        .filter((b) => !b.id && b.competitor_id && b.bid_price != null)
         .map((b) => ({
           tender_id: id,
           competitor_id: b.competitor_id,
@@ -178,11 +196,23 @@ export function TenderResultForm({ visit, onSaved }: { visit: Visit; onSaved: ()
         const { error } = await supabase.from('tender_bids').insert(rows);
         if (error) throw new Error(error.message);
       }
+      // the saved bids with their ids, so the next save updates them instead of adding them again
+      const { data: saved } = await supabase.from('tender_bids').select('id, competitor_id, bid_price, brands, compliant, remarks').eq('tender_id', id);
+      setBids(
+        ((saved ?? []) as { id: string; competitor_id: number; bid_price: number | null; brands: string[]; compliant: boolean; remarks: string | null }[]).map((b) => ({
+          id: b.id,
+          competitor_id: b.competitor_id,
+          bid_price: b.bid_price,
+          brands: (b.brands ?? []).join(', '),
+          compliant: b.compliant,
+          remarks: b.remarks ?? '',
+        })),
+      );
       onSaved();
     }, 'Tender result saved');
 
   return (
-    <Section title="Tender result (mandatory)">
+    <Section title="Tender result (mandatory)" right={tenderId ? <Button small variant="ghost" title="Open the tender record" onPress={() => router.push(`/tenders/${tenderId}`)} /> : null}>
       <Card>
         <Field label="Tender no." required value={f.tender_no} onChangeText={(v) => set('tender_no', v)} />
         <Field label="Tender name" required value={f.tender_name} onChangeText={(v) => set('tender_name', v)} />

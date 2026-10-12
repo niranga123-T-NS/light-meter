@@ -10,6 +10,8 @@ import { useDialog } from './dialog';
 import { Button, Card, ListRow, Muted, Row, Section } from './ui';
 
 export const KIND_LABELS: Record<string, string> = {
+  tender_boq: 'Tender BOQ (required)',
+  competitor_prices: 'Competitor price schedule',
   sinv_doc: 'Invoice copy (PDF / photo)',
   sinv_markup: 'Marked-up copy',
   ipc_signed: 'IPA-approved IPC with signatures',

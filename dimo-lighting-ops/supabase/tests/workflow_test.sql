@@ -6932,6 +6932,55 @@ do $$ begin
 end $$;
 rollback to savepoint fx1;
 
+-- Tender results by the Estimation team: past tenders without a visit, competitor details, item prices
+savepoint tdr1;
+select pg_temp.act_as('am_estimation'); set role authenticated;
+do $$ declare t uuid; b uuid; c bigint; begin
+  insert into public.competitors (name) values ('Brightway Lighting (Pvt) Ltd') returning id into c;
+  insert into public.tenders (tender_no, tender_name, client_name, project_name, tender_type, duty_status, closing_date, opening_date, our_price, result_status, sales_person_id)
+  values ('RDA/EL/2025/114', 'Street lighting – Galle Road', 'Road Development Authority', 'Galle Road street lighting', 'open', 'duty_paid', current_date - 300, current_date - 299, 52000000, 'awarded_to_competitor', null)
+  returning id into t;
+  insert into public.tender_bids (tender_id, competitor_id, bid_price, brands) values (t, c, 48500000, '{Philips}') returning id into b;
+  insert into public.tender_bid_lines (bid_id, seq, item, brand, model, qty, unit, unit_price) values (b, 1, 'LED street light 150W', 'Philips', 'BRP392', 420, 'nos', 61000);
+  perform set_config('test.tdr', t::text, true); perform set_config('test.tdrb', b::text, true);
+  -- the check: a tender needs a client and a project, typed or linked
+  begin insert into public.tenders (tender_no, tender_name, tender_type, duty_status, closing_date, opening_date) values ('X', 'Y', 'open', 'duty_paid', current_date, current_date); assert false, 'names';
+  exception when check_violation then null; end;
+end $$;
+reset role;
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+do $$ begin
+  update public.tender_bids set bid_price = 48450000, remarks = 'Corrected from the opening sheet' where id = current_setting('test.tdrb')::uuid;
+  assert found, 'SM Estimation updates the bid';
+  update public.tender_bid_lines set unit_price = 60800 where bid_id = current_setting('test.tdrb')::uuid;
+  assert found, 'SM Estimation updates the item prices';
+end $$;
+reset role;
+select pg_temp.act_as('estimation_exec'); set role authenticated;
+do $$ begin
+  assert not exists (select 1 from public.tenders where id = current_setting('test.tdr')::uuid), 'estimation executive does not see tender results';
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin
+  update public.tender_bid_lines set unit_price = 1 where bid_id = current_setting('test.tdrb')::uuid;
+  assert not found, 'others cannot change';
+end $$;
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ begin
+  assert (select count(*) from public.tender_bid_lines where bid_id = current_setting('test.tdrb')::uuid) = 1, 'GM reads the item prices';
+  assert app.can_write_attachment('tender', current_setting('test.tdr')::uuid, 'tender_boq') = false, 'GM reads, does not upload';
+end $$;
+reset role;
+select pg_temp.act_as('am_estimation'); set role authenticated;
+do $$ begin
+  assert app.can_write_attachment('tender', current_setting('test.tdr')::uuid, 'tender_boq'), 'AM Estimation uploads the BOQ';
+  assert app.can_write_attachment('tender_bid', current_setting('test.tdrb')::uuid, 'competitor_prices'), 'and the competitor documents';
+end $$;
+reset role;
+rollback to savepoint tdr1;
+
 -- Execution data only for the people who need it: Operations sees materials, handover, IPCs and billing,
 -- not the programme, plans, daily reports, HSE, QA, snags or design queries
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
