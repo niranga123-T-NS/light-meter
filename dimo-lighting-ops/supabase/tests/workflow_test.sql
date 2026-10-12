@@ -7096,7 +7096,7 @@ rollback to savepoint gmusers;
 savepoint stds;
 select pg_temp.act_as('asm_building'); set role authenticated;
 do $$ begin
-  assert (select count(*) from public.lighting_standard_groups) = 6, 'six groups';
+  assert (select count(*) from public.lighting_standard_groups) = 5, 'five groups (energy removed)';
   assert (select (vals ->> 'em')::int from public.lighting_standards where space = 'Classrooms') = 500, 'classroom 500 lx';
   update public.lighting_standards set notes = 'x' where space = 'Classrooms';
   assert not found, 'sales cannot change';
@@ -7114,6 +7114,13 @@ select pg_temp.act_as('operations_exec'); set role authenticated;
 do $$ begin assert not exists (select 1 from public.lighting_standards), 'not for operations'; end $$;
 reset role;
 rollback to savepoint stds;
+
+-- Standards: at least 50 sports with Class I–III; no energy group
+do $$ begin
+  assert (select count(distinct category) from public.lighting_standards where grp = 'sports') >= 50, 'at least 50 sports';
+  assert not exists (select 1 from public.lighting_standards where grp = 'sports' group by category having count(*) <> 3), 'each sport has classes I, II and III';
+  assert not exists (select 1 from public.lighting_standard_groups where grp = 'energy') and not exists (select 1 from public.lighting_standards where grp = 'energy'), 'energy removed';
+end $$;
 
 -- Quick calculations: own calculations, tariffs kept by managers
 savepoint qcalc;

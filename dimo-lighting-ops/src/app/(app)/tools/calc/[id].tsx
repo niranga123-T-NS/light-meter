@@ -172,7 +172,7 @@ export default function QuickCalc() {
     const [refs, calc] = await Promise.all([
       cached('quick_calc_refs', async () => {
         const [s, g, t] = await Promise.all([
-          supabase.from('lighting_standards').select('*').eq('active', true).in('grp', ['indoor', 'outdoor', 'sports', 'energy']).order('sort'),
+          supabase.from('lighting_standards').select('*').eq('active', true).in('grp', ['indoor', 'outdoor', 'sports']).order('sort'),
           supabase.from('lighting_standard_groups').select('*'),
           supabase.from('electricity_tariffs').select('id, supplier, code, name, rate, effective_from').eq('active', true).order('sort'),
         ]);
@@ -246,8 +246,6 @@ export default function QuickCalc() {
   const { r, positions } = calc;
   const stdRow = data.stds.find((x) => x.id === f.std_id) ?? null;
   const stdGroup = stdRow ? data.groups.find((g) => g.grp === stdRow.grp) : null;
-  const lpd = data.stds.find((x) => x.grp === 'energy' && x.vals?.lpd != null && stdRow && x.space.toLowerCase().startsWith(stdRow.category.toLowerCase().split(' ')[0]));
-  const lpdLimit = lpd ? Number(lpd.vals.lpd) : null;
   const tariff = data.tariffs.find((t) => t.id === f.tariff_id) ?? null;
   const rate = tariff?.rate ?? f.rate;
   const oldTotal = (f.oldWatts ?? 0) * (f.oldQty ?? 0);
@@ -370,7 +368,6 @@ export default function QuickCalc() {
           source: stdGroup?.source ?? null,
           target,
           uoTarget: f.uo,
-          lpdLimit,
           scale,
           ugrLimit: f.ugrLimit,
           ugrSheet: f.ugrSheet,
@@ -487,7 +484,7 @@ export default function QuickCalc() {
               const s = data.stds.find((x) => x.id === v);
               set({ std_id: v || null, target: s ? Number(s.vals?.em) || f.target : f.target, uo: s?.vals?.uo != null ? Number(s.vals.uo) : f.uo, ugrLimit: s?.vals?.ugr != null ? Number(s.vals.ugr) : f.ugrLimit, count: null });
             }}
-            options={[{ value: '', label: '— my own target —' }, ...data.stds.filter((s) => s.grp !== 'energy' && s.vals?.em != null).map((s) => ({ value: s.id, label: `${s.space} · ${s.vals.em} lx (${s.category})` }))]}
+            options={[{ value: '', label: '— my own target —' }, ...data.stds.filter((s) => s.vals?.em != null).map((s) => ({ value: s.id, label: `${s.space} · ${s.vals.em} lx (${s.category})` }))]}
           />
           <Row gap={8} wrap>
             <NumberField label="Target average" suffix="lx" value={f.target} onChange={(v) => set({ target: v, count: null })} />
@@ -699,7 +696,7 @@ export default function QuickCalc() {
               <Stat label={`Average lux (target ${target})`} value={`${Math.round(r.em)} lx`} tone={ok(r.em >= target)} sub={`min ${Math.round(r.emin)} · max ${Math.round(r.emax)}`} />
               <Stat label={`Uniformity Uo${f.uo ? ` (target ${f.uo})` : ''}`} value={r.uo.toFixed(2)} tone={f.uo ? ok(r.uo >= f.uo) : undefined} sub={`Emin / Em · Ud = Emin / Emax ${r.ud.toFixed(2)}`} />
               <Stat label={`Glare UGR${f.ugrLimit != null ? ` (limit ${f.ugrLimit})` : ''}`} value={ugrText} tone={f.ugrLimit != null && ugr != null ? ok(ugr <= f.ugrLimit) : undefined} sub={f.ugrSheet != null ? 'from the data sheet' : 'highest of the observers – indicative'} />
-              <Stat label={lpdLimit ? `W/m² (SLSEA ${lpdLimit})` : 'W/m²'} value={r.wpm2.toFixed(1)} tone={lpdLimit ? ok(r.wpm2 <= lpdLimit) : undefined} sub={`${(r.watts / 1000).toFixed(2)} kW · ${r.A.toFixed(1)} m² · K ${r.K.toFixed(2)}`} />
+              <Stat label="W/m²" value={r.wpm2.toFixed(1)} sub={`${(r.watts / 1000).toFixed(2)} kW · ${r.A.toFixed(1)} m² · K ${r.K.toFixed(2)}`} />
             </Grid>
             {layout === 'auto' && !f.count && calc.auto && f.uo && r.uo < f.uo ? <Notice tone={colors.amber}>The uniformity target is not reached with this fitting at this height – try a wider beam or set more fittings below.</Notice> : null}
             <Card style={{ alignItems: 'center', gap: 6 }}>

@@ -34,7 +34,7 @@ export function Standards({ search }: { search: string }) {
   if (!data) return error ? <ErrorBanner message={error} /> : <Loading />;
   const q = search.trim().toLowerCase();
   const g = data.groups.find((x) => x.grp === grp);
-  // A search looks across all six groups; otherwise the chosen group and category
+  // A search looks across all the groups; otherwise the chosen group and category
   const rows = data.rows.filter((r) => (q ? `${r.space} ${r.category} ${r.notes ?? ''}`.toLowerCase().includes(q) : r.grp === grp && (cat === 'all' || r.category === cat)));
   const cats = [...new Set(data.rows.filter((r) => r.grp === grp).map((r) => r.category))];
   const cols = STD_COLS[grp];
@@ -117,7 +117,6 @@ export function Standards({ search }: { search: string }) {
           ) : (
             <Notice tone={colors.amber}>Awaiting Design Manager review – check the values against the standard before relying on them.</Notice>
           )}
-          {grp === 'energy' ? <Muted>Lighting power density limits from the SLSEA code – the Design Manager enters the values.</Muted> : null}
           {cats.length > 1 ? (
             <Segmented value={cat} onChange={setCat} options={[{ value: 'all', label: 'All' }, ...cats.map((c) => ({ value: c, label: c }))]} />
           ) : null}
