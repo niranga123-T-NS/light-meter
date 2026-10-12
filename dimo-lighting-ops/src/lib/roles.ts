@@ -193,7 +193,7 @@ function baseNav(role: Role): NavItem[] {
         tenders,
         fx,
         reports,
-        { href: '/admin', label: 'Settings', icon: '⚙' },
+        { href: '/admin', label: 'Users & settings', icon: '⚙' },
       ];
     case 'design_manager':
       return [

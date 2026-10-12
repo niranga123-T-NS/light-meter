@@ -1,5 +1,5 @@
-// User administration for the System Administrator (SRS Section 2): invite a user with a role,
-// deactivate (never delete) and reactivate logins. Requires the caller to be an active sys_admin.
+// User administration for the System Administrator and GM / DGM (SRS Section 2): invite a user with a role,
+// deactivate (never delete) and reactivate logins. GM / DGM cannot create or change System Administrator logins.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const cors = {
@@ -61,12 +61,14 @@ Deno.serve(async (req) => {
     return json({ id: uid, login: r.email ? email : phone, password });
   }
 
-  if (!me || !me.active || me.role !== 'sys_admin') return json({ error: 'Only the System Administrator can manage users' }, 403);
+  if (!me || !me.active || !['sys_admin', 'gm'].includes(me.role)) return json({ error: 'Only the System Administrator or GM / DGM can manage users' }, 403);
+  const isAdmin = me.role === 'sys_admin';
   try {
     switch (body.action) {
       case 'invite': {
         const email = String(body.email ?? '').trim().toLowerCase();
         if (!email || !body.full_name || !ROLES.includes(body.role)) return json({ error: 'Email, full name and a valid role are required' }, 400);
+        if (!isAdmin && body.role === 'sys_admin') return json({ error: 'Only the System Administrator creates System Administrator logins' }, 403);
         // With a temporary password the account is ready at once (no email needed);
         // otherwise an invitation email is sent (needs working SMTP for non-team addresses).
         let data;
@@ -93,7 +95,7 @@ Deno.serve(async (req) => {
           await admin.auth.admin.deleteUser(data.user.id); // don't leave a login without a role
           return json({ error: pe.message }, 400);
         }
-        await admin.from('audit_log').insert({ user_id: caller.user.id, table_name: 'users', record_id: data.user.id, action: 'INVITE', new_data: { email, role: body.role } });
+        await admin.from('audit_log').insert({ user_id: caller.user.id, table_name: 'users', record_id: data.user.id, action: 'INVITE', new_data: { email, role: body.role, by_role: me.role } });
         return json({ id: data.user.id });
       }
       case 'deactivate':
@@ -101,6 +103,10 @@ Deno.serve(async (req) => {
         const active = body.action === 'activate';
         if (!body.user_id) return json({ error: 'user_id is required' }, 400);
         if (body.user_id === caller.user.id) return json({ error: 'You cannot deactivate yourself' }, 400);
+        if (!isAdmin) {
+          const { data: target } = await admin.from('profiles').select('role').eq('id', body.user_id).maybeSingle();
+          if (target?.role === 'sys_admin') return json({ error: 'Only the System Administrator changes System Administrator logins' }, 403);
+        }
         const { error } = await admin.auth.admin.updateUserById(body.user_id, { ban_duration: active ? 'none' : '876000h' });
         if (error) return json({ error: error.message }, 400);
         await admin.from('profiles').update({ active }).eq('id', body.user_id);

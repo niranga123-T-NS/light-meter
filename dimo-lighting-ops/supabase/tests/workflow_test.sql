@@ -7062,6 +7062,26 @@ end $$;
 reset role;
 rollback to savepoint pteam;
 
+-- GM / DGM maintain users, but not System Administrator logins nor their own role
+savepoint gmusers;
+select set_config('app.exec_access', 'off', true); -- left on by an earlier step of this one-transaction test run
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ declare u uuid := (select id from public.profiles where role = 'estimation_exec' limit 1); a uuid := (select id from public.profiles where role = 'sys_admin' limit 1);
+begin
+  update public.profiles set role = 'am_estimation' where id = u;
+  assert found, 'GM changes a role';
+  begin update public.profiles set role = 'sys_admin' where id = u; assert false, 'no sys_admin';
+  exception when others then if sqlerrm not like '%System Administrator%' then raise; end if; end;
+  if a is not null then
+    begin update public.profiles set full_name = 'x' where id = a; assert false, 'sys_admin untouched';
+    exception when others then if sqlerrm not like '%System Administrator%' then raise; end if; end;
+  end if;
+  begin update public.profiles set role = 'sm_projects' where id = auth.uid(); assert false, 'own role';
+  exception when others then if sqlerrm not like '%own role%' then raise; end if; end;
+end $$;
+reset role;
+rollback to savepoint gmusers;
+
 -- High level user: view only, at most one day, ends by itself
 savepoint hl1;
 select pg_temp.act_as('gm'); set role authenticated;
