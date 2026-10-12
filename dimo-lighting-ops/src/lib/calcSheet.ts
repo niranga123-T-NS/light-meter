@@ -1,5 +1,7 @@
 import { DIMO_LOGO_DATA_URI } from './brandLogoData';
 import { contours } from 'd3-contour';
+import type { AreaResult, RoadClass, RoadInput, RoadResult } from './roadcalc';
+import { ARRANGEMENTS, SURFACES } from './roadcalc';
 import { bbox, FITTING_TYPES, inside, mountAt, roofAt, ROOFS, SHAPES, type CalcResult, type FittingInput, type Lum, type Pt, type RoomInput } from './lightcalc';
 
 const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string);
@@ -36,7 +38,7 @@ export function niceLevels(min: number, max: number, want = 8) {
   return out;
 }
 /** Range of the scale: the room's own min–max, or the range chosen */
-export function scaleRange(poly: Pt[], r: CalcResult, sc: Scale) {
+export function scaleRange(poly: Pt[], r: Pick<CalcResult, 'field' | 'emin' | 'emax'>, sc: Scale) {
   const vals: number[] = [];
   const f = r.field;
   for (let j = 0; j < f.ny; j++) for (let i = 0; i < f.nx; i++) if (inside({ x: f.x0 + i * f.dx, y: f.y0 + j * f.dy }, poly)) vals.push(f.v[j * f.nx + i]);
@@ -48,7 +50,7 @@ export function scaleRange(poly: Pt[], r: CalcResult, sc: Scale) {
 
 type Ring = number[][];
 /** Filled colour bands and contour lines (isolux) from the field, in metres */
-function contourLayers(r: CalcResult, min: number, max: number, pal: Palette) {
+function contourLayers(r: Pick<CalcResult, 'field'>, min: number, max: number, pal: Palette) {
   const f = r.field;
   const bands = 32;
   const th = Array.from({ length: bands }, (_, i) => min + ((max - min) * i) / bands);
@@ -405,3 +407,126 @@ ${s.savings ? `<h2>Energy and savings</h2><table>${s.savings.lines.map(([k, v]) 
 <div class="foot">DRAFT – Indicative calculation: point-by-point on the working plane with interreflections between the working plane, walls and roof, from the fitting's IES file or a curve modelled on its type, with the data sheet watts and lumens; an empty room is assumed. UGR by the CIE 117 formula from the fitting's lit area – the manufacturer's UGR table is the reference. Final design by DIMO Lighting Design.<br/>Prepared by ${esc(s.by)} · DIMO Lighting Solutions</div>
 </body></html>`;
 }
+
+/** The road from above: two fields of pseudo-colour with isolux lines, kerbs, lanes, footpaths and the poles */
+export function roadPlanSvg(r: RoadInput, res: RoadResult, sc: Scale, widthPx = 640) {
+  const f = res.field;
+  const L = 2 * res.fieldLen;
+  const y0 = f.y0;
+  const y1 = f.y0 + f.dy * (f.ny - 1);
+  const pad = 30;
+  const k = (widthPx - 2 * pad) / L;
+  const hPx = (y1 - y0) * k + 2 * pad + 20;
+  const X = (x: number) => pad + x * k;
+  const Y = (y: number) => pad + (y1 - y) * k;
+  const lo = Math.min(...f.v);
+  const hi = Math.max(...f.v);
+  const range = sc.mode === 'custom' && sc.min != null && sc.max != null && sc.max > sc.min ? { min: sc.min, max: sc.max } : { min: Math.floor(lo * 10) / 10, max: Math.ceil(hi * 10) / 10 };
+  const c = contourLayers(res, range.min, range.max, sc.palette);
+  const path = (rings: number[][][]) => rings.map((ring) => `M${ring.map((p) => `${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join('L')}Z`).join('');
+  const bands = c.filled.map((l) => `<path d="${path(l.rings)}" fill="${l.colour}" fill-rule="evenodd"/>`).join('');
+  const lines = c.lines
+    .map((l) => {
+      const longest = l.rings.reduce((a, x) => (x.length > a.length ? x : a), [] as number[][]);
+      const lp = longest[Math.floor(longest.length / 3)];
+      const label = lp ? `<text x="${X(lp[0]).toFixed(1)}" y="${Y(lp[1]).toFixed(1)}" font-size="9" font-family="Arial" fill="#111" stroke="#fff" stroke-width="2.5" paint-order="stroke" text-anchor="middle" dy="3">${Math.round(l.value * 10) / 10}</text>` : '';
+      return `<path d="${path(l.rings)}" fill="none" stroke="#111" stroke-width="0.7" stroke-opacity="0.7"/>${label}`;
+    })
+    .join('');
+  const lanes = Math.max(1, Math.round(r.lanes));
+  const laneLines = Array.from({ length: lanes - 1 }, (_, i) => {
+    const y = (r.width / lanes) * (i + 1);
+    return `<line x1="${X(0)}" y1="${Y(y)}" x2="${X(L)}" y2="${Y(y)}" stroke="#fff" stroke-width="2" stroke-dasharray="10 8"/>`;
+  }).join('');
+  const kerb = (y: number) => `<line x1="${X(0)}" y1="${Y(y)}" x2="${X(L)}" y2="${Y(y)}" stroke="#111" stroke-width="2"/>`;
+  const poles = res.luminaires
+    .map((l) => {
+      const py = l.face === 1 ? (r.arrangement === 'central' ? r.width / 2 : -r.setback) : r.arrangement === 'central' ? r.width / 2 : r.width + r.setback;
+      return `<line x1="${X(l.x)}" y1="${Y(py)}" x2="${X(l.x)}" y2="${Y(l.y)}" stroke="#111" stroke-width="2"/><circle cx="${X(l.x)}" cy="${Y(py)}" r="4" fill="#111"/><rect x="${X(l.x) - 6}" y="${Y(l.y) - 3}" width="12" height="6" fill="#FFF7D6" stroke="#B45309" stroke-width="1.2"/>`;
+    })
+    .join('');
+  const field = `<rect x="${X(0)}" y="${Y(r.width)}" width="${res.fieldLen * k}" height="${r.width * k}" fill="none" stroke="#C8102E" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+  return {
+    xml: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${widthPx} ${hPx.toFixed(0)}" width="${widthPx}" height="${hPx.toFixed(0)}">
+<rect width="${widthPx}" height="${hPx.toFixed(0)}" fill="#fff"/>
+<defs><clipPath id="road"><rect x="${X(0)}" y="${Y(y1)}" width="${L * k}" height="${(y1 - y0) * k}"/></clipPath></defs>
+<g clip-path="url(#road)">${bands}${lines}</g>
+${kerb(0)}${kerb(r.width)}${laneLines}${field}${poles}
+<text x="${X(res.fieldLen / 2)}" y="${(hPx - 8).toFixed(0)}" font-size="11" font-family="Arial" text-anchor="middle" fill="#C8102E">calculation field ${res.fieldLen} m</text>
+<text x="${X(L) - 2}" y="${(hPx - 8).toFixed(0)}" font-size="11" font-family="Arial" text-anchor="end" fill="#333">${L} m shown · road ${r.width} m</text>
+</svg>`,
+    width: widthPx,
+    height: hPx,
+    range,
+  };
+}
+
+export type RoadSheetInput = {
+  code: string | null;
+  title: string;
+  road: RoadInput;
+  res: RoadResult;
+  cls: RoadClass | null;
+  footCls: RoadClass | null;
+  scale: Scale;
+  fitting: string;
+  photoLabel: string;
+  polar: string | null;
+  lumens: number;
+  watts: number;
+  mf: number;
+  by: string;
+};
+
+/** The road lighting client sheet – DRAFT */
+export function roadSheetHtml(s: RoadSheetInput) {
+  const now = new Date().toLocaleString('en-GB', { timeZone: 'Asia/Colombo', day: '2-digit', month: 'short', year: 'numeric' });
+  const plan = roadPlanSvg(s.road, s.res, s.scale, 680);
+  const legend = legendSvg(plan.range, s.scale.palette, 420);
+  const ok = (b: boolean | undefined | null) => (b == null ? '' : b ? '<span style="color:#15803D">✓</span>' : '<span style="color:#B45309">✗</span>');
+  const row = (k: string, v: string) => `<tr><td class="k">${esc(k)}</td><td>${v}</td></tr>`;
+  const m = s.cls?.cls.startsWith('M');
+  const c = s.cls;
+  const area = (a: AreaResult, cl: RoadClass | null) =>
+    `<tr><td>${esc(a.name)}</td><td>${a.eav.toFixed(1)} ${cl && !cl.cls.startsWith('M') ? `${ok(a.eav >= cl.val)} (${cl.val})` : ''}</td><td>${a.emin.toFixed(1)} ${cl?.emin != null ? `${ok(a.emin >= cl.emin)} (${cl.emin})` : ''}</td><td>${a.uo.toFixed(2)} ${cl && !cl.cls.startsWith('M') && cl.uo != null ? `${ok(a.uo >= cl.uo)} (${cl.uo})` : ''}</td><td>${a.emax.toFixed(1)}</td></tr>`;
+  return `<!doctype html><html><head><meta charset="utf-8" />
+<style>
+  @page { size: A4 portrait; margin: 14mm 14mm; }
+  body { font: 10.5px Arial, Helvetica, sans-serif; color: #111; }
+  header { display: flex; align-items: center; gap: 16px; border-bottom: 2px solid #C8102E; padding-bottom: 8px; margin-bottom: 10px; }
+  h1 { font-size: 17px; margin: 0; } h2 { font-size: 12px; margin: 12px 0 4px; } .sub { color: #555; margin-top: 3px; }
+  table { width: 100%; border-collapse: collapse; } td { padding: 4px 6px; border-bottom: 1px solid #E5E5E5; } td.k { width: 42%; color: #444; }
+  .cols { display: flex; gap: 14px; } .cols > div { flex: 1; }
+  .wm { position: fixed; top: 40%; left: 0; width: 100%; text-align: center; transform: rotate(-30deg); font: bold 58px Arial; color: rgba(200,16,46,0.10); }
+  .foot { margin-top: 14px; font-size: 8.5px; color: #555; border-top: 1px solid #ddd; padding-top: 6px; }
+</style></head><body>
+<div class="wm">DRAFT – Indicative calculation</div>
+<header><img src="${DIMO_LOGO_DATA_URI}" alt="DIMO" style="height:42px;width:auto" />
+<div><h1>${esc(s.title)}</h1><div class="sub">DLux road lighting calculation (EN 13201)${s.code ? ` · ${esc(s.code)}` : ''} · ${esc(now)}</div></div></header>
+<div style="text-align:center">${plan.xml}</div>
+<div style="display:flex;align-items:center;justify-content:center;gap:10px;font-size:9px;color:#555;margin-top:2px">Horizontal illuminance (lx)${legend.xml}</div>
+<div class="cols">
+<div><h2>Road and poles</h2><table>
+${row('Carriageway', `${s.road.width} m · ${s.road.lanes} lane(s) · surface ${esc(SURFACES.find((x) => x.value === s.road.surface)?.label ?? s.road.surface)}`)}
+${row('Footpaths', `${s.road.footL ? `left ${s.road.footL} m` : 'left none'} · ${s.road.footR ? `right ${s.road.footR} m` : 'right none'}`)}
+${row('Arrangement', esc(ARRANGEMENTS.find((x) => x.value === s.road.arrangement)?.label ?? ''))}
+${row('Pole spacing · height', `${s.road.spacing} m · ${s.road.height} m`)}
+${row('Overhang · setback · tilt', `${s.road.overhang} m · ${s.road.setback} m · ${s.road.tilt}°`)}
+${row('Luminaire', `${esc(s.fitting)} · ${s.watts} W · ${s.lumens} lm`)}
+${row('Light distribution', esc(s.photoLabel))}
+${row('Maintenance factor', s.mf.toFixed(2))}
+</table></div>
+<div><h2>Results${c ? ` – class ${esc(c.cls)}` : ''}</h2><table>
+${m && c ? row('Average luminance (estimate)', `<b>${s.res.lav.toFixed(2)} cd/m²</b> ${ok(s.res.lav >= c.val)} class ${c.val}`) : ''}
+${row('Threshold increment TI', s.res.ti != null ? `${s.res.ti.toFixed(1)} %${m && c?.ti != null ? ` ${ok(s.res.ti <= c.ti)} max ${c.ti}` : ''}` : '—')}
+${row('Edge illumination ratio EIR', s.res.eir != null ? `${s.res.eir.toFixed(2)}${m && c?.rei != null ? ` ${ok(s.res.eir >= c.rei)} min ${c.rei}` : ''}` : '—')}
+${m ? row('Luminance uniformity Uo · Ul', 'by the Design team (needs the surface r-table)') : ''}
+${row('Power density DP', s.res.dp != null ? `${s.res.dp.toFixed(3)} W/(lx·m²)` : '—')}
+${row('Load', `${(s.res.wattsPerKm / 1000).toFixed(2)} kW per km`)}
+</table>${s.polar ? `<div style="text-align:center;margin-top:6px">${s.polar}<div style="font-size:9px;color:#555">Light distribution (red along the road, blue across)</div></div>` : ''}</div></div>
+<h2>Illuminance (lx)</h2><table><tr><td><b>Area</b></td><td><b>Average</b></td><td><b>Minimum</b></td><td><b>Uo</b></td><td><b>Maximum</b></td></tr>
+${area(s.res.carriage, c)}${s.res.footpaths.map((f) => area(f, s.footCls)).join('')}</table>
+<div class="foot">DRAFT – Indicative calculation to EN 13201-3: maintained horizontal illuminance on the standard grids of one calculation field, the edge illumination ratio and the threshold increment (driver's eye 1.5 m, in each lane). The average luminance is estimated from the illuminance with the surface's q0; luminance uniformity is checked by DIMO Lighting Design. Dry road surface.<br/>Prepared by ${esc(s.by)} · DIMO Lighting Solutions</div>
+</body></html>`;
+}
+

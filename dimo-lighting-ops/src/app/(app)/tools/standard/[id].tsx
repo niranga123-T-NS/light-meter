@@ -91,6 +91,7 @@ export default function StandardScreen() {
         <Row wrap gap={8} style={{ marginTop: 6 }}>
           <Button title="Share with the client (DRAFT)" onPress={share} />
           {s.vals?.em != null && ['indoor', 'outdoor', 'sports'].includes(s.grp) ? <Button variant="secondary" title="Use in DLux" onPress={() => router.push(`/tools/calc/new?std=${s.id}`)} /> : null}
+          {s.grp === 'road' && s.vals?.cls ? <Button variant="secondary" title="Use in road lighting" onPress={() => router.push(`/tools/road/new?std=${s.id}`)} /> : null}
           {editor ? <Button variant="secondary" title="Change" onPress={edit} /> : null}
           {editor ? <Button variant="ghost" title="Remove" onPress={remove} /> : null}
         </Row>
