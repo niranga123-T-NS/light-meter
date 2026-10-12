@@ -13,7 +13,7 @@ import { calcSheetHtml, legendSvg, PALETTES, planSvg, reflectanceOf, SURFACE_COL
 import { printHtml } from '@/lib/export';
 import { fmtMoney, fmtNumber } from '@/lib/format';
 import { cached, useLoad } from '@/lib/hooks';
-import { autoLayout, calculate, FITTING_TYPES, MAINTENANCE, outline, REFLECTANCES, ROOFS, savings, SHAPES, suggestCount, type Pt, type Roof, type RoomInput, type Shape } from '@/lib/lightcalc';
+import { autoLayout, calculate, fieldLayout, FITTING_TYPES, inside, mountAt, MAINTENANCE, outline, REFLECTANCES, ROOFS, savings, SHAPES, suggestCount, type Lum, type Pt, type Roof, type RoomInput, type Shape } from '@/lib/lightcalc';
 import { beamAngle, iesPhotometry, parseIes, polarSvg } from '@/lib/photometry';
 import { ROLE_SHORT } from '@/lib/roles';
 import type { Standard, StdGroupRow } from '@/lib/standards';
@@ -42,6 +42,14 @@ type Form = {
   dist: 'model' | 'ies';
   ies_id: string | null;
   rot: number;
+  layout: 'auto' | 'field' | 'manual';
+  fnx: number | null; // field: fittings along the length
+  fny: number | null; // field: fittings across
+  fsx: number | null; // spacing along (empty = spread evenly)
+  fsy: number | null;
+  fox: number | null; // first fitting from the left wall (empty = centred)
+  foy: number | null; // from the bottom wall
+  lights: { x: number; y: number; z: number | null; rot: number | null }[];
   mount: number | null;
   plane: number | null;
   refl: string;
@@ -98,6 +106,14 @@ const BLANK: Form = {
   dist: 'model',
   ies_id: null,
   rot: 0,
+  layout: 'auto',
+  fnx: 4,
+  fny: 3,
+  fsx: null,
+  fsy: null,
+  fox: null,
+  foy: null,
+  lights: [],
   mount: 2.8,
   plane: 0.8,
   refl: 'light',
@@ -148,6 +164,9 @@ export default function QuickCalc() {
   const isNew = id === 'new';
   const [form, setForm] = useState<Form | null>(null);
   const [view, setView] = useState<'plan' | '3d'>('plan');
+  const [tool, setTool] = useState<'add' | 'move' | 'delete'>('add');
+  const [snapM, setSnapM] = useState<'0.05' | '0.1' | '0.5'>('0.1');
+  const [sel, setSel] = useState<number | null>(null);
   const [savedId, setSavedId] = useState<string | null>(isNew ? null : id);
   const { data, error } = useLoad(async () => {
     const [refs, calc] = await Promise.all([
@@ -209,8 +228,16 @@ export default function QuickCalc() {
     const mf = f.mf ?? 0.8;
     const poly = outline(room);
     if ((!room.drop && !(room.mount - room.plane > 0)) || !(fit.lumens > 0) || poly.length < 3 || (f.dist === 'ies' && !photo)) return { room, fit, mf, poly, positions: [] as Pt[], r: null, auto: null };
-    const auto = f.count ? null : suggestCount(room, fit, mf, f.target ?? 300, f.uo);
-    const positions = f.count ? autoLayout(poly, f.count, room) : (auto?.positions ?? []);
+    const layout = f.layout ?? 'auto';
+    const auto = layout !== 'auto' || f.count ? null : suggestCount(room, fit, mf, f.target ?? 300, f.uo);
+    const positions: Lum[] =
+      layout === 'manual'
+        ? (f.lights ?? [])
+        : layout === 'field'
+          ? fieldLayout(poly, { nx: f.fnx ?? 0, ny: f.fny ?? 0, sx: f.fsx, sy: f.fsy, ox: f.fox, oy: f.foy })
+          : f.count
+            ? autoLayout(poly, f.count, room)
+            : (auto?.positions ?? []);
     return { room, fit, mf, poly, positions, r: calculate(room, fit, positions, mf), auto };
   }, [f, photo]);
 
@@ -228,7 +255,50 @@ export default function QuickCalc() {
   const target = f.target ?? 0;
   const planW = Math.min(screenW - 64, 760);
   const scale: Scale = { mode: f.scaleMode ?? 'auto', min: f.scaleMin, max: f.scaleMax, palette: f.palette ?? 'rainbow' };
-  const plan = planSvg(calc.poly, positions, r, scale, Math.max(planW, 280));
+  const layout = f.layout ?? 'auto';
+  const plan = planSvg(calc.poly, positions, r, scale, Math.max(planW, 280), { numbers: layout === 'manual' });
+  const placePlan = planSvg(calc.poly, positions, r, scale, Math.max(planW, 280), { numbers: true, selected: sel });
+  const mzAt = mountAt(calc.room, calc.poly);
+  const fieldBox = calc.poly.length >= 3 ? { L: Math.max(...calc.poly.map((p) => p.x)) - Math.min(...calc.poly.map((p) => p.x)), W: Math.max(...calc.poly.map((p) => p.y)) - Math.min(...calc.poly.map((p) => p.y)) } : { L: 0, W: 0 };
+  const fieldSx = f.fsx ?? (f.fnx ? fieldBox.L / f.fnx : 0);
+  const fieldSy = f.fsy ?? (f.fny ? fieldBox.W / f.fny : 0);
+  const fieldOut = layout === 'field' ? Math.max(0, (f.fnx ?? 0) * (f.fny ?? 0) - positions.length) : 0;
+  const arrangement =
+    layout === 'manual'
+      ? 'placed light by light'
+      : layout === 'field'
+        ? `field ${f.fnx} × ${f.fny}, spacing ${fieldSx.toFixed(2)} × ${fieldSy.toFixed(2)} m${fieldOut ? ` (${fieldOut} outside the room left out)` : ''}`
+        : f.count
+          ? 'automatic, number set by you'
+          : 'automatic, the fewest to reach the target';
+  const lights = (f.lights ?? []) as Form['lights'];
+  const setLights = (next: Form['lights']) => set({ lights: next });
+  const toLights = (pts: Lum[]) => pts.map((p) => ({ x: Math.round(p.x * 100) / 100, y: Math.round(p.y * 100) / 100, z: p.z ?? null, rot: p.rot ?? null }));
+  const tapPlan = (px: number, py: number) => {
+    const m = placePlan.toRoom(px, py);
+    const st = Number(snapM);
+    const q = { x: Math.round(Math.round(m.x / st) * st * 1000) / 1000, y: Math.round(Math.round(m.y / st) * st * 1000) / 1000 };
+    const reach = Math.max(0.4, 16 / placePlan.pxPerM);
+    let near: number | null = null;
+    let best = Infinity;
+    lights.forEach((l, i) => {
+      const d = Math.hypot(l.x - m.x, l.y - m.y);
+      if (d < reach && d < best) [near, best] = [i, d];
+    });
+    if (tool === 'delete') {
+      if (near != null) {
+        setLights(lights.filter((_, i) => i !== near));
+        setSel(null);
+      }
+      return;
+    }
+    if (near != null && (tool === 'add' || near !== sel)) return setSel(near);
+    if (!inside(q, calc.poly)) return dialog.toast('That point is outside the room', 'error');
+    if (tool === 'add') {
+      setLights([...lights, { x: q.x, y: q.y, z: null, rot: null }]);
+      setSel(lights.length);
+    } else if (sel != null) setLights(lights.map((l, i) => (i === sel ? { ...l, x: q.x, y: q.y } : l)));
+  };
   const legend = legendSvg(plan.range, scale.palette, Math.min(Math.max(planW, 280) - 20, 420));
   const ftype = FITTING_TYPES.find((t) => t.key === f.type);
   const lit = { lumL: f.lumL ?? (photo?.lenMm || ftype?.size[0] || 600), lumW: f.lumW ?? (photo?.widMm || ftype?.size[1] || 600), rot: f.rot ?? 0 };
@@ -256,7 +326,7 @@ export default function QuickCalc() {
     [
       `Room: ${r?.A.toFixed(1)} m² (${shapeText}), ${roofLabel.toLowerCase()}${(f.roof ?? 'flat') !== 'flat' ? ` ${f.rise} m rise, walls ${f.height} m` : `, ceiling ${f.height} m`}, fittings ${f.hang && (f.roof ?? 'flat') !== 'flat' ? `${f.drop} m below the roof` : `at ${f.mount} m`}, working plane ${f.plane} m.`,
       `Target: ${f.target} lx${f.uo ? `, Uo ${f.uo}` : ''}${stdRow ? ` – ${stdRow.space} (${stdGroup?.source ?? ''})` : ''}.`,
-      `Indicative (${f.dist === 'ies' ? 'IES file' : 'modelled curve'}): ${positions.length} × ${f.fname || ftype?.label} ${f.watts} W / ${f.lumens} lm → ${Math.round(r?.em ?? 0)} lx average, Uo ${r?.uo.toFixed(2)}, Ud ${r?.ud.toFixed(2)}, UGR ${ugrText}, ${r?.wpm2.toFixed(1)} W/m².`,
+      `Indicative (${f.dist === 'ies' ? 'IES file' : 'modelled curve'}): ${positions.length} × ${f.fname || ftype?.label} ${f.watts} W / ${f.lumens} lm (${arrangement}) → ${Math.round(r?.em ?? 0)} lx average, Uo ${r?.uo.toFixed(2)}, Ud ${r?.ud.toFixed(2)}, UGR ${ugrText}, ${r?.wpm2.toFixed(1)} W/m².`,
       oldTotal ? `Existing: ${f.oldQty} × ${f.oldWatts} W ${f.oldDesc}`.trim() + '.' : '',
     ]
       .filter(Boolean)
@@ -307,6 +377,8 @@ export default function QuickCalc() {
           surfaces,
           photoLabel,
           polar: f.dist === 'ies' && ies ? ies.polar : null,
+          arrangement,
+          listLights: layout === 'manual',
           savings: savingLines() ? { lines: savingLines() as [string, string][] } : null,
           by: `${me.full_name} – ${ROLE_SHORT[me.role]}`,
         }),
@@ -404,22 +476,7 @@ export default function QuickCalc() {
               </>
             ) : null}
           </Row>
-          {(f.roof ?? 'flat') !== 'flat' ? (
-            <Segmented
-              value={f.hang ? 'hang' : 'fixed'}
-              onChange={(v) => set({ hang: v === 'hang', count: null })}
-              options={[
-                { value: 'fixed', label: 'Fittings at one height' },
-                { value: 'hang', label: 'Fittings hung below the roof' },
-              ]}
-            />
-          ) : null}
           <Row gap={8} wrap>
-            {f.hang && (f.roof ?? 'flat') !== 'flat' ? (
-              <NumberField label="Hung below the roof" suffix="m" value={f.drop} onChange={(v) => set({ drop: v, count: null })} hint="Follows the roof slope" />
-            ) : (
-              <NumberField label="Fitting height" suffix="m" value={f.mount} onChange={(v) => set({ mount: v, count: null })} hint="Same as the ceiling for recessed" />
-            )}
             <NumberField label="Working plane" suffix="m" value={f.plane} onChange={(v) => set({ plane: v, count: null })} hint="0.8 desks · 0 floors" />
           </Row>
           <Select
@@ -524,17 +581,127 @@ export default function QuickCalc() {
         </Card>
       </Section>
 
-      <Section title="③ Result">
+      <Section title="③ Mounting and arrangement">
+        <Card style={{ gap: 6 }}>
+          {(f.roof ?? 'flat') !== 'flat' ? (
+            <Segmented
+              value={f.hang ? 'hang' : 'fixed'}
+              onChange={(v) => set({ hang: v === 'hang', count: null })}
+              options={[
+                { value: 'fixed', label: 'Fittings at one height' },
+                { value: 'hang', label: 'Fittings hung below the roof' },
+              ]}
+            />
+          ) : null}
+          <Row gap={8} wrap>
+            {f.hang && (f.roof ?? 'flat') !== 'flat' ? (
+              <NumberField label="Hung below the roof" suffix="m" value={f.drop} onChange={(v) => set({ drop: v, count: null })} hint="Follows the roof slope" />
+            ) : (
+              <NumberField label="Mounting height (above the floor)" suffix="m" value={f.mount} onChange={(v) => set({ mount: v, count: null })} hint="Same as the ceiling for recessed" />
+            )}
+          </Row>
+          <Segmented
+            value={layout}
+            onChange={(v) => {
+              setSel(null);
+              // light by light starts from what is on the plan now
+              if (v === 'manual' && !lights.length) set({ layout: v, lights: toLights(positions) });
+              else if (v === 'field' && layout !== 'field' && positions.length) {
+                const nx = new Set(positions.map((p) => p.x.toFixed(2))).size;
+                const ny = new Set(positions.map((p) => p.y.toFixed(2))).size;
+                set({ layout: v, fnx: Math.min(nx, 40), fny: Math.min(ny, 40) });
+              } else set({ layout: v });
+            }}
+            options={[
+              { value: 'auto', label: 'Automatic' },
+              { value: 'field', label: 'Field (rows × columns)' },
+              { value: 'manual', label: 'Light by light' },
+            ]}
+          />
+          {layout === 'auto' ? (
+            <>
+              <Muted>{f.count ? `${positions.length} fittings set by you, spread evenly.` : 'The fewest fittings that reach the target, spread evenly.'}</Muted>
+              <Row gap={8} wrap>
+                <Button small variant="secondary" title="− fitting" onPress={() => set({ count: Math.max(1, positions.length - 1) })} />
+                <Button small variant="secondary" title="+ fitting" onPress={() => set({ count: positions.length + 1 })} />
+                {f.count ? <Button small variant="ghost" title="Back to the fewest" onPress={() => set({ count: null })} /> : null}
+              </Row>
+            </>
+          ) : null}
+          {layout === 'field' ? (
+            <>
+              <Row gap={8} wrap>
+                <NumberField label="Along the length (columns)" value={f.fnx} onChange={(v) => set({ fnx: v })} />
+                <NumberField label="Across (rows)" value={f.fny} onChange={(v) => set({ fny: v })} />
+                <NumberField label="Spacing along" suffix="m" value={f.fsx} onChange={(v) => set({ fsx: v })} hint={`Empty = spread evenly (${fieldSx ? fieldSx.toFixed(2) : '—'} m)`} />
+                <NumberField label="Spacing across" suffix="m" value={f.fsy} onChange={(v) => set({ fsy: v })} hint={`Empty = spread evenly (${fieldSy ? fieldSy.toFixed(2) : '—'} m)`} />
+              </Row>
+              <Row gap={8} wrap>
+                <NumberField label="First fitting from the left wall" suffix="m" value={f.fox} onChange={(v) => set({ fox: v })} hint="Empty = field centred" />
+                <NumberField label="First fitting from the bottom wall" suffix="m" value={f.foy} onChange={(v) => set({ foy: v })} hint="Empty = field centred" />
+              </Row>
+              <Muted>{`${positions.length} fittings · ${arrangement}`}</Muted>
+            </>
+          ) : null}
+          {layout !== 'manual' && positions.length ? <Button small variant="ghost" title="Edit these light by light →" onPress={() => { setSel(null); set({ layout: 'manual', lights: toLights(positions) }); }} /> : null}
+          {layout === 'manual' ? (
+            <>
+              <Row gap={8} wrap style={{ justifyContent: 'center' }}>
+                <Segmented value={tool} onChange={setTool} options={[{ value: 'add', label: '+ Add' }, { value: 'move', label: '✥ Move' }, { value: 'delete', label: '✕ Delete' }]} />
+                <Segmented value={snapM} onChange={setSnapM} options={[{ value: '0.05', label: 'Snap 5 cm' }, { value: '0.1', label: '10 cm' }, { value: '0.5', label: '50 cm' }]} />
+              </Row>
+              <View style={{ alignItems: 'center' }}>
+                <View style={{ width: placePlan.width, height: placePlan.height }}>
+                  <SvgXml xml={placePlan.xml} width={placePlan.width} height={placePlan.height} />
+                  <View
+                    style={{ position: 'absolute', left: 0, top: 0, width: placePlan.width, height: placePlan.height, cursor: 'crosshair' } as object}
+                    onStartShouldSetResponder={() => true}
+                    onResponderRelease={(e) => tapPlan(e.nativeEvent.locationX, e.nativeEvent.locationY)}
+                  />
+                </View>
+                <Muted>
+                  {tool === 'add'
+                    ? 'Tap the plan to place a fitting; tap a fitting to pick it.'
+                    : tool === 'move'
+                      ? sel != null
+                        ? `Fitting ${sel + 1} picked – tap where it goes, or tap another fitting.`
+                        : 'Tap a fitting to pick it, then tap where it goes.'
+                      : 'Tap a fitting to delete it.'}
+                </Muted>
+              </View>
+              <Row gap={8} wrap>
+                <Button small variant="ghost" title="Start from automatic" onPress={() => { setSel(null); set({ layout: 'auto' }); }} />
+                <Button small variant="ghost" title="Clear all" onPress={() => { setSel(null); setLights([]); }} disabled={!lights.length} />
+              </Row>
+              {lights.map((l, i) => (
+                <Pressable key={i} onPress={() => setSel(i)} style={{ borderRadius: 8, padding: 4, backgroundColor: sel === i ? '#FDECEF' : 'transparent' }}>
+                  <Row gap={6} wrap style={{ alignItems: 'flex-end' }}>
+                    <Text style={{ width: 28, fontWeight: '700', color: colors.ink, paddingBottom: 12 }}>{i + 1}</Text>
+                    <NumberField label="x" suffix="m" value={l.x} onChange={(v) => setLights(lights.map((o, k) => (k === i ? { ...o, x: v ?? 0 } : o)))} />
+                    <NumberField label="y" suffix="m" value={l.y} onChange={(v) => setLights(lights.map((o, k) => (k === i ? { ...o, y: v ?? 0 } : o)))} />
+                    <NumberField label="Height" suffix="m" value={l.z} onChange={(v) => setLights(lights.map((o, k) => (k === i ? { ...o, z: v } : o)))} hint={`Empty = ${mzAt(l).toFixed(2)} m`} />
+                    <Segmented value={String(l.rot ?? f.rot ?? 0)} onChange={(v) => setLights(lights.map((o, k) => (k === i ? { ...o, rot: Number(v) } : o)))} options={[{ value: '0', label: '0°' }, { value: '90', label: '90°' }]} />
+                    <Button small variant="ghost" title="✕" onPress={() => { setSel(null); setLights(lights.filter((_, k) => k !== i)); }} />
+                  </Row>
+                </Pressable>
+              ))}
+              {!lights.length ? <Muted>No fittings yet – tap the plan to place them.</Muted> : null}
+            </>
+          ) : null}
+        </Card>
+      </Section>
+
+      <Section title="④ Result">
         {r ? (
           <>
             <Grid min={160} max={4}>
-              <Stat label="Fittings" value={String(positions.length)} sub={f.count ? 'set by you' : 'the fewest to reach the target'} />
+              <Stat label="Fittings" value={String(positions.length)} sub={arrangement} />
               <Stat label={`Average lux (target ${target})`} value={`${Math.round(r.em)} lx`} tone={ok(r.em >= target)} sub={`min ${Math.round(r.emin)} · max ${Math.round(r.emax)}`} />
               <Stat label={`Uniformity Uo${f.uo ? ` (target ${f.uo})` : ''}`} value={r.uo.toFixed(2)} tone={f.uo ? ok(r.uo >= f.uo) : undefined} sub={`Emin / Em · Ud = Emin / Emax ${r.ud.toFixed(2)}`} />
               <Stat label={`Glare UGR${f.ugrLimit != null ? ` (limit ${f.ugrLimit})` : ''}`} value={ugrText} tone={f.ugrLimit != null && ugr != null ? ok(ugr <= f.ugrLimit) : undefined} sub={f.ugrSheet != null ? 'from the data sheet' : 'highest of the observers – indicative'} />
               <Stat label={lpdLimit ? `W/m² (SLSEA ${lpdLimit})` : 'W/m²'} value={r.wpm2.toFixed(1)} tone={lpdLimit ? ok(r.wpm2 <= lpdLimit) : undefined} sub={`${(r.watts / 1000).toFixed(2)} kW · ${r.A.toFixed(1)} m² · K ${r.K.toFixed(2)}`} />
             </Grid>
-            {!f.count && calc.auto && f.uo && r.uo < f.uo ? <Notice tone={colors.amber}>The uniformity target is not reached with this fitting at this height – try a wider beam or set more fittings below.</Notice> : null}
+            {layout === 'auto' && !f.count && calc.auto && f.uo && r.uo < f.uo ? <Notice tone={colors.amber}>The uniformity target is not reached with this fitting at this height – try a wider beam or set more fittings below.</Notice> : null}
             <Card style={{ alignItems: 'center', gap: 6 }}>
               <Segmented value={view} onChange={setView} options={[{ value: 'plan', label: 'Plan with contours' }, { value: '3d', label: '3D view' }]} />
               {view === 'plan' ? (
@@ -557,11 +724,6 @@ export default function QuickCalc() {
                 ) : null}
                 <Select label="Colours" value={f.palette ?? 'rainbow'} onChange={(v) => set({ palette: v as Palette })} options={PALETTES} />
               </Row>
-              <Row gap={8} wrap style={{ justifyContent: 'center' }}>
-                <Button small variant="secondary" title="− fitting" onPress={() => set({ count: Math.max(1, positions.length - 1) })} />
-                <Button small variant="secondary" title="+ fitting" onPress={() => set({ count: positions.length + 1 })} />
-                {f.count ? <Button small variant="ghost" title="Back to the fewest" onPress={() => set({ count: null })} /> : null}
-              </Row>
             </Card>
           </>
         ) : (
@@ -570,12 +732,14 @@ export default function QuickCalc() {
               ? 'Close the drawn plan (tap its first corner) to see the result.'
               : f.dist === 'ies' && !photo
                 ? 'Choose the IES file of the fitting to see the result.'
-                : 'Complete the room sizes, heights and the fitting lumens to see the result.'}
+                : (f.layout ?? 'auto') === 'manual' && !(f.lights ?? []).length
+                  ? 'Place the fittings on the plan in ③ to see the result.'
+                  : 'Complete the room sizes, heights and the fitting lumens to see the result – every fitting must be above the working plane.'}
           </Notice>
         )}
       </Section>
 
-      <Section title="④ Savings against the existing lighting">
+      <Section title="⑤ Savings against the existing lighting">
         <Card style={{ gap: 4 }}>
           <Field label="Existing fittings" value={f.oldDesc} onChangeText={(v) => set({ oldDesc: v })} placeholder="e.g. 2 × 36 W fluorescent with magnetic ballast" />
           <Row gap={8} wrap>

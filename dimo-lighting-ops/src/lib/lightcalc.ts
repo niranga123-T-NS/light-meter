@@ -7,6 +7,8 @@ import { modelPhotometry, type Photometry } from './photometry';
 // the wall height, with a flat or pitched / curved roof.
 
 export type Pt = { x: number; y: number };
+/** A fitting placed in the room: its own mounting height and turn (degrees) when set, else the room's / the fitting's */
+export type Lum = Pt & { z?: number | null; rot?: number | null };
 
 export type FittingType = { key: string; label: string; n: number; up: number; hint: string; size: [number, number] };
 /** cosⁿ curves: n = 1 wide (Lambertian, ~120°), 2 medium (~90°), 5 about 60°, 10 about 40° beam */
@@ -265,6 +267,22 @@ export function photometryOf(fit: FittingInput): Photometry {
   return modelPhotometry(t.n, t.up, fit.lumens);
 }
 
+/** Field arrangement: rows × columns over the room's outline box – evenly spread (half a spacing at the walls), or at
+ *  the spacing given from the first fitting's offset; fittings falling outside the outline are left out */
+export function fieldLayout(poly: Pt[], o: { nx: number; ny: number; sx?: number | null; sy?: number | null; ox?: number | null; oy?: number | null }): Pt[] {
+  if (poly.length < 3 || !(o.nx >= 1) || !(o.ny >= 1)) return [];
+  const b = bbox(poly);
+  const axis = (n: number, a0: number, a1: number, sp?: number | null, off?: number | null) => {
+    const len = a1 - a0;
+    const s = sp && sp > 0 ? sp : len / n;
+    const first = off != null ? a0 + off : a0 + (len - (n - 1) * s) / 2;
+    return Array.from({ length: n }, (_, i) => Math.round((first + i * s) * 1000) / 1000);
+  };
+  const xs = axis(Math.round(o.nx), b.x0, b.x1, o.sx, o.ox);
+  const ys = axis(Math.round(o.ny), b.y0, b.y1, o.sy, o.oy);
+  return ys.flatMap((y) => xs.map((x) => ({ x, y }))).filter((p) => inside(p, poly));
+}
+
 /** Fitting positions: a grid in proportion to the room, kept inside the outline and away from the walls */
 export function autoLayout(poly: Pt[], count: number, room?: RoomInput): Pt[] {
   // L, T and U: split into rectangles, each with its own even grid, the fittings shared by area
@@ -347,14 +365,14 @@ export type CalcResult = {
 export type Field = { nx: number; ny: number; x0: number; y0: number; dx: number; dy: number; v: number[] };
 
 /** The calculation: direct light at each grid point plus the bounced light, times the maintenance factor */
-export function calculate(room: RoomInput, fit: FittingInput, positions: Pt[], mf: number): CalcResult | null {
+export function calculate(room: RoomInput, fit: FittingInput, positions: Lum[], mf: number): CalcResult | null {
   const poly = outline(room);
   if (poly.length < 3) return null;
   const A = area(poly);
   const P = perimeter(poly);
   const mz = mountAt(room, poly);
   const zRoof = roofAt(room, poly);
-  const fz = positions.map((f) => mz(f));
+  const fz = positions.map((f) => f.z ?? mz(f));
   const h = fz.length ? fz.reduce((a, v) => a + v, 0) / fz.length - room.plane : 0; // mean mounting height above the plane
   if (!(A > 0) || !(h > 0) || !(fit.lumens > 0) || !positions.length || fz.some((z) => z <= room.plane)) return null;
   const t = FITTING_TYPES.find((x) => x.key === fit.type) ?? FITTING_TYPES[0];
@@ -365,10 +383,10 @@ export function calculate(room: RoomInput, fit: FittingInput, positions: Pt[], m
   const down = fit.lumens * (1 - ph.up);
   const deg = 180 / Math.PI;
   /** candela from a fitting towards a direction (vx, vy horizontal, vz down) */
-  const Ito = (vx: number, vy: number, vz: number) => {
+  const Ito = (vx: number, vy: number, vz: number, turn: number) => {
     const R = Math.sqrt(vx * vx + vy * vy + vz * vz);
     const g = Math.acos(Math.min(1, Math.max(-1, vz / R))) * deg;
-    const c = Math.atan2(vy, vx) * deg - rot;
+    const c = Math.atan2(vy, vx) * deg - turn;
     return k * ph.I(c, g);
   };
   // EN 12464-1 grid: p = 0.2 × 5^log10(d), with a 0.5 m band at the walls left out (when the room allows)
@@ -392,7 +410,7 @@ export function calculate(room: RoomInput, fit: FittingInput, positions: Pt[], m
       const vx = p.x - f.x;
       const vy = p.y - f.y;
       const r2 = vx * vx + vy * vy + hz * hz;
-      e += (Ito(vx, vy, hz) * hz) / (r2 * Math.sqrt(r2)); // I·cosγ / d²
+      e += (Ito(vx, vy, hz, f.rot ?? rot) * hz) / (r2 * Math.sqrt(r2)); // I·cosγ / d²
     });
     return e;
   };
@@ -512,7 +530,7 @@ export function calculate(room: RoomInput, fit: FittingInput, positions: Pt[], m
       const T = Math.abs(vx * nyv - vy * nxv); // lateral
       const R = Math.sqrt(along * along + T * T + H * H);
       const cosG = H / R; // angle at the fitting, from straight down
-      const I = Ito(o.x - f.x, o.y - f.y, H);
+      const I = Ito(o.x - f.x, o.y - f.y, H, f.rot ?? rot);
       const Ap = lumA * cosG;
       const lum = I / Ap;
       const omega = Ap / (R * R);

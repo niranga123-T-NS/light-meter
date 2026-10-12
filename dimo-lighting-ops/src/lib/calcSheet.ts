@@ -1,6 +1,6 @@
 import { DIMO_LOGO_DATA_URI } from './brandLogoData';
 import { contours } from 'd3-contour';
-import { bbox, FITTING_TYPES, inside, mountAt, roofAt, ROOFS, SHAPES, type CalcResult, type FittingInput, type Pt, type RoomInput } from './lightcalc';
+import { bbox, FITTING_TYPES, inside, mountAt, roofAt, ROOFS, SHAPES, type CalcResult, type FittingInput, type Lum, type Pt, type RoomInput } from './lightcalc';
 
 const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string);
 
@@ -63,7 +63,8 @@ function contourLayers(r: CalcResult, min: number, max: number, pal: Palette) {
 }
 
 /** The room from above: pseudo-colour bands from min to max, labelled isolux lines and the fittings – one SVG for the screen and the PDF */
-export function planSvg(poly: Pt[], positions: Pt[], r: CalcResult | null, sc: Scale, widthPx = 640) {
+/** opts.numbers: number the fittings (light-by-light plans); opts.selected: the fitting picked on screen */
+export function planSvg(poly: Pt[], positions: Lum[], r: CalcResult | null, sc: Scale, widthPx = 640, opts: { numbers?: boolean; selected?: number | null } = {}) {
   const b = bbox(poly);
   const L = b.x1 - b.x0 || 1;
   const W = b.y1 - b.y0 || 1;
@@ -90,7 +91,13 @@ export function planSvg(poly: Pt[], positions: Pt[], r: CalcResult | null, sc: S
         .join('');
   }
   const outlinePts = poly.map((p) => `${X(p.x).toFixed(1)},${Y(p.y).toFixed(1)}`).join(' ');
-  const dots = positions.map((p) => `<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="4.5" fill="#fff" stroke="#111" stroke-width="1.6"/>`).join('');
+  const dots = positions
+    .map((p, i) => {
+      const sel = opts.selected === i;
+      const num = opts.numbers ? `<text x="${(X(p.x) + 6).toFixed(1)}" y="${(Y(p.y) - 6).toFixed(1)}" font-size="9" font-family="Arial" fill="#111" stroke="#fff" stroke-width="2.5" paint-order="stroke">${i + 1}</text>` : '';
+      return `<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="${sel ? 7 : 4.5}" fill="${sel ? '#C8102E' : '#fff'}" stroke="#111" stroke-width="1.6"/>${num}`;
+    })
+    .join('');
   const ugr = (r?.ugr.points ?? [])
     .filter((q) => q.ugr != null)
     .map((q) => `<g><circle cx="${X(q.x).toFixed(1)}" cy="${Y(q.y).toFixed(1)}" r="3" fill="#111"/><line x1="${X(q.x).toFixed(1)}" y1="${Y(q.y).toFixed(1)}" x2="${X(q.x + q.dx * 0.8).toFixed(1)}" y2="${Y(q.y + q.dy * 0.8).toFixed(1)}" stroke="#111" stroke-width="1.2"/></g>`)
@@ -107,6 +114,9 @@ ${dots}${ugr}${dims}</svg>`,
     width: widthPx,
     height: hPx,
     range,
+    /** screen point → metres in the room (for placing fittings by tapping the plan) */
+    toRoom: (px: number, py: number) => ({ x: b.x0 + (px - pad) / sx, y: b.y1 - (py - pad) / sx }),
+    pxPerM: sx,
   };
 }
 
@@ -161,7 +171,7 @@ const DEFAULT_SURFACES: Surfaces = { ceiling: '#F5F5F2', walls: '#ECE7DA', floor
  *  fittings at their height – turned by yaw / pitch (degrees) */
 export function room3dSvg(
   poly: Pt[],
-  positions: Pt[],
+  positions: Lum[],
   room: RoomInput,
   r: CalcResult | null,
   sc: Scale,
@@ -264,13 +274,15 @@ export function room3dSvg(
     }
     roofSvg = lines.map((l) => `<polyline points="${l}" fill="none" stroke="#475569" stroke-opacity="${flat ? 0.18 : 0.4}" stroke-width="0.8"/>`).join('');
   }
-  const rot = ((fit.rot ?? 0) * Math.PI) / 180;
   const hl = Math.max(fit.lumL, 60) / 2000;
   const hw = Math.max(fit.lumW, 60) / 2000;
-  const corner = (f: Pt, sx: number, sy: number) => ({ x: f.x + sx * hl * Math.cos(rot) - sy * hw * Math.sin(rot), y: f.y + sx * hl * Math.sin(rot) + sy * hw * Math.cos(rot) });
+  const corner = (f: Lum, sx: number, sy: number) => {
+    const rot = ((f.rot ?? fit.rot ?? 0) * Math.PI) / 180;
+    return { x: f.x + sx * hl * Math.cos(rot) - sy * hw * Math.sin(rot), y: f.y + sx * hl * Math.sin(rot) + sy * hw * Math.cos(rot) };
+  };
   const lums = positions
     .map((f) => {
-      const z = mz(f);
+      const z = f.z ?? mz(f);
       const q = [corner(f, -1, -1), corner(f, 1, -1), corner(f, 1, 1), corner(f, -1, 1)].map((c) => P(c.x, c.y, z));
       return { q, f, z };
     })
@@ -305,7 +317,7 @@ export type SheetInput = {
   room: RoomInput;
   poly: Pt[];
   fit: FittingInput;
-  positions: Pt[];
+  positions: Lum[];
   r: CalcResult;
   mf: number;
   space: string | null;
@@ -320,6 +332,10 @@ export type SheetInput = {
   /** e.g. "IES file: Thorn Omega Pro 600 (Thorn)" or "Modelled curve – panel" */
   photoLabel: string;
   polar: string | null;
+  /** e.g. "Field 6 × 3, spacing 6.67 × 8.00 m" or "Light by light" */
+  arrangement: string;
+  /** light by light: list each fitting's position */
+  listLights: boolean;
   savings: { lines: [string, string][] } | null;
   by: string;
 };
@@ -327,7 +343,13 @@ export type SheetInput = {
 /** The client sheet: DIMO logo, room plan with the heat-map, results against the standard and the savings – DRAFT */
 export function calcSheetHtml(s: SheetInput) {
   const now = new Date().toLocaleString('en-GB', { timeZone: 'Asia/Colombo', day: '2-digit', month: 'short', year: 'numeric' });
-  const plan = planSvg(s.poly, s.positions, s.r, s.scale, 660);
+  const plan = planSvg(s.poly, s.positions, s.r, s.scale, 660, { numbers: s.listLights });
+  const mzAt = mountAt(s.room, s.poly);
+  const lightRows = s.listLights
+    ? `<h2>Fitting positions</h2><table style="font-size:9px"><tr><td class="k" style="width:auto"><b>No.</b></td><td><b>x (m)</b></td><td><b>y (m)</b></td><td><b>Height (m)</b></td><td><b>Turned</b></td></tr>${(s.positions as Lum[])
+        .map((p, i) => `<tr><td>${i + 1}</td><td>${p.x.toFixed(2)}</td><td>${p.y.toFixed(2)}</td><td>${(p.z ?? mzAt(p)).toFixed(2)}</td><td>${p.rot ?? s.fit.rot ?? 0}°</td></tr>`)
+        .join('')}</table>`
+    : '';
   const legend = legendSvg(plan.range, s.scale.palette, 420);
   const t = FITTING_TYPES.find((x) => x.key === s.fit.type);
   const size = t?.size ?? [600, 600];
@@ -366,7 +388,7 @@ ${row('Heights', `${pitched ? 'walls' : 'ceiling'} ${s.room.height} m · fitting
 ${row('Surfaces (reflectance)', `${sw(s.surfaces.ceiling)}ceiling ${Math.round(s.room.rc * 100)}% · ${sw(s.surfaces.walls)}walls ${Math.round(s.room.rw * 100)}% · ${sw(s.surfaces.floor)}floor ${Math.round(s.room.rf * 100)}%`)}
 ${row('Fitting', `${esc(s.fit.name || t?.label || '')} · ${s.fit.watts} W · ${s.fit.lumens} lm${s.fit.rot ? ' · turned 90°' : ''}`)}
 ${row('Light distribution', esc(s.photoLabel))}
-${row('Number of fittings', `<b>${s.positions.length}</b>`)}
+${row('Number of fittings', `<b>${s.positions.length}</b> · ${esc(s.arrangement)}`)}
 ${row('Maintenance factor', s.mf.toFixed(2))}
 </table></div>
 <div><h2>Results${s.space ? ` – ${esc(s.space)}` : ''}</h2><table>
@@ -378,6 +400,7 @@ ${row(s.ugrSheet != null ? 'Glare UGR (data sheet)' : 'Glare UGR (max, indicativ
 ${row('Installed load', `${(s.r.watts / 1000).toFixed(2)} kW · ${s.r.wpm2.toFixed(1)} W/m²${s.lpdLimit ? ` ${ok(s.r.wpm2 <= s.lpdLimit)} SLSEA ${s.lpdLimit} W/m²` : ''}`)}
 ${s.source ? row('Standard', esc(s.source)) : ''}
 </table></div></div>
+${lightRows}
 ${s.savings ? `<h2>Energy and savings</h2><table>${s.savings.lines.map(([k, v]) => row(k, esc(v))).join('')}</table>` : ''}
 <div class="foot">DRAFT – Indicative calculation: point-by-point on the working plane with interreflections between the working plane, walls and roof, from the fitting's IES file or a curve modelled on its type, with the data sheet watts and lumens; an empty room is assumed. UGR by the CIE 117 formula from the fitting's lit area – the manufacturer's UGR table is the reference. Final design by DIMO Lighting Design.<br/>Prepared by ${esc(s.by)} · DIMO Lighting Solutions</div>
 </body></html>`;
