@@ -1,12 +1,13 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Text, useWindowDimensions, View } from 'react-native';
+import { useWindowDimensions } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 import { useDialog } from '@/components/dialog';
 import { ProjectPicker } from '@/components/pickers';
 import { Button, Card, colors, ErrorBanner, Field, Grid, Loading, Muted, Notice, NumberField, Row, Screen, Section, Segmented, Select, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { calcSheetHtml, LUX_SCALE, planSvg } from '@/lib/calcSheet';
+import { Room3D } from '@/components/tools/Room3D';
+import { calcSheetHtml, legendSvg, PALETTES, planSvg, type Palette, type Scale } from '@/lib/calcSheet';
 import { printHtml } from '@/lib/export';
 import { fmtMoney, fmtNumber } from '@/lib/format';
 import { cached, useLoad } from '@/lib/hooks';
@@ -42,6 +43,14 @@ type Form = {
   watts: number | null;
   lumens: number | null;
   count: number | null; // null = the fewest that reach the target
+  lumL: number | null; // lit area for glare, mm – empty = typical for the type
+  lumW: number | null;
+  ugrSheet: number | null; // UGR from the data sheet's table, if given
+  ugrLimit: number | null;
+  scaleMode: 'auto' | 'custom';
+  scaleMin: number | null;
+  scaleMax: number | null;
+  palette: Palette;
   oldDesc: string;
   oldWatts: number | null;
   oldQty: number | null;
@@ -78,6 +87,14 @@ const BLANK: Form = {
   watts: 36,
   lumens: 4000,
   count: null,
+  lumL: null,
+  lumW: null,
+  ugrSheet: null,
+  ugrLimit: 19,
+  scaleMode: 'auto',
+  scaleMin: null,
+  scaleMax: null,
+  palette: 'rainbow',
   oldDesc: '',
   oldWatts: null,
   oldQty: null,
@@ -103,6 +120,7 @@ export default function QuickCalc() {
   const { width: screenW } = useWindowDimensions();
   const isNew = id === 'new';
   const [form, setForm] = useState<Form | null>(null);
+  const [view, setView] = useState<'plan' | '3d'>('plan');
   const [savedId, setSavedId] = useState<string | null>(isNew ? null : id);
   const { data, error } = useLoad(async () => {
     const [refs, calc] = await Promise.all([
@@ -125,7 +143,7 @@ export default function QuickCalc() {
     if (!data) return null;
     if (data.calc) return { ...BLANK, ...data.calc.inputs };
     const s = std ? data.stds.find((x) => x.id === std) : null;
-    return s ? { ...BLANK, std_id: s.id, title: s.space, target: Number(s.vals?.em) || BLANK.target, uo: s.vals?.uo != null ? Number(s.vals.uo) : null } : BLANK;
+    return s ? { ...BLANK, std_id: s.id, title: s.space, target: Number(s.vals?.em) || BLANK.target, uo: s.vals?.uo != null ? Number(s.vals.uo) : null, ugrLimit: s.vals?.ugr != null ? Number(s.vals.ugr) : null } : BLANK;
   }, [data, std]);
   const f = form ?? preset;
 
@@ -145,7 +163,7 @@ export default function QuickCalc() {
       rw: f.rw ?? 0.5,
       rf: f.rf ?? 0.2,
     };
-    const fit = { type: f.type, watts: f.watts ?? 0, lumens: f.lumens ?? 0, name: f.fname };
+    const fit = { type: f.type, watts: f.watts ?? 0, lumens: f.lumens ?? 0, name: f.fname, lumL: f.lumL, lumW: f.lumW };
     const mf = f.mf ?? 0.8;
     const poly = outline(room);
     if (!(room.mount - room.plane > 0) || !(fit.lumens > 0) || poly.length < 3) return { room, fit, mf, poly, positions: [] as Pt[], r: null, auto: null };
@@ -167,7 +185,13 @@ export default function QuickCalc() {
   const sv = r && oldTotal > 0 ? savings({ oldWatts: oldTotal, newWatts: r.watts, hoursPerDay: f.hours ?? 0, daysPerYear: f.days ?? 0, rate, co2: f.co2, cost: f.cost }) : null;
   const target = f.target ?? 0;
   const planW = Math.min(screenW - 64, 760);
-  const plan = planSvg(calc.poly, positions, r, target, Math.max(planW, 280));
+  const scale: Scale = { mode: f.scaleMode ?? 'auto', min: f.scaleMin, max: f.scaleMax, palette: f.palette ?? 'rainbow' };
+  const plan = planSvg(calc.poly, positions, r, scale, Math.max(planW, 280));
+  const legend = legendSvg(plan.range, scale.palette, Math.min(Math.max(planW, 280) - 20, 420));
+  const ftype = FITTING_TYPES.find((t) => t.key === f.type);
+  const lit = { lumL: f.lumL ?? ftype?.size[0] ?? 600, lumW: f.lumW ?? ftype?.size[1] ?? 600 };
+  const ugr = f.ugrSheet ?? r?.ugr.max ?? null;
+  const ugrText = ugr == null ? '—' : ugr < 10 ? '< 10' : ugr.toFixed(1);
 
   const savingLines = (): [string, string][] | null =>
     sv
@@ -185,7 +209,7 @@ export default function QuickCalc() {
     [
       `Room: ${r?.A.toFixed(1)} m² (${f.shape === 'rect' ? `${f.length} × ${f.width} m` : f.shape === 'l' ? `L-shape ${f.length} × ${f.width} m less ${f.cutL} × ${f.cutW} m` : 'free outline'}), ceiling ${f.height} m, fittings at ${f.mount} m, working plane ${f.plane} m.`,
       `Target: ${f.target} lx${f.uo ? `, Uo ${f.uo}` : ''}${stdRow ? ` – ${stdRow.space} (${stdGroup?.source ?? ''})` : ''}.`,
-      `Indicative: ${positions.length} × ${f.fname || FITTING_TYPES.find((t) => t.key === f.type)?.label} ${f.watts} W / ${f.lumens} lm → ${Math.round(r?.em ?? 0)} lx average, Uo ${r?.uo.toFixed(2)}, ${r?.wpm2.toFixed(1)} W/m².`,
+      `Indicative: ${positions.length} × ${f.fname || ftype?.label} ${f.watts} W / ${f.lumens} lm → ${Math.round(r?.em ?? 0)} lx average, Uo ${r?.uo.toFixed(2)}, Ud ${r?.ud.toFixed(2)}, UGR ${ugrText}, ${r?.wpm2.toFixed(1)} W/m².`,
       oldTotal ? `Existing: ${f.oldQty} × ${f.oldWatts} W ${f.oldDesc}`.trim() + '.' : '',
     ]
       .filter(Boolean)
@@ -199,7 +223,7 @@ export default function QuickCalc() {
         title: f.title.trim(),
         project_id: f.project_id,
         inputs: f,
-        results: { em: r.em, emin: r.emin, uo: r.uo, count: positions.length, watts: r.watts, wpm2: r.wpm2, area: r.A, savings: sv, brief: brief() },
+        results: { em: r.em, emin: r.emin, emax: r.emax, uo: r.uo, ud: r.ud, ugr, count: positions.length, watts: r.watts, wpm2: r.wpm2, area: r.A, savings: sv, brief: brief() },
         updated_at: new Date().toISOString(),
       };
       if (savedId) {
@@ -230,6 +254,9 @@ export default function QuickCalc() {
           target,
           uoTarget: f.uo,
           lpdLimit,
+          scale,
+          ugrLimit: f.ugrLimit,
+          ugrSheet: f.ugrSheet,
           savings: savingLines() ? { lines: savingLines() as [string, string][] } : null,
           by: `${me.full_name} – ${ROLE_SHORT[me.role]}`,
         }),
@@ -292,13 +319,14 @@ export default function QuickCalc() {
             value={f.std_id ?? ''}
             onChange={(v) => {
               const s = data.stds.find((x) => x.id === v);
-              set({ std_id: v || null, target: s ? Number(s.vals?.em) || f.target : f.target, uo: s?.vals?.uo != null ? Number(s.vals.uo) : f.uo, count: null });
+              set({ std_id: v || null, target: s ? Number(s.vals?.em) || f.target : f.target, uo: s?.vals?.uo != null ? Number(s.vals.uo) : f.uo, ugrLimit: s?.vals?.ugr != null ? Number(s.vals.ugr) : f.ugrLimit, count: null });
             }}
             options={[{ value: '', label: '— my own target —' }, ...data.stds.filter((s) => s.grp !== 'energy' && s.vals?.em != null).map((s) => ({ value: s.id, label: `${s.space} · ${s.vals.em} lx (${s.category})` }))]}
           />
           <Row gap={8} wrap>
             <NumberField label="Target average" suffix="lx" value={f.target} onChange={(v) => set({ target: v, count: null })} />
             <NumberField label="Target uniformity Uo" value={f.uo} onChange={(v) => set({ uo: v, count: null })} hint="Empty = no uniformity target" />
+            <NumberField label="Glare limit UGR" value={f.ugrLimit} onChange={(v) => set({ ugrLimit: v })} hint="From the standard – empty = none" />
           </Row>
           <Select
             label="Surfaces"
@@ -343,6 +371,11 @@ export default function QuickCalc() {
             <NumberField label="Lumens (fitting output)" suffix="lm" value={f.lumens} onChange={(v) => set({ lumens: v, count: null })} />
           </Row>
           {f.watts && f.lumens ? <Muted>{`${Math.round(f.lumens / f.watts)} lm/W`}</Muted> : null}
+          <Row gap={8} wrap>
+            <NumberField label="Lit area length" suffix="mm" value={f.lumL} onChange={(v) => set({ lumL: v })} hint={`Empty = ${ftype?.size[0] ?? 600} mm (typical)`} />
+            <NumberField label="Lit area width" suffix="mm" value={f.lumW} onChange={(v) => set({ lumW: v })} hint={`Empty = ${ftype?.size[1] ?? 600} mm`} />
+            <NumberField label="UGR from the data sheet" value={f.ugrSheet} onChange={(v) => set({ ugrSheet: v })} hint="If given – used instead of the estimate" />
+          </Row>
           <Muted>When Catalogs are ready, pick the product and its IES file is used instead.</Muted>
         </Card>
       </Section>
@@ -353,21 +386,33 @@ export default function QuickCalc() {
             <Grid min={160} max={4}>
               <Stat label="Fittings" value={String(positions.length)} sub={f.count ? 'set by you' : 'the fewest to reach the target'} />
               <Stat label={`Average lux (target ${target})`} value={`${Math.round(r.em)} lx`} tone={ok(r.em >= target)} sub={`min ${Math.round(r.emin)} · max ${Math.round(r.emax)}`} />
-              <Stat label={`Uniformity${f.uo ? ` (target ${f.uo})` : ''}`} value={r.uo.toFixed(2)} tone={f.uo ? ok(r.uo >= f.uo) : undefined} />
+              <Stat label={`Uniformity Uo${f.uo ? ` (target ${f.uo})` : ''}`} value={r.uo.toFixed(2)} tone={f.uo ? ok(r.uo >= f.uo) : undefined} sub={`Emin / Em · Ud = Emin / Emax ${r.ud.toFixed(2)}`} />
+              <Stat label={`Glare UGR${f.ugrLimit != null ? ` (limit ${f.ugrLimit})` : ''}`} value={ugrText} tone={f.ugrLimit != null && ugr != null ? ok(ugr <= f.ugrLimit) : undefined} sub={f.ugrSheet != null ? 'from the data sheet' : 'highest of the observers – indicative'} />
               <Stat label={lpdLimit ? `W/m² (SLSEA ${lpdLimit})` : 'W/m²'} value={r.wpm2.toFixed(1)} tone={lpdLimit ? ok(r.wpm2 <= lpdLimit) : undefined} sub={`${(r.watts / 1000).toFixed(2)} kW · ${r.A.toFixed(1)} m² · K ${r.K.toFixed(2)}`} />
             </Grid>
             {!f.count && calc.auto && f.uo && r.uo < f.uo ? <Notice tone={colors.amber}>The uniformity target is not reached with this fitting at this height – try a wider beam or set more fittings below.</Notice> : null}
             <Card style={{ alignItems: 'center', gap: 6 }}>
-              <SvgXml xml={plan.xml} width={plan.width} height={plan.height} />
-              <Row wrap gap={10} style={{ justifyContent: 'center' }}>
-                {LUX_SCALE.map((s) => (
-                  <Row key={s.label} gap={4}>
-                    <View style={{ width: 12, height: 12, backgroundColor: s.colour, opacity: 0.7 }} />
-                    <Text style={{ fontSize: 12, color: colors.muted }}>{s.label}</Text>
-                  </Row>
-                ))}
+              <Segmented value={view} onChange={setView} options={[{ value: 'plan', label: 'Plan with contours' }, { value: '3d', label: '3D view' }]} />
+              {view === 'plan' ? (
+                <>
+                  <SvgXml xml={plan.xml} width={plan.width} height={plan.height} />
+                  <Muted>Lines join points of equal light (lux). White dots are the fittings; black marks are the seated observers for glare (UGR).</Muted>
+                </>
+              ) : (
+                <Room3D poly={calc.poly} positions={positions} room={calc.room} r={r} scale={scale} fit={lit} width={Math.max(planW, 280)} />
+              )}
+              <SvgXml xml={legend.xml} width={legend.width} height={legend.height} />
+              <Muted>{`Illuminance on the working plane, ${plan.range.min}–${plan.range.max} lx`}</Muted>
+              <Row gap={8} wrap style={{ alignItems: 'flex-end', justifyContent: 'center' }}>
+                <Segmented value={f.scaleMode ?? 'auto'} onChange={(v) => set({ scaleMode: v, scaleMin: f.scaleMin ?? plan.range.min, scaleMax: f.scaleMax ?? plan.range.max })} options={[{ value: 'auto', label: 'Scale: room min–max' }, { value: 'custom', label: 'My own scale' }]} />
+                {f.scaleMode === 'custom' ? (
+                  <>
+                    <NumberField label="From" suffix="lx" value={f.scaleMin} onChange={(v) => set({ scaleMin: v })} />
+                    <NumberField label="To" suffix="lx" value={f.scaleMax} onChange={(v) => set({ scaleMax: v })} />
+                  </>
+                ) : null}
+                <Select label="Colours" value={f.palette ?? 'rainbow'} onChange={(v) => set({ palette: v as Palette })} options={PALETTES} />
               </Row>
-              <Muted>Share of the target on the working plane. White dots are the fittings.</Muted>
               <Row gap={8} wrap style={{ justifyContent: 'center' }}>
                 <Button small variant="secondary" title="− fitting" onPress={() => set({ count: Math.max(1, positions.length - 1) })} />
                 <Button small variant="secondary" title="+ fitting" onPress={() => set({ count: positions.length + 1 })} />

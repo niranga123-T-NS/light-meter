@@ -5,17 +5,17 @@
 
 export type Pt = { x: number; y: number };
 
-export type FittingType = { key: string; label: string; n: number; up: number; hint: string };
+export type FittingType = { key: string; label: string; n: number; up: number; hint: string; size: [number, number] };
 /** cosⁿ curves: n = 1 wide (Lambertian, ~120°), 2 medium (~90°), 5 about 60°, 10 about 40° beam */
 export const FITTING_TYPES: FittingType[] = [
-  { key: 'panel', label: 'Panel (recessed / surface)', n: 1, up: 0, hint: 'Wide light, offices and classrooms' },
-  { key: 'downlight', label: 'Downlight – medium beam', n: 2, up: 0, hint: 'About 90° beam' },
-  { key: 'downlight_narrow', label: 'Downlight / spot – narrow beam', n: 10, up: 0, hint: 'About 40° beam' },
-  { key: 'batten', label: 'Batten / open linear', n: 1, up: 0.15, hint: 'Some light goes up to the ceiling' },
-  { key: 'linear_di', label: 'Suspended linear – direct / indirect', n: 1.5, up: 0.4, hint: 'About 40% up' },
-  { key: 'highbay_wide', label: 'High-bay – wide (120°)', n: 1, up: 0, hint: 'Low and medium heights' },
-  { key: 'highbay_med', label: 'High-bay – medium (90°)', n: 2, up: 0, hint: '6–10 m' },
-  { key: 'highbay_narrow', label: 'High-bay – narrow (60°)', n: 5, up: 0, hint: 'High bays, racking aisles' },
+  { key: 'panel', label: 'Panel (recessed / surface)', n: 1, up: 0, hint: 'Wide light, offices and classrooms', size: [600, 600] },
+  { key: 'downlight', label: 'Downlight – medium beam', n: 2, up: 0, hint: 'About 90° beam', size: [150, 150] },
+  { key: 'downlight_narrow', label: 'Downlight / spot – narrow beam', n: 10, up: 0, hint: 'About 40° beam', size: [80, 80] },
+  { key: 'batten', label: 'Batten / open linear', n: 1, up: 0.15, hint: 'Some light goes up to the ceiling', size: [1200, 50] },
+  { key: 'linear_di', label: 'Suspended linear – direct / indirect', n: 1.5, up: 0.4, hint: 'About 40% up', size: [1200, 60] },
+  { key: 'highbay_wide', label: 'High-bay – wide (120°)', n: 1, up: 0, hint: 'Low and medium heights', size: [350, 350] },
+  { key: 'highbay_med', label: 'High-bay – medium (90°)', n: 2, up: 0, hint: '6–10 m', size: [320, 320] },
+  { key: 'highbay_narrow', label: 'High-bay – narrow (60°)', n: 5, up: 0, hint: 'High bays, racking aisles', size: [300, 300] },
 ];
 
 export const REFLECTANCES = [
@@ -44,7 +44,8 @@ export type RoomInput = {
   rw: number;
   rf: number;
 };
-export type FittingInput = { type: string; watts: number; lumens: number; name?: string };
+/** lumL / lumW: the luminous (lit) area in mm, for glare – defaults by type */
+export type FittingInput = { type: string; watts: number; lumens: number; name?: string; lumL?: number | null; lumW?: number | null };
 
 export function outline(r: RoomInput): Pt[] {
   if (r.shape === 'free' && r.points && r.points.length >= 3) return r.points;
@@ -171,11 +172,18 @@ export type CalcResult = {
   emin: number;
   emax: number;
   uo: number;
+  /** Emin / Emax */
+  ud: number;
   uf: number;
   watts: number;
   wpm2: number;
   lumensTotal: number;
+  /** lux on a regular grid over the room's outline box – for the contours and the 3D view */
+  field: Field;
+  /** glare at seated observers along the walls, looking across the room (CIE 117) */
+  ugr: { max: number | null; points: { x: number; y: number; dx: number; dy: number; ugr: number | null }[] };
 };
+export type Field = { nx: number; ny: number; x0: number; y0: number; dx: number; dy: number; v: number[] };
 
 /** The calculation: direct light at each grid point plus the bounced light, times the maintenance factor */
 export function calculate(room: RoomInput, fit: FittingInput, positions: Pt[], mf: number): CalcResult | null {
@@ -247,7 +255,60 @@ export function calculate(room: RoomInput, fit: FittingInput, positions: Pt[], m
   const eShown = eAll.map((v) => (v + eInd) * mf);
   const em = e.reduce((s, v) => s + v, 0) / e.length;
   const emin = Math.min(...e);
+  const emax = Math.max(...e);
   const watts = fit.watts * N;
+  // a finer regular grid over the outline box for smooth contours (values outside the room are clipped when drawn)
+  const L = b.x1 - b.x0;
+  const W = b.y1 - b.y0;
+  const cells = Math.min(90, Math.max(30, Math.ceil(Math.max(L, W) / 0.12)));
+  const fdx = Math.max(L, W) / cells;
+  const nx = Math.max(2, Math.round(L / fdx) + 1);
+  const ny = Math.max(2, Math.round(W / fdx) + 1);
+  const fv: number[] = [];
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) fv.push((direct({ x: b.x0 + (i * L) / (nx - 1), y: b.y0 + (j * W) / (ny - 1) }) + eInd) * mf);
+  const field: Field = { nx, ny, x0: b.x0, y0: b.y0, dx: L / (nx - 1), dy: W / (ny - 1), v: fv };
+  // UGR (CIE 117): seated eye 1.2 m, at the middle of each wall 0.5 m in, looking across the room; background
+  // luminance from the indirect light (initial values – UGR does not depend on the maintenance factor much)
+  const tl = t.size;
+  const lumA = (Math.max(fit.lumL ?? tl[0], 10) / 1000) * (Math.max(fit.lumW ?? tl[1], 10) / 1000);
+  const eye = 1.2;
+  const lb = eInd / Math.PI;
+  const ugrPts: CalcResult['ugr']['points'] = [];
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i];
+    const c = poly[(i + 1) % poly.length];
+    const len = Math.hypot(c.x - a.x, c.y - a.y);
+    if (len < 2) continue;
+    let nxv = -(c.y - a.y) / len;
+    let nyv = (c.x - a.x) / len;
+    const mid = { x: (a.x + c.x) / 2, y: (a.y + c.y) / 2 };
+    if (!inside({ x: mid.x + nxv * 0.5, y: mid.y + nyv * 0.5 }, poly)) [nxv, nyv] = [-nxv, -nyv];
+    const o = { x: mid.x + nxv * 0.5, y: mid.y + nyv * 0.5 };
+    let sum = 0;
+    for (const f of positions) {
+      const H = room.mount - eye;
+      if (H <= 0.05) continue;
+      const vx = f.x - o.x;
+      const vy = f.y - o.y;
+      const along = vx * nxv + vy * nyv; // along the line of sight
+      if (along <= 0.05) continue; // behind or beside the observer
+      const T = Math.abs(vx * nyv - vy * nxv); // lateral
+      const R = Math.sqrt(along * along + T * T + H * H);
+      const cosG = H / R; // angle at the fitting, from straight down
+      const I = I0 * Math.pow(cosG, t.n);
+      const Ap = lumA * cosG;
+      const lum = I / Ap;
+      const omega = Ap / (R * R);
+      const sigma = (Math.acos(Math.min(1, along / R)) * 180) / Math.PI;
+      const tau = (Math.atan2(T, H) * 180) / Math.PI;
+      const lnp = (35.2 - 0.31889 * tau - 1.22 * Math.exp((-2 * tau) / 9)) * 1e-3 * sigma + (21 + 0.26667 * tau - 0.002963 * tau * tau) * 1e-5 * sigma * sigma;
+      const pIdx = Math.exp(lnp);
+      sum += (lum * lum * omega) / (pIdx * pIdx);
+    }
+    const u = sum > 0 && lb > 0 ? 8 * Math.log10((0.25 / lb) * sum) : null;
+    ugrPts.push({ x: o.x, y: o.y, dx: nxv, dy: nyv, ugr: u == null ? null : Math.max(u, 0) });
+  }
+  const ugrVals = ugrPts.map((q) => q.ugr).filter((v): v is number => v != null);
   return {
     A,
     P,
@@ -255,8 +316,11 @@ export function calculate(room: RoomInput, fit: FittingInput, positions: Pt[], m
     grid: { pts: allPts, e: eShown, step },
     em,
     emin,
-    emax: Math.max(...e),
+    emax,
     uo: em > 0 ? emin / em : 0,
+    ud: emax > 0 ? emin / emax : 0,
+    field,
+    ugr: { max: ugrVals.length ? Math.max(...ugrVals) : null, points: ugrPts },
     uf: wp / (fit.lumens * N),
     watts,
     wpm2: watts / A,
