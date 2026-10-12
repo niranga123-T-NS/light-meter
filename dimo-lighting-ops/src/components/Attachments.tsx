@@ -10,7 +10,7 @@ import { useDialog } from './dialog';
 import { Button, Card, ListRow, Muted, Row, Section } from './ui';
 
 export const KIND_LABELS: Record<string, string> = {
-  tender_boq: 'Tender BOQ (required)',
+  tender_boq: 'BOQ (required)',
   competitor_prices: 'Competitor price schedule',
   sinv_doc: 'Invoice copy (PDF / photo)',
   sinv_markup: 'Marked-up copy',
@@ -30,7 +30,7 @@ export const KIND_LABELS: Record<string, string> = {
   inquiry_doc: 'Inquiry document',
   visit_photo: 'Photo / business card',
   visit_doc: 'Document',
-  tender_doc: 'Tender document',
+  tender_doc: 'Tender / quotation document',
   design_draft: 'Draft',
   design_pack: 'Design pack',
   quotation_draft: 'Draft quotation (PDF)',

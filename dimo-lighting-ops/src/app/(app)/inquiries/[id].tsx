@@ -19,6 +19,7 @@ import { isDesigner, isEstimator, isSales, projectTypeLabel } from '@/lib/roles'
 import { rpc, supabase } from '@/lib/supabase';
 import type { Attachment, DesignJob, EstimationJob, Inquiry, Quotation, SlaClock } from '@/lib/types';
 
+type Offer = { id: string; our_price: number | null; tender_bids: { id: string; bid_price: number | null; won: boolean; competitor_id: number; competitors: { name: string } | null }[] };
 type Approval = { id: string; kind: string; title: string; reason: string | null; status: string; current_step: number; requested_at: string };
 
 export default function InquiryDetail() {
@@ -40,6 +41,8 @@ export default function InquiryDetail() {
       supabase.from('approvals').select('*').eq('inquiry_id', id).order('requested_at', { ascending: false }),
       rpc<Attachment[]>('inquiry_files', { p_inquiry: id }).catch(() => []),
     ]);
+    // Competition record of this quotation (Offers & competition) – only its readers get a row back
+    const offer = ((await supabase.from('tenders').select('id, our_price, tender_bids(id, bid_price, won, competitor_id, competitors(name))').eq('inquiry_id', id).maybeSingle()).data ?? null) as Offer | null;
     // Other main contractors quoted for the same tender
     const group = inq.tender_group_id
       ? ((await supabase.from('inquiries').select('*').eq('tender_group_id', inq.tender_group_id).order('created_at')).data ?? []) as Inquiry[]
@@ -48,6 +51,7 @@ export default function InquiryDetail() {
       ? (((await supabase.from('quotations').select('*').in('inquiry_id', group.map((g) => g.id)).order('released_at', { ascending: false })).data ?? []) as Quotation[])
       : [];
     return {
+      offer,
       group,
       groupQuotes,
       inquiry: inq as Inquiry,
@@ -77,7 +81,9 @@ export default function InquiryDetail() {
   }, [id, refresh]);
 
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const { inquiry: i, designJobs, estimationJobs, quotations, clocks, approvals, files, group, groupQuotes } = data;
+  const { inquiry: i, designJobs, estimationJobs, quotations, clocks, approvals, files, group, groupQuotes, offer } = data;
+  const offerEditor = i.sales_person_id === me.id || ['sm_projects', 'sm_estimation', 'am_estimation'].includes(me.role);
+  const offerReader = offerEditor || me.role === 'gm';
   const openOthers = group.filter((g) => g.id !== i.id && !['won', 'lost', 'cancelled', 'rejected'].includes(g.status));
   const mineAsSales = i.sales_person_id === me.id || me.role === 'sm_projects' || me.role === 'gm';
   const colour = i.status === 'on_hold' ? 'grey' : i.sla_colour;
@@ -623,6 +629,48 @@ export default function InquiryDetail() {
             })}
             <Muted>Brands offered: {quotations[0].brands_offered.map((b) => `${b.group}: ${b.brand}`).join(' · ') || '—'}</Muted>
             {quotations[0].docs_note ? <Muted>{quotations[0].docs_note}</Muted> : null}
+          </Card>
+        </Section>
+      ) : null}
+
+      {quotations.length && offerReader ? (
+        <Section title="Competitors on this quotation">
+          <Card style={{ gap: 6 }}>
+            {offer ? (
+              offer.tender_bids.length ? (
+                [...offer.tender_bids]
+                  .sort((a, b) => Number(a.bid_price ?? 9e15) - Number(b.bid_price ?? 9e15))
+                  .map((b) => (
+                    <Row key={b.id} wrap style={{ justifyContent: 'space-between' }}>
+                      <Text style={{ fontWeight: '600', color: b.won ? colors.red : colors.ink }}>{`${b.competitors?.name ?? '—'}${b.won ? ' · won the order' : ''}`}</Text>
+                      <Text>
+                        {b.bid_price != null ? fmtMoney(b.bid_price, i.currency) : 'price not known'}
+                        {b.bid_price != null && offer.our_price ? `  (${Number(b.bid_price) >= Number(offer.our_price) ? '+' : ''}${(((Number(b.bid_price) - Number(offer.our_price)) / Number(offer.our_price)) * 100).toFixed(1)}% vs ours)` : ''}
+                      </Text>
+                    </Row>
+                  ))
+              ) : (
+                <Muted>No competitors recorded yet.</Muted>
+              )
+            ) : (
+              <Muted>Who else quoted, their prices and brands – recorded here, they build up each competitor’s profile.</Muted>
+            )}
+            <Row gap={8} wrap>
+              {offer ? (
+                <Button variant="secondary" title={offerEditor ? 'Open – add competitors, BOQ, item prices' : 'Open'} onPress={() => router.push(`/tenders/${offer.id}`)} />
+              ) : offerEditor ? (
+                <Button
+                  variant="secondary"
+                  title="Record competitors"
+                  onPress={() =>
+                    dialog.run(async () => {
+                      const tid = await rpc<string>('start_offer_record', { p_inquiry: i.id });
+                      router.push(`/tenders/${tid}`);
+                    })
+                  }
+                />
+              ) : null}
+            </Row>
           </Card>
         </Section>
       ) : null}

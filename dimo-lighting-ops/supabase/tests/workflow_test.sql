@@ -6981,6 +6981,52 @@ end $$;
 reset role;
 rollback to savepoint tdr1;
 
+-- Offers & competition: an ordinary quotation's competitors, result flows from the inquiry, our price beside theirs
+savepoint ofc1;
+select pg_temp.act_as('estimation_exec'); set role authenticated;
+do $$ begin
+  begin perform public.start_offer_record('00000000-0000-0000-0000-00000000d001'); assert false, 'estimation executive cannot start';
+  exception when others then if sqlerrm like 'Assertion%' then raise; end if; end;
+end $$;
+reset role;
+select pg_temp.act_as('am_estimation'); set role authenticated;
+do $$ declare t uuid; t2 uuid; b uuid; c bigint; q public.quotations;
+begin
+  t := public.start_offer_record('00000000-0000-0000-0000-00000000d001');
+  t2 := public.start_offer_record('00000000-0000-0000-0000-00000000d001');
+  assert t = t2, 'one record per inquiry';
+  reset role;
+  select * into q from public.quotations where inquiry_id = '00000000-0000-0000-0000-00000000d001' order by released_at desc limit 1;
+  set role authenticated;
+  assert (select tender_type from public.tenders where id = t) = 'quotation', 'type quotation';
+  assert (select our_price from public.tenders where id = t) = q.quoted_value, 'our price from the quotation';
+  assert (select tender_no from public.tenders where id = t) = q.full_no, 'quotation number';
+  assert (select result_status from public.tenders where id = t) = 'awarded_to_us', 'result from the inquiry';
+  insert into public.competitors (name) values ('Lumina Lanka') returning id into c;
+  update public.competitors set notes = 'Agents for Opple', brands = '{Opple}' where id = c;
+  assert found, 'AM Estimation keeps the competitor profile';
+  insert into public.tender_bids (tender_id, competitor_id, bid_price, brands) values (t, c, 58000000, '{Opple}') returning id into b;
+  insert into public.tender_bid_lines (bid_id, seq, item, qty, unit_price, our_unit_price) values (b, 1, 'Downlight 12W', 300, 4200, 4650);
+  perform set_config('test.ofc', t::text, true); perform set_config('test.ofcc', c::text, true); perform set_config('test.ofcb', b::text, true);
+end $$;
+reset role;
+select pg_temp.act_as('asm_infra'); set role authenticated;
+do $$ begin
+  update public.competitors set notes = 'x' where id = current_setting('test.ofcc')::bigint;
+  assert not found, 'sales do not change competitor profiles';
+end $$;
+reset role;
+do $$ begin
+  perform set_config('app.workflow', '1', true);
+  update public.inquiries set result = 'lost', lost_reason = 'Price', lost_to_competitor_id = current_setting('test.ofcc')::bigint where id = '00000000-0000-0000-0000-00000000d001';
+  assert (select result_status from public.tenders where id = current_setting('test.ofc')::uuid) = 'awarded_to_competitor', 'lost flows in';
+  assert (select won from public.tender_bids where id = current_setting('test.ofcb')::uuid), 'winner marked';
+  insert into public.competitors (name) values ('Another Co') ;
+  insert into public.tender_bids (tender_id, competitor_id, bid_price, won) values (current_setting('test.ofc')::uuid, (select id from public.competitors where name = 'Another Co'), 57000000, true);
+  assert not (select won from public.tender_bids where id = current_setting('test.ofcb')::uuid), 'one winner only';
+end $$;
+rollback to savepoint ofc1;
+
 -- High level user: view only, at most one day, ends by itself
 savepoint hl1;
 select pg_temp.act_as('gm'); set role authenticated;

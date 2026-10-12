@@ -5,7 +5,7 @@ import { Button, Card, DateField, ErrorBanner, Field, Loading, Muted, NumberFiel
 import { useMe } from '@/lib/auth';
 import { useLoad, useMasters, usePeople } from '@/lib/hooks';
 import { supabase } from '@/lib/supabase';
-import { TENDER_EDITORS, TENDER_RESULT, TENDER_TYPES, type Tender } from '@/lib/tenders';
+import { resultLabel, TENDER_EDITORS, TENDER_RESULT, TENDER_TYPES, type Tender } from '@/lib/tenders';
 
 type Form = {
   tender_no: string;
@@ -74,9 +74,9 @@ export default function TenderEdit() {
 
   const save = () =>
     dialog.run(async () => {
-      if (!f.tender_no.trim() || !f.tender_name.trim()) throw new Error('Enter the tender number and name');
+      if (!f.tender_no.trim() || !f.tender_name.trim()) throw new Error(f.tender_type === 'quotation' ? 'Enter the quotation number and a name' : 'Enter the tender number and name');
       if (!linked && (!f.client_name.trim() || !f.project_name.trim())) throw new Error('Enter the client and the project');
-      if (!f.closing_date || !f.opening_date) throw new Error('Enter the closing and opening dates');
+      if (!f.closing_date || !f.opening_date) throw new Error(f.tender_type === 'quotation' ? 'Enter the submitted and result dates' : 'Enter the closing and opening dates');
       const row = {
         tender_no: f.tender_no.trim(),
         tender_name: f.tender_name.trim(),
@@ -109,19 +109,25 @@ export default function TenderEdit() {
 
   if (!canEdit) return <Screen><Muted>You can view tender results but not change them.</Muted></Screen>;
   const cur = f.duty_status === 'duty_free' ? 'USD' : 'LKR';
+  const quote = f.tender_type === 'quotation';
   return (
     <Screen maxWidth={900}>
-      <Stack.Screen options={{ title: t ? `Change ${t.tender_no}` : 'New tender result' }} />
-      {!t ? <Muted>For a tender already in the system through a sales visit, open it from the list instead. Use this for past tenders and tenders without a visit.</Muted> : null}
-      <Section title="The tender">
+      <Stack.Screen options={{ title: t ? `Change ${t.tender_no}` : 'Past tender / quotation' }} />
+      {!t ? (
+        <Muted>
+          For a tender already in the system through a sales visit, open it from the list instead; for a quotation in the system use “Record competitors” on its inquiry. Use this for past
+          tenders and quotations.
+        </Muted>
+      ) : null}
+      <Section title={quote ? 'The quotation' : 'The tender'}>
         <Card style={{ gap: 4 }}>
           <Row gap={8} wrap>
-            <Field label="Tender no." required value={f.tender_no} onChangeText={(v) => set({ tender_no: v })} />
-            <Field label="Tender name" required value={f.tender_name} onChangeText={(v) => set({ tender_name: v })} />
+            <Field label={quote ? 'Quotation no.' : 'Tender no.'} required value={f.tender_no} onChangeText={(v) => set({ tender_no: v })} />
+            <Field label={quote ? 'Name / description' : 'Tender name'} required value={f.tender_name} onChangeText={(v) => set({ tender_name: v })} />
           </Row>
           <Field label="Client" required={!linked} value={f.client_name} onChangeText={(v) => set({ client_name: v })} hint={linked ? 'Linked to the customer in the system – type only to show a different name' : 'e.g. Road Development Authority'} />
           <Field label="Project" required={!linked} value={f.project_name} onChangeText={(v) => set({ project_name: v })} hint={linked ? 'Linked to the project in the system' : undefined} />
-          <Select label="Tender type" value={f.tender_type} onChange={(v) => set({ tender_type: v })} options={TENDER_TYPES} />
+          {t?.inquiry_id ? null : <Select label="Type" value={f.tender_type} onChange={(v) => set({ tender_type: v })} options={TENDER_TYPES} />}
           <Select
             label="Duty status (sets the currency)"
             value={f.duty_status}
@@ -132,8 +138,8 @@ export default function TenderEdit() {
             ]}
           />
           <Row gap={8} wrap>
-            <DateField label="Closing date" required value={f.closing_date} onChange={(v) => set({ closing_date: v })} />
-            <DateField label="Opening date" required value={f.opening_date} onChange={(v) => set({ opening_date: v })} />
+            <DateField label={quote ? 'Submitted on' : 'Closing date'} required value={f.closing_date} onChange={(v) => set({ closing_date: v })} />
+            <DateField label={quote ? 'Result known on' : 'Opening date'} required value={f.opening_date} onChange={(v) => set({ opening_date: v })} />
           </Row>
           {!t?.visit_id ? (
             <Select
@@ -146,7 +152,7 @@ export default function TenderEdit() {
           ) : null}
         </Card>
       </Section>
-      <Section title="Our bid and the result">
+      <Section title={quote ? 'Our price and the result' : 'Our bid and the result'}>
         <Card style={{ gap: 4 }}>
           <NumberField label="Our price" suffix={cur} value={f.our_price} onChange={(v) => set({ our_price: v })} />
           <Field label="Brand(s) we offered" hint="Comma separated" value={f.our_brands} onChangeText={(v) => set({ our_brands: v })} />
@@ -154,11 +160,13 @@ export default function TenderEdit() {
             <Field label="Delivery period" value={f.delivery_period} onChangeText={(v) => set({ delivery_period: v })} />
             <Field label="Validity" value={f.validity} onChangeText={(v) => set({ validity: v })} />
           </Row>
+          {t?.inquiry_id ? <Muted>The result comes from the inquiry – record won / lost there.</Muted> : null}
           <Select
             label="Result"
+            disabled={!!t?.inquiry_id}
             value={f.result_status}
             onChange={(v) => set({ result_status: v as Tender['result_status'] })}
-            options={(Object.keys(TENDER_RESULT) as Tender['result_status'][]).map((k) => ({ value: k, label: TENDER_RESULT[k].label }))}
+            options={(Object.keys(TENDER_RESULT) as Tender['result_status'][]).map((k) => ({ value: k, label: resultLabel({ tender_type: f.tender_type as Tender['tender_type'], result_status: k }) }))}
           />
           {f.result_status === 'awarded_to_competitor' ? (
             <Select label="Lost reason" value={f.lost_reason} onChange={(v) => set({ lost_reason: v })} options={masters.values('lost_reason').map((v) => ({ value: v, label: v }))} />
@@ -166,7 +174,7 @@ export default function TenderEdit() {
           <Field label="Evaluation notes" multiline value={f.evaluation_notes} onChangeText={(v) => set({ evaluation_notes: v })} hint="Compliance issues, alternates offered, consultant remarks" />
         </Card>
       </Section>
-      <Muted>After saving: attach the tender BOQ (required) and add each competitor with their price – tap a competitor later to add brands and item prices.</Muted>
+      <Muted>After saving: attach the BOQ (required for tenders) and add each competitor with their price – tap a competitor later to add brands and item prices.</Muted>
       <Row gap={8}>
         <Button title={t ? 'Save changes' : 'Save'} onPress={save} />
         <Button variant="secondary" title="Cancel" onPress={() => router.back()} />

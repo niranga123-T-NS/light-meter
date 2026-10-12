@@ -107,7 +107,7 @@ function baseNav(role: Role): NavItem[] {
   const approvals: NavItem = { href: '/approvals', label: 'Approvals', icon: '✓', badgeKey: 'approvals' };
   const reports: NavItem = { href: '/reports', label: 'Reports', icon: '▤' };
   const fx: NavItem = { href: '/fx', label: 'Exchange rates', icon: '$' };
-  const tenders: NavItem = { href: '/tenders', label: 'Tender results', icon: '⚑' };
+  const tenders: NavItem = { href: '/tenders', label: 'Offers & competition', icon: '⚑' };
   const brands: NavItem = { href: '/brands', label: 'Brands', icon: '◈' };
   switch (role) {
     case 'asm_building':
