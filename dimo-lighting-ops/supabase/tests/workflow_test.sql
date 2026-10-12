@@ -7091,6 +7091,29 @@ end $$;
 reset role;
 rollback to savepoint gmusers;
 
+-- Sales Tools · Standards: read by sales and the Design team, kept by the Design Manager
+savepoint stds;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  assert (select count(*) from public.lighting_standard_groups) = 6, 'six groups';
+  assert (select (vals ->> 'em')::int from public.lighting_standards where space = 'Classrooms') = 500, 'classroom 500 lx';
+  update public.lighting_standards set notes = 'x' where space = 'Classrooms';
+  assert not found, 'sales cannot change';
+end $$;
+reset role;
+select pg_temp.act_as('design_manager'); set role authenticated;
+do $$ begin
+  update public.lighting_standards set vals = vals || '{"em": 500}'::jsonb, updated_by = auth.uid() where space = 'Classrooms';
+  assert found, 'Design Manager edits';
+  update public.lighting_standard_groups set reviewed_at = now(), reviewed_by = auth.uid() where grp = 'indoor';
+  assert found, 'and marks the group reviewed';
+end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ begin assert not exists (select 1 from public.lighting_standards), 'not for operations'; end $$;
+reset role;
+rollback to savepoint stds;
+
 -- High level user: view only, at most one day, ends by itself
 savepoint hl1;
 select pg_temp.act_as('gm'); set role authenticated;

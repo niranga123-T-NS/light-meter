@@ -90,7 +90,9 @@ export function navFor(role: Role): NavItem[] {
   const meetings: NavItem = { href: '/meetings', label: 'Meetings', icon: '◴' };
   // Sales map: web app only, for GM / DGM, SM Projects and sales – placed after Visits
   if (Platform.OS === 'web' && (role === 'gm' || role === 'sm_projects' || isSales(role))) {
-    const at = items.findIndex((i) => i.href === '/visits');
+    // after Visits – or after Tools when it follows Visits (sales: keeps Tools in the phone's bottom bar)
+    const v = items.findIndex((i) => i.href === '/visits');
+    const at = v >= 0 && items[v + 1]?.href === '/tools' ? v + 1 : v;
     items.splice(at < 0 ? items.length : at + 1, 0, { href: '/map', label: 'Map', icon: '⌖' });
   }
   // Instruments: everyone except the project teams (under each project's QA tab) and subcontractors
@@ -113,12 +115,15 @@ function baseNav(role: Role): NavItem[] {
   const fx: NavItem = { href: '/fx', label: 'Exchange rates', icon: '$' };
   const tenders: NavItem = { href: '/tenders', label: 'Offers & competition', icon: '⚑' };
   const brands: NavItem = { href: '/brands', label: 'Brands', icon: '◈' };
+  const tools: NavItem = { href: '/tools', label: 'Tools', icon: '⚒' };
   switch (role) {
     case 'asm_building':
     case 'asm_infra':
       return [
         { href: '/', label: 'My Day', icon: '⌂' },
         { href: '/visits', label: 'Visits', icon: '◎' },
+        // the phone's bottom bar: My Day · Meetings · Visits · Tools – Plan and the rest under More
+        tools,
         { href: '/plan', label: 'Plan', icon: '▦' },
         { href: '/projects', label: 'Projects', icon: '◆' },
         { href: '/inquiries', label: 'Pending', icon: '⧗', badgeKey: 'delayed' },
@@ -163,6 +168,7 @@ function baseNav(role: Role): NavItem[] {
         { href: '/finance/budget', label: 'Budget list', icon: '◫' },
         { href: '/finance/targets', label: 'Targets', icon: '◉' },
         { href: '/scorecard', label: 'Scorecards', icon: '★' },
+        tools,
         tenders,
         fx,
         reports,
@@ -194,6 +200,7 @@ function baseNav(role: Role): NavItem[] {
         { href: '/finance/targets', label: 'Targets', icon: '◉' },
         { href: '/scorecard', label: 'Scorecards', icon: '★' },
         { href: '/high-level', label: 'High level users', icon: '⇧' },
+        tools,
         tenders,
         fx,
         reports,
@@ -203,6 +210,7 @@ function baseNav(role: Role): NavItem[] {
       return [
         { href: '/', label: 'Design Board', icon: '⌂' },
         approvals,
+        tools,
         { href: '/inquiries', label: 'Inquiries', icon: '⧗' },
         { href: '/jobs', label: 'Jobs', icon: '▣' },
         EXEC_NAV.queries,
@@ -212,7 +220,7 @@ function baseNav(role: Role): NavItem[] {
       ];
     case 'lighting_designer':
     case 'lighting_engineer':
-      return [{ href: '/', label: 'My Jobs', icon: '⌂' }, { href: '/jobs', label: 'All my jobs', icon: '▣' }, EXEC_NAV.queries, brands, reports];
+      return [{ href: '/', label: 'My Jobs', icon: '⌂' }, { href: '/jobs', label: 'All my jobs', icon: '▣' }, tools, EXEC_NAV.queries, brands, reports];
     case 'sm_estimation':
       return [
         { href: '/', label: 'Estimation Board', icon: '⌂' },
