@@ -232,6 +232,7 @@ export default function CustomerDetail() {
         </Row>
         <PlaceStatus key={placeKey} projectId={null} organizationId={org.id} allowChange={canEdit} />
         <Row wrap gap={6}>
+          <Button small variant="secondary" title="Projects they are on" onPress={() => router.push(`/consultants/${org.id}`)} />
           {canEdit ? <Button small variant="secondary" title="Edit details" onPress={editDetails} /> : null}
           {me.role === 'sm_projects' || me.role === 'gm' ? <Button small variant="secondary" title="Change owner" onPress={() => changeOwner()} /> : null}
           <Button small variant="secondary" title="+ Unit" onPress={addUnit} />

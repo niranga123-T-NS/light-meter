@@ -1,6 +1,7 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Text } from 'react-native';
 import { Attachments } from '@/components/Attachments';
+import { ProjectTeam } from '@/components/ProjectTeam';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, ErrorBanner, KeyValue, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section } from '@/components/ui';
 import { useMe } from '@/lib/auth';
@@ -121,6 +122,8 @@ export default function TenderScreen() {
 
       {!data.hasBoq ? <Notice tone={colors.amber}>{quote ? 'Attach the BOQ the client sent – it is needed to compare the item prices.' : 'The tender BOQ is required – attach it below.'}</Notice> : null}
       <Attachments entityType="tender" entityId={t.id} kinds={['tender_boq', 'tender_doc']} title={quote ? 'BOQ and documents' : 'Tender BOQ and documents'} canUpload={canEdit} onChange={reload} />
+
+      {t.project_id ? <ProjectTeam projectId={t.project_id} compact title="Project team" /> : null}
 
       <Section title={`Competitors (${bids.length})`} right={canEdit ? <Button small title="+ Competitor" onPress={addBidder} /> : null}>
         <Card style={{ padding: 0, overflow: 'hidden' }}>

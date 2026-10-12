@@ -7,7 +7,7 @@ import { Button, colors, DateField, Field, Muted, MultiSelect, Row, Select, styl
 export type PromptField =
   | { key: string; label: string; type?: 'text' | 'multiline' | 'password'; required?: boolean; maxLength?: number; initial?: string; hint?: string }
   | { key: string; label: string; type: 'date'; required?: boolean; initial?: string; hint?: string }
-  | { key: string; label: string; type: 'select'; options: Option[]; required?: boolean; initial?: string; hint?: string }
+  | { key: string; label: string; type: 'select'; options: Option[]; required?: boolean; initial?: string; hint?: string; searchable?: boolean }
   /** Several choices; the value comes back comma-separated */
   | { key: string; label: string; type: 'multiselect'; options: Option[]; required?: boolean; initial?: string; hint?: string };
 
@@ -92,7 +92,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
                     onChange={(v) => setValues((s) => ({ ...s, [f.key]: v.join(',') }))}
                   />
                 ) : f.type === 'select' ? (
-                  <Select key={f.key} label={f.label} required={f.required} hint={f.hint} options={f.options} value={values[f.key]} onChange={(v) => setValues((s) => ({ ...s, [f.key]: v }))} />
+                  <Select key={f.key} label={f.label} required={f.required} hint={f.hint} options={f.options} searchable={f.searchable} value={values[f.key]} onChange={(v) => setValues((s) => ({ ...s, [f.key]: v }))} />
                 ) : (
                   <Field
                     key={f.key}

@@ -7027,6 +7027,41 @@ do $$ begin
 end $$;
 rollback to savepoint ofc1;
 
+-- Project team: architect / consultants added directly, appointed or met; shown to Estimation through project_team()
+savepoint pteam;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ declare o uuid; sid uuid; begin
+  insert into public.organizations (name, visit_category) values ('Design Group Five', 'Architect') returning id into o;
+  insert into public.project_stakeholders (project_id, organization_id, category, status, source, notes)
+  values ('00000000-0000-0000-0000-00000000b001', o, 'Architect', 'appointed', 'manual', 'From the drawing title block') returning id into sid;
+  update public.project_stakeholders set status = 'replaced' where id = sid;
+  assert found, 'sales person updates the team';
+  update public.project_stakeholders set status = 'appointed' where id = sid;
+  perform set_config('test.pto', o::text, true); perform set_config('test.pts', sid::text, true);
+  assert jsonb_array_length(public.project_team('00000000-0000-0000-0000-00000000b001')) >= 2, 'team includes the visit stakeholder and the architect';
+  assert (select count(*) from jsonb_array_elements(public.project_team('00000000-0000-0000-0000-00000000b001')) e where e ->> 'status' = 'appointed' and e ->> 'organization' = 'Design Group Five') = 1, 'appointed architect';
+  assert jsonb_array_length(public.consultant_overview(o) -> 'projects') = 1, 'consultant overview lists the project';
+  -- a stakeholder added by a visit cannot be deleted, only marked
+  delete from public.project_stakeholders where project_id = '00000000-0000-0000-0000-00000000b001' and source = 'visit';
+  assert not found, 'visit stakeholders are kept';
+end $$;
+reset role;
+select pg_temp.act_as('am_estimation'); set role authenticated;
+do $$ begin
+  assert jsonb_array_length(public.project_team('00000000-0000-0000-0000-00000000b001')) >= 2, 'Estimation sees the team';
+  assert (select e ->> 'phone' from jsonb_array_elements(public.project_team('00000000-0000-0000-0000-00000000b001')) e limit 1) is null, 'no contact numbers for AM Estimation';
+  insert into public.project_stakeholders (project_id, organization_id, category) values ('00000000-0000-0000-0000-00000000b001', current_setting('test.pto')::uuid, 'MEP Consultant');
+  assert false, 'Estimation does not change the team';
+exception when insufficient_privilege then null;
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin
+  assert jsonb_array_length(public.project_team('00000000-0000-0000-0000-00000000b001')) = 0, 'others do not see the team';
+end $$;
+reset role;
+rollback to savepoint pteam;
+
 -- High level user: view only, at most one day, ends by itself
 savepoint hl1;
 select pg_temp.act_as('gm'); set role authenticated;

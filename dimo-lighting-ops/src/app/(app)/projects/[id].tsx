@@ -13,9 +13,8 @@ import { isSales, projectTypeLabel } from '@/lib/roles';
 import { rpc, supabase } from '@/lib/supabase';
 import type { Inquiry, Project, Quotation, Visit } from '@/lib/types';
 import { isWarrantyDesk } from '@/lib/warranty';
+import { ProjectTeam } from '@/components/ProjectTeam';
 
-// Key stakeholder categories for the stakeholder map (Section 4.3)
-const KEY_CATEGORIES = ['End-Client', 'Architect', 'Electrical Consultant', 'MEP Consultant', 'Main Contractor', 'MEP Contractor'];
 
 export default function ProjectDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -27,11 +26,10 @@ export default function ProjectDetail() {
   const { data, error, reload } = useLoad(async () => {
     const { data: p, error: e } = await supabase.from('projects').select('*, organizations(name)').eq('id', id).single();
     if (e) throw new Error(e.message);
-    const [inq, vis, log, st, tenders, war] = await Promise.all([
+    const [inq, vis, log, tenders, war] = await Promise.all([
       supabase.from('inquiries').select('*').eq('project_id', id).order('created_at', { ascending: false }),
       supabase.from('visits').select('*, organizations(name)').eq('project_id', id).order('checkin_at', { ascending: false }).limit(50),
       supabase.from('project_log').select('*').eq('project_id', id).order('at', { ascending: false }).limit(50),
-      supabase.from('project_stakeholders').select('category, organizations(name)').eq('project_id', id),
       supabase.from('tenders').select('id, tender_no, tender_name, result_status, visit_id').eq('project_id', id),
       supabase.from('warranties').select('id, code, invoice_no, contract_no, start_date, status').eq('project_id', id).order('created_at', { ascending: false }),
     ]);
@@ -51,7 +49,6 @@ export default function ProjectDetail() {
       inquiries,
       visits: (vis.data ?? []) as Visit[],
       log: (log.data ?? []) as { id: number; field: string; old_value: string | null; new_value: string | null; reason: string | null; user_id: string; at: string }[],
-      stakeholders: (st.data ?? []) as unknown as { category: string; organizations: { name: string } | null }[],
       quotations: (q.data ?? []) as Quotation[],
       tenders: tenders.data ?? [],
       changeRequests: cr,
@@ -64,7 +61,7 @@ export default function ProjectDetail() {
   }, [id]);
 
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const { project: p, inquiries, visits, log, stakeholders, quotations, tenders, warranties, changeRequests, customers } = data;
+  const { project: p, inquiries, visits, log, quotations, tenders, warranties, changeRequests, customers } = data;
   // Quoted value counts each offer once: the latest revision of each inquiry, and one (the highest) per tender quoted to several contractors
   const latestQuotes = inquiries
     .map((i) => quotations.filter((q) => q.inquiry_id === i.id).sort((a, b) => b.revision - a.revision)[0])
@@ -98,7 +95,6 @@ export default function ProjectDetail() {
   const ms = MILESTONES.find((m) => m.value === p.milestone);
   // With inquiries, the project's % is worked out from its open inquiries
   const openInq = inquiries.filter((i) => OPEN_INQUIRY(i.status));
-  const met = new Set([...stakeholders.map((s) => s.category), ...visits.map((v) => v.visit_category)]);
 
   // The win probability is the sales person's own estimate – independent of the milestone
   const changeProbability = async () => {
@@ -388,19 +384,7 @@ export default function ProjectDetail() {
         ) : null}
       </Card>
 
-      <Section title="Stakeholder map">
-        <Card>
-          <Row wrap gap={6}>
-            {KEY_CATEGORIES.map((c) => (
-              <Pill key={c} label={`${met.has(c) ? '✓' : '✗'} ${c}`} tone={met.has(c) ? colors.green : colors.red} />
-            ))}
-          </Row>
-          <Muted style={{ marginTop: 6 }}>
-            Coverage {KEY_CATEGORIES.filter((c) => met.has(c)).length} of {KEY_CATEGORIES.length} key categories.{' '}
-            {stakeholders.map((s) => `${s.category}: ${s.organizations?.name ?? ''}`).join(' · ')}
-          </Muted>
-        </Card>
-      </Section>
+      <ProjectTeam projectId={p.id} canEdit={isSales(me.role) || manager} />
 
       <Section title={`Inquiries (${inquiries.length})`} right={isSales(me.role) || manager ? <Button small title="+ Inquiry" onPress={() => router.push(`/inquiries/new?project=${p.id}`)} /> : undefined}>
         <View style={{ gap: 8 }}>
