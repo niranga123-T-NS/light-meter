@@ -7114,6 +7114,30 @@ do $$ begin assert not exists (select 1 from public.lighting_standards), 'not fo
 reset role;
 rollback to savepoint stds;
 
+-- Quick calculations: own calculations, tariffs kept by managers
+savepoint qcalc;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ declare q uuid; begin
+  insert into public.quick_calcs (title, inputs, results) values ('Office 12 × 8 m', '{}'::jsonb, '{"em": 511}'::jsonb) returning id into q;
+  assert (select code like 'QC-%' from public.quick_calcs where id = q), 'numbered';
+  perform set_config('test.qc', q::text, true);
+  update public.electricity_tariffs set rate = 50 where supplier = 'CEB' and code = 'GP-1';
+  assert not found, 'sales do not set tariffs';
+  assert (select count(*) from public.electricity_tariffs) >= 20, 'tariff categories';
+end $$;
+reset role;
+select pg_temp.act_as('asm_infra'); set role authenticated;
+do $$ begin assert not exists (select 1 from public.quick_calcs where id = current_setting('test.qc')::uuid), 'another sales person does not see it'; end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.quick_calcs where id = current_setting('test.qc')::uuid), 'SM Projects sees it';
+  update public.electricity_tariffs set rate = 52.50, effective_from = current_date where supplier = 'CEB' and code = 'GP-1';
+  assert found, 'SM Projects sets the rate';
+end $$;
+reset role;
+rollback to savepoint qcalc;
+
 -- High level user: view only, at most one day, ends by itself
 savepoint hl1;
 select pg_temp.act_as('gm'); set role authenticated;

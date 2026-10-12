@@ -1,6 +1,7 @@
-import { Stack } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Platform } from 'react-native';
+import { QuickCalcList } from '@/components/tools/QuickCalcList';
 import { Standards } from '@/components/tools/Standards';
 import { Card, Field, Muted, Notice, Screen, Segmented } from '@/components/ui';
 import { useMe } from '@/lib/auth';
@@ -11,7 +12,8 @@ type Tab = 'standards' | 'catalogs' | 'lux' | 'calc';
 /** Sales Tools: Standards, Catalogs, Lux meter (Android app only) and Quick calculations */
 export default function SalesTools() {
   const me = useMe();
-  const [tab, setTab] = useState<Tab>('standards');
+  const params = useLocalSearchParams<{ tab?: Tab }>();
+  const [tab, setTab] = useState<Tab>(params.tab ?? 'standards');
   const [search, setSearch] = useState('');
   if (!TOOLS_ROLES.includes(me.role)) return <Screen><Notice>Sales Tools are for the sales, SM Projects, GM / DGM and Design teams.</Notice></Screen>;
   const android = Platform.OS === 'android';
@@ -33,6 +35,8 @@ export default function SalesTools() {
           <Field label="Search" value={search} onChangeText={setSearch} placeholder="e.g. classroom, car park, football, escape route" />
           <Standards search={search} />
         </>
+      ) : tab === 'calc' ? (
+        <QuickCalcList />
       ) : (
         <Card style={{ gap: 6 }}>
           <Muted>
@@ -40,7 +44,7 @@ export default function SalesTools() {
               ? 'Catalogs – DIMO products with data sheets and IES files, stock, sharing with the DIMO watermark and competitor comparison – come in the next release.'
               : tab === 'lux'
                 ? 'The lux meter – calibrated readings, room surveys and before / after – comes with the next Android app.'
-                : 'Quick calculations – room, product, result and savings with a shareable sheet – come in a following release.'}
+                : ''}
           </Muted>
         </Card>
       )}
