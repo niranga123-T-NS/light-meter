@@ -1,4 +1,4 @@
-import { Stack } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { useState } from 'react';
 import { useDialog } from '@/components/dialog';
 import { Avatar, Button, Card, colors, ErrorBanner, ListRow, Muted, Notice, Pill, Row, Screen, Section, Segmented } from '@/components/ui';
@@ -54,7 +54,8 @@ function Users() {
   const dialog = useDialog();
   // The System Administrator and GM / DGM add and maintain users; only the System Administrator handles System Administrator logins
   const admin = me.role === 'sys_admin' || me.role === 'gm';
-  const roleOptions = ROLES.filter((r2) => me.role === 'sys_admin' || r2 !== 'sys_admin').map((r2) => ({ value: r2, label: ROLE_LABELS[r2] }));
+  // A temporary high level person from outside ('guest') is created only with its access period, in High level users
+  const roleOptions = ROLES.filter((r2) => (me.role === 'sys_admin' || r2 !== 'sys_admin') && r2 !== 'guest').map((r2) => ({ value: r2, label: ROLE_LABELS[r2] }));
   const mayChange = (p: Profile) => admin && (me.role === 'sys_admin' || p.role !== 'sys_admin');
   const { data, error, reload } = useLoad(async () => {
     const { data: rows, error: e } = await supabase.from('profiles').select('*').order('active', { ascending: false }).order('full_name');
@@ -89,7 +90,7 @@ function Users() {
       title: p.full_name,
       fields: [
         { key: 'full_name', label: 'Full name', required: true, initial: p.full_name },
-        ...(p.id === me.id ? [] : [{ key: 'role', label: 'Role', type: 'select' as const, required: true, initial: p.role, options: roleOptions }]),
+        ...(p.id === me.id ? [] : [{ key: 'role', label: 'Role', type: 'select' as const, required: true, initial: p.role, options: p.role === 'guest' ? [{ value: 'guest', label: ROLE_LABELS.guest }, ...roleOptions] : roleOptions }]),
         { key: 'manager_id', label: 'Reports to', type: 'select', initial: p.manager_id ?? '', options: people.filter((x) => x.id !== p.id).map((x) => ({ value: x.id, label: x.full_name })) },
         { key: 'types', label: `Project types (comma separated: ${PROJECT_TYPES.map((t) => t.value).join(', ')})`, initial: p.project_types.join(', ') },
         { key: 'phone', label: 'Phone', initial: p.phone ?? '' },
@@ -131,7 +132,15 @@ function Users() {
   };
 
   return (
-    <Section title={`Users (${people.length})`} right={admin ? <Button small title="+ New user" onPress={invite} /> : undefined}>
+    <Section title={`Users (${people.length})`} right={
+        admin ? (
+          <Row gap={6} wrap>
+            {me.role === 'gm' ? <Button small variant="secondary" title="+ Temporary high level user" onPress={() => router.push('/high-level')} /> : null}
+            <Button small title="+ New user" onPress={invite} />
+          </Row>
+        ) : undefined
+      }
+    >
       <ErrorBanner message={error} />
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         {people.map((p) => (
