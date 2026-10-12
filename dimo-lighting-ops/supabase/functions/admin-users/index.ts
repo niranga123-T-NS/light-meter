@@ -61,6 +61,29 @@ Deno.serve(async (req) => {
     return json({ id: uid, login: r.email ? email : phone, password });
   }
 
+  // High level access for a new person from outside: a 'guest' login (no access of its own) created by the GM / DGM,
+  // who then gives the access period. The temporary password is shown once, to hand over.
+  if (body.action === 'guest') {
+    if (!me || !me.active || me.role !== 'gm') return json({ error: 'Only the GM / DGM adds a high level person' }, 403);
+    const name = String(body.full_name ?? '').trim();
+    // the same normalisation as the sign-in screen (0771234567 → 94771234567)
+    const digits = String(body.phone ?? '').replace(/[^0-9]/g, '');
+    const phone = /^0[0-9]{9}$/.test(digits) ? `94${digits.slice(1)}` : digits;
+    const email = body.email ? String(body.email).trim().toLowerCase() : phone ? `${phone}@users.dimo-lighting-ops.app` : '';
+    if (!name || !email) return json({ error: 'Give the name and an email or mobile number' }, 400);
+    const password = Array.from(crypto.getRandomValues(new Uint8Array(9)), (b) => 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789'[b % 56]).join('') + '7';
+    const res = await admin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { full_name: name } });
+    if (res.error) return json({ error: /already/i.test(res.error.message) ? 'This email or mobile number already has a login – pick the person from the list' : res.error.message }, 400);
+    const uid = res.data.user.id;
+    const { error: pe } = await admin.from('profiles').insert({ id: uid, email, full_name: name, role: 'guest', manager_id: caller.user.id, phone: body.phone || null, company: body.company || null });
+    if (pe) {
+      await admin.auth.admin.deleteUser(uid);
+      return json({ error: pe.message }, 400);
+    }
+    await admin.from('audit_log').insert({ user_id: caller.user.id, table_name: 'users', record_id: uid, action: 'INVITE', new_data: { email, role: 'guest', by_role: me.role } });
+    return json({ id: uid, login: body.email ? email : digits, password });
+  }
+
   if (!me || !me.active || !['sys_admin', 'gm'].includes(me.role)) return json({ error: 'Only the System Administrator or GM / DGM can manage users' }, 403);
   const isAdmin = me.role === 'sys_admin';
   try {

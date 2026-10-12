@@ -7,8 +7,9 @@ const hhmm = (iso: string) => new Date(iso).toLocaleString('en-GB', { day: '2-di
 
 /** High level access (view only): offer to switch, and show clearly while viewing as a high level user */
 export function HighLevelBanner() {
-  const { highLevel, highLevelOn, setHighLevelOn } = useAuth();
+  const { highLevel, highLevelOn, setHighLevelOn, realRole } = useAuth();
   if (!highLevel) return null;
+  const guest = realRole === 'guest';
   const toggle = (on: boolean) => {
     setHighLevelOn(on);
     router.replace('/');
@@ -21,7 +22,7 @@ export function HighLevelBanner() {
             ? `Viewing as a high level user – GM / DGM view, view only · until ${hhmm(highLevel.ends_at)}`
             : `You have high level access (view only) until ${hhmm(highLevel.ends_at)}`}
         </Text>
-        <Button small variant={highLevelOn ? 'secondary' : 'primary'} title={highLevelOn ? 'Back to my own view' : 'View as high level user'} onPress={() => toggle(!highLevelOn)} />
+        {guest ? null : <Button small variant={highLevelOn ? 'secondary' : 'primary'} title={highLevelOn ? 'Back to my own view' : 'View as high level user'} onPress={() => toggle(!highLevelOn)} />}
       </Row>
     </View>
   );

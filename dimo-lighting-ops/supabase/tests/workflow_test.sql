@@ -7137,6 +7137,51 @@ do $$ declare g uuid; begin
   assert exists (select 1 from public.notifications where dedupe_key = 'hl_end:' || g and recipient_id = current_setting('test.hlu')::uuid), 'told';
 end $$;
 rollback to savepoint hl2;
+-- A new person from outside: a guest login, GM view only during the period, switched off when it ends
+savepoint hl3;
+do $$ declare gid uuid := gen_random_uuid(); begin
+  insert into auth.users (id, email) values (gid, 'auditor@outside.test');
+  insert into public.profiles (id, full_name, role) values (gid, 'External Auditor', 'guest');
+  perform set_config('test.guest', gid::text, true);
+end $$;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ declare g uuid; begin
+  g := public.grant_high_level(current_setting('test.guest')::uuid, now() - interval '1 minute', now() + interval '4 hours', 'Year-end audit');
+  perform set_config('test.guestg', g::text, true);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('test.guest'), true);
+set role authenticated;
+do $$ begin
+  assert app.my_role() = 'guest', 'own role is guest';
+  assert not exists (select 1 from public.inquiries), 'guest sees nothing of its own';
+end $$;
+savepoint hl3v;
+select set_config('request.headers', '{"x-view-as":"high_level"}', true);
+select public.pre_request();
+do $$ begin
+  assert app.my_role() = 'gm', 'GM view during the period';
+  assert exists (select 1 from public.inquiries), 'sees the inquiries';
+end $$;
+reset role;
+rollback to savepoint hl3v;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ begin perform public.cancel_high_level(current_setting('test.guestg')::uuid, 'Audit done'); end $$;
+reset role;
+do $$ begin
+  assert not (select active from public.profiles where id = current_setting('test.guest')::uuid), 'guest login switched off';
+end $$;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ begin
+  perform public.grant_high_level(current_setting('test.guest')::uuid, now() + interval '1 day', now() + interval '1 day 3 hours', 'Follow-up visit');
+end $$;
+reset role;
+do $$ begin
+  assert (select active from public.profiles where id = current_setting('test.guest')::uuid), 'a new period switches it on again';
+  assert public.high_level_tick(now() + interval '2 days') >= 1, 'ends';
+  assert not (select active from public.profiles where id = current_setting('test.guest')::uuid), 'and off again at the end';
+end $$;
+rollback to savepoint hl3;
 
 -- Execution data only for the people who need it: Operations sees materials, handover, IPCs and billing,
 -- not the programme, plans, daily reports, HSE, QA, snags or design queries
