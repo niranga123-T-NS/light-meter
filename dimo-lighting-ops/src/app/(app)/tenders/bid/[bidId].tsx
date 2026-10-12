@@ -129,7 +129,7 @@ export default function BidScreen() {
           rows={lines}
           keyOf={(l) => l.id}
           onPress={canEdit ? (l) => lineDialog(l) : undefined}
-          emptyTitle="No item prices yet"
+          emptyTitle="Only their total price is known – add items if their price breakdown becomes available"
           footer={lines.length ? ['', 'Total of the items', '', '', '', fmtMoney(total, cur), '', both.length ? diff(theirsTotal, oursTotal) : '', ...(canEdit ? [''] : [])] : undefined}
           columns={[
             { h: '#', w: 40, v: (l) => String(l.seq) },
@@ -153,7 +153,10 @@ export default function BidScreen() {
             ...(canEdit ? [{ h: '', w: 80, v: (l: BidLine) => <Button small variant="ghost" title="Remove" onPress={() => removeLine(l)} /> }] : []),
           ]}
         />
-        <Muted>Tap an item to change it. Their prices are as the competitor quoted them; “vs ours” is red where they were cheaper than us, green where we were cheaper.</Muted>
+        {lines.length && bid.bid_price != null && Math.abs(total - Number(bid.bid_price)) > 1 ? (
+          <Muted>{`The items add up to ${fmtMoney(total, cur)} of their total ${fmtMoney(bid.bid_price, cur)} – the rest is not broken down. Their total is what is compared everywhere else.`}</Muted>
+        ) : null}
+        <Muted>Item prices are optional and can be added for one competitor and not another. Tap an item to change it. Their prices are as the competitor quoted them; “vs ours” is red where they were cheaper than us, green where we were cheaper.</Muted>
       </Section>
 
       <Attachments entityType="tender_bid" entityId={bid.id} kinds={['competitor_prices', 'tender_doc']} title="Their price schedule and documents" canUpload={canEdit} />
