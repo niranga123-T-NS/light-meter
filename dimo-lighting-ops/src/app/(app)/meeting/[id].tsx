@@ -66,7 +66,7 @@ type Meeting = {
 };
 type Leave = { id: string; sales_person_id: string; reason: string; status: 'pending' | 'approved' | 'rejected'; decision_note: string | null };
 type Note = { sales_person_id: string; note: string };
-type Item = { id: string; sort: number; body: string };
+type Item = { id: string; sort: number; body: string; sales_person_id: string | null; created_at: string };
 type Action = {
   id: string;
   item_id: string | null;
@@ -122,7 +122,7 @@ export default function MeetingPack() {
       supabase.from('sales_meeting_actions').select('*, projects(name), organizations(name), org_units(name)').eq('meeting_id', id).order('created_at'),
       supabase.from('sales_meeting_invitees').select('*').eq('meeting_id', id),
     ]);
-    const items = ((await supabase.from('meeting_items').select('id, sort, body').eq('meeting_id', id).order('sort')).data ?? []) as Item[];
+    const items = ((await supabase.from('meeting_items').select('id, sort, body, sales_person_id, created_at').eq('meeting_id', id).order('sort')).data ?? []) as Item[];
     if (m.error) throw new Error(m.error.message);
     if (!m.data) return null;
     const ex = m.data.exec_project_id as string | null;
@@ -324,14 +324,25 @@ export default function MeetingPack() {
             ? execTeam(pack.team as Record<string, unknown>)
             : teamTeam(est, pack.team as Record<string, unknown>);
       // actions under the meeting notes, numbered by their note, then any others
-      const itemNo = (iid: string | null) => (iid ? data.items.findIndex((x) => x.id === iid) + 1 : 0);
+      const generalItems = data.items.filter((x) => !x.sales_person_id);
+      const itemNo = (iid: string | null) => (iid ? generalItems.findIndex((x) => x.id === iid) + 1 : 0);
       const general = data.actions
         .filter((a) => !a.sales_person_id)
         .sort((a, b) => (itemNo(a.item_id) || 999) - (itemNo(b.item_id) || 999))
         .map((a) => ({ ...toMin(a), action: itemNo(a.item_id) ? `[Note ${itemNo(a.item_id)}] ${a.action}` : a.action }));
       const inPack = new Set(packPeople.map((p) => p.id));
       const others = [...new Set(data.actions.map((a) => a.sales_person_id).filter((x): x is string => !!x && !inPack.has(x)))];
-      const noteOf = (pid: string) => data.notes.find((n) => n.sales_person_id === pid)?.note ?? '';
+      // a person's discussion: the earlier single text, then the numbered notes; their actions carry the note number
+      const personItems = (pid: string) => data.items.filter((x) => x.sales_person_id === pid);
+      const noteOf = (pid: string) =>
+        [data.notes.find((n) => n.sales_person_id === pid)?.note || null, ...personItems(pid).map((it, i) => `${i + 1}. ${it.body}`)].filter(Boolean).join('\n');
+      const personActions = (pid: string) => {
+        const no = (iid: string | null) => (iid ? personItems(pid).findIndex((x) => x.id === iid) + 1 : 0);
+        return data.actions
+          .filter((a) => a.sales_person_id === pid)
+          .sort((a, b) => (no(a.item_id) || 999) - (no(b.item_id) || 999))
+          .map((a) => ({ ...toMin(a), action: no(a.item_id) ? `[Note ${no(a.item_id)}] ${a.action}` : a.action }));
+      };
       const persons = [
         ...packPeople.map((p) => {
           const f = m.team === 'sales' || isProject ? salesPerson(p) : m.team === 'execution' ? execPerson(p) : teamPerson(est, p);
@@ -342,10 +353,10 @@ export default function MeetingPack() {
             facts: f.facts,
             lists: f.lists,
             note: noteOf(p.id),
-            actions: actionsFor(p.id).map(toMin),
+            actions: personActions(p.id),
           };
         }),
-        ...others.map((pid) => ({ name: name(pid), leave: null, facts: [], lists: [], note: noteOf(pid), actions: actionsFor(pid).map(toMin) })),
+        ...others.map((pid) => ({ name: name(pid), leave: null, facts: [], lists: [], note: noteOf(pid), actions: personActions(pid) })),
       ];
       const invited = data.invitees.filter((x) => x.status !== 'pending_approval');
       const html = minutesHtml({
@@ -370,7 +381,7 @@ export default function MeetingPack() {
         teamHtml: isProject && pack ? timelineHtml(pack as unknown as ProjectPack) : undefined,
         teamFacts: team.facts,
         teamLists: team.lists,
-        notes: [m.agenda ? `Agenda: ${m.agenda}` : null, m.notes, ...data.items.map((it, i) => `${i + 1}. ${it.body}`)].filter(Boolean).join('\n\n') || null,
+        notes: [m.agenda ? `Agenda: ${m.agenda}` : null, m.notes, ...generalItems.map((it, i) => `${i + 1}. ${it.body}`)].filter(Boolean).join('\n\n') || null,
         general,
         people: persons,
         distribution: [m.team === 'sales' ? 'GM / DGM' : 'GM / DGM, SM Projects', ...invited.map((x) => name(x.person_id)).sort()],
@@ -380,7 +391,7 @@ export default function MeetingPack() {
       await printHtml(html, { key: `meeting_minutes_${m.team}`, filters: `${label} ${m.meeting_date}`, title: `Minutes – ${label} ${fmtDate(m.meeting_date)}` });
     });
   const actionsFor = (personId: string | null, itemId: string | null = null) =>
-    data.actions.filter((a) => a.sales_person_id === personId && (personId !== null || (a.item_id ?? null) === itemId));
+    data.actions.filter((a) => a.sales_person_id === personId && (a.item_id ?? null) === itemId);
   const actionList = (personId: string | null, itemId: string | null = null) => (
     <View style={{ gap: 4, marginTop: 6 }}>
       {actionsFor(personId, itemId).map((a) => (
@@ -427,27 +438,67 @@ export default function MeetingPack() {
     </View>
   );
 
-  const editItem = async (it?: Item) => {
+  const editItem = async (it?: Item, personId: string | null = null) => {
     const r = await dialog.prompt({
-      title: it ? 'Edit note' : 'Add a note',
+      title: it ? 'Edit note' : personId ? `Add a note – ${people[personId]?.full_name ?? ''}` : 'Add a note',
       fields: [{ key: 'b', label: 'Note / discussion point', type: 'multiline', required: true, initial: it?.body ?? '' }],
       confirmLabel: 'Save',
     });
-    if (r) await run('save_meeting_item', { p_meeting: m.id, p_id: it?.id ?? null, p_body: r.b }, 'Saved');
+    if (r) await run('save_meeting_item', { p_meeting: m.id, p_id: it?.id ?? null, p_body: r.b, p_sales_person: it ? it.sales_person_id : personId }, 'Saved');
   };
   const removeItem = async (it: Item) => {
-    const n = actionsFor(null, it.id).length;
+    const n = actionsFor(it.sales_person_id, it.id).length;
     if (await dialog.confirm('Remove this note?', n ? `Its ${n} action(s) are removed too.` : undefined, { confirmLabel: 'Remove', danger: true }))
       await run('delete_meeting_item', { p_id: it.id }, 'Removed');
+  };
+  const generalItems = data.items.filter((x) => !x.sales_person_id);
+  // A person's discussion: any number of separate notes, each with its own actions (the earlier single text stays above)
+  const discussion = (pid: string) => {
+    const old = data.notes.find((n) => n.sales_person_id === pid)?.note ?? '';
+    const its = data.items.filter((x) => x.sales_person_id === pid);
+    return (
+      <View style={{ marginTop: 8, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 8 }}>
+        <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+          <Text style={{ fontWeight: '700', color: colors.ink }}>{`Discussion (${its.length + (old ? 1 : 0)})`}</Text>
+          {edit ? <Button small variant="secondary" title="+ Note" onPress={() => editItem(undefined, pid)} /> : null}
+        </Row>
+        {old ? (
+          <Row wrap gap={6} style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <Muted style={{ flexShrink: 1 }}>{old}</Muted>
+            {edit ? <Button small variant="ghost" title="Edit" onPress={() => editNote(pid, old)} /> : null}
+          </Row>
+        ) : null}
+        {its.map((it, i) => (
+          <View key={it.id} style={{ borderTopWidth: i || old ? 1 : 0, borderTopColor: colors.line, marginTop: 6, paddingTop: 6 }}>
+            <Row wrap gap={6} style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <Text style={{ color: colors.ink, flexShrink: 1, fontWeight: '600' }}>{`${i + 1}. ${it.body}`}</Text>
+              <Row gap={4} style={{ alignItems: 'center' }}>
+                <Muted>{new Date(it.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Colombo' })}</Muted>
+                {edit ? <Button small variant="ghost" title="Edit" onPress={() => editItem(it)} /> : null}
+                {edit ? <Button small variant="ghost" title="Remove" onPress={() => removeItem(it)} /> : null}
+              </Row>
+            </Row>
+            <View style={{ paddingLeft: 12 }}>{actionList(pid, it.id)}</View>
+          </View>
+        ))}
+        {!its.length && !old ? <Muted>{edit ? 'No notes yet – press “+ Note” for each point discussed, then add its actions.' : 'No notes'}</Muted> : null}
+        {actionsFor(pid, null).length || (edit && !its.length) ? (
+          <View style={{ borderTopWidth: its.length || old ? 1 : 0, borderTopColor: colors.line, marginTop: 6, paddingTop: 6 }}>
+            {its.length ? <Muted>Other actions</Muted> : null}
+            {actionList(pid)}
+          </View>
+        ) : null}
+      </View>
+    );
   };
   const generalCard = (
     <Card style={{ marginTop: 8 }}>
       <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-        <Text style={{ fontWeight: '700', color: colors.ink }}>{`Meeting notes (${data.items.length})`}</Text>
+        <Text style={{ fontWeight: '700', color: colors.ink }}>{`Meeting notes (${generalItems.length})`}</Text>
         {edit ? <Button small variant="secondary" title="+ Note" onPress={() => editItem()} /> : null}
       </Row>
       {m.notes ? <Muted>{m.notes}</Muted> : null}
-      {data.items.map((it, i) => (
+      {generalItems.map((it, i) => (
         <View key={it.id} style={{ borderTopWidth: 1, borderTopColor: colors.line, marginTop: 8, paddingTop: 8 }}>
           <Row wrap gap={6} style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <Text style={{ color: colors.ink, flexShrink: 1, fontWeight: '600' }}>{`${i + 1}. ${it.body}`}</Text>
@@ -461,10 +512,10 @@ export default function MeetingPack() {
           <View style={{ paddingLeft: 12 }}>{actionList(null, it.id)}</View>
         </View>
       ))}
-      {!data.items.length && !m.notes ? <Muted>{edit ? 'No notes yet – press “+ Note” for each point discussed, then add its actions.' : 'No notes'}</Muted> : null}
-      {actionsFor(null, null).length || (edit && !data.items.length) ? (
-        <View style={{ borderTopWidth: data.items.length ? 1 : 0, borderTopColor: colors.line, marginTop: 8, paddingTop: 8 }}>
-          {data.items.length ? <Muted>Other actions</Muted> : null}
+      {!generalItems.length && !m.notes ? <Muted>{edit ? 'No notes yet – press “+ Note” for each point discussed, then add its actions.' : 'No notes'}</Muted> : null}
+      {actionsFor(null, null).length || (edit && !generalItems.length) ? (
+        <View style={{ borderTopWidth: generalItems.length ? 1 : 0, borderTopColor: colors.line, marginTop: 8, paddingTop: 8 }}>
+          {generalItems.length ? <Muted>Other actions</Muted> : null}
           {actionList(null)}
         </View>
       ) : null}
@@ -615,19 +666,7 @@ export default function MeetingPack() {
           team={m.team}
           pack={pack as unknown as TeamPack}
           general={generalCard}
-          personFooter={(pid) => {
-            const note = data.notes.find((n) => n.sales_person_id === pid)?.note ?? '';
-            return (
-              <View style={{ marginTop: 8, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 8 }}>
-                <Row style={{ justifyContent: 'space-between' }}>
-                  <Text style={{ fontWeight: '700', color: colors.ink }}>Discussion</Text>
-                  {edit ? <Button small variant="ghost" title={note ? 'Edit' : 'Add notes'} onPress={() => editNote(pid, note)} /> : null}
-                </Row>
-                <Muted>{note || 'No notes'}</Muted>
-                {actionList(pid)}
-              </View>
-            );
-          }}
+          personFooter={(pid) => discussion(pid)}
         />
       ) : pack ? (
         <>
@@ -650,7 +689,6 @@ export default function MeetingPack() {
           </Section>
 
           {pack.people.map((p) => {
-            const note = data.notes.find((n) => n.sales_person_id === p.id)?.note ?? '';
             return (
               <Section key={p.id} title={p.name}>
                 <Card>
@@ -697,14 +735,7 @@ export default function MeetingPack() {
                       {`Open actions from earlier meetings: ${p.open_actions.map((a) => `${a.action} (${a.owner}${a.due ? `, by ${fmtDate(a.due)}` : ''})`).join(' · ')}`}
                     </Notice>
                   ) : null}
-                  <View style={{ marginTop: 8, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 8 }}>
-                    <Row style={{ justifyContent: 'space-between' }}>
-                      <Text style={{ fontWeight: '700', color: colors.ink }}>Discussion</Text>
-                      {edit ? <Button small variant="ghost" title={note ? 'Edit' : 'Add notes'} onPress={() => editNote(p.id, note)} /> : null}
-                    </Row>
-                    <Muted>{note || 'No notes'}</Muted>
-                    {actionList(p.id)}
-                  </View>
+                  {discussion(p.id)}
                 </Card>
               </Section>
             );

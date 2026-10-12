@@ -5369,6 +5369,15 @@ begin
     perform public.delete_meeting_item(n1);
     assert not exists (select 1 from public.sales_meeting_actions where action = 'Clear the tray route'), 'its actions removed';
     assert (select count(*) from public.meeting_items where meeting_id = mid) = 1, 'one note left';
+    -- a person's own notes, each with its own actions
+    declare p1 uuid; p2 uuid; ae uuid := (select id from u where role = 'assistant_engineer'); begin
+      p1 := public.save_meeting_item(mid, null, 'Late daily reports', ae);
+      p2 := public.save_meeting_item(mid, null, 'Snag list for Level 2', ae);
+      perform public.add_meeting_action(mid, jsonb_build_object('kind', 'task', 'sales_person_id', ae, 'owner_id', ae, 'action', 'Send reports by 18:00', 'item_id', p1));
+      assert (select count(*) from public.meeting_items where meeting_id = mid and sales_person_id = ae) = 2, 'two notes for the person';
+      assert (select item_id = p1 from public.sales_meeting_actions where action = 'Send reports by 18:00'), 'action under the person''s note';
+      assert (select sales_person_id is null from public.meeting_items where id not in (p1, p2) and meeting_id = mid), 'general note stays general';
+    end;
   end;
   perform public.publish_sales_meeting(mid);
 end $$;
