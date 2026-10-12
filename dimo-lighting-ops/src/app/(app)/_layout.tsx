@@ -1,6 +1,7 @@
 import { Stack } from 'expo-router';
 import { View } from 'react-native';
 import { BottomBar, CountsProvider, HeaderActions, Sidebar } from '@/components/AppShell';
+import { HighLevelBanner } from '@/components/HighLevelBanner';
 import { UpdateBanner } from '@/components/UpdateBanner';
 import { colors, useWide } from '@/components/ui';
 import { useMe } from '@/lib/auth';
@@ -17,6 +18,7 @@ export default function AppLayout() {
         {wide ? <Sidebar /> : null}
         <View style={{ flex: 1 }}>
           <UpdateBanner />
+          <HighLevelBanner />
           <Stack
             screenOptions={{
               headerRight: () => <HeaderActions />,

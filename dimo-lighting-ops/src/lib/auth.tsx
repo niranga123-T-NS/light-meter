@@ -2,7 +2,7 @@ import type { Session } from '@supabase/supabase-js';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { normPhone } from './execution';
 import { clearDeviceData } from './offline';
-import { supabase } from './supabase';
+import { setHighLevelView, supabase } from './supabase';
 import type { Profile, Role } from './types';
 
 type AuthState = {
@@ -15,6 +15,12 @@ type AuthState = {
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   reloadProfile: () => Promise<void>;
+  /** The user's own role, also while viewing as a high level user */
+  realRole: Role | null;
+  /** High level access (view only) in force now, given by the GM / DGM */
+  highLevel: { id: string; ends_at: string } | null;
+  highLevelOn: boolean;
+  setHighLevelOn: (on: boolean) => void;
 };
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -24,6 +30,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [highLevel, setHighLevel] = useState<{ id: string; ends_at: string } | null>(null);
+  const [highLevelOn, setOn] = useState(false);
+  const setHighLevelOn = useCallback((on: boolean) => {
+    setHighLevelView(on);
+    setOn(on);
+  }, []);
+
+  // High level access: checked on sign-in, every 5 minutes and at its end time; viewing stops when it ends
+  const loadHighLevel = useCallback(async (uid: string | null) => {
+    const now = new Date().toISOString();
+    const { data } = uid
+      ? await supabase
+          .from('high_level_grants')
+          .select('id, ends_at')
+          .eq('user_id', uid)
+          .is('cancelled_at', null)
+          .lte('starts_at', now)
+          .gt('ends_at', now)
+          .order('ends_at', { ascending: false })
+          .limit(1)
+      : { data: [] };
+    const g = ((data ?? [])[0] as { id: string; ends_at: string } | undefined) ?? null;
+    setHighLevel(g);
+    if (!g) {
+      // ended or cancelled: back to the user's own view
+      setHighLevelView(false);
+      setOn(false);
+    }
+  }, []);
+  const uid = session?.user.id ?? null;
+  useEffect(() => {
+    const run = () => {
+      loadHighLevel(uid);
+    };
+    const t0 = setTimeout(run, 0);
+    const t = setInterval(run, 5 * 60 * 1000);
+    return () => {
+      clearTimeout(t0);
+      clearInterval(t);
+    };
+  }, [uid, loadHighLevel]);
+  useEffect(() => {
+    if (!highLevel) return;
+    // at the end time: stop viewing as a high level user
+    const t = setTimeout(() => loadHighLevel(uid), Math.max(0, Math.min(Date.parse(highLevel.ends_at) - Date.now() + 1000, 2 ** 31 - 1)));
+    return () => clearTimeout(t);
+  }, [highLevel, uid, loadHighLevel]);
 
   const loadProfile = useCallback(async (s: Session | null) => {
     if (!s) {
@@ -59,8 +112,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AuthState>(
     () => ({
       session,
-      profile,
-      role: profile?.role ?? null,
+      profile: profile && highLevelOn && highLevel ? { ...profile, role: 'gm' as Role } : profile,
+      role: profile && highLevelOn && highLevel ? ('gm' as Role) : (profile?.role ?? null),
+      realRole: profile?.role ?? null,
+      highLevel,
+      highLevelOn: highLevelOn && !!highLevel,
+      setHighLevelOn,
       loading,
       error,
       signIn: async (email, password) => {
@@ -71,6 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (e) throw new Error(e.message);
       },
       signOut: async () => {
+        setHighLevelOn(false);
         await supabase.auth.signOut();
         setProfile(null);
       },
@@ -80,7 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       reloadProfile: () => loadProfile(session),
     }),
-    [session, profile, loading, error, loadProfile],
+    [session, profile, loading, error, loadProfile, highLevel, highLevelOn, setHighLevelOn],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

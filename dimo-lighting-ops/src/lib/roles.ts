@@ -189,6 +189,7 @@ function baseNav(role: Role): NavItem[] {
         { href: '/finance/budget', label: 'Budget list', icon: '◫' },
         { href: '/finance/targets', label: 'Targets', icon: '◉' },
         { href: '/scorecard', label: 'Scorecards', icon: '★' },
+        { href: '/high-level', label: 'High level users', icon: '⇧' },
         tenders,
         fx,
         reports,

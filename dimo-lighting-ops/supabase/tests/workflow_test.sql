@@ -6981,6 +6981,62 @@ end $$;
 reset role;
 rollback to savepoint tdr1;
 
+-- High level user: view only, at most one day, ends by itself
+savepoint hl1;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ declare g uuid; u uuid := (select id from public.profiles where role = 'am_estimation' limit 1); begin
+  begin perform public.grant_high_level(u, now(), now() + interval '25 hours', 'Audit'); assert false, 'one day';
+  exception when others then assert sqlerrm like '%one day at most%', sqlerrm; end;
+  g := public.grant_high_level(u, now() - interval '1 minute', now() + interval '8 hours', 'Acting for the DGM');
+  perform set_config('test.hlg', g::text, true); perform set_config('test.hlu', u::text, true);
+  begin perform public.grant_high_level((select id from public.profiles where role = 'sm_projects' limit 1), now(), now() + interval '2 hours', ''); assert false, 'reason';
+  exception when others then assert sqlerrm like '%reason%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  begin perform public.grant_high_level(current_setting('test.hlu')::uuid, now(), now() + interval '1 hour', 'x'); assert false, 'gm only';
+  exception when others then assert sqlerrm like '%Only the GM%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('am_estimation'); set role authenticated;
+-- without the view mark: own role
+do $$ begin
+  assert app.my_role() = 'am_estimation', 'own role';
+  assert app.high_level_active(), 'active';
+end $$;
+-- a request marked "view as high level user": GM, read only
+select set_config('request.headers', '{"x-view-as":"high_level"}', true);
+select public.pre_request();
+do $$ begin
+  assert app.my_role() = 'gm', 'viewed as GM';
+  assert app.has_role('gm'), 'has_role';
+  begin insert into public.competitors (name) values ('Should fail'); assert false, 'read only';
+  exception when read_only_sql_transaction then null; end;
+end $$;
+reset role;
+rollback to savepoint hl1;
+savepoint hl2;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ declare g uuid; u uuid := (select id from public.profiles where role = 'am_estimation' limit 1); begin
+  g := public.grant_high_level(u, now() - interval '1 minute', now() + interval '2 hours', 'Short');
+  perform public.cancel_high_level(g, 'Not needed');
+  perform set_config('test.hlu', u::text, true);
+end $$;
+reset role;
+select pg_temp.act_as('am_estimation'); set role authenticated;
+do $$ begin assert not app.high_level_active(), 'cancelled'; end $$;
+reset role;
+-- ended by time: the tick tells both once
+do $$ declare g uuid; begin
+  insert into public.high_level_grants (user_id, granted_by, starts_at, ends_at, reason)
+  values (current_setting('test.hlu')::uuid, (select id from public.profiles where role = 'gm' limit 1), now() - interval '5 hours', now() - interval '1 hour', 'Past') returning id into g;
+  assert public.high_level_tick() = 1, 'ended once';
+  assert public.high_level_tick() = 0, 'only once';
+  assert exists (select 1 from public.notifications where dedupe_key = 'hl_end:' || g and recipient_id = current_setting('test.hlu')::uuid), 'told';
+end $$;
+rollback to savepoint hl2;
+
 -- Execution data only for the people who need it: Operations sees materials, handover, IPCs and billing,
 -- not the programme, plans, daily reports, HSE, QA, snags or design queries
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
