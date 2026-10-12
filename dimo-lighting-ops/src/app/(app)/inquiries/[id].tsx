@@ -4,6 +4,7 @@ import { Text, View } from 'react-native';
 import { Attachments, KIND_LABELS } from '@/components/Attachments';
 import { DeadlineCard } from '@/components/DeadlineCard';
 import { DesignNotes } from '@/components/DesignNotes';
+import { ProjectTeam } from '@/components/ProjectTeam';
 import { useDialog } from '@/components/dialog';
 import { deadlineCounting, deadlineNote, InquiryTimeline, STAGE_COLOUR } from '@/components/InquiryBits';
 import { PersonPicker } from '@/components/pickers';
@@ -730,6 +731,8 @@ export default function InquiryDetail() {
       ) : null}
 
       <DesignNotes inquiryId={i.id} />
+
+      <ProjectTeam projectId={i.project_id} compact title="Project team – architect, consultants, contractors" />
 
       <Section title="Request">
         <Card>
