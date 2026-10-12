@@ -1,7 +1,7 @@
 import { DIMO_LOGO_DATA_URI } from './brandLogoData';
 import { contours } from 'd3-contour';
 import type { AreaResult, RoadClass, RoadInput, RoadResult } from './roadcalc';
-import { ARRANGEMENTS, SURFACES } from './roadcalc';
+import { ARRANGEMENTS, geometry, SURFACES } from './roadcalc';
 import { bbox, FITTING_TYPES, inside, mountAt, roofAt, ROOFS, SHAPES, type CalcResult, type FittingInput, type Lum, type Pt, type RoomInput } from './lightcalc';
 
 const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string);
@@ -433,27 +433,35 @@ export function roadPlanSvg(r: RoadInput, res: RoadResult, sc: Scale, widthPx = 
       return `<path d="${path(l.rings)}" fill="none" stroke="#111" stroke-width="0.7" stroke-opacity="0.7"/>${label}`;
     })
     .join('');
-  const lanes = Math.max(1, Math.round(r.lanes));
-  const laneLines = Array.from({ length: lanes - 1 }, (_, i) => {
-    const y = (r.width / lanes) * (i + 1);
-    return `<line x1="${X(0)}" y1="${Y(y)}" x2="${X(L)}" y2="${Y(y)}" stroke="#fff" stroke-width="2" stroke-dasharray="10 8"/>`;
-  }).join('');
+  const geo = geometry(r);
+  const laneLines = geo.carriages
+    .flatMap((c) => {
+      const lanes = Math.max(1, Math.round(c.lanes));
+      return Array.from({ length: lanes - 1 }, (_, i) => {
+        const y = c.y0 + ((c.y1 - c.y0) / lanes) * (i + 1);
+        return `<line x1="${X(0)}" y1="${Y(y)}" x2="${X(L)}" y2="${Y(y)}" stroke="#fff" stroke-width="2" stroke-dasharray="10 8"/>`;
+      });
+    })
+    .join('');
   const kerb = (y: number) => `<line x1="${X(0)}" y1="${Y(y)}" x2="${X(L)}" y2="${Y(y)}" stroke="#111" stroke-width="2"/>`;
+  const median = geo.median
+    ? `<rect x="${X(0)}" y="${Y(geo.median.y1)}" width="${L * k}" height="${(geo.median.y1 - geo.median.y0) * k}" fill="#6B7280" fill-opacity="0.45"/>${kerb(geo.median.y0)}${kerb(geo.median.y1)}<text x="${X(L) - 4}" y="${(Y((geo.median.y0 + geo.median.y1) / 2) + 4).toFixed(1)}" font-size="10" font-family="Arial" text-anchor="end" fill="#fff">median ${(geo.median.y1 - geo.median.y0).toFixed(1)} m</text>`
+    : '';
   const poles = res.luminaires
     .map((l) => {
-      const py = l.face === 1 ? (r.arrangement === 'central' ? r.width / 2 : -r.setback) : r.arrangement === 'central' ? r.width / 2 : r.width + r.setback;
+      const py = l.y - l.face * r.overhang;
       return `<line x1="${X(l.x)}" y1="${Y(py)}" x2="${X(l.x)}" y2="${Y(l.y)}" stroke="#111" stroke-width="2"/><circle cx="${X(l.x)}" cy="${Y(py)}" r="4" fill="#111"/><rect x="${X(l.x) - 6}" y="${Y(l.y) - 3}" width="12" height="6" fill="#FFF7D6" stroke="#B45309" stroke-width="1.2"/>`;
     })
     .join('');
-  const field = `<rect x="${X(0)}" y="${Y(r.width)}" width="${res.fieldLen * k}" height="${r.width * k}" fill="none" stroke="#C8102E" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+  const field = `<rect x="${X(0)}" y="${Y(geometry(r).total)}" width="${res.fieldLen * k}" height="${geometry(r).total * k}" fill="none" stroke="#C8102E" stroke-width="1.5" stroke-dasharray="5 4"/>`;
   return {
     xml: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${widthPx} ${hPx.toFixed(0)}" width="${widthPx}" height="${hPx.toFixed(0)}">
 <rect width="${widthPx}" height="${hPx.toFixed(0)}" fill="#fff"/>
 <defs><clipPath id="road"><rect x="${X(0)}" y="${Y(y1)}" width="${L * k}" height="${(y1 - y0) * k}"/></clipPath></defs>
 <g clip-path="url(#road)">${bands}${lines}</g>
-${kerb(0)}${kerb(r.width)}${laneLines}${field}${poles}
+${median}${kerb(0)}${kerb(geo.total)}${laneLines}${field}${poles}
 <text x="${X(res.fieldLen / 2)}" y="${(hPx - 8).toFixed(0)}" font-size="11" font-family="Arial" text-anchor="middle" fill="#C8102E">calculation field ${res.fieldLen} m</text>
-<text x="${X(L) - 2}" y="${(hPx - 8).toFixed(0)}" font-size="11" font-family="Arial" text-anchor="end" fill="#333">${L} m shown · road ${r.width} m</text>
+<text x="${X(L) - 2}" y="${(hPx - 8).toFixed(0)}" font-size="11" font-family="Arial" text-anchor="end" fill="#333">${L} m shown · kerb to kerb ${geo.total.toFixed(1)} m</text>
 </svg>`,
     width: widthPx,
     height: hPx,
@@ -507,17 +515,20 @@ export function roadSheetHtml(s: RoadSheetInput) {
 <div style="display:flex;align-items:center;justify-content:center;gap:10px;font-size:9px;color:#555;margin-top:2px">Horizontal illuminance (lx)${legend.xml}</div>
 <div class="cols">
 <div><h2>Road and poles</h2><table>
-${row('Carriageway', `${s.road.width} m · ${s.road.lanes} lane(s) · surface ${esc(SURFACES.find((x) => x.value === s.road.surface)?.label ?? s.road.surface)}`)}
+${s.road.layout === 'dual'
+    ? `${row('Cross-section', `dual carriageway · ${geometry(s.road).total.toFixed(1)} m kerb to kerb`)}${row('Carriageways', `left ${s.road.width} m, ${s.road.lanes} lane(s) · right ${s.road.width2 || s.road.width} m, ${s.road.lanes2 || s.road.lanes} lane(s)`)}${row('Central median', `${s.road.median ?? 0} m`)}`
+    : row('Carriageway', `${s.road.width} m · ${s.road.lanes} lane(s)`)}
+${row('Road surface', esc(SURFACES.find((x) => x.value === s.road.surface)?.label ?? s.road.surface))}
 ${row('Footpaths', `${s.road.footL ? `left ${s.road.footL} m` : 'left none'} · ${s.road.footR ? `right ${s.road.footR} m` : 'right none'}`)}
 ${row('Arrangement', esc(ARRANGEMENTS.find((x) => x.value === s.road.arrangement)?.label ?? ''))}
 ${row('Pole spacing · height', `${s.road.spacing} m · ${s.road.height} m`)}
-${row('Overhang · setback · tilt', `${s.road.overhang} m · ${s.road.setback} m · ${s.road.tilt}°`)}
+${s.road.arrangement === 'central' ? row('Arm length · tilt', `${s.road.overhang} m · ${s.road.tilt}°`) : row('Overhang · setback · tilt', `${s.road.overhang} m · ${s.road.setback} m · ${s.road.tilt}°`)}
 ${row('Luminaire', `${esc(s.fitting)} · ${s.watts} W · ${s.lumens} lm`)}
 ${row('Light distribution', esc(s.photoLabel))}
 ${row('Maintenance factor', s.mf.toFixed(2))}
 </table></div>
 <div><h2>Results${c ? ` – class ${esc(c.cls)}` : ''}</h2><table>
-${m && c ? row('Average luminance (estimate)', `<b>${s.res.lav.toFixed(2)} cd/m²</b> ${ok(s.res.lav >= c.val)} class ${c.val}`) : ''}
+${m && c ? s.res.carriages.map((a) => row(`Average luminance${s.res.carriages.length > 1 ? ` – ${a.name}` : ''} (estimate)`, `<b>${(a.eav * s.res.q0).toFixed(2)} cd/m²</b> ${ok(a.eav * s.res.q0 >= c.val)} class ${c.val}`)).join('') : ''}
 ${row('Threshold increment TI', s.res.ti != null ? `${s.res.ti.toFixed(1)} %${m && c?.ti != null ? ` ${ok(s.res.ti <= c.ti)} max ${c.ti}` : ''}` : '—')}
 ${row('Edge illumination ratio EIR', s.res.eir != null ? `${s.res.eir.toFixed(2)}${m && c?.rei != null ? ` ${ok(s.res.eir >= c.rei)} min ${c.rei}` : ''}` : '—')}
 ${m ? row('Luminance uniformity Uo · Ul', 'by the Design team (needs the surface r-table)') : ''}
@@ -525,7 +536,7 @@ ${row('Power density DP', s.res.dp != null ? `${s.res.dp.toFixed(3)} W/(lx·m²)
 ${row('Load', `${(s.res.wattsPerKm / 1000).toFixed(2)} kW per km`)}
 </table>${s.polar ? `<div style="text-align:center;margin-top:6px">${s.polar}<div style="font-size:9px;color:#555">Light distribution (red along the road, blue across)</div></div>` : ''}</div></div>
 <h2>Illuminance (lx)</h2><table><tr><td><b>Area</b></td><td><b>Average</b></td><td><b>Minimum</b></td><td><b>Uo</b></td><td><b>Maximum</b></td></tr>
-${area(s.res.carriage, c)}${s.res.footpaths.map((f) => area(f, s.footCls)).join('')}</table>
+${s.res.carriages.map((a) => area(a, c)).join('')}${s.res.footpaths.map((f) => area(f, s.footCls)).join('')}</table>
 <div class="foot">DRAFT – Indicative calculation to EN 13201-3: maintained horizontal illuminance on the standard grids of one calculation field, the edge illumination ratio and the threshold increment (driver's eye 1.5 m, in each lane). The average luminance is estimated from the illuminance with the surface's q0; luminance uniformity is checked by DIMO Lighting Design. Dry road surface.<br/>Prepared by ${esc(s.by)} · DIMO Lighting Solutions</div>
 </body></html>`;
 }

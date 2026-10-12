@@ -13,7 +13,7 @@ import { fmtMoney, fmtNumber } from '@/lib/format';
 import { cached, useLoad } from '@/lib/hooks';
 import { MAINTENANCE, savings } from '@/lib/lightcalc';
 import { beamAngle, iesPhotometry, parseIes, polarSvg } from '@/lib/photometry';
-import { ARRANGEMENTS, checkClass, maxSpacing, roadCalc, roadModel, SURFACES, type RoadArrangement, type RoadClass, type RoadInput, type Surface } from '@/lib/roadcalc';
+import { ARRANGEMENTS, checkClass, geometry, maxSpacing, roadCalc, roadModel, SURFACES, type RoadArrangement, type RoadClass, type RoadInput, type Surface } from '@/lib/roadcalc';
 import { ROLE_SHORT } from '@/lib/roles';
 import type { Standard } from '@/lib/standards';
 import { supabase } from '@/lib/supabase';
@@ -24,8 +24,12 @@ type Form = {
   project_id: string | null;
   cls_id: string | null; // carriageway class (Standards, EN 13201-2)
   foot_cls_id: string | null; // footpath class (P)
+  layout: 'single' | 'dual';
   width: number | null;
   lanes: number | null;
+  median: number | null;
+  width2: number | null;
+  lanes2: number | null;
   surface: Surface;
   footL: number | null;
   footR: number | null;
@@ -60,8 +64,12 @@ const BLANK: Form = {
   project_id: null,
   cls_id: null,
   foot_cls_id: null,
+  layout: 'single',
   width: 7,
   lanes: 2,
+  median: 3,
+  width2: null,
+  lanes2: null,
   surface: 'R3',
   footL: 2,
   footR: 2,
@@ -137,6 +145,10 @@ export default function RoadCalc() {
     const road: RoadInput = {
       width: f.width ?? 0,
       lanes: f.lanes ?? 1,
+      layout: f.layout ?? 'single',
+      median: f.median ?? 0,
+      width2: f.width2 ?? undefined,
+      lanes2: f.lanes2 ?? undefined,
       surface: f.surface,
       footL: f.footL ?? 0,
       footR: f.footR ?? 0,
@@ -162,7 +174,10 @@ export default function RoadCalc() {
   const footRow = data.stds.find((x) => x.id === f.foot_cls_id) ?? null;
   const cls = clsOf(clsRow);
   const footCls = clsOf(footRow);
-  const check = res ? checkClass(res, cls) : null;
+  const checks = res ? res.carriages.map((a) => checkClass(res, cls, a)) : [];
+  const check = checks.length && cls ? { ok: checks.every((c) => c?.ok), avgOk: checks.every((c) => c?.avgOk), uoOk: checks.every((c) => c?.uoOk), tiOk: checks.every((c) => c?.tiOk), eirOk: checks.every((c) => c?.eirOk) } : null;
+  const dual = (f.layout ?? 'single') === 'dual';
+  const geo = geometry(road);
   const m = cls?.cls.startsWith('M');
   const canLibrary = ['design_manager', 'lighting_designer', 'lighting_engineer', 'sm_projects', 'gm', 'sys_admin'].includes(me.role);
   const scale: Scale = { mode: f.scaleMode, min: f.scaleMin, max: f.scaleMax, palette: f.palette };
@@ -184,12 +199,12 @@ export default function RoadCalc() {
   };
   const results = () =>
     res
-      ? { kind: 'road', em: res.carriage.eav, emin: res.carriage.emin, uo: res.carriage.uo, lav: res.lav, ti: res.ti, eir: res.eir, cls: cls?.cls ?? null, ok: check?.ok ?? null, wattsPerKm: res.wattsPerKm, spacing: road.spacing, brief: brief() }
+      ? { kind: 'road', layout: road.layout, em: res.carriage.eav, emin: res.carriage.emin, uo: res.carriage.uo, lav: res.lav, ti: res.ti, eir: res.eir, cls: cls?.cls ?? null, ok: check?.ok ?? null, wattsPerKm: res.wattsPerKm, spacing: road.spacing, brief: brief() }
       : null;
   const brief = () =>
     res
       ? [
-          `Road: ${road.width} m carriageway, ${road.lanes} lane(s), ${road.surface}${road.footL || road.footR ? `, footpaths ${road.footL || 0} / ${road.footR || 0} m` : ''}${cls ? `; class ${cls.cls}` : ''}${footCls ? `, footpaths ${footCls.cls}` : ''}.`,
+          `Road: ${dual ? `dual carriageway ${road.width} + ${road.width2 || road.width} m with a ${road.median} m median` : `${road.width} m carriageway`}, ${road.lanes} lane(s), ${road.surface}${road.footL || road.footR ? `, footpaths ${road.footL || 0} / ${road.footR || 0} m` : ''}${cls ? `; class ${cls.cls}` : ''}${footCls ? `, footpaths ${footCls.cls}` : ''}.`,
           `Poles: ${ARRANGEMENTS.find((x) => x.value === road.arrangement)?.label}, ${road.spacing} m apart, ${road.height} m high, overhang ${road.overhang} m, tilt ${road.tilt}°.`,
           `Indicative: ${f.fname || 'luminaire'} ${f.watts} W / ${f.lumens} lm → ${res.carriage.eav.toFixed(1)} lx average, Uo ${res.carriage.uo.toFixed(2)}${m ? `, about ${res.lav.toFixed(2)} cd/m²` : ''}, TI ${res.ti?.toFixed(0) ?? '—'}%, ${(res.wattsPerKm / 1000).toFixed(2)} kW/km.`,
         ].join('\n')
@@ -255,12 +270,30 @@ export default function RoadCalc() {
             onChange={(v) => set({ cls_id: v || null })}
             options={[{ value: '', label: '— no class: show the figures only —' }, ...data.stds.filter((s) => !String(s.vals?.cls).startsWith('P')).map((s) => ({ value: s.id, label: `${s.vals.cls} · ${s.vals.val} ${String(s.vals.cls).startsWith('M') ? 'cd/m²' : 'lx'} – ${s.category.split(' – ')[0]}` }))]}
           />
+          <Segmented
+            value={f.layout ?? 'single'}
+            onChange={(v) => set({ layout: v, arrangement: v === 'dual' && f.arrangement === 'single_left' ? 'central' : f.arrangement })}
+            options={[
+              { value: 'single', label: 'Single carriageway' },
+              { value: 'dual', label: 'Dual carriageway with central median' },
+            ]}
+          />
           <Row gap={8} wrap>
-            <NumberField label="Carriageway width" suffix="m" value={f.width} onChange={(v) => set({ width: v })} />
-            <NumberField label="Lanes" value={f.lanes} onChange={(v) => set({ lanes: v })} />
+            <NumberField label={dual ? 'Left carriageway width' : 'Carriageway width'} suffix="m" value={f.width} onChange={(v) => set({ width: v })} hint="Kerb to kerb" />
+            <NumberField label={dual ? 'Lanes (left)' : 'Lanes'} value={f.lanes} onChange={(v) => set({ lanes: v })} />
+            {dual ? (
+              <>
+                <NumberField label="Central median width" suffix="m" value={f.median} onChange={(v) => set({ median: v })} hint="Kerb to kerb" />
+                <NumberField label="Right carriageway width" suffix="m" value={f.width2} onChange={(v) => set({ width2: v })} hint={`Empty = same as the left (${f.width ?? '—'} m)`} />
+                <NumberField label="Lanes (right)" value={f.lanes2} onChange={(v) => set({ lanes2: v })} hint={`Empty = ${f.lanes ?? '—'}`} />
+              </>
+            ) : null}
+          </Row>
+          <Row gap={8} wrap>
             <NumberField label="Left footpath" suffix="m" value={f.footL} onChange={(v) => set({ footL: v })} hint="0 = none" />
             <NumberField label="Right footpath" suffix="m" value={f.footR} onChange={(v) => set({ footR: v })} hint="0 = none" />
           </Row>
+          <Muted>{`Cross-section: ${f.footL ? `${f.footL} m footpath · ` : ''}${geo.carriages.map((c) => `${(c.y1 - c.y0).toFixed(1)} m road (${c.lanes} lanes)`).join(geo.median ? ` · ${(geo.median.y1 - geo.median.y0).toFixed(1)} m median · ` : '')}${f.footR ? ` · ${f.footR} m footpath` : ''} = ${(geo.total + (f.footL ?? 0) + (f.footR ?? 0)).toFixed(1)} m`}</Muted>
           <Select label="Road surface" value={f.surface} onChange={(v) => set({ surface: v as Surface })} options={SURFACES.map((s) => ({ value: s.value, label: `${s.label} (q0 ${s.q0})` }))} />
           {(f.footL ?? 0) > 0 || (f.footR ?? 0) > 0 ? (
             <Select
@@ -275,12 +308,12 @@ export default function RoadCalc() {
 
       <Section title="② Poles and luminaire">
         <Card style={{ gap: 4 }}>
-          <Segmented value={f.arrangement} onChange={(v) => set({ arrangement: v })} options={ARRANGEMENTS} />
+          <Select label="Pole arrangement" value={f.arrangement} onChange={(v) => set({ arrangement: v as RoadArrangement })} options={ARRANGEMENTS.map((x) => ({ value: x.value, label: x.label }))} />
           <Row gap={8} wrap>
             <NumberField label="Pole spacing" suffix="m" value={f.spacing} onChange={(v) => set({ spacing: v })} hint={f.arrangement === 'staggered' ? 'Between poles on the same side' : undefined} />
             <NumberField label="Mounting height" suffix="m" value={f.height} onChange={(v) => set({ height: v })} />
-            <NumberField label="Overhang" suffix="m" value={f.overhang} onChange={(v) => set({ overhang: v })} hint="Luminaire beyond the pole, over the road" />
-            <NumberField label="Pole setback" suffix="m" value={f.setback} onChange={(v) => set({ setback: v })} hint="Behind the kerb" />
+            <NumberField label="Overhang" suffix="m" value={f.overhang} onChange={(v) => set({ overhang: v })} hint={f.arrangement.startsWith('central') ? 'Arm length from the median pole' : 'Luminaire beyond the pole, over the road'} />
+            {f.arrangement !== 'central' ? <NumberField label="Pole setback" suffix="m" value={f.setback} onChange={(v) => set({ setback: v })} hint="Side poles, behind the kerb" /> : null}
             <NumberField label="Tilt" suffix="°" value={f.tilt} onChange={(v) => set({ tilt: v })} hint="0–15°, raised towards the road" />
           </Row>
           {cls ? <Button small variant="secondary" title={`Find the largest spacing for ${cls.cls}`} onPress={findSpacing} /> : null}
@@ -349,9 +382,18 @@ export default function RoadCalc() {
           <>
             {cls ? <Notice tone={check?.ok ? colors.green : colors.amber}>{check?.ok ? `Class ${cls.cls} is met${m ? ' (luminance estimated)' : ''}.` : `Class ${cls.cls} is not met – see the figures in amber. Try a shorter spacing, a higher mounting height or another luminaire.`}</Notice> : null}
             <Grid min={160} max={4}>
-              <Stat label={cls && !m ? `Average (class ${cls.val} lx)` : 'Average illuminance'} value={`${res.carriage.eav.toFixed(1)} lx`} tone={cls && !m ? ok(check?.avgOk) : undefined} sub={`min ${res.carriage.emin.toFixed(1)} · max ${res.carriage.emax.toFixed(1)}`} />
-              <Stat label={cls && !m && cls.uo != null ? `Uniformity Uo (min ${cls.uo})` : 'Uniformity Uo (illuminance)'} value={res.carriage.uo.toFixed(2)} tone={cls && !m && cls.uo != null ? ok(check?.uoOk) : undefined} sub={`Ud ${res.carriage.ud.toFixed(2)}`} />
-              <Stat label={m ? `Luminance (class ${cls?.val} cd/m²)` : 'Luminance (estimate)'} value={`${res.lav.toFixed(2)} cd/m²`} tone={m ? ok(check?.avgOk) : undefined} sub="estimated from the illuminance" />
+              {res.carriages.map((a, i) => (
+                <Stat
+                  key={a.name}
+                  label={`${dual ? a.name : 'Average illuminance'}${cls && !m ? ` (class ${cls.val} lx)` : ''}`}
+                  value={`${a.eav.toFixed(1)} lx`}
+                  tone={cls && !m ? ok(checks[i]?.avgOk && checks[i]?.uoOk) : undefined}
+                  sub={`min ${a.emin.toFixed(1)} · max ${a.emax.toFixed(1)} · Uo ${a.uo.toFixed(2)}${cls && !m && cls.uo != null ? ` (min ${cls.uo})` : ''}`}
+                />
+              ))}
+              {res.carriages.map((a, i) => (
+                <Stat key={`L${a.name}`} label={`${dual ? `Luminance – ${a.name.split(' (')[0]}` : 'Luminance'}${m ? ` (class ${cls?.val} cd/m²)` : ' (estimate)'}`} value={`${(a.eav * res.q0).toFixed(2)} cd/m²`} tone={m ? ok(checks[i]?.avgOk) : undefined} sub="estimated from the illuminance" />
+              ))}
               <Stat label={m && cls?.ti != null ? `Glare TI (max ${cls.ti}%)` : 'Glare TI'} value={res.ti != null ? `${res.ti.toFixed(1)} %` : '—'} tone={m && cls?.ti != null ? ok(check?.tiOk) : undefined} />
               <Stat label={m && cls?.rei != null ? `Edge ratio EIR (min ${cls.rei})` : 'Edge ratio EIR'} value={res.eir != null ? res.eir.toFixed(2) : '—'} tone={m && cls?.rei != null ? ok(check?.eirOk) : undefined} />
               <Stat label="Load" value={`${(res.wattsPerKm / 1000).toFixed(2)} kW/km`} sub={`${perKm.toFixed(1)} luminaires per km · DP ${res.dp?.toFixed(3) ?? '—'} W/(lx·m²)`} />
