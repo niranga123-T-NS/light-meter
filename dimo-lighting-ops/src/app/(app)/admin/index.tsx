@@ -52,7 +52,10 @@ export default function Admin() {
 function Users() {
   const me = useMe();
   const dialog = useDialog();
-  const admin = me.role === 'sys_admin';
+  // The System Administrator and GM / DGM add and maintain users; only the System Administrator handles System Administrator logins
+  const admin = me.role === 'sys_admin' || me.role === 'gm';
+  const roleOptions = ROLES.filter((r2) => me.role === 'sys_admin' || r2 !== 'sys_admin').map((r2) => ({ value: r2, label: ROLE_LABELS[r2] }));
+  const mayChange = (p: Profile) => admin && (me.role === 'sys_admin' || p.role !== 'sys_admin');
   const { data, error, reload } = useLoad(async () => {
     const { data: rows, error: e } = await supabase.from('profiles').select('*').order('active', { ascending: false }).order('full_name');
     if (e) throw new Error(e.message);
@@ -68,7 +71,7 @@ function Users() {
         { key: 'email', label: 'Work email', required: true },
         { key: 'password', label: 'Temporary password (min. 8 characters)' },
         { key: 'full_name', label: 'Full name', required: true },
-        { key: 'role', label: 'Role', type: 'select', required: true, options: ROLES.map((r2) => ({ value: r2, label: ROLE_LABELS[r2] })) },
+        { key: 'role', label: 'Role', type: 'select', required: true, options: roleOptions },
         { key: 'manager_id', label: 'Reports to', type: 'select', options: people.map((p) => ({ value: p.id, label: `${p.full_name} (${ROLE_SHORT[p.role]})` })) },
         { key: 'phone', label: 'Phone' },
       ],
@@ -86,7 +89,7 @@ function Users() {
       title: p.full_name,
       fields: [
         { key: 'full_name', label: 'Full name', required: true, initial: p.full_name },
-        { key: 'role', label: 'Role', type: 'select', required: true, initial: p.role, options: ROLES.map((r2) => ({ value: r2, label: ROLE_LABELS[r2] })) },
+        ...(p.id === me.id ? [] : [{ key: 'role', label: 'Role', type: 'select' as const, required: true, initial: p.role, options: roleOptions }]),
         { key: 'manager_id', label: 'Reports to', type: 'select', initial: p.manager_id ?? '', options: people.filter((x) => x.id !== p.id).map((x) => ({ value: x.id, label: x.full_name })) },
         { key: 'types', label: `Project types (comma separated: ${PROJECT_TYPES.map((t) => t.value).join(', ')})`, initial: p.project_types.join(', ') },
         { key: 'phone', label: 'Phone', initial: p.phone ?? '' },
@@ -98,7 +101,7 @@ function Users() {
         .from('profiles')
         .update({
           full_name: r.full_name,
-          role: r.role,
+          role: p.id === me.id ? p.role : r.role,
           manager_id: r.manager_id || null,
           phone: r.phone || null,
           project_types: r.types.split(',').map((x) => x.trim()).filter(Boolean),
@@ -128,7 +131,7 @@ function Users() {
   };
 
   return (
-    <Section title={`Users (${people.length})`} right={admin ? <Button small title="+ Invite user" onPress={invite} /> : undefined}>
+    <Section title={`Users (${people.length})`} right={admin ? <Button small title="+ New user" onPress={invite} /> : undefined}>
       <ErrorBanner message={error} />
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         {people.map((p) => (
@@ -140,11 +143,11 @@ function Users() {
             right={
               <Row gap={4} wrap>
                 {!p.active ? <Pill label="Inactive" tone={colors.grey} /> : null}
-                {admin ? <Button small variant="ghost" title="Edit" onPress={() => edit(p)} /> : null}
-                {admin && p.avatar_path ? (
+                {mayChange(p) ? <Button small variant="ghost" title="Edit" onPress={() => edit(p)} /> : null}
+                {mayChange(p) && p.avatar_path ? (
                   <Button small variant="ghost" title="Remove picture" onPress={() => dialog.run(async () => { await supabase.from('profiles').update({ avatar_path: null }).eq('id', p.id); await reload(); }, 'Picture removed')} />
                 ) : null}
-                {admin ? (
+                {mayChange(p) && p.id !== me.id ? (
                   <Button
                     small
                     variant="ghost"
