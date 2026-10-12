@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Text } from 'react-native';
 import { DataTable } from '@/components/DataTable';
 import { useDialog } from '@/components/dialog';
+import { SportCards } from '@/components/tools/SportCards';
 import { Button, Card, colors, ErrorBanner, Loading, Muted, Notice, Row, Segmented } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { fmtDate } from '@/lib/format';
@@ -117,11 +118,14 @@ export function Standards({ search }: { search: string }) {
           ) : (
             <Notice tone={colors.amber}>Awaiting Design Manager review – check the values against the standard before relying on them.</Notice>
           )}
-          {cats.length > 1 ? (
+          {cats.length > 1 && grp !== 'sports' ? (
             <Segmented value={cat} onChange={setCat} options={[{ value: 'all', label: 'All' }, ...cats.map((c) => ({ value: c, label: c }))]} />
           ) : null}
         </Card>
       ) : null}
+      {!q && grp === 'sports' ? (
+        <SportCards rows={rows} />
+      ) : (
       <DataTable
         rows={rows}
         keyOf={(r) => r.id}
@@ -132,6 +136,7 @@ export function Standards({ search }: { search: string }) {
           ...(q ? [] : cols).map((c) => ({ h: c.unit ? `${c.label} ${c.unit}` : c.label, w: c.text ? 110 : 76, right: !c.text, v: (r: Standard) => stdVal(r, c) })),
         ]}
       />
+      )}
       <Muted>Tap a space for what the values mean and to share a recommendation sheet with the client (marked DRAFT).</Muted>
     </>
   );
