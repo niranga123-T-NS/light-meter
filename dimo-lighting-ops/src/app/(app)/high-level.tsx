@@ -92,6 +92,39 @@ export default function HighLevelUsers() {
       await reload();
     }, isNew ? 'Person added and access given – hand over the login below' : 'Access given – the person is told');
   };
+  // Move the period: before it starts, start and end; once in force, only the end (one day at most)
+  const change = async (g: Grant) => {
+    const started = Date.parse(g.starts_at) <= now;
+    const sl = (iso: string) => new Date(Date.parse(iso) + 5.5 * 36e5).toISOString();
+    const hours = Math.round((Date.parse(g.ends_at) - Date.parse(g.starts_at)) / 36e5);
+    // half-hour slots, plus the period's own time when it is not on a slot (e.g. a grant that started "now")
+    const slots = (cur: string) => [...new Set([...TIMES, cur])].sort().map((t) => ({ value: t, label: t }));
+    const r = await dialog.prompt({
+      title: `Change the time – ${people[g.user_id]?.full_name ?? ''}`,
+      message: started
+        ? `In force since ${fmtDateTime(g.starts_at)} – the end can be moved earlier or later, up to one day from the start (${fmtDateTime(new Date(Date.parse(g.starts_at) + 24 * 36e5).toISOString())}).`
+        : 'Not started yet – move the start and the length. One day at most.',
+      fields: [
+        ...(started
+          ? []
+          : [
+              { key: 'd', label: 'From (date)', type: 'date' as const, required: true, initial: sl(g.starts_at).slice(0, 10) },
+              { key: 't', label: 'From (time)', type: 'select' as const, required: true, initial: sl(g.starts_at).slice(11, 16), options: slots(sl(g.starts_at).slice(11, 16)) },
+            ]),
+        { key: 'ed', label: 'Until (date)', type: 'date', required: true, initial: sl(g.ends_at).slice(0, 10) },
+        { key: 'et', label: 'Until (time)', type: 'select', required: true, initial: sl(g.ends_at).slice(11, 16), options: slots(sl(g.ends_at).slice(11, 16)) },
+        { key: 'n', label: 'Reason for the change', type: 'multiline', hint: `Now ${hours} hour${hours === 1 ? '' : 's'}` },
+      ],
+      confirmLabel: 'Save',
+    });
+    if (!r) return;
+    const start = started ? null : new Date(`${r.d}T${r.t}:00+05:30`).toISOString();
+    const end = new Date(`${r.ed}T${r.et}:00+05:30`).toISOString();
+    await dialog.run(async () => {
+      await rpc('change_high_level', { p_id: g.id, p_starts: start, p_ends: end, p_reason: r.n || null });
+      await reload();
+    }, 'Time changed – the person is told');
+  };
   const cancel = async (g: Grant) => {
     const r = await dialog.prompt({ title: `Cancel access – ${people[g.user_id]?.full_name ?? ''}`, fields: [{ key: 'n', label: 'Reason', type: 'multiline' }], confirmLabel: 'Cancel access', danger: true });
     if (r) await dialog.run(async () => { await rpc('cancel_high_level', { p_id: g.id, p_reason: r.n || null }); await reload(); }, 'Cancelled – the person is told');
@@ -110,6 +143,7 @@ export default function HighLevelUsers() {
         right={
           <Row gap={6} style={{ alignItems: 'center' }}>
             <Pill label={st.label} tone={st.tone} />
+            {active ? <Button small variant="ghost" title="Change time" onPress={() => change(g)} /> : null}
             {active ? <Button small variant="ghost" title="Cancel" onPress={() => cancel(g)} /> : null}
           </Row>
         }

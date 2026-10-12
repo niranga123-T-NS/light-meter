@@ -7146,6 +7146,31 @@ do $$ declare g uuid; begin
   assert exists (select 1 from public.notifications where dedupe_key = 'hl_end:' || g and recipient_id = current_setting('test.hlu')::uuid), 'told';
 end $$;
 rollback to savepoint hl2;
+-- GM / DGM change the time of an access period
+savepoint hl4;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ declare g uuid; f uuid; u uuid := (select id from public.profiles where role = 'am_estimation' limit 1); st timestamptz; begin
+  g := public.grant_high_level(u, now() - interval '1 hour', now() + interval '2 hours', 'Review');
+  st := (select starts_at from public.high_level_grants where id = g);
+  perform public.change_high_level(g, now() + interval '5 hours', now() + interval '6 hours', 'Extended for the board meeting');
+  assert (select starts_at = st and ends_at > now() + interval '5 hours' from public.high_level_grants where id = g), 'started: only the end moves';
+  begin perform public.change_high_level(g, null, now() + interval '30 hours', null); assert false, 'one day';
+  exception when others then assert sqlerrm like '%one day at most%', sqlerrm; end;
+  f := public.grant_high_level(u, now() + interval '2 days', now() + interval '2 days 2 hours', 'Later');
+  perform public.change_high_level(f, now() + interval '3 days', now() + interval '3 days 4 hours', null);
+  assert (select starts_at > now() + interval '2 days 20 hours' from public.high_level_grants where id = f), 'not started: start moves too';
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where recipient_id = (select id from public.profiles where role = 'am_estimation' limit 1) and title = 'High level access – time changed'), 'person told';
+end $$;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  begin perform public.change_high_level((select id from public.high_level_grants limit 1), null, now() + interval '1 hour', null); assert false, 'gm only';
+  exception when others then assert sqlerrm like '%Only the GM%', sqlerrm; end;
+end $$;
+reset role;
+rollback to savepoint hl4;
 -- A new person from outside: a guest login, GM view only during the period, switched off when it ends
 savepoint hl3;
 do $$ declare gid uuid := gen_random_uuid(); begin
