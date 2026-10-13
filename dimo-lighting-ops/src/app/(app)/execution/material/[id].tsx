@@ -1,4 +1,4 @@
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Text } from 'react-native';
 import { Attachments } from '@/components/Attachments';
@@ -43,10 +43,13 @@ export default function MaterialScreen() {
       receipts: (rc.data ?? []) as MaterialReceipt[],
       members: (mem.data ?? []) as ExecMember[],
       subs: await loadSubcontractors(mr.exec_project_id).catch(() => []),
+      // bought locally through Operations (Local orders)
+      local: ((await supabase.from('lo_requests').select('id, code, status').eq('mr_id', mr.id).neq('status', 'cancelled').maybeSingle()).data ?? null) as { id: string; code: string | null; status: string } | null,
     };
   }, [id]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const { m, lines, receipts, members } = data;
+  const { m, lines, receipts, members, local } = data;
+  const canBuyLocally = m.status === 'approved' && !local && (me.role === 'senior_elec_engineer' || me.role === 'operations_exec');
   const isAe = me.role === 'assistant_engineer' && members.some((x) => x.user_id === me.id);
   const isSub = me.role === 'sub_supervisor';
   const supervisors = members.filter((x) => x.member_role === 'sub_supervisor');
@@ -164,6 +167,8 @@ export default function MaterialScreen() {
           {canDecide ? <Button title="Approve" onPress={() => decide(true)} /> : null}
           {canDecide ? <Button variant="secondary" title="Reject" onPress={() => decide(false)} /> : null}
           {canOrder ? <Button variant="secondary" title="Ordered in SAP" onPress={order} /> : null}
+          {canBuyLocally ? <Button variant="secondary" title="Buy locally – send to Operations" onPress={() => router.push({ pathname: '/orders/local/request-form', params: { mr: m.id } })} /> : null}
+          {local ? <Button variant="ghost" title={`Local request ${local.code ?? ''} ›`} onPress={() => router.push(`/orders/local/r/${local.id}`)} /> : null}
           {canSchedule ? <Button title={m.delivery_at ? 'Move the delivery' : 'Set delivery date & time'} onPress={schedule} /> : null}
           {canReceive && !recv ? (
             <Button

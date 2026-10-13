@@ -10,7 +10,7 @@ import { useDialog } from './dialog';
 import { Button, Card, ListRow, Muted, Row, Section } from './ui';
 
 export const KIND_LABELS: Record<string, string> = {
-  fo_reference: 'Reference (e-mail, letter, photo)',
+  fo_reference: 'Reference (e-mail, letter, photo)', lo_reference: 'Reference',
   tender_boq: 'BOQ (required)',
   competitor_prices: 'Competitor price schedule',
   sinv_doc: 'Invoice copy (PDF / photo)',

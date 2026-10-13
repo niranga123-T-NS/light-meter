@@ -6,6 +6,7 @@ import { FoNotes } from '@/components/foreign/Notes';
 import { RouteMap } from '@/components/foreign/RouteMap';
 import { ShipmentRoute, type FoPosition } from '@/components/foreign/ShipmentRoute';
 import { StepList } from '@/components/foreign/StepList';
+import { OrderDates } from '@/components/OrderDates';
 import { TestingBanner } from '@/components/Testing';
 import { Button, Card, colors, ErrorBanner, Grid, KeyValue, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section, useWide } from '@/components/ui';
 import { useMe } from '@/lib/auth';
@@ -19,6 +20,8 @@ import {
   standing,
   todayIso,
   workdays,
+  expectedSite,
+  type DateChange,
   type FoNote,
   type FoOrder,
   type Handover,
@@ -44,7 +47,7 @@ export default function ForeignOrder() {
     if (o.error) throw new Error(o.error.message);
     if (!o.data) throw new Error('Import order not found');
     const order = o.data as FoOrder;
-    const [h, sib, s, d, v, p, so, hol, nt] = await Promise.all([
+    const [h, sib, s, d, v, p, so, hol, nt, dc] = await Promise.all([
       supabase.from('fo_handovers').select('*').eq('id', order.handover_id).single(),
       supabase.from('fo_orders').select('*').eq('handover_id', order.handover_id).order('seq_no'),
       supabase.from('fo_steps').select('*').eq('handover_id', order.handover_id),
@@ -54,6 +57,7 @@ export default function ForeignOrder() {
       supabase.from('fo_shipment_orders').select('shipment_id').eq('order_id', id),
       supabase.from('holidays').select('day'),
       supabase.from('fo_notes').select('*').eq('order_id', id).order('occurred_on', { ascending: false }),
+      supabase.from('order_date_changes').select('*').eq('module', 'fo').eq('order_id', id),
     ]);
     const shipIds = ((so.data ?? []) as { shipment_id: string }[]).map((x) => x.shipment_id);
     const positions = shipIds.length ? (((await supabase.from('fo_positions').select('*').in('shipment_id', shipIds)).data ?? []) as FoPosition[]) : [];
@@ -72,11 +76,13 @@ export default function ForeignOrder() {
       positions,
       openOrders,
       notes: (nt.data ?? []) as FoNote[],
+      dateChanges: (dc.data ?? []) as DateChange[],
       holidays: new Set(((hol.data ?? []) as { day: string }[]).map((x) => x.day)),
     };
   }, [id, keeper]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const { o, h, sib, steps, defs, values, payments, ships, positions, openOrders, notes, holidays } = data;
+  const { o, h, sib, steps, defs, values, payments, ships, positions, openOrders, notes, holidays, dateChanges } = data;
+  const shipEta = ships.length ? ships[ships.length - 1].eta : null;
   const all = route(defs, h, o, steps, sib, holidays);
   const st = standing(all);
   // a service order closes when the service is accepted, not delivered to a location
@@ -237,6 +243,23 @@ export default function ForeignOrder() {
           <KeyValue label="CI / PL corrections" value={<Row gap={6} style={{ alignItems: 'center' }}><Text style={{ color: o.cipl_rounds > 2 ? colors.red : colors.text }}>{String(o.cipl_rounds)}</Text>{keeper && open ? <Button small variant="ghost" title="Change" onPress={rounds} /> : null}</Row>} />
         ) : null}
       </Grid>
+      {o.kind === 'material' ? (
+        <OrderDates
+          module="fo"
+          orderId={o.id}
+          label="Expected ready at the factory"
+          expected={o.expected_ready}
+          committed={o.committed_ready}
+          required={o.required_on}
+          site={expectedSite(o, shipEta)}
+          siteNote={shipEta ? 'Shipment ETA + clearing and delivery' : o.expected_ready ? `Estimate: ready date + ${o.planned_mode === 'air' ? 'air' : o.planned_mode === 'courier' ? 'courier' : 'sea'} transit + clearing` : undefined}
+          changes={dateChanges}
+          keeper={keeper && open}
+          holidays={holidays}
+          people={people}
+          onChange={reload}
+        />
+      ) : null}
       {!hDone ? (
         <Notice tone={colors.amber}>{`The import request's own steps (stages 1–3) are not all recorded yet.`}</Notice>
       ) : null}

@@ -105,10 +105,10 @@ export function navFor(role: Role): NavItem[] {
     const at = items.findIndex((i) => i.href === '/reports');
     items.splice(at < 0 ? items.length : at, 0, { href: '/stock', label: 'Stock', icon: '▤' });
   }
-  // Foreign orders (testing): Ops records; SM Estimation, SM Projects, GM / DGM, the sales person and the project's SEE follow them
+  // Foreign and local orders (testing), one entry with sub-tabs: Ops records; SM Estimation, SM Projects, GM / DGM, Sales and the SEE follow them
   if (['operations_exec', 'sm_estimation', 'sm_projects', 'gm', 'asm_building', 'asm_infra', 'senior_elec_engineer'].includes(role)) {
     const at = items.findIndex((i) => i.href === '/reports');
-    items.splice(at < 0 ? items.length : at, 0, { href: '/orders/foreign', label: 'Foreign orders', icon: '✈', pilot: true });
+    items.splice(at < 0 ? items.length : at, 0, { href: '/orders', label: 'Foreign & local orders', icon: '✈', pilot: true });
   }
   return [...items.slice(0, 1), meetings, ...items.slice(1)];
 }

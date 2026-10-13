@@ -7750,6 +7750,24 @@ begin
   assert exists (select 1 from public.notifications where title = 'Flight landed'), 'landed told';
   assert not (public.fo_flights_due('fx-test-secret') @> jsonb_build_array(jsonb_build_object('id', sid))), 'not checked after landing';
 end $$;
+do $$ begin
+  assert (select count(*) from public.order_date_changes where module = 'fo' and order_id = current_setting('test.fo_o1')::uuid and kind = 'eta') >= 2, 'ETA changes kept per order';
+  assert exists (select 1 from public.order_date_changes where module = 'fo' and kind = 'eta' and reason = 'carrier'), 'against the airline';
+end $$;
+-- not on a shipment yet: the ready date sets the expected date at site
+delete from public.fo_shipment_orders where order_id = current_setting('test.fo_o1')::uuid;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare o uuid := current_setting('test.fo_o1')::uuid; req date := (select required_on from public.fo_orders where id = current_setting('test.fo_o1')::uuid);
+begin
+  update public.fo_orders set expected_ready = null, committed_ready = null where id = o;
+  perform public.fo_set_expected(o, current_date + 2);
+  perform public.fo_set_expected(o, coalesce(req, current_date) + 20, 'supplier', 'Example Leuchten', 'Driver shortage');
+  assert (select committed_ready = current_date + 2 from public.fo_orders where id = o), 'committed kept';
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'foreign_order' and title = 'Order now after its required date' and recipient_id = (select id from u where role = 'gm')), 'GM / DGM told';
+end $$;
 -- Vessel check (AISstream through the workflow): position on the map, reported destination / ETA, alert when it differs 2+ days
 set session_replication_role = replica;
 insert into public.fo_shipments (id, code, mode, vessel_flight, mmsi, etd, eta) values ('00000000-0000-0000-0000-0000000ff002', 'SHP-T-SEA', 'sea', 'EXAMPLE EXPRESS', '211234560', current_date - 10, current_date + 12);
@@ -7770,6 +7788,174 @@ begin
   assert (select count(*) from public.fo_positions where shipment_id = sid) = 2, 'trail';
 end $$;
 rollback to savepoint hol1;
+
+-- Local orders (TESTING) --------------------------------------------------------
+savepoint lo1;
+select set_config('test.lo_exec', (select id::text from public.exec_projects where see_id = (select id from u where role = 'senior_elec_engineer') order by created_at limit 1), false);
+-- the SEE raises the request for the project; a sales person cannot for an execution project
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  begin perform public.lo_save_request(null, jsonb_build_object('exec_project_id', current_setting('test.lo_exec'), 'title', 'X', 'delivery_location', 'Site')); assert false, 'not the SEE';
+  exception when others then assert sqlerrm like 'Only Operations%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select set_config('test.lr', public.lo_save_request(null, jsonb_build_object('exec_project_id', current_setting('test.lo_exec'), 'title', 'Cable trays and pole erection',
+  'kind', 'both', 'details', '300 mm hot-dip galvanised trays', 'quantity', '120 m', 'required_on', current_date + 20, 'delivery_location', 'Site stores'))::text, false);
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$
+declare r uuid := current_setting('test.lr')::uuid; om uuid; os uuid; i uuid; b date := current_date - 40;
+begin
+  assert (select code from public.lo_requests where id = r) like 'LR-%', 'request code';
+  assert exists (select 1 from public.notifications where kind = 'local_order' and title = 'New local request'), 'Ops told';
+  -- specifications missing: back to the SEE
+  perform public.lo_return_request(r, 'Specifications missing for the poles');
+  assert (select status from public.lo_requests where id = r) = 'returned', 'returned';
+  begin perform public.lo_record_step(r, null, 'lr_checked', current_date); assert false, 'returned';
+  exception when others then assert sqlerrm like 'The request is back%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$
+declare r uuid := current_setting('test.lr')::uuid;
+begin
+  perform public.lo_save_request(r, jsonb_build_object('exec_project_id', current_setting('test.lo_exec'), 'title', 'Cable trays and pole erection', 'kind', 'both',
+    'specs', '8 m octagonal poles, erection with crane', 'quantity', '120 m trays, 12 poles', 'required_on', current_date + 20, 'delivery_location', 'Site stores'));
+  assert (select status from public.lo_requests where id = r) = 'open', 'sent again';
+  assert not exists (select 1 from public.lo_request_values where request_id = r), 'the SEE does not see values';
+end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$
+declare r uuid := current_setting('test.lr')::uuid; om uuid; os uuid; i uuid; d date := current_date;
+begin
+  perform public.lo_record_step(r, null, 'lr_checked', d);
+  begin perform public.lo_record_step(r, null, 'pr_raised', d, 'PR-1'); assert false, 'PR value first';
+  exception when others then assert sqlerrm like 'Enter the PR value%', sqlerrm; end;
+  perform public.lo_set_pr(r, null, 3200000);
+  perform public.lo_record_step(r, null, 'pr_raised', d, '7055642661');
+  perform public.lo_record_step(r, null, 'pr_dgm', d);
+  perform public.lo_record_step(r, null, 'pr_fbp', d);
+  begin perform public.lo_record_step(r, null, 'pr_to_proc', d); assert false, 'DIC above 2 mn';
+  exception when others then assert sqlerrm like 'Record "PR approved by DIC" first', sqlerrm; end;
+  perform public.lo_record_step(r, null, 'pr_dic', d);
+  perform public.lo_record_step(r, null, 'pr_to_proc', d);
+  perform public.lo_record_step(r, null, 'quotes_called', d, '3');
+  perform public.lo_record_step(r, null, 'negotiated', d);
+  -- two suppliers: materials with 30% advance and a guarantee; a service provider paid on IPCs
+  om := public.lo_save_order(null, jsonb_build_object('request_id', r, 'title', 'Cable trays', 'kind', 'material', 'supplier', 'Example Steel', 'payment_term', 'advance_balance',
+          'advance_pct', 30, 'advance_security', true, 'lead_time', '10 working days', 'delivery_arrangement', 'Supplier''s lorry to site', 'value', 1500000));
+  os := public.lo_save_order(null, jsonb_build_object('request_id', r, 'title', 'Pole erection', 'kind', 'service', 'supplier', 'Example Engineering', 'supplier_new', true,
+          'payment_term', 'after_delivery', 'value', 2400000));
+  assert (select code from public.lo_orders where id = om) like 'LO-%' and (select seq_no from public.lo_orders where id = os) = 2, 'order codes';
+  begin perform public.lo_save_order(null, jsonb_build_object('request_id', r, 'title', 'X', 'kind', 'material', 'supplier', 'S', 'payment_term', 'advance_balance')); assert false, 'advance %';
+  exception when others then assert sqlerrm like 'Enter the advance%', sqlerrm; end;
+  -- expected delivery: the first date is the committed one; a change needs a reason
+  perform public.lo_set_expected(om, d + 10);
+  begin perform public.lo_set_expected(om, d + 30); assert false, 'reason';
+  exception when others then assert sqlerrm like 'Choose the reason%', sqlerrm; end;
+  perform public.lo_set_expected(om, d + 30, 'material', 'Example Steel', 'Zinc shortage');
+  assert (select committed_on = d + 10 and expected_on = d + 30 from public.lo_orders where id = om), 'baseline kept';
+  assert (select count(*) from public.order_date_changes where module = 'lo' and order_id = om) = 2, 'history';
+  -- material order: no DIC (1.5 mn)
+  perform public.lo_record_step(r, om, 'selection_received', d);
+  perform public.lo_record_step(r, om, 'terms_confirmed', d);
+  perform public.lo_record_step(r, om, 'sel_dgm', d);
+  perform public.lo_record_step(r, om, 'sel_fbp', d);
+  begin perform public.lo_record_step(r, om, 'sel_dic', d); assert false, 'no DIC';
+  exception when others then assert sqlerrm = 'This step does not apply to this order', sqlerrm; end;
+  perform public.lo_record_step(r, om, 'po_issued', d, 'PO-4500123');
+  begin perform public.lo_record_step(r, om, 'advance_paid', d); assert false, 'guarantee first';
+  exception when others then assert sqlerrm like 'Record "Advance payment guarantee%', sqlerrm; end;
+  perform public.lo_record_step(r, om, 'advance_security', d, 'APG-77');
+  perform public.lo_record_step(r, om, 'advance_paid', d);
+  begin perform public.lo_record_step(r, om, 'delivered', d); assert false, 'delivery note first';
+  exception when others then assert sqlerrm like 'Record the delivery%', sqlerrm; end;
+  perform public.lo_add_delivery(om, jsonb_build_object('delivered_on', d, 'dn_no', 'DN-1', 'items', '60 m trays'));
+  perform public.lo_add_delivery(om, jsonb_build_object('delivered_on', d, 'dn_no', 'DN-2', 'items', '60 m trays'));
+  perform public.lo_record_step(r, om, 'delivered', d);
+  -- invoice: SEE → SM Projects → DGM → Procurement → Finance → paid (execution project)
+  begin perform public.lo_add_invoice(om, jsonb_build_object('invoice_no', 'INV-9', 'invoice_date', d, 'amount', 1050000)); assert false, 'DN on a material invoice';
+  exception when others then assert sqlerrm like 'Enter the signed delivery note%', sqlerrm; end;
+  i := public.lo_add_invoice(om, jsonb_build_object('invoice_no', 'INV-9', 'invoice_date', d, 'amount', 1050000, 'dn_nos', 'DN-1, DN-2'));
+  begin perform public.lo_invoice_step(i, 'dgm', d); assert false, 'in order';
+  exception when others then assert sqlerrm like 'Record the approvals before%', sqlerrm; end;
+  perform public.lo_invoice_step(i, 'see', d); perform public.lo_invoice_step(i, 'smp', d); perform public.lo_invoice_step(i, 'dgm', d);
+  perform public.lo_invoice_step(i, 'proc', d); perform public.lo_invoice_step(i, 'finance', d);
+  begin perform public.lo_record_step(r, om, 'closed', d); assert false, 'not paid';
+  exception when others then assert sqlerrm = 'No paid invoice yet', sqlerrm; end;
+  perform public.lo_invoice_step(i, 'paid', d, 'PAY-1');
+  perform public.lo_record_step(r, om, 'closed', d);
+  assert (select status from public.lo_orders where id = om) = 'completed', 'order closed';
+  assert (select status from public.lo_requests where id = r) = 'open', 'the service order is still open';
+  -- service order: DIC on 2.4 mn, supplier registration, bonds, agreement through Legal
+  perform public.lo_record_step(r, os, 'selection_received', d);
+  begin perform public.lo_record_step(r, os, 'po_issued', d, 'X'); assert false, 'material only';
+  exception when others then assert sqlerrm = 'This step does not apply to this order', sqlerrm; end;
+  perform public.lo_record_step(r, os, 'terms_confirmed', d);
+  perform public.lo_record_step(r, os, 'sel_dgm', d);
+  perform public.lo_record_step(r, os, 'sel_fbp', d);
+  begin perform public.lo_record_step(r, os, 'loa_issued', d, 'LOA-1'); assert false, 'DIC and registration';
+  exception when others then assert sqlerrm like 'Record "Supplier registered" first' or sqlerrm like 'Record "Selection approved by DIC" first', sqlerrm; end;
+  perform public.lo_record_step(r, os, 'supplier_reg', d, 'V-9001');
+  perform public.lo_record_step(r, os, 'sel_dic', d);
+  perform public.lo_record_step(r, os, 'loa_issued', d, 'LOA-1');
+  perform public.lo_record_step(r, os, 'perf_bond', d, 'PB-1');
+  perform public.lo_record_step(r, os, 'commence', d);
+  perform public.lo_record_step(r, os, 'draft_sent', d);
+  perform public.lo_record_step(r, os, 'draft_confirmed', d);
+  perform public.lo_record_step(r, os, 'legal_approved', d);
+  perform public.lo_record_step(r, os, 'agreement_signed', d);
+  perform public.lo_record_step(r, os, 'work_done', d);
+  i := public.lo_add_invoice(os, jsonb_build_object('kind', 'ipc', 'invoice_no', 'IPC-1', 'invoice_date', d, 'amount', 2400000));
+  perform public.lo_invoice_step(i, 'see', d); perform public.lo_invoice_step(i, 'smp', d); perform public.lo_invoice_step(i, 'dgm', d);
+  perform public.lo_invoice_step(i, 'proc', d); perform public.lo_invoice_step(i, 'finance', d); perform public.lo_invoice_step(i, 'paid', d);
+  perform public.lo_record_step(r, os, 'closed', d);
+  assert (select status from public.lo_requests where id = r) = 'closed', 'all orders closed: request closed';
+  -- notes
+  perform public.lo_add_note(jsonb_build_object('order_id', os, 'stage', 6, 'steps', jsonb_build_array('perf_bond'), 'kind', 'delay', 'title', 'Bond late', 'occurred_on', d, 'delay_days', 3));
+  perform public.lo_set_sla('pr_dgm', 2);
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'local_order' and title = 'Order now after its required date' and recipient_id = (select id from u where role = 'sm_projects')), 'past required: managers told';
+  assert exists (select 1 from public.notifications where kind = 'local_order' and title = 'Expected date changed' and recipient_id = (select id from u where role = 'senior_elec_engineer')), 'SEE told';
+end $$;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'local_order' and title = 'Delay – Bond late' and recipient_id = (select id from u where role = 'sm_projects')), 'note alert';
+  assert exists (select 1 from public.notifications where kind = 'local_order' and title = 'Local request returned – details needed' and recipient_id = (select id from u where role = 'senior_elec_engineer')), 'SEE told';
+end $$;
+-- a supply project: the invoice goes to the DGM only
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$
+declare r uuid; o uuid; i uuid; d date := current_date;
+begin
+  r := public.lo_save_request(null, jsonb_build_object('project_name', 'City mall supply', 'client', 'Example Retail', 'title', 'LED drivers', 'delivery_location', 'DIMO stores'));
+  assert app.lo_invoice_chain(gen_random_uuid()) = array['dgm', 'proc', 'finance', 'paid'], 'other projects: DGM';
+  perform public.lo_record_step(r, null, 'lr_checked', d);
+  perform public.lo_set_pr(r, 'PR-2', 600000);
+  perform public.lo_record_step(r, null, 'pr_raised', d, 'PR-2');
+  perform public.lo_record_step(r, null, 'pr_dgm', d); perform public.lo_record_step(r, null, 'pr_fbp', d);
+  perform public.lo_record_step(r, null, 'pr_to_proc', d);
+  assert app.lo_missing_before(r, null, 'quotes_called') is null, 'no DIC under 2 mn';
+end $$;
+reset role;
+-- from a site material request the store cannot cover
+insert into public.material_requests (id, code, exec_project_id, requested_by, required_date, purpose, status)
+values ('00000000-0000-0000-0000-00000000aa01', 'MR-T-1', current_setting('test.lo_exec')::uuid, (select id from u where role = 'senior_elec_engineer'), current_date + 9, 'Earthing', 'approved');
+insert into public.material_request_lines (mr_id, item, unit, qty) values ('00000000-0000-0000-0000-00000000aa01', 'Copper earth rod 1.2 m', 'nos', 8);
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare r uuid;
+begin
+  r := public.lo_save_request(null, jsonb_build_object('mr_id', '00000000-0000-0000-0000-00000000aa01', 'delivery_location', 'Site stores'));
+  assert (select quantity = 'Copper earth rod 1.2 m – 8 nos' and kind = 'material' and required_on = current_date + 9 and exec_project_id is not null
+            from public.lo_requests where id = r), (select quantity from public.lo_requests where id = r);
+  begin perform public.lo_save_request(null, jsonb_build_object('mr_id', '00000000-0000-0000-0000-00000000aa01', 'delivery_location', 'Site')); assert false, 'once';
+  exception when unique_violation then null; end;
+end $$;
+reset role;
+rollback to savepoint lo1;
 
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

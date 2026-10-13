@@ -3,7 +3,7 @@ import { Attachments } from '@/components/Attachments';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, Muted, Pill, Row, Section } from '@/components/ui';
 import { fmtDate, fmtDateTime } from '@/lib/format';
-import { DELAY_DAYS, STAGES, todayIso, type FoNote, type Line } from '@/lib/foreignOrders';
+import { DELAY_DAYS, STAGES, todayIso, type FoNote, type StepLine } from '@/lib/foreignOrders';
 import type { Profile } from '@/lib/types';
 import { rpc } from './actions';
 
@@ -27,17 +27,26 @@ export function FoNotes({
   keeper,
   people,
   onChange,
+  module = 'fo',
+  stageNames = STAGES,
+  who = 'SM Projects, the DGM, SM Estimation, the sales person and the SEE',
 }: {
-  notes: FoNote[];
+  notes: Omit<FoNote, 'handover_id'>[];
   /** the route, for the stage and step choices */
-  lines: Line[];
+  lines: StepLine[];
   handoverId: string;
   orderId: string | null;
   keeper: boolean;
   people: Record<string, Profile>;
   onChange: () => void;
+  /** foreign (handover_id) or local orders (request_id) */
+  module?: 'fo' | 'lo';
+  stageNames?: string[];
+  /** who is alerted */
+  who?: string;
 }) {
   const dialog = useDialog();
+  const STAGE = stageNames;
   const stages = [...new Set(lines.map((l) => l.def.stage))].sort((a, b) => a - b);
   const label = (k: string) => lines.find((l) => l.def.key === k)?.def.label ?? k;
   const nodes = [...new Set(lines.map((l) => l.def.node))];
@@ -45,16 +54,16 @@ export function FoNotes({
   const add = async () => {
     const r = await dialog.prompt({
       title: 'Record a mistake, delay, complaint or notice',
-      message: 'Alerts SM Projects, the DGM, SM Estimation, the sales person and the SEE. Attach references after saving.',
+      message: `Alerts ${who}. Attach references after saving.`,
       fields: [
         { key: 'kind', label: 'Type', type: 'select', required: true, initial: 'delay', options: Object.entries(NOTE_KIND).map(([value, k]) => ({ value, label: k.label })) },
-        { key: 'stage', label: 'Stage', type: 'select', required: true, options: stages.map((s) => ({ value: String(s), label: `${s} · ${STAGES[s - 1]}` })) },
+        { key: 'stage', label: 'Stage', type: 'select', required: true, options: stages.map((s) => ({ value: String(s), label: `${s} · ${STAGE[s - 1]}` })) },
         {
           key: 'steps',
           label: 'Steps concerned (optional)',
           type: 'multiselect',
           hint: 'Only steps of the chosen stage. Leave empty when it concerns the whole stage.',
-          options: lines.map((l) => ({ value: l.def.key, label: l.def.label, group: `${l.def.stage} · ${STAGES[l.def.stage - 1]}` })),
+          options: lines.map((l) => ({ value: l.def.key, label: l.def.label, group: `${l.def.stage} · ${STAGE[l.def.stage - 1]}` })),
         },
         { key: 'party', label: 'Who it concerns', type: 'select', options: [{ value: '', label: '—' }, ...nodes.map((n) => ({ value: n, label: n }))] },
         { key: 'title', label: 'What happened', required: true, hint: 'e.g. Wrong HS code on the CI, Draft LC held at the bank' },
@@ -66,13 +75,13 @@ export function FoNotes({
     });
     if (!r) return;
     await dialog.run(async () => {
-      await rpc('fo_add_note', { p: { ...r, handover_id: handoverId, order_id: orderId, steps: r.steps ? r.steps.split(',').filter(Boolean) : [] } });
+      await rpc(`${module}_add_note`, { p: { ...r, [module === 'fo' ? 'handover_id' : 'request_id']: handoverId, order_id: orderId, steps: r.steps ? r.steps.split(',').filter(Boolean) : [] } });
       onChange();
     }, 'Recorded – the managers and owners are alerted');
   };
-  const resolve = async (n: FoNote) => {
+  const resolve = async (n: Omit<FoNote, 'handover_id'>) => {
     const r = await dialog.prompt({ title: `Resolve: ${n.title}`, fields: [{ key: 'how', label: 'How it was resolved', type: 'multiline', required: true }], confirmLabel: 'Resolve' });
-    if (r) await dialog.run(async () => { await rpc('fo_resolve_note', { p_id: n.id, p_resolution: r.how }); onChange(); }, 'Resolved');
+    if (r) await dialog.run(async () => { await rpc(`${module}_resolve_note`, { p_id: n.id, p_resolution: r.how }); onChange(); }, 'Resolved');
   };
 
   const open = notes.filter((n) => n.status === 'open').length;
@@ -92,7 +101,7 @@ export function FoNotes({
               </Row>
               <Muted>
                 {[
-                  `Stage ${n.stage} · ${STAGES[n.stage - 1]}`,
+                  `Stage ${n.stage} · ${STAGE[n.stage - 1]}`,
                   n.steps.length ? n.steps.map(label).join(', ') : 'whole stage',
                   n.party,
                   n.delay_days ? `${n.delay_days} working days` : null,
@@ -105,7 +114,7 @@ export function FoNotes({
               {n.details ? <Text style={{ color: colors.text }}>{n.details}</Text> : null}
               {n.status === 'resolved' ? <Muted>{`Resolved ${fmtDateTime(n.resolved_at)}: ${n.resolution}`}</Muted> : null}
               <View>
-                <Attachments entityType="fo_note" entityId={n.id} kinds={['fo_reference']} title="References" canUpload={keeper} />
+                <Attachments entityType={`${module}_note`} entityId={n.id} kinds={[`${module}_reference`]} title="References" canUpload={keeper} />
               </View>
               {keeper && n.status === 'open' ? (
                 <Row gap={8}>
