@@ -71,6 +71,9 @@ export type Shipment = {
   last_checked_on: string | null;
   last_check_note: string | null;
   notes: string | null;
+  imo?: string | null;
+  mmsi?: string | null;
+  container_nos?: string | null;
 };
 export type StepDef = { key: string; scope: 'h' | 'o'; stage: number; seq: number; label: string; node: string; conds: string[]; after: string[]; ref_label: string | null; sla_days: number | null; optional?: boolean };
 export type Step = { id: string; handover_id: string; order_id: string | null; step: string; done_on: string; ref: string | null; note: string | null; recorded_by: string; recorded_at: string };

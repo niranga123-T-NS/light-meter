@@ -5,6 +5,9 @@ import { Button, Muted, Row } from '@/components/ui';
 import { fmtDateTime } from '@/lib/format';
 import type { FoOrder, Shipment } from '@/lib/foreignOrders';
 import { findPlace } from '@/lib/places';
+import { openLink } from '@/lib/catalog';
+import { trackingLinks } from '@/lib/tracking';
+import { Platform } from 'react-native';
 import { rpc } from './actions';
 import { RouteMap } from './RouteMap';
 
@@ -61,6 +64,18 @@ export function ShipmentRoute({
   const remove = async (id: string) => {
     if (await dialog.confirm('Remove this position?')) await dialog.run(async () => { await rpc('fo_remove_position', { p_id: id }); onChange(); }, 'Removed');
   };
+  const links = trackingLinks(shipment);
+  const track = async (l: { url: string; copy?: string }) => {
+    if (l.copy && Platform.OS === 'web') {
+      try {
+        await navigator.clipboard.writeText(l.copy);
+        dialog.toast(`${l.copy} copied – paste it if the page asks for it`);
+      } catch {
+        // no clipboard – the number is on the button
+      }
+    }
+    await openLink(l.url);
+  };
   const sorted = [...positions].sort((a, b) => b.at.localeCompare(a.at));
 
   return (
@@ -73,9 +88,20 @@ export function ShipmentRoute({
         pod={shipment.pod}
         site={site}
         arrived={!!shipment.arrived_on}
+        etd={shipment.etd}
+        eta={shipment.eta}
         positions={positions}
         onFactoryFound={keeper ? (i, at) => { const o = orders[i]; if (o) rpc('fo_set_factory', { p_order: o.id, p_location: o.factory_location, p_lat: at.lat, p_lng: at.lng }).catch(() => undefined); } : undefined}
       />
+      {links.length ? (
+        <Row wrap gap={8}>
+          {links.map((l) => (
+            <Button key={l.label} small variant="ghost" title={`↗ ${l.label}`} onPress={() => track(l)} />
+          ))}
+        </Row>
+      ) : !shipment.arrived_on ? (
+        <Muted>Add the vessel’s IMO number and the container numbers (Edit / ETA) for one-tap tracking links.</Muted>
+      ) : null}
       {keeper && !shipment.arrived_on ? (
         <Row gap={8}>
           <Button small variant="secondary" title="+ Last known position" onPress={record} />

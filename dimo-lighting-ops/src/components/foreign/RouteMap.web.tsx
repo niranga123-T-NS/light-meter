@@ -5,6 +5,7 @@ import { Text, View } from 'react-native';
 import { colors, Muted, Row } from '@/components/ui';
 import { fmtDateTime } from '@/lib/format';
 import { findPlace, type Place } from '@/lib/places';
+import { estimatedPosition } from '@/lib/tracking';
 import type { RouteMapProps } from './RouteMap.types';
 
 const C = { factory: '#D97706', inland: '#D97706', sea: '#1D4ED8', air: '#7C3AED', via: '#60A5FA', lk: '#15803D', site: '#15803D', pos: '#C8102E', trail: '#9CA3AF' };
@@ -118,6 +119,16 @@ export function RouteMap(p: RouteMapProps) {
       line(res.pod, res.site, C.site, '4 6', 'Delivery to site');
       dot(res.site, C.site, `Delivery – ${p.site}`, 6);
     }
+    // estimated position from the ETD and ETA (no live tracking)
+    if (!p.arrived && p.mode === 'sea') {
+      const est = estimatedPosition(chain, p.etd, p.eta);
+      if (est) {
+        pts.push([est.lat, est.lng]);
+        L.circleMarker([est.lat, est.lng], { radius: 9, color: C.pos, weight: 2, dashArray: '3 3', fillColor: '#fff', fillOpacity: 0.9 })
+          .bindTooltip(esc(`Estimated position today – ${Math.round(est.share * 100)}% of the way (from ETD and ETA, not tracked)`), { direction: 'bottom', offset: [0, 8] })
+          .addTo(g);
+      }
+    }
     // last known positions (recorded by Ops)
     const pos = [...p.positions].sort((a, b) => a.at.localeCompare(b.at));
     if (pos.length > 1) L.polyline(pos.map((x) => [x.lat, x.lng] as L.LatLngTuple), { color: C.trail, weight: 2, dashArray: '1 6' }).addTo(g);
@@ -129,7 +140,7 @@ export function RouteMap(p: RouteMapProps) {
         .addTo(g);
     });
     if (pts.length) m.fitBounds(L.latLngBounds(pts), { padding: [30, 30], maxZoom: 7 });
-  }, [res, p.positions, p.factories, p.mode, p.site, p.arrived]);
+  }, [res, p.positions, p.factories, p.mode, p.site, p.arrived, p.etd, p.eta]);
 
   const missing = res
     ? [
@@ -147,6 +158,7 @@ export function RouteMap(p: RouteMapProps) {
         <Key color={p.mode === 'sea' ? C.sea : C.air} label={p.mode === 'sea' ? 'Sea freight' : 'Air freight'} dash={p.mode !== 'sea'} />
         <Key color={C.site} label="Sri Lanka – delivery to site" dash />
         <Key color={C.pos} label="Last known position (recorded)" />
+        {p.mode === 'sea' ? <Key color={C.pos} label="Estimated position (from ETD / ETA)" dash /> : null}
       </Row>
       {missing.length ? <Muted>{`Not found on the map: ${missing.join(', ')} – check the spelling (city, country).`}</Muted> : null}
       <Muted>The lines show the route, not the exact sailing or flight path.</Muted>

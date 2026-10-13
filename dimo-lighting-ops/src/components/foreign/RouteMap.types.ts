@@ -8,6 +8,8 @@ export type RouteMapProps = {
   /** final delivery location in Sri Lanka */
   site: string | null;
   arrived: boolean;
+  etd: string | null;
+  eta: string | null;
   positions: { id: string; at: string; place: string; lat: number; lng: number; note: string | null }[];
   /** a factory found by name (so Ops can keep its point) */
   onFactoryFound?: (index: number, p: { lat: number; lng: number }) => void;

@@ -7503,6 +7503,9 @@ begin
   perform public.fo_save_shipment(sh, jsonb_build_object('mode', 'sea', 'vessel_flight', 'Example Express', 'bl_awb', 'HLCU1', 'pol', 'Hamburg', 'pod', 'Colombo',
           'eta', b + 112, 'order_ids', jsonb_build_array(o1)));
   assert (select count(*) from public.fo_eta_log where shipment_id = sh) = 2, 'ETA change logged';
+  perform public.fo_save_shipment(sh, jsonb_build_object('mode', 'sea', 'vessel_flight', 'Example Express', 'bl_awb', 'HLCU1', 'pol', 'Hamburg', 'pod', 'Colombo',
+          'eta', b + 112, 'imo', 'IMO 9811000', 'mmsi', '', 'container_nos', 'hlbu1234567', 'order_ids', jsonb_build_array(o1)));
+  assert (select imo = '9811000' and container_nos = 'HLBU1234567' from public.fo_shipments where id = sh), 'vessel numbers kept';
   n := public.fo_arrive(sh, b + 112);
   perform public.fo_record_step(h, o1, 'lc_endorsed', b + 113);
   perform public.fo_record_step(h, o1, 'exbond_cusdec', b + 113, 'E-1');
@@ -7526,6 +7529,19 @@ do $$ declare sp uuid := (select id from u where role = 'asm_building'); begin
   assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'senior_elec_engineer') and title = 'Order shipped'), 'SEE told: shipped';
 end $$;
 select public.fo_tick(now());
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare o uuid; sh uuid; begin
+  o := public.fo_save_order(null, jsonb_build_object('handover_id', current_setting('test.fo_h2'), 'title', 'Spare drivers', 'kind', 'material', 'vendor', 'V', 'incoterm', 'CIF', 'payment', 'TT', 'duty', 'paid'));
+  sh := public.fo_save_shipment(null, jsonb_build_object('mode', 'sea', 'etd', current_date - 20, 'eta', current_date - 2, 'order_ids', jsonb_build_array(o)));
+  perform set_config('test.fo_late_ship', sh::text, false);
+end $$;
+reset role;
+select public.fo_transit_tick(now());
+do $$ begin
+  assert exists (select 1 from public.notifications where title = 'ETA passed – no arrival yet' and url like '%' || current_setting('test.fo_late_ship')), 'ETA passed alert';
+  assert exists (select 1 from public.notifications where title = 'Check the vessel position' and url like '%' || current_setting('test.fo_late_ship')), 'position reminder';
+  assert exists (select 1 from public.notifications where title = 'ETA passed – no arrival yet' and recipient_id = (select id from u where role = 'asm_building')), 'sales person told';
+end $$;
 do $$ begin
   assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'asm_building') and title = 'Customer signature still needed'), 'daily signature reminder';
 end $$;
