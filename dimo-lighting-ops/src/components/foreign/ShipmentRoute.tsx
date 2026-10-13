@@ -116,7 +116,7 @@ export function ShipmentRoute({
           ))}
         </Row>
       ) : !shipment.arrived_on ? (
-        <Muted>Add the vessel’s IMO number and the container numbers (Edit / ETA) for one-tap tracking links.</Muted>
+        <Muted>Add the vessel’s MMSI / IMO number and the container numbers (Edit / ETA) for automatic positions and one-tap tracking links.</Muted>
       ) : null}
       {keeper && !shipment.arrived_on ? (
         <Row gap={8}>
