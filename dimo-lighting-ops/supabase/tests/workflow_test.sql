@@ -7129,9 +7129,12 @@ do $$ declare q uuid; begin
   insert into public.quick_calcs (title, inputs, results) values ('Office 12 × 8 m', '{}'::jsonb, '{"em": 511}'::jsonb) returning id into q;
   assert (select code like 'DLX-%' from public.quick_calcs where id = q), 'numbered DLX';
   perform set_config('test.qc', q::text, true);
-  update public.electricity_tariffs set rate = 50 where supplier = 'CEB' and code = 'GP-1';
+  update public.electricity_tariffs set day = 50 where supplier = 'EDL' and code = 'GP-2';
   assert not found, 'sales do not set tariffs';
-  assert (select count(*) from public.electricity_tariffs) >= 20, 'tariff categories';
+  assert (select count(*) from public.electricity_tariffs where active) >= 50, 'tariff categories (May 2026)';
+  assert (select day from public.electricity_tariffs where supplier = 'EDL' and code = 'GP-2') = 51.00, 'GP-2 day rate from the PUCSL schedule';
+  assert (select rate from public.electricity_tariffs where supplier = 'EDL' and code = 'SL') = 60.00, 'street lighting';
+  assert not exists (select 1 from public.electricity_tariffs where active and supplier = 'CEB'), 'CEB categories retired';
 end $$;
 reset role;
 select pg_temp.act_as('asm_infra'); set role authenticated;
@@ -7140,7 +7143,7 @@ reset role;
 select pg_temp.act_as('sm_projects'); set role authenticated;
 do $$ begin
   assert exists (select 1 from public.quick_calcs where id = current_setting('test.qc')::uuid), 'SM Projects sees it';
-  update public.electricity_tariffs set rate = 52.50, effective_from = current_date where supplier = 'CEB' and code = 'GP-1';
+  update public.electricity_tariffs set rate = 37.00, effective_from = current_date where supplier = 'EDL' and code = 'GP-1B';
   assert found, 'SM Projects sets the rate';
 end $$;
 reset role;
@@ -7178,6 +7181,59 @@ select pg_temp.act_as('operations_exec'); set role authenticated;
 do $$ begin assert not exists (select 1 from public.ies_files), 'not for operations'; end $$;
 reset role;
 rollback to savepoint ies;
+
+-- Catalogs: brand links, catalogue files and luminaires kept by the Design team; seen by Sales Tools users
+savepoint cat;
+do $$ begin
+  assert (select count(*) from public.luminaires where sample and ies_id is not null) = 6, 'six sample luminaires with IES curves';
+end $$;
+insert into public.brands (name) values ('Test Brand') on conflict (name) do nothing;
+select pg_temp.act_as('lighting_designer'); set role authenticated;
+do $$ declare b bigint := (select id from public.brands where name = 'Test Brand'); l uuid; begin
+  insert into public.brand_catalogs (brand_id, website, catalogue_url) values (b, 'https://example.com', 'https://example.com/catalogue');
+  insert into public.catalog_files (brand_id, title, storage_path, file_name, source_url) values (b, 'Indoor catalogue 2026', 'brands/' || b || '/x.pdf', 'x.pdf', 'https://example.com/x.pdf');
+  insert into public.luminaires (brand_id, name, family, watts, lumens, stock) values (b, 'TB Panel 36 W', 'Panel', 36, 4300, 'in') returning id into l;
+  perform set_config('test.lum', l::text, true);
+end $$;
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.luminaires where id = current_setting('test.lum')::uuid), 'sales see the luminaire';
+  assert exists (select 1 from public.catalog_files where title = 'Indoor catalogue 2026'), 'sales see the catalogue';
+  assert (select count(*) from public.ies_files where name like '%(sample)') = 6, 'sales see the sample IES files';
+  update public.luminaires set stock = 'out' where id = current_setting('test.lum')::uuid;
+  assert not found, 'sales do not change luminaires';
+  begin
+    insert into public.brand_catalogs (brand_id, website) values ((select id from public.brands where name = 'Test Brand'), 'x');
+    assert false, 'sales cannot set brand links';
+  exception when insufficient_privilege or unique_violation then null; end;
+end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ begin assert not exists (select 1 from public.luminaires), 'not for operations'; end $$;
+reset role;
+rollback to savepoint cat;
+
+-- Lux meter: calibrations and surveys are the maker's; managers and the Design team see surveys
+savepoint lux;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ declare s uuid; begin
+  insert into public.lux_calibrations (device, factor, reference, ref_lux, phone_lux) values ('Pixel 7', 1.12, 'Testo 545', 560, 500);
+  insert into public.lux_surveys (title, kind, rows, cols, readings, stats, factor) values ('ABC office – before', 'grid', 2, 2, '[{"r":0,"c":0,"lux":310}]', '{"eav":300}', 1.12) returning id into s;
+  assert (select code like 'LUX-%' from public.lux_surveys where id = s), 'numbered';
+  perform set_config('test.lux', s::text, true);
+end $$;
+reset role;
+select pg_temp.act_as('asm_infra'); set role authenticated;
+do $$ begin
+  assert not exists (select 1 from public.lux_surveys where id = current_setting('test.lux')::uuid), 'another sales person does not see it';
+  assert not exists (select 1 from public.lux_calibrations), 'nor the calibration';
+end $$;
+reset role;
+select pg_temp.act_as('design_manager'); set role authenticated;
+do $$ begin assert exists (select 1 from public.lux_surveys where id = current_setting('test.lux')::uuid), 'the Design team sees it'; end $$;
+reset role;
+rollback to savepoint lux;
 
 -- Alert schedules: GM / DGM see and change them; others cannot
 savepoint alerts;

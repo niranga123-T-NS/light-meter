@@ -155,11 +155,18 @@ export function modelPhotometry(n: number, up: number, lumens: number): Photomet
   };
 }
 
-/** Beam angle (half-peak, C0 plane) – for the summary */
+/** Beam angle (half-peak) in the C0–C180 plane: the spread between the outermost angles still above half the peak –
+ *  also for luminaires whose peak is not straight down (road and wall-washer optics) */
 export function beamAngle(p: Photometry) {
-  const peak = Math.max(...Array.from({ length: 91 }, (_, g) => p.I(0, g)));
-  for (let g = 0; g <= 90; g += 0.5) if (p.I(0, g) < peak / 2) return Math.round(g * 2);
-  return 180;
+  const pts: { a: number; v: number }[] = [];
+  for (let g = 0; g <= 90; g += 0.5) {
+    pts.push({ a: g, v: p.I(0, g) });
+    pts.push({ a: -g, v: p.I(180, g) });
+  }
+  const peak = Math.max(...pts.map((x) => x.v));
+  if (!(peak > 0)) return 0;
+  const lit = pts.filter((x) => x.v >= peak / 2).map((x) => x.a);
+  return Math.round(Math.max(...lit) - Math.min(...lit));
 }
 
 /** Polar curve (C0–C180 solid, C90–C270 dashed) as SVG */

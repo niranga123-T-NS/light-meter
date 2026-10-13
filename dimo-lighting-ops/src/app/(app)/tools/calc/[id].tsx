@@ -15,11 +15,12 @@ import { fmtMoney, fmtNumber } from '@/lib/format';
 import { cached, useLoad } from '@/lib/hooks';
 import { autoLayout, calculate, fieldLayout, FITTING_TYPES, inside, mountAt, MAINTENANCE, outline, REFLECTANCES, ROOFS, savings, SHAPES, suggestCount, type Lum, type Pt, type Roof, type RoomInput, type Shape } from '@/lib/lightcalc';
 import { beamAngle, iesPhotometry, parseIes, polarSvg } from '@/lib/photometry';
+import type { Luminaire } from '@/lib/catalog';
 import { ROLE_SHORT } from '@/lib/roles';
+import { isTou, LIGHTS_ON, tariffLabel, tariffRate, tariffSummary, type LightsOn, type Tariff } from '@/lib/tariffs';
 import type { Standard, StdGroupRow } from '@/lib/standards';
 import { supabase } from '@/lib/supabase';
 
-type Tariff = { id: string; supplier: 'CEB' | 'LECO'; code: string; name: string; rate: number | null; effective_from: string | null };
 type Form = {
   title: string;
   project_id: string | null;
@@ -80,6 +81,7 @@ type Form = {
   hours: number | null;
   days: number | null;
   tariff_id: string | null;
+  lightsOn: LightsOn; // time-of-use tariffs: when the lights burn
   rate: number | null;
   co2: number | null;
   cost: number | null;
@@ -144,6 +146,7 @@ const BLANK: Form = {
   hours: 10,
   days: 300,
   tariff_id: null,
+  lightsOn: 'day',
   rate: null,
   co2: 0.6,
   cost: null,
@@ -157,7 +160,7 @@ const parsePoints = (t: string): Pt[] =>
 
 /** DLux lighting calculation: ① room ② fitting ③ result ④ savings – a DRAFT sheet for the client, saved and turned into an inquiry */
 export default function QuickCalc() {
-  const { id, std } = useLocalSearchParams<{ id: string; std?: string }>();
+  const { id, std, lum } = useLocalSearchParams<{ id: string; std?: string; lum?: string }>();
   const me = useMe();
   const dialog = useDialog();
   const { width: screenW } = useWindowDimensions();
@@ -174,20 +177,25 @@ export default function QuickCalc() {
         const [s, g, t] = await Promise.all([
           supabase.from('lighting_standards').select('*').eq('active', true).in('grp', ['indoor', 'outdoor', 'sports']).order('sort'),
           supabase.from('lighting_standard_groups').select('*'),
-          supabase.from('electricity_tariffs').select('id, supplier, code, name, rate, effective_from').eq('active', true).order('sort'),
+          supabase.from('electricity_tariffs').select('id, supplier, code, name, family, rate, peak, day, off_peak, fixed, demand, note, effective_from').eq('active', true).order('sort'),
         ]);
         if (s.error) throw new Error(s.error.message);
         return { stds: (s.data ?? []) as Standard[], groups: (g.data ?? []) as StdGroupRow[], tariffs: (t.data ?? []) as Tariff[] };
       }),
       isNew ? Promise.resolve(null) : supabase.from('quick_calcs').select('*').eq('id', id).single().then((r) => r.data as { id: string; code: string; inputs: Form } | null),
     ]);
-    return { ...refs, calc };
-  }, [id]);
+    // "Use in DLux" from Catalogs: the luminaire's data and IES file
+    const fromLum = isNew && lum ? ((await supabase.from('luminaires').select('*').eq('id', lum).maybeSingle()).data as Luminaire | null) : null;
+    return { ...refs, calc, fromLum };
+  }, [id, lum]);
 
   // the form: a saved calculation, a space chosen in Standards ("Use in DLux"), or the defaults
   const preset = useMemo<Form | null>(() => {
     if (!data) return null;
     if (data.calc) return { ...BLANK, ...data.calc.inputs };
+    const l = data.fromLum;
+    if (l)
+      return { ...BLANK, title: '', type: l.fitting_type, fname: l.name, watts: l.watts, lumens: l.lumens, dist: l.ies_id ? 'ies' : 'model', ies_id: l.ies_id, lumL: l.lit_l, lumW: l.lit_w, ugrSheet: l.ugr };
     const s = std ? data.stds.find((x) => x.id === std) : null;
     return s ? { ...BLANK, std_id: s.id, title: s.space, target: Number(s.vals?.em) || BLANK.target, uo: s.vals?.uo != null ? Number(s.vals.uo) : null, ugrLimit: s.vals?.ugr != null ? Number(s.vals.ugr) : null } : BLANK;
   }, [data, std]);
@@ -247,7 +255,7 @@ export default function QuickCalc() {
   const stdRow = data.stds.find((x) => x.id === f.std_id) ?? null;
   const stdGroup = stdRow ? data.groups.find((g) => g.grp === stdRow.grp) : null;
   const tariff = data.tariffs.find((t) => t.id === f.tariff_id) ?? null;
-  const rate = tariff?.rate ?? f.rate;
+  const rate = tariffRate(tariff, f.lightsOn ?? 'day') ?? f.rate;
   const oldTotal = (f.oldWatts ?? 0) * (f.oldQty ?? 0);
   const sv = r && oldTotal > 0 ? savings({ oldWatts: oldTotal, newWatts: r.watts, hoursPerDay: f.hours ?? 0, daysPerYear: f.days ?? 0, rate, co2: f.co2, cost: f.cost }) : null;
   const target = f.target ?? 0;
@@ -752,13 +760,16 @@ export default function QuickCalc() {
             onChange={(v) => set({ tariff_id: v || null })}
             options={[
               { value: '', label: '— type the client’s rate —' },
-              ...data.tariffs.map((t) => ({ value: t.id, label: `${t.supplier} ${t.code} · ${t.name}${t.rate != null ? ` · LKR ${t.rate}/kWh` : ' · rate not set'}` })),
+              ...data.tariffs.map((t) => ({ value: t.id, label: tariffLabel(t) })),
             ]}
           />
-          {!tariff || tariff.rate == null ? (
+          {tariff && isTou(tariff) ? (
+            <Segmented value={f.lightsOn ?? 'day'} onChange={(v) => set({ lightsOn: v })} options={LIGHTS_ON} />
+          ) : null}
+          {!tariff || tariffRate(tariff, f.lightsOn) == null ? (
             <NumberField label="Energy rate" suffix="LKR/kWh" value={f.rate} onChange={(v) => set({ rate: v })} hint={tariff ? 'This tariff has no rate yet – type it, or ask SM Projects to set it under Tariffs' : 'From the client’s bill'} />
           ) : (
-            <Muted>{`LKR ${tariff.rate}/kWh${tariff.effective_from ? ` from ${tariff.effective_from}` : ''}`}</Muted>
+            <Muted>{`LKR ${rate}/kWh for the saved energy${isTou(tariff) ? ` (${tariffSummary(tariff)})` : ''}${tariff.fixed ? ` · fixed charge LKR ${tariff.fixed}/month` : ''}${tariff.demand ? ` · demand LKR ${tariff.demand}/kVA` : ''}${tariff.effective_from ? ` · from ${tariff.effective_from}` : ''}${tariff.note ? `\n${tariff.note}` : ''}`}</Muted>
           )}
           <Row gap={8} wrap>
             <NumberField label="Grid CO₂ factor" suffix="kg/kWh" value={f.co2} onChange={(v) => set({ co2: v })} hint="Check the latest SLSEA figure" />
