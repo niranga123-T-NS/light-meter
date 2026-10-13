@@ -84,6 +84,26 @@ export type LocationChange = {
   requested_at: string;
 };
 
+export type FoNote = {
+  id: string;
+  handover_id: string;
+  order_id: string | null;
+  stage: number;
+  steps: string[];
+  kind: 'mistake' | 'delay' | 'complaint' | 'notice';
+  party: string | null;
+  title: string;
+  details: string | null;
+  occurred_on: string;
+  delay_days: number | null;
+  status: 'open' | 'resolved';
+  resolved_by: string | null;
+  resolved_at: string | null;
+  resolution: string | null;
+  created_by: string;
+  created_at: string;
+};
+
 export const STAGES = ['Hand-over', 'SAP readiness', 'Project creation', 'Import order', 'PO & payment', 'Manufacture & documents', 'Shipment', 'Arrival & clearing', 'Delivery'];
 export const SHORT_STAGES = ['Hand-over', 'SAP ready', 'Project', 'Import order', 'PO & pay', 'Made · CI/PL', 'Shipment', 'Clearing', 'Delivery'];
 

@@ -7576,6 +7576,37 @@ begin
 end $$;
 reset role;
 
+-- Foreign orders: issue records (mistake / delay / complaint / notice) with references, alerts to the managers and the owners
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare n uuid; o uuid := current_setting('test.fo_o1')::uuid; begin
+  begin perform public.fo_add_note(jsonb_build_object('order_id', o, 'stage', 5, 'steps', jsonb_build_array('mfg_done'), 'kind', 'delay', 'title', 'X', 'occurred_on', current_date, 'delay_days', 3)); assert false, 'step not in stage';
+  exception when others then assert sqlerrm like 'These steps are not in stage 5%', sqlerrm; end;
+  begin perform public.fo_add_note(jsonb_build_object('order_id', o, 'stage', 5, 'kind', 'delay', 'title', 'X', 'occurred_on', current_date)); assert false, 'delay days';
+  exception when others then assert sqlerrm like 'A delay%', sqlerrm; end;
+  n := public.fo_add_note(jsonb_build_object('order_id', o, 'stage', 5, 'steps', jsonb_build_array('lc_draft', 'lc_accepted'), 'kind', 'delay', 'party', 'Finance · bank',
+         'title', 'Draft LC held at the bank', 'details', 'Bank asked for a revised proforma', 'occurred_on', current_date - 1, 'delay_days', 4));
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('fo_note', n, 'fo_reference', 'fo/' || n || '/mail.pdf', 'mail.pdf');
+  perform set_config('test.fo_note', n::text, false);
+  perform public.fo_resolve_note(n, 'Revised proforma sent; LC issued');
+end $$;
+reset role;
+do $$ begin
+  assert (select count(distinct recipient_id) from public.notifications where title = 'Delay – Draft LC held at the bank'
+          and recipient_id in (select id from u where role in ('sm_projects', 'gm', 'sm_estimation', 'asm_building', 'senior_elec_engineer'))) = 5, 'managers and owners alerted';
+  assert exists (select 1 from public.notifications where title = 'Resolved – Draft LC held at the bank'), 'resolution told';
+end $$;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.fo_notes where id = current_setting('test.fo_note')::uuid), 'SEE sees the record';
+  assert exists (select 1 from public.attachments where entity_type = 'fo_note'), 'and its reference';
+end $$;
+reset role;
+select pg_temp.act_as('asm_infra'); set role authenticated;
+do $$ begin
+  assert not exists (select 1 from public.fo_notes) and not exists (select 1 from public.attachments where entity_type = 'fo_note'), 'other sales see nothing';
+end $$;
+reset role;
+
 -- Holidays: seeded from the gazette, kept up to date by the weekly workflow; days added by hand are kept
 savepoint hol1;
 insert into vault.decrypted_secrets values ('dispatch_secret', 'fx-test-secret') on conflict (name) do update set decrypted_secret = excluded.decrypted_secret;

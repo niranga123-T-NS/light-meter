@@ -35,7 +35,7 @@ export default function ForeignOrders() {
   const keeper = FO_KEEPER.includes(me.role);
   const [tab, setTab] = useState<Tab>('orders');
   const { data, error } = useLoad(async () => {
-    const [h, o, s, d, sh, so, hol, ep] = await Promise.all([
+    const [h, o, s, d, sh, so, hol, ep, nt] = await Promise.all([
       supabase.from('fo_handovers').select('*').order('received_on', { ascending: false }),
       supabase.from('fo_orders').select('*').order('created_at'),
       supabase.from('fo_steps').select('*'),
@@ -44,6 +44,7 @@ export default function ForeignOrders() {
       supabase.from('fo_shipment_orders').select('*'),
       supabase.from('holidays').select('day'),
       keeper ? supabase.from('exec_projects').select('project_id, code, name').order('name') : Promise.resolve({ data: [], error: null }),
+      supabase.from('fo_notes').select('order_id, handover_id, status').eq('status', 'open'),
     ]);
     if (h.error) throw new Error(h.error.message);
     return {
@@ -54,11 +55,12 @@ export default function ForeignOrders() {
       ships: (sh.data ?? []) as Shipment[],
       links: (so.data ?? []) as { shipment_id: string; order_id: string }[],
       holidays: new Set(((hol.data ?? []) as { day: string }[]).map((x) => x.day)),
+      openNotes: (nt.data ?? []) as { order_id: string | null; handover_id: string }[],
       projects: ((ep.data ?? []) as { project_id: string; code: string | null; name: string }[]).map((p) => ({ value: p.project_id, label: p.name, hint: p.code ?? undefined })),
     };
   }, [keeper]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const { hos, orders, steps, defs, ships, links, holidays, projects } = data;
+  const { hos, orders, steps, defs, ships, links, holidays, openNotes, projects } = data;
   const today = todayIso();
   const hoOf = (id: string) => hos.find((h) => h.id === id)!;
   const rows = orders
@@ -71,7 +73,8 @@ export default function ForeignOrders() {
       const ship = latestShipment(o.id, links, ships);
       const eta = ship && !ship.arrived_on ? ship.eta : null;
       const overdue = o.status === 'open' && !!o.required_on && o.required_on < today;
-      return { o, h, st, ship, eta, behind: !!(eta && o.required_on && eta > o.required_on), overdue, sib: sib.length };
+      const issues = openNotes.filter((n) => n.order_id === o.id).length;
+      return { o, h, st, ship, eta, behind: !!(eta && o.required_on && eta > o.required_on), overdue, issues, sib: sib.length };
     });
   const open = rows.filter((r) => r.o.status === 'open' && r.h.status === 'open');
   // hand-overs not split yet
@@ -132,7 +135,7 @@ export default function ForeignOrders() {
           edge={(r) => (r.o.status !== 'open' ? undefined : r.overdue || r.behind || r.st.late ? colors.red : undefined)}
           emptyTitle={tab === 'done' ? 'Nothing delivered yet' : 'No open import orders'}
           columns={[
-            { h: 'Order', w: 175, v: (r) => `${r.o.code}\n${r.o.title}\n${r.h.code} · ${r.o.seq_no} of ${r.sib}` },
+            { h: 'Order', w: 175, v: (r) => `${r.o.code}\n${r.o.title}\n${r.h.code} · ${r.o.seq_no} of ${r.sib}${r.issues ? `\n⚠ ${r.issues} open issue${r.issues > 1 ? 's' : ''}` : ''}` },
             { h: 'Project · client', w: 190, grow: true, v: (r) => `${r.h.project_name}\n${r.h.client}${r.h.sap_project_no ? `\n${r.h.sap_project_no}` : ''}` },
             { h: 'Vendor · terms', w: 165, v: (r) => `${r.o.vendor}\n${termsLabel(r.o)}` },
             {

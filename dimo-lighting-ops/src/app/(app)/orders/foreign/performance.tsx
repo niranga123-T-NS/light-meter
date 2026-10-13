@@ -6,7 +6,7 @@ import { rpc } from '@/components/foreign/actions';
 import { TestingBanner } from '@/components/Testing';
 import { Button, colors, ErrorBanner, Grid, Loading, Muted, Pill, Row, Screen, Section, Segmented, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { FO_KEEPER, monthsAgo, route, workdays, type FoOrder, type Handover, type Line, type Step, type StepDef } from '@/lib/foreignOrders';
+import { FO_KEEPER, monthsAgo, route, workdays, type FoNote, type FoOrder, type Handover, type Line, type Step, type StepDef } from '@/lib/foreignOrders';
 import { useLoad } from '@/lib/hooks';
 import { supabase } from '@/lib/supabase';
 
@@ -23,12 +23,13 @@ export default function ForeignPerformance() {
   const [period, setPeriod] = useState<Period>('12');
   const [by, setBy] = useState<By>('step');
   const { data, error, reload } = useLoad(async () => {
-    const [h, o, s, d, hol] = await Promise.all([
+    const [h, o, s, d, hol, nt] = await Promise.all([
       supabase.from('fo_handovers').select('*'),
       supabase.from('fo_orders').select('*'),
       supabase.from('fo_steps').select('*'),
       supabase.from('fo_step_defs').select('*').order('seq'),
       supabase.from('holidays').select('day'),
+      supabase.from('fo_notes').select('*'),
     ]);
     if (h.error) throw new Error(h.error.message);
     return {
@@ -37,10 +38,11 @@ export default function ForeignPerformance() {
       steps: (s.data ?? []) as Step[],
       defs: (d.data ?? []) as StepDef[],
       holidays: new Set(((hol.data ?? []) as { day: string }[]).map((x) => x.day)),
+      notes: (nt.data ?? []) as FoNote[],
     };
   }, []);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const { hos, orders, steps, defs, holidays } = data;
+  const { hos, orders, steps, defs, holidays, notes } = data;
   const from = period === 'all' ? '0000' : monthsAgo(Number(period));
 
   // every recorded step with the working days it took (hand-over steps once per hand-over)
@@ -73,6 +75,18 @@ export default function ForeignPerformance() {
   const leads = delivered.map((o) => workdays(hos.find((h) => h.id === o.handover_id)?.received_on, steps.find((s) => s.order_id === o.id && s.step === 'delivered')!.done_on, holidays) ?? 0);
   const withSla = rows.filter((r) => r.withSla);
   const worst = [...withSla].sort((a, b) => a.met / a.withSla - b.met / b.withSla)[0];
+
+  // issue records in the period, by the team or party they concern
+  const byParty = new Map<string, { party: string; mistake: number; delay: number; complaint: number; notice: number; days: number; open: number }>();
+  for (const n of notes.filter((x) => x.occurred_on >= from)) {
+    const key = n.party ?? 'Not stated';
+    const g = byParty.get(key) ?? { party: key, mistake: 0, delay: 0, complaint: 0, notice: 0, days: 0, open: 0 };
+    g[n.kind] += 1;
+    g.days += n.delay_days ?? 0;
+    if (n.status === 'open') g.open += 1;
+    byParty.set(key, g);
+  }
+  const issueRows = [...byParty.values()].sort((a, b) => b.mistake + b.delay + b.complaint - (a.mistake + a.delay + a.complaint));
 
   const setSla = async (d: StepDef) => {
     const r = await dialog.prompt({
@@ -126,6 +140,22 @@ export default function ForeignPerformance() {
           },
         ]}
       />
+      <Section title="Mistakes, delays and complaints by team">
+        <DataTable
+          rows={issueRows}
+          keyOf={(r) => r.party}
+          emptyTitle="Nothing recorded in this period"
+          columns={[
+            { h: 'Team / party', w: 220, grow: true, v: (r) => r.party },
+            { h: 'Mistakes', w: 90, right: true, v: (r) => String(r.mistake) },
+            { h: 'Delays', w: 80, right: true, v: (r) => String(r.delay) },
+            { h: 'Delay days', w: 100, right: true, v: (r) => String(r.days) },
+            { h: 'Complaints', w: 100, right: true, v: (r) => String(r.complaint) },
+            { h: 'Notices', w: 80, right: true, v: (r) => String(r.notice) },
+            { h: 'Open', w: 70, right: true, v: (r) => String(r.open) },
+          ]}
+        />
+      </Section>
       <Section title="SLA per step">
         <Muted>{keeper ? 'Set an SLA where one exists. Steps without one are timed but never flagged late.' : 'Set by the Operations Executive.'}</Muted>
         <DataTable

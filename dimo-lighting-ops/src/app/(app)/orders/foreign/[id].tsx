@@ -2,6 +2,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { editOrder, editShipment, orderOption, rpc } from '@/components/foreign/actions';
+import { FoNotes } from '@/components/foreign/Notes';
 import { StepList } from '@/components/foreign/StepList';
 import { TestingBanner } from '@/components/Testing';
 import { Button, Card, colors, ErrorBanner, Grid, KeyValue, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section, useWide } from '@/components/ui';
@@ -15,6 +16,7 @@ import {
   standing,
   todayIso,
   workdays,
+  type FoNote,
   type FoOrder,
   type Handover,
   type OrderValues,
@@ -39,7 +41,7 @@ export default function ForeignOrder() {
     if (o.error) throw new Error(o.error.message);
     if (!o.data) throw new Error('Import order not found');
     const order = o.data as FoOrder;
-    const [h, sib, s, d, v, p, so, hol] = await Promise.all([
+    const [h, sib, s, d, v, p, so, hol, nt] = await Promise.all([
       supabase.from('fo_handovers').select('*').eq('id', order.handover_id).single(),
       supabase.from('fo_orders').select('*').eq('handover_id', order.handover_id).order('seq_no'),
       supabase.from('fo_steps').select('*').eq('handover_id', order.handover_id),
@@ -48,6 +50,7 @@ export default function ForeignOrder() {
       supabase.from('fo_payments').select('*').eq('order_id', id).order('paid_on'),
       supabase.from('fo_shipment_orders').select('shipment_id').eq('order_id', id),
       supabase.from('holidays').select('day'),
+      supabase.from('fo_notes').select('*').eq('order_id', id).order('occurred_on', { ascending: false }),
     ]);
     const shipIds = ((so.data ?? []) as { shipment_id: string }[]).map((x) => x.shipment_id);
     const ships = shipIds.length ? ((await supabase.from('fo_shipments').select('*').in('id', shipIds).order('eta')).data ?? []) as Shipment[] : [];
@@ -63,11 +66,12 @@ export default function ForeignOrder() {
       payments: (p.data ?? []) as Payment[],
       ships,
       openOrders,
+      notes: (nt.data ?? []) as FoNote[],
       holidays: new Set(((hol.data ?? []) as { day: string }[]).map((x) => x.day)),
     };
   }, [id, keeper]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const { o, h, sib, steps, defs, values, payments, ships, openOrders, holidays } = data;
+  const { o, h, sib, steps, defs, values, payments, ships, openOrders, notes, holidays } = data;
   const all = route(defs, h, o, steps, sib, holidays);
   const st = standing(all);
   const lines = all.filter((l) => l.def.scope === 'o');
@@ -184,6 +188,8 @@ export default function ForeignOrder() {
         <StepList lines={lines} keeper={keeper && open} handoverId={h.id} orderId={o.id} people={people} onChange={reload} skip={ships.length ? ['shipped', 'arrived'] : []} />
         {ships.length && keeper ? <Muted>Shipped and arrival are recorded on the shipment, for every order it carries.</Muted> : null}
       </Section>
+
+      <FoNotes notes={notes} lines={lines} handoverId={h.id} orderId={o.id} keeper={keeper && o.status !== 'cancelled'} people={people} onChange={reload} />
 
       {values || keeper ? (
         <Section title="Values and payments" right={keeper && o.status !== 'cancelled' ? <Button small variant="secondary" title="+ Payment" onPress={addPayment} /> : null}>
