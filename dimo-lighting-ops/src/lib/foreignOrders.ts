@@ -42,6 +42,8 @@ export type FoOrder = {
   dangerous: boolean | null;
   dg_details: string | null;
   factory_location: string | null;
+  mfr_address?: string | null;
+  loading_port?: string | null;
   dic_required?: boolean;
   planned_mode?: 'sea' | 'air' | 'courier' | null;
   value_usd_note?: string | null;

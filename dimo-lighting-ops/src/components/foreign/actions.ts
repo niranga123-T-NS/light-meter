@@ -40,7 +40,7 @@ const COURIER = { key: 'mode', in: ['courier'] };
 const NOT_COURIER = { key: 'mode', in: ['sea', 'air'] };
 
 /** New or edited shipment (Ops) – one shipment can carry several import orders. Only the fields of the chosen mode are shown. */
-export async function editShipment(dialog: Dialog, orderOptions: Option[], s?: Shipment | null, selected: string[] = [], mode?: string | null) {
+export async function editShipment(dialog: Dialog, orderOptions: Option[], s?: Shipment | null, selected: string[] = [], mode?: string | null, loading?: string | null) {
   const m = s?.mode ?? mode ?? 'sea';
   const onboard = s?.onboard_at ? s.onboard_at.slice(0, 16).replace('T', ' ') : '';
   const r = await dialog.prompt({
@@ -58,7 +58,7 @@ export async function editShipment(dialog: Dialog, orderOptions: Option[], s?: S
       { key: 'container_nos', label: 'Container nos.', initial: s?.container_nos ?? '', hint: 'e.g. HLBU1234567 – opens the shipping line’s tracking', when: SEA },
       { key: 'imo', label: 'Vessel IMO no. (7 digits)', initial: s?.imo ?? '', hint: 'From the booking, or any tracking site – opens MarineTraffic / VesselFinder', when: SEA },
       { key: 'mmsi', label: 'Vessel MMSI no. (9 digits, if no IMO)', initial: s?.mmsi ?? '', when: SEA },
-      { key: 'pol_sea', label: 'Port of loading', initial: m === 'sea' ? s?.pol ?? '' : '', hint: 'e.g. Hamburg, Shanghai', when: SEA },
+      { key: 'pol_sea', label: 'Port of loading', initial: m === 'sea' ? s?.pol ?? loading ?? '' : '', hint: 'e.g. Hamburg, Shanghai', when: SEA },
       { key: 'via_sea', label: 'Transhipment port(s)', initial: m === 'sea' ? s?.via ?? '' : '', hint: 'e.g. Jebel Ali – several with commas', when: SEA },
       { key: 'pod_sea', label: 'Port of discharge', initial: m === 'sea' ? s?.pod ?? 'Colombo' : 'Colombo', when: SEA },
       // air
@@ -66,7 +66,7 @@ export async function editShipment(dialog: Dialog, orderOptions: Option[], s?: S
       { key: 'airline', label: 'Airline', initial: m === 'air' ? s?.carrier ?? '' : '', when: AIR },
       { key: 'awb', label: 'AWB no.', initial: m === 'air' ? s?.bl_awb ?? '' : '', hint: 'e.g. 176-12345675', when: AIR },
       { key: 'pieces', label: 'Pieces and weight', initial: m === 'air' ? s?.containers ?? '' : '', hint: 'e.g. 12 pcs, 840 kg', when: AIR },
-      { key: 'pol_air', label: 'Airport of departure', initial: m === 'air' ? s?.pol ?? '' : '', hint: 'e.g. FRA, Frankfurt', when: AIR },
+      { key: 'pol_air', label: 'Airport of departure', initial: m === 'air' ? s?.pol ?? loading ?? '' : '', hint: 'e.g. FRA, Frankfurt', when: AIR },
       { key: 'via_air', label: 'Transit airport(s)', initial: m === 'air' ? s?.via ?? '' : '', hint: 'e.g. DXB', when: AIR },
       { key: 'pod_air', label: 'Airport of arrival', initial: m === 'air' ? s?.pod ?? 'Colombo (CMB)' : 'Colombo (CMB)', when: AIR },
       // courier

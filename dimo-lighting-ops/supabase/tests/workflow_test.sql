@@ -7512,6 +7512,15 @@ begin
   assert (select planned_mode from public.fo_orders where id = o2) is null, 'no freight for a service';
   n := public.fo_ship(sh, b + 80);
   perform public.fo_set_factory(o1, 'Arnsberg, Germany', 51.40, 8.06);
+  perform public.fo_set_origin(o1, ' Example Leuchten GmbH, Werkstr. 5, 59755 Arnsberg, Germany ', 'Hamburg');
+  assert (select mfr_address = 'Example Leuchten GmbH, Werkstr. 5, 59755 Arnsberg, Germany' and loading_port = 'Hamburg' from public.fo_orders where id = o1), 'origin saved';
+  declare s2 uuid := public.fo_save_shipment(null, jsonb_build_object('mode', 'sea', 'order_ids', jsonb_build_array(o1)));
+  begin
+    assert (select pol from public.fo_shipments where id = s2) = 'Hamburg', 'a new shipment takes the loading port of its order';
+    delete from public.fo_shipment_orders where shipment_id = s2;
+    delete from public.fo_eta_log where shipment_id = s2;
+    delete from public.fo_shipments where id = s2;
+  end;
   perform public.fo_add_position(sh, jsonb_build_object('at', now() - interval '1 day', 'place', 'Jebel Ali', 'lat', 25.01, 'lng', 55.06, 'note', 'transhipment'));
   assert (select last_check_note from public.fo_shipments where id = sh) = 'Jebel Ali – transhipment', 'position recorded as the last check';
   assert n = 1 and exists (select 1 from public.fo_steps where order_id = o1 and step = 'shipped' and ref = 'HLCU1'), 'shipped recorded from the shipment';
