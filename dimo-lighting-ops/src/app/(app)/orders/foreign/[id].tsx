@@ -1,7 +1,7 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
-import { editOrder, editShipment, orderOption, rpc } from '@/components/foreign/actions';
+import { editShipment, orderOption, rpc } from '@/components/foreign/actions';
 import { FoNotes } from '@/components/foreign/Notes';
 import { StepList } from '@/components/foreign/StepList';
 import { TestingBanner } from '@/components/Testing';
@@ -9,6 +9,7 @@ import { Button, Card, colors, ErrorBanner, Grid, KeyValue, ListRow, Loading, Mu
 import { useMe } from '@/lib/auth';
 import { fmtAmount, fmtDate } from '@/lib/format';
 import {
+  CURRENCIES,
   FO_KEEPER,
   PAYMENT_KIND,
   route,
@@ -86,7 +87,7 @@ export default function ForeignOrder() {
       fields: [
         { key: 'kind', label: 'Payment', type: 'select', options: Object.entries(PAYMENT_KIND).map(([value, label]) => ({ value, label })), required: true, initial: o.payment === 'LC' ? 'advance' : 'full' },
         { key: 'amount', label: 'Amount', required: true },
-        { key: 'currency', label: 'Currency', initial: cur },
+        { key: 'currency', label: 'Currency', type: 'select', options: CURRENCIES, initial: cur },
         { key: 'paid_on', label: 'Paid on', type: 'date', required: true, initial: todayIso() },
         { key: 'ref', label: 'Reference' },
         { key: 'note', label: 'Note' },
@@ -126,7 +127,7 @@ export default function ForeignOrder() {
         {keeper && open ? (
           <Row gap={8} wrap>
             <Button small variant="ghost" title="Cancel" onPress={cancel} />
-            <Button small variant="secondary" title="Edit" onPress={async () => { if (await editOrder(dialog, h.id, o, values)) await reload(); }} />
+            <Button small variant="secondary" title="Edit" onPress={() => router.push({ pathname: '/orders/foreign/order-form', params: { id: o.id } })} />
           </Row>
         ) : null}
       </Row>

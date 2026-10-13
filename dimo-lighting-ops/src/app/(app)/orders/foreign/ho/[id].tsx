@@ -1,7 +1,7 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { View } from 'react-native';
 import { useDialog } from '@/components/dialog';
-import { editHandover, editOrder, rpc } from '@/components/foreign/actions';
+import { editHandover, rpc } from '@/components/foreign/actions';
 import { FoNotes } from '@/components/foreign/Notes';
 import { StepList } from '@/components/foreign/StepList';
 import { TestingBanner } from '@/components/Testing';
@@ -139,7 +139,7 @@ export default function HandoverPage() {
       <FoNotes notes={notes.filter((n) => !n.order_id)} lines={lines} handoverId={h.id} orderId={null} keeper={keeper && open} people={people} onChange={reload} />
       {notes.some((n) => n.order_id && n.status === 'open') ? <Muted>{`${notes.filter((n) => n.order_id && n.status === 'open').length} open record(s) on the import orders below.`}</Muted> : null}
 
-      <Section title={`Import orders · ${orders.length}`} right={keeper && open ? <Button small title="+ Import order" onPress={async () => { const oid = await editOrder(dialog, h.id); if (oid) await reload(); }} /> : null}>
+      <Section title={`Import orders · ${orders.length}`} right={keeper && open ? <Button small title="+ Import order" onPress={() => router.push({ pathname: '/orders/foreign/order-form', params: { ho: h.id } })} /> : null}>
         {orders.length ? (
           <Card style={{ padding: 0, overflow: 'hidden' }}>
             {orders.map((o) => {

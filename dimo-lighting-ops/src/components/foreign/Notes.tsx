@@ -3,7 +3,7 @@ import { Attachments } from '@/components/Attachments';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, Muted, Pill, Row, Section } from '@/components/ui';
 import { fmtDate, fmtDateTime } from '@/lib/format';
-import { STAGES, todayIso, type FoNote, type Line } from '@/lib/foreignOrders';
+import { DELAY_DAYS, STAGES, todayIso, type FoNote, type Line } from '@/lib/foreignOrders';
 import type { Profile } from '@/lib/types';
 import { rpc } from './actions';
 
@@ -60,7 +60,7 @@ export function FoNotes({
         { key: 'title', label: 'What happened', required: true, hint: 'e.g. Wrong HS code on the CI, Draft LC held at the bank' },
         { key: 'details', label: 'Details', type: 'multiline' },
         { key: 'occurred_on', label: 'Date', type: 'date', required: true, initial: todayIso() },
-        { key: 'delay_days', label: 'Delay (working days) – for a delay' },
+        { key: 'delay_days', label: 'Delay (working days) – for a delay', type: 'select', options: [{ value: '', label: '—' }, ...DELAY_DAYS] },
       ],
       confirmLabel: 'Record and alert',
     });

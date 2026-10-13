@@ -88,6 +88,13 @@ export default function ForeignPerformance() {
   }
   const issueRows = [...byParty.values()].sort((a, b) => b.mistake + b.delay + b.complaint - (a.mistake + a.delay + a.complaint));
 
+  const setOptional = async (d: StepDef) => {
+    const msg = d.optional
+      ? 'The step will be needed again before the steps after it can be recorded.'
+      : 'For an internal step of another team that Ops sees only sometimes: it can be recorded when known, never holds up the next step, and is never flagged late.';
+    if (!(await dialog.confirm(`${d.optional ? 'Make required' : 'Make optional'}: ${d.label}?`, msg))) return;
+    await dialog.run(async () => { await rpc('fo_set_optional', { p_step: d.key, p_optional: !d.optional }); await reload(); }, 'Saved');
+  };
   const setSla = async (d: StepDef) => {
     const r = await dialog.prompt({
       title: `SLA – ${d.label}`,
@@ -157,7 +164,7 @@ export default function ForeignPerformance() {
         />
       </Section>
       <Section title="SLA per step">
-        <Muted>{keeper ? 'Set an SLA where one exists. Steps without one are timed but never flagged late.' : 'Set by the Operations Executive.'}</Muted>
+        <Muted>{keeper ? 'Set an SLA where one exists. Steps without one are timed but never flagged late. Optional steps (internal steps of other teams Ops sees only sometimes) never hold up the next step.' : 'Set by the Operations Executive.'}</Muted>
         <DataTable
           rows={defs}
           keyOf={(d) => d.key}
@@ -165,8 +172,23 @@ export default function ForeignPerformance() {
             { h: 'Stage', w: 60, right: true, v: (d) => String(d.stage) },
             { h: 'Step', w: 300, grow: true, v: (d) => d.label },
             { h: 'Who', w: 160, v: (d) => d.node },
-            { h: 'SLA (working days)', w: 140, right: true, v: (d) => (d.sla_days != null ? String(d.sla_days) : '—') },
-            ...(keeper ? [{ h: '', w: 90, v: (d: StepDef) => <Button small variant="ghost" title="Set" onPress={() => setSla(d)} /> }] : []),
+            { h: 'SLA (working days)', w: 140, right: true, v: (d) => (d.optional ? 'optional' : d.sla_days != null ? String(d.sla_days) : '—') },
+            ...(keeper
+              ? [
+                  {
+                    h: '',
+                    w: 200,
+                    v: (d: StepDef) => (
+                      <Row gap={4}>
+                        {d.optional ? null : <Button small variant="ghost" title="SLA" onPress={() => setSla(d)} />}
+                        {d.key === 'ho_received' || d.key === 'delivered' ? null : (
+                          <Button small variant="ghost" title={d.optional ? 'Make required' : 'Make optional'} onPress={() => setOptional(d)} />
+                        )}
+                      </Row>
+                    ),
+                  },
+                ]
+              : []),
           ]}
         />
       </Section>
