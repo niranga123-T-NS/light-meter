@@ -7576,5 +7576,30 @@ begin
 end $$;
 reset role;
 
+-- Holidays: seeded from the gazette, kept up to date by the weekly workflow; days added by hand are kept
+savepoint hol1;
+insert into vault.decrypted_secrets values ('dispatch_secret', 'fx-test-secret') on conflict (name) do update set decrypted_secret = excluded.decrypted_secret;
+do $$ declare r jsonb; rows jsonb; begin
+  assert (select count(*) from public.holidays where extract(year from day) = 2026 and source = 'auto') = 25, '2026 seeded';
+  assert exists (select 1 from public.holidays where day = '2026-05-30' and name like 'Adhi Poson%'), 'Adhi Poson 2026';
+  begin perform public.holidays_ingest('wrong', '[]', '{}'); assert false, 'secret';
+  exception when others then assert sqlerrm like '%Not allowed%', sqlerrm; end;
+  -- a manual day, and a corrected gazette for 2027 (one day moved)
+  insert into public.holidays (day, name, source) values ('2027-03-10', 'Company holiday', 'manual');
+  select jsonb_agg(jsonb_build_object('day', make_date(2027, 1, 1) + g * 14, 'name', 'Holiday ' || g)) into rows from generate_series(0, 24) g;
+  r := public.holidays_ingest('fx-test-secret', rows, '{2027}');
+  assert (r ->> 'added')::int = 25, r::text;
+  assert exists (select 1 from public.notifications where kind = 'holidays' and title = '2027 holidays loaded'), 'Ops told';
+  rows := (rows - 0) || jsonb_build_array(jsonb_build_object('day', '2027-01-02', 'name', 'Holiday 0 (moved)'));
+  r := public.holidays_ingest('fx-test-secret', rows, '{2027}');
+  assert (r ->> 'removed')::int = 1 and (r ->> 'added')::int = 1, r::text;
+  assert exists (select 1 from public.holidays where day = '2027-03-10' and source = 'manual'), 'manual day kept';
+  begin perform public.holidays_ingest('fx-test-secret', '[{"day":"2028-01-01","name":"X"}]', '{2028}'); assert false, 'incomplete year';
+  exception when others then assert sqlerrm like '%looks incomplete%', sqlerrm; end;
+  delete from public.holidays where extract(year from day) = 2027;
+  assert public.holidays_tick('2026-11-20 09:00+05:30') = 1 and public.holidays_tick('2026-10-20 09:00+05:30') = 0, 'reminder from 15 Nov';
+end $$;
+rollback to savepoint hol1;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

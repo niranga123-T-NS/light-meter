@@ -341,17 +341,28 @@ function Calendar() {
   };
   const { data, reload } = useLoad(async () => {
     const [h, r] = await Promise.all([supabase.from('holidays').select('*').order('day'), supabase.from('exchange_rates').select('*').order('month', { ascending: false })]);
-    return { holidays: (h.data ?? []) as { day: string; name: string }[], rates: (r.data ?? []) as { month: string; usd_to_lkr: number }[] };
+    return { holidays: (h.data ?? []) as { day: string; name: string; source?: 'auto' | 'manual' }[], rates: (r.data ?? []) as { month: string; usd_to_lkr: number }[] };
   });
   return (
     <>
       <Section title="Public and mercantile holidays (excluded from SLA clocks)" right={admin ? <Button small title="+ Holiday" onPress={async () => {
         const r = await dialog.prompt({ title: 'Holiday', fields: [{ key: 'd', label: 'Date', type: 'date', required: true }, { key: 'n', label: 'Name', required: true }] });
-        if (r) await dialog.run(async () => { const { error } = await supabase.from('holidays').upsert({ day: r.d, name: r.n }); if (error) throw new Error(error.message); await reload(); }, 'Saved');
+        if (r) await dialog.run(async () => { const { error } = await supabase.from('holidays').upsert({ day: r.d, name: r.n, source: 'manual' }); if (error) throw new Error(error.message); await reload(); }, 'Saved');
       }} /> : undefined}>
+        <Muted>Sri Lanka public holidays for this year and next are loaded automatically every Monday from the gazette list. Days added here by hand are kept as they are.</Muted>
         <Card style={{ padding: 0, overflow: 'hidden' }}>
-          {(data?.holidays ?? []).map((h) => (
-            <ListRow key={h.day} title={h.name} subtitle={fmtDate(h.day)} right={admin ? <Button small variant="ghost" title="Remove" onPress={() => dialog.run(async () => { await supabase.from('holidays').delete().eq('day', h.day); await reload(); })} /> : undefined} />
+          {(data?.holidays ?? []).filter((h) => h.day >= `${new Date().getFullYear()}-01-01`).map((h) => (
+            <ListRow
+              key={h.day}
+              title={h.name}
+              subtitle={fmtDate(h.day)}
+              right={
+                <Row gap={6} style={{ alignItems: 'center' }}>
+                  <Pill label={h.source === 'auto' ? 'Automatic' : 'Added by hand'} tone={h.source === 'auto' ? colors.blue : colors.grey} />
+                  {admin ? <Button small variant="ghost" title="Remove" onPress={() => dialog.run(async () => { await supabase.from('holidays').delete().eq('day', h.day); await reload(); })} /> : null}
+                </Row>
+              }
+            />
           ))}
           {!data?.holidays.length ? <Notice tone={colors.amber}>No holidays entered – add this year&apos;s Sri Lanka public, bank and mercantile holidays (including Poya days).</Notice> : null}
         </Card>
