@@ -7419,6 +7419,7 @@ do $$ begin
   exception when others then assert sqlerrm like '%Operations Executive%', sqlerrm; end;
 end $$;
 reset role;
+insert into public.fx_rates (source, rate_date, currency, mid) values ('cbsl', current_date, 'USD', 300), ('cbsl', current_date, 'EUR', 330) on conflict do nothing;
 -- the SEE of an execution project follows the orders of that project
 update public.exec_projects set see_id = (select id from u where role = 'senior_elec_engineer') where id = (select id from public.exec_projects order by created_at limit 1);
 select set_config('test.fo_project', (select project_id::text from public.exec_projects order by created_at limit 1), false);
@@ -7495,6 +7496,9 @@ begin
           'eta', b + 110, 'order_ids', jsonb_build_array(o1)));
   begin perform public.fo_save_shipment(null, jsonb_build_object('order_ids', jsonb_build_array(o2))); assert false, 'no service on a shipment';
   exception when others then assert sqlerrm like 'Only open material orders%', sqlerrm; end;
+  assert (select planned_mode from public.fo_orders where id = o1) = 'sea', 'takes the shipment mode';
+  perform public.fo_set_planned_mode(o2, 'air');
+  assert (select planned_mode from public.fo_orders where id = o2) is null, 'no freight for a service';
   n := public.fo_ship(sh, b + 80);
   perform public.fo_set_factory(o1, 'Arnsberg, Germany', 51.40, 8.06);
   perform public.fo_add_position(sh, jsonb_build_object('at', now() - interval '1 day', 'place', 'Jebel Ali', 'lat', 25.01, 'lng', 55.06, 'note', 'transhipment'));
@@ -7532,7 +7536,16 @@ select public.fo_tick(now());
 select pg_temp.act_as('operations_exec'); set role authenticated;
 do $$ declare o uuid; sh uuid; begin
   o := public.fo_save_order(null, jsonb_build_object('handover_id', current_setting('test.fo_h2'), 'title', 'Spare drivers', 'kind', 'material', 'vendor', 'V', 'incoterm', 'CIF', 'payment', 'TT', 'duty', 'paid'));
-  sh := public.fo_save_shipment(null, jsonb_build_object('mode', 'sea', 'etd', current_date - 20, 'eta', current_date - 2, 'order_ids', jsonb_build_array(o)));
+  begin perform public.fo_save_shipment(null, jsonb_build_object('mode', 'sea', 'order_ids', jsonb_build_array(o))); assert false, 'CI + PL first';
+  exception when others then assert sqlerrm like '%confirm the commercial invoice and packing list first%', sqlerrm; end;
+  perform set_config('test.fo_spare', o::text, false);
+end $$;
+reset role;
+insert into public.fo_steps (handover_id, order_id, step, done_on, recorded_by)
+values (current_setting('test.fo_h2')::uuid, current_setting('test.fo_spare')::uuid, 'cipl_confirmed', current_date - 21, (select id from u where role = 'operations_exec'));
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare sh uuid; begin
+  sh := public.fo_save_shipment(null, jsonb_build_object('mode', 'sea', 'etd', current_date - 20, 'eta', current_date - 2, 'order_ids', jsonb_build_array(current_setting('test.fo_spare')::uuid)));
   perform set_config('test.fo_late_ship', sh::text, false);
 end $$;
 reset role;
@@ -7589,26 +7602,37 @@ begin
   exception when others then assert sqlerrm = 'Clear the steps recorded after it first', sqlerrm; end;
   perform public.fo_record_step(h, o1, 'released', b + 118);
   perform public.fo_record_step(h, o1, 'delivered', b + 119);
+  assert (select status from public.fo_orders where id = o1) = 'open', 'duty free: open until the original CUSDEC reaches the client';
+  perform public.fo_record_step(h, o1, 'cusdec_to_client', b + 119, 'T-1');
   assert (select status from public.fo_orders where id = o1) = 'delivered', 'order delivered';
   assert (select status from public.fo_handovers where id = h) = 'open', 'hand-over stays open while the service is open';
   -- order 2: service, TT
   perform public.fo_record_step(h, o2, 'io_created', b + 16);
+  -- a small service order (no PI value yet → DIC kept; below USD 10,000 → no DIC)
+  assert (select dic_required from public.fo_orders where id = o2), 'no value: DIC kept';
+  perform public.fo_save_order(o2, jsonb_build_object('title', 'Commissioning', 'kind', 'service', 'vendor', 'Example Controls', 'payment', 'TT', 'currency', 'EUR', 'pi_value', 8000));
+  assert not (select dic_required from public.fo_orders where id = o2), 'EUR 8,000 is below USD 10,000';
+  assert (select dic_required from public.fo_orders where id = o1), 'EUR 84,600: DIC needed';
   perform public.fo_record_step(h, o2, 'io_dgm', b + 18);
   perform public.fo_record_step(h, o2, 'io_fbp', b + 18);
-  perform public.fo_record_step(h, o2, 'io_approved', b + 18);
   perform public.fo_record_step(h, o2, 'io_handed', b + 18);
   perform public.fo_record_step(h, o2, 'po_issued', b + 20, '4500124000');
   perform public.fo_record_step(h, o2, 'po_ack', b + 21);
   -- the TT / LC application is optional (Ops may not see it): the TT follows the PO directly
   assert app.fo_step_start(h, o2, 'tt_sent') = b + 20, 'timed from the PO';
   perform public.fo_record_step(h, o2, 'tt_sent', b + 25);
-  assert public.fo_save_order(o2, jsonb_build_object('title', 'Commissioning', 'kind', 'service', 'vendor', 'Example Controls', 'payment', 'TT', 'inland', true)) = o2;
+  begin perform public.fo_record_step(h, o2, 'service_done', b + 90); assert false, 'TT shared first';
+  exception when others then assert sqlerrm like 'Record "Transmitted TT shared with the manufacturer"%', sqlerrm; end;
+  perform public.fo_record_step(h, o2, 'tt_shared', b + 26);
+  assert public.fo_save_order(o2, jsonb_build_object('title', 'Commissioning', 'kind', 'service', 'vendor', 'Example Controls', 'payment', 'TT', 'inland', true, 'currency', 'EUR', 'pi_value', 8000)) = o2;
   assert not (select inland from public.fo_orders where id = o2), 'inland transport only for FOB';
   begin perform public.fo_record_step(h, o2, 'mfg_done', b + 26); assert false, 'service: no manufacturing';
   exception when others then assert sqlerrm = 'This step does not apply to these terms', sqlerrm; end;
   perform public.fo_record_step(h, o2, 'service_done', b + 90);
   perform public.fo_record_step(h, o2, 'delivered', b + 91);
-  assert (select status from public.fo_handovers where id = h) = 'closed', 'all delivered: hand-over closed';
+  assert (select status from public.fo_handovers where id = h) = 'closed', 'all delivered: hand-over closed ' || (select string_agg(code || ':' || status, ',') from public.fo_orders where handover_id = h)
+    || ' missing ' || coalesce((select string_agg(d.key, ',') from public.fo_orders o join public.fo_handovers hh on hh.id = o.handover_id join public.fo_step_defs d on d.scope = 'o' and not d.optional and app.fo_applies(d.conds, o, hh)
+        where o.handover_id = h and o.status = 'open' and not exists (select 1 from public.fo_steps x where x.order_id = o.id and x.step = d.key)), '');
   perform public.fo_set_sla('codes_ready', 5);
   assert (select sla_days from public.fo_step_defs where key = 'codes_ready') = 5, 'SLA set';
 end $$;

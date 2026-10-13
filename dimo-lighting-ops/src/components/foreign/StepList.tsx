@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, Muted, Row } from '@/components/ui';
@@ -15,6 +16,7 @@ export function StepList({
   people,
   onChange,
   skip = [],
+  extra,
 }: {
   lines: Line[];
   keeper: boolean;
@@ -24,6 +26,8 @@ export function StepList({
   onChange: () => void;
   /** steps recorded elsewhere (e.g. from the shipment) */
   skip?: string[];
+  /** more content inside a stage's card (e.g. the shipment and map in stage 7) */
+  extra?: Record<number, ReactNode>;
 }) {
   const dialog = useDialog();
   const stages = [...new Set(lines.map((l) => l.def.stage))].sort((a, b) => a - b);
@@ -75,6 +79,7 @@ export function StepList({
                 </Row>
               );
             })}
+            {extra?.[s] ? <View style={{ gap: 8, paddingTop: 10, paddingBottom: 6, borderTopWidth: 1, borderTopColor: colors.line }}>{extra[s]}</View> : null}
           </Card>
         );
       })}

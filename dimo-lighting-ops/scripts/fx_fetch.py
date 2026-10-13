@@ -21,6 +21,8 @@ import urllib.request
 
 UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36'
 CCY = ('USD', 'EUR', 'GBP')
+# further currencies for converting foreign-order values (CBSL indicative rates; skipped when not published)
+EXTRA = ('SGD', 'CNY', 'INR', 'AUD')
 DRY = '--dry-run' in sys.argv
 
 
@@ -46,8 +48,14 @@ def rpc(fn, args):
 def cbsl(since):
     """{date: {USD: x, EUR: y, GBP: z}} – LKR per unit, from `since`"""
     out = {}
-    for c in CCY:
-        rows = json.loads(get(f'https://api.frankfurter.dev/v2/rates?from={since}&providers=CBSL&base={c}&quotes=LKR'))
+    for c in CCY + EXTRA:
+        try:
+            rows = json.loads(get(f'https://api.frankfurter.dev/v2/rates?from={since}&providers=CBSL&base={c}&quotes=LKR'))
+        except Exception as e:  # noqa: BLE001
+            if c in CCY:
+                raise
+            print(f'CBSL {c}: not available ({e})')
+            continue
         for r in rows:
             if r.get('quote') == 'LKR' and r.get('rate'):
                 out.setdefault(r['date'], {})[c] = round(float(r['rate']), 4)

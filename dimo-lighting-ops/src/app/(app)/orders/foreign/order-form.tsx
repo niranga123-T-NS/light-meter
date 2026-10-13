@@ -22,6 +22,7 @@ type Form = {
   required_on: string | null;
   prs: string[];
   factory: string;
+  mode: string;
   dangerous: string;
   dg_details: string;
   currency: string;
@@ -65,6 +66,7 @@ function OrderForm({ o, v, h, onSaved, dialog }: { o: FoOrder | null; v: OrderVa
     required_on: o?.required_on ?? null,
     prs: o?.pr_nos ? o.pr_nos.split(',').map((x) => x.trim()).filter(Boolean) : [],
     factory: o?.factory_location ?? '',
+    mode: o?.planned_mode ?? '',
     dangerous: o?.dangerous == null ? '' : o.dangerous ? 'yes' : 'no',
     dg_details: o?.dg_details ?? '',
     currency: v?.currency ?? 'USD',
@@ -110,6 +112,7 @@ function OrderForm({ o, v, h, onSaved, dialog }: { o: FoOrder | null; v: OrderVa
         },
       })) as string;
       if (material && f.factory.trim() !== (o?.factory_location ?? '')) await rpc('fo_set_factory', { p_order: oid, p_location: f.factory, p_lat: null, p_lng: null });
+      if (material && f.mode !== (o?.planned_mode ?? '')) await rpc('fo_set_planned_mode', { p_order: oid, p_mode: f.mode || null });
       await rpc('fo_set_dangerous', { p_order: oid, p_dangerous: material ? f.dangerous === 'yes' : false, p_details: f.dg_details });
       onSaved(oid);
     }, 'Saved');
@@ -146,6 +149,15 @@ function OrderForm({ o, v, h, onSaved, dialog }: { o: FoOrder | null; v: OrderVa
           ) : null}
           <Select label="Payment" required value={f.payment} onChange={(x) => set('payment', x as Form['payment'])} options={[{ value: 'TT', label: 'TT' }, { value: 'LC', label: 'LC' }]} />
           {material ? <Select label="Duty" required value={f.duty} onChange={(x) => set('duty', x)} options={[{ value: 'paid', label: 'Duty paid' }, { value: 'free', label: 'Duty free' }]} /> : null}
+          {material ? (
+            <Select
+              label="Planned freight"
+              value={f.mode}
+              onChange={(x) => set('mode', x)}
+              options={[{ value: 'sea', label: 'Sea freight' }, { value: 'air', label: 'Air freight' }, { value: 'courier', label: 'Courier' }, { value: '', label: 'Not decided yet' }]}
+              hint="The shipment starts with it; set from the shipment if left open"
+            />
+          ) : null}
           {material && f.incoterm === 'FOB' ? (
             <Select label="Inland transport to the port?" value={f.inland ? 'yes' : 'no'} onChange={(x) => set('inland', x === 'yes')} options={yes} hint="FOB only" />
           ) : null}
