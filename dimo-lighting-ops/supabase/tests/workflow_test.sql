@@ -723,6 +723,17 @@ reset role;
 rollback to savepoint tender;
 select pg_temp.act_as('asm_building'); set role authenticated;
 select public.record_client_response('00000000-0000-0000-0000-00000000d001', 'approved');
+-- under evaluation: still open, with the sales person, then the result
+do $$ begin
+  begin perform public.record_inquiry_evaluation('00000000-0000-0000-0000-00000000d001', current_date - 1, null); assert false, 'past date';
+  exception when others then assert sqlerrm like '%cannot be in the past%', sqlerrm; end;
+  perform public.record_inquiry_evaluation('00000000-0000-0000-0000-00000000d001', current_date + 14, 'Consultant comparing three bids');
+  assert (select status from public.inquiries where id = '00000000-0000-0000-0000-00000000d001') = 'under_evaluation', 'under evaluation';
+  assert (select evaluation_until from public.inquiries where id = '00000000-0000-0000-0000-00000000d001') = current_date + 14, 'decision date';
+  assert app.inquiry_open((select i from public.inquiries i where id = '00000000-0000-0000-0000-00000000d001')) = false, 'not in design/estimation';
+  assert app.inquiry_open('under_evaluation'), 'still an open inquiry';
+  assert (select current_owner_id = sales_person_id from public.inquiries where id = '00000000-0000-0000-0000-00000000d001'), 'with the sales person';
+end $$;
 select public.record_inquiry_result('00000000-0000-0000-0000-00000000d001', 'won', null, null, 62000000, current_date);
 do $$ begin
   assert (select milestone from public.projects) = 'won', 'project won';

@@ -175,6 +175,7 @@ export type InquiryStatus =
   | 'returned_to_sales'
   | 'submitted_to_client'
   | 'awaiting_client_approval'
+  | 'under_evaluation'
   | 'client_approved'
   | 'won'
   | 'lost'
@@ -233,6 +234,8 @@ export type Inquiry = {
   expectation_notes: string | null;
   status: InquiryStatus;
   hold_reason: string | null;
+  evaluation_until?: string | null;
+  evaluation_note?: string | null;
   revision: number;
   current_owner_id: string | null;
   current_team: string | null;

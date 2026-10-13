@@ -128,7 +128,7 @@ export async function buildManagementReport(month: string): Promise<MgmtReport> 
     fetchAll('secured_projects', '*', 'id'),
     // won / lost and open quotations follow the inquiries (as on the dashboards); a tender group counts once
     fetchAll('inquiries', 'id, status, order_value, currency, order_date, updated_at, tender_group_id, variation_id, quotations(quoted_value, currency, revision)', 'id', (x) =>
-      x.in('status', ['won', 'lost', 'quotation_released', 'returned_to_sales', 'submitted_to_client', 'awaiting_client_approval', 'client_approved']).is('variation_id', null),
+      x.in('status', ['won', 'lost', 'quotation_released', 'returned_to_sales', 'submitted_to_client', 'awaiting_client_approval', 'under_evaluation', 'client_approved']).is('variation_id', null),
     ),
     // open debtors – as on the Debtors screen (amount = outstanding as per the latest upload)
     fetchAll('debts', '*', 'id', (x) => x.not('status', 'in', '(collected_confirmed,cleared)')),

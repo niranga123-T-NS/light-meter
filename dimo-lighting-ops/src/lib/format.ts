@@ -144,6 +144,7 @@ export const INQUIRY_STATUS_LABEL: Record<string, string> = {
   returned_to_sales: 'Design returned to sales',
   submitted_to_client: 'Submitted to client',
   awaiting_client_approval: 'Awaiting client approval',
+  under_evaluation: 'Under evaluation',
   client_approved: 'Client approved',
   won: 'Won',
   lost: 'Lost',

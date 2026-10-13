@@ -13,7 +13,7 @@ type Tab = 'all' | 'design' | 'estimation' | 'delayed' | 'follow_up' | 'drafts' 
 
 const DESIGN = ['submitted', 'accepted', 'in_design', 'design_review', 'design_approved'];
 const EST = ['in_estimation', 'estimation_review'];
-const FOLLOW = ['quotation_released', 'returned_to_sales', 'submitted_to_client', 'awaiting_client_approval', 'client_approved'];
+const FOLLOW = ['quotation_released', 'returned_to_sales', 'submitted_to_client', 'awaiting_client_approval', 'under_evaluation', 'client_approved'];
 const CLOSED = ['won', 'lost', 'cancelled', 'rejected'];
 
 /** "My Pending Designs & Estimations" for sales (5.4) and the inquiry list for every other role. */
