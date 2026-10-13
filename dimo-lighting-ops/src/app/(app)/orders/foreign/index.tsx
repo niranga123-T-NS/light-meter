@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { DataTable } from '@/components/DataTable';
 import { useDialog } from '@/components/dialog';
-import { editHandover, editShipment, orderOption } from '@/components/foreign/actions';
+import { editShipment, orderOption } from '@/components/foreign/actions';
 import { TestingBanner } from '@/components/Testing';
 import { Button, colors, ErrorBanner, Grid, Loading, Muted, Pill, Row, Screen, Segmented, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
@@ -35,7 +35,7 @@ export default function ForeignOrders() {
   const keeper = FO_KEEPER.includes(me.role);
   const [tab, setTab] = useState<Tab>('orders');
   const { data, error } = useLoad(async () => {
-    const [h, o, s, d, sh, so, hol, ep, nt] = await Promise.all([
+    const [h, o, s, d, sh, so, hol, nt] = await Promise.all([
       supabase.from('fo_handovers').select('*').order('received_on', { ascending: false }),
       supabase.from('fo_orders').select('*').order('created_at'),
       supabase.from('fo_steps').select('*'),
@@ -43,7 +43,6 @@ export default function ForeignOrders() {
       supabase.from('fo_shipments').select('*').order('eta', { ascending: false }),
       supabase.from('fo_shipment_orders').select('*'),
       supabase.from('holidays').select('day'),
-      keeper ? supabase.from('exec_projects').select('project_id, code, name').order('name') : Promise.resolve({ data: [], error: null }),
       supabase.from('fo_notes').select('order_id, handover_id, status').eq('status', 'open'),
     ]);
     if (h.error) throw new Error(h.error.message);
@@ -56,11 +55,10 @@ export default function ForeignOrders() {
       links: (so.data ?? []) as { shipment_id: string; order_id: string }[],
       holidays: new Set(((hol.data ?? []) as { day: string }[]).map((x) => x.day)),
       openNotes: (nt.data ?? []) as { order_id: string | null; handover_id: string }[],
-      projects: ((ep.data ?? []) as { project_id: string; code: string | null; name: string }[]).map((p) => ({ value: p.project_id, label: p.name, hint: p.code ?? undefined })),
     };
   }, [keeper]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const { hos, orders, steps, defs, ships, links, holidays, openNotes, projects } = data;
+  const { hos, orders, steps, defs, ships, links, holidays, openNotes } = data;
   const today = todayIso();
   const hoOf = (id: string) => hos.find((h) => h.id === id)!;
   const rows = orders
@@ -82,10 +80,7 @@ export default function ForeignOrders() {
   const count = (f: (r: (typeof rows)[number]) => boolean) => open.filter(f).length;
   const shown = tab === 'done' ? rows.filter((r) => r.o.status !== 'open') : open;
 
-  const newHandover = async () => {
-    const id = await editHandover(dialog, people, projects);
-    if (id) router.push(`/orders/foreign/ho/${id}`);
-  };
+  const newHandover = () => router.push('/orders/foreign/handover-form');
   const newShipment = async () => {
     const opts = open.filter((r) => r.o.kind === 'material').map((r) => orderOption(r.o, r.h));
     if (!opts.length) return dialog.toast('No open material orders', 'error');

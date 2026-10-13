@@ -1,7 +1,7 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { View } from 'react-native';
 import { useDialog } from '@/components/dialog';
-import { editHandover, rpc } from '@/components/foreign/actions';
+import { rpc } from '@/components/foreign/actions';
 import { FoNotes } from '@/components/foreign/Notes';
 import { StepList } from '@/components/foreign/StepList';
 import { TestingBanner } from '@/components/Testing';
@@ -20,7 +20,7 @@ export default function HandoverPage() {
   const dialog = useDialog();
   const keeper = FO_KEEPER.includes(me.role);
   const { data, error, reload } = useLoad(async () => {
-    const [h, o, s, d, lc, hol, nt, ep] = await Promise.all([
+    const [h, o, s, d, lc, hol, nt] = await Promise.all([
       supabase.from('fo_handovers').select('*').eq('id', id).maybeSingle(),
       supabase.from('fo_orders').select('*').eq('handover_id', id).order('seq_no'),
       supabase.from('fo_steps').select('*').eq('handover_id', id),
@@ -28,7 +28,6 @@ export default function HandoverPage() {
       supabase.from('fo_location_changes').select('*').eq('handover_id', id).order('requested_at', { ascending: false }),
       supabase.from('holidays').select('day'),
       supabase.from('fo_notes').select('*').eq('handover_id', id).order('occurred_on', { ascending: false }),
-      keeper ? supabase.from('exec_projects').select('project_id, code, name').order('name') : Promise.resolve({ data: [], error: null }),
     ]);
     if (h.error) throw new Error(h.error.message);
     if (!h.data) throw new Error('Hand-over not found');
@@ -40,11 +39,10 @@ export default function HandoverPage() {
       changes: (lc.data ?? []) as LocationChange[],
       notes: (nt.data ?? []) as FoNote[],
       holidays: new Set(((hol.data ?? []) as { day: string }[]).map((x) => x.day)),
-      projects: ((ep.data ?? []) as { project_id: string; code: string | null; name: string }[]).map((p) => ({ value: p.project_id, label: p.name, hint: p.code ?? undefined })),
     };
   }, [id, keeper]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const { h, orders, steps, defs, changes, notes, holidays, projects } = data;
+  const { h, orders, steps, defs, changes, notes, holidays } = data;
   const lines = route(defs, h, null, steps, orders, holidays).filter((l) => l.def.scope === 'h');
   const pending = changes.find((c) => c.status === 'pending');
   const approver = me.role === 'sm_projects' || me.role === 'sm_estimation';
@@ -92,7 +90,7 @@ export default function HandoverPage() {
         {keeper && open ? (
           <Row gap={8} wrap>
             <Button small variant="ghost" title="Cancel" onPress={cancel} />
-            <Button small variant="secondary" title="Edit" onPress={async () => { if (await editHandover(dialog, people, projects, h)) await reload(); }} />
+            <Button small variant="secondary" title="Edit" onPress={() => router.push({ pathname: '/orders/foreign/handover-form', params: { id: h.id } })} />
           </Row>
         ) : null}
       </Row>

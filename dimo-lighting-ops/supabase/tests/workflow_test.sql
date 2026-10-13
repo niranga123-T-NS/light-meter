@@ -7430,6 +7430,10 @@ begin
   h := public.fo_save_handover(null, jsonb_build_object('project_id', current_setting('test.fo_project'), 'project_name', 'Harbour View', 'client', 'Example Developers',
          'sales_person_id', (select id from u where role = 'asm_building'), 'received_on', b, 'pi_ref', 'PI-1', 'client_new', true, 'delivery_location', 'Site stores'));
   assert (select code from public.fo_handovers where id = h) like 'HO-%', 'hand-over code';
+  -- linked by the execution project: the name and client come from it, and its SEE follows the orders
+  perform set_config('test.fo_h2', public.fo_save_handover(null, jsonb_build_object('exec_project_id', (select id from public.exec_projects order by created_at limit 1),
+         'sales_person_id', (select id from u where role = 'asm_building'), 'received_on', b, 'delivery_location', 'Site'))::text, false);
+  assert (select project_name = (select name from public.exec_projects order by created_at limit 1) and exec_project_id is not null from public.fo_handovers where id = current_setting('test.fo_h2')::uuid), 'filled from the execution project';
   assert exists (select 1 from public.fo_steps where handover_id = h and step = 'ho_received' and done_on = b), 'hand-over step recorded';
   o1 := public.fo_save_order(null, jsonb_build_object('handover_id', h, 'title', 'Façade luminaires', 'kind', 'material', 'vendor', 'Example Leuchten', 'vendor_new', true,
           'incoterm', 'CIF', 'payment', 'LC', 'duty', 'free', 'required_on', current_date + 30, 'currency', 'EUR', 'pi_value', 84600));
@@ -7517,6 +7521,7 @@ end $$;
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
 do $$ begin
   assert exists (select 1 from public.fo_handovers where id = current_setting('test.fo_h')::uuid), 'SEE sees the project''s orders';
+  assert exists (select 1 from public.fo_handovers where id = current_setting('test.fo_h2')::uuid), 'and the one linked by execution project';
   assert (select count(*) from public.fo_orders where handover_id = current_setting('test.fo_h')::uuid) = 2, 'and its import orders';
   assert not exists (select 1 from public.fo_order_values) and not exists (select 1 from public.fo_payments), 'but not the values';
 end $$;
