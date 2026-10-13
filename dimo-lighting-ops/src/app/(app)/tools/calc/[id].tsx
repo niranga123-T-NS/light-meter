@@ -410,9 +410,8 @@ export default function QuickCalc() {
             value={f.shape === 'free' ? 'draw' : 'shape'}
             onChange={(v) => {
               if (v === 'draw' && f.shape !== 'free') {
-                // start the drawing from the shape chosen (Clear to start afresh)
-                const seed = f.shape === 'circle' ? [] : (calc.poly ?? []);
-                set({ shape: 'free', points: seed.map((p) => `${+p.x.toFixed(2)},${+p.y.toFixed(2)}`).join('; '), closed: seed.length >= 3, count: null });
+                // start drawing on an empty grid – the first tap is the first corner
+                set({ shape: 'free', points: '', closed: false, count: null });
               } else if (v === 'shape' && f.shape === 'free') set({ shape: 'rect', count: null });
             }}
             options={[

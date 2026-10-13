@@ -19,14 +19,34 @@ export function PlanDraw({ points, closed, onChange, width }: Props) {
   const [extent, setExtent] = useState(fitExtent);
   const [snap, setSnap] = useState<'0.5' | '0.1' | '1'>('0.5');
   const [ortho, setOrtho] = useState(true);
+  // a corner being dragged (pen or finger), and a hint after a tap on a closed plan
+  const [drag, setDrag] = useState<{ i: number; moved: boolean } | null>(null);
+  const [hint, setHint] = useState<string | null>(null);
   const pad = 26;
   const W = Math.max(width, 260);
   const sc = (W - 2 * pad) / extent;
   const X = (x: number) => pad + x * sc;
   const Y = (y: number) => W - pad - y * sc;
 
+  const snapPt = (lx: number, ly: number) => {
+    const s = Number(snap);
+    return { x: r2(Math.min(Math.max(Math.round((lx - pad) / sc / s) * s, 0), extent)), y: r2(Math.min(Math.max(Math.round((W - pad - ly) / sc / s) * s, 0), extent)) };
+  };
+  const nearCorner = (lx: number, ly: number) => {
+    let best = -1;
+    let d = 22; // px
+    points.forEach((p, i) => {
+      const dd = Math.hypot(lx - X(p.x), ly - Y(p.y));
+      if (dd < d) [best, d] = [i, dd];
+    });
+    return best;
+  };
   const tap = (lx: number, ly: number) => {
-    if (closed) return;
+    if (closed) {
+      setHint('The plan is closed – drag a corner to move it, Undo to reopen the last wall, or Clear to draw again.');
+      return;
+    }
+    setHint(null);
     const s = Number(snap);
     let x = Math.min(Math.max(Math.round((lx - pad) / sc / s) * s, 0), extent);
     let y = Math.min(Math.max(Math.round((W - pad - ly) / sc / s) * s, 0), extent);
@@ -80,14 +100,35 @@ export function PlanDraw({ points, closed, onChange, width }: Props) {
         <SvgXml xml={xml} width={W} height={W} />
         {/* an empty layer on top takes the taps, so the position is always measured from the drawing's corner */}
         <View
-          style={{ position: 'absolute', left: 0, top: 0, width: W, height: W, cursor: closed ? 'default' : 'crosshair' } as object}
+          style={{ position: 'absolute', left: 0, top: 0, width: W, height: W, cursor: closed ? 'move' : 'crosshair', touchAction: 'none', userSelect: 'none' } as object}
           onStartShouldSetResponder={() => true}
-          onResponderRelease={(e) => tap(e.nativeEvent.locationX, e.nativeEvent.locationY)}
+          onMoveShouldSetResponder={() => true}
+          onResponderTerminationRequest={() => false}
+          onResponderGrant={(e) => {
+            // pressing on a corner picks it up to drag; otherwise the press is a tap (on release)
+            const i = nearCorner(e.nativeEvent.locationX, e.nativeEvent.locationY);
+            setDrag(i >= 0 ? { i, moved: false } : null);
+          }}
+          onResponderMove={(e) => {
+            if (!drag) return;
+            const q = snapPt(e.nativeEvent.locationX, e.nativeEvent.locationY);
+            const p = points[drag.i];
+            if (!p || (p.x === q.x && p.y === q.y)) return;
+            setDrag({ ...drag, moved: true });
+            setHint(null);
+            onChange(points.map((o, k) => (k === drag.i ? q : o)), closed);
+          }}
+          onResponderRelease={(e) => {
+            const wasDrag = drag?.moved;
+            setDrag(null);
+            if (!wasDrag) tap(e.nativeEvent.locationX, e.nativeEvent.locationY);
+          }}
         />
       </View>
+      {hint ? <Muted>{hint}</Muted> : null}
       <Muted>
         {closed
-          ? `Plan closed · ${area(points).toFixed(1)} m² · ${points.length} corners. Edit the corners below, or Undo to change the last wall.`
+          ? `Plan closed · ${area(points).toFixed(1)} m² · ${points.length} corners. Drag a corner to move it, or edit the corners below.`
           : points.length
             ? points.length >= 3
               ? 'Tap the next corner – tap the red first corner to close the plan.'
