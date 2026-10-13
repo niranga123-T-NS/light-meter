@@ -7536,7 +7536,16 @@ select public.fo_tick(now());
 select pg_temp.act_as('operations_exec'); set role authenticated;
 do $$ declare o uuid; sh uuid; begin
   o := public.fo_save_order(null, jsonb_build_object('handover_id', current_setting('test.fo_h2'), 'title', 'Spare drivers', 'kind', 'material', 'vendor', 'V', 'incoterm', 'CIF', 'payment', 'TT', 'duty', 'paid'));
-  sh := public.fo_save_shipment(null, jsonb_build_object('mode', 'sea', 'etd', current_date - 20, 'eta', current_date - 2, 'order_ids', jsonb_build_array(o)));
+  begin perform public.fo_save_shipment(null, jsonb_build_object('mode', 'sea', 'order_ids', jsonb_build_array(o))); assert false, 'CI + PL first';
+  exception when others then assert sqlerrm like '%confirm the commercial invoice and packing list first%', sqlerrm; end;
+  perform set_config('test.fo_spare', o::text, false);
+end $$;
+reset role;
+insert into public.fo_steps (handover_id, order_id, step, done_on, recorded_by)
+values (current_setting('test.fo_h2')::uuid, current_setting('test.fo_spare')::uuid, 'cipl_confirmed', current_date - 21, (select id from u where role = 'operations_exec'));
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare sh uuid; begin
+  sh := public.fo_save_shipment(null, jsonb_build_object('mode', 'sea', 'etd', current_date - 20, 'eta', current_date - 2, 'order_ids', jsonb_build_array(current_setting('test.fo_spare')::uuid)));
   perform set_config('test.fo_late_ship', sh::text, false);
 end $$;
 reset role;

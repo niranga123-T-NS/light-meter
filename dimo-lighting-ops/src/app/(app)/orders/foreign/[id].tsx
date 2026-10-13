@@ -110,10 +110,61 @@ export default function ForeignOrder() {
     const r = await dialog.prompt({ title: `Cancel ${o.code}`, fields: [{ key: 'reason', label: 'Reason', type: 'multiline', required: true }], confirmLabel: 'Cancel order', danger: true });
     if (r) await dialog.run(async () => { await rpc('fo_cancel_order', { p_id: o.id, p_reason: r.reason }); await reload(); }, 'Cancelled');
   };
+  const ciplDone = steps.some((x) => x.order_id === o.id && x.step === 'cipl_confirmed');
+  const joinShipment = async () => {
+    const { data: open } = await supabase.from('fo_shipments').select('id, code, mode, vessel_flight, eta').is('arrived_on', null).order('created_at', { ascending: false });
+    const list = (open ?? []) as { id: string; code: string; mode: string; vessel_flight: string | null; eta: string | null }[];
+    if (!list.length) return dialog.toast('No shipment waiting – book a new one', 'error');
+    const r = await dialog.prompt({
+      title: 'Add to an existing shipment',
+      fields: [{ key: 'sid', label: 'Shipment', type: 'select', required: true, options: list.map((x) => ({ value: x.id, label: `${x.code} · ${x.vessel_flight ?? x.mode}${x.eta ? ` · ETA ${fmtDate(x.eta)}` : ''}` })) }],
+      confirmLabel: 'Add',
+    });
+    if (r) await dialog.run(async () => { await rpc('fo_add_to_shipment', { p_shipment: r.sid, p_order: o.id }); await reload(); }, 'Added to the shipment');
+  };
   const newShipment = async () => {
     const sid = await editShipment(dialog, openOrders.map((x) => orderOption(x)), null, [o.id], o.planned_mode);
     if (sid) router.push(`/orders/foreign/shipment/${sid}`);
   };
+
+  // the shipment and its route map, inside stage 7 – booked once the CI and PL are confirmed
+  const shipmentPanel = (
+    <>
+      <Row wrap gap={8} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+        <Text style={{ fontWeight: '700', color: colors.ink }}>Shipment</Text>
+        {keeper && open ? (
+          <Row wrap gap={8}>
+            <Button small variant="secondary" title="Add to an existing shipment" onPress={joinShipment} disabled={!ciplDone} />
+            {!ships.length ? <Button small title="+ Book shipment" onPress={newShipment} disabled={!ciplDone} /> : null}
+          </Row>
+        ) : null}
+      </Row>
+      {!ciplDone && !ships.length ? <Muted>Booked once the commercial invoice and packing list are confirmed (stage 6).</Muted> : null}
+      {ships.map((sh) => (
+        <ListRow
+          key={sh.id}
+          title={`${sh.code} · ${sh.vessel_flight ?? sh.mode}${sh.voyage ? ` ${sh.voyage}` : ''}`}
+          subtitle={`${[sh.pol, sh.via, sh.pod].filter(Boolean).join(' → ') || 'Route not entered'}\nETD ${fmtDate(sh.etd)} · ${sh.arrived_on ? `arrived ${fmtDate(sh.arrived_on)}` : `ETA ${fmtDate(sh.eta)}`}${sh.last_checked_on ? ` · checked ${fmtDate(sh.last_checked_on)}` : ''}`}
+          right={<Pill label={sh.arrived_on ? 'Arrived' : sh.etd && sh.etd <= todayIso() ? 'In transit' : 'Booked'} tone={sh.arrived_on ? colors.green : colors.blue} />}
+          wrapRight
+          onPress={() => router.push(`/orders/foreign/shipment/${sh.id}`)}
+        />
+      ))}
+      {ships.length ? (
+        <>
+          <ShipmentRoute
+            shipment={ships[ships.length - 1]}
+            orders={[o]}
+            site={h.delivery_location}
+            positions={positions.filter((x) => x.shipment_id === ships[ships.length - 1].id)}
+            keeper={keeper && open}
+            onChange={reload}
+          />
+          {keeper ? <Muted>Sailed and arrival are recorded on the shipment page, for every order it carries.</Muted> : null}
+        </>
+      ) : null}
+    </>
+  );
 
   return (
     <Screen maxWidth={1100}>
@@ -174,40 +225,17 @@ export default function ForeignOrder() {
       ) : null}
       <Button small variant="ghost" title={`Hand-over ${h.code} – client, SAP project, delivery location ›`} onPress={() => router.push(`/orders/foreign/ho/${h.id}`)} />
 
-      {o.kind === 'material' ? (
-        <Section title="Shipment" right={keeper && open ? <Button small variant="secondary" title="+ Shipment" onPress={newShipment} /> : null}>
-          {ships.length ? (
-            <Card style={{ padding: 0, overflow: 'hidden' }}>
-              {ships.map((s) => (
-                <ListRow
-                  key={s.id}
-                  title={`${s.code} · ${s.vessel_flight ?? s.mode}${s.voyage ? ` ${s.voyage}` : ''}`}
-                  subtitle={`${[s.pol, s.via, s.pod].filter(Boolean).join(' → ') || 'Route not entered'}\nETD ${fmtDate(s.etd)} · ${s.arrived_on ? `arrived ${fmtDate(s.arrived_on)}` : `ETA ${fmtDate(s.eta)}`}${s.last_checked_on ? ` · checked ${fmtDate(s.last_checked_on)}` : ''}`}
-                  right={<Pill label={s.arrived_on ? 'Arrived' : s.etd && s.etd <= todayIso() ? 'In transit' : 'Booked'} tone={s.arrived_on ? colors.green : colors.blue} />}
-                  wrapRight
-                  onPress={() => router.push(`/orders/foreign/shipment/${s.id}`)}
-                />
-              ))}
-            </Card>
-          ) : (
-            <Muted>No shipment yet. Add it when the forwarder confirms the booking; one shipment can carry several import orders.</Muted>
-          )}
-          {ships.length ? (
-            <ShipmentRoute
-              shipment={ships[ships.length - 1]}
-              orders={[o]}
-              site={h.delivery_location}
-              positions={positions.filter((x) => x.shipment_id === ships[ships.length - 1].id)}
-              keeper={keeper && open}
-              onChange={reload}
-            />
-          ) : null}
-        </Section>
-      ) : null}
-
       <Section title="Steps">
-        <StepList lines={lines} keeper={keeper && open} handoverId={h.id} orderId={o.id} people={people} onChange={reload} skip={ships.length ? ['shipped', 'arrived'] : []} />
-        {ships.length && keeper ? <Muted>Shipped and arrival are recorded on the shipment, for every order it carries.</Muted> : null}
+        <StepList
+          lines={lines}
+          keeper={keeper && open}
+          handoverId={h.id}
+          orderId={o.id}
+          people={people}
+          onChange={reload}
+          skip={ships.length ? ['shipped', 'arrived'] : []}
+          extra={o.kind === 'material' ? { 7: shipmentPanel } : undefined}
+        />
       </Section>
 
       <FoNotes notes={notes} lines={lines} handoverId={h.id} orderId={o.id} keeper={keeper && o.status !== 'cancelled'} people={people} onChange={reload} />

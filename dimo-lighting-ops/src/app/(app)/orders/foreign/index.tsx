@@ -2,8 +2,6 @@ import { router, Stack } from 'expo-router';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { DataTable } from '@/components/DataTable';
-import { useDialog } from '@/components/dialog';
-import { editShipment, orderOption } from '@/components/foreign/actions';
 import { TestingBanner } from '@/components/Testing';
 import { Button, colors, ErrorBanner, Grid, Loading, Muted, Pill, Row, Screen, Segmented, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
@@ -31,7 +29,6 @@ type Tab = 'orders' | 'handovers' | 'shipments' | 'done';
 export default function ForeignOrders() {
   const me = useMe();
   const people = usePeople();
-  const dialog = useDialog();
   const keeper = FO_KEEPER.includes(me.role);
   const [tab, setTab] = useState<Tab>('orders');
   const { data, error } = useLoad(async () => {
@@ -81,12 +78,6 @@ export default function ForeignOrders() {
   const shown = tab === 'done' ? rows.filter((r) => r.o.status !== 'open') : open;
 
   const newHandover = () => router.push('/orders/foreign/handover-form');
-  const newShipment = async () => {
-    const opts = open.filter((r) => r.o.kind === 'material').map((r) => orderOption(r.o, r.h));
-    if (!opts.length) return dialog.toast('No open material orders', 'error');
-    const id = await editShipment(dialog, opts);
-    if (id) router.push(`/orders/foreign/shipment/${id}`);
-  };
 
   return (
     <Screen maxWidth={1300}>
@@ -117,7 +108,6 @@ export default function ForeignOrders() {
         />
         <Row wrap gap={8}>
           <Button small variant="secondary" title="Performance" onPress={() => router.push('/orders/foreign/performance')} />
-          {keeper ? <Button small variant="secondary" title="+ Shipment" onPress={newShipment} /> : null}
           {keeper ? <Button small title="+ Hand-over" onPress={newHandover} /> : null}
         </Row>
       </Row>
