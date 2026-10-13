@@ -1,0 +1,45 @@
+# Vessel check for foreign-order sea shipments: morning and evening (Sri Lanka time), listens to the free AISstream feed
+# for up to 10 minutes for every sailed sea shipment with the vessel's MMSI, and records the latest position (on the map),
+# the speed, status and the ship's own reported destination and ETA. A reported ETA to Sri Lanka 2+ days from the
+# shipment's ETA is told to Ops, Sales and the SEE.
+# Secrets: AISSTREAM_KEY (from aisstream.io – the check is skipped without it), and the backend deploy secrets
+# (SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF, DISPATCH_SECRET).
+name: DIMO – vessel check
+
+on:
+  schedule:
+    - cron: '50 1 * * *'    # 07:20 Sri Lanka
+    - cron: '50 12 * * *'   # 18:20 Sri Lanka
+  workflow_dispatch:
+
+concurrency: dimo-vessels
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: dimo-lighting-ops
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      FX_SECRET: ${{ secrets.DISPATCH_SECRET }}
+      AISSTREAM_KEY: ${{ secrets.AISSTREAM_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skip without the AISstream key
+        if: env.AISSTREAM_KEY == ''
+        run: echo "No AISSTREAM_KEY secret – add it under Settings → Secrets and variables → Actions to turn the vessel check on."
+      - uses: supabase/setup-cli@v1
+        if: env.AISSTREAM_KEY != ''
+        with:
+          version: latest
+      - name: Listen for the vessels
+        if: env.AISSTREAM_KEY != ''
+        run: |
+          pip install -q websockets
+          key=$(supabase projects api-keys --project-ref "$PROJECT_REF" -o json | jq -r '[.[] | select(.name == "anon" or .type == "publishable")][0].api_key')
+          if [ -z "$key" ] || [ "$key" = "null" ]; then echo "::error::Could not read the project's public (anon) key"; exit 1; fi
+          echo "::add-mask::$key"
+          SUPABASE_URL="https://$PROJECT_REF.supabase.co" SUPABASE_ANON_KEY="$key" python3 scripts/vessels_fetch.py

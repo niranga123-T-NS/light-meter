@@ -7750,6 +7750,25 @@ begin
   assert exists (select 1 from public.notifications where title = 'Flight landed'), 'landed told';
   assert not (public.fo_flights_due('fx-test-secret') @> jsonb_build_array(jsonb_build_object('id', sid))), 'not checked after landing';
 end $$;
+-- Vessel check (AISstream through the workflow): position on the map, reported destination / ETA, alert when it differs 2+ days
+set session_replication_role = replica;
+insert into public.fo_shipments (id, code, mode, vessel_flight, mmsi, etd, eta) values ('00000000-0000-0000-0000-0000000ff002', 'SHP-T-SEA', 'sea', 'EXAMPLE EXPRESS', '211234560', current_date - 10, current_date + 12);
+insert into public.fo_shipment_orders (shipment_id, order_id) values ('00000000-0000-0000-0000-0000000ff002', current_setting('test.fo_o1')::uuid);
+set session_replication_role = origin;
+do $$ declare sid uuid := '00000000-0000-0000-0000-0000000ff002'; d jsonb;
+begin
+  d := public.fo_vessels_due('fx-test-secret');
+  assert d @> jsonb_build_array(jsonb_build_object('id', sid, 'mmsi', '211234560')), d::text;
+  assert public.fo_vessel_ingest('fx-test-secret', jsonb_build_array(jsonb_build_object('id', sid, 'lat', 12.6, 'lng', 47.9, 'at', now() - interval '20 minutes',
+    'place', 'Gulf of Aden · 12.60° N 47.90° E', 'speed', 14.2, 'status', 'under way', 'destination', 'LKCMB', 'eta', now() + interval '12 days')))  = 1, 'position added';
+  assert (select ais_destination = 'LKCMB' and ais_speed = 14.2 and last_check_note like 'Gulf of Aden%' from public.fo_shipments where id = sid), 'reported data kept';
+  assert (select note from public.fo_positions where shipment_id = sid) = 'AIS · under way · 14.2 kn · to LKCMB', 'position note';
+  assert not exists (select 1 from public.notifications where title = 'Vessel ETA differs'), 'same ETA: no alert';
+  assert public.fo_vessel_ingest('fx-test-secret', jsonb_build_array(jsonb_build_object('id', sid, 'lat', 12.6, 'lng', 47.9, 'at', now() - interval '20 minutes'))) = 0, 'same position not repeated';
+  perform public.fo_vessel_ingest('fx-test-secret', jsonb_build_array(jsonb_build_object('id', sid, 'lat', 12.9, 'lng', 50.1, 'at', now(), 'destination', 'COLOMBO', 'eta', now() + interval '16 days')));
+  assert exists (select 1 from public.notifications where title = 'Vessel ETA differs' and body like '%COLOMBO%'), 'later ETA told';
+  assert (select count(*) from public.fo_positions where shipment_id = sid) = 2, 'trail';
+end $$;
 rollback to savepoint hol1;
 
 \echo 'ALL WORKFLOW TESTS PASSED'

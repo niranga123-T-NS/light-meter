@@ -103,6 +103,15 @@ export default function ShipmentPage() {
               : 'Enter the flight no. and the ETD (Edit / ETA) – the flight is then checked automatically.'}
         </Notice>
       ) : null}
+      {s.mode === 'sea' && !s.arrived_on ? (
+        <Notice tone={colors.blue}>
+          {s.ais_seen_at
+            ? `AIS: last heard ${fmtDateTime(s.ais_seen_at)}${s.ais_status ? ` · ${s.ais_status}` : ''}${s.ais_speed != null ? ` · ${s.ais_speed} kn` : ''}${s.ais_destination ? ` · reports destination ${s.ais_destination}` : ''}${s.ais_eta ? `, ETA ${fmtDateTime(s.ais_eta)}` : ''}${s.ais_checked_at && s.ais_checked_at > s.ais_seen_at ? ` · not heard at the last check (${fmtDateTime(s.ais_checked_at)}) – probably out of receiver range at sea` : ''}`
+            : s.mmsi
+              ? `Position checked automatically morning and evening once sailed (MMSI ${s.mmsi}).${s.ais_checked_at ? ` Not heard yet – last check ${fmtDateTime(s.ais_checked_at)}; ships far out at sea are heard again near the coast.` : ''}`
+              : 'Enter the vessel’s MMSI no. (Edit / ETA) – its position is then recorded automatically morning and evening.'}
+        </Notice>
+      ) : null}
       <ShipmentRoute shipment={s} orders={orders} site={hos.length === 1 ? hos[0].delivery_location : null} positions={positions} keeper={keeper} onChange={reload} />
       <Grid min={200}>
         {s.mode === 'sea' ? (

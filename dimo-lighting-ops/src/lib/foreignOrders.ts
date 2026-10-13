@@ -85,6 +85,12 @@ export type Shipment = {
   flight_landed_at?: string | null;
   flight_route?: string | null;
   flight_checked_at?: string | null;
+  ais_destination?: string | null;
+  ais_eta?: string | null;
+  ais_speed?: number | null;
+  ais_status?: string | null;
+  ais_seen_at?: string | null;
+  ais_checked_at?: string | null;
 };
 
 /** AeroDataBox flight status in words */
