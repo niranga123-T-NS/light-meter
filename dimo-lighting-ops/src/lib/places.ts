@@ -132,20 +132,62 @@ const AIRPORTS: Row[] = [
   ['Melbourne (MEL)', -37.67, 144.84, ['mel']],
 ];
 
+/** Sea areas and passages: a ship between ports is recorded by the area it is in (an approximate point), or by its coordinates */
+const SEAS: Row[] = [
+  ['Laccadive Sea', 7.5, 77.0, ['off kerala', 'off kanyakumari', 'off cochin']],
+  ['Indian Ocean south of Sri Lanka', 5.0, 80.5, ['off galle', 'off dondra', 'south of sri lanka']],
+  ['Gulf of Mannar', 8.6, 79.0, ['palk strait']],
+  ['Bay of Bengal', 14.0, 87.0, ['off chennai', 'off trincomalee']],
+  ['Arabian Sea', 15.0, 64.0, ['off salalah', 'off oman', 'off mumbai', 'off karachi', 'off somalia']],
+  ['Gulf of Oman', 24.5, 58.5],
+  ['Strait of Hormuz', 26.5, 56.4, ['hormuz']],
+  ['Persian Gulf', 27.0, 51.5, ['arabian gulf']],
+  ['Gulf of Aden', 12.5, 48.0, ['aden']],
+  ['Bab-el-Mandeb', 12.6, 43.3, ['bab el mandeb']],
+  ['Red Sea', 20.0, 38.5],
+  ['Suez Canal', 30.6, 32.33, ['suez canal']],
+  ['Mediterranean Sea', 34.5, 20.0, ['mediterranean', 'med']],
+  ['Strait of Gibraltar', 35.95, -5.6, ['gibraltar']],
+  ['Bay of Biscay', 45.5, -5.0, ['biscay']],
+  ['English Channel', 50.2, -1.5],
+  ['North Sea', 55.5, 3.0],
+  ['Atlantic off West Africa', 10.0, -20.0, ['west africa', 'atlantic']],
+  ['Cape of Good Hope', -34.8, 18.5, ['good hope', 'cape town']],
+  ['Mozambique Channel', -18.0, 41.0],
+  ['Andaman Sea', 10.0, 96.0],
+  ['Strait of Malacca', 3.5, 100.0, ['malacca', 'melaka']],
+  ['Singapore Strait', 1.2, 104.0],
+  ['South China Sea', 13.0, 114.0],
+  ['Gulf of Thailand', 10.0, 102.0],
+  ['Taiwan Strait', 24.0, 119.5],
+  ['East China Sea', 29.0, 125.0],
+  ['Java Sea', -5.0, 110.0],
+  ['Sunda Strait', -6.0, 105.8],
+  ['Timor Sea', -11.0, 127.0],
+  ['Pacific Ocean', 25.0, -150.0, ['pacific']],
+];
+
 const norm = (s: string) => s.toLowerCase().replace(/\b(port of|port|harbour|harbor|airport|intl|international)\b/g, ' ').replace(/[^a-z0-9À-ɏ]+/g, ' ').trim();
 const build = (rows: Row[], kind: Place['kind']) =>
   rows.map(([name, lat, lng, aliases]) => ({ place: { name, lat, lng, kind, lk: lat > 5.5 && lat < 10 && lng > 79 && lng < 82.5 } as Place, keys: [norm(name), ...(aliases ?? []).map(norm)] }));
 const PORT_LIST = build(PORTS, 'port');
 const AIR_LIST = build(AIRPORTS, 'airport');
+const SEA_LIST = build(SEAS, 'place');
 
 /** A port (sea) or airport (air) by name or code, from the built-in list */
 export function knownPlace(name: string | null | undefined, mode: 'sea' | 'air' | 'courier' = 'sea'): Place | null {
   if (!name?.trim()) return null;
   const n = norm(name);
   if (!n) return null;
-  const lists = mode === 'sea' ? [PORT_LIST, AIR_LIST] : [AIR_LIST, PORT_LIST];
+  const atSea = /\b(sea|gulf|strait|ocean|channel|canal|bay|cape|off|passage)\b/.test(n);
+  const lists = mode === 'sea' ? (atSea ? [SEA_LIST, PORT_LIST, AIR_LIST] : [PORT_LIST, SEA_LIST, AIR_LIST]) : [AIR_LIST, PORT_LIST, SEA_LIST];
+  // the exact name or code first, then a name inside the text
   for (const list of lists) {
-    const hit = list.find((x) => x.keys.includes(n)) ?? list.find((x) => x.keys.some((k) => k.length > 3 && (n.includes(k) || k.includes(n))));
+    const hit = list.find((x) => x.keys.includes(n));
+    if (hit) return hit.place;
+  }
+  for (const list of lists) {
+    const hit = list.find((x) => x.keys.some((k) => k.length > 3 && (n.includes(k) || k.includes(n))));
     if (hit) return hit.place;
   }
   return null;
@@ -194,4 +236,50 @@ export async function findPlace(name: string | null | undefined, opts: { mode?: 
   } catch {
     return null;
   }
+}
+
+/**
+ * Coordinates as the tracking sites show them: "12.6214, 58.4102", "12.62 N 58.41 E", "N 12°37' E 58°24'", "12°37'17"N 58°24'37"E",
+ * or a Google Maps / OpenStreetMap link. Null when the text is not coordinates.
+ */
+export function parseCoords(text: string | null | undefined): { lat: number; lng: number } | null {
+  if (!text?.trim()) return null;
+  let t = text.trim();
+  const link = t.match(/[@=/](-?\d{1,2}\.\d+)[,/](-?\d{1,3}\.\d+)/);
+  if (/^https?:/i.test(t)) return link ? check(Number(link[1]), Number(link[2])) : null;
+  t = t.replace(/lat(itude)?|lon(gitude)?|lng|position|:/gi, ' ').replace(/[\u2018\u2019\u2032]/g, "'").replace(/[\u201c\u201d\u2033]|''/g, '"');
+  if (!/^[\s\d.,;°'"/\-+NSEWnsew]+$/.test(t)) return null;
+  // the hemisphere letter before the numbers (N 12.6 E 58.4) or after them (12.6 N 58.4 E)
+  const before = /^\s*[NSEW]/i.test(t);
+  const re = before
+    ? /([NSEW])\s*([-+]?\d+(?:\.\d+)?)\s*°?\s*(?:(\d+(?:\.\d+)?)\s*'\s*(?:(\d+(?:\.\d+)?)\s*"\s*)?)?()/gi
+    : /()([-+]?\d+(?:\.\d+)?)\s*°?\s*(?:(\d+(?:\.\d+)?)\s*'\s*(?:(\d+(?:\.\d+)?)\s*"\s*)?)?\s*([NSEW])?/gi;
+  const parts = [...t.matchAll(re)].filter((m) => m[2]);
+  if (parts.length !== 2) return null;
+  const val = (m: RegExpMatchArray) => {
+    const deg = Number(m[2]);
+    const v = Math.abs(deg) + Number(m[3] ?? 0) / 60 + Number(m[4] ?? 0) / 3600;
+    const hemi = (m[1] || m[5] || '').toUpperCase();
+    return { v: deg < 0 || hemi === 'S' || hemi === 'W' ? -v : v, hemi };
+  };
+  const [a, b] = parts.map(val);
+  // E / W first means the longitude was given first
+  if ((a.hemi === 'E' || a.hemi === 'W') && (b.hemi === 'N' || b.hemi === 'S' || !b.hemi)) return check(b.v, a.v);
+  return check(a.v, b.v);
+}
+const check = (lat: number, lng: number) => (Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180 ? { lat, lng } : null);
+
+/** "12.62° N 58.41° E" */
+export const fmtCoords = (p: { lat: number; lng: number }) => `${Math.abs(p.lat).toFixed(2)}° ${p.lat < 0 ? 'S' : 'N'} ${Math.abs(p.lng).toFixed(2)}° ${p.lng < 0 ? 'W' : 'E'}`;
+
+/** The nearest named sea area or port (within about 900 km), to name a point at sea */
+export function nearestArea(p: { lat: number; lng: number }) {
+  let best: { name: string; d: number } | null = null;
+  for (const x of [...SEA_LIST, ...PORT_LIST]) {
+    const dy = x.place.lat - p.lat;
+    const dx = (x.place.lng - p.lng) * Math.cos((p.lat * Math.PI) / 180);
+    const d = Math.sqrt(dx * dx + dy * dy) * 111;
+    if (!best || d < best.d) best = { name: x.place.kind === 'port' ? `off ${x.place.name}` : x.place.name, d };
+  }
+  return best && best.d < 900 ? best.name : null;
 }
