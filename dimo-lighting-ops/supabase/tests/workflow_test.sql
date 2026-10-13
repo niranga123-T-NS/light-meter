@@ -7564,8 +7564,11 @@ begin
   perform public.fo_record_step(h, o2, 'io_handed', b + 18);
   perform public.fo_record_step(h, o2, 'po_issued', b + 20, '4500124000');
   perform public.fo_record_step(h, o2, 'po_ack', b + 21);
-  perform public.fo_record_step(h, o2, 'pay_applied', b + 21);
+  -- the TT / LC application is optional (Ops may not see it): the TT follows the PO directly
+  assert app.fo_step_start(h, o2, 'tt_sent') = b + 20, 'timed from the PO';
   perform public.fo_record_step(h, o2, 'tt_sent', b + 25);
+  assert public.fo_save_order(o2, jsonb_build_object('title', 'Commissioning', 'kind', 'service', 'vendor', 'Example Controls', 'payment', 'TT', 'inland', true)) = o2;
+  assert not (select inland from public.fo_orders where id = o2), 'inland transport only for FOB';
   begin perform public.fo_record_step(h, o2, 'mfg_done', b + 26); assert false, 'service: no manufacturing';
   exception when others then assert sqlerrm = 'This step does not apply to these terms', sqlerrm; end;
   perform public.fo_record_step(h, o2, 'service_done', b + 90);

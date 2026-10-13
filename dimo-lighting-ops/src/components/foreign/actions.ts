@@ -1,7 +1,7 @@
 import type { useDialog } from '@/components/dialog';
 import type { Option } from '@/components/ui';
 import { fmtDate } from '@/lib/format';
-import { todayIso, yesNo, type FoOrder, type Handover, type Line, type OrderValues, type Shipment } from '@/lib/foreignOrders';
+import { todayIso, type FoOrder, type Handover, type Line, type Shipment } from '@/lib/foreignOrders';
 import { supabase } from '@/lib/supabase';
 import type { Profile } from '@/lib/types';
 
@@ -44,52 +44,6 @@ export async function editHandover(dialog: Dialog, people: Record<string, Profil
     id = (await rpc('fo_save_handover', {
       p_id: h?.id ?? null,
       p: { ...r, project_name: r.project_name || proj?.label || '', client_new: r.client_new === 'yes' },
-    })) as string;
-  }, 'Saved');
-  return id;
-}
-
-/** New or edited import order (Ops) */
-export async function editOrder(dialog: Dialog, handoverId: string, o?: FoOrder | null, v?: OrderValues | null) {
-  const r = await dialog.prompt({
-    title: o ? `Edit ${o.code}` : 'New import order',
-    message: 'One import order per manufacturer (or per shipment). Its terms decide which steps it goes through.',
-    fields: [
-      { key: 'title', label: 'What is ordered', required: true, initial: o?.title ?? '', hint: 'e.g. Façade luminaires, LED drivers, commissioning' },
-      { key: 'kind', label: 'Material or service', type: 'select', options: [{ value: 'material', label: 'Material' }, { value: 'service', label: 'Service' }], initial: o?.kind ?? 'material' },
-      { key: 'vendor', label: 'Vendor / manufacturer', required: true, initial: o?.vendor ?? '' },
-      { key: 'vendor_new', label: 'Vendor registered in SAP?', type: 'select', options: [{ value: 'no', label: 'Yes – already in SAP' }, { value: 'yes', label: 'No – send the registration request' }], initial: o?.vendor_new ? 'yes' : 'no' },
-      { key: 'codes_new', label: 'Material codes in SAP?', type: 'select', options: [{ value: 'no', label: 'Yes – all in SAP' }, { value: 'yes', label: 'No – request from MDM' }], initial: o?.codes_new ? 'yes' : 'no' },
-      { key: 'incoterm', label: 'Incoterm (material)', type: 'select', options: [{ value: 'EXW', label: 'EXW – Ex works' }, { value: 'FOB', label: 'FOB' }, { value: 'CIF', label: 'CIF – manufacturer’s forwarder' }], initial: o?.incoterm ?? '' },
-      { key: 'payment', label: 'Payment', type: 'select', options: [{ value: 'TT', label: 'TT' }, { value: 'LC', label: 'LC' }], initial: o?.payment ?? 'TT', required: true },
-      { key: 'duty', label: 'Duty (material)', type: 'select', options: [{ value: 'paid', label: 'Duty paid' }, { value: 'free', label: 'Duty free' }], initial: o?.duty ?? '' },
-      { key: 'inland', label: 'Inland transport to the port?', type: 'select', options: yesNo, initial: o?.inland ? 'yes' : 'no' },
-      { key: 'required_on', label: 'Required at site by', type: 'date', initial: o?.required_on ?? '' },
-      { key: 'pr_nos', label: 'SAP PR nos.', initial: o?.pr_nos ?? '' },
-      { key: 'currency', label: 'Currency', initial: v?.currency ?? 'USD', hint: 'e.g. USD, EUR' },
-      { key: 'pi_value', label: 'PI value', initial: v?.pi_value != null ? String(v.pi_value) : '' },
-      { key: 'lc_amount', label: 'LC amount', initial: v?.lc_amount != null ? String(v.lc_amount) : '' },
-      { key: 'duty_lkr', label: 'Duty (LKR)', initial: v?.duty_lkr != null ? String(v.duty_lkr) : '' },
-      { key: 'notes', label: 'Notes', type: 'multiline', initial: o?.notes ?? '' },
-    ],
-    confirmLabel: o ? 'Save' : 'Add import order',
-  });
-  if (!r) return null;
-  let id: string | null = null;
-  const num = (s: string) => (s.trim() ? String(Number(s.replace(/,/g, ''))) : '');
-  await dialog.run(async () => {
-    id = (await rpc('fo_save_order', {
-      p_id: o?.id ?? null,
-      p: {
-        ...r,
-        handover_id: handoverId,
-        vendor_new: r.vendor_new === 'yes',
-        codes_new: r.codes_new === 'yes',
-        inland: r.inland === 'yes',
-        pi_value: num(r.pi_value),
-        lc_amount: num(r.lc_amount),
-        duty_lkr: num(r.duty_lkr),
-      },
     })) as string;
   }, 'Saved');
   return id;

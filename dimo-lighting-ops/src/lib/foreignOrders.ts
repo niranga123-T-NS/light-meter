@@ -67,7 +67,7 @@ export type Shipment = {
   last_check_note: string | null;
   notes: string | null;
 };
-export type StepDef = { key: string; scope: 'h' | 'o'; stage: number; seq: number; label: string; node: string; conds: string[]; after: string[]; ref_label: string | null; sla_days: number | null };
+export type StepDef = { key: string; scope: 'h' | 'o'; stage: number; seq: number; label: string; node: string; conds: string[]; after: string[]; ref_label: string | null; sla_days: number | null; optional?: boolean };
 export type Step = { id: string; handover_id: string; order_id: string | null; step: string; done_on: string; ref: string | null; note: string | null; recorded_by: string; recorded_at: string };
 export type LocationChange = {
   id: string;
@@ -109,6 +109,17 @@ export const SHORT_STAGES = ['Hand-over', 'SAP ready', 'Project', 'Import order'
 
 export const FO_KEEPER: Role[] = ['operations_exec'];
 export const FO_OFFICE: Role[] = ['operations_exec', 'sm_estimation', 'sm_projects', 'gm', 'sys_admin'];
+
+export const CURRENCIES = [
+  { value: 'USD', label: 'USD – US dollar' },
+  { value: 'EUR', label: 'EUR – Euro' },
+  { value: 'GBP', label: 'GBP – British pound' },
+  { value: 'SGD', label: 'SGD – Singapore dollar' },
+  { value: 'CNY', label: 'RMB (CNY) – Chinese yuan' },
+  { value: 'INR', label: 'INR – Indian rupee' },
+  { value: 'AUD', label: 'AUD – Australian dollar' },
+];
+export const DELAY_DAYS = [...Array.from({ length: 30 }, (_, i) => i + 1), 45, 60, 90].map((n) => ({ value: String(n), label: `${n} working day${n === 1 ? '' : 's'}` }));
 
 export const PAYMENT_KIND: Record<Payment['kind'], string> = { advance: 'Advance', part: 'Part payment', balance: 'Balance', full: 'Full payment' };
 
@@ -181,7 +192,17 @@ export function route(defs: StepDef[], h: Handover, o: FoOrder | null, steps: St
     const done = doneOf(d.key, d.scope === 'h' ? null : o?.id ?? null);
     let ready = true;
     const dates: string[] = [];
-    for (const k of d.after) {
+    // an optional step not done is skipped: the step follows the steps before it instead
+    const after: string[] = [];
+    const todo = [...d.after];
+    for (let guard = 0; todo.length && guard < 100; guard++) {
+      const k = todo.shift()!;
+      const a = defs.find((x) => x.key === k);
+      if (!a || after.includes(k)) continue;
+      if (a.optional && !doneOf(k, a.scope === 'h' ? null : o?.id ?? null)) todo.push(...a.after);
+      else after.push(k);
+    }
+    for (const k of after) {
       const a = defs.find((x) => x.key === k);
       if (!a) continue;
       if (a.scope === 'h') {
@@ -206,17 +227,17 @@ export function route(defs: StepDef[], h: Handover, o: FoOrder | null, steps: St
     }
     const start = dates.length ? dates.sort().at(-1)! : null;
     const days = done ? workdays(start, done.done_on, holidays) : ready && start ? workdays(start, today, holidays) : null;
-    const late = d.sla_days != null && days != null && days > d.sla_days;
+    const late = !d.optional && d.sla_days != null && days != null && days > d.sla_days;
     return { def: d, done, ready, start, days, late };
   });
 }
 
 /** Where an order stands: its stage (1–9), the open steps now, and who has them */
 export function standing(lines: Line[]) {
-  const now = lines.filter((l) => !l.done && l.ready);
+  const now = lines.filter((l) => !l.done && l.ready && !l.def.optional);
   // waiting for the arrival notice: the goods are still in transit (stage 7)
   const stageOf = (l: Line) => (l.def.key === 'arrived' ? 7 : l.def.stage);
-  const stage = now.length ? Math.min(...now.map(stageOf)) : lines.every((l) => l.done) ? 10 : Math.min(...lines.filter((l) => !l.done).map((l) => l.def.stage));
+  const stage = now.length ? Math.min(...now.map(stageOf)) : lines.every((l) => l.done || l.def.optional) ? 10 : Math.min(...lines.filter((l) => !l.done && !l.def.optional).map((l) => l.def.stage));
   return { stage, now, with: [...new Set(now.map((l) => (l.def.key === 'arrived' ? 'In transit' : l.def.node)))].join(', '), late: now.some((l) => l.late) };
 }
 
