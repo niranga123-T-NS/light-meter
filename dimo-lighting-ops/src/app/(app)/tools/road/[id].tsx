@@ -15,6 +15,7 @@ import { MAINTENANCE, savings } from '@/lib/lightcalc';
 import { beamAngle, iesPhotometry, parseIes, polarSvg } from '@/lib/photometry';
 import { ARRANGEMENTS, checkClass, geometry, maxSpacing, roadCalc, roadModel, SURFACES, type RoadArrangement, type RoadClass, type RoadInput, type Surface } from '@/lib/roadcalc';
 import { ROLE_SHORT } from '@/lib/roles';
+import { isTou, LIGHTS_ON, tariffLabel, tariffRate, tariffSummary, type LightsOn, type Tariff } from '@/lib/tariffs';
 import type { Standard } from '@/lib/standards';
 import { supabase } from '@/lib/supabase';
 
@@ -55,6 +56,8 @@ type Form = {
   lengthKm: number | null;
   hours: number | null;
   rate: number | null;
+  tariff_id: string | null;
+  lightsOn: LightsOn;
   co2: number | null;
   cost: number | null;
 };
@@ -95,6 +98,8 @@ const BLANK: Form = {
   lengthKm: 1,
   hours: 12,
   rate: null,
+  tariff_id: null,
+  lightsOn: 'night',
   co2: 0.6,
   cost: null,
 };
@@ -111,15 +116,19 @@ export default function RoadCalc() {
   const [form, setForm] = useState<Form | null>(null);
   const [savedId, setSavedId] = useState<string | null>(isNew ? null : id);
   const { data, error } = useLoad(async () => {
-    const [stds, calc] = await Promise.all([
+    const [stds, tariffs, calc] = await Promise.all([
       cached('road_classes', async () => {
         const { data: s, error: e } = await supabase.from('lighting_standards').select('*').eq('active', true).eq('grp', 'road').order('sort');
         if (e) throw new Error(e.message);
         return (s ?? []) as Standard[];
       }),
+      cached('road_tariffs', async () => {
+        const { data: t } = await supabase.from('electricity_tariffs').select('id, supplier, code, name, family, rate, peak, day, off_peak, fixed, demand, note, effective_from').eq('active', true).order('sort');
+        return (t ?? []) as Tariff[];
+      }),
       isNew ? Promise.resolve(null) : supabase.from('quick_calcs').select('*').eq('id', id).single().then((r) => r.data as { id: string; code: string; inputs: Form } | null),
     ]);
-    return { stds, calc };
+    return { stds, tariffs, calc };
   }, [id]);
   const preset = useMemo<Form | null>(() => {
     if (!data) return null;
@@ -189,7 +198,9 @@ export default function RoadCalc() {
   const ok = (b: boolean | undefined) => (b == null ? undefined : b ? 'green' : 'amber') as 'green' | 'amber' | undefined;
   const perKm = res ? (res.perField * 1000) / road.spacing : 0;
   const km = f.lengthKm ?? 1;
-  const sv = res && f.oldWatts ? savings({ oldWatts: f.oldWatts * perKm * km, newWatts: (f.watts ?? 0) * perKm * km, hoursPerDay: f.hours ?? 12, daysPerYear: 365, rate: f.rate, co2: f.co2, cost: f.cost }) : null;
+  const tariff = data.tariffs.find((t) => t.id === f.tariff_id) ?? null;
+  const rate = tariffRate(tariff, f.lightsOn ?? 'night') ?? f.rate;
+  const sv = res && f.oldWatts ? savings({ oldWatts: f.oldWatts * perKm * km, newWatts: (f.watts ?? 0) * perKm * km, hoursPerDay: f.hours ?? 12, daysPerYear: 365, rate, co2: f.co2, cost: f.cost }) : null;
 
   const findSpacing = () => {
     if (!calc.ph || !cls) return dialog.toast('Choose the lighting class and the luminaire first', 'error');
@@ -431,9 +442,21 @@ export default function RoadCalc() {
             <NumberField label="Existing lamp (with gear)" suffix="W" value={f.oldWatts} onChange={(v) => set({ oldWatts: v })} hint="e.g. 150 W HPS ≈ 170 W" />
             <NumberField label="Road length" suffix="km" value={f.lengthKm} onChange={(v) => set({ lengthKm: v })} />
             <NumberField label="Hours a night" value={f.hours} onChange={(v) => set({ hours: v })} />
-            <NumberField label="Energy rate" suffix="LKR/kWh" value={f.rate} onChange={(v) => set({ rate: v })} />
             <NumberField label="Project cost" suffix="LKR" value={f.cost} onChange={(v) => set({ cost: v })} />
           </Row>
+          <Select
+            label="Tariff"
+            searchable
+            value={f.tariff_id ?? ''}
+            onChange={(v) => set({ tariff_id: v || null })}
+            options={[{ value: '', label: '— type the rate —' }, ...data.tariffs.map((t) => ({ value: t.id, label: tariffLabel(t) }))]}
+          />
+          {tariff && isTou(tariff) ? <Segmented value={f.lightsOn ?? 'night'} onChange={(v) => set({ lightsOn: v })} options={LIGHTS_ON} /> : null}
+          {!tariff || tariffRate(tariff, f.lightsOn) == null ? (
+            <NumberField label="Energy rate" suffix="LKR/kWh" value={f.rate} onChange={(v) => set({ rate: v })} hint="Street lighting (SL) is LKR 60/kWh from 11 May 2026" />
+          ) : (
+            <Muted>{`LKR ${rate}/kWh for the saved energy${isTou(tariff) ? ` (${tariffSummary(tariff)})` : ''}${tariff.effective_from ? ` · from ${tariff.effective_from}` : ''}`}</Muted>
+          )}
           {sv ? (
             <Grid min={160} max={4}>
               <Stat label="Energy saved a year" value={`${fmtNumber(sv.kwh, 0)} kWh`} tone="green" sub={sv.pct != null ? `${sv.pct.toFixed(0)}% less` : undefined} />

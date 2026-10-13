@@ -7129,9 +7129,12 @@ do $$ declare q uuid; begin
   insert into public.quick_calcs (title, inputs, results) values ('Office 12 × 8 m', '{}'::jsonb, '{"em": 511}'::jsonb) returning id into q;
   assert (select code like 'DLX-%' from public.quick_calcs where id = q), 'numbered DLX';
   perform set_config('test.qc', q::text, true);
-  update public.electricity_tariffs set rate = 50 where supplier = 'CEB' and code = 'GP-1';
+  update public.electricity_tariffs set day = 50 where supplier = 'EDL' and code = 'GP-2';
   assert not found, 'sales do not set tariffs';
-  assert (select count(*) from public.electricity_tariffs) >= 20, 'tariff categories';
+  assert (select count(*) from public.electricity_tariffs where active) >= 50, 'tariff categories (May 2026)';
+  assert (select day from public.electricity_tariffs where supplier = 'EDL' and code = 'GP-2') = 51.00, 'GP-2 day rate from the PUCSL schedule';
+  assert (select rate from public.electricity_tariffs where supplier = 'EDL' and code = 'SL') = 60.00, 'street lighting';
+  assert not exists (select 1 from public.electricity_tariffs where active and supplier = 'CEB'), 'CEB categories retired';
 end $$;
 reset role;
 select pg_temp.act_as('asm_infra'); set role authenticated;
@@ -7140,7 +7143,7 @@ reset role;
 select pg_temp.act_as('sm_projects'); set role authenticated;
 do $$ begin
   assert exists (select 1 from public.quick_calcs where id = current_setting('test.qc')::uuid), 'SM Projects sees it';
-  update public.electricity_tariffs set rate = 52.50, effective_from = current_date where supplier = 'CEB' and code = 'GP-1';
+  update public.electricity_tariffs set rate = 37.00, effective_from = current_date where supplier = 'EDL' and code = 'GP-1B';
   assert found, 'SM Projects sets the rate';
 end $$;
 reset role;

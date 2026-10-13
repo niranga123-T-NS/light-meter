@@ -16,10 +16,10 @@ import { cached, useLoad } from '@/lib/hooks';
 import { autoLayout, calculate, fieldLayout, FITTING_TYPES, inside, mountAt, MAINTENANCE, outline, REFLECTANCES, ROOFS, savings, SHAPES, suggestCount, type Lum, type Pt, type Roof, type RoomInput, type Shape } from '@/lib/lightcalc';
 import { beamAngle, iesPhotometry, parseIes, polarSvg } from '@/lib/photometry';
 import { ROLE_SHORT } from '@/lib/roles';
+import { isTou, LIGHTS_ON, tariffLabel, tariffRate, tariffSummary, type LightsOn, type Tariff } from '@/lib/tariffs';
 import type { Standard, StdGroupRow } from '@/lib/standards';
 import { supabase } from '@/lib/supabase';
 
-type Tariff = { id: string; supplier: 'CEB' | 'LECO'; code: string; name: string; rate: number | null; effective_from: string | null };
 type Form = {
   title: string;
   project_id: string | null;
@@ -80,6 +80,7 @@ type Form = {
   hours: number | null;
   days: number | null;
   tariff_id: string | null;
+  lightsOn: LightsOn; // time-of-use tariffs: when the lights burn
   rate: number | null;
   co2: number | null;
   cost: number | null;
@@ -144,6 +145,7 @@ const BLANK: Form = {
   hours: 10,
   days: 300,
   tariff_id: null,
+  lightsOn: 'day',
   rate: null,
   co2: 0.6,
   cost: null,
@@ -174,7 +176,7 @@ export default function QuickCalc() {
         const [s, g, t] = await Promise.all([
           supabase.from('lighting_standards').select('*').eq('active', true).in('grp', ['indoor', 'outdoor', 'sports']).order('sort'),
           supabase.from('lighting_standard_groups').select('*'),
-          supabase.from('electricity_tariffs').select('id, supplier, code, name, rate, effective_from').eq('active', true).order('sort'),
+          supabase.from('electricity_tariffs').select('id, supplier, code, name, family, rate, peak, day, off_peak, fixed, demand, note, effective_from').eq('active', true).order('sort'),
         ]);
         if (s.error) throw new Error(s.error.message);
         return { stds: (s.data ?? []) as Standard[], groups: (g.data ?? []) as StdGroupRow[], tariffs: (t.data ?? []) as Tariff[] };
@@ -247,7 +249,7 @@ export default function QuickCalc() {
   const stdRow = data.stds.find((x) => x.id === f.std_id) ?? null;
   const stdGroup = stdRow ? data.groups.find((g) => g.grp === stdRow.grp) : null;
   const tariff = data.tariffs.find((t) => t.id === f.tariff_id) ?? null;
-  const rate = tariff?.rate ?? f.rate;
+  const rate = tariffRate(tariff, f.lightsOn ?? 'day') ?? f.rate;
   const oldTotal = (f.oldWatts ?? 0) * (f.oldQty ?? 0);
   const sv = r && oldTotal > 0 ? savings({ oldWatts: oldTotal, newWatts: r.watts, hoursPerDay: f.hours ?? 0, daysPerYear: f.days ?? 0, rate, co2: f.co2, cost: f.cost }) : null;
   const target = f.target ?? 0;
@@ -752,13 +754,16 @@ export default function QuickCalc() {
             onChange={(v) => set({ tariff_id: v || null })}
             options={[
               { value: '', label: '— type the client’s rate —' },
-              ...data.tariffs.map((t) => ({ value: t.id, label: `${t.supplier} ${t.code} · ${t.name}${t.rate != null ? ` · LKR ${t.rate}/kWh` : ' · rate not set'}` })),
+              ...data.tariffs.map((t) => ({ value: t.id, label: tariffLabel(t) })),
             ]}
           />
-          {!tariff || tariff.rate == null ? (
+          {tariff && isTou(tariff) ? (
+            <Segmented value={f.lightsOn ?? 'day'} onChange={(v) => set({ lightsOn: v })} options={LIGHTS_ON} />
+          ) : null}
+          {!tariff || tariffRate(tariff, f.lightsOn) == null ? (
             <NumberField label="Energy rate" suffix="LKR/kWh" value={f.rate} onChange={(v) => set({ rate: v })} hint={tariff ? 'This tariff has no rate yet – type it, or ask SM Projects to set it under Tariffs' : 'From the client’s bill'} />
           ) : (
-            <Muted>{`LKR ${tariff.rate}/kWh${tariff.effective_from ? ` from ${tariff.effective_from}` : ''}`}</Muted>
+            <Muted>{`LKR ${rate}/kWh for the saved energy${isTou(tariff) ? ` (${tariffSummary(tariff)})` : ''}${tariff.fixed ? ` · fixed charge LKR ${tariff.fixed}/month` : ''}${tariff.demand ? ` · demand LKR ${tariff.demand}/kVA` : ''}${tariff.effective_from ? ` · from ${tariff.effective_from}` : ''}${tariff.note ? `\n${tariff.note}` : ''}`}</Muted>
           )}
           <Row gap={8} wrap>
             <NumberField label="Grid CO₂ factor" suffix="kg/kWh" value={f.co2} onChange={(v) => set({ co2: v })} hint="Check the latest SLSEA figure" />
