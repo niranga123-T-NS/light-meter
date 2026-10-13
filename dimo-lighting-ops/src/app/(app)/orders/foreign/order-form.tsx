@@ -21,6 +21,9 @@ type Form = {
   inland: boolean;
   required_on: string | null;
   prs: string[];
+  factory: string;
+  dangerous: string;
+  dg_details: string;
   currency: string;
   pi_value: number | null;
   lc_amount: number | null;
@@ -61,6 +64,9 @@ function OrderForm({ o, v, h, onSaved, dialog }: { o: FoOrder | null; v: OrderVa
     inland: o?.inland ?? false,
     required_on: o?.required_on ?? null,
     prs: o?.pr_nos ? o.pr_nos.split(',').map((x) => x.trim()).filter(Boolean) : [],
+    factory: o?.factory_location ?? '',
+    dangerous: o?.dangerous == null ? '' : o.dangerous ? 'yes' : 'no',
+    dg_details: o?.dg_details ?? '',
     currency: v?.currency ?? 'USD',
     pi_value: v?.pi_value ?? null,
     lc_amount: v?.lc_amount ?? null,
@@ -79,6 +85,8 @@ function OrderForm({ o, v, h, onSaved, dialog }: { o: FoOrder | null; v: OrderVa
   };
   const save = () =>
     dialog.run(async () => {
+      if (material && !f.dangerous) throw new Error('Does the order contain dangerous goods? Choose Yes or No');
+      if (material && f.dangerous === 'yes' && !f.dg_details.trim()) throw new Error('Dangerous goods: enter the class / UN number and what it is');
       const oid = (await rpc('fo_save_order', {
         p_id: o?.id ?? null,
         p: {
@@ -101,6 +109,8 @@ function OrderForm({ o, v, h, onSaved, dialog }: { o: FoOrder | null; v: OrderVa
           notes: f.notes,
         },
       })) as string;
+      if (material && f.factory.trim() !== (o?.factory_location ?? '')) await rpc('fo_set_factory', { p_order: oid, p_location: f.factory, p_lat: null, p_lng: null });
+      await rpc('fo_set_dangerous', { p_order: oid, p_dangerous: material ? f.dangerous === 'yes' : false, p_details: f.dg_details });
       onSaved(oid);
     }, 'Saved');
 
@@ -117,6 +127,7 @@ function OrderForm({ o, v, h, onSaved, dialog }: { o: FoOrder | null; v: OrderVa
         <Field label="What is ordered" required value={f.title} onChangeText={(t) => set('title', t)} placeholder="e.g. Façade luminaires, LED drivers, commissioning" />
         <Select label="Material or service" required value={f.kind} onChange={(x) => set('kind', x as Form['kind'])} options={[{ value: 'material', label: 'Material' }, { value: 'service', label: 'Service' }]} />
         <Field label="Vendor / manufacturer" required value={f.vendor} onChangeText={(t) => set('vendor', t)} />
+        {material ? <Field label="Factory location (city, country)" value={f.factory} onChangeText={(t) => set('factory', t)} placeholder="e.g. Arnsberg, Germany" hint="Shown on the route map" /> : null}
         <Select label="Vendor registered in SAP?" value={f.vendor_new ? 'no' : 'yes'} onChange={(x) => set('vendor_new', x === 'no')} options={[{ value: 'yes', label: 'Yes – already in SAP' }, { value: 'no', label: 'No – send the registration request' }]} />
         {material ? (
           <Select label="Material codes in SAP?" value={f.codes_new ? 'no' : 'yes'} onChange={(x) => set('codes_new', x === 'no')} options={[{ value: 'yes', label: 'Yes – all in SAP' }, { value: 'no', label: 'No – request from MDM' }]} />
@@ -143,6 +154,21 @@ function OrderForm({ o, v, h, onSaved, dialog }: { o: FoOrder | null; v: OrderVa
       </Section>
       <Section title="SAP PR nos.">
         <Card style={{ gap: 6 }}>
+          {material ? (
+            <>
+              <Select
+                label="Dangerous goods?"
+                required
+                value={f.dangerous}
+                onChange={(x) => set('dangerous', x)}
+                options={[{ value: 'no', label: 'No' }, { value: 'yes', label: 'Yes – dangerous goods (flagged at every stage)' }]}
+                hint="Set when the PR is created"
+              />
+              {f.dangerous === 'yes' ? (
+                <Field label="Class / UN no. and what it is" required value={f.dg_details} onChangeText={(t) => set('dg_details', t)} placeholder="e.g. Class 9 – UN3481 lithium-ion batteries in emergency luminaires" />
+              ) : null}
+            </>
+          ) : null}
           {f.prs.length ? (
             <Row wrap gap={6}>
               {f.prs.map((x) => (

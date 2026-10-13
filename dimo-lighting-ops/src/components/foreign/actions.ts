@@ -3,7 +3,6 @@ import type { Option } from '@/components/ui';
 import { fmtDate } from '@/lib/format';
 import { todayIso, type FoOrder, type Handover, type Line, type Shipment } from '@/lib/foreignOrders';
 import { supabase } from '@/lib/supabase';
-import type { Profile } from '@/lib/types';
 
 type Dialog = ReturnType<typeof useDialog>;
 
@@ -12,42 +11,6 @@ const rpc = async (fn: string, args: Record<string, unknown>) => {
   if (error) throw new Error(error.message);
   return data;
 };
-
-const salesOptions = (people: Record<string, Profile>): Option[] =>
-  Object.values(people)
-    .filter((p) => p.active !== false && (p.role === 'asm_building' || p.role === 'asm_infra'))
-    .map((p) => ({ value: p.id, label: p.full_name }))
-    .sort((a, b) => a.label.localeCompare(b.label));
-
-/** New or edited hand-over (Ops, from the Estimation Manager's e-mail) */
-export async function editHandover(dialog: Dialog, people: Record<string, Profile>, projects: Option[], h?: Handover | null) {
-  const r = await dialog.prompt({
-    title: h ? `Edit ${h.code}` : 'New hand-over',
-    message: h ? undefined : 'From the Estimation Manager’s hand-over e-mail (PI and costing). Split it into import orders on the next page.',
-    fields: [
-      { key: 'project_id', label: 'Project (CRM)', type: 'select', options: [{ value: '', label: '— Not in the CRM —' }, ...projects], initial: h?.project_id ?? '', searchable: true, hint: 'Links the project’s SEE' },
-      { key: 'project_name', label: 'Project name', required: true, initial: h?.project_name ?? '' },
-      { key: 'client', label: 'Client', required: true, initial: h?.client ?? '' },
-      { key: 'sales_person_id', label: 'Sales person', type: 'select', options: salesOptions(people), required: true, initial: h?.sales_person_id ?? '', searchable: true },
-      { key: 'received_on', label: 'Hand-over received on', type: 'date', required: true, initial: h?.received_on ?? todayIso() },
-      { key: 'pi_ref', label: 'PI no.', initial: h?.pi_ref ?? '' },
-      { key: 'client_new', label: 'Client registered in SAP?', type: 'select', options: [{ value: 'no', label: 'Yes – already in SAP' }, { value: 'yes', label: 'No – request the details from Sales' }], initial: h?.client_new ? 'yes' : 'no' },
-      ...(h ? [] : [{ key: 'delivery_location', label: 'Final delivery location', required: true, hint: 'Changed later only with SM Projects and SM Estimation approval' }]),
-      { key: 'notes', label: 'Notes', type: 'multiline', initial: h?.notes ?? '' },
-    ],
-    confirmLabel: h ? 'Save' : 'Create hand-over',
-  });
-  if (!r) return null;
-  let id: string | null = null;
-  await dialog.run(async () => {
-    const proj = projects.find((p) => p.value === r.project_id);
-    id = (await rpc('fo_save_handover', {
-      p_id: h?.id ?? null,
-      p: { ...r, project_name: r.project_name || proj?.label || '', client_new: r.client_new === 'yes' },
-    })) as string;
-  }, 'Saved');
-  return id;
-}
 
 /** Record a step (Ops): the date it was done, the reference number where there is one, a short note */
 export async function recordStep(dialog: Dialog, l: Line, handoverId: string, orderId: string | null) {
@@ -79,11 +42,14 @@ export async function editShipment(dialog: Dialog, orderOptions: Option[], s?: S
     fields: [
       { key: 'order_ids', label: 'Import orders on this shipment', type: 'multiselect', options: orderOptions, required: true, initial: selected.join(',') },
       { key: 'mode', label: 'Mode', type: 'select', options: [{ value: 'sea', label: 'Sea' }, { value: 'air', label: 'Air' }, { value: 'courier', label: 'Courier' }], initial: s?.mode ?? 'sea' },
-      { key: 'vessel_flight', label: 'Vessel or flight', initial: s?.vessel_flight ?? '' },
+      { key: 'vessel_flight', label: 'Vessel or flight no.', initial: s?.vessel_flight ?? '', hint: 'e.g. MSC ANNA, or EK 348 for air' },
       { key: 'voyage', label: 'Voyage', initial: s?.voyage ?? '' },
       { key: 'carrier', label: 'Shipping line / airline', initial: s?.carrier ?? '' },
       { key: 'bl_awb', label: 'B/L or AWB no.', initial: s?.bl_awb ?? '' },
       { key: 'containers', label: 'Containers / packages', initial: s?.containers ?? '', hint: 'e.g. 1 × 40′ HC' },
+      { key: 'container_nos', label: 'Container nos. (sea)', initial: s?.container_nos ?? '', hint: 'e.g. HLBU1234567 – opens the shipping line’s tracking' },
+      { key: 'imo', label: 'Vessel IMO no. (7 digits)', initial: s?.imo ?? '', hint: 'From the booking, or any tracking site – opens MarineTraffic / VesselFinder' },
+      { key: 'mmsi', label: 'Vessel MMSI no. (9 digits, if no IMO)', initial: s?.mmsi ?? '' },
       { key: 'forwarder', label: 'Forwarder', initial: s?.forwarder ?? '' },
       { key: 'clearing_agent', label: 'Local clearing agent', initial: s?.clearing_agent ?? '' },
       { key: 'pol', label: 'Port / airport of departure', initial: s?.pol ?? '' },

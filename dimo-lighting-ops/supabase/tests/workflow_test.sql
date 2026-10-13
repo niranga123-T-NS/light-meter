@@ -7430,11 +7430,20 @@ begin
   h := public.fo_save_handover(null, jsonb_build_object('project_id', current_setting('test.fo_project'), 'project_name', 'Harbour View', 'client', 'Example Developers',
          'sales_person_id', (select id from u where role = 'asm_building'), 'received_on', b, 'pi_ref', 'PI-1', 'client_new', true, 'delivery_location', 'Site stores'));
   assert (select code from public.fo_handovers where id = h) like 'HO-%', 'hand-over code';
+  -- linked by the execution project: the name and client come from it, and its SEE follows the orders
+  perform set_config('test.fo_h2', public.fo_save_handover(null, jsonb_build_object('exec_project_id', (select id from public.exec_projects order by created_at limit 1),
+         'sales_person_id', (select id from u where role = 'asm_building'), 'received_on', b, 'delivery_location', 'Site'))::text, false);
+  assert (select project_name = (select name from public.exec_projects order by created_at limit 1) and exec_project_id is not null from public.fo_handovers where id = current_setting('test.fo_h2')::uuid), 'filled from the execution project';
   assert exists (select 1 from public.fo_steps where handover_id = h and step = 'ho_received' and done_on = b), 'hand-over step recorded';
   o1 := public.fo_save_order(null, jsonb_build_object('handover_id', h, 'title', 'Façade luminaires', 'kind', 'material', 'vendor', 'Example Leuchten', 'vendor_new', true,
           'incoterm', 'CIF', 'payment', 'LC', 'duty', 'free', 'required_on', current_date + 30, 'currency', 'EUR', 'pi_value', 84600));
   o2 := public.fo_save_order(null, jsonb_build_object('handover_id', h, 'title', 'Commissioning', 'kind', 'service', 'vendor', 'Example Controls', 'payment', 'TT'));
   assert (select seq_no from public.fo_orders where id = o2) = 2, 'second import order';
+  begin perform public.fo_set_dangerous(o1, true, ''); assert false, 'DG details';
+  exception when others then assert sqlerrm like 'Dangerous goods: enter%', sqlerrm; end;
+  perform public.fo_set_dangerous(o1, true, 'Class 9 – UN3481 lithium-ion batteries in emergency luminaires');
+  assert app.fo_order_head((select x from public.fo_orders x where id = o1)) like '⚠ DANGEROUS GOODS%', 'flag in every notification';
+  perform public.fo_set_dangerous(o2, false);
   begin perform public.fo_save_order(null, jsonb_build_object('handover_id', h, 'title', 'X', 'vendor', 'V', 'payment', 'TT', 'kind', 'material')); assert false, 'material needs terms';
   exception when others then assert sqlerrm like 'Incoterm%', sqlerrm; end;
   -- steps follow their order
@@ -7460,6 +7469,10 @@ begin
   assert (select sap_project_no from public.fo_handovers where id = h) = 'P/26/LT/0187', 'SAP project no. kept';
   -- order 1: material, CIF, LC, duty free
   perform public.fo_record_step(h, o1, 'io_created', b + 16);
+  begin perform public.fo_record_step(h, o1, 'io_approved', b + 19); assert false, 'DGM and FBP first';
+  exception when others then assert sqlerrm like 'Record "Import order approved by FBP"%', sqlerrm; end;
+  perform public.fo_record_step(h, o1, 'io_dgm', b + 19);
+  perform public.fo_record_step(h, o1, 'io_fbp', b + 19);
   perform public.fo_record_step(h, o1, 'io_approved', b + 19);
   perform public.fo_record_step(h, o1, 'io_handed', b + 19);
   perform public.fo_record_step(h, o1, 'po_issued', b + 22, '4500123987');
@@ -7483,10 +7496,16 @@ begin
   begin perform public.fo_save_shipment(null, jsonb_build_object('order_ids', jsonb_build_array(o2))); assert false, 'no service on a shipment';
   exception when others then assert sqlerrm like 'Only open material orders%', sqlerrm; end;
   n := public.fo_ship(sh, b + 80);
+  perform public.fo_set_factory(o1, 'Arnsberg, Germany', 51.40, 8.06);
+  perform public.fo_add_position(sh, jsonb_build_object('at', now() - interval '1 day', 'place', 'Jebel Ali', 'lat', 25.01, 'lng', 55.06, 'note', 'transhipment'));
+  assert (select last_check_note from public.fo_shipments where id = sh) = 'Jebel Ali – transhipment', 'position recorded as the last check';
   assert n = 1 and exists (select 1 from public.fo_steps where order_id = o1 and step = 'shipped' and ref = 'HLCU1'), 'shipped recorded from the shipment';
   perform public.fo_save_shipment(sh, jsonb_build_object('mode', 'sea', 'vessel_flight', 'Example Express', 'bl_awb', 'HLCU1', 'pol', 'Hamburg', 'pod', 'Colombo',
           'eta', b + 112, 'order_ids', jsonb_build_array(o1)));
   assert (select count(*) from public.fo_eta_log where shipment_id = sh) = 2, 'ETA change logged';
+  perform public.fo_save_shipment(sh, jsonb_build_object('mode', 'sea', 'vessel_flight', 'Example Express', 'bl_awb', 'HLCU1', 'pol', 'Hamburg', 'pod', 'Colombo',
+          'eta', b + 112, 'imo', 'IMO 9811000', 'mmsi', '', 'container_nos', 'hlbu1234567', 'order_ids', jsonb_build_array(o1)));
+  assert (select imo = '9811000' and container_nos = 'HLBU1234567' from public.fo_shipments where id = sh), 'vessel numbers kept';
   n := public.fo_arrive(sh, b + 112);
   perform public.fo_record_step(h, o1, 'lc_endorsed', b + 113);
   perform public.fo_record_step(h, o1, 'exbond_cusdec', b + 113, 'E-1');
@@ -7510,6 +7529,19 @@ do $$ declare sp uuid := (select id from u where role = 'asm_building'); begin
   assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'senior_elec_engineer') and title = 'Order shipped'), 'SEE told: shipped';
 end $$;
 select public.fo_tick(now());
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare o uuid; sh uuid; begin
+  o := public.fo_save_order(null, jsonb_build_object('handover_id', current_setting('test.fo_h2'), 'title', 'Spare drivers', 'kind', 'material', 'vendor', 'V', 'incoterm', 'CIF', 'payment', 'TT', 'duty', 'paid'));
+  sh := public.fo_save_shipment(null, jsonb_build_object('mode', 'sea', 'etd', current_date - 20, 'eta', current_date - 2, 'order_ids', jsonb_build_array(o)));
+  perform set_config('test.fo_late_ship', sh::text, false);
+end $$;
+reset role;
+select public.fo_transit_tick(now());
+do $$ begin
+  assert exists (select 1 from public.notifications where title = 'ETA passed – no arrival yet' and url like '%' || current_setting('test.fo_late_ship')), 'ETA passed alert';
+  assert exists (select 1 from public.notifications where title = 'Check the vessel position' and url like '%' || current_setting('test.fo_late_ship')), 'position reminder';
+  assert exists (select 1 from public.notifications where title = 'ETA passed – no arrival yet' and recipient_id = (select id from u where role = 'asm_building')), 'sales person told';
+end $$;
 do $$ begin
   assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'asm_building') and title = 'Customer signature still needed'), 'daily signature reminder';
 end $$;
@@ -7517,6 +7549,7 @@ end $$;
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
 do $$ begin
   assert exists (select 1 from public.fo_handovers where id = current_setting('test.fo_h')::uuid), 'SEE sees the project''s orders';
+  assert exists (select 1 from public.fo_handovers where id = current_setting('test.fo_h2')::uuid), 'and the one linked by execution project';
   assert (select count(*) from public.fo_orders where handover_id = current_setting('test.fo_h')::uuid) = 2, 'and its import orders';
   assert not exists (select 1 from public.fo_order_values) and not exists (select 1 from public.fo_payments), 'but not the values';
 end $$;
@@ -7560,6 +7593,8 @@ begin
   assert (select status from public.fo_handovers where id = h) = 'open', 'hand-over stays open while the service is open';
   -- order 2: service, TT
   perform public.fo_record_step(h, o2, 'io_created', b + 16);
+  perform public.fo_record_step(h, o2, 'io_dgm', b + 18);
+  perform public.fo_record_step(h, o2, 'io_fbp', b + 18);
   perform public.fo_record_step(h, o2, 'io_approved', b + 18);
   perform public.fo_record_step(h, o2, 'io_handed', b + 18);
   perform public.fo_record_step(h, o2, 'po_issued', b + 20, '4500124000');
@@ -7576,6 +7611,16 @@ begin
   assert (select status from public.fo_handovers where id = h) = 'closed', 'all delivered: hand-over closed';
   perform public.fo_set_sla('codes_ready', 5);
   assert (select sla_days from public.fo_step_defs where key = 'codes_ready') = 5, 'SLA set';
+end $$;
+reset role;
+
+-- Foreign orders: a hand-over from a won order (supply only) fills in the project, client and sales person
+insert into public.secured_projects (id, project_name, customer, sales_person_id, won_on) values ('00000000-0000-0000-0000-00000000f0a1', 'Hotel lighting supply', 'Example Hotels PLC', (select id from u where role = 'asm_building'), current_date);
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare h uuid; begin
+  h := public.fo_save_handover(null, jsonb_build_object('secured_id', '00000000-0000-0000-0000-00000000f0a1', 'received_on', current_date, 'delivery_location', 'Hotel stores'));
+  assert (select project_name = 'Hotel lighting supply' and client = 'Example Hotels PLC' and sales_person_id = (select id from u where role = 'asm_building') and secured_id is not null
+          from public.fo_handovers where id = h), 'filled from the won order';
 end $$;
 reset role;
 

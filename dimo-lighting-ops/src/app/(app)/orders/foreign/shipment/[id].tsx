@@ -2,8 +2,9 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { editShipment, orderOption, rpc } from '@/components/foreign/actions';
+import { ShipmentRoute, type FoPosition } from '@/components/foreign/ShipmentRoute';
 import { TestingBanner } from '@/components/Testing';
-import { Button, Card, colors, ErrorBanner, Grid, KeyValue, ListRow, Loading, Muted, Pill, Row, Screen, Section } from '@/components/ui';
+import { Button, Card, colors, ErrorBanner, Grid, KeyValue, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { fmtDate, fmtDateTime } from '@/lib/format';
 import { FO_KEEPER, todayIso, type FoOrder, type Handover, type Shipment } from '@/lib/foreignOrders';
@@ -17,10 +18,11 @@ export default function ShipmentPage() {
   const dialog = useDialog();
   const keeper = FO_KEEPER.includes(me.role);
   const { data, error, reload } = useLoad(async () => {
-    const [s, so, log] = await Promise.all([
+    const [s, so, log, pos] = await Promise.all([
       supabase.from('fo_shipments').select('*').eq('id', id).maybeSingle(),
       supabase.from('fo_shipment_orders').select('order_id').eq('shipment_id', id),
       supabase.from('fo_eta_log').select('*').eq('shipment_id', id).order('changed_at', { ascending: false }),
+      supabase.from('fo_positions').select('*').eq('shipment_id', id),
     ]);
     if (s.error) throw new Error(s.error.message);
     if (!s.data) throw new Error('Shipment not found');
@@ -28,10 +30,10 @@ export default function ShipmentPage() {
     const orders = ids.length ? (((await supabase.from('fo_orders').select('*').in('id', ids)).data ?? []) as FoOrder[]) : [];
     const hos = orders.length ? (((await supabase.from('fo_handovers').select('*').in('id', [...new Set(orders.map((o) => o.handover_id))])).data ?? []) as Handover[]) : [];
     const openOrders = keeper ? (((await supabase.from('fo_orders').select('*').eq('kind', 'material').neq('status', 'cancelled')).data ?? []) as FoOrder[]) : [];
-    return { s: s.data as Shipment, orders, hos, openOrders, log: (log.data ?? []) as { id: string; eta: string | null; note: string | null; changed_at: string }[] };
+    return { s: s.data as Shipment, orders, hos, openOrders, positions: (pos.data ?? []) as FoPosition[], log: (log.data ?? []) as { id: string; eta: string | null; note: string | null; changed_at: string }[] };
   }, [id, keeper]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const { s, orders, hos, openOrders, log } = data;
+  const { s, orders, hos, openOrders, positions, log } = data;
   const ho = (o: FoOrder) => hos.find((h) => h.id === o.handover_id);
   const sailed = !!s.etd && s.etd <= todayIso();
 
@@ -66,11 +68,6 @@ export default function ShipmentPage() {
     });
     if (r) await dialog.run(async () => { await rpc('fo_check_shipment', { p_shipment: s.id, p_note: r.note }); await reload(); }, 'Saved');
   };
-  const pts = [
-    { name: s.pol, sub: s.etd ? `ETD ${fmtDate(s.etd)}` : '' },
-    ...(s.via ? [{ name: s.via, sub: 'via' }] : []),
-    { name: s.pod, sub: s.arrived_on ? `arrived ${fmtDate(s.arrived_on)}` : s.eta ? `ETA ${fmtDate(s.eta)}` : '' },
-  ];
 
   return (
     <Screen maxWidth={1000}>
@@ -94,20 +91,10 @@ export default function ShipmentPage() {
         ) : null}
       </Row>
 
-      <Card>
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-          {pts.map((p, i) => (
-            <View key={i} style={{ flex: i === pts.length - 1 ? 0 : 1, flexDirection: 'row', alignItems: 'flex-start' }}>
-              <View style={{ alignItems: 'center', width: 96 }}>
-                <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: i < pts.length - 1 || s.arrived_on ? colors.blue : '#fff', borderWidth: 2, borderColor: colors.blue }} />
-                <Text style={{ fontWeight: '700', color: colors.ink, marginTop: 4, textAlign: 'center' }}>{p.name ?? '—'}</Text>
-                <Muted>{p.sub}</Muted>
-              </View>
-              {i < pts.length - 1 ? <View style={{ flex: 1, height: 3, backgroundColor: colors.blue, marginTop: 5, opacity: s.arrived_on || i === 0 ? 1 : 0.4 }} /> : null}
-            </View>
-          ))}
-        </View>
-      </Card>
+      {orders.some((o) => o.dangerous) ? (
+        <Notice tone={colors.red}>{`⚠ DANGEROUS GOODS on this shipment – ${orders.filter((o) => o.dangerous).map((o) => `${o.code}: ${o.dg_details ?? ''}`).join('; ')}`}</Notice>
+      ) : null}
+      <ShipmentRoute shipment={s} orders={orders} site={hos.length === 1 ? hos[0].delivery_location : null} positions={positions} keeper={keeper} onChange={reload} />
       <Grid min={200}>
         <KeyValue label="B/L or AWB" value={s.bl_awb ?? '—'} />
         <KeyValue label="Shipping line / airline" value={s.carrier ?? '—'} />
@@ -124,7 +111,7 @@ export default function ShipmentPage() {
           {orders.map((o) => (
             <ListRow
               key={o.id}
-              title={`${o.code} · ${o.title}`}
+              title={`${o.dangerous ? '⚠ DG · ' : ''}${o.code} · ${o.title}`}
               subtitle={`${ho(o)?.project_name ?? ''} · ${o.vendor}${o.required_on ? `\nRequired at site ${fmtDate(o.required_on)}` : ''}`}
               right={s.eta && o.required_on && !s.arrived_on && s.eta > o.required_on ? <Pill label="ETA after required" tone={colors.red} /> : undefined}
               wrapRight
