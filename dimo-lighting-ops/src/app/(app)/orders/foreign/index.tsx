@@ -2,6 +2,7 @@ import { router, Stack } from 'expo-router';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { DataTable } from '@/components/DataTable';
+import { OrdersTabs } from '@/components/OrdersTabs';
 import { TestingBanner } from '@/components/Testing';
 import { Button, colors, ErrorBanner, Grid, Loading, Muted, Pill, Row, Screen, Segmented, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
@@ -81,7 +82,8 @@ export default function ForeignOrders() {
 
   return (
     <Screen maxWidth={1300}>
-      <Stack.Screen options={{ title: 'Foreign orders' }} />
+      <Stack.Screen options={{ title: 'Foreign & local orders' }} />
+      <OrdersTabs value="foreign" />
       <TestingBanner what="Foreign orders" always />
       <Muted>
         Foreign material and service orders from the Estimation Manager&apos;s import request to delivery. The work happens in e-mail and SAP; the Operations Executive records each

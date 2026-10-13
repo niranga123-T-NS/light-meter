@@ -2,6 +2,7 @@ import { router, Stack } from 'expo-router';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { DataTable } from '@/components/DataTable';
+import { OrdersTabs } from '@/components/OrdersTabs';
 import { TestingBanner } from '@/components/Testing';
 import { Button, colors, ErrorBanner, Grid, Loading, Muted, Pill, Row, Screen, Segmented, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
@@ -102,7 +103,8 @@ export default function LocalOrders() {
 
   return (
     <Screen maxWidth={1300}>
-      <Stack.Screen options={{ title: 'Local orders' }} />
+      <Stack.Screen options={{ title: 'Foreign & local orders' }} />
+      <OrdersTabs value="local" />
       <TestingBanner what="Local orders" always />
       <Muted>
         Materials and services bought in Sri Lanka, from the request to payment. The SEE, Sales or Operations raises the request; the Operations Executive records each step from
