@@ -7584,6 +7584,16 @@ begin
 end $$;
 reset role;
 
+-- Foreign orders: a hand-over from a won order (supply only) fills in the project, client and sales person
+insert into public.secured_projects (id, project_name, customer, sales_person_id, won_on) values ('00000000-0000-0000-0000-00000000f0a1', 'Hotel lighting supply', 'Example Hotels PLC', (select id from u where role = 'asm_building'), current_date);
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare h uuid; begin
+  h := public.fo_save_handover(null, jsonb_build_object('secured_id', '00000000-0000-0000-0000-00000000f0a1', 'received_on', current_date, 'delivery_location', 'Hotel stores'));
+  assert (select project_name = 'Hotel lighting supply' and client = 'Example Hotels PLC' and sales_person_id = (select id from u where role = 'asm_building') and secured_id is not null
+          from public.fo_handovers where id = h), 'filled from the won order';
+end $$;
+reset role;
+
 -- Foreign orders: issue records (mistake / delay / complaint / notice) with references, alerts to the managers and the owners
 select pg_temp.act_as('operations_exec'); set role authenticated;
 do $$ declare n uuid; o uuid := current_setting('test.fo_o1')::uuid; begin
