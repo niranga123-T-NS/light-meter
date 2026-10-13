@@ -105,6 +105,7 @@ export default function HandoverPage() {
           <KeyValue label="Final delivery location" value={h.delivery_location} />
         </Grid>
         {h.notes ? <Muted>{h.notes}</Muted> : null}
+        {h.mr_id ? <Button small variant="ghost" title="From a site material request – open it ›" onPress={() => router.push(`/execution/material/${h.mr_id}`)} /> : null}
       </Card>
 
       <Section

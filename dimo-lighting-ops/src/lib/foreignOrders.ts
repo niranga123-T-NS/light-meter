@@ -19,6 +19,7 @@ export type Handover = {
   notes: string | null;
   cancel_reason: string | null;
   created_at: string;
+  mr_id?: string | null;
 };
 export type FoOrder = {
   id: string;
