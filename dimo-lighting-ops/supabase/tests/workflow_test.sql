@@ -7419,6 +7419,7 @@ do $$ begin
   exception when others then assert sqlerrm like '%Operations Executive%', sqlerrm; end;
 end $$;
 reset role;
+insert into public.fx_rates (source, rate_date, currency, mid) values ('cbsl', current_date, 'USD', 300), ('cbsl', current_date, 'EUR', 330) on conflict do nothing;
 -- the SEE of an execution project follows the orders of that project
 update public.exec_projects set see_id = (select id from u where role = 'senior_elec_engineer') where id = (select id from public.exec_projects order by created_at limit 1);
 select set_config('test.fo_project', (select project_id::text from public.exec_projects order by created_at limit 1), false);
@@ -7595,22 +7596,28 @@ begin
   assert (select status from public.fo_handovers where id = h) = 'open', 'hand-over stays open while the service is open';
   -- order 2: service, TT
   perform public.fo_record_step(h, o2, 'io_created', b + 16);
+  -- a small service order (no PI value yet → DIC kept; below USD 10,000 → no DIC)
+  assert (select dic_required from public.fo_orders where id = o2), 'no value: DIC kept';
+  perform public.fo_save_order(o2, jsonb_build_object('title', 'Commissioning', 'kind', 'service', 'vendor', 'Example Controls', 'payment', 'TT', 'currency', 'EUR', 'pi_value', 8000));
+  assert not (select dic_required from public.fo_orders where id = o2), 'EUR 8,000 is below USD 10,000';
+  assert (select dic_required from public.fo_orders where id = o1), 'EUR 84,600: DIC needed';
   perform public.fo_record_step(h, o2, 'io_dgm', b + 18);
   perform public.fo_record_step(h, o2, 'io_fbp', b + 18);
-  perform public.fo_record_step(h, o2, 'io_approved', b + 18);
   perform public.fo_record_step(h, o2, 'io_handed', b + 18);
   perform public.fo_record_step(h, o2, 'po_issued', b + 20, '4500124000');
   perform public.fo_record_step(h, o2, 'po_ack', b + 21);
   -- the TT / LC application is optional (Ops may not see it): the TT follows the PO directly
   assert app.fo_step_start(h, o2, 'tt_sent') = b + 20, 'timed from the PO';
   perform public.fo_record_step(h, o2, 'tt_sent', b + 25);
-  assert public.fo_save_order(o2, jsonb_build_object('title', 'Commissioning', 'kind', 'service', 'vendor', 'Example Controls', 'payment', 'TT', 'inland', true)) = o2;
+  assert public.fo_save_order(o2, jsonb_build_object('title', 'Commissioning', 'kind', 'service', 'vendor', 'Example Controls', 'payment', 'TT', 'inland', true, 'currency', 'EUR', 'pi_value', 8000)) = o2;
   assert not (select inland from public.fo_orders where id = o2), 'inland transport only for FOB';
   begin perform public.fo_record_step(h, o2, 'mfg_done', b + 26); assert false, 'service: no manufacturing';
   exception when others then assert sqlerrm = 'This step does not apply to these terms', sqlerrm; end;
   perform public.fo_record_step(h, o2, 'service_done', b + 90);
   perform public.fo_record_step(h, o2, 'delivered', b + 91);
-  assert (select status from public.fo_handovers where id = h) = 'closed', 'all delivered: hand-over closed';
+  assert (select status from public.fo_handovers where id = h) = 'closed', 'all delivered: hand-over closed ' || (select string_agg(code || ':' || status, ',') from public.fo_orders where handover_id = h)
+    || ' missing ' || coalesce((select string_agg(d.key, ',') from public.fo_orders o join public.fo_handovers hh on hh.id = o.handover_id join public.fo_step_defs d on d.scope = 'o' and not d.optional and app.fo_applies(d.conds, o, hh)
+        where o.handover_id = h and o.status = 'open' and not exists (select 1 from public.fo_steps x where x.order_id = o.id and x.step = d.key)), '');
   perform public.fo_set_sla('codes_ready', 5);
   assert (select sla_days from public.fo_step_defs where key = 'codes_ready') = 5, 'SLA set';
 end $$;

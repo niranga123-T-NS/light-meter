@@ -162,6 +162,7 @@ export default function ForeignOrder() {
         <KeyValue label="Required at site" value={o.required_on ? fmtDate(o.required_on) : '—'} />
         <KeyValue label={o.status === 'delivered' ? 'Hand-over to delivery' : 'Since hand-over'} value={total != null ? `${total} working days` : '—'} />
         <KeyValue label="SAP project / PR nos." value={[h.sap_project_no, o.pr_nos].filter(Boolean).join(' · ') || '—'} />
+        <KeyValue label="DIC approval" value={o.value_usd_note ?? (o.dic_required === false ? 'Not needed' : 'Needed')} />
         <KeyValue label="PO / LC" value={[o.po_no, o.lc_no].filter(Boolean).join(' · ') || '—'} />
         <KeyValue label="Deliver to" value={h.delivery_location} />
         {o.kind === 'material' ? (

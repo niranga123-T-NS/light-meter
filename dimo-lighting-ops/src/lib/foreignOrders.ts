@@ -42,6 +42,8 @@ export type FoOrder = {
   dangerous: boolean | null;
   dg_details: string | null;
   factory_location: string | null;
+  dic_required?: boolean;
+  value_usd_note?: string | null;
   factory_lat: number | null;
   factory_lng: number | null;
   status: 'open' | 'delivered' | 'cancelled';
@@ -148,6 +150,7 @@ export function applies(d: StepDef, h: Handover, o?: FoOrder | null) {
       case 'vendor_new': return o.vendor_new;
       case 'codes_new': return o.codes_new;
       case 'inland': return o.inland;
+      case 'dic': return o.dic_required !== false;
       default: return false;
     }
   });
