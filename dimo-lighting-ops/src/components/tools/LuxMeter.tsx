@@ -1,13 +1,14 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Platform, Text, View } from 'react-native';
+import { Platform, Text, useWindowDimensions, View } from 'react-native';
+import { SvgXml } from 'react-native-svg';
 import { DataTable } from '@/components/DataTable';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, ErrorBanner, Loading, Muted, Notice, Row } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { fmtDate, fmtDateTime } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
-import { CAL_DAYS, deviceName, surveyStats, useLightSensor, type Calibration, type LuxSurvey } from '@/lib/lux';
+import { CAL_DAYS, deviceName, levelColour, levelLabel, luxGaugeSvg, surveyStats, useLightSensor, type Calibration, type LuxSurvey } from '@/lib/lux';
 import { supabase } from '@/lib/supabase';
 
 /** Lux meter: the phone's light sensor, calibrated against a reference meter – live, spot readings and room surveys.
@@ -19,6 +20,8 @@ export function LuxMeter() {
   const android = Platform.OS === 'android';
   const device = deviceName();
   const [hold, setHold] = useState<number | null>(null);
+  const [advanced, setAdvanced] = useState(false);
+  const { width } = useWindowDimensions();
   const sensor = useLightSensor(android);
   const { data, error, reload } = useLoad(async () => {
     const [c, s] = await Promise.all([
@@ -33,7 +36,12 @@ export function LuxMeter() {
   const calAge = cal ? (Date.parse(new Date().toISOString()) - Date.parse(cal.created_at)) / 86400000 : null;
   const calOk = cal != null && calAge != null && calAge <= CAL_DAYS;
   const lux = sensor.raw != null ? sensor.raw * (cal?.factor ?? 1) : null;
-  const shown = hold ?? lux;
+  const settledLux = sensor.settled != null ? sensor.settled * (cal?.factor ?? 1) : null;
+  // the final value: held, or the settled reading while the light stays where it settled
+  const final = hold ?? (settledLux != null && sensor.steady ? settledLux : null);
+  const shown = final ?? lux;
+  const digitColour = final != null ? levelColour(final) : '#475569';
+  const gaugeW = Math.min(width - 48, 340);
   const f = cal?.factor ?? 1;
   const range = sensor.range && Number.isFinite(sensor.range.min) ? { min: sensor.range.min * f, max: sensor.range.max * f } : null;
 
@@ -93,31 +101,45 @@ export function LuxMeter() {
         <Notice tone={colors.amber}>This phone has no light sensor the app can read.</Notice>
       ) : (
         <>
-          <Card style={{ gap: 4 }}>
-            <Row wrap style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-              <View style={{ flexShrink: 1 }}>
-                <Text style={{ fontWeight: '700', color: colors.ink }}>{device}</Text>
-                <Muted>{cal ? `Calibrated ${fmtDate(cal.created_at)} against ${cal.reference} · factor ${cal.factor}` : 'Not calibrated'}</Muted>
-              </View>
-              <Button small variant={calOk ? 'ghost' : 'primary'} title={cal ? 'Calibrate again' : 'Calibrate'} onPress={calibrate} />
-            </Row>
-            {!calOk ? <Notice tone={colors.amber}>{cal ? `The calibration is more than ${CAL_DAYS} days old – calibrate again before saving readings.` : 'Phone sensors can be 20–50% off. Calibrate once against a reference lux meter before saving readings.'}</Notice> : null}
+          {/* Simple measuring: the dial moves with the light; once it settles the value is fixed in coloured digits */}
+          <Card style={{ alignItems: 'center', gap: 8, paddingVertical: 16 }}>
+            <SvgXml xml={luxGaugeSvg(lux, gaugeW)} width={gaugeW} height={Math.round(gaugeW / 2 - 18 + 16 + (gaugeW / 2 - 18) * 0.35 + 14)} />
+            <View style={{ backgroundColor: '#0B1220', borderRadius: 14, paddingVertical: 12, paddingHorizontal: 22, alignItems: 'center', minWidth: Math.min(gaugeW, 300), borderWidth: 2, borderColor: final != null ? digitColour : '#1F2937' }}>
+              <Text style={{ color: final != null ? digitColour : '#475569', fontSize: 58, fontWeight: '800', fontFamily: Platform.select({ android: 'monospace', default: 'Courier New' }), letterSpacing: 4 }}>
+                {final != null ? String(Math.round(final)).padStart(4, ' ') : lux != null ? String(Math.round(lux)).padStart(4, ' ') : '----'}
+              </Text>
+              <Text style={{ color: final != null ? digitColour : '#64748B', fontSize: 14, fontWeight: '700', letterSpacing: 2 }}>{final != null ? (hold != null ? 'LUX · HELD' : 'LUX · FINAL') : 'MEASURING…'}</Text>
+            </View>
+            <Muted>{final != null ? levelLabel(final) : 'Hold the phone flat, sensor facing up (top edge, beside the camera), and keep still.'}</Muted>
+            {!calOk ? <Muted>{cal ? 'Calibration out of date – see Advanced options.' : 'Not calibrated – readings may be 20–50% off. Calibrate under Advanced options.'}</Muted> : null}
           </Card>
-          <Card style={{ alignItems: 'center', gap: 6, paddingVertical: 22 }}>
-            <Muted>{hold != null ? 'HELD' : 'Live – hold the phone flat, sensor facing up (top edge, next to the camera)'}</Muted>
-            <Text style={{ fontSize: 64, fontWeight: '800', color: calOk ? colors.ink : colors.muted }}>{shown != null ? Math.round(shown).toLocaleString('en-LK') : '—'}</Text>
-            <Text style={{ fontSize: 18, color: colors.muted }}>lux{!calOk ? ' (not calibrated)' : sensor.steady ? ' · steady' : ''}</Text>
-            {range ? <Muted>{`min ${Math.round(range.min)} · max ${Math.round(range.max)} lx`}</Muted> : null}
-            <Row gap={8} wrap style={{ justifyContent: 'center' }}>
-              <Button small variant="secondary" title={hold != null ? 'Release' : 'Hold'} onPress={() => setHold(hold != null ? null : lux)} />
-              <Button small variant="secondary" title={range ? 'Reset min / max' : 'Track min / max'} onPress={sensor.track} />
-              <Button small title="Save spot reading" onPress={saveSpot} />
-            </Row>
-          </Card>
-          <Button title="+ New room survey (grid)" onPress={() => (calOk ? router.push('/tools/lux/new') : dialog.toast('Calibrate the phone first', 'error'))} />
+          <Button variant="ghost" title={advanced ? 'Advanced options ▴' : 'Advanced options ▾'} onPress={() => setAdvanced(!advanced)} />
+          {advanced ? (
+            <>
+              <Card style={{ gap: 4 }}>
+                <Row wrap style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                  <View style={{ flexShrink: 1 }}>
+                    <Text style={{ fontWeight: '700', color: colors.ink }}>{device}</Text>
+                    <Muted>{cal ? `Calibrated ${fmtDate(cal.created_at)} against ${cal.reference} · factor ${cal.factor}` : 'Not calibrated'}</Muted>
+                  </View>
+                  <Button small variant={calOk ? 'ghost' : 'primary'} title={cal ? 'Calibrate again' : 'Calibrate'} onPress={calibrate} />
+                </Row>
+                {!calOk ? <Notice tone={colors.amber}>{cal ? `The calibration is more than ${CAL_DAYS} days old – calibrate again before saving readings.` : 'Phone sensors can be 20–50% off. Calibrate once against a reference lux meter before saving readings.'}</Notice> : null}
+              </Card>
+              <Card style={{ gap: 6 }}>
+                <Muted>{`Live ${lux != null ? Math.round(lux) : '—'} lx${sensor.steady ? ' · steady' : ''}${range ? ` · min ${Math.round(range.min)} · max ${Math.round(range.max)} lx` : ''}`}</Muted>
+                <Row gap={8} wrap>
+                  <Button small variant="secondary" title={hold != null ? 'Release hold' : 'Hold'} onPress={() => setHold(hold != null ? null : (final ?? lux))} />
+                  <Button small variant="secondary" title={range ? 'Reset min / max' : 'Track min / max'} onPress={sensor.track} />
+                  <Button small title="Save spot reading" onPress={saveSpot} />
+                </Row>
+              </Card>
+              <Button title="+ New room survey (grid)" onPress={() => (calOk ? router.push('/tools/lux/new') : dialog.toast('Calibrate the phone first', 'error'))} />
+            </>
+          ) : null}
         </>
       )}
-      {data ? (
+      {data && (!android || advanced) ? (
         <DataTable
           rows={data.surveys}
           keyOf={(s) => s.id}

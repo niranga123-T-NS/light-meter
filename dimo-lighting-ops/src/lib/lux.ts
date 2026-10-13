@@ -47,9 +47,12 @@ export function deviceName() {
   return [c.Manufacturer ?? c.Brand, c.Model].filter(Boolean).join(' ') || `${Platform.OS} phone`;
 }
 
-/** Live readings from the phone's light sensor (Android only): the median of the last readings, to steady it */
+/** Live readings from the phone's light sensor (Android only). raw: the median of the last readings, to steady it;
+ *  settled: the reading once it has stayed within ±5% for about two seconds (kept until the light changes again). */
 export function useLightSensor(enabled: boolean) {
-  const [vals, setVals] = useState<number[]>([]);
+  const [raw, setRaw] = useState<number | null>(null);
+  const [settled, setSettled] = useState<number | null>(null);
+  const [steady, setSteady] = useState(false);
   const [available, setAvailable] = useState<boolean | null>(Platform.OS === 'android' ? null : false);
   // min / max of the uncorrected readings since tracking started (null = not tracking)
   const [range, setRange] = useState<{ min: number; max: number } | null>(null);
@@ -58,6 +61,7 @@ export function useLightSensor(enabled: boolean) {
     if (!enabled || Platform.OS !== 'android') return;
     let alive = true;
     let sub: { remove: () => void } | null = null;
+    const buf: number[] = [];
     LightSensor.isAvailableAsync()
       .then((ok) => {
         if (!alive) return;
@@ -65,7 +69,15 @@ export function useLightSensor(enabled: boolean) {
         if (!ok) return;
         LightSensor.setUpdateInterval(200);
         sub = LightSensor.addListener((m) => {
-          setVals((v) => [...v.slice(-11), m.illuminance]);
+          buf.push(m.illuminance);
+          if (buf.length > 10) buf.shift();
+          const sorted = [...buf].sort((x, y) => x - y);
+          const med = sorted[Math.floor(sorted.length / 2)];
+          const spread = (sorted[sorted.length - 1] - sorted[0]) / Math.max(med, 1);
+          const isSteady = buf.length >= 10 && spread < 0.1;
+          setRaw(med);
+          setSteady(isSteady);
+          if (isSteady) setSettled(med);
           setRange((g) => (g ? { min: Math.min(g.min, m.illuminance), max: Math.max(g.max, m.illuminance) } : g));
         });
       })
@@ -75,15 +87,65 @@ export function useLightSensor(enabled: boolean) {
       sub?.remove();
     };
   }, [enabled]);
-  const sorted = [...vals].sort((a, b) => a - b);
-  const raw = sorted.length ? sorted[Math.floor(sorted.length / 2)] : null;
-  const spread = sorted.length > 3 ? (sorted[sorted.length - 1] - sorted[0]) / Math.max(raw ?? 1, 1) : 1;
   const track = () => {
     setTracking(true);
     setRange(raw != null ? { min: raw, max: raw } : { min: Infinity, max: -Infinity });
   };
-  return { available, raw, steady: vals.length >= 6 && spread < 0.08, range: tracking ? range : null, track };
+  return { available, raw, steady, settled, range: tracking ? range : null, track };
 }
+
+/** The dial: a logarithmic lux scale (1 to 100 000 lx) with coloured bands and the needle at the reading */
+export function luxGaugeSvg(lux: number | null, size = 300) {
+  const W = size;
+  const R = W / 2 - 18;
+  const cx = W / 2;
+  const cy = R + 16;
+  const H = Math.round(cy + R * 0.35 + 14);
+  const a0 = -200;
+  const a1 = 20; // degrees, measured from the positive x axis (counter-clockwise from the left)
+  const pos = (v: number) => Math.min(Math.max(Math.log10(Math.max(v, 1)) / 5, 0), 1);
+  const ang = (t: number) => ((a0 + (a1 - a0) * t) * Math.PI) / 180;
+  const pt = (t: number, r: number) => ({ x: cx + r * Math.cos(ang(t)), y: cy + r * Math.sin(ang(t)) });
+  const arc = (t0: number, t1: number, r: number) => {
+    const p0 = pt(t0, r);
+    const p1 = pt(t1, r);
+    return `M${p0.x.toFixed(1)},${p0.y.toFixed(1)} A${r},${r} 0 ${(t1 - t0) * (a1 - a0) > 180 ? 1 : 0} 1 ${p1.x.toFixed(1)},${p1.y.toFixed(1)}`;
+  };
+  const bands: [number, number, string][] = [
+    [1, 50, '#1E3A8A'],
+    [50, 200, '#2563EB'],
+    [200, 750, '#16A34A'],
+    [750, 2000, '#CA8A04'],
+    [2000, 10000, '#EA580C'],
+    [10000, 100000, '#DC2626'],
+  ];
+  const bandSvg = bands.map(([v0, v1, c]) => `<path d="${arc(pos(v0), pos(v1), R)}" stroke="${c}" stroke-width="12" fill="none"/>`).join('');
+  let ticks = '';
+  for (let d = 0; d < 5; d++)
+    for (let m = 1; m < 10; m++) {
+      const v = m * 10 ** d;
+      const t = pos(v);
+      const major = m === 1;
+      const p0 = pt(t, R - 9);
+      const p1 = pt(t, R - (major ? 24 : 15));
+      ticks += `<line x1="${p0.x.toFixed(1)}" y1="${p0.y.toFixed(1)}" x2="${p1.x.toFixed(1)}" y2="${p1.y.toFixed(1)}" stroke="#334155" stroke-width="${major ? 2 : 1}"/>`;
+    }
+  const labels = [1, 10, 100, 1000, 10000, 100000]
+    .map((v) => {
+      const p = pt(pos(v), R - 38);
+      return `<text x="${p.x.toFixed(1)}" y="${(p.y + 4).toFixed(1)}" font-size="${Math.round(size / 26)}" font-family="Arial" font-weight="700" fill="#334155" text-anchor="middle">${v >= 1000 ? `${v / 1000}k` : v}</text>`;
+    })
+    .join('');
+  const needle = lux != null ? (() => {
+    const tip = pt(pos(lux), R - 6);
+    return `<line x1="${cx}" y1="${cy}" x2="${tip.x.toFixed(1)}" y2="${tip.y.toFixed(1)}" stroke="#C8102E" stroke-width="3.5" stroke-linecap="round"/>`;
+  })() : '';
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">${bandSvg}${ticks}${labels}${needle}<circle cx="${cx}" cy="${cy}" r="8" fill="#111"/><text x="${cx}" y="${cy - R * 0.42}" font-size="${Math.round(size / 22)}" font-family="Arial" fill="#64748B" text-anchor="middle">lux</text></svg>`;
+}
+
+/** Colour of the final digits by light level: dim, office, bright, daylight */
+export const levelColour = (lux: number) => (lux < 50 ? '#60A5FA' : lux < 200 ? '#38BDF8' : lux < 750 ? '#4ADE80' : lux < 2000 ? '#FACC15' : lux < 10000 ? '#FB923C' : '#F87171');
+export const levelLabel = (lux: number) => (lux < 50 ? 'Dim' : lux < 200 ? 'Low – corridors, stores' : lux < 750 ? 'Good for offices and classrooms' : lux < 2000 ? 'Bright – detailed tasks' : lux < 10000 ? 'Very bright' : 'Daylight');
 
 export function surveyStats(readings: Reading[]): Stats {
   const v = readings.map((x) => x.lux).filter((x) => Number.isFinite(x));
