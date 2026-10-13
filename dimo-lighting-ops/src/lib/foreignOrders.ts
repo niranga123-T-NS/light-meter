@@ -43,6 +43,7 @@ export type FoOrder = {
   dg_details: string | null;
   factory_location: string | null;
   dic_required?: boolean;
+  planned_mode?: 'sea' | 'air' | 'courier' | null;
   value_usd_note?: string | null;
   factory_lat: number | null;
   factory_lng: number | null;
@@ -252,8 +253,9 @@ export function standing(lines: Line[]) {
   return { stage, now, with: [...new Set(now.map((l) => (l.def.key === 'arrived' ? 'In transit' : l.def.node)))].join(', '), late: now.some((l) => l.late) };
 }
 
+export const MODE_LABEL = { sea: 'Sea freight', air: 'Air freight', courier: 'Courier' } as const;
 export const termsLabel = (o: FoOrder) =>
-  o.kind === 'service' ? `Service · ${o.payment}` : `${o.incoterm} · ${o.payment}${o.duty ? ` · duty ${o.duty}` : ''}`;
+  o.kind === 'service' ? `Service · ${o.payment}` : `${o.incoterm} · ${o.payment}${o.duty ? ` · duty ${o.duty}` : ''}${o.planned_mode ? ` · ${MODE_LABEL[o.planned_mode]}` : ''}`;
 
 export const STATUS_TONE: Record<FoOrder['status'], string> = { open: colors.blue, delivered: colors.green, cancelled: colors.grey };
 

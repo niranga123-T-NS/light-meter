@@ -7496,6 +7496,9 @@ begin
           'eta', b + 110, 'order_ids', jsonb_build_array(o1)));
   begin perform public.fo_save_shipment(null, jsonb_build_object('order_ids', jsonb_build_array(o2))); assert false, 'no service on a shipment';
   exception when others then assert sqlerrm like 'Only open material orders%', sqlerrm; end;
+  assert (select planned_mode from public.fo_orders where id = o1) = 'sea', 'takes the shipment mode';
+  perform public.fo_set_planned_mode(o2, 'air');
+  assert (select planned_mode from public.fo_orders where id = o2) is null, 'no freight for a service';
   n := public.fo_ship(sh, b + 80);
   perform public.fo_set_factory(o1, 'Arnsberg, Germany', 51.40, 8.06);
   perform public.fo_add_position(sh, jsonb_build_object('at', now() - interval '1 day', 'place', 'Jebel Ali', 'lat', 25.01, 'lng', 55.06, 'note', 'transhipment'));

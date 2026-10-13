@@ -111,7 +111,7 @@ export default function ForeignOrder() {
     if (r) await dialog.run(async () => { await rpc('fo_cancel_order', { p_id: o.id, p_reason: r.reason }); await reload(); }, 'Cancelled');
   };
   const newShipment = async () => {
-    const sid = await editShipment(dialog, openOrders.map((x) => orderOption(x)), null, [o.id]);
+    const sid = await editShipment(dialog, openOrders.map((x) => orderOption(x)), null, [o.id], o.planned_mode);
     if (sid) router.push(`/orders/foreign/shipment/${sid}`);
   };
 

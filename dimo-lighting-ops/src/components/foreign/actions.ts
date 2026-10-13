@@ -35,13 +35,13 @@ export async function clearStep(dialog: Dialog, l: Line) {
 }
 
 /** New or edited shipment (Ops) – one shipment can carry several import orders */
-export async function editShipment(dialog: Dialog, orderOptions: Option[], s?: Shipment | null, selected: string[] = []) {
+export async function editShipment(dialog: Dialog, orderOptions: Option[], s?: Shipment | null, selected: string[] = [], mode?: string | null) {
   const r = await dialog.prompt({
     title: s ? `Edit ${s.code}` : 'New shipment',
     message: 'From the forwarder’s booking confirmation (through Logistics). An ETA change is told to Sales and the SEE.',
     fields: [
       { key: 'order_ids', label: 'Import orders on this shipment', type: 'multiselect', options: orderOptions, required: true, initial: selected.join(',') },
-      { key: 'mode', label: 'Mode', type: 'select', options: [{ value: 'sea', label: 'Sea' }, { value: 'air', label: 'Air' }, { value: 'courier', label: 'Courier' }], initial: s?.mode ?? 'sea' },
+      { key: 'mode', label: 'Mode', type: 'select', options: [{ value: 'sea', label: 'Sea' }, { value: 'air', label: 'Air' }, { value: 'courier', label: 'Courier' }], initial: s?.mode ?? mode ?? 'sea' },
       { key: 'vessel_flight', label: 'Vessel or flight no.', initial: s?.vessel_flight ?? '', hint: 'e.g. MSC ANNA, or EK 348 for air' },
       { key: 'voyage', label: 'Voyage', initial: s?.voyage ?? '' },
       { key: 'carrier', label: 'Shipping line / airline', initial: s?.carrier ?? '' },
