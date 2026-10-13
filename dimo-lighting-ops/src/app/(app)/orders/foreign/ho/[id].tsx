@@ -12,7 +12,7 @@ import { FO_KEEPER, route, SHORT_STAGES, standing, termsLabel, type FoNote, type
 import { useLoad, usePeople } from '@/lib/hooks';
 import { supabase } from '@/lib/supabase';
 
-/** A hand-over: client, sales person, SAP project and delivery location; its own steps (stages 1–3) and its import orders. */
+/** A import request: client, sales person, SAP project and delivery location; its own steps (stages 1–3) and its import orders. */
 export default function HandoverPage() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const me = useMe();
@@ -30,7 +30,7 @@ export default function HandoverPage() {
       supabase.from('fo_notes').select('*').eq('handover_id', id).order('occurred_on', { ascending: false }),
     ]);
     if (h.error) throw new Error(h.error.message);
-    if (!h.data) throw new Error('Hand-over not found');
+    if (!h.data) throw new Error('Import request not found');
     return {
       h: h.data as Handover,
       orders: (o.data ?? []) as FoOrder[],
@@ -72,17 +72,17 @@ export default function HandoverPage() {
     await dialog.run(async () => { await rpc('fo_decide_location', { p_id: pending.id, p_action: action, p_note: note }); await reload(); }, action === 'approve' ? 'Approved' : 'Done');
   };
   const cancel = async () => {
-    const r = await dialog.prompt({ title: `Cancel ${h.code}`, message: 'Cancels the hand-over and its open import orders.', fields: [{ key: 'reason', label: 'Reason', type: 'multiline', required: true }], confirmLabel: 'Cancel hand-over', danger: true });
+    const r = await dialog.prompt({ title: `Cancel ${h.code}`, message: 'Cancels the import request and its open import orders.', fields: [{ key: 'reason', label: 'Reason', type: 'multiline', required: true }], confirmLabel: 'Cancel import request', danger: true });
     if (r) await dialog.run(async () => { await rpc('fo_cancel_handover', { p_id: h.id, p_reason: r.reason }); await reload(); }, 'Cancelled');
   };
 
   return (
     <Screen maxWidth={1100}>
-      <Stack.Screen options={{ title: h.code ?? 'Hand-over' }} />
+      <Stack.Screen options={{ title: h.code ?? 'Import request' }} />
       <TestingBanner what="Foreign orders" always />
       <Row wrap gap={8} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
         <View style={{ flexShrink: 1 }}>
-          <Muted>{`${h.code} · hand-over received ${fmtDate(h.received_on)}`}</Muted>
+          <Muted>{`${h.code} · import request received ${fmtDate(h.received_on)}`}</Muted>
           <Row gap={8} wrap style={{ alignItems: 'center' }}>
             <Pill label={open ? 'Open' : h.status === 'closed' ? 'Closed – all delivered' : 'Cancelled'} tone={open ? colors.blue : h.status === 'closed' ? colors.green : colors.grey} />
           </Row>
@@ -130,7 +130,7 @@ export default function HandoverPage() {
         ))}
       </Section>
 
-      <Section title="Hand-over steps (stages 1–3)">
+      <Section title="Import request steps (stages 1–3)">
         <StepList lines={lines} keeper={keeper && open} handoverId={h.id} orderId={null} people={people} onChange={reload} />
       </Section>
 
@@ -161,7 +161,7 @@ export default function HandoverPage() {
             })}
           </Card>
         ) : (
-          <Notice tone={colors.amber}>Split the hand-over into import orders – one per manufacturer or shipment. Each runs its own route from stage 4.</Notice>
+          <Notice tone={colors.amber}>Split the import request into import orders – one per manufacturer or shipment. Each runs its own route from stage 4.</Notice>
         )}
       </Section>
     </Screen>

@@ -7441,7 +7441,7 @@ begin
   assert app.fo_workdays(date '2026-05-01', date '2026-05-04') = 1, 'Saturday and Sunday are not counted';
   h := public.fo_save_handover(null, jsonb_build_object('project_id', current_setting('test.fo_project'), 'project_name', 'Harbour View', 'client', 'Example Developers',
          'sales_person_id', (select id from u where role = 'asm_building'), 'received_on', b, 'pi_ref', 'PI-1', 'client_new', true, 'delivery_location', 'Site stores'));
-  assert (select code from public.fo_handovers where id = h) like 'HO-%', 'hand-over code';
+  assert (select code from public.fo_handovers where id = h) like 'IR-%', 'import request code';
   -- linked by the execution project: the name and client come from it, and its SEE follows the orders
   perform set_config('test.fo_h2', public.fo_save_handover(null, jsonb_build_object('exec_project_id', (select id from public.exec_projects order by created_at limit 1),
          'sales_person_id', (select id from u where role = 'asm_building'), 'received_on', b, 'delivery_location', 'Site'))::text, false);
