@@ -14,6 +14,7 @@ import { cached, useLoad } from '@/lib/hooks';
 import { MAINTENANCE, savings } from '@/lib/lightcalc';
 import { beamAngle, iesPhotometry, parseIes, polarSvg } from '@/lib/photometry';
 import { ARRANGEMENTS, checkClass, geometry, maxSpacing, roadCalc, roadModel, SURFACES, type RoadArrangement, type RoadClass, type RoadInput, type Surface } from '@/lib/roadcalc';
+import type { Luminaire } from '@/lib/catalog';
 import { ROLE_SHORT } from '@/lib/roles';
 import { isTou, LIGHTS_ON, tariffLabel, tariffRate, tariffSummary, type LightsOn, type Tariff } from '@/lib/tariffs';
 import type { Standard } from '@/lib/standards';
@@ -108,7 +109,7 @@ const clsOf = (s: Standard | null | undefined): RoadClass | null =>
 
 /** DLux Road: street lighting to EN 13201 – the road, poles and luminaire, the result against the class, and a DRAFT sheet */
 export default function RoadCalc() {
-  const { id, std } = useLocalSearchParams<{ id: string; std?: string }>();
+  const { id, std, lum } = useLocalSearchParams<{ id: string; std?: string; lum?: string }>();
   const me = useMe();
   const dialog = useDialog();
   const { width: screenW } = useWindowDimensions();
@@ -128,11 +129,14 @@ export default function RoadCalc() {
       }),
       isNew ? Promise.resolve(null) : supabase.from('quick_calcs').select('*').eq('id', id).single().then((r) => r.data as { id: string; code: string; inputs: Form } | null),
     ]);
-    return { stds, tariffs, calc };
-  }, [id]);
+    const fromLum = isNew && lum ? ((await supabase.from('luminaires').select('*').eq('id', lum).maybeSingle()).data as Luminaire | null) : null;
+    return { stds, tariffs, calc, fromLum };
+  }, [id, lum]);
   const preset = useMemo<Form | null>(() => {
     if (!data) return null;
     if (data.calc) return { ...BLANK, ...data.calc.inputs };
+    const l = data.fromLum;
+    if (l) return { ...BLANK, fname: l.name, watts: l.watts, lumens: l.lumens, dist: l.ies_id ? 'ies' : 'model', ies_id: l.ies_id };
     const s = std ? data.stds.find((x) => x.id === std) : null;
     if (!s) return BLANK;
     return String(s.vals?.cls ?? '').startsWith('P') ? { ...BLANK, foot_cls_id: s.id, title: s.space } : { ...BLANK, cls_id: s.id, title: s.space };

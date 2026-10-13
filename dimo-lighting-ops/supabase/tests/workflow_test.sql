@@ -7182,6 +7182,38 @@ do $$ begin assert not exists (select 1 from public.ies_files), 'not for operati
 reset role;
 rollback to savepoint ies;
 
+-- Catalogs: brand links, catalogue files and luminaires kept by the Design team; seen by Sales Tools users
+savepoint cat;
+do $$ begin
+  assert (select count(*) from public.luminaires where sample and ies_id is not null) = 6, 'six sample luminaires with IES curves';
+end $$;
+insert into public.brands (name) values ('Test Brand') on conflict (name) do nothing;
+select pg_temp.act_as('lighting_designer'); set role authenticated;
+do $$ declare b bigint := (select id from public.brands where name = 'Test Brand'); l uuid; begin
+  insert into public.brand_catalogs (brand_id, website, catalogue_url) values (b, 'https://example.com', 'https://example.com/catalogue');
+  insert into public.catalog_files (brand_id, title, storage_path, file_name, source_url) values (b, 'Indoor catalogue 2026', 'brands/' || b || '/x.pdf', 'x.pdf', 'https://example.com/x.pdf');
+  insert into public.luminaires (brand_id, name, family, watts, lumens, stock) values (b, 'TB Panel 36 W', 'Panel', 36, 4300, 'in') returning id into l;
+  perform set_config('test.lum', l::text, true);
+end $$;
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.luminaires where id = current_setting('test.lum')::uuid), 'sales see the luminaire';
+  assert exists (select 1 from public.catalog_files where title = 'Indoor catalogue 2026'), 'sales see the catalogue';
+  assert (select count(*) from public.ies_files where name like '%(sample)') = 6, 'sales see the sample IES files';
+  update public.luminaires set stock = 'out' where id = current_setting('test.lum')::uuid;
+  assert not found, 'sales do not change luminaires';
+  begin
+    insert into public.brand_catalogs (brand_id, website) values ((select id from public.brands where name = 'Test Brand'), 'x');
+    assert false, 'sales cannot set brand links';
+  exception when insufficient_privilege or unique_violation then null; end;
+end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ begin assert not exists (select 1 from public.luminaires), 'not for operations'; end $$;
+reset role;
+rollback to savepoint cat;
+
 -- Alert schedules: GM / DGM see and change them; others cannot
 savepoint alerts;
 select pg_temp.act_as('gm'); set role authenticated;

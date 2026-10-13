@@ -1,6 +1,7 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Platform } from 'react-native';
+import { Catalogs } from '@/components/tools/Catalogs';
 import { QuickCalcList } from '@/components/tools/QuickCalcList';
 import { Standards } from '@/components/tools/Standards';
 import { Card, Field, Muted, Notice, Screen, Segmented } from '@/components/ui';
@@ -37,12 +38,12 @@ export default function SalesTools() {
         </>
       ) : tab === 'calc' ? (
         <QuickCalcList />
+      ) : tab === 'catalogs' ? (
+        <Catalogs />
       ) : (
         <Card style={{ gap: 6 }}>
           <Muted>
-            {tab === 'catalogs'
-              ? 'Catalogs – DIMO products with data sheets and IES files, stock, sharing with the DIMO watermark and competitor comparison – come in the next release.'
-              : tab === 'lux'
+            {tab === 'lux'
                 ? 'The lux meter – calibrated readings, room surveys and before / after – comes with the next Android app.'
                 : ''}
           </Muted>

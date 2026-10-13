@@ -15,6 +15,7 @@ import { fmtMoney, fmtNumber } from '@/lib/format';
 import { cached, useLoad } from '@/lib/hooks';
 import { autoLayout, calculate, fieldLayout, FITTING_TYPES, inside, mountAt, MAINTENANCE, outline, REFLECTANCES, ROOFS, savings, SHAPES, suggestCount, type Lum, type Pt, type Roof, type RoomInput, type Shape } from '@/lib/lightcalc';
 import { beamAngle, iesPhotometry, parseIes, polarSvg } from '@/lib/photometry';
+import type { Luminaire } from '@/lib/catalog';
 import { ROLE_SHORT } from '@/lib/roles';
 import { isTou, LIGHTS_ON, tariffLabel, tariffRate, tariffSummary, type LightsOn, type Tariff } from '@/lib/tariffs';
 import type { Standard, StdGroupRow } from '@/lib/standards';
@@ -159,7 +160,7 @@ const parsePoints = (t: string): Pt[] =>
 
 /** DLux lighting calculation: ① room ② fitting ③ result ④ savings – a DRAFT sheet for the client, saved and turned into an inquiry */
 export default function QuickCalc() {
-  const { id, std } = useLocalSearchParams<{ id: string; std?: string }>();
+  const { id, std, lum } = useLocalSearchParams<{ id: string; std?: string; lum?: string }>();
   const me = useMe();
   const dialog = useDialog();
   const { width: screenW } = useWindowDimensions();
@@ -183,13 +184,18 @@ export default function QuickCalc() {
       }),
       isNew ? Promise.resolve(null) : supabase.from('quick_calcs').select('*').eq('id', id).single().then((r) => r.data as { id: string; code: string; inputs: Form } | null),
     ]);
-    return { ...refs, calc };
-  }, [id]);
+    // "Use in DLux" from Catalogs: the luminaire's data and IES file
+    const fromLum = isNew && lum ? ((await supabase.from('luminaires').select('*').eq('id', lum).maybeSingle()).data as Luminaire | null) : null;
+    return { ...refs, calc, fromLum };
+  }, [id, lum]);
 
   // the form: a saved calculation, a space chosen in Standards ("Use in DLux"), or the defaults
   const preset = useMemo<Form | null>(() => {
     if (!data) return null;
     if (data.calc) return { ...BLANK, ...data.calc.inputs };
+    const l = data.fromLum;
+    if (l)
+      return { ...BLANK, title: '', type: l.fitting_type, fname: l.name, watts: l.watts, lumens: l.lumens, dist: l.ies_id ? 'ies' : 'model', ies_id: l.ies_id, lumL: l.lit_l, lumW: l.lit_w, ugrSheet: l.ugr };
     const s = std ? data.stds.find((x) => x.id === std) : null;
     return s ? { ...BLANK, std_id: s.id, title: s.space, target: Number(s.vals?.em) || BLANK.target, uo: s.vals?.uo != null ? Number(s.vals.uo) : null, ugrLimit: s.vals?.ugr != null ? Number(s.vals.ugr) : null } : BLANK;
   }, [data, std]);

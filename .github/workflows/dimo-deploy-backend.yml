@@ -71,6 +71,7 @@ jobs:
         run: |
           supabase functions deploy push-dispatch --project-ref "$PROJECT_REF" --no-verify-jwt
           supabase functions deploy admin-users --project-ref "$PROJECT_REF" --no-verify-jwt
+          supabase functions deploy catalog-fetch --project-ref "$PROJECT_REF" --no-verify-jwt
 
       - name: Summary
         run: |
