@@ -13,7 +13,7 @@ type Won = { id: string; code: string | null; project_name: string; customer: st
 type Ho = Handover & { exec_project_id: string | null; secured_id: string | null };
 const NONE = 'none';
 
-/** New or edited hand-over (Ops), from the Estimation Manager's e-mail. Picking the execution project fills in the project and the client. */
+/** New or edited import request (Ops), from the Estimation Manager's e-mail. Picking the execution project fills in the project and the client. */
 export default function HandoverForm() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { data, error } = useLoad(async () => {
@@ -87,9 +87,9 @@ function Form({ execs, won, h }: { execs: Exec[]; won: Won[]; h: Ho | null }) {
 
   return (
     <Screen maxWidth={760}>
-      <Stack.Screen options={{ title: h ? `Edit ${h.code}` : 'New hand-over' }} />
+      <Stack.Screen options={{ title: h ? `Edit ${h.code}` : 'New import request' }} />
       <TestingBanner what="Foreign orders" always />
-      <Muted>From the Estimation Manager’s hand-over e-mail (PI and costing). Split it into import orders on the next page.</Muted>
+      <Muted>From the Estimation Manager’s import request e-mail (PI and costing). Split it into import orders on the next page.</Muted>
       <Card style={{ gap: 4 }}>
         <Select
           label="Project"
@@ -108,9 +108,9 @@ function Form({ execs, won, h }: { execs: Exec[]; won: Won[]; h: Ho | null }) {
         <Field label="Client" required value={client} onChangeText={setClient} />
         <Select label="Sales person" required searchable value={sales} onChange={setSales} options={salesOptions} />
       </Card>
-      <Section title="Hand-over">
+      <Section title="Import request">
         <Card style={{ gap: 4 }}>
-          <DateField label="Hand-over received on" required value={received} onChange={setReceived} />
+          <DateField label="Import request received on" required value={received} onChange={setReceived} />
           <Field label="PI no." value={pi} onChangeText={setPi} />
           <Select label="Client registered in SAP?" value={clientNew} onChange={setClientNew} options={[{ value: 'yes', label: 'Yes – already in SAP' }, { value: 'no', label: 'No – request the details from Sales' }]} />
           {h ? null : (
@@ -121,7 +121,7 @@ function Form({ execs, won, h }: { execs: Exec[]; won: Won[]; h: Ho | null }) {
       </Section>
       <Row gap={8} style={{ justifyContent: 'flex-end' }}>
         <Button variant="ghost" title="Cancel" onPress={() => router.back()} />
-        <Button title={h ? 'Save' : 'Create hand-over'} onPress={save} />
+        <Button title={h ? 'Save' : 'Create import request'} onPress={save} />
       </Row>
     </Screen>
   );

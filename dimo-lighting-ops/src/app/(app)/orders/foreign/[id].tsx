@@ -188,7 +188,7 @@ export default function ForeignOrder() {
       <TestingBanner what="Foreign orders" always />
       <Row wrap gap={8} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
         <View style={{ flexShrink: 1 }}>
-          <Muted>{`${o.code} · ${o.kind === 'service' ? 'Service' : 'Material'} · hand-over ${h.code}, order ${o.seq_no} of ${sib.length}`}</Muted>
+          <Muted>{`${o.code} · ${o.kind === 'service' ? 'Service' : 'Material'} · import request ${h.code}, order ${o.seq_no} of ${sib.length}`}</Muted>
           <Text style={{ fontSize: 20, fontWeight: '800', color: colors.ink }}>{`${o.title} – ${h.project_name}`}</Text>
           <Row gap={6} wrap style={{ marginTop: 4 }}>
             {o.kind === 'material' ? <Pill label={o.incoterm ?? ''} tone={colors.blue} /> : <Pill label="Service" tone={colors.blue} />}
@@ -228,7 +228,7 @@ export default function ForeignOrder() {
         <KeyValue label="Vendor" value={o.mfr_address ? `${o.vendor}\n${o.mfr_address}` : o.vendor} />
         {o.kind === 'material' ? <KeyValue label={o.planned_mode === 'air' ? 'Airport of loading' : 'Port of loading'} value={o.loading_port ?? '—'} /> : null}
         <KeyValue label="Required at site" value={o.required_on ? fmtDate(o.required_on) : '—'} />
-        <KeyValue label={o.status === 'delivered' ? 'Hand-over to delivery' : 'Since hand-over'} value={total != null ? `${total} working days` : '—'} />
+        <KeyValue label={o.status === 'delivered' ? 'Import request to delivery' : 'Since import request'} value={total != null ? `${total} working days` : '—'} />
         <KeyValue label="SAP project / PR nos." value={[h.sap_project_no, o.pr_nos].filter(Boolean).join(' · ') || '—'} />
         <KeyValue label="DIC approval" value={o.value_usd_note ?? (o.dic_required === false ? 'Not needed' : 'Needed')} />
         <KeyValue label="PO / LC" value={[o.po_no, o.lc_no].filter(Boolean).join(' · ') || '—'} />
@@ -238,9 +238,9 @@ export default function ForeignOrder() {
         ) : null}
       </Grid>
       {!hDone ? (
-        <Notice tone={colors.amber}>{`The hand-over's own steps (stages 1–3) are not all recorded yet.`}</Notice>
+        <Notice tone={colors.amber}>{`The import request's own steps (stages 1–3) are not all recorded yet.`}</Notice>
       ) : null}
-      <Button small variant="ghost" title={`Hand-over ${h.code} – client, SAP project, delivery location ›`} onPress={() => router.push(`/orders/foreign/ho/${h.id}`)} />
+      <Button small variant="ghost" title={`Import request ${h.code} – client, SAP project, delivery location ›`} onPress={() => router.push(`/orders/foreign/ho/${h.id}`)} />
 
       <Section title="Steps">
         <StepList

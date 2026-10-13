@@ -45,7 +45,7 @@ export default function ForeignPerformance() {
   const { hos, orders, steps, defs, holidays, notes } = data;
   const from = period === 'all' ? '0000' : monthsAgo(Number(period));
 
-  // every recorded step with the working days it took (hand-over steps once per hand-over)
+  // every recorded step with the working days it took (import request steps once per import request)
   const timed: { l: Line; vendor: string | null }[] = [];
   for (const h of hos) {
     const os = orders.filter((o) => o.handover_id === h.id);
@@ -115,7 +115,7 @@ export default function ForeignPerformance() {
       </Muted>
       <Grid min={170} max={4}>
         <Stat label="Orders delivered" value={String(delivered.length)} />
-        <Stat label="Hand-over to delivery, average" value={delivered.length ? `${Math.round(avg(leads))} working days` : '—'} />
+        <Stat label="Import request to delivery, average" value={delivered.length ? `${Math.round(avg(leads))} working days` : '—'} />
         <Stat label="Steps measured" value={String(inPeriod.length)} />
         <Stat label="Lowest SLA met" value={worst ? `${Math.round((100 * worst.met) / worst.withSla)}%` : '—'} sub={worst ? worst.label : 'No SLAs set'} tone={worst && worst.met / worst.withSla < 0.65 ? 'red' : undefined} />
       </Grid>

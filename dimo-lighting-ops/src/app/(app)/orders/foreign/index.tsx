@@ -72,7 +72,7 @@ export default function ForeignOrders() {
       return { o, h, st, ship, eta, behind: !!(eta && o.required_on && eta > o.required_on), overdue, issues, sib: sib.length };
     });
   const open = rows.filter((r) => r.o.status === 'open' && r.h.status === 'open');
-  // hand-overs not split yet
+  // import requests not split yet
   const empty = hos.filter((h) => h.status === 'open' && !orders.some((o) => o.handover_id === h.id));
   const count = (f: (r: (typeof rows)[number]) => boolean) => open.filter(f).length;
   const shown = tab === 'done' ? rows.filter((r) => r.o.status !== 'open') : open;
@@ -84,11 +84,11 @@ export default function ForeignOrders() {
       <Stack.Screen options={{ title: 'Foreign orders' }} />
       <TestingBanner what="Foreign orders" always />
       <Muted>
-        Foreign material and service orders from the Estimation Manager&apos;s hand-over to delivery. The work happens in e-mail and SAP; the Operations Executive records each
+        Foreign material and service orders from the Estimation Manager&apos;s import request to delivery. The work happens in e-mail and SAP; the Operations Executive records each
         step here, and the app counts the working days each step takes.
       </Muted>
       <Grid min={150} max={6}>
-        <Stat label="New hand-overs to split" value={String(empty.length)} tone={empty.length ? 'amber' : undefined} />
+        <Stat label="New import requests to split" value={String(empty.length)} tone={empty.length ? 'amber' : undefined} />
         <Stat label="SAP set-up and project" value={String(count((r) => r.st.stage <= 3))} />
         <Stat label="Import order and PO" value={String(count((r) => r.st.stage === 4 || r.st.stage === 5))} />
         <Stat label="In production" value={String(count((r) => r.st.stage === 6))} />
@@ -101,14 +101,14 @@ export default function ForeignOrders() {
           onChange={setTab}
           options={[
             { value: 'orders', label: 'Open orders', badge: count((r) => r.st.late || r.behind || r.overdue) },
-            { value: 'handovers', label: 'Hand-overs', badge: empty.length },
+            { value: 'handovers', label: 'Import requests', badge: empty.length },
             { value: 'shipments', label: 'Shipments' },
             { value: 'done', label: 'Delivered / cancelled' },
           ]}
         />
         <Row wrap gap={8}>
           <Button small variant="secondary" title="Performance" onPress={() => router.push('/orders/foreign/performance')} />
-          {keeper ? <Button small title="+ Hand-over" onPress={newHandover} /> : null}
+          {keeper ? <Button small title="+ Import request" onPress={newHandover} /> : null}
         </Row>
       </Row>
 
@@ -172,9 +172,9 @@ export default function ForeignOrders() {
           keyOf={(h) => h.id}
           onPress={(h) => router.push(`/orders/foreign/ho/${h.id}`)}
           edge={(h) => (empty.includes(h) ? colors.amber : undefined)}
-          emptyTitle="No hand-overs yet"
+          emptyTitle="No import requests yet"
           columns={[
-            { h: 'Hand-over', w: 150, v: (h) => `${h.code}\n${fmtDate(h.received_on)}` },
+            { h: 'Import request', w: 150, v: (h) => `${h.code}\n${fmtDate(h.received_on)}` },
             { h: 'Project · client', w: 260, grow: true, v: (h) => `${h.project_name}\n${h.client}` },
             { h: 'Sales person', w: 160, v: (h) => (h.sales_person_id ? people[h.sales_person_id]?.full_name ?? '' : '') },
             { h: 'SAP project', w: 130, v: (h) => h.sap_project_no ?? '—' },

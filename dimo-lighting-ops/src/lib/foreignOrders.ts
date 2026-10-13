@@ -135,8 +135,8 @@ export type FoNote = {
   created_at: string;
 };
 
-export const STAGES = ['Hand-over', 'SAP readiness', 'Project creation', 'Import order', 'PO & payment', 'Manufacture & documents', 'Shipment', 'Arrival & clearing', 'Delivery'];
-export const SHORT_STAGES = ['Hand-over', 'SAP ready', 'Project', 'Import order', 'PO & pay', 'Made · CI/PL', 'Shipment', 'Clearing', 'Delivery'];
+export const STAGES = ['Import request', 'SAP readiness', 'Project creation', 'Import order', 'PO & payment', 'Manufacture & documents', 'Shipment', 'Arrival & clearing', 'Delivery'];
+export const SHORT_STAGES = ['Import request', 'SAP ready', 'Project', 'Import order', 'PO & pay', 'Made · CI/PL', 'Shipment', 'Clearing', 'Delivery'];
 
 export const FO_KEEPER: Role[] = ['operations_exec'];
 export const FO_OFFICE: Role[] = ['operations_exec', 'sm_estimation', 'sm_projects', 'gm', 'sys_admin'];
@@ -154,7 +154,7 @@ export const DELAY_DAYS = [...Array.from({ length: 30 }, (_, i) => i + 1), 45, 6
 
 export const PAYMENT_KIND: Record<Payment['kind'], string> = { advance: 'Advance', part: 'Part payment', balance: 'Balance', full: 'Full payment' };
 
-/** Does a step apply to this order (o) under this hand-over (h)? */
+/** Does a step apply to this order (o) under this import request (h)? */
 export function applies(d: StepDef, h: Handover, o?: FoOrder | null) {
   return d.conds.every((c) => {
     if (c === 'client_new') return h.client_new;
@@ -211,8 +211,8 @@ export type Line = {
 };
 
 /**
- * The route of one import order (with the hand-over's own steps), or of the hand-over alone (o = null: stages 1–3).
- * steps: every step of the hand-over (all its orders). orders: all the hand-over's orders (for hand-over steps that follow order steps).
+ * The route of one import order (with the import request's own steps), or of the import request alone (o = null: stages 1–3).
+ * steps: every step of the import request (all its orders). orders: all the import request's orders (for import request steps that follow order steps).
  */
 export function route(defs: StepDef[], h: Handover, o: FoOrder | null, steps: Step[], orders: FoOrder[], holidays: Set<string>, today = todayIso()): Line[] {
   const open = orders.filter((x) => x.status !== 'cancelled');
@@ -248,7 +248,7 @@ export function route(defs: StepDef[], h: Handover, o: FoOrder | null, steps: St
         if (s) dates.push(s.done_on);
         else ready = false;
       } else {
-        // a hand-over step after order steps: every open order where it applies
+        // a import request step after order steps: every open order where it applies
         for (const x of open) {
           if (!applies(a, h, x)) continue;
           const s = doneOf(k, x.id);
