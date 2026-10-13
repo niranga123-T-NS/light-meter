@@ -7412,5 +7412,225 @@ begin
 end $$;
 reset role;
 
+-- Foreign orders (TESTING) ------------------------------------------------------
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  begin perform public.fo_save_handover(null, '{"project_name":"X","client":"Y","received_on":"2026-01-05","delivery_location":"Z"}'); assert false, 'only Ops';
+  exception when others then assert sqlerrm like '%Operations Executive%', sqlerrm; end;
+end $$;
+reset role;
+-- the SEE of an execution project follows the orders of that project
+update public.exec_projects set see_id = (select id from u where role = 'senior_elec_engineer') where id = (select id from public.exec_projects order by created_at limit 1);
+select set_config('test.fo_project', (select project_id::text from public.exec_projects order by created_at limit 1), false);
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$
+declare h uuid; o1 uuid; o2 uuid; sh uuid; b date := current_date - 120; sid uuid; n int;
+begin
+  assert app.fo_workdays(date '2026-05-01', date '2026-05-04') = 1, 'Saturday and Sunday are not counted';
+  h := public.fo_save_handover(null, jsonb_build_object('project_id', current_setting('test.fo_project'), 'project_name', 'Harbour View', 'client', 'Example Developers',
+         'sales_person_id', (select id from u where role = 'asm_building'), 'received_on', b, 'pi_ref', 'PI-1', 'client_new', true, 'delivery_location', 'Site stores'));
+  assert (select code from public.fo_handovers where id = h) like 'HO-%', 'hand-over code';
+  assert exists (select 1 from public.fo_steps where handover_id = h and step = 'ho_received' and done_on = b), 'hand-over step recorded';
+  o1 := public.fo_save_order(null, jsonb_build_object('handover_id', h, 'title', 'Façade luminaires', 'kind', 'material', 'vendor', 'Example Leuchten', 'vendor_new', true,
+          'incoterm', 'CIF', 'payment', 'LC', 'duty', 'free', 'required_on', current_date + 30, 'currency', 'EUR', 'pi_value', 84600));
+  o2 := public.fo_save_order(null, jsonb_build_object('handover_id', h, 'title', 'Commissioning', 'kind', 'service', 'vendor', 'Example Controls', 'payment', 'TT'));
+  assert (select seq_no from public.fo_orders where id = o2) = 2, 'second import order';
+  begin perform public.fo_save_order(null, jsonb_build_object('handover_id', h, 'title', 'X', 'vendor', 'V', 'payment', 'TT', 'kind', 'material')); assert false, 'material needs terms';
+  exception when others then assert sqlerrm like 'Incoterm%', sqlerrm; end;
+  -- steps follow their order
+  begin perform public.fo_record_step(h, null, 'project_requested', b + 3); assert false, 'not before the SAP checks';
+  exception when others then assert sqlerrm like 'Record "SAP checks done%', sqlerrm; end;
+  perform public.fo_record_step(h, null, 'sap_checked', b + 1);
+  begin perform public.fo_record_step(h, null, 'client_requested', b); assert false, 'date before the step it follows';
+  exception when others then assert sqlerrm like 'The date cannot be before%', sqlerrm; end;
+  perform public.fo_record_step(h, null, 'client_requested', b + 1);
+  perform public.fo_record_step(h, null, 'client_ready', b + 4, '2100458');
+  perform public.fo_record_step(h, o1, 'vendor_requested', b + 2);
+  begin perform public.fo_record_step(h, o1, 'codes_requested', b + 2); assert false, 'codes not needed';
+  exception when others then assert sqlerrm = 'This step does not apply to these terms', sqlerrm; end;
+  begin perform public.fo_record_step(h, null, 'project_requested', b + 5); assert false, 'vendor first';
+  exception when others then assert sqlerrm like 'Record "Vendor registered in SAP (all import orders)"%', sqlerrm; end;
+  perform public.fo_record_step(h, o1, 'vendor_ready', b + 8);
+  perform public.fo_record_step(h, null, 'project_requested', b + 9);
+  perform public.fo_record_step(h, null, 'project_approved', b + 12);
+  perform public.fo_record_step(h, null, 'sap_requested', b + 12);
+  begin perform public.fo_record_step(h, null, 'sap_created', b + 15); assert false, 'SAP project no.';
+  exception when others then assert sqlerrm = 'Enter the SAP project no.', sqlerrm; end;
+  perform public.fo_record_step(h, null, 'sap_created', b + 15, 'P/26/LT/0187');
+  assert (select sap_project_no from public.fo_handovers where id = h) = 'P/26/LT/0187', 'SAP project no. kept';
+  -- order 1: material, CIF, LC, duty free
+  perform public.fo_record_step(h, o1, 'io_created', b + 16);
+  perform public.fo_record_step(h, o1, 'io_approved', b + 19);
+  perform public.fo_record_step(h, o1, 'io_handed', b + 19);
+  perform public.fo_record_step(h, o1, 'po_issued', b + 22, '4500123987');
+  perform public.fo_record_step(h, o1, 'po_ack', b + 24);
+  perform public.fo_record_step(h, o1, 'pay_applied', b + 23);
+  begin perform public.fo_record_step(h, o1, 'tt_sent', b + 25); assert false, 'LC order';
+  exception when others then assert sqlerrm = 'This step does not apply to these terms', sqlerrm; end;
+  perform public.fo_record_step(h, o1, 'lc_draft', b + 28);
+  perform public.fo_record_step(h, o1, 'lc_accepted', b + 32);
+  perform public.fo_record_step(h, o1, 'lc_final', b + 35, 'LC/26/0912');
+  assert (select po_no || lc_no from public.fo_orders where id = o1) = '4500123987LC/26/0912', 'PO and LC numbers kept';
+  perform public.fo_add_payment(o1, jsonb_build_object('kind', 'advance', 'amount', 16920, 'currency', 'EUR', 'paid_on', b + 30));
+  perform public.fo_record_step(h, o1, 'mfg_done', b + 70);
+  perform public.fo_record_step(h, o1, 'cipl_confirmed', b + 75, 'CI-88213');
+  begin perform public.fo_record_step(h, o1, 'forwarder_set', b + 76); assert false, 'CIF: no forwarder';
+  exception when others then assert sqlerrm = 'This step does not apply to these terms', sqlerrm; end;
+  perform public.fo_record_step(h, o1, 'agent_set', b + 76, 'Example Clearing');
+  perform public.fo_record_step(h, o1, 'docs_to_agent', b + 77);
+  sh := public.fo_save_shipment(null, jsonb_build_object('mode', 'sea', 'vessel_flight', 'Example Express', 'bl_awb', 'HLCU1', 'pol', 'Hamburg', 'pod', 'Colombo',
+          'eta', b + 110, 'order_ids', jsonb_build_array(o1)));
+  begin perform public.fo_save_shipment(null, jsonb_build_object('order_ids', jsonb_build_array(o2))); assert false, 'no service on a shipment';
+  exception when others then assert sqlerrm like 'Only open material orders%', sqlerrm; end;
+  n := public.fo_ship(sh, b + 80);
+  assert n = 1 and exists (select 1 from public.fo_steps where order_id = o1 and step = 'shipped' and ref = 'HLCU1'), 'shipped recorded from the shipment';
+  perform public.fo_save_shipment(sh, jsonb_build_object('mode', 'sea', 'vessel_flight', 'Example Express', 'bl_awb', 'HLCU1', 'pol', 'Hamburg', 'pod', 'Colombo',
+          'eta', b + 112, 'order_ids', jsonb_build_array(o1)));
+  assert (select count(*) from public.fo_eta_log where shipment_id = sh) = 2, 'ETA change logged';
+  n := public.fo_arrive(sh, b + 112);
+  perform public.fo_record_step(h, o1, 'lc_endorsed', b + 113);
+  perform public.fo_record_step(h, o1, 'exbond_cusdec', b + 113, 'E-1');
+  perform public.fo_record_step(h, o1, 'exbond_invoice', b + 114, 'INV-1');
+  perform public.fo_record_step(h, o1, 'tobond_cusdec', b + 115, 'T-1');
+  -- location change: SM Projects and SM Estimation
+  perform set_config('test.fo_h', h::text, false);
+  perform set_config('test.fo_o1', o1::text, false);
+  perform set_config('test.fo_o2', o2::text, false);
+  perform set_config('test.fo_lc', public.fo_request_location(h, 'Central stores', 'Site not ready')::text, false);
+end $$;
+reset role;
+-- notifications to the sales person
+do $$ declare sp uuid := (select id from u where role = 'asm_building'); begin
+  assert exists (select 1 from public.notifications where recipient_id = sp and title = 'Client not in SAP – send the client details'), 'Sales asked for the client';
+  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'sm_estimation') and title like 'Client not in SAP%'), 'SM Estimation told';
+  assert exists (select 1 from public.notifications where recipient_id = sp and title = 'Order shipped'), 'Sales told: shipped';
+  assert exists (select 1 from public.notifications where recipient_id = sp and title = 'ETA changed'), 'Sales told: ETA changed';
+  assert exists (select 1 from public.notifications where recipient_id = sp and title = 'Order at clearing'), 'Sales told: at clearing';
+  assert exists (select 1 from public.notifications where recipient_id = sp and title like 'Customer signature needed%'), 'Sales asked to arrange the signature';
+  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'senior_elec_engineer') and title = 'Order shipped'), 'SEE told: shipped';
+end $$;
+select public.fo_tick(now());
+do $$ begin
+  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'asm_building') and title = 'Customer signature still needed'), 'daily signature reminder';
+end $$;
+-- who sees what
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.fo_handovers where id = current_setting('test.fo_h')::uuid), 'SEE sees the project''s orders';
+  assert (select count(*) from public.fo_orders where handover_id = current_setting('test.fo_h')::uuid) = 2, 'and its import orders';
+  assert not exists (select 1 from public.fo_order_values) and not exists (select 1 from public.fo_payments), 'but not the values';
+end $$;
+reset role;
+select pg_temp.act_as('asm_infra'); set role authenticated;
+do $$ begin
+  assert not exists (select 1 from public.fo_handovers) and not exists (select 1 from public.fo_shipments), 'another sales person sees nothing';
+end $$;
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.fo_order_values where order_id = current_setting('test.fo_o1')::uuid and pi_value = 84600), 'the sales person sees the values';
+  assert exists (select 1 from public.fo_shipments), 'and the shipment';
+  begin perform public.fo_decide_location(current_setting('test.fo_lc')::uuid, 'approve'); assert false, 'Sales cannot approve';
+  exception when others then assert sqlerrm like 'SM Projects and SM Estimation%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+select public.fo_decide_location(current_setting('test.fo_lc')::uuid, 'approve');
+reset role;
+do $$ begin
+  assert (select delivery_location from public.fo_handovers where id = current_setting('test.fo_h')::uuid) = 'Site stores', 'one approval is not enough';
+end $$;
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+select public.fo_decide_location(current_setting('test.fo_lc')::uuid, 'approve');
+reset role;
+do $$ begin
+  assert (select delivery_location from public.fo_handovers where id = current_setting('test.fo_h')::uuid) = 'Central stores', 'both approved: location changed';
+  assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'asm_building') and title = 'Delivery location changed'), 'Sales told';
+end $$;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$
+declare h uuid := current_setting('test.fo_h')::uuid; o1 uuid := current_setting('test.fo_o1')::uuid; o2 uuid := current_setting('test.fo_o2')::uuid; b date := current_date - 120;
+begin
+  perform public.fo_record_step(h, o1, 'customer_signed', b + 116);
+  begin perform public.fo_clear_step((select id from public.fo_steps where order_id = o1 and step = 'tobond_cusdec')); assert false, 'later steps depend on it';
+  exception when others then assert sqlerrm = 'Clear the steps recorded after it first', sqlerrm; end;
+  perform public.fo_record_step(h, o1, 'released', b + 118);
+  perform public.fo_record_step(h, o1, 'delivered', b + 119);
+  assert (select status from public.fo_orders where id = o1) = 'delivered', 'order delivered';
+  assert (select status from public.fo_handovers where id = h) = 'open', 'hand-over stays open while the service is open';
+  -- order 2: service, TT
+  perform public.fo_record_step(h, o2, 'io_created', b + 16);
+  perform public.fo_record_step(h, o2, 'io_approved', b + 18);
+  perform public.fo_record_step(h, o2, 'io_handed', b + 18);
+  perform public.fo_record_step(h, o2, 'po_issued', b + 20, '4500124000');
+  perform public.fo_record_step(h, o2, 'po_ack', b + 21);
+  perform public.fo_record_step(h, o2, 'pay_applied', b + 21);
+  perform public.fo_record_step(h, o2, 'tt_sent', b + 25);
+  begin perform public.fo_record_step(h, o2, 'mfg_done', b + 26); assert false, 'service: no manufacturing';
+  exception when others then assert sqlerrm = 'This step does not apply to these terms', sqlerrm; end;
+  perform public.fo_record_step(h, o2, 'service_done', b + 90);
+  perform public.fo_record_step(h, o2, 'delivered', b + 91);
+  assert (select status from public.fo_handovers where id = h) = 'closed', 'all delivered: hand-over closed';
+  perform public.fo_set_sla('codes_ready', 5);
+  assert (select sla_days from public.fo_step_defs where key = 'codes_ready') = 5, 'SLA set';
+end $$;
+reset role;
+
+-- Foreign orders: issue records (mistake / delay / complaint / notice) with references, alerts to the managers and the owners
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare n uuid; o uuid := current_setting('test.fo_o1')::uuid; begin
+  begin perform public.fo_add_note(jsonb_build_object('order_id', o, 'stage', 5, 'steps', jsonb_build_array('mfg_done'), 'kind', 'delay', 'title', 'X', 'occurred_on', current_date, 'delay_days', 3)); assert false, 'step not in stage';
+  exception when others then assert sqlerrm like 'These steps are not in stage 5%', sqlerrm; end;
+  begin perform public.fo_add_note(jsonb_build_object('order_id', o, 'stage', 5, 'kind', 'delay', 'title', 'X', 'occurred_on', current_date)); assert false, 'delay days';
+  exception when others then assert sqlerrm like 'A delay%', sqlerrm; end;
+  n := public.fo_add_note(jsonb_build_object('order_id', o, 'stage', 5, 'steps', jsonb_build_array('lc_draft', 'lc_accepted'), 'kind', 'delay', 'party', 'Finance · bank',
+         'title', 'Draft LC held at the bank', 'details', 'Bank asked for a revised proforma', 'occurred_on', current_date - 1, 'delay_days', 4));
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('fo_note', n, 'fo_reference', 'fo/' || n || '/mail.pdf', 'mail.pdf');
+  perform set_config('test.fo_note', n::text, false);
+  perform public.fo_resolve_note(n, 'Revised proforma sent; LC issued');
+end $$;
+reset role;
+do $$ begin
+  assert (select count(distinct recipient_id) from public.notifications where title = 'Delay – Draft LC held at the bank'
+          and recipient_id in (select id from u where role in ('sm_projects', 'gm', 'sm_estimation', 'asm_building', 'senior_elec_engineer'))) = 5, 'managers and owners alerted';
+  assert exists (select 1 from public.notifications where title = 'Resolved – Draft LC held at the bank'), 'resolution told';
+end $$;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.fo_notes where id = current_setting('test.fo_note')::uuid), 'SEE sees the record';
+  assert exists (select 1 from public.attachments where entity_type = 'fo_note'), 'and its reference';
+end $$;
+reset role;
+select pg_temp.act_as('asm_infra'); set role authenticated;
+do $$ begin
+  assert not exists (select 1 from public.fo_notes) and not exists (select 1 from public.attachments where entity_type = 'fo_note'), 'other sales see nothing';
+end $$;
+reset role;
+
+-- Holidays: seeded from the gazette, kept up to date by the weekly workflow; days added by hand are kept
+savepoint hol1;
+insert into vault.decrypted_secrets values ('dispatch_secret', 'fx-test-secret') on conflict (name) do update set decrypted_secret = excluded.decrypted_secret;
+do $$ declare r jsonb; rows jsonb; begin
+  assert (select count(*) from public.holidays where extract(year from day) = 2026 and source = 'auto') = 25, '2026 seeded';
+  assert exists (select 1 from public.holidays where day = '2026-05-30' and name like 'Adhi Poson%'), 'Adhi Poson 2026';
+  begin perform public.holidays_ingest('wrong', '[]', '{}'); assert false, 'secret';
+  exception when others then assert sqlerrm like '%Not allowed%', sqlerrm; end;
+  -- a manual day, and a corrected gazette for 2027 (one day moved)
+  insert into public.holidays (day, name, source) values ('2027-03-10', 'Company holiday', 'manual');
+  select jsonb_agg(jsonb_build_object('day', make_date(2027, 1, 1) + g * 14, 'name', 'Holiday ' || g)) into rows from generate_series(0, 24) g;
+  r := public.holidays_ingest('fx-test-secret', rows, '{2027}');
+  assert (r ->> 'added')::int = 25, r::text;
+  assert exists (select 1 from public.notifications where kind = 'holidays' and title = '2027 holidays loaded'), 'Ops told';
+  rows := (rows - 0) || jsonb_build_array(jsonb_build_object('day', '2027-01-02', 'name', 'Holiday 0 (moved)'));
+  r := public.holidays_ingest('fx-test-secret', rows, '{2027}');
+  assert (r ->> 'removed')::int = 1 and (r ->> 'added')::int = 1, r::text;
+  assert exists (select 1 from public.holidays where day = '2027-03-10' and source = 'manual'), 'manual day kept';
+  begin perform public.holidays_ingest('fx-test-secret', '[{"day":"2028-01-01","name":"X"}]', '{2028}'); assert false, 'incomplete year';
+  exception when others then assert sqlerrm like '%looks incomplete%', sqlerrm; end;
+  delete from public.holidays where extract(year from day) = 2027;
+  assert public.holidays_tick('2026-11-20 09:00+05:30') = 1 and public.holidays_tick('2026-10-20 09:00+05:30') = 0, 'reminder from 15 Nov';
+end $$;
+rollback to savepoint hol1;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

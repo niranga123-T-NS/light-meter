@@ -1,0 +1,35 @@
+# Sri Lanka public holidays for the working-day clocks (SLAs, foreign-order steps, clearing): this year and next, every week.
+# Uses the same repository secrets as the exchange rates (SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF, DISPATCH_SECRET).
+name: DIMO – holidays
+
+on:
+  schedule:
+    - cron: '10 2 * * 1'   # Mondays 07:40 Sri Lanka
+  workflow_dispatch:
+
+concurrency: dimo-holidays
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: dimo-lighting-ops
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      FX_SECRET: ${{ secrets.DISPATCH_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the holidays register
+        run: pip install -q --upgrade holidays
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Fetch and save the holidays
+        run: |
+          key=$(supabase projects api-keys --project-ref "$PROJECT_REF" -o json | jq -r '[.[] | select(.name == "anon" or .type == "publishable")][0].api_key')
+          if [ -z "$key" ] || [ "$key" = "null" ]; then echo "::error::Could not read the project's public (anon) key"; exit 1; fi
+          echo "::add-mask::$key"
+          SUPABASE_URL="https://$PROJECT_REF.supabase.co" SUPABASE_ANON_KEY="$key" python3 scripts/holidays_fetch.py
