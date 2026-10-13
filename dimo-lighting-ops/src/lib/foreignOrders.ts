@@ -39,6 +39,8 @@ export type FoOrder = {
   po_no: string | null;
   lc_no: string | null;
   cipl_rounds: number;
+  dangerous: boolean | null;
+  dg_details: string | null;
   status: 'open' | 'delivered' | 'cancelled';
   notes: string | null;
   cancel_reason: string | null;

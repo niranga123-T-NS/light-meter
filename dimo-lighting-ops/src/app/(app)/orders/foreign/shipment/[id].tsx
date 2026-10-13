@@ -3,7 +3,7 @@ import { Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { editShipment, orderOption, rpc } from '@/components/foreign/actions';
 import { TestingBanner } from '@/components/Testing';
-import { Button, Card, colors, ErrorBanner, Grid, KeyValue, ListRow, Loading, Muted, Pill, Row, Screen, Section } from '@/components/ui';
+import { Button, Card, colors, ErrorBanner, Grid, KeyValue, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { fmtDate, fmtDateTime } from '@/lib/format';
 import { FO_KEEPER, todayIso, type FoOrder, type Handover, type Shipment } from '@/lib/foreignOrders';
@@ -94,6 +94,9 @@ export default function ShipmentPage() {
         ) : null}
       </Row>
 
+      {orders.some((o) => o.dangerous) ? (
+        <Notice tone={colors.red}>{`⚠ DANGEROUS GOODS on this shipment – ${orders.filter((o) => o.dangerous).map((o) => `${o.code}: ${o.dg_details ?? ''}`).join('; ')}`}</Notice>
+      ) : null}
       <Card>
         <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
           {pts.map((p, i) => (
@@ -124,7 +127,7 @@ export default function ShipmentPage() {
           {orders.map((o) => (
             <ListRow
               key={o.id}
-              title={`${o.code} · ${o.title}`}
+              title={`${o.dangerous ? '⚠ DG · ' : ''}${o.code} · ${o.title}`}
               subtitle={`${ho(o)?.project_name ?? ''} · ${o.vendor}${o.required_on ? `\nRequired at site ${fmtDate(o.required_on)}` : ''}`}
               right={s.eta && o.required_on && !s.arrived_on && s.eta > o.required_on ? <Pill label="ETA after required" tone={colors.red} /> : undefined}
               wrapRight

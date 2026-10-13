@@ -7439,6 +7439,11 @@ begin
           'incoterm', 'CIF', 'payment', 'LC', 'duty', 'free', 'required_on', current_date + 30, 'currency', 'EUR', 'pi_value', 84600));
   o2 := public.fo_save_order(null, jsonb_build_object('handover_id', h, 'title', 'Commissioning', 'kind', 'service', 'vendor', 'Example Controls', 'payment', 'TT'));
   assert (select seq_no from public.fo_orders where id = o2) = 2, 'second import order';
+  begin perform public.fo_set_dangerous(o1, true, ''); assert false, 'DG details';
+  exception when others then assert sqlerrm like 'Dangerous goods: enter%', sqlerrm; end;
+  perform public.fo_set_dangerous(o1, true, 'Class 9 – UN3481 lithium-ion batteries in emergency luminaires');
+  assert app.fo_order_head((select x from public.fo_orders x where id = o1)) like '⚠ DANGEROUS GOODS%', 'flag in every notification';
+  perform public.fo_set_dangerous(o2, false);
   begin perform public.fo_save_order(null, jsonb_build_object('handover_id', h, 'title', 'X', 'vendor', 'V', 'payment', 'TT', 'kind', 'material')); assert false, 'material needs terms';
   exception when others then assert sqlerrm like 'Incoterm%', sqlerrm; end;
   -- steps follow their order

@@ -130,7 +130,7 @@ export default function ForeignOrders() {
           edge={(r) => (r.o.status !== 'open' ? undefined : r.overdue || r.behind || r.st.late ? colors.red : undefined)}
           emptyTitle={tab === 'done' ? 'Nothing delivered yet' : 'No open import orders'}
           columns={[
-            { h: 'Order', w: 175, v: (r) => `${r.o.code}\n${r.o.title}\n${r.h.code} · ${r.o.seq_no} of ${r.sib}${r.issues ? `\n⚠ ${r.issues} open issue${r.issues > 1 ? 's' : ''}` : ''}` },
+            { h: 'Order', w: 175, tone: (r) => (r.o.dangerous ? colors.red : undefined), v: (r) => `${r.o.dangerous ? '⚠ DANGEROUS GOODS\n' : ''}${r.o.code}\n${r.o.title}\n${r.h.code} · ${r.o.seq_no} of ${r.sib}${r.issues ? `\n⚠ ${r.issues} open issue${r.issues > 1 ? 's' : ''}` : ''}` },
             { h: 'Project · client', w: 190, grow: true, v: (r) => `${r.h.project_name}\n${r.h.client}${r.h.sap_project_no ? `\n${r.h.sap_project_no}` : ''}` },
             { h: 'Vendor · terms', w: 165, v: (r) => `${r.o.vendor}\n${termsLabel(r.o)}` },
             {

@@ -123,6 +123,7 @@ export default function ForeignOrder() {
           <Row gap={6} wrap style={{ marginTop: 4 }}>
             {o.kind === 'material' ? <Pill label={o.incoterm ?? ''} tone={colors.blue} /> : <Pill label="Service" tone={colors.blue} />}
             <Pill label={o.payment} tone={colors.blue} />
+            {o.dangerous ? <Pill label="⚠ Dangerous goods" tone={colors.red} solid /> : null}
             {o.duty ? <Pill label={o.duty === 'free' ? 'Duty free' : 'Duty paid'} tone={colors.amber} /> : null}
             {o.status !== 'open' ? <Pill label={o.status === 'delivered' ? (o.kind === 'service' ? 'Completed' : 'Delivered') : 'Cancelled'} tone={o.status === 'delivered' ? colors.green : colors.grey} solid /> : null}
           </Row>
@@ -135,6 +136,8 @@ export default function ForeignOrder() {
         ) : null}
       </Row>
       {o.cancel_reason ? <Notice tone={colors.grey}>{`Cancelled: ${o.cancel_reason}`}</Notice> : null}
+      {o.dangerous ? <Notice tone={colors.red}>{`⚠ DANGEROUS GOODS – ${o.dg_details ?? ''}. Handle with the dangerous-goods documents and declarations at every stage.`}</Notice> : null}
+      {keeper && o.kind === 'material' && o.dangerous == null && o.status === 'open' ? <Notice tone={colors.amber}>Dangerous goods not set – edit the order and choose Yes or No.</Notice> : null}
 
       {/* the nine stages */}
       <View style={{ flexDirection: 'row', gap: 3 }}>

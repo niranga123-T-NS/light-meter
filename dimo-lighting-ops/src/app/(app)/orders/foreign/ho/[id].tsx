@@ -146,7 +146,7 @@ export default function HandoverPage() {
                 <ListRow
                   key={o.id}
                   highlight={o.status === 'open' && st.late ? colors.red : undefined}
-                  title={`${o.seq_no} · ${o.title}`}
+                  title={`${o.dangerous ? '⚠ DG · ' : ''}${o.seq_no} · ${o.title}`}
                   subtitle={`${o.code} · ${o.vendor} · ${termsLabel(o)}${o.status === 'open' ? `\nWith ${st.with || '—'}` : ''}`}
                   right={
                     <Pill
