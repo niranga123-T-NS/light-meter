@@ -67,6 +67,19 @@ jobs:
             echo "Web Push keys created"
           fi
 
+      # Catalogs AI (competitor sheet comparison, data sheet reading): the Anthropic API key goes only into Supabase's
+      # function secrets, from the repository secret ANTHROPIC_API_KEY. Skipped until that secret is added.
+      - name: AI key for the Edge Functions
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -n "$ANTHROPIC_API_KEY" ]; then
+            supabase secrets set --project-ref "$PROJECT_REF" ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" > /dev/null
+            echo "AI key set for the Edge Functions"
+          else
+            echo "ANTHROPIC_API_KEY not added yet – AI features stay off"
+          fi
+
       - name: Deploy Edge Functions
         run: |
           supabase functions deploy push-dispatch --project-ref "$PROJECT_REF" --no-verify-jwt
