@@ -7589,6 +7589,8 @@ begin
   exception when others then assert sqlerrm = 'Clear the steps recorded after it first', sqlerrm; end;
   perform public.fo_record_step(h, o1, 'released', b + 118);
   perform public.fo_record_step(h, o1, 'delivered', b + 119);
+  assert (select status from public.fo_orders where id = o1) = 'open', 'duty free: open until the original CUSDEC reaches the client';
+  perform public.fo_record_step(h, o1, 'cusdec_to_client', b + 119, 'T-1');
   assert (select status from public.fo_orders where id = o1) = 'delivered', 'order delivered';
   assert (select status from public.fo_handovers where id = h) = 'open', 'hand-over stays open while the service is open';
   -- order 2: service, TT
