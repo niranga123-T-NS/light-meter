@@ -197,7 +197,7 @@ export default function ForeignOrders() {
           emptyTitle="No shipments yet"
           columns={[
             { h: 'Shipment', w: 150, v: (s) => `${s.code}\n${s.mode === 'sea' ? 'Sea' : s.mode === 'air' ? 'Air' : 'Courier'}` },
-            { h: 'Vessel / flight', w: 200, grow: true, v: (s) => `${s.vessel_flight ?? '—'}${s.voyage ? ` · ${s.voyage}` : ''}\n${s.bl_awb ?? ''}` },
+            { h: 'Vessel / flight', w: 200, grow: true, v: (s) => `${s.vessel_flight ?? (s.mode === 'courier' ? s.carrier ?? 'Courier' : '—')}${s.voyage ? ` · ${s.voyage}` : ''}\n${s.bl_awb ?? ''}` },
             { h: 'Route', w: 220, v: (s) => [s.pol, s.via, s.pod].filter(Boolean).join(' → ') || '—' },
             { h: 'ETD', w: 100, v: (s) => fmtDate(s.etd) },
             { h: 'ETA', w: 100, v: (s) => (s.arrived_on ? `Arrived ${fmtDate(s.arrived_on)}` : fmtDate(s.eta)) },

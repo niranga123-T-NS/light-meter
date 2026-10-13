@@ -3,6 +3,7 @@ import { Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { editShipment, orderOption, rpc } from '@/components/foreign/actions';
 import { FoNotes } from '@/components/foreign/Notes';
+import { RouteMap } from '@/components/foreign/RouteMap';
 import { ShipmentRoute, type FoPosition } from '@/components/foreign/ShipmentRoute';
 import { StepList } from '@/components/foreign/StepList';
 import { TestingBanner } from '@/components/Testing';
@@ -123,7 +124,7 @@ export default function ForeignOrder() {
     if (r) await dialog.run(async () => { await rpc('fo_add_to_shipment', { p_shipment: r.sid, p_order: o.id }); await reload(); }, 'Added to the shipment');
   };
   const newShipment = async () => {
-    const sid = await editShipment(dialog, openOrders.map((x) => orderOption(x)), null, [o.id], o.planned_mode);
+    const sid = await editShipment(dialog, openOrders.map((x) => orderOption(x)), null, [o.id], o.planned_mode, o.loading_port);
     if (sid) router.push(`/orders/foreign/shipment/${sid}`);
   };
 
@@ -162,6 +163,21 @@ export default function ForeignOrder() {
           />
           {keeper ? <Muted>Sailed and arrival are recorded on the shipment page, for every order it carries.</Muted> : null}
         </>
+      ) : o.factory_location || o.loading_port ? (
+        // before the shipment: the planned route from the order (factory → loading port → Sri Lanka)
+        <RouteMap
+          mode={o.planned_mode ?? 'sea'}
+          factories={[{ label: `${o.code} ${o.vendor}`, location: o.factory_location, lat: o.factory_lat, lng: o.factory_lng, inland: o.incoterm === 'CIF' ? 'manufacturer' : 'forwarder' }]}
+          pol={o.loading_port ?? null}
+          vias={[]}
+          pod={null}
+          site={h.delivery_location}
+          arrived={false}
+          etd={null}
+          eta={null}
+          positions={[]}
+          height={300}
+        />
       ) : null}
     </>
   );
@@ -209,7 +225,8 @@ export default function ForeignOrder() {
       {!wide && st.stage <= 9 ? <Text style={{ fontWeight: '700', color: st.late ? colors.red : colors.blue }}>{`Stage ${st.stage} of 9 · ${SHORT_STAGES[st.stage - 1]}`}</Text> : null}
       <Grid min={200}>
         <KeyValue label="Now with" value={o.status === 'open' ? st.with || '—' : '—'} />
-        <KeyValue label="Vendor" value={o.vendor} />
+        <KeyValue label="Vendor" value={o.mfr_address ? `${o.vendor}\n${o.mfr_address}` : o.vendor} />
+        {o.kind === 'material' ? <KeyValue label={o.planned_mode === 'air' ? 'Airport of loading' : 'Port of loading'} value={o.loading_port ?? '—'} /> : null}
         <KeyValue label="Required at site" value={o.required_on ? fmtDate(o.required_on) : '—'} />
         <KeyValue label={o.status === 'delivered' ? 'Hand-over to delivery' : 'Since hand-over'} value={total != null ? `${total} working days` : '—'} />
         <KeyValue label="SAP project / PR nos." value={[h.sap_project_no, o.pr_nos].filter(Boolean).join(' · ') || '—'} />

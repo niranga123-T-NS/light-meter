@@ -723,6 +723,17 @@ reset role;
 rollback to savepoint tender;
 select pg_temp.act_as('asm_building'); set role authenticated;
 select public.record_client_response('00000000-0000-0000-0000-00000000d001', 'approved');
+-- under evaluation: still open, with the sales person, then the result
+do $$ begin
+  begin perform public.record_inquiry_evaluation('00000000-0000-0000-0000-00000000d001', current_date - 1, null); assert false, 'past date';
+  exception when others then assert sqlerrm like '%cannot be in the past%', sqlerrm; end;
+  perform public.record_inquiry_evaluation('00000000-0000-0000-0000-00000000d001', current_date + 14, 'Consultant comparing three bids');
+  assert (select status from public.inquiries where id = '00000000-0000-0000-0000-00000000d001') = 'under_evaluation', 'under evaluation';
+  assert (select evaluation_until from public.inquiries where id = '00000000-0000-0000-0000-00000000d001') = current_date + 14, 'decision date';
+  assert app.inquiry_open((select i from public.inquiries i where id = '00000000-0000-0000-0000-00000000d001')) = false, 'not in design/estimation';
+  assert app.inquiry_open('under_evaluation'), 'still an open inquiry';
+  assert (select current_owner_id = sales_person_id from public.inquiries where id = '00000000-0000-0000-0000-00000000d001'), 'with the sales person';
+end $$;
 select public.record_inquiry_result('00000000-0000-0000-0000-00000000d001', 'won', null, null, 62000000, current_date);
 do $$ begin
   assert (select milestone from public.projects) = 'won', 'project won';
@@ -7501,6 +7512,15 @@ begin
   assert (select planned_mode from public.fo_orders where id = o2) is null, 'no freight for a service';
   n := public.fo_ship(sh, b + 80);
   perform public.fo_set_factory(o1, 'Arnsberg, Germany', 51.40, 8.06);
+  perform public.fo_set_origin(o1, ' Example Leuchten GmbH, Werkstr. 5, 59755 Arnsberg, Germany ', 'Hamburg');
+  assert (select mfr_address = 'Example Leuchten GmbH, Werkstr. 5, 59755 Arnsberg, Germany' and loading_port = 'Hamburg' from public.fo_orders where id = o1), 'origin saved';
+  declare s2 uuid := public.fo_save_shipment(null, jsonb_build_object('mode', 'sea', 'order_ids', jsonb_build_array(o1)));
+  begin
+    assert (select pol from public.fo_shipments where id = s2) = 'Hamburg', 'a new shipment takes the loading port of its order';
+    delete from public.fo_shipment_orders where shipment_id = s2;
+    delete from public.fo_eta_log where shipment_id = s2;
+    delete from public.fo_shipments where id = s2;
+  end;
   perform public.fo_add_position(sh, jsonb_build_object('at', now() - interval '1 day', 'place', 'Jebel Ali', 'lat', 25.01, 'lng', 55.06, 'note', 'transhipment'));
   assert (select last_check_note from public.fo_shipments where id = sh) = 'Jebel Ali – transhipment', 'position recorded as the last check';
   assert n = 1 and exists (select 1 from public.fo_steps where order_id = o1 and step = 'shipped' and ref = 'HLCU1'), 'shipped recorded from the shipment';

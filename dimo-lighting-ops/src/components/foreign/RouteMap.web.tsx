@@ -5,7 +5,7 @@ import { Text, View } from 'react-native';
 import { colors, Muted, Row } from '@/components/ui';
 import { fmtDateTime } from '@/lib/format';
 import { findPlace, type Place } from '@/lib/places';
-import { estimatedPosition } from '@/lib/tracking';
+import { estimatedPosition, lanePath } from '@/lib/tracking';
 import type { RouteMapProps } from './RouteMap.types';
 
 const C = { factory: '#D97706', inland: '#D97706', sea: '#1D4ED8', air: '#7C3AED', via: '#60A5FA', lk: '#15803D', site: '#15803D', pos: '#C8102E', trail: '#9CA3AF' };
@@ -110,7 +110,13 @@ export function RouteMap(p: RouteMapProps) {
     // main leg: loading port → transit → Sri Lanka
     const legColor = p.mode === 'sea' ? C.sea : C.air;
     const chain = [res.pol, ...res.vias, res.pod].filter((x): x is Place => !!x);
-    for (let i = 0; i + 1 < chain.length; i++) line(chain[i], chain[i + 1], legColor, p.mode === 'sea' ? undefined : '2 8', p.mode === 'sea' ? 'Sea freight' : 'Air freight');
+    // by sea along the shipping lanes (Suez, Malacca …), by air straight
+    const path = lanePath(chain, p.mode);
+    if (path.length > 1) {
+      L.polyline(path.map((x) => [x.lat, x.lng] as L.LatLngTuple), { color: legColor, weight: 3, opacity: 0.85, dashArray: p.mode === 'sea' ? undefined : '2 8' })
+        .bindTooltip(p.mode === 'sea' ? 'Sea freight – along the usual shipping lanes' : 'Air freight', { sticky: true })
+        .addTo(g);
+    }
     if (res.pol) dot(res.pol, legColor, `Loading ${p.mode === 'sea' ? 'port' : 'airport'} – ${res.pol.name}`);
     res.vias.forEach((v) => v && dot(v, C.via, `Transit – ${v.name}`, 6));
     if (res.pod) dot(res.pod, C.lk, `Arrival in Sri Lanka – ${res.pod.name}`, 8);
@@ -121,7 +127,7 @@ export function RouteMap(p: RouteMapProps) {
     }
     // estimated position from the ETD and ETA (no live tracking)
     if (!p.arrived && p.mode === 'sea') {
-      const est = estimatedPosition(chain, p.etd, p.eta);
+      const est = estimatedPosition(path, p.etd, p.eta);
       if (est) {
         pts.push([est.lat, est.lng]);
         L.circleMarker([est.lat, est.lng], { radius: 9, color: C.pos, weight: 2, dashArray: '3 3', fillColor: '#fff', fillOpacity: 0.9 })

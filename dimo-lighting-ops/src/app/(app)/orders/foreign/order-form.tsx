@@ -22,6 +22,8 @@ type Form = {
   required_on: string | null;
   prs: string[];
   factory: string;
+  address: string;
+  loading: string;
   mode: string;
   dangerous: string;
   dg_details: string;
@@ -66,6 +68,8 @@ function OrderForm({ o, v, h, onSaved, dialog }: { o: FoOrder | null; v: OrderVa
     required_on: o?.required_on ?? null,
     prs: o?.pr_nos ? o.pr_nos.split(',').map((x) => x.trim()).filter(Boolean) : [],
     factory: o?.factory_location ?? '',
+    address: o?.mfr_address ?? '',
+    loading: o?.loading_port ?? '',
     mode: o?.planned_mode ?? '',
     dangerous: o?.dangerous == null ? '' : o.dangerous ? 'yes' : 'no',
     dg_details: o?.dg_details ?? '',
@@ -112,6 +116,8 @@ function OrderForm({ o, v, h, onSaved, dialog }: { o: FoOrder | null; v: OrderVa
         },
       })) as string;
       if (material && f.factory.trim() !== (o?.factory_location ?? '')) await rpc('fo_set_factory', { p_order: oid, p_location: f.factory, p_lat: null, p_lng: null });
+      if (f.address.trim() !== (o?.mfr_address ?? '') || (material ? f.loading.trim() : '') !== (o?.loading_port ?? ''))
+        await rpc('fo_set_origin', { p_order: oid, p_address: f.address, p_loading: material ? f.loading : '' });
       if (material && f.mode !== (o?.planned_mode ?? '')) await rpc('fo_set_planned_mode', { p_order: oid, p_mode: f.mode || null });
       await rpc('fo_set_dangerous', { p_order: oid, p_dangerous: material ? f.dangerous === 'yes' : false, p_details: f.dg_details });
       onSaved(oid);
@@ -130,7 +136,8 @@ function OrderForm({ o, v, h, onSaved, dialog }: { o: FoOrder | null; v: OrderVa
         <Field label="What is ordered" required value={f.title} onChangeText={(t) => set('title', t)} placeholder="e.g. Façade luminaires, LED drivers, commissioning" />
         <Select label="Material or service" required value={f.kind} onChange={(x) => set('kind', x as Form['kind'])} options={[{ value: 'material', label: 'Material' }, { value: 'service', label: 'Service' }]} />
         <Field label="Vendor / manufacturer" required value={f.vendor} onChangeText={(t) => set('vendor', t)} />
-        {material ? <Field label="Factory location (city, country)" value={f.factory} onChangeText={(t) => set('factory', t)} placeholder="e.g. Arnsberg, Germany" hint="Shown on the route map" /> : null}
+        <Field label="Manufacturer address" multiline value={f.address} onChangeText={(t) => set('address', t)} placeholder="e.g. Example Leuchten GmbH, Werkstrasse 5, 59755 Arnsberg, Germany" />
+        {material ? <Field label="Factory location (city, country)" value={f.factory} onChangeText={(t) => set('factory', t)} placeholder="e.g. Arnsberg, Germany" hint="For the route map – where the goods are collected, if not the address above" /> : null}
         <Select label="Vendor registered in SAP?" value={f.vendor_new ? 'no' : 'yes'} onChange={(x) => set('vendor_new', x === 'no')} options={[{ value: 'yes', label: 'Yes – already in SAP' }, { value: 'no', label: 'No – send the registration request' }]} />
         {material ? (
           <Select label="Material codes in SAP?" value={f.codes_new ? 'no' : 'yes'} onChange={(x) => set('codes_new', x === 'no')} options={[{ value: 'yes', label: 'Yes – all in SAP' }, { value: 'no', label: 'No – request from MDM' }]} />
@@ -156,6 +163,15 @@ function OrderForm({ o, v, h, onSaved, dialog }: { o: FoOrder | null; v: OrderVa
               onChange={(x) => set('mode', x)}
               options={[{ value: 'sea', label: 'Sea freight' }, { value: 'air', label: 'Air freight' }, { value: 'courier', label: 'Courier' }, { value: '', label: 'Not decided yet' }]}
               hint="The shipment starts with it; set from the shipment if left open"
+            />
+          ) : null}
+          {material ? (
+            <Field
+              label={f.mode === 'air' ? 'Airport of loading' : f.mode === 'sea' ? 'Port of loading' : 'Port / airport of loading'}
+              value={f.loading}
+              onChangeText={(t) => set('loading', t)}
+              placeholder={f.mode === 'air' ? 'e.g. FRA, Frankfurt' : 'e.g. Hamburg, Shanghai'}
+              hint={f.incoterm === 'FOB' ? 'The FOB port in the PO – the shipment starts with it' : 'From the PI / PO – the shipment starts with it'}
             />
           ) : null}
           {material && f.incoterm === 'FOB' ? (

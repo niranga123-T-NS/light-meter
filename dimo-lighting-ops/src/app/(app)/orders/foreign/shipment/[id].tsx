@@ -76,7 +76,7 @@ export default function ShipmentPage() {
       <Row wrap gap={8} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
         <View style={{ flexShrink: 1 }}>
           <Muted>{`${s.code} · ${s.mode === 'sea' ? 'Sea' : s.mode === 'air' ? 'Air' : 'Courier'}`}</Muted>
-          <Text style={{ fontSize: 20, fontWeight: '800', color: colors.ink }}>{`${s.vessel_flight ?? 'Vessel / flight not entered'}${s.voyage ? ` · ${s.voyage}` : ''}`}</Text>
+          <Text style={{ fontSize: 20, fontWeight: '800', color: colors.ink }}>{s.mode === 'courier' ? `${s.carrier ?? 'Courier'}${s.bl_awb ? ` · ${s.bl_awb}` : ''}` : `${s.vessel_flight ?? (s.mode === 'sea' ? 'Vessel not entered' : 'Flight not entered')}${s.voyage ? ` · voyage ${s.voyage}` : ''}`}</Text>
           <Row gap={6} style={{ marginTop: 4 }}>
             <Pill label={s.arrived_on ? 'Arrived' : sailed ? 'In transit' : 'Booked'} tone={s.arrived_on ? colors.green : colors.blue} />
           </Row>
@@ -85,7 +85,7 @@ export default function ShipmentPage() {
           <Row gap={8} wrap>
             <Button small variant="secondary" title="Edit / ETA" onPress={edit} />
             <Button small variant="secondary" title="Tracking checked" onPress={check} />
-            {!s.arrived_on ? <Button small variant="secondary" title="Sailed" onPress={ship} /> : null}
+            {!s.arrived_on ? <Button small variant="secondary" title={s.mode === 'sea' ? 'Sailed' : s.mode === 'air' ? 'Departed' : 'Dispatched'} onPress={ship} /> : null}
             {!s.arrived_on ? <Button small title="Arrived" onPress={arrive} /> : null}
           </Row>
         ) : null}
@@ -96,11 +96,30 @@ export default function ShipmentPage() {
       ) : null}
       <ShipmentRoute shipment={s} orders={orders} site={hos.length === 1 ? hos[0].delivery_location : null} positions={positions} keeper={keeper} onChange={reload} />
       <Grid min={200}>
-        <KeyValue label="B/L or AWB" value={s.bl_awb ?? '—'} />
-        <KeyValue label="Shipping line / airline" value={s.carrier ?? '—'} />
-        <KeyValue label="Containers / packages" value={s.containers ?? '—'} />
-        <KeyValue label="On board" value={s.onboard_at ? fmtDateTime(s.onboard_at) : '—'} />
-        <KeyValue label="Forwarder" value={s.forwarder ?? '—'} />
+        {s.mode === 'sea' ? (
+          <>
+            <KeyValue label="B/L no." value={s.bl_awb ?? '—'} />
+            <KeyValue label="Shipping line" value={s.carrier ?? '—'} />
+            <KeyValue label="Containers" value={s.containers ?? '—'} />
+            <KeyValue label="Container nos." value={s.container_nos ?? '—'} />
+            <KeyValue label="IMO / MMSI" value={s.imo ?? s.mmsi ?? '—'} />
+            <KeyValue label="On board" value={s.onboard_at ? fmtDateTime(s.onboard_at) : '—'} />
+            <KeyValue label="Forwarder" value={s.forwarder ?? '—'} />
+          </>
+        ) : s.mode === 'air' ? (
+          <>
+            <KeyValue label="AWB no." value={s.bl_awb ?? '—'} />
+            <KeyValue label="Airline" value={s.carrier ?? '—'} />
+            <KeyValue label="Pieces and weight" value={s.containers ?? '—'} />
+            <KeyValue label="Departed" value={s.onboard_at ? fmtDateTime(s.onboard_at) : '—'} />
+            <KeyValue label="Forwarder" value={s.forwarder ?? '—'} />
+          </>
+        ) : (
+          <>
+            <KeyValue label="Tracking no." value={s.bl_awb ?? '—'} />
+            <KeyValue label="Parcels and weight" value={s.containers ?? '—'} />
+          </>
+        )}
         <KeyValue label="Clearing agent" value={s.clearing_agent ?? '—'} />
         <KeyValue label="Last checked" value={s.last_checked_on ? `${fmtDate(s.last_checked_on)}${s.last_check_note ? ` – ${s.last_check_note}` : ''}` : '—'} />
       </Grid>

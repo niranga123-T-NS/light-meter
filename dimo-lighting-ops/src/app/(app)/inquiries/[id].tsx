@@ -155,7 +155,7 @@ export default function InquiryDetail() {
       );
     }
     // Client asked for a revised quotation → back to SM Estimation as the next revision (R1, R2 …)
-    if (quotations.length && ['quotation_released', 'submitted_to_client', 'awaiting_client_approval', 'client_approved'].includes(i.status)) {
+    if (quotations.length && ['quotation_released', 'submitted_to_client', 'awaiting_client_approval', 'under_evaluation', 'client_approved'].includes(i.status)) {
       buttons.push(
         <Button
           key="qrev"
@@ -201,7 +201,7 @@ export default function InquiryDetail() {
         />,
       );
     }
-    if (['submitted_to_client', 'client_approved', 'awaiting_client_approval', 'quotation_released'].includes(i.status)) {
+    if (['submitted_to_client', 'client_approved', 'awaiting_client_approval', 'under_evaluation', 'quotation_released'].includes(i.status)) {
       buttons.push(
         <Button
           key="res"
@@ -220,16 +220,25 @@ export default function InquiryDetail() {
                   options: [
                     { value: 'won', label: 'Won' },
                     { value: 'lost', label: 'Lost' },
+                    { value: 'under_evaluation', label: 'Under evaluation' },
                     { value: 'on_hold', label: 'On hold' },
                     { value: 'cancelled', label: 'Cancelled' },
                   ],
                 },
-                { key: 'reason', label: 'Lost reason', type: 'select', options: masters.values('lost_reason').map((v) => ({ value: v, label: v })) },
-                { key: 'comp', label: 'Lost to competitor', type: 'select', options: (comps ?? []).map((c) => ({ value: String(c.id), label: c.name })) },
-                { key: 'value', label: `Order value (${i.currency})` },
-                { key: 'date', label: 'Order date', type: 'date' },
+                { key: 'reason', label: 'Lost reason', type: 'select', required: true, options: masters.values('lost_reason').map((v) => ({ value: v, label: v })), when: { key: 'res', in: ['lost'] } },
+                { key: 'comp', label: 'Lost to competitor', type: 'select', options: (comps ?? []).map((c) => ({ value: String(c.id), label: c.name })), when: { key: 'res', in: ['lost'] } },
+                { key: 'value', label: `Order value (${i.currency})`, required: true, when: { key: 'res', in: ['won'] } },
+                { key: 'date', label: 'Order date', type: 'date', required: true, when: { key: 'res', in: ['won'] } },
+                { key: 'until', label: 'Client decision expected by', type: 'date', initial: i.evaluation_until ?? '', when: { key: 'res', in: ['under_evaluation'] } },
+                { key: 'note', label: 'Note', type: 'multiline', initial: i.evaluation_note ?? '', hint: 'e.g. consultant comparing three bids', when: { key: 'res', in: ['under_evaluation'] } },
               ],
             });
+            if (!r) return;
+            // the client is still evaluating: not a result yet, the inquiry stays open for follow-up
+            if (r.res === 'under_evaluation') {
+              await act('record_inquiry_evaluation', { p_inquiry: i.id, p_until: r.until || null, p_note: r.note || null }, 'Recorded as under evaluation');
+              return;
+            }
             if (!r) return;
             const ok = await act(
               'record_inquiry_result',
@@ -249,7 +258,7 @@ export default function InquiryDetail() {
         />,
       );
     }
-    if (['quotation_released', 'returned_to_sales', 'submitted_to_client', 'awaiting_client_approval', 'client_approved'].includes(i.status)) {
+    if (['quotation_released', 'returned_to_sales', 'submitted_to_client', 'awaiting_client_approval', 'under_evaluation', 'client_approved'].includes(i.status)) {
       buttons.push(<Button key="copy" variant="secondary" title="Quote to another contractor" onPress={() => router.push({ pathname: '/inquiries/copy', params: { from: i.id } })} />);
     }
     if (!['draft', 'won', 'lost', 'cancelled', 'rejected'].includes(i.status)) {
@@ -518,6 +527,9 @@ export default function InquiryDetail() {
           </Notice>
         ) : null}
         {i.status === 'on_hold' ? <Notice tone={colors.grey}>On hold: {i.hold_reason}</Notice> : null}
+        {i.status === 'under_evaluation' ? (
+          <Notice>{`Under evaluation by the client${i.evaluation_until ? ` – decision expected by ${fmtDate(i.evaluation_until)}` : ''}${i.evaluation_note ? ` · ${i.evaluation_note}` : ''}`}</Notice>
+        ) : null}
         {i.status === 'returned_for_info' ? <Notice tone={colors.amber}>Returned for more information – edit and resubmit. See the timeline for the reason.</Notice> : null}
         {i.checklist_incomplete && i.status !== 'draft' ? <Notice tone={colors.amber}>Document checklist incomplete.</Notice> : null}
         {sales ? <Row wrap gap={8} style={{ marginTop: 8 }}>{sales}</Row> : null}

@@ -4,12 +4,16 @@ import { Button, colors, DateField, Field, Muted, MultiSelect, Row, Select, styl
 
 // Cross-platform dialogs: confirm, prompt with fields (reasons are mandatory throughout the SRS), toast.
 
-export type PromptField =
-  | { key: string; label: string; type?: 'text' | 'multiline' | 'password'; required?: boolean; maxLength?: number; initial?: string; hint?: string }
-  | { key: string; label: string; type: 'date'; required?: boolean; initial?: string; hint?: string }
-  | { key: string; label: string; type: 'select'; options: Option[]; required?: boolean; initial?: string; hint?: string; searchable?: boolean }
-  /** Several choices; the value comes back comma-separated */
-  | { key: string; label: string; type: 'multiselect'; options: Option[]; required?: boolean; initial?: string; hint?: string };
+/** Shown only while another field has one of these values (a hidden field is not required and comes back empty) */
+type When = { when?: { key: string; in: string[] } };
+export type PromptField = When &
+  (
+    | { key: string; label: string; type?: 'text' | 'multiline' | 'password'; required?: boolean; maxLength?: number; initial?: string; hint?: string }
+    | { key: string; label: string; type: 'date'; required?: boolean; initial?: string; hint?: string }
+    | { key: string; label: string; type: 'select'; options: Option[]; required?: boolean; initial?: string; hint?: string; searchable?: boolean }
+    /** Several choices; the value comes back comma-separated */
+    | { key: string; label: string; type: 'multiselect'; options: Option[]; required?: boolean; initial?: string; hint?: string }
+  );
 
 type PromptOptions = { title: string; message?: string; fields?: PromptField[]; confirmLabel?: string; danger?: boolean };
 
@@ -67,7 +71,11 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     },
   };
 
-  const missing = (state?.fields ?? []).some((f) => f.required && !values[f.key]?.trim());
+  const shown = (f: PromptField) => !f.when || f.when.in.includes(values[f.when.key] ?? '');
+  const fields = (state?.fields ?? []).filter(shown);
+  const missing = fields.some((f) => f.required && !values[f.key]?.trim());
+  // hidden fields come back empty
+  const result = () => Object.fromEntries((state?.fields ?? []).map((f) => [f.key, shown(f) ? values[f.key] ?? '' : '']));
 
   return (
     <DialogContext.Provider value={api}>
@@ -79,7 +87,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
             <Text style={[styles.h2, { marginBottom: 6 }]}>{state?.title}</Text>
             <ScrollView keyboardShouldPersistTaps="handled" style={{ flexGrow: 0, flexShrink: 1 }} contentContainerStyle={{ paddingBottom: 4 }}>
               {state?.message ? <Muted style={{ marginBottom: 12 }}>{state.message}</Muted> : null}
-              {(state?.fields ?? []).map((f) =>
+              {fields.map((f) =>
                 f.type === 'date' ? (
                   <DateField key={f.key} label={f.label} required={f.required} hint={f.hint} value={values[f.key]} onChange={(v) => setValues((s) => ({ ...s, [f.key]: v ?? '' }))} />
                 ) : f.type === 'multiselect' ? (
@@ -115,7 +123,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
                 title={state?.confirmLabel ?? (state?.mode === 'confirm' ? 'Confirm' : 'Save')}
                 variant={state?.danger ? 'danger' : 'primary'}
                 disabled={missing}
-                onPress={() => close(values)}
+                onPress={() => close(result())}
               />
             </Row>
           </Pressable>

@@ -14,6 +14,7 @@ export function LocationPicker({
   title,
   query,
   initial,
+  world,
   onSave,
   onClose,
 }: {
@@ -22,6 +23,8 @@ export function LocationPicker({
   /** Prefilled search, e.g. the customer name and address */
   query: string;
   initial?: { lat: number; lng: number } | null;
+  /** A point anywhere in the world (a ship at sea): worldwide search, wide zoom, no "my location" */
+  world?: boolean;
   onSave: (p: { lat: number; lng: number }) => Promise<void>;
   onClose: () => void;
 }) {
@@ -48,7 +51,7 @@ export function LocationPicker({
     // The modal's content mounts after this render
     const t = setTimeout(() => {
       if (!el.current || map.current) return;
-      const m = L.map(el.current, { center: initial ? [initial.lat, initial.lng] : SRI_LANKA, zoom: initial ? 15 : 8 });
+      const m = L.map(el.current, { center: initial ? [initial.lat, initial.lng] : SRI_LANKA, zoom: initial ? (world ? 5 : 15) : world ? 3 : 8 });
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors',
@@ -71,11 +74,11 @@ export function LocationPicker({
     setMsg(null);
     setHits([]);
     try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=6&countrycodes=lk&q=${encodeURIComponent(q.trim())}`;
+      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=6${world ? '' : '&countrycodes=lk'}&q=${encodeURIComponent(q.trim())}`;
       const r = (await (await fetch(url, { headers: { Accept: 'application/json' } })).json()) as Hit[];
       if (!r.length) setMsg('Not found – try a shorter name, the town, or click the spot on the map.');
       setHits(r);
-      if (r.length === 1) place(Number(r[0].lat), Number(r[0].lon), 16);
+      if (r.length === 1) place(Number(r[0].lat), Number(r[0].lon), world ? 6 : 16);
     } catch {
       setMsg('Search is not available right now – click the spot on the map instead.');
     }
@@ -87,13 +90,13 @@ export function LocationPicker({
         <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 14, width: '100%', maxWidth: 860, alignSelf: 'center', maxHeight: '96%' }}>
           <ScrollView>
             <Text style={{ fontSize: 17, fontWeight: '700', color: colors.ink }}>{title}</Text>
-            <Muted>Search the address or place, or click the exact spot on the map. Zoom in for accuracy.</Muted>
+            <Muted>{world ? `Click where the ship is on the map.${initial ? ' The point starts at the estimate from the ETD and ETA – move it to the reported position.' : ''} Search finds a port, sea or place.` : 'Search the address or place, or click the exact spot on the map. Zoom in for accuracy.'}</Muted>
             <Row gap={8} style={{ marginTop: 8 }}>
               <TextInput
                 value={q}
                 onChangeText={setQ}
                 onSubmitEditing={search}
-                placeholder="e.g. Cinnamon Grand Colombo, or Rajagiriya"
+                placeholder={world ? 'e.g. Gulf of Aden, Salalah' : 'e.g. Cinnamon Grand Colombo, or Rajagiriya'}
                 style={{ flex: 1, borderWidth: 1, borderColor: colors.line, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, fontSize: 15 }}
               />
               <Button title="Search" onPress={search} />
@@ -101,7 +104,7 @@ export function LocationPicker({
             {hits.length > 1 ? (
               <View style={{ marginTop: 6, borderWidth: 1, borderColor: colors.line, borderRadius: 8 }}>
                 {hits.map((h, i) => (
-                  <Pressable key={i} onPress={() => place(Number(h.lat), Number(h.lon), 16)} style={{ padding: 8, borderTopWidth: i ? 1 : 0, borderTopColor: colors.line }}>
+                  <Pressable key={i} onPress={() => place(Number(h.lat), Number(h.lon), world ? 6 : 16)} style={{ padding: 8, borderTopWidth: i ? 1 : 0, borderTopColor: colors.line }}>
                     <Text style={{ color: colors.ink }} numberOfLines={2}>
                       {h.display_name}
                     </Text>
@@ -126,6 +129,7 @@ export function LocationPicker({
                   }
                 }}
               />
+              {world ? null : (
               <Button
                 variant="secondary"
                 title="Use my current location"
@@ -135,6 +139,7 @@ export function LocationPicker({
                   else setMsg('Location not available – allow location access in the browser.');
                 }}
               />
+              )}
               <Button variant="ghost" title="Cancel" onPress={onClose} />
             </Row>
           </ScrollView>

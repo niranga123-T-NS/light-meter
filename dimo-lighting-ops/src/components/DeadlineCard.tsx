@@ -10,7 +10,7 @@ import { rpc, supabase } from '@/lib/supabase';
 import type { Inquiry } from '@/lib/types';
 import { Button, Card, colors, Muted, Pill, Row, Section } from './ui';
 
-const CLOSED = ['draft', 'won', 'lost', 'cancelled', 'rejected', 'quotation_released', 'returned_to_sales', 'submitted_to_client', 'awaiting_client_approval', 'client_approved'];
+const CLOSED = ['draft', 'won', 'lost', 'cancelled', 'rejected', 'quotation_released', 'returned_to_sales', 'submitted_to_client', 'awaiting_client_approval', 'under_evaluation', 'client_approved'];
 
 function Step({ label, date, tone, note }: { label: string; date: string; tone: string; note?: string }) {
   return (
