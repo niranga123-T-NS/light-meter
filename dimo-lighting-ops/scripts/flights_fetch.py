@@ -128,4 +128,13 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # errors as GitHub annotations, so the reason shows on the run page
+    try:
+        main()
+    except SystemExit as e:
+        if e.code not in (None, 0):
+            print(f'::error::{e.code}')
+            sys.exit(1)
+    except Exception as e:  # noqa: BLE001
+        print(f'::error::{type(e).__name__}: {e}')
+        raise
