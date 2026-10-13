@@ -7464,6 +7464,10 @@ begin
   assert (select sap_project_no from public.fo_handovers where id = h) = 'P/26/LT/0187', 'SAP project no. kept';
   -- order 1: material, CIF, LC, duty free
   perform public.fo_record_step(h, o1, 'io_created', b + 16);
+  begin perform public.fo_record_step(h, o1, 'io_approved', b + 19); assert false, 'DGM and FBP first';
+  exception when others then assert sqlerrm like 'Record "Import order approved by FBP"%', sqlerrm; end;
+  perform public.fo_record_step(h, o1, 'io_dgm', b + 19);
+  perform public.fo_record_step(h, o1, 'io_fbp', b + 19);
   perform public.fo_record_step(h, o1, 'io_approved', b + 19);
   perform public.fo_record_step(h, o1, 'io_handed', b + 19);
   perform public.fo_record_step(h, o1, 'po_issued', b + 22, '4500123987');
@@ -7565,6 +7569,8 @@ begin
   assert (select status from public.fo_handovers where id = h) = 'open', 'hand-over stays open while the service is open';
   -- order 2: service, TT
   perform public.fo_record_step(h, o2, 'io_created', b + 16);
+  perform public.fo_record_step(h, o2, 'io_dgm', b + 18);
+  perform public.fo_record_step(h, o2, 'io_fbp', b + 18);
   perform public.fo_record_step(h, o2, 'io_approved', b + 18);
   perform public.fo_record_step(h, o2, 'io_handed', b + 18);
   perform public.fo_record_step(h, o2, 'po_issued', b + 20, '4500124000');
