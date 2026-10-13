@@ -46,6 +46,8 @@ export type FoOrder = {
   loading_port?: string | null;
   dic_required?: boolean;
   planned_mode?: 'sea' | 'air' | 'courier' | null;
+  expected_ready?: string | null;
+  committed_ready?: string | null;
   value_usd_note?: string | null;
   factory_lat: number | null;
   factory_lng: number | null;
@@ -299,3 +301,28 @@ export const yesNo = [
   { value: 'no', label: 'No' },
   { value: 'yes', label: 'Yes' },
 ];
+
+/** A change of an order's expected date (foreign and local orders) */
+export type DateChange = { id: string; module: 'fo' | 'lo'; order_id: string; kind: 'ready' | 'eta' | 'delivery'; old_date: string | null; new_date: string; reason: string; party: string | null; note: string | null; changed_by: string | null; changed_at: string };
+export const DATE_REASONS = [
+  { value: 'supplier', label: 'Manufacturer / supplier delay' },
+  { value: 'material', label: 'Raw material' },
+  { value: 'payment', label: 'Payment delay' },
+  { value: 'documents', label: 'Documents' },
+  { value: 'carrier', label: 'Shipping line / airline' },
+  { value: 'customs', label: 'Customs' },
+  { value: 'other', label: 'Other' },
+];
+export const reasonLabel = (r: string) => (r === 'first' ? 'First date' : DATE_REASONS.find((x) => x.value === r)?.label ?? r);
+
+const addDays = (d: string, n: number) => {
+  const x = new Date(`${d}T00:00:00Z`);
+  x.setUTCDate(x.getUTCDate() + n);
+  return x.toISOString().slice(0, 10);
+};
+/** Expected at site (as the server works it out): the shipment ETA, else the ready date plus transit by the planned freight; plus 7 days clearing and delivery */
+export function expectedSite(o: Pick<FoOrder, 'expected_ready' | 'planned_mode'>, eta: string | null) {
+  if (eta) return addDays(eta, 7);
+  if (!o.expected_ready) return null;
+  return addDays(o.expected_ready, (o.planned_mode === 'air' ? 4 : o.planned_mode === 'courier' ? 5 : 25) + 7);
+}

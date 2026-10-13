@@ -5,11 +5,12 @@ import { rpc } from '@/components/foreign/actions';
 import { FoNotes } from '@/components/foreign/Notes';
 import { StepList } from '@/components/foreign/StepList';
 import { clearLoStep, recordLoStep } from '@/components/local/actions';
+import { OrderDates } from '@/components/OrderDates';
 import { TestingBanner } from '@/components/Testing';
 import { Button, colors, ErrorBanner, Grid, KeyValue, Loading, Muted, Notice, Pill, Row, Screen, Section, useWide } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { fmtDate } from '@/lib/format';
-import { todayIso, workdays } from '@/lib/foreignOrders';
+import { todayIso, workdays, type DateChange } from '@/lib/foreignOrders';
 import { useLoad, usePeople } from '@/lib/hooks';
 import {
   DIC_LIMIT,
@@ -48,7 +49,7 @@ export default function LocalOrder() {
     if (o.error) throw new Error(o.error.message);
     if (!o.data) throw new Error('Order not found');
     const order = o.data as LoOrder;
-    const [r, s, d, pv, v, dl, inv, hol, nt] = await Promise.all([
+    const [r, s, d, pv, v, dl, inv, hol, nt, dc] = await Promise.all([
       supabase.from('lo_requests').select('*').eq('id', order.request_id).single(),
       supabase.from('lo_steps').select('*').eq('request_id', order.request_id),
       supabase.from('lo_step_defs').select('*').order('seq'),
@@ -58,6 +59,7 @@ export default function LocalOrder() {
       supabase.from('lo_invoices').select('*').eq('order_id', id).order('received_on'),
       supabase.from('holidays').select('day'),
       supabase.from('lo_notes').select('*').eq('order_id', id).order('occurred_on', { ascending: false }),
+      supabase.from('order_date_changes').select('*').eq('module', 'lo').eq('order_id', id),
     ]);
     const req = r.data as LoRequest;
     // subcontractor invoices (IPCs) recorded on the execution project, to link a service invoice to
@@ -76,11 +78,12 @@ export default function LocalOrder() {
       invoices: (inv.data ?? []) as LoInvoice[],
       holidays: new Set(((hol.data ?? []) as { day: string }[]).map((x) => x.day)),
       notes: (nt.data ?? []) as LoNote[],
+      dateChanges: (dc.data ?? []) as DateChange[],
       subs,
     };
   }, [id, keeper]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const { o, r, steps, defs, prValue, value, seeValues, deliveries, invoices, holidays, notes, subs } = data;
+  const { o, r, steps, defs, prValue, value, seeValues, deliveries, invoices, holidays, notes, subs, dateChanges } = data;
   const all = loRoute(defs, prValue, o, value, steps, holidays);
   const st = loStanding(all);
   const lines = all.filter((l) => l.def.scope === 'o');
@@ -238,6 +241,19 @@ export default function LocalOrder() {
         <KeyValue label={o.kind === 'service' ? 'PO / LOA' : 'PO'} value={o.po_no ?? '—'} />
         {seeValues ? <KeyValue label="Selected value" value={`${fmtLkr(value)}${value != null ? (value > DIC_LIMIT ? ' · DIC needed' : ' · no DIC') : ''}`} /> : null}
       </Grid>
+      <OrderDates
+        module="lo"
+        orderId={o.id}
+        label={o.kind === 'service' ? 'Expected completion' : 'Expected delivery (in full)'}
+        expected={o.expected_on}
+        committed={o.committed_on}
+        required={r.required_on}
+        changes={dateChanges}
+        keeper={keeper && open}
+        holidays={holidays}
+        people={people}
+        onChange={reload}
+      />
       <Button small variant="ghost" title={`Request ${r.code} – details, PR and sourcing ›`} onPress={() => router.push(`/orders/local/r/${r.id}`)} />
 
       <Section title="Steps">

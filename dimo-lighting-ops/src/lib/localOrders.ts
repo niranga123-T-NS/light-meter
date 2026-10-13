@@ -45,6 +45,8 @@ export type LoOrder = {
   lead_time: string | null;
   delivery_arrangement: string | null;
   po_no: string | null;
+  expected_on?: string | null;
+  committed_on?: string | null;
   status: 'open' | 'completed' | 'cancelled';
   notes: string | null;
   cancel_reason: string | null;

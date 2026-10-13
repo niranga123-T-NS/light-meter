@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { DataTable } from '@/components/DataTable';
 import { useDialog } from '@/components/dialog';
 import { rpc } from '@/components/foreign/actions';
+import { DateSlips } from '@/components/DateSlips';
 import { TestingBanner } from '@/components/Testing';
 import { Button, colors, ErrorBanner, Grid, Loading, Muted, Pill, Row, Screen, Section, Segmented, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
@@ -142,6 +143,7 @@ export default function LocalPerformance() {
           },
         ]}
       />
+      <DateSlips module="lo" from={from} holidays={holidays} />
       <Section title="Mistakes, delays and complaints by team">
         <DataTable
           rows={issueRows}

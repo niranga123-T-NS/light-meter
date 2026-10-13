@@ -7750,6 +7750,24 @@ begin
   assert exists (select 1 from public.notifications where title = 'Flight landed'), 'landed told';
   assert not (public.fo_flights_due('fx-test-secret') @> jsonb_build_array(jsonb_build_object('id', sid))), 'not checked after landing';
 end $$;
+do $$ begin
+  assert (select count(*) from public.order_date_changes where module = 'fo' and order_id = current_setting('test.fo_o1')::uuid and kind = 'eta') >= 2, 'ETA changes kept per order';
+  assert exists (select 1 from public.order_date_changes where module = 'fo' and kind = 'eta' and reason = 'carrier'), 'against the airline';
+end $$;
+-- not on a shipment yet: the ready date sets the expected date at site
+delete from public.fo_shipment_orders where order_id = current_setting('test.fo_o1')::uuid;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare o uuid := current_setting('test.fo_o1')::uuid; req date := (select required_on from public.fo_orders where id = current_setting('test.fo_o1')::uuid);
+begin
+  update public.fo_orders set expected_ready = null, committed_ready = null where id = o;
+  perform public.fo_set_expected(o, current_date + 2);
+  perform public.fo_set_expected(o, coalesce(req, current_date) + 20, 'supplier', 'Example Leuchten', 'Driver shortage');
+  assert (select committed_ready = current_date + 2 from public.fo_orders where id = o), 'committed kept';
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'foreign_order' and title = 'Order now after its required date' and recipient_id = (select id from u where role = 'gm')), 'GM / DGM told';
+end $$;
 -- Vessel check (AISstream through the workflow): position on the map, reported destination / ETA, alert when it differs 2+ days
 set session_replication_role = replica;
 insert into public.fo_shipments (id, code, mode, vessel_flight, mmsi, etd, eta) values ('00000000-0000-0000-0000-0000000ff002', 'SHP-T-SEA', 'sea', 'EXAMPLE EXPRESS', '211234560', current_date - 10, current_date + 12);
@@ -7803,7 +7821,7 @@ do $$
 declare r uuid := current_setting('test.lr')::uuid;
 begin
   perform public.lo_save_request(r, jsonb_build_object('exec_project_id', current_setting('test.lo_exec'), 'title', 'Cable trays and pole erection', 'kind', 'both',
-    'specs', '8 m octagonal poles, erection with crane', 'quantity', '120 m trays, 12 poles', 'delivery_location', 'Site stores'));
+    'specs', '8 m octagonal poles, erection with crane', 'quantity', '120 m trays, 12 poles', 'required_on', current_date + 20, 'delivery_location', 'Site stores'));
   assert (select status from public.lo_requests where id = r) = 'open', 'sent again';
   assert not exists (select 1 from public.lo_request_values where request_id = r), 'the SEE does not see values';
 end $$;
@@ -7833,6 +7851,13 @@ begin
   assert (select code from public.lo_orders where id = om) like 'LO-%' and (select seq_no from public.lo_orders where id = os) = 2, 'order codes';
   begin perform public.lo_save_order(null, jsonb_build_object('request_id', r, 'title', 'X', 'kind', 'material', 'supplier', 'S', 'payment_term', 'advance_balance')); assert false, 'advance %';
   exception when others then assert sqlerrm like 'Enter the advance%', sqlerrm; end;
+  -- expected delivery: the first date is the committed one; a change needs a reason
+  perform public.lo_set_expected(om, d + 10);
+  begin perform public.lo_set_expected(om, d + 30); assert false, 'reason';
+  exception when others then assert sqlerrm like 'Choose the reason%', sqlerrm; end;
+  perform public.lo_set_expected(om, d + 30, 'material', 'Example Steel', 'Zinc shortage');
+  assert (select committed_on = d + 10 and expected_on = d + 30 from public.lo_orders where id = om), 'baseline kept';
+  assert (select count(*) from public.order_date_changes where module = 'lo' and order_id = om) = 2, 'history';
   -- material order: no DIC (1.5 mn)
   perform public.lo_record_step(r, om, 'selection_received', d);
   perform public.lo_record_step(r, om, 'terms_confirmed', d);
@@ -7893,6 +7918,10 @@ begin
   perform public.lo_set_sla('pr_dgm', 2);
 end $$;
 reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'local_order' and title = 'Order now after its required date' and recipient_id = (select id from u where role = 'sm_projects')), 'past required: managers told';
+  assert exists (select 1 from public.notifications where kind = 'local_order' and title = 'Expected date changed' and recipient_id = (select id from u where role = 'senior_elec_engineer')), 'SEE told';
+end $$;
 do $$ begin
   assert exists (select 1 from public.notifications where kind = 'local_order' and title = 'Delay – Bond late' and recipient_id = (select id from u where role = 'sm_projects')), 'note alert';
   assert exists (select 1 from public.notifications where kind = 'local_order' and title = 'Local request returned – details needed' and recipient_id = (select id from u where role = 'senior_elec_engineer')), 'SEE told';

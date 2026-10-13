@@ -87,7 +87,14 @@ export default function LocalOrders() {
       const r = reqOf(o.request_id);
       const st = loStanding(loRoute(defs, prv[r.id] ?? null, o, ov[o.id] ?? null, steps.filter((s) => s.request_id === r.id), holidays, today).filter((l) => l.def.scope === 'o'));
       const delivered = steps.some((s) => s.order_id === o.id && s.step === 'delivered');
-      return { o, r, st, overdue: o.status === 'open' && o.kind === 'material' && !delivered && !!r.required_on && r.required_on < today };
+      const done = delivered || steps.some((s) => s.order_id === o.id && s.step === 'work_done');
+      return {
+        o,
+        r,
+        st,
+        overdue: o.status === 'open' && !done && !!r.required_on && r.required_on < today,
+        behind: o.status === 'open' && !done && !!o.expected_on && !!r.required_on && o.expected_on > r.required_on,
+      };
     });
   const openReqs = reqRows.filter((x) => x.r.status === 'open' || x.r.status === 'returned');
   const openOrders = orderRows.filter((x) => x.o.status === 'open' && x.r.status === 'open');
@@ -116,7 +123,7 @@ export default function LocalOrders() {
         <Stat label="PR approval / sourcing" value={String(openReqs.filter((x) => x.r.status === 'open' && x.st.stage >= 3 && x.st.stage <= 4).length)} />
         <Stat label="Orders in approval / delivery" value={String(openOrders.length)} />
         <Stat label="Invoices in approval" value={String(invRows.length)} />
-        <Stat label="Past required date" value={String(openOrders.filter((x) => x.overdue).length)} tone={openOrders.some((x) => x.overdue) ? 'red' : 'green'} />
+        <Stat label="After / past required date" value={String(openOrders.filter((x) => x.overdue || x.behind).length)} tone={openOrders.some((x) => x.overdue || x.behind) ? 'red' : 'green'} />
       </Grid>
       <Row wrap gap={8} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
         <Segmented
@@ -124,7 +131,7 @@ export default function LocalOrders() {
           onChange={setTab}
           options={[
             { value: 'requests', label: 'Requests', badge: toCheck },
-            { value: 'orders', label: 'Supplier orders', badge: openOrders.filter((x) => x.st.late || x.overdue).length },
+            { value: 'orders', label: 'Supplier orders', badge: openOrders.filter((x) => x.st.late || x.overdue || x.behind).length },
             { value: 'payments', label: 'Invoices', badge: invRows.length },
             { value: 'done', label: 'Closed / cancelled' },
           ]}
@@ -170,7 +177,7 @@ export default function LocalOrders() {
           rows={openOrders}
           keyOf={(x) => x.o.id}
           onPress={(x) => router.push(`/orders/local/${x.o.id}`)}
-          edge={(x) => (x.overdue || x.st.late ? colors.red : undefined)}
+          edge={(x) => (x.overdue || x.behind || x.st.late ? colors.red : undefined)}
           emptyTitle="No open supplier orders"
           columns={[
             { h: 'Order', w: 160, v: (x) => `${x.o.code}\n${x.o.title}\n${x.r.code}` },
@@ -187,8 +194,13 @@ export default function LocalOrders() {
                 </View>
               ),
             },
-            { h: 'Required by', w: 110, v: (x) => (x.r.required_on ? fmtDate(x.r.required_on) : '—'), tone: (x) => (x.overdue ? colors.red : undefined) },
-            { h: '', w: 130, v: (x) => (x.overdue ? <Pill label="Past required date" tone={colors.red} /> : x.st.late ? <Pill label="Past SLA" tone={colors.red} /> : <Pill label="On track" tone={colors.green} />) },
+            {
+              h: 'Expected / required',
+              w: 130,
+              v: (x) => `${x.o.expected_on ? fmtDate(x.o.expected_on) : '—'}${x.o.committed_on && x.o.expected_on !== x.o.committed_on ? `\n(committed ${fmtDate(x.o.committed_on)})` : ''}${x.r.required_on ? `\nreq. ${fmtDate(x.r.required_on)}` : ''}`,
+              tone: (x) => (x.overdue || x.behind ? colors.red : undefined),
+            },
+            { h: '', w: 130, v: (x) => (x.overdue ? <Pill label="Past required date" tone={colors.red} /> : x.behind ? <Pill label="After required date" tone={colors.red} /> : x.st.late ? <Pill label="Past SLA" tone={colors.red} /> : <Pill label="On track" tone={colors.green} />) },
           ]}
         />
       ) : (

@@ -15,6 +15,7 @@ import {
   standing,
   termsLabel,
   todayIso,
+  expectedSite,
   type FoOrder,
   type Handover,
   type Shipment,
@@ -70,7 +71,8 @@ export default function ForeignOrders() {
       const eta = ship && !ship.arrived_on ? ship.eta : null;
       const overdue = o.status === 'open' && !!o.required_on && o.required_on < today;
       const issues = openNotes.filter((n) => n.order_id === o.id).length;
-      return { o, h, st, ship, eta, behind: !!(eta && o.required_on && eta > o.required_on), overdue, issues, sib: sib.length };
+      const site = o.kind === 'material' && !ship?.arrived_on ? expectedSite(o, eta) : null;
+      return { o, h, st, ship, eta, site, behind: !!(site && o.required_on && site > o.required_on), overdue, issues, sib: sib.length };
     });
   const open = rows.filter((r) => r.o.status === 'open' && r.h.status === 'open');
   // import requests not split yet
@@ -95,7 +97,7 @@ export default function ForeignOrders() {
         <Stat label="Import order and PO" value={String(count((r) => r.st.stage === 4 || r.st.stage === 5))} />
         <Stat label="In production" value={String(count((r) => r.st.stage === 6))} />
         <Stat label="Shipped / at clearing" value={String(count((r) => r.st.stage === 7 || r.st.stage === 8))} />
-        <Stat label="ETA after required date" value={String(count((r) => r.behind))} tone={count((r) => r.behind) ? 'red' : 'green'} />
+        <Stat label="At site after required date" value={String(count((r) => r.behind))} tone={count((r) => r.behind) ? 'red' : 'green'} />
       </Grid>
       <Row wrap gap={8} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
         <Segmented
@@ -144,10 +146,12 @@ export default function ForeignOrders() {
                 ),
             },
             {
-              h: 'ETA / required',
+              h: 'ETA · at site / required',
               w: 115,
               v: (r) =>
-                r.ship?.arrived_on ? `Arrived ${fmtDate(r.ship.arrived_on)}${r.o.required_on ? `\nreq. ${fmtDate(r.o.required_on)}` : ''}` : `${r.eta ? fmtDate(r.eta) : '—'}${r.o.required_on ? `\nreq. ${fmtDate(r.o.required_on)}` : ''}`,
+                r.ship?.arrived_on
+                  ? `Arrived ${fmtDate(r.ship.arrived_on)}${r.o.required_on ? `\nreq. ${fmtDate(r.o.required_on)}` : ''}`
+                  : `${r.eta ? `ETA ${fmtDate(r.eta)}\n` : ''}${r.site ? `site ~${fmtDate(r.site)}` : '—'}${r.o.required_on ? `\nreq. ${fmtDate(r.o.required_on)}` : ''}`,
               tone: (r) => (r.behind || r.overdue ? colors.red : undefined),
             },
             {
@@ -157,7 +161,7 @@ export default function ForeignOrders() {
                 r.o.status !== 'open' ? null : r.overdue ? (
                   <Pill label="Past required date" tone={colors.red} />
                 ) : r.behind ? (
-                  <Pill label="ETA after required" tone={colors.red} />
+                  <Pill label="After required date" tone={colors.red} />
                 ) : r.st.late ? (
                   <Pill label="Past SLA" tone={colors.red} />
                 ) : r.o.kind === 'service' ? (
