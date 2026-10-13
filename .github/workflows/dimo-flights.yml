@@ -1,0 +1,42 @@
+# Flight check for foreign-order air shipments: every 3 hours, each air shipment with a flight no. and ETD (from 3 days
+# before to the day after) that has not landed is looked up on AeroDataBox (RapidAPI). Departed, delayed, cancelled and
+# landed are recorded on the shipment and told to Ops, Sales and the SEE.
+# Secrets: AERODATABOX_KEY (the RapidAPI key – the check is skipped without it), and the backend deploy secrets
+# (SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF, DISPATCH_SECRET).
+name: DIMO – flight check
+
+on:
+  schedule:
+    - cron: '35 */3 * * *'
+  workflow_dispatch:
+
+concurrency: dimo-flights
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: dimo-lighting-ops
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      FX_SECRET: ${{ secrets.DISPATCH_SECRET }}
+      AERODATABOX_KEY: ${{ secrets.AERODATABOX_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skip without the AeroDataBox key
+        if: env.AERODATABOX_KEY == ''
+        run: echo "No AERODATABOX_KEY secret – add it under Settings → Secrets and variables → Actions to turn the flight check on."
+      - uses: supabase/setup-cli@v1
+        if: env.AERODATABOX_KEY != ''
+        with:
+          version: latest
+      - name: Check the flights
+        if: env.AERODATABOX_KEY != ''
+        run: |
+          key=$(supabase projects api-keys --project-ref "$PROJECT_REF" -o json | jq -r '[.[] | select(.name == "anon" or .type == "publishable")][0].api_key')
+          if [ -z "$key" ] || [ "$key" = "null" ]; then echo "::error::Could not read the project's public (anon) key"; exit 1; fi
+          echo "::add-mask::$key"
+          SUPABASE_URL="https://$PROJECT_REF.supabase.co" SUPABASE_ANON_KEY="$key" python3 scripts/flights_fetch.py

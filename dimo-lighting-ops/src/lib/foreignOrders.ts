@@ -79,6 +79,18 @@ export type Shipment = {
   imo?: string | null;
   mmsi?: string | null;
   container_nos?: string | null;
+  flight_status?: string | null;
+  flight_departed_at?: string | null;
+  flight_arrival_at?: string | null;
+  flight_landed_at?: string | null;
+  flight_route?: string | null;
+  flight_checked_at?: string | null;
+};
+
+/** AeroDataBox flight status in words */
+export const FLIGHT_STATUS: Record<string, string> = {
+  Expected: 'Scheduled', CheckIn: 'Check-in', Boarding: 'Boarding', GateClosed: 'Gate closed', Departed: 'Departed', EnRoute: 'In the air',
+  Approaching: 'Approaching', Delayed: 'Delayed', Arrived: 'Landed', Canceled: 'Cancelled', CanceledUncertain: 'Cancelled?', Diverted: 'Diverted', Unknown: 'Unknown',
 };
 export type StepDef = { key: string; scope: 'h' | 'o'; stage: number; seq: number; label: string; node: string; conds: string[]; after: string[]; ref_label: string | null; sla_days: number | null; optional?: boolean };
 export type Step = { id: string; handover_id: string; order_id: string | null; step: string; done_on: string; ref: string | null; note: string | null; recorded_by: string; recorded_at: string };
