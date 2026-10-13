@@ -38,7 +38,8 @@ jobs:
       - name: Listen for the vessels
         if: env.AISSTREAM_KEY != ''
         run: |
-          pip install -q websockets
+          python3 -m pip install -q --user websockets 2>/dev/null || python3 -m pip install -q --break-system-packages websockets
+          python3 -c "import websockets; print(\"websockets\", websockets.__version__)"
           key=$(supabase projects api-keys --project-ref "$PROJECT_REF" -o json | jq -r '[.[] | select(.name == "anon" or .type == "publishable")][0].api_key')
           if [ -z "$key" ] || [ "$key" = "null" ]; then echo "::error::Could not read the project's public (anon) key"; exit 1; fi
           echo "::add-mask::$key"
