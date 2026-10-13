@@ -194,8 +194,10 @@ export function route(defs: StepDef[], h: Handover, o: FoOrder | null, steps: St
 /** Where an order stands: its stage (1–9), the open steps now, and who has them */
 export function standing(lines: Line[]) {
   const now = lines.filter((l) => !l.done && l.ready);
-  const stage = now.length ? Math.min(...now.map((l) => l.def.stage)) : lines.every((l) => l.done) ? 10 : Math.min(...lines.filter((l) => !l.done).map((l) => l.def.stage));
-  return { stage, now, with: [...new Set(now.map((l) => l.def.node))].join(', '), late: now.some((l) => l.late) };
+  // waiting for the arrival notice: the goods are still in transit (stage 7)
+  const stageOf = (l: Line) => (l.def.key === 'arrived' ? 7 : l.def.stage);
+  const stage = now.length ? Math.min(...now.map(stageOf)) : lines.every((l) => l.done) ? 10 : Math.min(...lines.filter((l) => !l.done).map((l) => l.def.stage));
+  return { stage, now, with: [...new Set(now.map((l) => (l.def.key === 'arrived' ? 'In transit' : l.def.node)))].join(', '), late: now.some((l) => l.late) };
 }
 
 export const termsLabel = (o: FoOrder) =>

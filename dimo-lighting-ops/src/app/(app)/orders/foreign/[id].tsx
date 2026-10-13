@@ -4,7 +4,7 @@ import { useDialog } from '@/components/dialog';
 import { editOrder, editShipment, orderOption, rpc } from '@/components/foreign/actions';
 import { StepList } from '@/components/foreign/StepList';
 import { TestingBanner } from '@/components/Testing';
-import { Button, Card, colors, ErrorBanner, Grid, KeyValue, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section } from '@/components/ui';
+import { Button, Card, colors, ErrorBanner, Grid, KeyValue, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section, useWide } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { fmtAmount, fmtDate } from '@/lib/format';
 import {
@@ -33,6 +33,7 @@ export default function ForeignOrder() {
   const people = usePeople();
   const dialog = useDialog();
   const keeper = FO_KEEPER.includes(me.role);
+  const wide = useWide();
   const { data, error, reload } = useLoad(async () => {
     const o = await supabase.from('fo_orders').select('*').eq('id', id).maybeSingle();
     if (o.error) throw new Error(o.error.message);
@@ -135,11 +136,12 @@ export default function ForeignOrder() {
           return (
             <View key={s} style={{ flex: 1, gap: 4 }}>
               <View style={{ height: 6, borderRadius: 3, backgroundColor: tone }} />
-              <Text style={{ fontSize: 10.5, textAlign: 'center', color: n === st.stage ? tone : colors.muted, fontWeight: n === st.stage ? '700' : '400' }}>{s}</Text>
+              {wide ? <Text style={{ fontSize: 10.5, textAlign: 'center', color: n === st.stage ? tone : colors.muted, fontWeight: n === st.stage ? '700' : '400' }}>{s}</Text> : null}
             </View>
           );
         })}
       </View>
+      {!wide && st.stage <= 9 ? <Text style={{ fontWeight: '700', color: st.late ? colors.red : colors.blue }}>{`Stage ${st.stage} of 9 · ${SHORT_STAGES[st.stage - 1]}`}</Text> : null}
       <Grid min={200}>
         <KeyValue label="Now with" value={o.status === 'open' ? st.with || '—' : '—'} />
         <KeyValue label="Vendor" value={o.vendor} />

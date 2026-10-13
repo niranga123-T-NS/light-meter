@@ -96,7 +96,7 @@ export default function ForeignPerformance() {
         <Stat label="Orders delivered" value={String(delivered.length)} />
         <Stat label="Hand-over to delivery, average" value={delivered.length ? `${Math.round(avg(leads))} working days` : '—'} />
         <Stat label="Steps measured" value={String(inPeriod.length)} />
-        <Stat label="Lowest SLA met" value={worst ? `${worst.label} · ${Math.round((100 * worst.met) / worst.withSla)}%` : 'No SLAs set'} tone={worst && worst.met / worst.withSla < 0.65 ? 'red' : undefined} />
+        <Stat label="Lowest SLA met" value={worst ? `${Math.round((100 * worst.met) / worst.withSla)}%` : '—'} sub={worst ? worst.label : 'No SLAs set'} tone={worst && worst.met / worst.withSla < 0.65 ? 'red' : undefined} />
       </Grid>
       <Row wrap gap={8} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
         <Segmented value={period} onChange={setPeriod} options={[{ value: '3', label: '3 months' }, { value: '6', label: '6 months' }, { value: '12', label: '12 months' }, { value: 'all', label: 'All' }]} />

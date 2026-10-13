@@ -70,7 +70,8 @@ export default function ForeignOrders() {
       const st = standing(route(defs, h, o, hs, sib, holidays, today));
       const ship = latestShipment(o.id, links, ships);
       const eta = ship && !ship.arrived_on ? ship.eta : null;
-      return { o, h, st, ship, eta, behind: !!(eta && o.required_on && eta > o.required_on), sib: sib.length };
+      const overdue = o.status === 'open' && !!o.required_on && o.required_on < today;
+      return { o, h, st, ship, eta, behind: !!(eta && o.required_on && eta > o.required_on), overdue, sib: sib.length };
     });
   const open = rows.filter((r) => r.o.status === 'open' && r.h.status === 'open');
   // hand-overs not split yet
@@ -110,7 +111,7 @@ export default function ForeignOrders() {
           value={tab}
           onChange={setTab}
           options={[
-            { value: 'orders', label: 'Open orders', badge: count((r) => r.st.late || r.behind) },
+            { value: 'orders', label: 'Open orders', badge: count((r) => r.st.late || r.behind || r.overdue) },
             { value: 'handovers', label: 'Hand-overs', badge: empty.length },
             { value: 'shipments', label: 'Shipments' },
             { value: 'done', label: 'Delivered / cancelled' },
@@ -128,15 +129,15 @@ export default function ForeignOrders() {
           rows={shown}
           keyOf={(r) => r.o.id}
           onPress={(r) => router.push(`/orders/foreign/${r.o.id}`)}
-          edge={(r) => (r.o.status !== 'open' ? undefined : r.behind || r.st.late ? colors.red : undefined)}
+          edge={(r) => (r.o.status !== 'open' ? undefined : r.overdue || r.behind || r.st.late ? colors.red : undefined)}
           emptyTitle={tab === 'done' ? 'Nothing delivered yet' : 'No open import orders'}
           columns={[
-            { h: 'Order', w: 210, v: (r) => `${r.o.code}\n${r.o.title}\n${r.h.code} · ${r.o.seq_no} of ${r.sib}` },
-            { h: 'Project · client', w: 220, grow: true, v: (r) => `${r.h.project_name}\n${r.h.client}${r.h.sap_project_no ? `\n${r.h.sap_project_no}` : ''}` },
-            { h: 'Vendor · terms', w: 190, v: (r) => `${r.o.vendor}\n${termsLabel(r.o)}` },
+            { h: 'Order', w: 175, v: (r) => `${r.o.code}\n${r.o.title}\n${r.h.code} · ${r.o.seq_no} of ${r.sib}` },
+            { h: 'Project · client', w: 190, grow: true, v: (r) => `${r.h.project_name}\n${r.h.client}${r.h.sap_project_no ? `\n${r.h.sap_project_no}` : ''}` },
+            { h: 'Vendor · terms', w: 165, v: (r) => `${r.o.vendor}\n${termsLabel(r.o)}` },
             {
-              h: 'Stage',
-              w: 190,
+              h: 'Stage · with',
+              w: 185,
               v: (r) =>
                 r.o.status !== 'open' ? (
                   <Pill label={r.o.status === 'delivered' ? (r.o.kind === 'service' ? 'Completed' : 'Delivered') : 'Cancelled'} tone={r.o.status === 'delivered' ? colors.green : colors.grey} />
@@ -148,22 +149,24 @@ export default function ForeignOrders() {
                         <View key={i} style={{ flex: 1, height: 5, borderRadius: 2, backgroundColor: i + 1 < r.st.stage ? colors.green : i + 1 === r.st.stage ? (r.st.late ? colors.red : colors.blue) : colors.line }} />
                       ))}
                     </View>
+                    <Text style={{ fontSize: 12, color: colors.muted }}>{r.st.with === 'In transit' ? 'In transit' : r.st.with ? `With ${r.st.with}` : ''}</Text>
                   </View>
                 ),
             },
-            { h: 'With', w: 160, v: (r) => (r.o.status === 'open' ? r.st.with || '—' : '') },
             {
               h: 'ETA / required',
-              w: 130,
+              w: 115,
               v: (r) =>
                 r.ship?.arrived_on ? `Arrived ${fmtDate(r.ship.arrived_on)}${r.o.required_on ? `\nreq. ${fmtDate(r.o.required_on)}` : ''}` : `${r.eta ? fmtDate(r.eta) : '—'}${r.o.required_on ? `\nreq. ${fmtDate(r.o.required_on)}` : ''}`,
-              tone: (r) => (r.behind ? colors.red : undefined),
+              tone: (r) => (r.behind || r.overdue ? colors.red : undefined),
             },
             {
               h: '',
-              w: 150,
+              w: 135,
               v: (r) =>
-                r.o.status !== 'open' ? null : r.behind ? (
+                r.o.status !== 'open' ? null : r.overdue ? (
+                  <Pill label="Past required date" tone={colors.red} />
+                ) : r.behind ? (
                   <Pill label="ETA after required" tone={colors.red} />
                 ) : r.st.late ? (
                   <Pill label="Past SLA" tone={colors.red} />
