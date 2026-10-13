@@ -7496,6 +7496,9 @@ begin
   begin perform public.fo_save_shipment(null, jsonb_build_object('order_ids', jsonb_build_array(o2))); assert false, 'no service on a shipment';
   exception when others then assert sqlerrm like 'Only open material orders%', sqlerrm; end;
   n := public.fo_ship(sh, b + 80);
+  perform public.fo_set_factory(o1, 'Arnsberg, Germany', 51.40, 8.06);
+  perform public.fo_add_position(sh, jsonb_build_object('at', now() - interval '1 day', 'place', 'Jebel Ali', 'lat', 25.01, 'lng', 55.06, 'note', 'transhipment'));
+  assert (select last_check_note from public.fo_shipments where id = sh) = 'Jebel Ali – transhipment', 'position recorded as the last check';
   assert n = 1 and exists (select 1 from public.fo_steps where order_id = o1 and step = 'shipped' and ref = 'HLCU1'), 'shipped recorded from the shipment';
   perform public.fo_save_shipment(sh, jsonb_build_object('mode', 'sea', 'vessel_flight', 'Example Express', 'bl_awb', 'HLCU1', 'pol', 'Hamburg', 'pod', 'Colombo',
           'eta', b + 112, 'order_ids', jsonb_build_array(o1)));

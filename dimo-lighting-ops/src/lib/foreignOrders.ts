@@ -41,6 +41,9 @@ export type FoOrder = {
   cipl_rounds: number;
   dangerous: boolean | null;
   dg_details: string | null;
+  factory_location: string | null;
+  factory_lat: number | null;
+  factory_lng: number | null;
   status: 'open' | 'delivered' | 'cancelled';
   notes: string | null;
   cancel_reason: string | null;

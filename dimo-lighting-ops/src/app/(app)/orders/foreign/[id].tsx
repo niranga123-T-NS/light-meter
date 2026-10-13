@@ -3,6 +3,7 @@ import { Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { editShipment, orderOption, rpc } from '@/components/foreign/actions';
 import { FoNotes } from '@/components/foreign/Notes';
+import { ShipmentRoute, type FoPosition } from '@/components/foreign/ShipmentRoute';
 import { StepList } from '@/components/foreign/StepList';
 import { TestingBanner } from '@/components/Testing';
 import { Button, Card, colors, ErrorBanner, Grid, KeyValue, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section, useWide } from '@/components/ui';
@@ -54,6 +55,7 @@ export default function ForeignOrder() {
       supabase.from('fo_notes').select('*').eq('order_id', id).order('occurred_on', { ascending: false }),
     ]);
     const shipIds = ((so.data ?? []) as { shipment_id: string }[]).map((x) => x.shipment_id);
+    const positions = shipIds.length ? (((await supabase.from('fo_positions').select('*').in('shipment_id', shipIds)).data ?? []) as FoPosition[]) : [];
     const ships = shipIds.length ? ((await supabase.from('fo_shipments').select('*').in('id', shipIds).order('eta')).data ?? []) as Shipment[] : [];
     // open material orders a new shipment can also carry
     const openOrders = keeper ? ((await supabase.from('fo_orders').select('*').eq('status', 'open').eq('kind', 'material')).data ?? []) as FoOrder[] : [];
@@ -66,13 +68,14 @@ export default function ForeignOrder() {
       values: (v.data ?? null) as OrderValues | null,
       payments: (p.data ?? []) as Payment[],
       ships,
+      positions,
       openOrders,
       notes: (nt.data ?? []) as FoNote[],
       holidays: new Set(((hol.data ?? []) as { day: string }[]).map((x) => x.day)),
     };
   }, [id, keeper]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const { o, h, sib, steps, defs, values, payments, ships, openOrders, notes, holidays } = data;
+  const { o, h, sib, steps, defs, values, payments, ships, positions, openOrders, notes, holidays } = data;
   const all = route(defs, h, o, steps, sib, holidays);
   const st = standing(all);
   // a service order closes when the service is accepted, not delivered to a location
@@ -188,6 +191,16 @@ export default function ForeignOrder() {
           ) : (
             <Muted>No shipment yet. Add it when the forwarder confirms the booking; one shipment can carry several import orders.</Muted>
           )}
+          {ships.length ? (
+            <ShipmentRoute
+              shipment={ships[ships.length - 1]}
+              orders={[o]}
+              site={h.delivery_location}
+              positions={positions.filter((x) => x.shipment_id === ships[ships.length - 1].id)}
+              keeper={keeper && open}
+              onChange={reload}
+            />
+          ) : null}
         </Section>
       ) : null}
 
