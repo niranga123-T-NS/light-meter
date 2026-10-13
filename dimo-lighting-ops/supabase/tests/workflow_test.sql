@@ -7955,6 +7955,21 @@ begin
   exception when unique_violation then null; end;
 end $$;
 reset role;
+-- a site material request to import
+insert into public.material_requests (id, code, exec_project_id, requested_by, required_date, purpose, status)
+values ('00000000-0000-0000-0000-00000000aa02', 'MR-T-2', current_setting('test.lo_exec')::uuid, (select id from u where role = 'senior_elec_engineer'), current_date + 60, 'Façade luminaires', 'approved');
+insert into public.material_request_lines (mr_id, item, unit, qty) values ('00000000-0000-0000-0000-00000000aa02', 'Linear façade luminaire 1.2 m', 'nos', 40);
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare h uuid;
+begin
+  h := public.fo_request_from_mr('00000000-0000-0000-0000-00000000aa02', 'Same as the approved sample');
+  assert (select code like 'IR-%' and notes like '%Linear façade luminaire 1.2 m – 40 nos%' and exec_project_id is not null from public.fo_handovers where id = h), 'import request from the site';
+  begin perform public.lo_save_request(null, jsonb_build_object('mr_id', '00000000-0000-0000-0000-00000000aa02', 'delivery_location', 'Site')); assert false, 'one way only';
+  exception when others then assert sqlerrm like '%already sent for import%', sqlerrm; end;
+  begin perform public.fo_request_from_mr('00000000-0000-0000-0000-00000000aa02'); assert false, 'once';
+  exception when others then assert sqlerrm like '%Already sent%' or sqlerrm like 'Only an approved%', sqlerrm; end;
+end $$;
+reset role;
 rollback to savepoint lo1;
 
 \echo 'ALL WORKFLOW TESTS PASSED'

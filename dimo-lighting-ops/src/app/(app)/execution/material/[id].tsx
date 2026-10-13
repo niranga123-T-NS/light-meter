@@ -44,12 +44,26 @@ export default function MaterialScreen() {
       members: (mem.data ?? []) as ExecMember[],
       subs: await loadSubcontractors(mr.exec_project_id).catch(() => []),
       // bought locally through Operations (Local orders)
+      imported: ((await supabase.from('fo_handovers').select('id, code, status').eq('mr_id', mr.id).neq('status', 'cancelled').maybeSingle()).data ?? null) as { id: string; code: string | null; status: string } | null,
       local: ((await supabase.from('lo_requests').select('id, code, status').eq('mr_id', mr.id).neq('status', 'cancelled').maybeSingle()).data ?? null) as { id: string; code: string | null; status: string } | null,
     };
   }, [id]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const { m, lines, receipts, members, local } = data;
-  const canBuyLocally = m.status === 'approved' && !local && (me.role === 'senior_elec_engineer' || me.role === 'operations_exec');
+  const { m, lines, receipts, members, local, imported } = data;
+  const canBuyLocally = m.status === 'approved' && !local && !imported && (me.role === 'senior_elec_engineer' || me.role === 'operations_exec');
+  const sendImport = async () => {
+    const r = await dialog.prompt({
+      title: 'Import – send to Operations',
+      message: 'Operations gets an import request with these items, the project, the site and the required date, and splits it into import orders.',
+      fields: [{ key: 'note', label: 'Note for Operations', type: 'multiline', hint: 'e.g. same make as the approved sample' }],
+      confirmLabel: 'Send for import',
+    });
+    if (!r) return;
+    await dialog.run(async () => {
+      const hid = (await rpc('fo_request_from_mr', { p_mr: m.id, p_note: r.note || null })) as string;
+      router.push(`/orders/foreign/ho/${hid}`);
+    }, 'Sent to Operations for import');
+  };
   const isAe = me.role === 'assistant_engineer' && members.some((x) => x.user_id === me.id);
   const isSub = me.role === 'sub_supervisor';
   const supervisors = members.filter((x) => x.member_role === 'sub_supervisor');
@@ -168,6 +182,8 @@ export default function MaterialScreen() {
           {canDecide ? <Button variant="secondary" title="Reject" onPress={() => decide(false)} /> : null}
           {canOrder ? <Button variant="secondary" title="Ordered in SAP" onPress={order} /> : null}
           {canBuyLocally ? <Button variant="secondary" title="Buy locally – send to Operations" onPress={() => router.push({ pathname: '/orders/local/request-form', params: { mr: m.id } })} /> : null}
+          {canBuyLocally ? <Button variant="secondary" title="Import – send to Operations" onPress={sendImport} /> : null}
+          {imported ? <Button variant="ghost" title={`Import request ${imported.code ?? ''} ›`} onPress={() => router.push(`/orders/foreign/ho/${imported.id}`)} /> : null}
           {local ? <Button variant="ghost" title={`Local request ${local.code ?? ''} ›`} onPress={() => router.push(`/orders/local/r/${local.id}`)} /> : null}
           {canSchedule ? <Button title={m.delivery_at ? 'Move the delivery' : 'Set delivery date & time'} onPress={schedule} /> : null}
           {canReceive && !recv ? (
