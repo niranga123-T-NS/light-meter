@@ -2,15 +2,16 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Platform } from 'react-native';
 import { Catalogs } from '@/components/tools/Catalogs';
+import { LuxMeter } from '@/components/tools/LuxMeter';
 import { QuickCalcList } from '@/components/tools/QuickCalcList';
 import { Standards } from '@/components/tools/Standards';
-import { Card, Field, Muted, Notice, Screen, Segmented } from '@/components/ui';
+import { Field, Notice, Screen, Segmented } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { TOOLS_ROLES } from '@/lib/standards';
 
 type Tab = 'standards' | 'catalogs' | 'lux' | 'calc';
 
-/** Sales Tools: Standards, Catalogs, Lux meter (Android app only) and DLux lighting calculations */
+/** Sales Tools: Standards, Catalogs, Lux meter (measures in the Android app only) and DLux lighting calculations */
 export default function SalesTools() {
   const me = useMe();
   const params = useLocalSearchParams<{ tab?: Tab }>();
@@ -27,7 +28,7 @@ export default function SalesTools() {
         options={[
           { value: 'standards', label: 'Standards' },
           { value: 'catalogs', label: 'Catalogs' },
-          ...(android ? [{ value: 'lux' as Tab, label: 'Lux meter' }] : []),
+          { value: 'lux', label: android ? 'Lux meter' : 'Lux meter (Android)' },
           { value: 'calc', label: 'DLux' },
         ]}
       />
@@ -41,13 +42,7 @@ export default function SalesTools() {
       ) : tab === 'catalogs' ? (
         <Catalogs />
       ) : (
-        <Card style={{ gap: 6 }}>
-          <Muted>
-            {tab === 'lux'
-                ? 'The lux meter – calibrated readings, room surveys and before / after – comes with the next Android app.'
-                : ''}
-          </Muted>
-        </Card>
+        <LuxMeter />
       )}
     </Screen>
   );

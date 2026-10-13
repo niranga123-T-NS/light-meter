@@ -7214,6 +7214,27 @@ do $$ begin assert not exists (select 1 from public.luminaires), 'not for operat
 reset role;
 rollback to savepoint cat;
 
+-- Lux meter: calibrations and surveys are the maker's; managers and the Design team see surveys
+savepoint lux;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ declare s uuid; begin
+  insert into public.lux_calibrations (device, factor, reference, ref_lux, phone_lux) values ('Pixel 7', 1.12, 'Testo 545', 560, 500);
+  insert into public.lux_surveys (title, kind, rows, cols, readings, stats, factor) values ('ABC office – before', 'grid', 2, 2, '[{"r":0,"c":0,"lux":310}]', '{"eav":300}', 1.12) returning id into s;
+  assert (select code like 'LUX-%' from public.lux_surveys where id = s), 'numbered';
+  perform set_config('test.lux', s::text, true);
+end $$;
+reset role;
+select pg_temp.act_as('asm_infra'); set role authenticated;
+do $$ begin
+  assert not exists (select 1 from public.lux_surveys where id = current_setting('test.lux')::uuid), 'another sales person does not see it';
+  assert not exists (select 1 from public.lux_calibrations), 'nor the calibration';
+end $$;
+reset role;
+select pg_temp.act_as('design_manager'); set role authenticated;
+do $$ begin assert exists (select 1 from public.lux_surveys where id = current_setting('test.lux')::uuid), 'the Design team sees it'; end $$;
+reset role;
+rollback to savepoint lux;
+
 -- Alert schedules: GM / DGM see and change them; others cannot
 savepoint alerts;
 select pg_temp.act_as('gm'); set role authenticated;
