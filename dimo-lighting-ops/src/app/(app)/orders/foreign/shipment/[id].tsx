@@ -7,7 +7,7 @@ import { TestingBanner } from '@/components/Testing';
 import { Button, Card, colors, ErrorBanner, Grid, KeyValue, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { fmtDate, fmtDateTime } from '@/lib/format';
-import { FO_KEEPER, todayIso, type FoOrder, type Handover, type Shipment } from '@/lib/foreignOrders';
+import { FLIGHT_STATUS, FO_KEEPER, todayIso, type FoOrder, type Handover, type Shipment } from '@/lib/foreignOrders';
 import { useLoad } from '@/lib/hooks';
 import { supabase } from '@/lib/supabase';
 
@@ -93,6 +93,15 @@ export default function ShipmentPage() {
 
       {orders.some((o) => o.dangerous) ? (
         <Notice tone={colors.red}>{`⚠ DANGEROUS GOODS on this shipment – ${orders.filter((o) => o.dangerous).map((o) => `${o.code}: ${o.dg_details ?? ''}`).join('; ')}`}</Notice>
+      ) : null}
+      {s.mode === 'air' ? (
+        <Notice tone={s.flight_status === 'Canceled' || s.flight_status === 'Diverted' ? colors.red : s.flight_landed_at ? colors.green : colors.blue}>
+          {s.flight_checked_at
+            ? `Flight ${s.vessel_flight ?? ''}${s.flight_route ? ` (${s.flight_route})` : ''}: ${FLIGHT_STATUS[s.flight_status ?? ''] ?? s.flight_status ?? '—'}${s.flight_departed_at ? ` · departed ${fmtDateTime(s.flight_departed_at)}` : ''}${s.flight_landed_at ? ` · landed ${fmtDateTime(s.flight_landed_at)}` : s.flight_arrival_at ? ` · expected ${fmtDateTime(s.flight_arrival_at)}` : ''} · checked automatically ${fmtDateTime(s.flight_checked_at)}`
+            : s.vessel_flight && s.etd
+              ? `Flight ${s.vessel_flight} is checked automatically every 3 hours from the day before the ETD until it lands.`
+              : 'Enter the flight no. and the ETD (Edit / ETA) – the flight is then checked automatically.'}
+        </Notice>
       ) : null}
       <ShipmentRoute shipment={s} orders={orders} site={hos.length === 1 ? hos[0].delivery_location : null} positions={positions} keeper={keeper} onChange={reload} />
       <Grid min={200}>

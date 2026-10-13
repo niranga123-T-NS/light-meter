@@ -7722,6 +7722,34 @@ do $$ declare r jsonb; rows jsonb; begin
   delete from public.holidays where extract(year from day) = 2027;
   assert public.holidays_tick('2026-11-20 09:00+05:30') = 1 and public.holidays_tick('2026-10-20 09:00+05:30') = 0, 'reminder from 15 Nov';
 end $$;
+-- Flight check (AeroDataBox through the workflow): departed, delayed, landed; ETA follows; positions at the airports
+set session_replication_role = replica;
+update public.fo_orders set status = 'open' where id = current_setting('test.fo_o1')::uuid;
+insert into public.fo_shipments (id, code, mode, vessel_flight, etd, eta) values ('00000000-0000-0000-0000-0000000ff001', 'SHP-T-AIR', 'air', 'EK 348', current_date, current_date + 1);
+insert into public.fo_shipment_orders (shipment_id, order_id) values ('00000000-0000-0000-0000-0000000ff001', current_setting('test.fo_o1')::uuid);
+set session_replication_role = origin;
+do $$ declare d jsonb; sid uuid := '00000000-0000-0000-0000-0000000ff001'; n0 int := (select count(*) from public.notifications);
+begin
+  begin perform public.fo_flights_due('wrong'); assert false, 'secret';
+  exception when others then assert sqlerrm = 'Not allowed', sqlerrm; end;
+  d := public.fo_flights_due('fx-test-secret');
+  assert d @> jsonb_build_array(jsonb_build_object('id', sid, 'flight', 'EK348')), d::text;
+  perform public.fo_flight_ingest('fx-test-secret', jsonb_build_array(jsonb_build_object('id', sid, 'status', 'Departed', 'dep_iata', 'FRA', 'dep_name', 'Frankfurt',
+    'dep_lat', 50.03, 'dep_lng', 8.56, 'arr_iata', 'DXB', 'departed_at', now() - interval '2 hours', 'arrival_at', now() + interval '4 hours')));
+  assert (select flight_status = 'Departed' and flight_route = 'FRA → DXB' and onboard_at is not null from public.fo_shipments where id = sid), 'departed recorded';
+  assert (select count(*) from public.fo_positions where shipment_id = sid and recorded_by is null) = 1, 'position at the departure airport';
+  assert exists (select 1 from public.notifications where title = 'Flight departed'), 'departed told';
+  perform public.fo_flight_ingest('fx-test-secret', jsonb_build_array(jsonb_build_object('id', sid, 'status', 'Delayed', 'departed_at', now() - interval '2 hours', 'arrival_at', now() + interval '9 hours')));
+  assert exists (select 1 from public.notifications where title = 'Flight delayed' and priority = 'critical'), 'delay told';
+  perform public.fo_flight_ingest('fx-test-secret', jsonb_build_array(jsonb_build_object('id', sid, 'status', 'Delayed', 'arrival_at', now() + interval '10 hours')));
+  assert (select count(*) from public.notifications where title = 'Flight delayed' and recipient_id = (select recipient_id from public.notifications where title = 'Flight delayed' limit 1)) = 1, 'an hour more is not a new delay';
+  perform public.fo_flight_ingest('fx-test-secret', jsonb_build_array(jsonb_build_object('id', sid, 'status', 'Arrived', 'arr_iata', 'CMB', 'arr_name', 'Colombo', 'arr_lat', 7.18, 'arr_lng', 79.88,
+    'landed_at', now() + interval '3 days')));
+  assert (select flight_landed_at is not null and eta = ((now() + interval '3 days') at time zone app.tz())::date from public.fo_shipments where id = sid), 'landed, ETA follows';
+  assert exists (select 1 from public.fo_eta_log where shipment_id = sid and note like 'Flight check%'), 'ETA change logged';
+  assert exists (select 1 from public.notifications where title = 'Flight landed'), 'landed told';
+  assert not (public.fo_flights_due('fx-test-secret') @> jsonb_build_array(jsonb_build_object('id', sid))), 'not checked after landing';
+end $$;
 rollback to savepoint hol1;
 
 \echo 'ALL WORKFLOW TESTS PASSED'
