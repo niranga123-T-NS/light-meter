@@ -75,7 +75,10 @@ export default function ForeignOrder() {
   const { o, h, sib, steps, defs, values, payments, ships, openOrders, notes, holidays } = data;
   const all = route(defs, h, o, steps, sib, holidays);
   const st = standing(all);
-  const lines = all.filter((l) => l.def.scope === 'o');
+  // a service order closes when the service is accepted, not delivered to a location
+  const lines = all
+    .filter((l) => l.def.scope === 'o')
+    .map((l) => (o.kind === 'service' && l.def.key === 'delivered' ? { ...l, def: { ...l.def, label: 'Service accepted – order closed', node: 'Sales · Operations' } } : l));
   const hDone = all.filter((l) => l.def.scope === 'h').every((l) => l.done);
   const open = o.status === 'open' && h.status === 'open';
   const total = workdays(h.received_on, steps.find((s) => s.order_id === o.id && s.step === 'delivered')?.done_on ?? todayIso(), holidays);
