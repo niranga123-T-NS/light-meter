@@ -199,6 +199,16 @@ export const todayIso = () => {
 /** The date n months back (for report periods) */
 export const monthsAgo = (n: number) => new Date(Date.now() - n * 30.4 * 86400000).toISOString().slice(0, 10);
 
+/** What the step list needs of a line (foreign and local orders) */
+export type StepLine = {
+  def: { key: string; scope: string; stage: number; label: string; node: string; ref_label: string | null; sla_days: number | null; optional?: boolean };
+  done: { id: string; done_on: string; ref: string | null; note: string | null; recorded_by: string } | null;
+  ready: boolean;
+  start: string | null;
+  days: number | null;
+  late: boolean;
+};
+
 export type Line = {
   def: StepDef;
   done: Step | null;

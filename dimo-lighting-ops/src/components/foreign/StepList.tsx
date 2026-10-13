@@ -3,7 +3,7 @@ import { Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, Muted, Row } from '@/components/ui';
 import { fmtDate } from '@/lib/format';
-import { STAGES, type Line } from '@/lib/foreignOrders';
+import { STAGES, type Line, type StepLine } from '@/lib/foreignOrders';
 import type { Profile } from '@/lib/types';
 import { clearStep, recordStep } from './actions';
 
@@ -17,8 +17,11 @@ export function StepList({
   onChange,
   skip = [],
   extra,
+  stageNames = STAGES,
+  onRecord,
+  onClear,
 }: {
-  lines: Line[];
+  lines: StepLine[];
   keeper: boolean;
   handoverId: string;
   orderId: string | null;
@@ -28,8 +31,15 @@ export function StepList({
   skip?: string[];
   /** more content inside a stage's card (e.g. the shipment and map in stage 7) */
   extra?: Record<number, ReactNode>;
+  /** stage names (local orders have their own) */
+  stageNames?: string[];
+  /** record / clear a step (default: a foreign-order step) */
+  onRecord?: (l: StepLine) => Promise<boolean>;
+  onClear?: (l: StepLine) => Promise<boolean>;
 }) {
   const dialog = useDialog();
+  const record = (l: StepLine) => (onRecord ? onRecord(l) : recordStep(dialog, l as Line, handoverId, orderId));
+  const clear = (l: StepLine) => (onClear ? onClear(l) : clearStep(dialog, l as Line));
   const stages = [...new Set(lines.map((l) => l.def.stage))].sort((a, b) => a - b);
   return (
     <View style={{ gap: 10 }}>
@@ -38,7 +48,7 @@ export function StepList({
         const done = ls.every((l) => l.done);
         return (
           <Card key={s} style={{ gap: 0, paddingVertical: 6 }}>
-            <Text style={{ fontWeight: '700', color: done ? colors.green : colors.ink, paddingVertical: 6 }}>{`${s} · ${STAGES[s - 1]}${done ? ' ✓' : ''}`}</Text>
+            <Text style={{ fontWeight: '700', color: done ? colors.green : colors.ink, paddingVertical: 6 }}>{`${s} · ${stageNames[s - 1]}${done ? ' ✓' : ''}`}</Text>
             {ls.map((l) => {
               const tone = l.done ? colors.green : l.ready && !l.def.optional ? (l.late ? colors.red : colors.blue) : colors.line;
               return (
@@ -69,11 +79,11 @@ export function StepList({
                   {keeper && !skip.includes(l.def.key) ? (
                     l.done ? (
                       <Row gap={4}>
-                        <Button small variant="ghost" title="Edit" onPress={async () => { if (await recordStep(dialog, l, handoverId, orderId)) onChange(); }} />
-                        <Button small variant="ghost" title="Clear" onPress={async () => { if (await clearStep(dialog, l)) onChange(); }} />
+                        <Button small variant="ghost" title="Edit" onPress={async () => { if (await record(l)) onChange(); }} />
+                        <Button small variant="ghost" title="Clear" onPress={async () => { if (await clear(l)) onChange(); }} />
                       </Row>
                     ) : l.ready ? (
-                      <Button small title="Record" onPress={async () => { if (await recordStep(dialog, l, handoverId, orderId)) onChange(); }} />
+                      <Button small title="Record" onPress={async () => { if (await record(l)) onChange(); }} />
                     ) : null
                   ) : null}
                 </Row>
