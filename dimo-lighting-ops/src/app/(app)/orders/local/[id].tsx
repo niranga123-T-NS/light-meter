@@ -26,6 +26,7 @@ import {
   termLabel,
   type LoDelivery,
   type LoWorkStage,
+  type LoStageChange,
   type LoInvoice,
   type LoNote,
   type LoOrder,
@@ -50,7 +51,7 @@ export default function LocalOrder() {
     if (o.error) throw new Error(o.error.message);
     if (!o.data) throw new Error('Order not found');
     const order = o.data as LoOrder;
-    const [r, s, d, pv, v, dl, inv, hol, nt, dc, ws] = await Promise.all([
+    const [r, s, d, pv, v, dl, inv, hol, nt, dc, ws, wc] = await Promise.all([
       supabase.from('lo_requests').select('*').eq('id', order.request_id).single(),
       supabase.from('lo_steps').select('*').eq('request_id', order.request_id),
       supabase.from('lo_step_defs').select('*').order('seq'),
@@ -62,6 +63,7 @@ export default function LocalOrder() {
       supabase.from('lo_notes').select('*').eq('order_id', id).order('occurred_on', { ascending: false }),
       supabase.from('order_date_changes').select('*').eq('module', 'lo').eq('order_id', id),
       supabase.from('lo_work_stages').select('*').eq('order_id', id).order('seq'),
+      supabase.from('lo_work_stage_changes').select('*, lo_work_stages!inner(order_id)').eq('lo_work_stages.order_id', id).order('requested_at', { ascending: false }),
     ]);
     const req = r.data as LoRequest;
     // subcontractor invoices (IPCs) recorded on the execution project, to link a service invoice to
@@ -82,11 +84,14 @@ export default function LocalOrder() {
       notes: (nt.data ?? []) as LoNote[],
       dateChanges: (dc.data ?? []) as DateChange[],
       work: (ws.data ?? []) as LoWorkStage[],
+      stageChanges: (wc.data ?? []) as LoStageChange[],
       subs,
     };
   }, [id, keeper]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const { o, r, steps, defs, prValue, value, seeValues, deliveries, invoices, holidays, notes, subs, dateChanges, work } = data;
+  const { o, r, steps, defs, prValue, value, seeValues, deliveries, invoices, holidays, notes, subs, dateChanges, work, stageChanges } = data;
+  // the planned dates of the work stages are the agreement's: fixed once it is signed
+  const agreementSigned = steps.some((x) => x.order_id === o.id && x.step === 'agreement_signed');
   const workEditor = (keeper || me.role === 'senior_elec_engineer') && o.kind === 'service';
   const all = loRoute(defs, prValue, o, value, steps, holidays);
   const st = loStanding(all);
@@ -179,15 +184,54 @@ export default function LocalOrder() {
       fields: [
         { key: 'title', label: 'What', required: true, initial: w?.title ?? '' },
         { key: 'pct', label: '% of the whole work (optional)', initial: w?.pct != null ? String(w.pct) : '' },
-        { key: 'planned_on', label: 'Planned completion', type: 'date', initial: w?.planned_on ?? '' },
+        ...(agreementSigned ? [] : [{ key: 'planned_on', label: 'Planned completion (agreement work programme)', type: 'date' as const, initial: w?.planned_on ?? '', hint: 'Fixed once the agreement is signed – then changed only with the SEE’s and SM Projects’ approval' }]),
         { key: 'done_on', label: 'Done / certified on (when done)', type: 'date', initial: w?.done_on ?? '' },
         { key: 'cert_ref', label: 'IPC / certificate no.', initial: w?.cert_ref ?? '' },
         { key: 'note', label: 'Note', initial: w?.note ?? '' },
       ],
       confirmLabel: 'Save',
     });
-    if (x) await dialog.run(async () => { await rpc('lo_save_work_stage', { p_id: w?.id ?? null, p: { ...x, order_id: o.id } }); await reload(); }, 'Saved');
+    if (x) await dialog.run(async () => { await rpc('lo_save_work_stage', { p_id: w?.id ?? null, p: { ...x, ...(agreementSigned ? { planned_on: w?.planned_on ?? '' } : {}), order_id: o.id } }); await reload(); }, 'Saved');
   };
+  const askDate = async (w: LoWorkStage) => {
+    const x = await dialog.prompt({
+      title: `Change the planned date – ${w.title}`,
+      message: `Agreed date ${w.planned_on ? fmtDate(w.planned_on) : '—'}. The SEE and then SM Projects approve the change.`,
+      fields: [
+        { key: 'date', label: 'New planned date', type: 'date', required: true },
+        { key: 'reason', label: 'Reason', type: 'multiline', required: true },
+      ],
+      confirmLabel: 'Send for approval',
+    });
+    if (x) await dialog.run(async () => { await rpc('lo_request_stage_date', { p_stage: w.id, p_date: x.date, p_reason: x.reason }); await reload(); }, 'Sent for approval');
+  };
+  const decideDate = async (c: LoStageChange, approve: boolean) => {
+    const x = approve ? {} : await dialog.prompt({ title: 'Reject the date change', fields: [{ key: 'note', label: 'Reason', type: 'multiline', required: true }], confirmLabel: 'Reject' });
+    if (x) await dialog.run(async () => { await rpc('lo_decide_stage_date', { p_change: c.id, p_approve: approve, p_note: (x as { note?: string }).note ?? null }); await reload(); }, approve ? 'Approved' : 'Rejected');
+  };
+  const pendingDates = stageChanges.filter((c) => c.status.startsWith('pending'));
+  const datePanel = pendingDates.length ? (
+    <View style={{ gap: 6 }}>
+      {pendingDates.map((c) => {
+        const w = work.find((x) => x.id === c.stage_id);
+        const mine = (c.status === 'pending_see' && me.role === 'senior_elec_engineer') || (c.status === 'pending_smp' && me.role === 'sm_projects');
+        return (
+          <Row key={c.id} wrap gap={8} style={{ alignItems: 'center', justifyContent: 'space-between', padding: 8, borderRadius: 8, backgroundColor: '#FFF7E6' }}>
+            <View style={{ flexShrink: 1 }}>
+              <Text style={{ color: colors.ink, fontWeight: '600' }}>{`Date change · ${w?.seq ?? ''}. ${w?.title ?? ''}: ${c.old_date ? fmtDate(c.old_date) : '—'} → ${fmtDate(c.new_date)}`}</Text>
+              <Muted>{`${c.reason} · waiting for ${c.status === 'pending_see' ? 'the SEE' : 'SM Projects'}`}</Muted>
+            </View>
+            {mine ? (
+              <Row gap={6}>
+                <Button small title="Approve" onPress={() => decideDate(c, true)} />
+                <Button small variant="ghost" title="Reject" onPress={() => decideDate(c, false)} />
+              </Row>
+            ) : null}
+          </Row>
+        );
+      })}
+    </View>
+  ) : null;
   const doneStages = work.filter((w) => w.done_on);
   const workPanel = o.kind === 'service' ? (
     <>
@@ -197,6 +241,8 @@ export default function LocalOrder() {
         </Text>
         {workEditor && open ? <Button small variant="secondary" title="+ Work stage" onPress={() => saveStage()} /> : null}
       </Row>
+      {datePanel}
+      {agreementSigned && work.length ? <Muted>Planned dates are those of the signed agreement – a change needs the SEE’s and SM Projects’ approval.</Muted> : null}
       {!work.length ? <Muted>For work done in stages (e.g. subcontract work paid by IPC): record each stage; each IPC invoice then follows its own approvals in stage 7. “Work completed” needs every stage done.</Muted> : null}
       {work.map((w) => {
         const inv = invoices.filter((i) => i.work_stage_id === w.id && i.status !== 'cancelled');
@@ -206,7 +252,8 @@ export default function LocalOrder() {
             <View style={{ flexShrink: 1 }}>
               <Text style={{ color: colors.ink, fontWeight: '600' }}>{`${w.seq}. ${w.title}${w.pct ? ` · ${w.pct}%` : ''}`}</Text>
               <Muted>
-                {[w.done_on ? `done ${fmtDate(w.done_on)}` : w.planned_on ? `planned ${fmtDate(w.planned_on)}` : 'in progress', w.cert_ref ? `IPC ${w.cert_ref}` : null, inv.length ? `${inv.length} invoice${inv.length === 1 ? '' : 's'} · ${inv.filter((i) => i.status === 'paid').length} paid` : 'no invoice yet', w.note]
+                {[w.done_on ? `done ${fmtDate(w.done_on)}` : w.planned_on ? `planned ${fmtDate(w.planned_on)}${agreementSigned ? ' (agreement)' : ''}` : 'in progress',
+                  stageChanges.filter((c) => c.stage_id === w.id && c.status === 'approved').length ? `date moved ${stageChanges.filter((c) => c.stage_id === w.id && c.status === 'approved').length}×` : null, w.cert_ref ? `IPC ${w.cert_ref}` : null, inv.length ? `${inv.length} invoice${inv.length === 1 ? '' : 's'} · ${inv.filter((i) => i.status === 'paid').length} paid` : 'no invoice yet', w.note]
                   .filter(Boolean)
                   .join(' · ')}
               </Muted>
@@ -214,6 +261,9 @@ export default function LocalOrder() {
             <Row gap={6} style={{ alignItems: 'center' }}>
               <Pill label={w.done_on ? 'Done' : late ? 'Late' : 'In progress'} tone={w.done_on ? colors.green : late ? colors.red : colors.blue} />
               {workEditor && open ? <Button small variant="ghost" title="Edit" onPress={() => saveStage(w)} /> : null}
+              {workEditor && open && agreementSigned && !w.done_on && !stageChanges.some((c) => c.stage_id === w.id && c.status.startsWith('pending')) ? (
+                <Button small variant="ghost" title="Change date…" onPress={() => askDate(w)} />
+              ) : null}
               {workEditor && open && !inv.length ? <Button small variant="ghost" title="Remove" onPress={async () => { if (await dialog.confirm(`Remove work stage ${w.seq}?`)) await dialog.run(async () => { await rpc('lo_remove_work_stage', { p_id: w.id }); await reload(); }, 'Removed'); }} /> : null}
             </Row>
           </Row>
