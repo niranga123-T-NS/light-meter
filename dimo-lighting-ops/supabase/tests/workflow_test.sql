@@ -8020,6 +8020,9 @@ begin
   reset role;
   insert into public.lo_orders (request_id, seq_no, title, kind, supplier, payment_term) values (r, 20, 'Pole erection – stages', 'service', 'Sub Co', 'after_delivery') returning id into o;
   set role authenticated;
+  begin perform public.lo_save_work_stage(null, jsonb_build_object('order_id', o, 'title', 'X')); assert false, 'single invoice: no stages';
+  exception when raise_exception then null; end;
+  perform public.lo_set_billing(o, 'ipc');
   w1 := public.lo_save_work_stage(null, jsonb_build_object('order_id', o, 'title', 'Foundations', 'pct', 40));
   w2 := public.lo_save_work_stage(null, jsonb_build_object('order_id', o, 'title', 'Erection', 'pct', 60));
   begin perform public.lo_save_work_stage(null, jsonb_build_object('order_id', o, 'title', 'Extra', 'pct', 10)); assert false, 'over 100%';
