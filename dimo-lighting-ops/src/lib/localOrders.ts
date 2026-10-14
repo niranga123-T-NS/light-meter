@@ -29,7 +29,9 @@ export type LoRequest = {
   notes: string | null;
   created_by: string;
 };
-export type PaymentTerm = 'advance_balance' | 'after_delivery' | 'before_delivery' | 'lc';
+export type PaymentTerm = 'advance_balance' | 'after_delivery' | 'before_delivery' | 'lc' | 'advance_ipc' | 'ipc' | 'periodic' | 'advance_periodic' | 'milestone' | 'advance_milestone';
+export type LoBilling = 'single' | 'ipc' | 'hire' | 'milestone';
+export type HireUnit = 'hour' | 'day' | 'week' | 'month';
 export type LoOrder = {
   id: string;
   code: string | null;
@@ -47,8 +49,11 @@ export type LoOrder = {
   po_no: string | null;
   expected_on?: string | null;
   committed_on?: string | null;
-  /** a service: billed by IPC (work in stages) or by a single invoice */
-  billing?: 'single' | 'ipc';
+  /** a service: billed by a single invoice, by IPC (work in stages), per deliverable (work basis) or as a hire (per period against certified usage) */
+  billing?: LoBilling;
+  hire_unit?: HireUnit | null;
+  hire_from?: string | null;
+  hire_to?: string | null;
   status: 'open' | 'completed' | 'cancelled';
   notes: string | null;
   cancel_reason: string | null;
@@ -57,8 +62,10 @@ export type LoStepDef = { key: string; scope: 'r' | 'o'; stage: number; seq: num
 export type LoStep = { id: string; request_id: string; order_id: string | null; step: string; done_on: string; ref: string | null; note: string | null; recorded_by: string; recorded_at: string };
 /** A stage of a service (e.g. subcontract work): what, % of the work, planned and done / certified dates, IPC reference */
 export type LoWorkStage = { id: string; order_id: string; seq: number; title: string; pct: number | null; planned_on: string | null; done_on: string | null; cert_ref: string | null; note: string | null };
-/** A request to move a work stage's planned date after the agreement is signed: the SEE, then SM Projects approve */
+/** A request to move a deliverable's planned date after the agreement is signed: the SEE, then SM Projects approve */
 export type LoStageChange = { id: string; stage_id: string; old_date: string | null; new_date: string; reason: string; status: 'pending_see' | 'pending_smp' | 'approved' | 'rejected'; requested_by: string; requested_at: string; decision_note: string | null };
+/** A request to move an IPC service's planned completion after the agreement is signed: the SEE, then SM Projects approve */
+export type LoCompletionChange = { id: string; order_id: string; old_date: string | null; new_date: string; reason: string; note: string; status: 'pending_see' | 'pending_smp' | 'approved' | 'rejected'; requested_by: string; requested_at: string; decision_note: string | null };
 export type LoDelivery = { id: string; order_id: string; delivered_on: string; dn_no: string; items: string | null; signed_by: string | null; note: string | null };
 export type InvoicePoint = 'see' | 'smp' | 'dgm' | 'proc' | 'finance' | 'paid';
 export type LoInvoice = {
@@ -84,6 +91,10 @@ export type LoInvoice = {
   advance_recovered?: number | null;
   variation_amount?: number | null;
   variation_note?: string | null;
+  /** a hire invoice: the period it covers and the usage certified by the SEE */
+  period_from?: string | null;
+  period_to?: string | null;
+  usage_qty?: number | null;
 };
 export type LoNote = Omit<FoNote, 'handover_id'> & { request_id: string };
 
@@ -100,8 +111,27 @@ export const PAYMENT_TERMS: { value: PaymentTerm; label: string }[] = [
   { value: 'before_delivery', label: '100% before delivery' },
   { value: 'lc', label: 'LC' },
 ];
-export const termLabel = (o: Pick<LoOrder, 'payment_term' | 'advance_pct'>) =>
-  o.payment_term === 'advance_balance' ? `${o.advance_pct ?? '?'}% advance, balance after delivery` : PAYMENT_TERMS.find((t) => t.value === o.payment_term)?.label ?? o.payment_term;
+/** The payment terms that fit an order: materials, or a service by how it is billed */
+export function paymentTerms(kind: 'material' | 'service', billing: LoBilling): { value: PaymentTerm; label: string }[] {
+  if (kind === 'material') return PAYMENT_TERMS;
+  if (billing === 'ipc') return [{ value: 'advance_ipc', label: '% advance, balance by IPC' }, { value: 'ipc', label: 'By IPC – no advance' }];
+  if (billing === 'milestone') return [{ value: 'milestone', label: 'Per deliverable – on acceptance' }, { value: 'advance_milestone', label: '% advance, balance per deliverable' }];
+  if (billing === 'hire') return [{ value: 'periodic', label: 'Per period – against certified hire / time sheets' }, { value: 'advance_periodic', label: '% advance, balance per period' }];
+  return [{ value: 'advance_balance', label: '% advance, balance after completion' }, { value: 'after_delivery', label: '100% after completion' }, { value: 'before_delivery', label: '100% before the work' }];
+}
+export const ADVANCE_TERMS: PaymentTerm[] = ['advance_balance', 'advance_ipc', 'advance_periodic', 'advance_milestone'];
+export const HIRE_UNITS: { value: HireUnit; label: string }[] = [
+  { value: 'hour', label: 'Hour' },
+  { value: 'day', label: 'Day' },
+  { value: 'week', label: 'Week' },
+  { value: 'month', label: 'Month' },
+];
+export const BILLING_LABEL: Record<LoBilling, string> = { single: 'Single invoice', ipc: 'Paid by IPC', hire: 'Hire – per period', milestone: 'Work basis – per deliverable' };
+export const termLabel = (o: Pick<LoOrder, 'payment_term' | 'advance_pct'> & Partial<Pick<LoOrder, 'kind' | 'billing'>>) => {
+  const t = paymentTerms(o.kind ?? 'material', o.billing ?? 'single').find((x) => x.value === o.payment_term) ?? [...PAYMENT_TERMS, ...paymentTerms('service', 'ipc'), ...paymentTerms('service', 'hire'), ...paymentTerms('service', 'milestone')].find((x) => x.value === o.payment_term);
+  const label = t?.label ?? o.payment_term;
+  return ADVANCE_TERMS.includes(o.payment_term) ? label.replace('%', `${o.advance_pct ?? '?'}%`) : label;
+};
 export const KIND_LABEL = { material: 'Material', service: 'Service', both: 'Material and service' } as const;
 
 export const INVOICE_POINTS: Record<InvoicePoint, { label: string; who: string }> = {
@@ -129,8 +159,8 @@ export function loApplies(d: LoStepDef, prValue: number | null, o?: LoOrder | nu
       case 'service': return o.kind === 'service';
       case 'supplier_new': return o.supplier_new;
       case 'dic_sel': return (value ?? 0) > DIC_LIMIT;
-      case 'advance': return o.payment_term === 'advance_balance' || o.payment_term === 'before_delivery';
-      case 'advance_security': return o.advance_security && (o.payment_term === 'advance_balance' || o.payment_term === 'before_delivery');
+      case 'advance': return ADVANCE_TERMS.includes(o.payment_term) || o.payment_term === 'before_delivery';
+      case 'advance_security': return o.advance_security && (ADVANCE_TERMS.includes(o.payment_term) || o.payment_term === 'before_delivery');
       case 'lc': return o.payment_term === 'lc';
       default: return false;
     }
