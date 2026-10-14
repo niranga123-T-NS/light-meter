@@ -8072,6 +8072,65 @@ do $$ begin
   assert (select planned_on = current_date + 45 from public.lo_work_stages where id = current_setting('test.w2')::uuid), 'date moved after both approvals';
 end $$;
 reset role;
+-- after signing no planned date is set directly; service payment terms follow the billing; hire: periods and usage
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare w2 uuid := current_setting('test.w2')::uuid; o uuid := (select order_id from public.lo_work_stages where id = current_setting('test.w2')::uuid);
+  r uuid; w3 uuid; h uuid; i uuid; d date := current_date;
+begin
+  begin perform public.lo_save_work_stage(null, jsonb_build_object('order_id', o, 'title', 'Testing', 'planned_on', d + 60)); assert false, 'no date after signing';
+  exception when raise_exception then assert sqlerrm like 'Planned dates are set at the agreement stage%', sqlerrm; end;
+  w3 := public.lo_save_work_stage(null, jsonb_build_object('order_id', o, 'title', 'Testing'));
+  perform public.lo_request_stage_date(w3, d + 60, 'Added by variation VO-3');
+  assert exists (select 1 from public.lo_work_stage_changes where stage_id = w3 and old_date is null and new_date = d + 60), 'first date requested';
+  assert (select payment_term from public.lo_orders where id = o) = 'ipc', 'IPC service: by IPC';
+  r := (select request_id from public.lo_orders where id = o);
+  reset role;
+  update public.lo_requests set kind = 'both' where id = r;
+  set role authenticated;
+  begin perform public.lo_save_order(o, jsonb_build_object('title', 'Pole erection – stages', 'kind', 'service', 'billing', 'ipc', 'supplier', 'Sub Co', 'payment_term', 'after_delivery')); assert false, 'term fits IPC';
+  exception when raise_exception then assert sqlerrm like 'Choose the payment term – % advance%', sqlerrm; end;
+  perform public.lo_save_order(o, jsonb_build_object('title', 'Pole erection – stages', 'kind', 'service', 'billing', 'ipc', 'supplier', 'Sub Co', 'payment_term', 'advance_ipc', 'advance_pct', 20));
+  assert (select payment_term = 'advance_ipc' and advance_pct = 20 from public.lo_orders where id = o), '% advance + IPC';
+  begin perform public.lo_save_order(o, jsonb_build_object('title', 'X', 'kind', 'service', 'billing', 'single', 'supplier', 'Sub Co', 'payment_term', 'after_delivery')); assert false, 'stages';
+  exception when raise_exception then assert sqlerrm like '%work stages%', sqlerrm; end;
+  -- a crane on hire by the day
+  h := public.lo_save_order(null, jsonb_build_object('request_id', r, 'title', 'Crane 25 t', 'kind', 'service', 'billing', 'hire', 'supplier', 'Lift Co', 'payment_term', 'periodic', 'hire_unit', 'day', 'hire_rate', 45000, 'value', 900000));
+  assert (select billing = 'hire' and hire_unit = 'day' from public.lo_orders where id = h) and (select hire_rate = 45000 from public.lo_order_values where order_id = h), 'hire order';
+  begin perform public.lo_add_invoice(h, jsonb_build_object('invoice_no', 'H-1', 'invoice_date', d, 'amount', 450000)); assert false, 'on hire first';
+  exception when raise_exception then assert sqlerrm = 'Record the on-hire date first', sqlerrm; end;
+  perform public.lo_set_hire(h, d - 20, null);
+  begin perform public.lo_add_invoice(h, jsonb_build_object('invoice_no', 'H-1', 'invoice_date', d, 'amount', 450000)); assert false, 'period';
+  exception when raise_exception then assert sqlerrm like 'Enter the period%', sqlerrm; end;
+  i := public.lo_add_invoice(h, jsonb_build_object('invoice_no', 'H-1', 'invoice_date', d, 'amount', 450000, 'period_from', d - 20, 'period_to', d - 11, 'usage_qty', 10));
+  begin perform public.lo_add_invoice(h, jsonb_build_object('invoice_no', 'H-2', 'invoice_date', d, 'amount', 45000, 'period_from', d - 12, 'period_to', d - 5, 'usage_qty', 6)); assert false, 'overlap';
+  exception when raise_exception then assert sqlerrm like 'Another invoice%', sqlerrm; end;
+  reset role;
+  begin insert into public.lo_steps (request_id, order_id, step, done_on, recorded_by) values (r, h, 'work_done', d, auth.uid()); assert false, 'off hire first';
+  exception when raise_exception then assert sqlerrm = 'Record the off-hire date first', sqlerrm; end;
+  set role authenticated;
+  begin perform public.lo_set_hire(h, d - 20, d - 15); assert false, 'invoice after off hire';
+  exception when raise_exception then assert sqlerrm like 'An invoice covers time after%', sqlerrm; end;
+  perform public.lo_set_hire(h, d - 20, d - 2);
+  reset role;
+  insert into public.lo_steps (request_id, order_id, step, done_on, recorded_by) values (r, h, 'work_done', d, auth.uid());
+  update public.lo_invoices set status = 'paid', paid_on = d where id = i;
+  begin insert into public.lo_steps (request_id, order_id, step, done_on, recorded_by) values (r, h, 'closed', d, auth.uid()); assert false, 'not invoiced to off hire';
+  exception when raise_exception then assert sqlerrm like 'The hire invoices do not reach%', sqlerrm; end;
+  set role authenticated;
+  perform public.lo_add_invoice(h, jsonb_build_object('invoice_no', 'H-2', 'invoice_date', d, 'amount', 360000, 'period_from', d - 10, 'period_to', d - 2, 'usage_qty', 8, 'advance_recovered', 10000));
+  assert (select max(period_to) = d - 2 from public.lo_invoices where order_id = h), 'invoiced to the off hire';
+  -- an IPC service needs its programme before the signed agreement
+  h := public.lo_save_order(null, jsonb_build_object('request_id', r, 'title', 'Trenching', 'kind', 'service', 'billing', 'ipc', 'supplier', 'Dig Co', 'payment_term', 'ipc'));
+  reset role;
+  begin insert into public.lo_steps (request_id, order_id, step, done_on, recorded_by) values (r, h, 'agreement_signed', d, auth.uid()); assert false, 'programme first';
+  exception when raise_exception then assert sqlerrm like 'Enter the work stages%', sqlerrm; end;
+  set role authenticated;
+  perform public.lo_save_work_stage(null, jsonb_build_object('order_id', h, 'title', 'Trench 1 km'));
+  reset role;
+  begin insert into public.lo_steps (request_id, order_id, step, done_on, recorded_by) values (r, h, 'agreement_signed', d, auth.uid()); assert false, 'dates first';
+  exception when raise_exception then assert sqlerrm like '1 work stage(s) without a planned completion%', sqlerrm; end;
+end $$;
+reset role;
 -- the material request follows its orders: ordered only when every order has its PO; expected date; delivery; site receipt
 do $$ declare r uuid := (select id from public.lo_requests where mr_id = '00000000-0000-0000-0000-00000000aa01');
   o1 uuid; o2 uuid; mr uuid := '00000000-0000-0000-0000-00000000aa01'; req uuid; ops uuid := (select id from u where role = 'operations_exec');

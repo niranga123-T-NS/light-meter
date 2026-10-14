@@ -29,7 +29,9 @@ export type LoRequest = {
   notes: string | null;
   created_by: string;
 };
-export type PaymentTerm = 'advance_balance' | 'after_delivery' | 'before_delivery' | 'lc';
+export type PaymentTerm = 'advance_balance' | 'after_delivery' | 'before_delivery' | 'lc' | 'advance_ipc' | 'ipc' | 'periodic' | 'advance_periodic';
+export type LoBilling = 'single' | 'ipc' | 'hire';
+export type HireUnit = 'hour' | 'day' | 'week' | 'month';
 export type LoOrder = {
   id: string;
   code: string | null;
@@ -47,8 +49,11 @@ export type LoOrder = {
   po_no: string | null;
   expected_on?: string | null;
   committed_on?: string | null;
-  /** a service: billed by IPC (work in stages) or by a single invoice */
-  billing?: 'single' | 'ipc';
+  /** a service: billed by a single invoice, by IPC (work in stages) or as a hire (per period against certified usage) */
+  billing?: LoBilling;
+  hire_unit?: HireUnit | null;
+  hire_from?: string | null;
+  hire_to?: string | null;
   status: 'open' | 'completed' | 'cancelled';
   notes: string | null;
   cancel_reason: string | null;
@@ -84,6 +89,10 @@ export type LoInvoice = {
   advance_recovered?: number | null;
   variation_amount?: number | null;
   variation_note?: string | null;
+  /** a hire invoice: the period it covers and the usage certified by the SEE */
+  period_from?: string | null;
+  period_to?: string | null;
+  usage_qty?: number | null;
 };
 export type LoNote = Omit<FoNote, 'handover_id'> & { request_id: string };
 
@@ -100,8 +109,26 @@ export const PAYMENT_TERMS: { value: PaymentTerm; label: string }[] = [
   { value: 'before_delivery', label: '100% before delivery' },
   { value: 'lc', label: 'LC' },
 ];
-export const termLabel = (o: Pick<LoOrder, 'payment_term' | 'advance_pct'>) =>
-  o.payment_term === 'advance_balance' ? `${o.advance_pct ?? '?'}% advance, balance after delivery` : PAYMENT_TERMS.find((t) => t.value === o.payment_term)?.label ?? o.payment_term;
+/** The payment terms that fit an order: materials, or a service by how it is billed */
+export function paymentTerms(kind: 'material' | 'service', billing: LoBilling): { value: PaymentTerm; label: string }[] {
+  if (kind === 'material') return PAYMENT_TERMS;
+  if (billing === 'ipc') return [{ value: 'advance_ipc', label: '% advance, balance by IPC' }, { value: 'ipc', label: 'By IPC – no advance' }];
+  if (billing === 'hire') return [{ value: 'periodic', label: 'Per period – against certified hire / time sheets' }, { value: 'advance_periodic', label: '% advance, balance per period' }];
+  return [{ value: 'advance_balance', label: '% advance, balance after completion' }, { value: 'after_delivery', label: '100% after completion' }, { value: 'before_delivery', label: '100% before the work' }];
+}
+export const ADVANCE_TERMS: PaymentTerm[] = ['advance_balance', 'advance_ipc', 'advance_periodic'];
+export const HIRE_UNITS: { value: HireUnit; label: string }[] = [
+  { value: 'hour', label: 'Hour' },
+  { value: 'day', label: 'Day' },
+  { value: 'week', label: 'Week' },
+  { value: 'month', label: 'Month' },
+];
+export const BILLING_LABEL: Record<LoBilling, string> = { single: 'Single invoice', ipc: 'Paid by IPC – work stages', hire: 'Hire – per period' };
+export const termLabel = (o: Pick<LoOrder, 'payment_term' | 'advance_pct'> & Partial<Pick<LoOrder, 'kind' | 'billing'>>) => {
+  const t = paymentTerms(o.kind ?? 'material', o.billing ?? 'single').find((x) => x.value === o.payment_term) ?? [...PAYMENT_TERMS, ...paymentTerms('service', 'ipc'), ...paymentTerms('service', 'hire')].find((x) => x.value === o.payment_term);
+  const label = t?.label ?? o.payment_term;
+  return ADVANCE_TERMS.includes(o.payment_term) ? label.replace('%', `${o.advance_pct ?? '?'}%`) : label;
+};
 export const KIND_LABEL = { material: 'Material', service: 'Service', both: 'Material and service' } as const;
 
 export const INVOICE_POINTS: Record<InvoicePoint, { label: string; who: string }> = {
@@ -129,8 +156,8 @@ export function loApplies(d: LoStepDef, prValue: number | null, o?: LoOrder | nu
       case 'service': return o.kind === 'service';
       case 'supplier_new': return o.supplier_new;
       case 'dic_sel': return (value ?? 0) > DIC_LIMIT;
-      case 'advance': return o.payment_term === 'advance_balance' || o.payment_term === 'before_delivery';
-      case 'advance_security': return o.advance_security && (o.payment_term === 'advance_balance' || o.payment_term === 'before_delivery');
+      case 'advance': return ADVANCE_TERMS.includes(o.payment_term) || o.payment_term === 'before_delivery';
+      case 'advance_security': return o.advance_security && (ADVANCE_TERMS.includes(o.payment_term) || o.payment_term === 'before_delivery');
       case 'lc': return o.payment_term === 'lc';
       default: return false;
     }
