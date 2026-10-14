@@ -100,7 +100,7 @@ export default function LocalOrder() {
   const hasAdvance = invoices.some((i) => i.kind === 'advance' && i.status !== 'cancelled');
   // the planned dates of the work stages are the agreement's: fixed once it is signed
   const agreementSigned = steps.some((x) => x.order_id === o.id && x.step === 'agreement_signed');
-  const workEditor = (keeper || me.role === 'senior_elec_engineer') && o.kind === 'service';
+  const workEditor = (keeper || me.role === 'senior_elec_engineer') && o.kind === 'service' && o.billing === 'ipc';
   const all = loRoute(defs, prValue, o, value, steps, holidays);
   const st = loStanding(all);
   const lines = all.filter((l) => l.def.scope === 'o');
@@ -143,7 +143,7 @@ export default function LocalOrder() {
           options: [
             { value: 'invoice', label: 'Invoice' },
             // an execution project's IPCs come from the execution team, under a work stage
-            ...(o.kind === 'service' && !r.exec_project_id ? [{ value: 'ipc', label: 'IPC-based invoice' }] : []),
+            ...(o.kind === 'service' && o.billing === 'ipc' && !r.exec_project_id ? [{ value: 'ipc', label: 'IPC-based invoice' }] : []),
             // one advance per order – not progress
             ...(hasAdvance ? [] : [{ value: 'advance', label: 'Advance invoice (not progress)' }]),
           ],
@@ -276,7 +276,7 @@ export default function LocalOrder() {
     </View>
   ) : null;
   const doneStages = work.filter((w) => w.done_on);
-  const workPanel = o.kind === 'service' ? (
+  const workPanel = o.kind === 'service' && o.billing === 'ipc' ? (
     <>
       <Row wrap gap={8} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
         <Text style={{ fontWeight: '700', color: colors.ink }}>
@@ -383,6 +383,7 @@ export default function LocalOrder() {
           <Text style={{ fontSize: 20, fontWeight: '800', color: colors.ink }}>{`${o.title} – ${r.project_name}`}</Text>
           <Row gap={6} wrap style={{ marginTop: 4 }}>
             <Pill label={termLabel(o)} tone={colors.blue} />
+            {o.kind === 'service' ? <Pill label={o.billing === 'ipc' ? 'Paid by IPC – work stages' : 'Single invoice'} tone={colors.grey} /> : null}
             {o.supplier_new ? <Pill label="New supplier" tone={colors.amber} /> : null}
             {o.status !== 'open' ? <Pill label={o.status === 'completed' ? 'Closed' : 'Cancelled'} tone={o.status === 'completed' ? colors.green : colors.grey} solid /> : null}
           </Row>

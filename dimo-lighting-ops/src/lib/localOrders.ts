@@ -47,6 +47,8 @@ export type LoOrder = {
   po_no: string | null;
   expected_on?: string | null;
   committed_on?: string | null;
+  /** a service: billed by IPC (work in stages) or by a single invoice */
+  billing?: 'single' | 'ipc';
   status: 'open' | 'completed' | 'cancelled';
   notes: string | null;
   cancel_reason: string | null;

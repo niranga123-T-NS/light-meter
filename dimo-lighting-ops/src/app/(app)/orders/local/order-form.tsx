@@ -41,6 +41,7 @@ function Form({ o, value, r }: { o: LoOrder | null; value: number | null; r: LoR
   const [delivery, setDelivery] = useState(o?.delivery_arrangement ?? '');
   const [val, setVal] = useState<number | null>(value);
   const [notes, setNotes] = useState(o?.notes ?? '');
+  const [billing, setBilling] = useState<string>(o?.billing ?? 'single');
   const advance = term === 'advance_balance' || term === 'before_delivery';
   const service = kind === 'service';
 
@@ -63,6 +64,7 @@ function Form({ o, value, r }: { o: LoOrder | null; value: number | null; r: LoR
           notes,
         },
       })) as string;
+      if (service && billing !== (o?.billing ?? 'single')) await rpc('lo_set_billing', { p_order: oid, p_billing: billing });
       router.replace(`/orders/local/${oid}`);
     }, 'Saved');
 
@@ -75,6 +77,19 @@ function Form({ o, value, r }: { o: LoOrder | null; value: number | null; r: LoR
         <Field label="What is ordered from this supplier" required value={title} onChangeText={setTitle} />
         {r.kind === 'both' ? (
           <Select label="Material or service" required value={kind} onChange={setKind} options={[{ value: 'material', label: 'Material – PO, delivery notes' }, { value: 'service', label: 'Service – PO / LOA, bonds, agreement, IPCs' }]} />
+        ) : null}
+        {service ? (
+          <Select
+            label="Billing"
+            required
+            value={billing}
+            onChange={setBilling}
+            options={[
+              { value: 'single', label: 'Single invoice – one-off service (e.g. crane hire, repair)' },
+              { value: 'ipc', label: 'Paid by IPC – work in stages (e.g. subcontract work)' },
+            ]}
+            hint="IPC: the work stages of the agreement are recorded and each IPC is taken under its stage"
+          />
         ) : null}
         <Field label={service ? 'Service provider' : 'Supplier'} required value={supplier} onChangeText={setSupplier} />
         <Select label="Registered as a supplier?" value={supplierNew} onChange={setSupplierNew} options={[{ value: 'no', label: 'Yes – already registered' }, { value: 'yes', label: 'No – Procurement registers it before the PO' }]} />
