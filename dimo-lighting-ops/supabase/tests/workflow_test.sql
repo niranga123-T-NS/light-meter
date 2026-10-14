@@ -7981,5 +7981,54 @@ end $$;
 reset role;
 rollback to savepoint lo1;
 
+-- Clean-up (GM / DGM): preview changes nothing; delete takes a project with all that hangs off it; users; no broken links
+savepoint purge1;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  perform public.admin_purge('project', (select id::text from public.projects limit 1), false);
+  assert false, 'only the GM deletes';
+exception when raise_exception then null; end $$;
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ declare pid uuid; r jsonb; n_inq int; before int := (select count(*) from public.projects); u uuid; me uuid := auth.uid();
+begin
+  select p.id into pid from public.projects p where exists (select 1 from public.inquiries i where i.project_id = p.id) limit 1;
+  n_inq := (select count(*) from public.inquiries where project_id = pid);
+  r := public.admin_purge('project', pid::text, false);
+  assert (r->>'preview')::boolean and (r->>'total')::int > n_inq, 'preview reports what would go';
+  assert (select count(*) from public.projects) = before and exists (select 1 from public.inquiries where project_id = pid), 'preview changes nothing';
+  r := public.admin_purge('project', pid::text, true);
+  assert not exists (select 1 from public.projects where id = pid), 'project deleted';
+  assert not exists (select 1 from public.inquiries where project_id = pid), 'its inquiries deleted';
+  assert exists (select 1 from public.purge_log where kind = 'project' and target = pid::text and done_by = me), 'logged';
+  begin
+    perform public.admin_purge('user', me::text, true);
+    assert false, 'not yourself';
+  exception when raise_exception then null; end;
+  begin
+    perform public.admin_purge('user', (select id::text from public.profiles where role = 'sys_admin' limit 1), true);
+    assert false, 'not the System Administrator';
+  exception when raise_exception then null; end;
+  u := (select id from public.profiles where role = 'asm_infra' limit 1);
+  r := public.admin_purge('user', u::text, true);
+  assert not exists (select 1 from public.profiles where id = u), 'user deleted';
+  if exists (select 1 from public.invoice_allocations) then
+    r := public.admin_purge('invoice', (select id::text from public.invoice_allocations limit 1), true);
+  end if;
+end $$;
+reset role;
+-- no row anywhere points at something deleted
+do $$ declare c record; m bigint; begin
+  for c in select con.conname, con.conrelid::regclass ch, con.confrelid::regclass pa,
+     (select string_agg(format('ch.%I', a.attname), ',' order by k.i) from unnest(con.conkey) with ordinality k(x, i) join pg_attribute a on a.attrelid = con.conrelid and a.attnum = k.x) cc,
+     (select string_agg(format('pa.%I', a.attname), ',' order by k.i) from unnest(con.confkey) with ordinality k(x, i) join pg_attribute a on a.attrelid = con.confrelid and a.attnum = k.x) pc,
+     (select string_agg(format('ch.%I is not null', a.attname), ' and ') from unnest(con.conkey) k(x) join pg_attribute a on a.attrelid = con.conrelid and a.attnum = k.x) nn
+   from pg_constraint con where con.contype = 'f' and con.connamespace = 'public'::regnamespace loop
+    execute format('select count(*) from %s ch where %s and not exists (select 1 from %s pa where (%s) = (%s))', c.ch, c.nn, c.pa, c.pc, c.cc) into m;
+    assert m = 0, format('broken link %s (%s rows)', c.conname, m);
+  end loop;
+end $$;
+rollback to savepoint purge1;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
