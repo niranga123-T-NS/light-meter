@@ -58,8 +58,11 @@ export function SiteRequestsView({ tabs }: { tabs?: ReactNode }) {
     if (m.error) throw new Error(m.error.message);
     const rows = (m.data ?? []) as MaterialRequest[];
     const ids = rows.filter((x) => ['approved', 'ordered', 'part_received', 'received'].includes(x.status)).map((x) => x.id);
-    const [rt, st] = ids.length ? await Promise.all([supabase.rpc('mr_routes', { p_ids: ids }), supabase.rpc('mr_order_stage', { p_ids: ids })]) : [{ data: [] }, { data: [] }];
-    return { rows, projects: (p.data ?? []) as ExecProject[], lines: (l.data ?? []) as MrLine[], routes: (rt.data ?? []) as MrRoute[], stages: (st.data ?? []) as Stage[] };
+    const [rt, st, al] = ids.length
+      ? await Promise.all([supabase.rpc('mr_routes', { p_ids: ids }), supabase.rpc('mr_order_stage', { p_ids: ids }), supabase.rpc('mr_air_lines', { p_mrs: ids })])
+      : [{ data: [] }, { data: [] }, { data: [] }];
+    return {
+      air: (al.data ?? []) as { mr_id: string; line: string | null }[], rows, projects: (p.data ?? []) as ExecProject[], lines: (l.data ?? []) as MrLine[], routes: (rt.data ?? []) as MrRoute[], stages: (st.data ?? []) as Stage[] };
   });
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const pname = (id: string) => data.projects.find((p) => p.id === id)?.name ?? '';
@@ -200,7 +203,8 @@ export function SiteRequestsView({ tabs }: { tabs?: ReactNode }) {
                 v: (m) => {
                   const r = route(m.id);
                   const b = behind(m.id);
-                  return r ? `${routeLabel(r)}${b ? `\n${stageText(b)}` : ''}` : m.po_no ? `SAP ${m.po_no}` : MR_ROUTES.find((x) => x.value === (m.route ?? 'sap'))?.label ?? '';
+                  const air = data.air.find((x) => x.mr_id === m.id)?.line;
+                  return r ? `${routeLabel(r)}${b ? `\n${stageText(b)}` : ''}${air ? `\n${air}` : ''}` : m.po_no ? `SAP ${m.po_no}` : MR_ROUTES.find((x) => x.value === (m.route ?? 'sap'))?.label ?? '';
                 },
               },
               {

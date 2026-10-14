@@ -7808,6 +7808,34 @@ begin
   assert (select eta = ((now() + interval '5 days') at time zone app.tz())::date from public.fo_shipments where id = sid), 'ETA follows the last flight';
   assert (select landed_at is not null from public.fo_flight_legs where id = lid), 'second flight landed';
   assert exists (select 1 from public.notifications where title = 'Flight landed' and body like '%QR 668%'), 'arrival told';
+  assert exists (select 1 from public.notifications where title = 'Arrival in Colombo moved'), 'Sales / SEE told of the Colombo ETA';
+  assert app.fo_air_line(sid) like '%Landed CMB%', app.fo_air_line(sid);
+end $$;
+-- follow-up: tight / missed connection, the AWB check reminder, cargo not confirmed, the flight to Colombo not entered
+set session_replication_role = replica;
+insert into public.fo_shipments (id, code, mode, vessel_flight, etd, eta, bl_awb, multi_leg, flight_departed_at, flight_landed_at, flight_arrival_at, via)
+values ('00000000-0000-0000-0000-0000000ff0a3', 'SHP-T-AIR3', 'air', 'EK 46', current_date - 1, current_date + 2, '176-12345675', true, now() - interval '20 hours', now() - interval '10 hours', now() - interval '10 hours', 'DXB');
+insert into public.fo_shipment_orders (shipment_id, order_id) values ('00000000-0000-0000-0000-0000000ff0a3', current_setting('test.fo_o1')::uuid);
+set session_replication_role = origin;
+do $$ declare sid uuid := '00000000-0000-0000-0000-0000000ff0a3'; n int;
+begin
+  -- no flight to Colombo yet; landed at transit 10 h ago, cargo not checked
+  n := public.fo_air_tick();
+  assert exists (select 1 from public.notifications where title = 'Flight to Colombo not entered' and body like 'SHP-T-AIR3%'), 'flight to Colombo nudged';
+  assert exists (select 1 from public.notifications where title = 'Check the AWB – cargo on the next flight?' and body like 'SHP-T-AIR3%'), (select string_agg(title || ' / ' || body, E'\n') from public.notifications where body like 'SHP-T-AIR3%') || ' flights: ' || (select string_agg(row(f.*)::text, '; ') from app.fo_flights(sid) f);
+  assert app.fo_air_line(sid) like '%At DXB%onward flight not confirmed%', app.fo_air_line(sid);
+  -- the next flight leaves 1 h after the first landed → tight; then it departed a day ago, cargo not confirmed
+  insert into public.fo_flight_legs (shipment_id, seq, flight, from_ap, to_ap, etd, dep_sched_at) values (sid, 2, 'EK 650', 'DXB', 'CMB', current_date, now() - interval '9 hours');
+  perform app.fo_connection_check(sid);
+  assert exists (select 1 from public.notifications where title = 'Tight connection' and body like 'SHP-T-AIR3%'), 'tight connection';
+  update public.fo_flight_legs set departed_at = now() - interval '30 hours', dep_sched_at = now() - interval '30 hours' where shipment_id = sid;
+  perform app.fo_connection_check(sid);
+  assert exists (select 1 from public.notifications where title = 'Connection likely missed' and body like 'SHP-T-AIR3%'), 'missed connection';
+  update public.fo_flight_legs set departed_at = now() - interval '26 hours', dep_sched_at = null where shipment_id = sid;
+  update public.fo_shipments set flight_landed_at = now() - interval '28 hours', flight_arrival_at = now() - interval '28 hours' where id = sid;
+  perform public.fo_air_tick();
+  assert exists (select 1 from public.notifications where title = 'Cargo on board not confirmed' and recipient_id = (select id from u where role = 'sm_projects')), 'not confirmed → SM Projects';
+  assert app.fo_air_line(sid) like '%On EK 650 → CMB%', app.fo_air_line(sid);
 end $$;
 -- not on a shipment yet: the ready date sets the expected date at site
 delete from public.fo_shipment_orders where order_id = current_setting('test.fo_o1')::uuid;
