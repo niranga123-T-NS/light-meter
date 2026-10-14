@@ -49,7 +49,7 @@ export function Catalogs() {
       <Field label="Search" value={q} onChangeText={setQ} placeholder={sub === 'brands' ? 'Brand or manufacturer' : 'Luminaire, code or brand'} />
       {sub === 'brands' ? (
         <>
-          <Muted>Choose a brand to open the manufacturer’s own online catalogue and downloads, or the catalogues kept here – shared with clients with the DIMO watermark.</Muted>
+          <Muted>Choose a brand to open the manufacturer’s own online catalogue and downloads, or the catalogues added here – opened in a viewer and shared with clients with the DIMO watermark.</Muted>
           <Grid min={260} max={3}>
             {data.brands
               .filter((b) => !s || `${b.name} ${b.manufacturer ?? ''}`.toLowerCase().includes(s))
@@ -63,7 +63,7 @@ export function Catalogs() {
                       {b.name}
                     </Text>
                     <Muted>{[b.manufacturer, b.country].filter(Boolean).join(' · ') || ' '}</Muted>
-                    <Muted>{`${files} catalogue${files === 1 ? '' : 's'} kept · ${lums} luminaire${lums === 1 ? '' : 's'}`}</Muted>
+                    <Muted>{`${files} catalogue${files === 1 ? '' : 's'} · ${lums} luminaire${lums === 1 ? '' : 's'}`}</Muted>
                     <Row gap={6} wrap>
                       {link?.catalogue_url ? <Button small variant="secondary" title="Online catalogue ↗" onPress={() => openLink(link.catalogue_url as string)} /> : null}
                       {link?.downloads_url ? <Button small variant="ghost" title="IES & data sheets ↗" onPress={() => openLink(link.downloads_url as string)} /> : null}
@@ -101,7 +101,7 @@ export function Catalogs() {
               { h: 'lm/W', w: 60, right: true, v: (l) => String(efficacy(l) ?? '—') },
               { h: 'CCT', w: 70, right: true, v: (l) => (l.cct ? `${l.cct} K` : '—') },
               { h: 'IES', w: 50, v: (l) => (l.ies_id ? '✓' : '—') },
-              { h: 'Data sheet', w: 90, v: (l) => (l.datasheet_path ? 'PDF' : l.datasheet_url ? 'Link' : l.sample ? 'DIMO' : '—') },
+              { h: 'Data sheet', w: 90, v: (l) => (l.datasheet_url ? 'Link' : l.datasheet_path ? 'Stored' : l.sample ? 'DIMO' : '—') },
               { h: 'Stock', w: 100, v: (l) => (l.stock === 'in' ? 'In stock' : l.stock === 'out' ? 'Not in stock' : '—') },
             ]}
           />

@@ -4,11 +4,12 @@ import { DataTable } from '@/components/DataTable';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, ErrorBanner, Loading, Muted, Notice, Row, Screen, Section } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { CATALOG_KEEPERS, FILE_KINDS, mb, openCatalogFile, openLink, shareWatermarked, type Brand, type BrandCatalog, type CatalogFile, type Luminaire } from '@/lib/catalog';
+import { usePdfViewer } from '@/components/tools/PdfViewer';
+import { CATALOG_KEEPERS, checkPdfLink, dropStoredCopy, FILE_KINDS, fileDoc, mb, openLink, shareWatermarked, type Brand, type BrandCatalog, type CatalogFile, type Luminaire, type PdfDoc } from '@/lib/catalog';
 import { pickDocument, readBytes, uuid } from '@/lib/files';
 import { fmtDate } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
-import { callFunction, supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 /** A brand: the manufacturer's links (online catalogue, downloads), the catalogues kept here and its luminaires */
 export default function BrandCatalogPage() {
@@ -26,6 +27,7 @@ export default function BrandCatalogPage() {
     if (b.error) throw new Error(b.error.message);
     return { brand: b.data as Brand, link: (c.data ?? null) as BrandCatalog | null, files: (f.data ?? []) as CatalogFile[], lums: (l.data ?? []) as Luminaire[] };
   }, [id]);
+  const { open, viewer } = usePdfViewer({ by: me.full_name, onEditLink: keeper ? (d: PdfDoc) => editFile(data?.files.find((f) => f.id === d.id)) : undefined });
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const { brand, link } = data;
   const by = me.full_name;
@@ -57,28 +59,57 @@ export default function BrandCatalogPage() {
       await reload();
     }, 'Saved');
   };
-  const fileFields = (title = '') => [
-    { key: 'title', label: 'Title', required: true, initial: title, hint: 'e.g. Indoor catalogue 2026' },
-    { key: 'kind', label: 'Kind', type: 'select' as const, options: FILE_KINDS, initial: 'catalogue' },
-    { key: 'year', label: 'Year (optional)' },
+  const fileFields = (f?: Partial<CatalogFile>) => [
+    { key: 'title', label: 'Title', required: true, initial: f?.title ?? '', hint: 'e.g. Indoor catalogue 2026' },
+    { key: 'kind', label: 'Kind', type: 'select' as const, options: FILE_KINDS, initial: f?.kind ?? 'catalogue' },
+    { key: 'year', label: 'Year (optional)', initial: f?.year ? String(f.year) : '' },
   ];
-  const fetchPdf = async () => {
+  const addLink = async () => {
     const r = await dialog.prompt({
-      title: `Fetch a ${brand.name} PDF`,
-      message: 'Paste the link of the PDF on the manufacturer’s website. The server downloads it and keeps it here for everyone (up to 50 MB).',
+      title: `Add a ${brand.name} PDF by link`,
+      message: 'Paste the link of the PDF on the manufacturer’s website. Only the link is kept – the PDF is shown in a viewer when someone opens it, so it uses no storage space.',
       fields: [{ key: 'url', label: 'Link of the PDF', required: true, hint: 'https://…/catalogue.pdf' }, ...fileFields()],
-      confirmLabel: 'Fetch',
+      confirmLabel: 'Check and add',
     });
     if (!r) return;
     await dialog.run(async () => {
-      await callFunction('catalog-fetch', { action: 'catalogue', brand_id: brand.id, url: r.url.trim(), title: r.title.trim(), kind: r.kind || 'catalogue', year: r.year ? Number(r.year) : null });
+      const got = await checkPdfLink(r.url);
+      const { error: e } = await supabase.from('catalog_files').insert({ brand_id: brand.id, title: r.title.trim(), kind: r.kind || 'catalogue', storage_path: null, file_name: got.file_name, size_bytes: got.size, source_url: r.url.trim(), year: r.year ? Number(r.year) : null });
+      if (e) throw new Error(e.message);
       await reload();
-    }, 'Fetched and kept');
+    }, 'Link checked and added');
+  };
+  async function editFile(f?: CatalogFile) {
+    if (!f) return;
+    const r = await dialog.prompt({
+      title: `Edit – ${f.title}`,
+      message: f.storage_path && !f.source_url ? 'Uploaded file. Add the manufacturer’s link to keep it by link instead.' : 'Paste the new link if the manufacturer moved the PDF.',
+      fields: [{ key: 'url', label: 'Link of the PDF', required: !f.storage_path, initial: f.source_url ?? '' }, ...fileFields(f)],
+      confirmLabel: 'Save',
+    });
+    if (!r) return;
+    await dialog.run(async () => {
+      const url = r.url.trim() || null;
+      const got = url && url !== f.source_url ? await checkPdfLink(url) : null;
+      const { error: e } = await supabase
+        .from('catalog_files')
+        .update({ title: r.title.trim(), kind: r.kind || 'catalogue', year: r.year ? Number(r.year) : null, source_url: url, ...(got ? { file_name: got.file_name, size_bytes: f.storage_path ? f.size_bytes : got.size } : {}) })
+        .eq('id', f.id);
+      if (e) throw new Error(e.message);
+      await reload();
+    }, 'Saved');
+  }
+  const dropCopy = async (f: CatalogFile) => {
+    if (!(await dialog.confirm(`Remove the stored copy of “${f.title}”?`, `Frees ${mb(f.size_bytes) || 'its'} storage space. The manufacturer’s link is kept and the PDF opens from there.`, { confirmLabel: 'Remove stored copy' }))) return;
+    await dialog.run(async () => {
+      await dropStoredCopy(f.storage_path as string, { table: 'catalog_files', id: f.id });
+      await reload();
+    }, 'Stored copy removed – the link is kept');
   };
   const uploadPdf = async () => {
     const file = await pickDocument();
     if (!file) return;
-    const r = await dialog.prompt({ title: 'Upload a catalogue', fields: fileFields(file.name.replace(/\.pdf$/i, '')), confirmLabel: 'Upload' });
+    const r = await dialog.prompt({ title: 'Upload a catalogue', message: 'The PDF is stored here and uses storage space – for a catalogue on the manufacturer’s website, add its link instead.', fields: fileFields({ title: file.name.replace(/\.pdf$/i, '') }), confirmLabel: 'Upload' });
     if (!r) return;
     await dialog.run(async () => {
       if (!/\.pdf$/i.test(file.name)) throw new Error('Choose a PDF');
@@ -104,6 +135,7 @@ export default function BrandCatalogPage() {
   return (
     <Screen maxWidth={1000}>
       <Stack.Screen options={{ title: brand.name }} />
+      {viewer}
       <Section title="The manufacturer’s catalogue">
         <Card style={{ gap: 6 }}>
           <Text style={{ fontWeight: '700', fontSize: 16, color: colors.ink }}>{brand.name}</Text>
@@ -122,27 +154,31 @@ export default function BrandCatalogPage() {
         </Card>
       </Section>
 
-      <Section title="Catalogues kept here">
+      <Section title="Catalogues">
         {keeper ? (
           <Row gap={8} wrap>
-            <Button small title="Fetch PDF from the manufacturer’s link" onPress={fetchPdf} />
-            <Button small variant="secondary" title="Upload PDF" onPress={uploadPdf} />
+            <Button small title="+ Add PDF by link" onPress={addLink} />
+            <Button small variant="ghost" title="Upload PDF (stored)" onPress={uploadPdf} />
           </Row>
         ) : null}
         {data.files.length ? (
           data.files.map((f) => (
             <Card key={f.id} style={{ gap: 4 }}>
               <Text style={{ fontWeight: '600', color: colors.ink }}>{f.title}</Text>
-              <Muted>{`${FILE_KINDS.find((k) => k.value === f.kind)?.label ?? f.kind}${f.year ? ` · ${f.year}` : ''} · ${mb(f.size_bytes)} · added ${fmtDate(f.created_at)}${f.source_url ? ' · from the manufacturer’s site' : ''}`}</Muted>
+              <Muted>
+                {[FILE_KINDS.find((k) => k.value === f.kind)?.label ?? f.kind, f.year, f.storage_path ? `stored copy ${mb(f.size_bytes)}`.trim() : `manufacturer’s link${f.size_bytes ? ` · ${mb(f.size_bytes)}` : ''} · not stored`, `added ${fmtDate(f.created_at)}`].filter(Boolean).join(' · ')}
+              </Muted>
               <Row gap={6} wrap>
-                <Button small variant="secondary" title="Open" onPress={() => dialog.run(() => openCatalogFile(f.storage_path, f.file_name))} />
-                <Button small variant="secondary" title="Share with DIMO watermark" onPress={() => dialog.run(() => shareWatermarked(f.storage_path, f.title, by))} />
+                <Button small variant="secondary" title="Open" onPress={() => dialog.run(() => open(fileDoc(f)))} />
+                <Button small variant="secondary" title="Share with DIMO watermark" onPress={() => dialog.run(() => shareWatermarked(fileDoc(f).source, f.title, by))} />
+                {keeper ? <Button small variant="ghost" title={f.source_url ? 'Edit link' : 'Edit'} onPress={() => editFile(f)} /> : null}
+                {keeper && f.storage_path && f.source_url ? <Button small variant="ghost" title="Remove stored copy, keep the link" onPress={() => dropCopy(f)} /> : null}
                 {keeper ? <Button small variant="ghost" title="Remove" onPress={() => remove(f)} /> : null}
               </Row>
             </Card>
           ))
         ) : (
-          <Muted>No catalogues kept yet.</Muted>
+          <Muted>No catalogues added yet.</Muted>
         )}
       </Section>
 

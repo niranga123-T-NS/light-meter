@@ -7203,6 +7203,15 @@ select pg_temp.act_as('lighting_designer'); set role authenticated;
 do $$ declare b bigint := (select id from public.brands where name = 'Test Brand'); l uuid; begin
   insert into public.brand_catalogs (brand_id, website, catalogue_url) values (b, 'https://example.com', 'https://example.com/catalogue');
   insert into public.catalog_files (brand_id, title, storage_path, file_name, source_url) values (b, 'Indoor catalogue 2026', 'brands/' || b || '/x.pdf', 'x.pdf', 'https://example.com/x.pdf');
+  -- by link only: nothing stored
+  insert into public.catalog_files (brand_id, title, file_name, source_url) values (b, 'Outdoor catalogue 2026', 'o.pdf', 'https://example.com/o.pdf');
+  begin
+    insert into public.catalog_files (brand_id, title) values (b, 'Nothing');
+    assert false, 'a catalogue needs a stored file or a link';
+  exception when check_violation then null; end;
+  -- the stored copy removed, the link kept
+  update public.catalog_files set storage_path = null, size_bytes = null where title = 'Indoor catalogue 2026';
+  assert (select source_url from public.catalog_files where title = 'Indoor catalogue 2026') = 'https://example.com/x.pdf', 'link kept';
   insert into public.luminaires (brand_id, name, family, watts, lumens, stock) values (b, 'TB Panel 36 W', 'Panel', 36, 4300, 'in') returning id into l;
   perform set_config('test.lum', l::text, true);
 end $$;
