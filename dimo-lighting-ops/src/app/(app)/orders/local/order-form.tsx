@@ -99,12 +99,15 @@ function Form({ o, value, rate, r }: { o: LoOrder | null; value: number | null; 
             options={[
               { value: 'single', label: 'Single invoice – one-off job (e.g. a repair, a single crane lift)' },
               { value: 'ipc', label: 'Paid by IPC – work in stages (e.g. subcontract work)' },
-              { value: 'hire', label: 'Hire – machine, equipment or consultant, paid per period' },
+              { value: 'milestone', label: 'Work basis – paid per deliverable (e.g. a consultant’s design, report)' },
+              { value: 'hire', label: 'Hire – machine, equipment or consultant time, paid per period' },
             ]}
             hint={
               billing === 'ipc'
                 ? 'The agreement’s work stages are recorded with their planned dates; each IPC is taken under its stage'
-                : billing === 'hire'
+                : billing === 'milestone'
+                  ? 'The agreement’s deliverables are recorded with their planned dates; each invoice is for a deliverable the SEE has accepted'
+                  : billing === 'hire'
                   ? 'On hire / off hire dates; each invoice covers a period with the hours / days used, certified by the SEE (hire / time sheet)'
                   : 'One invoice when the job is done (an advance if agreed)'
             }
@@ -134,7 +137,7 @@ function Form({ o, value, rate, r }: { o: LoOrder | null; value: number | null; 
               label="Advance %"
               value={pct}
               onChange={setPct}
-              hint={termNow === 'advance_ipc' ? 'Recovered from the IPCs; the balance is paid by IPC' : termNow === 'advance_periodic' ? 'Recovered from the period invoices' : service ? 'The balance is paid after completion' : 'The balance is paid after delivery'}
+              hint={termNow === 'advance_ipc' ? 'Recovered from the IPCs; the balance is paid by IPC' : termNow === 'advance_periodic' ? 'Recovered from the period invoices' : termNow === 'advance_milestone' ? 'Recovered from the deliverable invoices' : service ? 'The balance is paid after completion' : 'The balance is paid after delivery'}
             />
           ) : null}
           {advance ? (

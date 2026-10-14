@@ -103,7 +103,9 @@ export default function LocalOrder() {
   const hasAdvance = invoices.some((i) => i.kind === 'advance' && i.status !== 'cancelled');
   // the planned dates of the work stages are the agreement's: fixed once it is signed
   const agreementSigned = steps.some((x) => x.order_id === o.id && x.step === 'agreement_signed');
-  const workEditor = (keeper || me.role === 'senior_elec_engineer') && o.kind === 'service' && o.billing === 'ipc';
+  const workEditor = (keeper || me.role === 'senior_elec_engineer') && o.kind === 'service' && (o.billing === 'ipc' || o.billing === 'milestone');
+  // work basis (e.g. a consultant): the stages are the deliverables, each invoiced once accepted
+  const dlv = o.billing === 'milestone';
   const all = loRoute(defs, prValue, o, value, steps, holidays);
   const st = loStanding(all);
   const lines = all.filter((l) => l.def.scope === 'o');
@@ -135,7 +137,7 @@ export default function LocalOrder() {
   const addInvoice = async () => {
     const x = await dialog.prompt({
       title: o.kind === 'service' ? 'Invoice / IPC received' : 'Invoice received',
-      message: o.kind === 'material' ? 'Submitted to Procurement with the signed delivery notes.' : o.billing === 'hire' ? 'A hire invoice for a period, with the hire / time sheet – the SEE certifies the usage.' : r.exec_project_id ? 'IPCs come from the execution team: when approved, take them under the work stage (+ IPC).' : 'An invoice, or an IPC-based invoice.',
+      message: o.kind === 'material' ? 'Submitted to Procurement with the signed delivery notes.' : o.billing === 'hire' ? 'A hire invoice for a period, with the hire / time sheet – the SEE certifies the usage.' : dlv ? 'An invoice for an accepted deliverable (or the advance).' : r.exec_project_id ? 'IPCs come from the execution team: when approved, take them under the work stage (+ IPC).' : 'An invoice, or an IPC-based invoice.',
       fields: [
         {
           key: 'kind',
@@ -164,7 +166,10 @@ export default function LocalOrder() {
             ]
           : []),
         ...(o.kind === 'service' && ADVANCE_TERMS.includes(o.payment_term) && !(o.billing === 'ipc' && r.exec_project_id) ? [{ key: 'advance_recovered', label: 'Advance recovered in this invoice (LKR)', hint: 'Leave empty when none', when: { key: 'kind', in: ['invoice', 'ipc'] } }] : []),
-        ...(work.length && !r.exec_project_id ? [{ key: 'work_stage_id', label: 'For work stage', when: { key: 'kind', in: ['ipc'] }, type: 'select' as const, options: [{ value: '', label: '—' }, ...work.map((w) => ({ value: w.id, label: `${w.seq}. ${w.title}${w.pct ? ` · ${w.pct}%` : ''}${w.cert_ref ? ` · IPC ${w.cert_ref}` : ''}` }))], hint: 'The stage of the work this IPC claims' }] : []),
+        ...(dlv
+          ? [{ key: 'deliverable', label: 'For deliverable', required: true, when: { key: 'kind', in: ['invoice'] }, type: 'select' as const, options: work.filter((w) => w.done_on).map((w) => ({ value: w.id, label: `${w.seq}. ${w.title}${w.pct ? ` · ${w.pct}%` : ''} · accepted ${fmtDate(w.done_on)}` })), hint: 'Only deliverables the SEE has accepted (done)' }]
+          : []),
+        ...(work.length && !r.exec_project_id && !dlv ? [{ key: 'work_stage_id', label: 'For work stage', when: { key: 'kind', in: ['ipc'] }, type: 'select' as const, options: [{ value: '', label: '—' }, ...work.map((w) => ({ value: w.id, label: `${w.seq}. ${w.title}${w.pct ? ` · ${w.pct}%` : ''}${w.cert_ref ? ` · IPC ${w.cert_ref}` : ''}` }))], hint: 'The stage of the work this IPC claims' }] : []),
         { key: 'received_on', label: 'Received on', type: 'date', required: true, initial: todayIso() },
         { key: 'note', label: 'Note' },
       ],
@@ -172,8 +177,8 @@ export default function LocalOrder() {
     });
     if (x)
       await dialog.run(async () => {
-        const { work_stage_id: stage, ...p } = x;
-        const iid = (await rpc('lo_add_invoice', { p_order: o.id, p: { ...p, amount: x.amount.replace(/,/g, ''), advance_recovered: (p.advance_recovered ?? '').replace(/,/g, ''), usage_qty: (p.usage_qty ?? '').replace(/,/g, '') } })) as unknown as string;
+        const { work_stage_id: stage, deliverable, ...p } = x;
+        const iid = (await rpc('lo_add_invoice', { p_order: o.id, p: { ...p, work_stage_id: deliverable ?? '', amount: x.amount.replace(/,/g, ''), advance_recovered: (p.advance_recovered ?? '').replace(/,/g, ''), usage_qty: (p.usage_qty ?? '').replace(/,/g, '') } })) as unknown as string;
         if (stage) await rpc('lo_link_invoice_stage', { p_invoice: iid, p_stage: stage });
         await reload();
       }, 'Recorded');
@@ -211,8 +216,10 @@ export default function LocalOrder() {
 
   const saveStage = async (w?: LoWorkStage) => {
     const x = await dialog.prompt({
-      title: w ? `Work stage ${w.seq}` : 'New work stage',
-      message: agreementSigned
+      title: w ? `${dlv ? 'Deliverable' : 'Work stage'} ${w.seq}` : dlv ? 'New deliverable' : 'New work stage',
+      message: dlv
+        ? `A deliverable in the agreement – e.g. "Concept design report" – with its planned date. It is invoiced once the SEE accepts it (Accepted on).${agreementSigned ? ' The agreement is signed: dates are requested (the SEE and SM Projects approve them).' : ''}`
+        : agreementSigned
         ? `A stage of the work the service provider claims by IPC – e.g. "Foundations for poles 1–20".${w?.planned_on ? ` Planned completion ${fmtDate(w.planned_on)} (signed agreement).` : ' The agreement is signed: its planned date is requested after saving (Set date…) – the SEE and SM Projects approve it.'}`
         : 'A stage of the work in the agreement – e.g. "Foundations for poles 1–20" – with its planned completion. The programme is fixed when the signed agreement is issued.',
       fields: [
@@ -220,8 +227,8 @@ export default function LocalOrder() {
         { key: 'pct', label: '% of the whole work (optional)', initial: w?.pct != null ? String(w.pct) : '' },
         // the agreement's work programme: set before the signed agreement, then only through the SEE's and SM Projects' approval
         ...(agreementSigned ? [] : [{ key: 'planned_on', label: 'Planned completion (agreement work programme)', type: 'date' as const, initial: w?.planned_on ?? '', hint: 'Needed before the signed agreement – fixed from then on (a change needs the SEE’s and SM Projects’ approval)' }]),
-        { key: 'done_on', label: 'Done / certified on (when done)', type: 'date', initial: w?.done_on ?? '', hint: 'Leave empty until the stage is actually done – not a future date' },
-        { key: 'cert_ref', label: 'IPC / certificate no.', initial: w?.cert_ref ?? '' },
+        { key: 'done_on', label: dlv ? 'Accepted by the SEE on (when accepted)' : 'Done / certified on (when done)', type: 'date', initial: w?.done_on ?? '', hint: 'Leave empty until the stage is actually done – not a future date' },
+        { key: 'cert_ref', label: dlv ? 'Acceptance ref. (letter / e-mail)' : 'IPC / certificate no.', initial: w?.cert_ref ?? '' },
         { key: 'note', label: 'Note', initial: w?.note ?? '' },
       ],
       confirmLabel: 'Save',
@@ -291,13 +298,13 @@ export default function LocalOrder() {
     </View>
   ) : null;
   const doneStages = work.filter((w) => w.done_on);
-  const workPanel = o.kind === 'service' && o.billing === 'ipc' ? (
+  const workPanel = o.kind === 'service' && (o.billing === 'ipc' || dlv) ? (
     <>
       <Row wrap gap={8} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
         <Text style={{ fontWeight: '700', color: colors.ink }}>
-          {`Work stages · ${doneStages.length} of ${work.length} done${work.some((w) => w.pct) ? ` · ${doneStages.reduce((t, w) => t + Number(w.pct ?? 0), 0)}% of the work` : ''}`}
+          {`${dlv ? 'Deliverables' : 'Work stages'} · ${doneStages.length} of ${work.length} ${dlv ? 'accepted' : 'done'}${work.some((w) => w.pct) ? ` · ${doneStages.reduce((t, w) => t + Number(w.pct ?? 0), 0)}% of the work` : ''}`}
         </Text>
-        {workEditor && open ? <Button small variant="secondary" title="+ Work stage" onPress={() => saveStage()} /> : null}
+        {workEditor && open ? <Button small variant="secondary" title={dlv ? '+ Deliverable' : '+ Work stage'} onPress={() => saveStage()} /> : null}
       </Row>
       {datePanel}
       {agreementSigned ? (
@@ -305,7 +312,8 @@ export default function LocalOrder() {
       ) : (
         <Notice tone={colors.blue}>The agreement’s work programme: enter each stage with its planned completion now – “Signed agreement issued” needs them, and they are fixed from then on.</Notice>
       )}
-      {!work.length ? <Muted>For work done in stages (e.g. subcontract work paid by IPC): each IPC invoice then follows its own approvals in stage 7. “Work completed” needs every stage done.</Muted> : null}
+      {!work.length && dlv ? <Muted>Work basis (e.g. a consultant): each deliverable of the agreement is invoiced once the SEE accepts it. “Work completed” needs every deliverable accepted.</Muted> : null}
+      {!work.length && !dlv ? <Muted>For work done in stages (e.g. subcontract work paid by IPC): each IPC invoice then follows its own approvals in stage 7. “Work completed” needs every stage done.</Muted> : null}
       {work.map((w) => {
         const inv = invoices.filter((i) => i.work_stage_id === w.id && i.status !== 'cancelled');
         const late = !w.done_on && w.planned_on && w.planned_on < todayIso();
@@ -315,14 +323,14 @@ export default function LocalOrder() {
               <Text style={{ color: colors.ink, fontWeight: '600' }}>{`${w.seq}. ${w.title}${w.pct ? ` · ${w.pct}%` : ''}`}</Text>
               <Muted>
                 {[w.done_on ? `done ${fmtDate(w.done_on)}` : w.planned_on ? `planned ${fmtDate(w.planned_on)}${agreementSigned ? ' (agreement)' : ''}` : 'in progress',
-                  stageChanges.filter((c) => c.stage_id === w.id && c.status === 'approved').length ? `date moved ${stageChanges.filter((c) => c.stage_id === w.id && c.status === 'approved').length}×` : null, w.cert_ref ? `IPC ${w.cert_ref}` : null, inv.length ? `${inv.length} invoice${inv.length === 1 ? '' : 's'} · ${inv.filter((i) => i.status === 'paid').length} paid` : 'no invoice yet', w.note]
+                  stageChanges.filter((c) => c.stage_id === w.id && c.status === 'approved').length ? `date moved ${stageChanges.filter((c) => c.stage_id === w.id && c.status === 'approved').length}×` : null, w.cert_ref ? `${dlv ? 'acceptance' : 'IPC'} ${w.cert_ref}` : null, inv.length ? `${inv.length} invoice${inv.length === 1 ? '' : 's'} · ${inv.filter((i) => i.status === 'paid').length} paid` : 'no invoice yet', w.note]
                   .filter(Boolean)
                   .join(' · ')}
               </Muted>
             </View>
             <Row gap={6} style={{ alignItems: 'center' }}>
-              <Pill label={w.done_on ? 'Done' : late ? 'Late' : 'In progress'} tone={w.done_on ? colors.green : late ? colors.red : colors.blue} />
-              {keeper && open && r.exec_project_id ? <Button small variant="secondary" title="+ IPC" onPress={() => addIpc(w)} /> : null}
+              <Pill label={w.done_on ? (dlv ? 'Accepted' : 'Done') : late ? 'Late' : 'In progress'} tone={w.done_on ? colors.green : late ? colors.red : colors.blue} />
+              {keeper && open && r.exec_project_id && !dlv ? <Button small variant="secondary" title="+ IPC" onPress={() => addIpc(w)} /> : null}
               {workEditor && open ? <Button small variant="ghost" title="Edit" onPress={() => saveStage(w)} /> : null}
               {workEditor && open && agreementSigned && !w.done_on && !stageChanges.some((c) => c.stage_id === w.id && c.status.startsWith('pending')) ? (
                 <Button small variant={w.planned_on ? 'ghost' : 'secondary'} title={w.planned_on ? 'Change date…' : 'Set date…'} onPress={() => askDate(w)} />

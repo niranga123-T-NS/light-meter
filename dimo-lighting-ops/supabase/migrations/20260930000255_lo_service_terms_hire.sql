@@ -1,7 +1,10 @@
 -- Local service orders:
 --  * Payment terms that fit how a service is billed – IPC work: "% advance, balance by IPC" or "by IPC, no advance";
 --    hire (machine, equipment, consultant): "per period against certified hire / time sheets" with or without an advance;
+--    work basis (e.g. a consultant paid per deliverable): "per deliverable on acceptance", with or without an advance;
 --    a one-off service: after / before completion or an advance.
+--  * Work-basis billing: the deliverables (milestones) of the agreement are kept like work stages – each with its planned
+--    date – and each invoice is for a deliverable the SEE has accepted (done).
 --  * Hire billing: the hire unit (hour, day, week, month) and agreed rate; on-hire and off-hire dates (Operations or the
 --    SEE); each invoice covers a period with the usage certified by the SEE (no overlaps). "Work completed" is the
 --    off-hire; the order closes when the invoices cover the hire up to the off-hire.
@@ -11,11 +14,11 @@
 
 alter table public.lo_orders drop constraint if exists lo_orders_payment_term_check;
 alter table public.lo_orders add constraint lo_orders_payment_term_check
-  check (payment_term in ('advance_balance', 'after_delivery', 'before_delivery', 'lc', 'advance_ipc', 'ipc', 'periodic', 'advance_periodic'));
+  check (payment_term in ('advance_balance', 'after_delivery', 'before_delivery', 'lc', 'advance_ipc', 'ipc', 'periodic', 'advance_periodic', 'milestone', 'advance_milestone'));
 alter table public.lo_orders drop constraint if exists lo_orders_advance;
-alter table public.lo_orders add constraint lo_orders_advance check (payment_term not in ('advance_balance', 'advance_ipc', 'advance_periodic') or advance_pct is not null);
+alter table public.lo_orders add constraint lo_orders_advance check (payment_term not in ('advance_balance', 'advance_ipc', 'advance_periodic', 'advance_milestone') or advance_pct is not null);
 alter table public.lo_orders drop constraint if exists lo_orders_billing_check;
-alter table public.lo_orders add constraint lo_orders_billing_check check (billing in ('single', 'ipc', 'hire'));
+alter table public.lo_orders add constraint lo_orders_billing_check check (billing in ('single', 'ipc', 'hire', 'milestone'));
 alter table public.lo_orders add column if not exists hire_unit text check (hire_unit in ('hour', 'day', 'week', 'month'));
 alter table public.lo_orders add column if not exists hire_from date;
 alter table public.lo_orders add column if not exists hire_to date;
@@ -28,9 +31,10 @@ alter table public.lo_invoices add column if not exists usage_qty numeric(12, 2)
 create or replace function app.lo_map_term(p_term text, p_billing text) returns text
 language sql immutable as $$
   select case p_billing
-    when 'ipc' then case when p_term in ('advance_balance', 'before_delivery', 'advance_ipc', 'advance_periodic') then 'advance_ipc' else 'ipc' end
-    when 'hire' then case when p_term in ('advance_balance', 'before_delivery', 'advance_ipc', 'advance_periodic') then 'advance_periodic' else 'periodic' end
-    else case p_term when 'advance_ipc' then 'advance_balance' when 'advance_periodic' then 'advance_balance' when 'ipc' then 'after_delivery' when 'periodic' then 'after_delivery' else p_term end
+    when 'ipc' then case when p_term in ('advance_balance', 'before_delivery', 'advance_ipc', 'advance_periodic', 'advance_milestone') then 'advance_ipc' else 'ipc' end
+    when 'hire' then case when p_term in ('advance_balance', 'before_delivery', 'advance_ipc', 'advance_periodic', 'advance_milestone') then 'advance_periodic' else 'periodic' end
+    when 'milestone' then case when p_term in ('advance_balance', 'before_delivery', 'advance_ipc', 'advance_periodic', 'advance_milestone') then 'advance_milestone' else 'milestone' end
+    else case when p_term in ('advance_ipc', 'advance_periodic', 'advance_milestone') then 'advance_balance' when p_term in ('ipc', 'periodic', 'milestone') then 'after_delivery' else p_term end
   end
 $$;
 
@@ -40,6 +44,7 @@ language sql immutable as $$
     when p_kind = 'material' then p_term in ('advance_balance', 'after_delivery', 'before_delivery', 'lc')
     when p_billing = 'ipc' then p_term in ('advance_ipc', 'ipc')
     when p_billing = 'hire' then p_term in ('periodic', 'advance_periodic')
+    when p_billing = 'milestone' then p_term in ('milestone', 'advance_milestone')
     else p_term in ('advance_balance', 'after_delivery', 'before_delivery')
   end
 $$;
@@ -55,8 +60,8 @@ language sql stable security definer set search_path = public as $$
       when 'service' then o.kind = 'service'
       when 'supplier_new' then o.supplier_new
       when 'dic_sel' then coalesce((select value from public.lo_order_values where order_id = o.id), 0) > app.lo_dic_limit()
-      when 'advance' then o.payment_term in ('advance_balance', 'before_delivery', 'advance_ipc', 'advance_periodic')
-      when 'advance_security' then o.advance_security and o.payment_term in ('advance_balance', 'before_delivery', 'advance_ipc', 'advance_periodic')
+      when 'advance' then o.payment_term in ('advance_balance', 'before_delivery', 'advance_ipc', 'advance_periodic', 'advance_milestone')
+      when 'advance_security' then o.advance_security and o.payment_term in ('advance_balance', 'before_delivery', 'advance_ipc', 'advance_periodic', 'advance_milestone')
       when 'lc' then o.payment_term = 'lc'
       else false end), true)
     from unnest(p_conds) c
@@ -83,15 +88,16 @@ begin
   perform app.require(k in ('material', 'service'), 'Material or service?');
   perform app.require(r.kind = 'both' or r.kind = k, format('This request is for %s', case r.kind when 'material' then 'materials' else 'services' end));
   b := case when k = 'material' then 'single' else coalesce(nullif(p ->> 'billing', ''), o.billing, 'single') end;
-  perform app.require(b in ('single', 'ipc', 'hire'), 'Single invoice, IPC or hire?');
-  perform app.require(b = 'ipc' or o.id is null or not exists (select 1 from public.lo_work_stages where order_id = o.id), 'This order has work stages – remove them first');
+  perform app.require(b in ('single', 'ipc', 'hire', 'milestone'), 'Single invoice, IPC, work basis or hire?');
+  perform app.require(b in ('ipc', 'milestone') or o.id is null or not exists (select 1 from public.lo_work_stages where order_id = o.id), 'This order has work stages – remove them first');
   perform app.require(b = 'hire' or o.id is null or not exists (select 1 from public.lo_invoices where order_id = o.id and period_from is not null and status <> 'cancelled'), 'This order has hire invoices – it stays a hire');
   perform app.require(coalesce(btrim(p ->> 'title'), '') <> '', 'What is ordered from this supplier?');
   perform app.require(coalesce(btrim(p ->> 'supplier'), '') <> '', 'Enter the supplier / service provider');
   perform app.require(t is not null and app.lo_term_fits(k, b, t), case b when 'ipc' then 'Choose the payment term – % advance and the balance by IPC, or by IPC with no advance'
                                                                       when 'hire' then 'Choose the payment term – per period against the hire / time sheets, with or without an advance'
+                                                                      when 'milestone' then 'Choose the payment term – per deliverable on acceptance, with or without an advance'
                                                                       else 'Choose the payment term' end);
-  adv := t in ('advance_balance', 'advance_ipc', 'advance_periodic');
+  adv := t in ('advance_balance', 'advance_ipc', 'advance_periodic', 'advance_milestone');
   perform app.require(not adv or (pct > 0 and pct < 100), 'Enter the advance %');
   perform app.require(b <> 'hire' or unit in ('hour', 'day', 'week', 'month'), 'Hired by the hour, day, week or month?');
   if p_id is null then
@@ -129,9 +135,9 @@ begin
   perform app.require(app.lo_keeper(), 'Operations records local orders');
   select * into o from public.lo_orders where id = p_order for update;
   perform app.require(found, 'Order not found');
-  perform app.require(p_billing in ('single', 'ipc', 'hire'), 'Single invoice, IPC or hire?');
+  perform app.require(p_billing in ('single', 'ipc', 'hire', 'milestone'), 'Single invoice, IPC, work basis or hire?');
   perform app.require(o.kind = 'service' or p_billing = 'single', 'Materials are billed by invoice');
-  perform app.require(p_billing = 'ipc' or not exists (select 1 from public.lo_work_stages where order_id = o.id), 'This order has work stages – remove them first');
+  perform app.require(p_billing in ('ipc', 'milestone') or not exists (select 1 from public.lo_work_stages where order_id = o.id), 'This order has work stages – remove them first');
   t := app.lo_map_term(o.payment_term, p_billing);
   update public.lo_orders set billing = p_billing, payment_term = t, advance_pct = case when t like 'advance%' then coalesce(advance_pct, 10) end,
          hire_unit = case when p_billing = 'hire' then coalesce(hire_unit, 'day') end, updated_at = now() where id = o.id;
@@ -166,7 +172,7 @@ create or replace function public.lo_add_invoice(p_order uuid, p jsonb) returns 
 language plpgsql security definer set search_path = public as $$
 declare o public.lo_orders; r public.lo_requests; iid uuid; k text := coalesce(nullif(p ->> 'kind', ''), 'invoice'); rec date := coalesce(nullif(p ->> 'received_on', '')::date, (now() at time zone app.tz())::date);
         pf date := nullif(p ->> 'period_from', '')::date; pt date := nullif(p ->> 'period_to', '')::date; qty numeric := nullif(p ->> 'usage_qty', '')::numeric;
-        adv numeric := nullif(nullif(p ->> 'advance_recovered', '')::numeric, 0); hire boolean;
+        adv numeric := nullif(nullif(p ->> 'advance_recovered', '')::numeric, 0); hire boolean; ws uuid := nullif(p ->> 'work_stage_id', '')::uuid;
 begin
   perform app.require(app.lo_keeper(), 'The Operations Executive records invoices');
   select * into o from public.lo_orders where id = p_order;
@@ -192,16 +198,35 @@ begin
     perform app.require(not exists (select 1 from public.lo_invoices where order_id = o.id and status <> 'cancelled' and period_from is not null
                                       and daterange(period_from, period_to, '[]') && daterange(pf, pt, '[]')), 'Another invoice already covers part of this period');
   end if;
+  -- work basis: an invoice is for a deliverable the SEE has accepted
+  if o.billing = 'milestone' and k = 'invoice' then
+    perform app.require(ws is not null, 'Choose the deliverable this invoice is for');
+    perform app.require(exists (select 1 from public.lo_work_stages where id = ws and order_id = o.id), 'Choose a deliverable of this order');
+    perform app.require(exists (select 1 from public.lo_work_stages where id = ws and done_on is not null), 'The deliverable is not accepted yet – record it done first');
+  else
+    perform app.require(ws is null or exists (select 1 from public.lo_work_stages where id = ws and order_id = o.id), 'Choose a work stage of this order');
+  end if;
   if nullif(p ->> 'sub_invoice_id', '') is not null then
     perform app.require(exists (select 1 from public.sub_invoices where id = (p ->> 'sub_invoice_id')::uuid and exec_project_id = r.exec_project_id),
       'That subcontractor invoice is not on this project');
   end if;
-  insert into public.lo_invoices (order_id, kind, invoice_no, invoice_date, amount, dn_nos, sub_invoice_id, received_on, note, advance_recovered, period_from, period_to, usage_qty)
+  insert into public.lo_invoices (order_id, kind, invoice_no, invoice_date, amount, dn_nos, sub_invoice_id, received_on, note, advance_recovered, work_stage_id, period_from, period_to, usage_qty)
   values (p_order, k, btrim(p ->> 'invoice_no'), (p ->> 'invoice_date')::date, (p ->> 'amount')::numeric, nullif(btrim(p ->> 'dn_nos'), ''),
-          nullif(p ->> 'sub_invoice_id', '')::uuid, rec, nullif(btrim(p ->> 'note'), ''), adv,
+          nullif(p ->> 'sub_invoice_id', '')::uuid, rec, nullif(btrim(p ->> 'note'), ''), adv, case when k <> 'advance' then ws end,
           case when hire then pf end, case when hire then pt end, case when hire then qty end)
   returning id into iid;
   return iid;
+end $$;
+
+-- work stages (or deliverables) only for a service paid by IPC or on a work basis
+create or replace function app.lo_stage_needs_ipc() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if current_setting('app.purging', true) = 'on' then return new; end if;
+  if (select billing from public.lo_orders where id = new.order_id) not in ('ipc', 'milestone') then
+    raise exception 'Work stages are for a service paid by IPC or per deliverable – set the billing first';
+  end if;
+  return new;
 end $$;
 
 -- the service rules on the steps: an IPC service's agreement carries its work programme; "Work completed" needs every
@@ -212,7 +237,7 @@ declare o public.lo_orders; n int;
 begin
   if current_setting('app.purging', true) = 'on' or new.order_id is null or new.step not in ('work_done', 'agreement_signed', 'closed') then return new; end if;
   select * into o from public.lo_orders where id = new.order_id;
-  if new.step = 'agreement_signed' and o.billing = 'ipc' then
+  if new.step = 'agreement_signed' and o.billing in ('ipc', 'milestone') then
     if not exists (select 1 from public.lo_work_stages where order_id = o.id) then
       raise exception 'Enter the work stages of the agreement (each with its planned completion) before the signed agreement';
     end if;

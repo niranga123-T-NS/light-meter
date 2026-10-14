@@ -8119,6 +8119,16 @@ begin
   set role authenticated;
   perform public.lo_add_invoice(h, jsonb_build_object('invoice_no', 'H-2', 'invoice_date', d, 'amount', 360000, 'period_from', d - 10, 'period_to', d - 2, 'usage_qty', 8, 'advance_recovered', 10000));
   assert (select max(period_to) = d - 2 from public.lo_invoices where order_id = h), 'invoiced to the off hire';
+  -- a consultant on a work basis: paid per accepted deliverable
+  h := public.lo_save_order(null, jsonb_build_object('request_id', r, 'title', 'Lighting design review', 'kind', 'service', 'billing', 'milestone', 'supplier', 'Design Consult', 'payment_term', 'advance_milestone', 'advance_pct', 10));
+  w3 := public.lo_save_work_stage(null, jsonb_build_object('order_id', h, 'title', 'Concept report', 'pct', 40, 'planned_on', d + 10));
+  begin perform public.lo_add_invoice(h, jsonb_build_object('invoice_no', 'DC-1', 'invoice_date', d, 'amount', 80000)); assert false, 'deliverable';
+  exception when raise_exception then assert sqlerrm = 'Choose the deliverable this invoice is for', sqlerrm; end;
+  begin perform public.lo_add_invoice(h, jsonb_build_object('invoice_no', 'DC-1', 'invoice_date', d, 'amount', 80000, 'work_stage_id', w3)); assert false, 'accepted first';
+  exception when raise_exception then assert sqlerrm like 'The deliverable is not accepted yet%', sqlerrm; end;
+  perform public.lo_save_work_stage(w3, jsonb_build_object('title', 'Concept report', 'pct', 40, 'planned_on', d + 10, 'done_on', d));
+  i := public.lo_add_invoice(h, jsonb_build_object('invoice_no', 'DC-1', 'invoice_date', d, 'amount', 80000, 'work_stage_id', w3, 'advance_recovered', 8000));
+  assert (select work_stage_id = w3 and advance_recovered = 8000 from public.lo_invoices where id = i), 'invoice for the deliverable';
   -- an IPC service needs its programme before the signed agreement
   h := public.lo_save_order(null, jsonb_build_object('request_id', r, 'title', 'Trenching', 'kind', 'service', 'billing', 'ipc', 'supplier', 'Dig Co', 'payment_term', 'ipc'));
   reset role;

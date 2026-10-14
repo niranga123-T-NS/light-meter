@@ -29,8 +29,8 @@ export type LoRequest = {
   notes: string | null;
   created_by: string;
 };
-export type PaymentTerm = 'advance_balance' | 'after_delivery' | 'before_delivery' | 'lc' | 'advance_ipc' | 'ipc' | 'periodic' | 'advance_periodic';
-export type LoBilling = 'single' | 'ipc' | 'hire';
+export type PaymentTerm = 'advance_balance' | 'after_delivery' | 'before_delivery' | 'lc' | 'advance_ipc' | 'ipc' | 'periodic' | 'advance_periodic' | 'milestone' | 'advance_milestone';
+export type LoBilling = 'single' | 'ipc' | 'hire' | 'milestone';
 export type HireUnit = 'hour' | 'day' | 'week' | 'month';
 export type LoOrder = {
   id: string;
@@ -49,7 +49,7 @@ export type LoOrder = {
   po_no: string | null;
   expected_on?: string | null;
   committed_on?: string | null;
-  /** a service: billed by a single invoice, by IPC (work in stages) or as a hire (per period against certified usage) */
+  /** a service: billed by a single invoice, by IPC (work in stages), per deliverable (work basis) or as a hire (per period against certified usage) */
   billing?: LoBilling;
   hire_unit?: HireUnit | null;
   hire_from?: string | null;
@@ -113,19 +113,20 @@ export const PAYMENT_TERMS: { value: PaymentTerm; label: string }[] = [
 export function paymentTerms(kind: 'material' | 'service', billing: LoBilling): { value: PaymentTerm; label: string }[] {
   if (kind === 'material') return PAYMENT_TERMS;
   if (billing === 'ipc') return [{ value: 'advance_ipc', label: '% advance, balance by IPC' }, { value: 'ipc', label: 'By IPC – no advance' }];
+  if (billing === 'milestone') return [{ value: 'milestone', label: 'Per deliverable – on acceptance' }, { value: 'advance_milestone', label: '% advance, balance per deliverable' }];
   if (billing === 'hire') return [{ value: 'periodic', label: 'Per period – against certified hire / time sheets' }, { value: 'advance_periodic', label: '% advance, balance per period' }];
   return [{ value: 'advance_balance', label: '% advance, balance after completion' }, { value: 'after_delivery', label: '100% after completion' }, { value: 'before_delivery', label: '100% before the work' }];
 }
-export const ADVANCE_TERMS: PaymentTerm[] = ['advance_balance', 'advance_ipc', 'advance_periodic'];
+export const ADVANCE_TERMS: PaymentTerm[] = ['advance_balance', 'advance_ipc', 'advance_periodic', 'advance_milestone'];
 export const HIRE_UNITS: { value: HireUnit; label: string }[] = [
   { value: 'hour', label: 'Hour' },
   { value: 'day', label: 'Day' },
   { value: 'week', label: 'Week' },
   { value: 'month', label: 'Month' },
 ];
-export const BILLING_LABEL: Record<LoBilling, string> = { single: 'Single invoice', ipc: 'Paid by IPC – work stages', hire: 'Hire – per period' };
+export const BILLING_LABEL: Record<LoBilling, string> = { single: 'Single invoice', ipc: 'Paid by IPC – work stages', hire: 'Hire – per period', milestone: 'Work basis – per deliverable' };
 export const termLabel = (o: Pick<LoOrder, 'payment_term' | 'advance_pct'> & Partial<Pick<LoOrder, 'kind' | 'billing'>>) => {
-  const t = paymentTerms(o.kind ?? 'material', o.billing ?? 'single').find((x) => x.value === o.payment_term) ?? [...PAYMENT_TERMS, ...paymentTerms('service', 'ipc'), ...paymentTerms('service', 'hire')].find((x) => x.value === o.payment_term);
+  const t = paymentTerms(o.kind ?? 'material', o.billing ?? 'single').find((x) => x.value === o.payment_term) ?? [...PAYMENT_TERMS, ...paymentTerms('service', 'ipc'), ...paymentTerms('service', 'hire'), ...paymentTerms('service', 'milestone')].find((x) => x.value === o.payment_term);
   const label = t?.label ?? o.payment_term;
   return ADVANCE_TERMS.includes(o.payment_term) ? label.replace('%', `${o.advance_pct ?? '?'}%`) : label;
 };
