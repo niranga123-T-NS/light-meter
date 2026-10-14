@@ -40,7 +40,7 @@ const TABS: Tab[] = [
   { key: 'variations', label: 'Variations', roles: ['senior_elec_engineer', 'sm_projects', 'gm', 'assistant_engineer'] },
   { key: 'hse', label: 'HSE', roles: [...TEAM, 'sub_supervisor'] },
   { key: 'workers', label: 'Workers', roles: ['senior_elec_engineer', 'sm_projects', 'assistant_engineer', 'sub_supervisor'] },
-  { key: 'materials', label: 'Materials', roles: INTERNAL },
+  { key: 'materials', label: 'Materials & services', roles: INTERNAL },
   { key: 'qa', label: 'QA', roles: TEAM },
   { key: 'documents', label: 'Documents' },
   { key: 'handover', label: 'Handover', roles: INTERNAL },
