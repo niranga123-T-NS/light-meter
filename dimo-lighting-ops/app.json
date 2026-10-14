@@ -3,7 +3,14 @@
     "name": "DIMO Lighting Ops",
     "slug": "dimo-lighting-ops",
     "scheme": "dimolighting",
-    "version": "0.4.0",
+    "version": "0.5.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",

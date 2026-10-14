@@ -1,5 +1,6 @@
 import { router, Stack } from 'expo-router';
 import { TestingTag } from '@/components/Testing';
+import { APP_UPDATE, APP_VERSION, BUILD_ID, BUILD_TIME } from '@/components/UpdateBanner';
 import { useShellCounts } from '@/components/AppShell';
 import { Avatar, Badge, Card, ListRow, Muted, Screen, Section } from '@/components/ui';
 import { useAuth, useMe } from '@/lib/auth';
@@ -27,6 +28,7 @@ export default function More() {
           <ListRow left={<Muted>⎋</Muted>} title="Sign out" onPress={signOut} />
         </Card>
       </Section>
+      <Muted style={{ textAlign: 'center', fontSize: 11 }}>{[`Version ${BUILD_ID}`, BUILD_TIME, APP_VERSION ? `app ${APP_VERSION}` : null, APP_UPDATE ? `update ${APP_UPDATE}` : null].filter(Boolean).join(' · ')}</Muted>
     </Screen>
   );
 }
