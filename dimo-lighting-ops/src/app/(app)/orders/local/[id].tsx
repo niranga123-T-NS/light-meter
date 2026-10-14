@@ -167,7 +167,7 @@ export default function LocalOrder() {
         <Text style={{ fontWeight: '700', color: colors.ink }}>{`Invoices · paid ${fmtLkr(paid)}${value != null ? ` of ${fmtLkr(value)}` : ''}`}</Text>
         {keeper && open ? <Button small variant="secondary" title="+ Invoice" onPress={addInvoice} disabled={!ordered} /> : null}
       </Row>
-      <Muted>{`Approval: ${chain.map((p) => INVOICE_POINTS[p].who).join(' → ')}`}</Muted>
+      <Muted>Each invoice is approved in turn – record each approval when it is received; the next one is highlighted.</Muted>
       {invoices.map((i) => {
         const next = invoiceNext(i, chain);
         const done = chain.filter((p) => (i as unknown as Record<string, string | null>)[`${p}_on`]);
@@ -177,15 +177,38 @@ export default function LocalOrder() {
               <Text style={{ color: colors.ink, fontWeight: '600', flexShrink: 1 }}>{`${i.kind === 'ipc' ? 'IPC invoice' : i.kind === 'advance' ? 'Advance invoice' : 'Invoice'} ${i.invoice_no} · ${fmtLkr(i.amount)}`}</Text>
               <Pill label={i.status === 'paid' ? `Paid ${fmtDate(i.paid_on)}` : i.status === 'cancelled' ? 'Cancelled' : next === 'paid' || !next ? 'Awaiting payment' : `With ${INVOICE_POINTS[next].who}`} tone={i.status === 'paid' ? colors.green : i.status === 'cancelled' ? colors.grey : colors.blue} />
             </Row>
-            <Muted>
-              {[`dated ${fmtDate(i.invoice_date)}`, `received ${fmtDate(i.received_on)}`, i.dn_nos ? `DN ${i.dn_nos}` : null, ...done.map((p) => `${p === 'paid' ? 'Paid' : INVOICE_POINTS[p].who} ${fmtDate((i as unknown as Record<string, string>)[`${p}_on`])}`), i.pay_ref, i.note]
-                .filter(Boolean)
-                .join(' · ')}
-            </Muted>
+            <Muted>{[`dated ${fmtDate(i.invoice_date)}`, `received ${fmtDate(i.received_on)}`, i.dn_nos ? `DN ${i.dn_nos}` : null, i.pay_ref ? `payment ref. ${i.pay_ref}` : null, i.note].filter(Boolean).join(' · ')}</Muted>
+            {/* the approval chain: done (date), the next one, then waiting */}
+            <Row wrap gap={4} style={{ alignItems: 'center' }}>
+              {chain.map((p, k) => {
+                const on = (i as unknown as Record<string, string | null>)[`${p}_on`];
+                const isNext = i.status !== 'cancelled' && p === next;
+                return (
+                  <Row key={p} gap={4} style={{ alignItems: 'center' }}>
+                    {k ? <Text style={{ color: colors.faint }}>→</Text> : null}
+                    <View
+                      style={{
+                        paddingHorizontal: 8,
+                        paddingVertical: 4,
+                        borderRadius: 6,
+                        borderWidth: 1,
+                        borderColor: on ? colors.green : isNext ? colors.blue : colors.line,
+                        backgroundColor: on ? '#ECFDF3' : isNext ? '#EFF4FF' : colors.soft,
+                      }}
+                    >
+                      <Text style={{ fontSize: 12, fontWeight: on || isNext ? '700' : '400', color: on ? colors.green : isNext ? colors.blue : colors.muted }}>
+                        {`${on ? '✓ ' : ''}${INVOICE_POINTS[p].who}`}
+                      </Text>
+                      <Text style={{ fontSize: 11, color: on ? colors.green : colors.muted }}>{on ? fmtDate(on) : isNext ? 'next' : 'waiting'}</Text>
+                    </View>
+                  </Row>
+                );
+              })}
+            </Row>
             {keeper && i.status !== 'cancelled' ? (
               <Row wrap gap={6}>
-                {next ? <Button small title={`${INVOICE_POINTS[next].label}…`} onPress={() => invStep(i, next)} /> : null}
-                {done.length ? <Button small variant="ghost" title="Undo last" onPress={() => invUndo(i, done[done.length - 1])} /> : null}
+                {next ? <Button small title={next === 'paid' ? 'Record the payment…' : `Record: ${INVOICE_POINTS[next].label}…`} onPress={() => invStep(i, next)} /> : null}
+                {done.length ? <Button small variant="ghost" title={`Undo ${done[done.length - 1] === 'paid' ? 'payment' : INVOICE_POINTS[done[done.length - 1]].who}`} onPress={() => invUndo(i, done[done.length - 1])} /> : null}
                 {i.status === 'open' ? <Button small variant="ghost" title="Cancel" onPress={async () => { if (await dialog.confirm('Cancel this invoice?')) await dialog.run(async () => { await rpc('lo_cancel_invoice', { p_id: i.id }); await reload(); }, 'Cancelled'); }} /> : null}
               </Row>
             ) : null}
