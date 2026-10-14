@@ -21,7 +21,7 @@ export function MaterialRows({ rows, projectName, routes, empty = 'No material r
             wrapRight
             onPress={() => router.push(`/execution/material/${m.id}`)}
             highlight={late ? colors.red : undefined}
-            title={`${m.code}${m.purpose ? ` – ${m.purpose}` : ''}`}
+            title={`${m.code}${m.kind === 'service' ? ' · Service' : ''}${m.purpose ? ` – ${m.purpose}` : ''}`}
             subtitle={[projectName?.(m.exec_project_id), `needed ${fmtDate(m.required_date)}`, m.delivery_at ? `delivery ${fmtDateTime(m.delivery_at)}` : null, rt ? routeLabel(rt) : m.po_no ? `SAP ${m.po_no}` : null, people[m.requested_by]?.full_name]
               .filter(Boolean)
               .join(' · ')}

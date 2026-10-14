@@ -58,7 +58,7 @@ export function MaterialsTab({ p }: { p: ExecProject }) {
         ) : null}
       </Row>
       <Section
-        title="Material requests and deliveries"
+        title="Material / service requests and deliveries"
         right={canRequest && p.status === 'active' ? <Button small title="+ Request" onPress={() => router.push({ pathname: '/execution/material/new', params: { project: p.id } })} /> : null}
       >
         <MaterialRows rows={data?.mrs ?? []} />

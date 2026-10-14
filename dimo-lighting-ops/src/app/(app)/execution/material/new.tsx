@@ -58,6 +58,10 @@ export default function NewMaterialRequest() {
   const [required, setRequired] = useState<string | null>(null);
   const [priority, setPriority] = useState<'normal' | 'urgent'>('normal');
   const [route, setRoute] = useState<MrRouteKind>('sap');
+  // a request is for materials (store / catalogue items) or services (scope of work)
+  const [kind, setKind] = useState<'material' | 'service'>('material');
+  const [scope, setScope] = useState<{ item: string; qty: string; unit: string; note: string }[]>([{ item: '', qty: '', unit: '', note: '' }]);
+  const setScopeLine = (i: number, l: Partial<{ item: string; qty: string; unit: string; note: string }>) => setScope((s) => s.map((x, k) => (k === i ? { ...x, ...l } : x)));
   const [activity, setActivity] = useState<string | null>(null);
   const [purpose, setPurpose] = useState('');
   const [deliverTo, setDeliverTo] = useState('');
@@ -86,7 +90,31 @@ export default function NewMaterialRequest() {
   const save = async () => {
     setError(null);
     if (!proj) return setError('Choose the project');
-    if (!required) return setError('Set the date the material is needed on site');
+    if (!required) return setError(kind === 'service' ? 'Set the date the service is needed by' : 'Set the date the material is needed on site');
+    if (kind === 'service') {
+      const used = scope.filter((l) => l.item.trim());
+      if (!used.length) return setError('Describe the service – at least one line of the scope');
+      const bad = used.findIndex((l) => !Number(l.qty) || !l.unit.trim());
+      if (bad >= 0) return setError(`Scope line ${bad + 1}: give the quantity and unit (e.g. 450 m, 1 lot)`);
+      await dialog.run(async () => {
+        const id = await rpc<string>('raise_material_request', {
+          p_exec: proj,
+          p: {
+            kind: 'service',
+            required_date: required,
+            priority,
+            route: route === 'sap' ? 'local' : route,
+            activity_id: activity,
+            purpose,
+            deliver_to: deliverTo,
+            site_contact: contact,
+            lines: used.map((l) => ({ custom: true, item: l.item.trim(), category: 'Service', unit: l.unit.trim(), qty: l.qty, note: l.note })),
+          },
+        });
+        router.replace(`/execution/material/${id}`);
+      }, sub ? 'Sent to the Assistant Engineer' : 'Requested – the Senior Electrical Engineer approves it');
+      return;
+    }
     const empty = lines.findIndex((l) => l.kind === 'new' && !l.catalog && !l.custom);
     if (empty >= 0) return setError(`Item ${empty + 1}: choose it from the catalogue, or tick “Not in the catalogue” and describe it`);
     const used = lines.filter((l) => l.kind !== 'new' || l.catalog || l.custom);
@@ -134,14 +162,25 @@ export default function NewMaterialRequest() {
 
   return (
     <Screen maxWidth={900}>
-      <Stack.Screen options={{ title: 'Material request' }} />
+      <Stack.Screen options={{ title: kind === 'service' ? 'Service request' : 'Material request' }} />
       <TestingBanner what="Materials and stores" />
       <ErrorBanner message={error} />
       <Section title="Request">
         <Card>
+          <View style={{ marginBottom: 10 }}>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 4 }}>Request for</Text>
+            <Segmented
+              value={kind}
+              onChange={(v) => {
+                setKind(v);
+                if (v === 'service' && route === 'sap') setRoute('local');
+              }}
+              options={[{ value: 'material', label: 'Materials' }, { value: 'service', label: 'Services' }]}
+            />
+          </View>
           <Select label="Project" required value={proj} onChange={(v) => { setProject(v); setActivity(null); }} options={(projects ?? []).map((p) => ({ value: p.id, label: `${p.code ?? ''} ${p.name}` }))} />
           <Grid min={260}>
-            <DateField label="Needed on site by" required value={required} onChange={setRequired} quick={[3, 7, 14]} />
+            <DateField label={kind === 'service' ? 'Needed by' : 'Needed on site by'} required value={required} onChange={setRequired} quick={[3, 7, 14]} />
             <View>
               <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 4 }}>Priority</Text>
               <Segmented value={priority} onChange={setPriority} options={[{ value: 'normal', label: 'Normal' }, { value: 'urgent', label: 'Urgent' }]} />
@@ -149,7 +188,7 @@ export default function NewMaterialRequest() {
           </Grid>
           <View style={{ marginBottom: 10 }}>
             <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 4 }}>How it is sourced</Text>
-            <Segmented value={route} onChange={setRoute} options={MR_ROUTES.map((r) => ({ value: r.value, label: r.label }))} />
+            <Segmented value={route} onChange={setRoute} options={MR_ROUTES.filter((r) => kind === 'material' || r.value !== 'sap').map((r) => ({ value: r.value, label: kind === 'service' && r.value === 'local' ? 'Local service provider' : kind === 'service' && r.value === 'import' ? 'Foreign service provider' : r.label }))} />
             <Muted style={{ marginTop: 4 }}>{`${MR_ROUTES.find((r) => r.value === route)?.hint}. The SEE can change it before it is ordered.`}</Muted>
           </View>
           <Select
@@ -161,137 +200,159 @@ export default function NewMaterialRequest() {
           />
           <Grid min={260}>
             <Field label="Area / zone / purpose" value={purpose} onChangeText={setPurpose} placeholder="e.g. Zone B – masts M1–M6 foundations" />
-            <Field label="Deliver to" value={deliverTo} onChangeText={setDeliverTo} placeholder="Site store, zone, or address" />
+            <Field label={kind === 'service' ? 'Work location' : 'Deliver to'} value={deliverTo} onChangeText={setDeliverTo} placeholder={kind === 'service' ? 'Site, zone or address of the work' : 'Site store, zone, or address'} />
           </Grid>
           <Field label="Site contact (name and phone)" value={contact} onChangeText={setContact} />
           <Muted>
             {sub
               ? 'The Assistant Engineer checks your request and sends it to the Senior Electrical Engineer. Prices and values are handled in SAP.'
-              : 'The Senior Electrical Engineer approves it; Operations orders it and sets the delivery date and time. Prices and values are handled in SAP.'}
+              : kind === 'service'
+                ? 'The Senior Electrical Engineer approves it; Operations sources the service provider and follows the work to completion.'
+                : 'The Senior Electrical Engineer approves it; Operations orders it and sets the delivery date and time. Prices and values are handled in SAP.'}
           </Muted>
         </Card>
       </Section>
 
-      <Section title={`Items (${lines.length})`} right={!adding ? <Button small variant="secondary" title="+ Add item" onPress={() => setAdding(true)} /> : null}>
-        {lines.map((l, i) => (
-          <Card key={i} style={{ marginBottom: 8, gap: 4 }}>
-            <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-              <Row gap={6} style={{ alignItems: 'center' }}>
-                <Text style={{ fontWeight: '700', color: colors.ink }}>{`Item ${i + 1}`}</Text>
-                <Pill label={l.kind === 'returns' ? 'From Project returns' : l.kind === 'sap' ? 'From SAP stock' : 'New material'} tone={l.kind === 'returns' ? colors.green : l.kind === 'sap' ? colors.blue : colors.amber} />
+      {kind === 'service' ? (
+        <Section title={`Scope of the service (${scope.filter((l) => l.item.trim()).length})`} right={<Button small variant="secondary" title="+ Scope line" onPress={() => setScope((s) => [...s, { item: '', qty: '', unit: '', note: '' }])} />}>
+          {scope.map((l, i) => (
+            <Card key={i} style={{ marginBottom: 8, gap: 4 }}>
+              <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ fontWeight: '700', color: colors.ink }}>{`Line ${i + 1}`}</Text>
+                {scope.length > 1 ? <Button small variant="ghost" title="Remove" onPress={() => setScope((s) => s.filter((_, k) => k !== i))} /> : null}
               </Row>
-              <Button small variant="ghost" title="Remove" onPress={() => setLines((s) => s.filter((_, k) => k !== i))} />
-            </Row>
-            {l.kind !== 'new' ? (
-              <View style={{ backgroundColor: colors.soft, borderRadius: 8, padding: 8 }}>
-                <Text style={{ color: colors.ink, fontWeight: '600' }}>{(l.fromReturn ?? l.fromSap)?.item}</Text>
-                <Muted>
-                  {l.fromReturn
-                    ? `${l.fromReturn.available} ${l.fromReturn.unit} available${l.fromReturn.location ? ` at ${l.fromReturn.location}` : ''} · ${l.fromReturn.condition ?? ''} – reserved when you send the request, booked out when received on site`
-                    : `SAP material ${l.fromSap?.ref} · ${l.fromSap?.available} ${l.fromSap?.unit} in SAP – Operations issues it from SAP instead of buying`}
-                </Muted>
-              </View>
-            ) : (
-              <>
-                {!l.custom ? (
-                  l.catalog ? (
-                    <Row gap={8} style={{ alignItems: 'center', backgroundColor: colors.soft, borderRadius: 8, padding: 8 }}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ color: colors.ink, fontWeight: '600' }}>{l.catalog.name}</Text>
-                        <Muted>{`${l.catalog.code} · ${l.catalog.category} · ${l.catalog.subcategory}`}</Muted>
-                      </View>
-                      <Button small variant="secondary" title="Change" onPress={() => setPicking(i)} />
-                    </Row>
-                  ) : (
-                    <Button title="⌕  Choose from the catalogue" variant="secondary" onPress={() => setPicking(i)} />
-                  )
-                ) : null}
-                <Toggle label="Not in the catalogue – enter a custom item" value={l.custom} onChange={(v) => setLine(i, { custom: v, catalog: v ? null : l.catalog })} />
-                {l.custom ? (
-                  <Grid min={260}>
-                    <Field label="Item description" required value={l.item} onChangeText={(v) => setLine(i, { item: v })} placeholder="What it is, size / rating" />
-                    <Select label="Category" value={l.category} onChange={(v) => setLine(i, { category: v })} options={CATEGORIES} />
-                  </Grid>
-                ) : null}
-                {l.catalog || (l.custom && l.item.trim().length >= 3) ? (
-                  <StockMatches
-                    text={l.custom ? l.item : `${l.catalog?.name ?? ''}`}
-                    chosen={{ returnId: l.fromReturn?.ref, sapMaterial: l.fromSap?.ref, orderNew: l.orderNew, reason: l.newReason }}
-                    onUseReturn={(m) => m && setLine(i, { kind: 'returns', fromReturn: m, fromSap: null, orderNew: false, item: m.item ?? '', unit: m.unit ?? l.unit, catalog: null, custom: false, qty: (l.qty ?? 0) > m.available ? m.available : l.qty })}
-                    onUseSap={(m) => m && setLine(i, { kind: 'sap', fromSap: m, fromReturn: null, orderNew: false, item: m.item ?? '', unit: m.unit ?? l.unit, catalog: null, custom: true })}
-                    onOrderNew={(on) => setLine(i, { orderNew: on })}
-                    onReason={(v) => setLine(i, { newReason: v })}
-                    onFound={onFound[i]}
-                  />
-                ) : null}
-              </>
-            )}
-            {l.kind === 'new' ? (
-              <>
-                <Field
-                  label="Specification / further description"
-                  multiline
-                  value={l.spec}
-                  onChangeText={(v) => setLine(i, { spec: v })}
-                  placeholder="e.g. IP66, 4000K, 10 kV surge, RAL 7035 body, 5-year warranty, drum lengths 250 m …"
-                />
-                <Field label="Preferred make / brand (or approved equal)" value={l.brand} onChangeText={(v) => setLine(i, { brand: v })} />
-              </>
-            ) : null}
-            <Grid min={150}>
-              <NumberField label={l.fromReturn ? `Quantity (max ${l.fromReturn.available})` : 'Quantity'} required value={l.qty} onChange={(v) => setLine(i, { qty: v })} />
-              {l.kind === 'new' ? (
-                <Field label="Unit" required value={l.unit || l.catalog?.unit || ''} onChangeText={(v) => setLine(i, { unit: v })} placeholder="nos, m, set" />
-              ) : (
-                <View style={{ justifyContent: 'center' }}>
-                  <Muted>Unit</Muted>
-                  <Text style={{ color: colors.ink, fontWeight: '600', marginTop: 6 }}>{l.unit}</Text>
-                </View>
-              )}
-            </Grid>
-            <Field label="Note" value={l.note} onChangeText={(v) => setLine(i, { note: v })} />
-            {l.kind === 'new' ? (
-              <View style={{ gap: 4 }}>
-                <Row gap={8} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Muted>Datasheets, drawings, photos (PDF, images, Excel – up to 50 MB each)</Muted>
-                  <Button
-                    small
-                    variant="secondary"
-                    title="+ Attach"
-                    onPress={async () => {
-                      const f = await pickDocument();
-                      if (f) setLine(i, { files: [...l.files, f] });
-                    }}
-                  />
+              <Field label="Work / service" required value={l.item} onChangeText={(t) => setScopeLine(i, { item: t })} placeholder="e.g. Trenching and backfilling 0.6 m deep, pole erection, crane hire" multiline />
+              <Grid min={160}>
+                <Field label="Quantity" required value={l.qty} onChangeText={(t) => setScopeLine(i, { qty: t.replace(/[^0-9.]/g, '') })} keyboardType="decimal-pad" />
+                <Field label="Unit" required value={l.unit} onChangeText={(t) => setScopeLine(i, { unit: t })} placeholder="m, nos, days, lot" />
+              </Grid>
+              <Field label="Note (specification, conditions)" value={l.note} onChangeText={(t) => setScopeLine(i, { note: t })} />
+            </Card>
+          ))}
+          <Muted>The SEE approves it; on approval it goes to Operations as a local (or import) service request, and it is completed when the service provider’s work is completed.</Muted>
+        </Section>
+      ) : (
+      <Section title={`Items (${lines.length})`} right={!adding ? <Button small variant="secondary" title="+ Add item" onPress={() => setAdding(true)} /> : null}>
+          {lines.map((l, i) => (
+            <Card key={i} style={{ marginBottom: 8, gap: 4 }}>
+              <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                <Row gap={6} style={{ alignItems: 'center' }}>
+                  <Text style={{ fontWeight: '700', color: colors.ink }}>{`Item ${i + 1}`}</Text>
+                  <Pill label={l.kind === 'returns' ? 'From Project returns' : l.kind === 'sap' ? 'From SAP stock' : 'New material'} tone={l.kind === 'returns' ? colors.green : l.kind === 'sap' ? colors.blue : colors.amber} />
                 </Row>
-                {l.files.map((f, k) => (
-                  <Row key={`${f.name}${k}`} gap={8} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Text style={{ color: colors.ink, flexShrink: 1 }}>{`📄 ${f.name}`}</Text>
-                    <Button small variant="ghost" title="Remove" onPress={() => setLine(i, { files: l.files.filter((_, x) => x !== k) })} />
+                <Button small variant="ghost" title="Remove" onPress={() => setLines((s) => s.filter((_, k) => k !== i))} />
+              </Row>
+              {l.kind !== 'new' ? (
+                <View style={{ backgroundColor: colors.soft, borderRadius: 8, padding: 8 }}>
+                  <Text style={{ color: colors.ink, fontWeight: '600' }}>{(l.fromReturn ?? l.fromSap)?.item}</Text>
+                  <Muted>
+                    {l.fromReturn
+                      ? `${l.fromReturn.available} ${l.fromReturn.unit} available${l.fromReturn.location ? ` at ${l.fromReturn.location}` : ''} · ${l.fromReturn.condition ?? ''} – reserved when you send the request, booked out when received on site`
+                      : `SAP material ${l.fromSap?.ref} · ${l.fromSap?.available} ${l.fromSap?.unit} in SAP – Operations issues it from SAP instead of buying`}
+                  </Muted>
+                </View>
+              ) : (
+                <>
+                  {!l.custom ? (
+                    l.catalog ? (
+                      <Row gap={8} style={{ alignItems: 'center', backgroundColor: colors.soft, borderRadius: 8, padding: 8 }}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: colors.ink, fontWeight: '600' }}>{l.catalog.name}</Text>
+                          <Muted>{`${l.catalog.code} · ${l.catalog.category} · ${l.catalog.subcategory}`}</Muted>
+                        </View>
+                        <Button small variant="secondary" title="Change" onPress={() => setPicking(i)} />
+                      </Row>
+                    ) : (
+                      <Button title="⌕  Choose from the catalogue" variant="secondary" onPress={() => setPicking(i)} />
+                    )
+                  ) : null}
+                  <Toggle label="Not in the catalogue – enter a custom item" value={l.custom} onChange={(v) => setLine(i, { custom: v, catalog: v ? null : l.catalog })} />
+                  {l.custom ? (
+                    <Grid min={260}>
+                      <Field label="Item description" required value={l.item} onChangeText={(v) => setLine(i, { item: v })} placeholder="What it is, size / rating" />
+                      <Select label="Category" value={l.category} onChange={(v) => setLine(i, { category: v })} options={CATEGORIES} />
+                    </Grid>
+                  ) : null}
+                  {l.catalog || (l.custom && l.item.trim().length >= 3) ? (
+                    <StockMatches
+                      text={l.custom ? l.item : `${l.catalog?.name ?? ''}`}
+                      chosen={{ returnId: l.fromReturn?.ref, sapMaterial: l.fromSap?.ref, orderNew: l.orderNew, reason: l.newReason }}
+                      onUseReturn={(m) => m && setLine(i, { kind: 'returns', fromReturn: m, fromSap: null, orderNew: false, item: m.item ?? '', unit: m.unit ?? l.unit, catalog: null, custom: false, qty: (l.qty ?? 0) > m.available ? m.available : l.qty })}
+                      onUseSap={(m) => m && setLine(i, { kind: 'sap', fromSap: m, fromReturn: null, orderNew: false, item: m.item ?? '', unit: m.unit ?? l.unit, catalog: null, custom: true })}
+                      onOrderNew={(on) => setLine(i, { orderNew: on })}
+                      onReason={(v) => setLine(i, { newReason: v })}
+                      onFound={onFound[i]}
+                    />
+                  ) : null}
+                </>
+              )}
+              {l.kind === 'new' ? (
+                <>
+                  <Field
+                    label="Specification / further description"
+                    multiline
+                    value={l.spec}
+                    onChangeText={(v) => setLine(i, { spec: v })}
+                    placeholder="e.g. IP66, 4000K, 10 kV surge, RAL 7035 body, 5-year warranty, drum lengths 250 m …"
+                  />
+                  <Field label="Preferred make / brand (or approved equal)" value={l.brand} onChangeText={(v) => setLine(i, { brand: v })} />
+                </>
+              ) : null}
+              <Grid min={150}>
+                <NumberField label={l.fromReturn ? `Quantity (max ${l.fromReturn.available})` : 'Quantity'} required value={l.qty} onChange={(v) => setLine(i, { qty: v })} />
+                {l.kind === 'new' ? (
+                  <Field label="Unit" required value={l.unit || l.catalog?.unit || ''} onChangeText={(v) => setLine(i, { unit: v })} placeholder="nos, m, set" />
+                ) : (
+                  <View style={{ justifyContent: 'center' }}>
+                    <Muted>Unit</Muted>
+                    <Text style={{ color: colors.ink, fontWeight: '600', marginTop: 6 }}>{l.unit}</Text>
+                  </View>
+                )}
+              </Grid>
+              <Field label="Note" value={l.note} onChangeText={(v) => setLine(i, { note: v })} />
+              {l.kind === 'new' ? (
+                <View style={{ gap: 4 }}>
+                  <Row gap={8} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Muted>Datasheets, drawings, photos (PDF, images, Excel – up to 50 MB each)</Muted>
+                    <Button
+                      small
+                      variant="secondary"
+                      title="+ Attach"
+                      onPress={async () => {
+                        const f = await pickDocument();
+                        if (f) setLine(i, { files: [...l.files, f] });
+                      }}
+                    />
                   </Row>
-                ))}
-              </View>
-            ) : null}
-          </Card>
-        ))}
-        {adding ? (
-          <AddItemSteps
-            onCancel={lines.length ? () => setAdding(false) : undefined}
-            onTakeReturn={(m) => {
-              setLines((s) => [...s, { ...blank(), kind: 'returns', fromReturn: m, item: m.item ?? '', unit: m.unit ?? '' }]);
-              setAdding(false);
-            }}
-            onUseSap={(m) => {
-              setLines((s) => [...s, { ...blank(), kind: 'sap', fromSap: m, custom: true, item: m.item ?? '', unit: m.unit ?? '' }]);
-              setAdding(false);
-            }}
-            onNew={(searched) => {
-              setLines((s) => [...s, { ...blank(), kind: 'new', custom: false, item: searched }]);
-              setAdding(false);
-            }}
-          />
-        ) : null}
-      </Section>
+                  {l.files.map((f, k) => (
+                    <Row key={`${f.name}${k}`} gap={8} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Text style={{ color: colors.ink, flexShrink: 1 }}>{`📄 ${f.name}`}</Text>
+                      <Button small variant="ghost" title="Remove" onPress={() => setLine(i, { files: l.files.filter((_, x) => x !== k) })} />
+                    </Row>
+                  ))}
+                </View>
+              ) : null}
+            </Card>
+          ))}
+          {adding ? (
+            <AddItemSteps
+              onCancel={lines.length ? () => setAdding(false) : undefined}
+              onTakeReturn={(m) => {
+                setLines((s) => [...s, { ...blank(), kind: 'returns', fromReturn: m, item: m.item ?? '', unit: m.unit ?? '' }]);
+                setAdding(false);
+              }}
+              onUseSap={(m) => {
+                setLines((s) => [...s, { ...blank(), kind: 'sap', fromSap: m, custom: true, item: m.item ?? '', unit: m.unit ?? '' }]);
+                setAdding(false);
+              }}
+              onNew={(searched) => {
+                setLines((s) => [...s, { ...blank(), kind: 'new', custom: false, item: searched }]);
+                setAdding(false);
+              }}
+            />
+          ) : null}
+        </Section>
+      )}
       <Row gap={8} style={{ justifyContent: 'flex-end' }}>
         <Button variant="secondary" title="Cancel" onPress={() => router.back()} />
         <Button title="Request" onPress={save} />
