@@ -6,7 +6,8 @@ import { useDialog } from '@/components/dialog';
 import { IesPicker, type IesRow } from '@/components/tools/IesPicker';
 import { Button, Card, colors, ErrorBanner, Field, Grid, Loading, Muted, Notice, NumberField, Row, Screen, Section, Segmented, Select, Stat } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { CATALOG_KEEPERS, efficacy, LUM_FAMILIES, luminaireSheetHtml, openCatalogFile, openLink, shareWatermarked, type Brand, type Luminaire } from '@/lib/catalog';
+import { usePdfViewer } from '@/components/tools/PdfViewer';
+import { CATALOG_KEEPERS, checkPdfLink, dropStoredCopy, efficacy, LUM_FAMILIES, luminaireSheetHtml, sheetDoc, shareWatermarked, type Brand, type Luminaire } from '@/lib/catalog';
 import { printHtml } from '@/lib/export';
 import { pickDocument, readBytes, uuid } from '@/lib/files';
 import { useLoad } from '@/lib/hooks';
@@ -44,6 +45,7 @@ export default function LuminairePage() {
     }
     return { brands: (b.data ?? []) as Brand[], lum, ies };
   }, [id]);
+  const { open, viewer } = usePdfViewer({ by: me.full_name, onEditLink: keeper ? () => sheetLink() : undefined });
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const lum = data.lum;
   if (!isNew && !lum) return <Screen><Notice>Luminaire not found.</Notice></Screen>;
@@ -99,14 +101,28 @@ export default function LuminairePage() {
       await reload();
     }, 'Data sheet uploaded');
   };
-  const fetchSheet = async () => {
+  async function sheetLink() {
     if (isNew) return dialog.toast('Save the luminaire first', 'error');
-    const r = await dialog.prompt({ title: 'Fetch the data sheet', message: 'Paste the link of the PDF data sheet on the manufacturer’s website. The server downloads it and keeps it here.', fields: [{ key: 'url', label: 'Link of the PDF', required: true }], confirmLabel: 'Fetch' });
+    const r = await dialog.prompt({
+      title: 'Data sheet by link',
+      message: 'Paste the link of the PDF data sheet on the manufacturer’s website. Only the link is kept – the PDF is shown in a viewer when someone opens it, so it uses no storage space.',
+      fields: [{ key: 'url', label: 'Link of the PDF', required: true, initial: data?.lum?.datasheet_url ?? '' }],
+      confirmLabel: 'Check and save',
+    });
     if (!r) return;
     await dialog.run(async () => {
-      await callFunction('catalog-fetch', { action: 'datasheet', luminaire_id: id, url: r.url.trim() });
+      const got = await checkPdfLink(r.url);
+      const { error: e } = await supabase.from('luminaires').update({ datasheet_url: r.url.trim(), ...(data?.lum?.datasheet_path ? {} : { datasheet_name: got.file_name }), updated_by: me.id, updated_at: new Date().toISOString() }).eq('id', id);
+      if (e) throw new Error(e.message);
       await reload();
-    }, 'Data sheet fetched and kept');
+    }, 'Link checked and saved');
+  }
+  const dropSheetCopy = async () => {
+    if (!lum?.datasheet_path || !(await dialog.confirm('Remove the stored copy of the data sheet?', 'Frees its storage space. The manufacturer’s link is kept and the data sheet opens from there.', { confirmLabel: 'Remove stored copy' }))) return;
+    await dialog.run(async () => {
+      await dropStoredCopy(lum.datasheet_path as string, { table: 'luminaires', id: lum.id });
+      await reload();
+    }, 'Stored copy removed – the link is kept');
   };
   const downloadIes = () =>
     dialog.run(async () => {
@@ -185,9 +201,11 @@ export default function LuminairePage() {
   }
   if (!lum) return null;
   const eff = efficacy(lum);
+  const sheet = sheetDoc(lum);
   return (
     <Screen maxWidth={900}>
       <Stack.Screen options={{ title: lum.name }} />
+      {viewer}
       {lum.sample ? <Notice tone={colors.blue}>Generic sample for lighting calculations – not a manufacturer’s product. For offers, use the manufacturer’s IES file and data sheet.</Notice> : null}
       <Card style={{ gap: 6 }}>
         <Text style={{ fontWeight: '700', fontSize: 17, color: colors.ink }}>{lum.name}</Text>
@@ -224,16 +242,14 @@ export default function LuminairePage() {
       </Section>
       <Section title="Data sheets">
         <Card style={{ gap: 8 }}>
-          {lum.datasheet_path ? (
+          {sheet ? (
             <Row gap={8} wrap style={{ alignItems: 'center' }}>
-              <Text style={{ color: colors.ink, flexShrink: 1 }}>{`Manufacturer’s data sheet · ${lum.datasheet_name ?? 'PDF'}`}</Text>
-              <Button small variant="secondary" title="Open" onPress={() => dialog.run(() => openCatalogFile(lum.datasheet_path as string, lum.datasheet_name ?? 'datasheet.pdf'))} />
-              <Button small variant="secondary" title="Share with DIMO watermark" onPress={() => dialog.run(() => shareWatermarked(lum.datasheet_path as string, `${lum.name} data sheet`, me.full_name))} />
+              <Text style={{ color: colors.ink, flexShrink: 1 }}>{`Manufacturer’s data sheet · ${lum.datasheet_path ? 'stored copy' : 'manufacturer’s link, not stored'}`}</Text>
+              <Button small variant="secondary" title="Open" onPress={() => dialog.run(() => open(sheet))} />
+              <Button small variant="secondary" title="Share with DIMO watermark" onPress={() => dialog.run(() => shareWatermarked(sheet.source, sheet.title, me.full_name))} />
             </Row>
-          ) : lum.datasheet_url ? (
-            <Button small variant="secondary" title="Manufacturer’s data sheet ↗" onPress={() => openLink(lum.datasheet_url as string)} />
           ) : (
-            <Muted>No manufacturer’s data sheet kept yet.</Muted>
+            <Muted>No manufacturer’s data sheet yet.</Muted>
           )}
           <Row gap={8} wrap style={{ alignItems: 'center' }}>
             <Text style={{ color: colors.ink, flexShrink: 1 }}>DIMO data sheet – the specification and light distribution with the DIMO logo</Text>
@@ -241,8 +257,9 @@ export default function LuminairePage() {
           </Row>
           {keeper ? (
             <Row gap={8} wrap>
-              <Button small variant="ghost" title="Upload data sheet PDF" onPress={uploadSheet} />
-              <Button small variant="ghost" title="Fetch data sheet from link" onPress={fetchSheet} />
+              <Button small variant="secondary" title={lum.datasheet_url ? 'Update data sheet link' : '+ Data sheet by link'} onPress={sheetLink} />
+              <Button small variant="ghost" title="Upload data sheet PDF (stored)" onPress={uploadSheet} />
+              {lum.datasheet_path && lum.datasheet_url ? <Button small variant="ghost" title="Remove stored copy, keep the link" onPress={dropSheetCopy} /> : null}
             </Row>
           ) : null}
         </Card>

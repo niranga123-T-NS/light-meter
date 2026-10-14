@@ -4,7 +4,7 @@ import { DIMO_LOGO_DATA_URI } from './brandLogoData';
 import { esc } from './export';
 import { deliver } from './hseFill';
 import { beamAngle, type Photometry } from './photometry';
-import { supabase } from './supabase';
+import { callFunction, supabase } from './supabase';
 import { watermarkPdf } from './watermark';
 import type { Role } from './types';
 
@@ -13,7 +13,7 @@ export const CATALOG_KEEPERS: Role[] = ['design_manager', 'lighting_designer', '
 
 export type Brand = { id: number; name: string; manufacturer: string | null; country: string | null; origin: string; level: string; active: boolean };
 export type BrandCatalog = { brand_id: number; website: string | null; catalogue_url: string | null; downloads_url: string | null; notes: string | null; updated_at: string };
-export type CatalogFile = { id: string; brand_id: number | null; title: string; kind: string; storage_path: string; file_name: string; size_bytes: number | null; source_url: string | null; year: number | null; created_at: string };
+export type CatalogFile = { id: string; brand_id: number | null; title: string; kind: string; storage_path: string | null; file_name: string | null; size_bytes: number | null; source_url: string | null; year: number | null; created_at: string };
 export type Luminaire = {
   id: string;
   brand_id: number | null;
@@ -65,12 +65,41 @@ export async function openCatalogFile(path: string, fileName: string) {
   await openLink(data.signedUrl);
 }
 
-/** The stored PDF with the DIMO watermark on every page: a light diagonal mark and a footer line naming who shared it */
-export async function shareWatermarked(path: string, title: string, by: string) {
-  const { data, error } = await supabase.storage.from('catalog').download(path);
-  if (error || !data) throw new Error(error?.message ?? 'File not found');
-  const bytes = await watermarkPdf(await data.arrayBuffer(), by);
+/** Where a catalogue or data sheet PDF comes from: a stored copy, or read now from the manufacturer's link (kept nowhere) */
+export type PdfSource = { path: string } | { file_id: string } | { luminaire_id: string };
+export type PdfDoc = { id: string; title: string; source: PdfSource; link: string | null; fileName: string };
+export const fileDoc = (f: CatalogFile): PdfDoc => ({ id: f.id, title: f.title, source: f.storage_path ? { path: f.storage_path } : { file_id: f.id }, link: f.source_url, fileName: f.file_name ?? `${f.title}.pdf` });
+export const sheetDoc = (l: Luminaire): PdfDoc | null =>
+  l.datasheet_path || l.datasheet_url
+    ? { id: l.id, title: `${l.name} data sheet`, source: l.datasheet_path ? { path: l.datasheet_path } : { luminaire_id: l.id }, link: l.datasheet_url, fileName: l.datasheet_name ?? 'datasheet.pdf' }
+    : null;
+
+/** The PDF's bytes: a stored copy from the bucket, a linked one through the server from the manufacturer's site */
+export async function pdfBytes(src: PdfSource) {
+  if ('path' in src) {
+    const { data, error } = await supabase.storage.from('catalog').download(src.path);
+    if (error || !data) throw new Error(error?.message ?? 'File not found');
+    return new Uint8Array(await data.arrayBuffer());
+  }
+  const blob = await callFunction<Blob>('catalog-fetch', { action: 'pdf', ...src } as Record<string, unknown>);
+  return new Uint8Array(await (blob as Blob).arrayBuffer());
+}
+
+/** Checks a manufacturer's link gives a PDF (nothing is downloaded or kept) */
+export const checkPdfLink = (url: string) => callFunction<{ file_name: string; final_url: string; size: number | null }>('catalog-fetch', { action: 'check', url: url.trim() });
+
+/** The PDF with the DIMO watermark on every page: a light diagonal mark and a footer line naming who shared it */
+export async function shareWatermarked(src: PdfSource, title: string, by: string) {
+  const bytes = await watermarkPdf(await pdfBytes(src), by);
   await deliver(bytes, `${title} - DIMO`, 'catalog_share', title);
+}
+
+/** Removes the stored copy of a file that came from a link; the link stays and the viewer reads it from there */
+export async function dropStoredCopy(path: string, row: { table: 'catalog_files' | 'luminaires'; id: string }) {
+  const { error } = await supabase.from(row.table).update(row.table === 'catalog_files' ? { storage_path: null, size_bytes: null } : { datasheet_path: null }).eq('id', row.id);
+  if (error) throw new Error(error.message);
+  const rm = await supabase.storage.from('catalog').remove([path]);
+  if (rm.error) throw new Error(`The link is kept, but the stored copy could not be removed: ${rm.error.message}`);
 }
 
 /** DIMO data sheet for a luminaire: the specification, the light distribution and the source – shared as a PDF */
