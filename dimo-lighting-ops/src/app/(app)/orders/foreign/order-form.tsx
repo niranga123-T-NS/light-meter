@@ -1,11 +1,12 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { rpc } from '@/components/foreign/actions';
 import { TestingBanner } from '@/components/Testing';
-import { Button, Card, Chip, DateField, ErrorBanner, Field, Loading, Muted, NumberField, Row, Screen, Section, Select } from '@/components/ui';
+import { Button, Card, Chip, colors, DateField, ErrorBanner, Field, Loading, Muted, NumberField, Row, Screen, Section, Select } from '@/components/ui';
 import { CURRENCIES, type FoOrder, type Handover, type OrderValues } from '@/lib/foreignOrders';
+import { fmtDate } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import { supabase } from '@/lib/supabase';
 
@@ -48,13 +49,16 @@ export default function ImportOrderForm() {
     }
     const h = await supabase.from('fo_handovers').select('*').eq('id', o?.handover_id ?? ho ?? '').single();
     if (h.error) throw new Error(h.error.message);
-    return { o, v, h: h.data as Handover };
+    const mrId = (h.data as Handover).mr_id;
+    // from a site material request: the date the site needs it, set by the site
+    const mrDate = mrId ? (((await supabase.from('material_requests').select('required_date').eq('id', mrId).maybeSingle()).data ?? null) as { required_date: string } | null)?.required_date ?? null : null;
+    return { o, v, h: h.data as Handover, mrDate };
   }, [id, ho]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  return <OrderForm o={data.o} v={data.v} h={data.h} onSaved={(oid) => router.replace(`/orders/foreign/${oid}`)} dialog={dialog} />;
+  return <OrderForm o={data.o} v={data.v} h={data.h} mrDate={data.mrDate} onSaved={(oid) => router.replace(`/orders/foreign/${oid}`)} dialog={dialog} />;
 }
 
-function OrderForm({ o, v, h, onSaved, dialog }: { o: FoOrder | null; v: OrderValues | null; h: Handover; onSaved: (id: string) => void; dialog: ReturnType<typeof useDialog> }) {
+function OrderForm({ o, v, h, mrDate, onSaved, dialog }: { o: FoOrder | null; v: OrderValues | null; h: Handover; mrDate: string | null; onSaved: (id: string) => void; dialog: ReturnType<typeof useDialog> }) {
   const [f, setF] = useState<Form>({
     title: o?.title ?? '',
     kind: o?.kind ?? 'material',
@@ -65,7 +69,7 @@ function OrderForm({ o, v, h, onSaved, dialog }: { o: FoOrder | null; v: OrderVa
     payment: o?.payment ?? 'TT',
     duty: o?.duty ?? '',
     inland: o?.inland ?? false,
-    required_on: o?.required_on ?? null,
+    required_on: mrDate ?? o?.required_on ?? null,
     prs: o?.pr_nos ? o.pr_nos.split(',').map((x) => x.trim()).filter(Boolean) : [],
     factory: o?.factory_location ?? '',
     address: o?.mfr_address ?? '',
@@ -177,7 +181,15 @@ function OrderForm({ o, v, h, onSaved, dialog }: { o: FoOrder | null; v: OrderVa
           {material && f.incoterm === 'FOB' ? (
             <Select label="Inland transport to the port?" value={f.inland ? 'yes' : 'no'} onChange={(x) => set('inland', x === 'yes')} options={yes} hint="FOB only" />
           ) : null}
-          <DateField label="Required at site by" value={f.required_on} onChange={(x) => set('required_on', x)} />
+          {mrDate ? (
+            <View style={{ marginBottom: 12 }}>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 4 }}>Required at site by</Text>
+              <Text style={{ color: colors.ink }}>{fmtDate(mrDate)}</Text>
+              <Muted>From the site material request – the SEE changes it there.</Muted>
+            </View>
+          ) : (
+            <DateField label="Required at site by" value={f.required_on} onChange={(x) => set('required_on', x)} />
+          )}
         </Card>
       </Section>
       <Section title="SAP PR nos.">
