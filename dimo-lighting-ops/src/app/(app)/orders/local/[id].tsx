@@ -25,6 +25,7 @@ import {
   loStanding,
   termLabel,
   type LoDelivery,
+  type LoWorkStage,
   type LoInvoice,
   type LoNote,
   type LoOrder,
@@ -49,7 +50,7 @@ export default function LocalOrder() {
     if (o.error) throw new Error(o.error.message);
     if (!o.data) throw new Error('Order not found');
     const order = o.data as LoOrder;
-    const [r, s, d, pv, v, dl, inv, hol, nt, dc] = await Promise.all([
+    const [r, s, d, pv, v, dl, inv, hol, nt, dc, ws] = await Promise.all([
       supabase.from('lo_requests').select('*').eq('id', order.request_id).single(),
       supabase.from('lo_steps').select('*').eq('request_id', order.request_id),
       supabase.from('lo_step_defs').select('*').order('seq'),
@@ -60,6 +61,7 @@ export default function LocalOrder() {
       supabase.from('holidays').select('day'),
       supabase.from('lo_notes').select('*').eq('order_id', id).order('occurred_on', { ascending: false }),
       supabase.from('order_date_changes').select('*').eq('module', 'lo').eq('order_id', id),
+      supabase.from('lo_work_stages').select('*').eq('order_id', id).order('seq'),
     ]);
     const req = r.data as LoRequest;
     // subcontractor invoices (IPCs) recorded on the execution project, to link a service invoice to
@@ -79,11 +81,13 @@ export default function LocalOrder() {
       holidays: new Set(((hol.data ?? []) as { day: string }[]).map((x) => x.day)),
       notes: (nt.data ?? []) as LoNote[],
       dateChanges: (dc.data ?? []) as DateChange[],
+      work: (ws.data ?? []) as LoWorkStage[],
       subs,
     };
   }, [id, keeper]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const { o, r, steps, defs, prValue, value, seeValues, deliveries, invoices, holidays, notes, subs, dateChanges } = data;
+  const { o, r, steps, defs, prValue, value, seeValues, deliveries, invoices, holidays, notes, subs, dateChanges, work } = data;
+  const workEditor = (keeper || me.role === 'senior_elec_engineer') && o.kind === 'service';
   const all = loRoute(defs, prValue, o, value, steps, holidays);
   const st = loStanding(all);
   const lines = all.filter((l) => l.def.scope === 'o');
@@ -123,12 +127,19 @@ export default function LocalOrder() {
         { key: 'amount', label: 'Amount (LKR)', required: true },
         ...(o.kind === 'material' ? [{ key: 'dn_nos', label: 'Delivery note nos.', initial: deliveries.map((d) => d.dn_no).join(', '), hint: 'Not needed for an advance invoice' }] : []),
         ...(subs.length ? [{ key: 'sub_invoice_id', label: 'Subcontractor invoice (IPC) on the project', type: 'select' as const, options: [{ value: '', label: '—' }, ...subs.map((s) => ({ value: s.id, label: `${s.code ?? ''} · ${s.invoice_no} · ${fmtLkr(s.amount)}` }))] }] : []),
+        ...(work.length ? [{ key: 'work_stage_id', label: 'For work stage', type: 'select' as const, options: [{ value: '', label: '—' }, ...work.map((w) => ({ value: w.id, label: `${w.seq}. ${w.title}${w.pct ? ` · ${w.pct}%` : ''}${w.cert_ref ? ` · IPC ${w.cert_ref}` : ''}` }))], hint: 'The stage of the work this IPC claims' }] : []),
         { key: 'received_on', label: 'Received on', type: 'date', required: true, initial: todayIso() },
         { key: 'note', label: 'Note' },
       ],
       confirmLabel: 'Record',
     });
-    if (x) await dialog.run(async () => { await rpc('lo_add_invoice', { p_order: o.id, p: { ...x, amount: x.amount.replace(/,/g, '') } }); await reload(); }, 'Recorded');
+    if (x)
+      await dialog.run(async () => {
+        const { work_stage_id: stage, ...p } = x;
+        const iid = (await rpc('lo_add_invoice', { p_order: o.id, p: { ...p, amount: x.amount.replace(/,/g, '') } })) as unknown as string;
+        if (stage) await rpc('lo_link_invoice_stage', { p_invoice: iid, p_stage: stage });
+        await reload();
+      }, 'Recorded');
   };
   const invStep = async (i: LoInvoice, p: (typeof chain)[number]) => {
     const x = await dialog.prompt({
@@ -161,6 +172,56 @@ export default function LocalOrder() {
     </>
   );
 
+  const saveStage = async (w?: LoWorkStage) => {
+    const x = await dialog.prompt({
+      title: w ? `Work stage ${w.seq}` : 'New work stage',
+      message: 'A stage of the work the service provider claims by IPC – e.g. "Foundations for poles 1–20".',
+      fields: [
+        { key: 'title', label: 'What', required: true, initial: w?.title ?? '' },
+        { key: 'pct', label: '% of the whole work (optional)', initial: w?.pct != null ? String(w.pct) : '' },
+        { key: 'planned_on', label: 'Planned completion', type: 'date', initial: w?.planned_on ?? '' },
+        { key: 'done_on', label: 'Done / certified on (when done)', type: 'date', initial: w?.done_on ?? '' },
+        { key: 'cert_ref', label: 'IPC / certificate no.', initial: w?.cert_ref ?? '' },
+        { key: 'note', label: 'Note', initial: w?.note ?? '' },
+      ],
+      confirmLabel: 'Save',
+    });
+    if (x) await dialog.run(async () => { await rpc('lo_save_work_stage', { p_id: w?.id ?? null, p: { ...x, order_id: o.id } }); await reload(); }, 'Saved');
+  };
+  const doneStages = work.filter((w) => w.done_on);
+  const workPanel = o.kind === 'service' ? (
+    <>
+      <Row wrap gap={8} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+        <Text style={{ fontWeight: '700', color: colors.ink }}>
+          {`Work stages · ${doneStages.length} of ${work.length} done${work.some((w) => w.pct) ? ` · ${doneStages.reduce((t, w) => t + Number(w.pct ?? 0), 0)}% of the work` : ''}`}
+        </Text>
+        {workEditor && open ? <Button small variant="secondary" title="+ Work stage" onPress={() => saveStage()} /> : null}
+      </Row>
+      {!work.length ? <Muted>For work done in stages (e.g. subcontract work paid by IPC): record each stage; each IPC invoice then follows its own approvals in stage 7. “Work completed” needs every stage done.</Muted> : null}
+      {work.map((w) => {
+        const inv = invoices.filter((i) => i.work_stage_id === w.id && i.status !== 'cancelled');
+        const late = !w.done_on && w.planned_on && w.planned_on < todayIso();
+        return (
+          <Row key={w.id} wrap gap={8} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flexShrink: 1 }}>
+              <Text style={{ color: colors.ink, fontWeight: '600' }}>{`${w.seq}. ${w.title}${w.pct ? ` · ${w.pct}%` : ''}`}</Text>
+              <Muted>
+                {[w.done_on ? `done ${fmtDate(w.done_on)}` : w.planned_on ? `planned ${fmtDate(w.planned_on)}` : 'in progress', w.cert_ref ? `IPC ${w.cert_ref}` : null, inv.length ? `${inv.length} invoice${inv.length === 1 ? '' : 's'} · ${inv.filter((i) => i.status === 'paid').length} paid` : 'no invoice yet', w.note]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </Muted>
+            </View>
+            <Row gap={6} style={{ alignItems: 'center' }}>
+              <Pill label={w.done_on ? 'Done' : late ? 'Late' : 'In progress'} tone={w.done_on ? colors.green : late ? colors.red : colors.blue} />
+              {workEditor && open ? <Button small variant="ghost" title="Edit" onPress={() => saveStage(w)} /> : null}
+              {workEditor && open && !inv.length ? <Button small variant="ghost" title="Remove" onPress={async () => { if (await dialog.confirm(`Remove work stage ${w.seq}?`)) await dialog.run(async () => { await rpc('lo_remove_work_stage', { p_id: w.id }); await reload(); }, 'Removed'); }} /> : null}
+            </Row>
+          </Row>
+        );
+      })}
+    </>
+  ) : null;
+
   const invoicesPanel = seeValues ? (
     <>
       <Row wrap gap={8} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
@@ -177,7 +238,7 @@ export default function LocalOrder() {
               <Text style={{ color: colors.ink, fontWeight: '600', flexShrink: 1 }}>{`${i.kind === 'ipc' ? 'IPC invoice' : i.kind === 'advance' ? 'Advance invoice' : 'Invoice'} ${i.invoice_no} · ${fmtLkr(i.amount)}`}</Text>
               <Pill label={i.status === 'paid' ? `Paid ${fmtDate(i.paid_on)}` : i.status === 'cancelled' ? 'Cancelled' : next === 'paid' || !next ? 'Awaiting payment' : `With ${INVOICE_POINTS[next].who}`} tone={i.status === 'paid' ? colors.green : i.status === 'cancelled' ? colors.grey : colors.blue} />
             </Row>
-            <Muted>{[`dated ${fmtDate(i.invoice_date)}`, `received ${fmtDate(i.received_on)}`, i.dn_nos ? `DN ${i.dn_nos}` : null, i.pay_ref ? `payment ref. ${i.pay_ref}` : null, i.note].filter(Boolean).join(' · ')}</Muted>
+            <Muted>{[i.work_stage_id ? `for stage ${work.find((w) => w.id === i.work_stage_id)?.seq ?? ''}. ${work.find((w) => w.id === i.work_stage_id)?.title ?? ''}` : null, `dated ${fmtDate(i.invoice_date)}`, `received ${fmtDate(i.received_on)}`, i.dn_nos ? `DN ${i.dn_nos}` : null, i.pay_ref ? `payment ref. ${i.pay_ref}` : null, i.note].filter(Boolean).join(' · ')}</Muted>
             {/* the approval chain: done (date), the next one, then waiting */}
             <Row wrap gap={4} style={{ alignItems: 'center' }}>
               {chain.map((p, k) => {
@@ -290,7 +351,7 @@ export default function LocalOrder() {
           stageNames={LO_STAGES}
           onRecord={(l) => recordLoStep(dialog, l, r.id, o.id)}
           onClear={(l) => clearLoStep(dialog, l)}
-          extra={{ ...(o.kind === 'material' ? { 6: deliveriesPanel } : {}), ...(invoicesPanel ? { 7: invoicesPanel } : {}) }}
+          extra={{ ...(o.kind === 'material' ? { 6: deliveriesPanel } : { 6: workPanel }), ...(invoicesPanel ? { 7: invoicesPanel } : {}) }}
         />
       </Section>
 
