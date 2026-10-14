@@ -13,6 +13,7 @@
       }
     },
     "preview": {
+      "channel": "production",
       "distribution": "internal",
       "android": {
         "buildType": "apk"
@@ -23,6 +24,7 @@
       }
     },
     "production": {
+      "channel": "production",
       "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://ztqwrndptewsddzonxxo.supabase.co",

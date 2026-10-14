@@ -62,6 +62,15 @@ jobs:
       - name: Link the Expo project
         run: npx eas-cli@latest init --non-interactive --force
 
+      # Over-the-air updates: the app asks EAS Update for new versions ("DIMO – update phone apps" publishes them);
+      # the address carries the Expo project id
+      - name: Point the app at EAS Update
+        run: |
+          id=$(jq -r '.expo.extra.eas.projectId // empty' app.json)
+          if [ -z "$id" ]; then echo "::error::No Expo project id in app.json after eas init"; exit 1; fi
+          jq --arg u "https://u.expo.dev/$id" '.expo.updates.url = $u' app.json > app.tmp.json && mv app.tmp.json app.json
+          jq '{version: .expo.version, runtimeVersion: .expo.runtimeVersion, updates: .expo.updates}' app.json
+
       - name: Build on EAS (Android, ${{ inputs.profile }})
         run: |
           npx eas-cli@latest build --platform android --profile "${{ inputs.profile }}" --non-interactive --json > build.json
