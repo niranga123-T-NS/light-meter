@@ -7483,6 +7483,7 @@ begin
   perform public.fo_record_step(h, o1, 'vendor_ready', b + 8);
   perform public.fo_record_step(h, null, 'project_requested', b + 9);
   perform public.fo_record_step(h, null, 'project_approved', b + 12);
+  perform public.fo_record_step(h, null, 'project_fbp', b + 12);
   perform public.fo_record_step(h, null, 'sap_requested', b + 12);
   begin perform public.fo_record_step(h, null, 'sap_created', b + 15); assert false, 'SAP project no.';
   exception when others then assert sqlerrm = 'Enter the SAP project no.', sqlerrm; end;
@@ -7964,6 +7965,15 @@ begin
   exception when unique_violation then null; end;
 end $$;
 reset role;
+-- undoing an invoice payment reopens a closed order
+do $$ declare o uuid; r uuid; inv uuid; ops uuid := (select id from u where role = 'operations_exec'); begin
+  select id into r from public.lo_requests limit 1;
+  insert into public.lo_orders (request_id, seq_no, title, kind, supplier, payment_term, status) values (r, 9, 'Paid then undone', 'material', 'S', 'after_delivery', 'completed') returning id into o;
+  insert into public.lo_steps (request_id, order_id, step, done_on, recorded_by) values (r, o, 'closed', current_date, ops);
+  insert into public.lo_invoices (order_id, kind, invoice_no, invoice_date, amount, received_on, paid_on, status, added_by) values (o, 'invoice', 'INV-U', current_date, 100, current_date, current_date, 'paid', ops) returning id into inv;
+  update public.lo_invoices set status = 'open', paid_on = null where id = inv;
+  assert (select status = 'open' from public.lo_orders where id = o) and not exists (select 1 from public.lo_steps where order_id = o and step = 'closed'), 'order reopened';
+end $$;
 -- the material request follows its orders: ordered only when every order has its PO; expected date; delivery; site receipt
 do $$ declare r uuid := (select id from public.lo_requests where mr_id = '00000000-0000-0000-0000-00000000aa01');
   o1 uuid; o2 uuid; mr uuid := '00000000-0000-0000-0000-00000000aa01'; req uuid; ops uuid := (select id from u where role = 'operations_exec');
