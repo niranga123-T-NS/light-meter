@@ -176,7 +176,7 @@ export default function Materials() {
               { h: 'PO / supplier', w: 170, v: (m) => [m.po_no, m.supplier].filter(Boolean).join(' · ') || '—' },
             ]}
           />
-          <Muted>{`${shown.length} of ${data.rows.length} requests · late counts from the delivery date, or the needed-by date until Operations sets one`}</Muted>
+          <Muted>{`${shown.length} of ${data.rows.length} requests · late counts from the expected date (the order’s), or the needed-by date until there is one`}</Muted>
         </View>
       )}
     </Screen>
