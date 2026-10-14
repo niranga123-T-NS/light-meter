@@ -98,13 +98,13 @@ function Form({ o, value, rate, r }: { o: LoOrder | null; value: number | null; 
             onChange={(x) => setBilling(x as LoBilling)}
             options={[
               { value: 'single', label: 'Single invoice – one-off job (e.g. a repair, a single crane lift)' },
-              { value: 'ipc', label: 'Paid by IPC – work in stages (e.g. subcontract work)' },
+              { value: 'ipc', label: 'Paid by IPC (e.g. subcontract work)' },
               { value: 'milestone', label: 'Work basis – paid per deliverable (e.g. a consultant’s design, report)' },
               { value: 'hire', label: 'Hire – machine, equipment or consultant time, paid per period' },
             ]}
             hint={
               billing === 'ipc'
-                ? 'The agreement’s work stages are recorded with their planned dates; each IPC is taken under its stage'
+                ? 'The execution team’s approved IPCs are taken onto the order; the planned completion is fixed when the agreement is signed'
                 : billing === 'milestone'
                   ? 'The agreement’s deliverables are recorded with their planned dates; each invoice is for a deliverable the SEE has accepted'
                   : billing === 'hire'

@@ -8013,86 +8013,70 @@ do $$ begin
   update public.lo_requests set required_on = required_on + 5 where mr_id = '00000000-0000-0000-0000-00000000aa01';
   assert false, 'Ops changed the site''s required date';
 exception when raise_exception then assert sqlerrm like '%material request%', sqlerrm; end $$;
--- services in stages: work stages, IPC invoices linked to a stage, "Work completed" only when every stage is done
+-- IPC services: no work stages; approved IPCs taken onto the order; the planned completion fixed by the signed agreement
 select pg_temp.act_as('operations_exec'); set role authenticated;
-do $$ declare r uuid := (select id from public.lo_requests where mr_id is null and exec_project_id is not null order by received_on limit 1); o uuid; w1 uuid; w2 uuid; i uuid;
+do $$ declare r uuid := (select id from public.lo_requests where mr_id is null and exec_project_id is not null order by received_on limit 1); o uuid; i uuid; s1 uuid;
 begin
   reset role;
-  insert into public.lo_orders (request_id, seq_no, title, kind, supplier, payment_term) values (r, 20, 'Pole erection – stages', 'service', 'Sub Co', 'after_delivery') returning id into o;
+  insert into public.lo_orders (request_id, seq_no, title, kind, supplier, payment_term) values (r, 20, 'Pole erection – IPC', 'service', 'Sub Co', 'after_delivery') returning id into o;
   set role authenticated;
-  begin perform public.lo_save_work_stage(null, jsonb_build_object('order_id', o, 'title', 'X')); assert false, 'single invoice: no stages';
-  exception when raise_exception then null; end;
   perform public.lo_set_billing(o, 'ipc');
-  w1 := public.lo_save_work_stage(null, jsonb_build_object('order_id', o, 'title', 'Foundations', 'pct', 40));
-  w2 := public.lo_save_work_stage(null, jsonb_build_object('order_id', o, 'title', 'Erection', 'pct', 60));
-  begin perform public.lo_save_work_stage(null, jsonb_build_object('order_id', o, 'title', 'Extra', 'pct', 10)); assert false, 'over 100%';
-  exception when raise_exception then null; end;
-  perform public.lo_save_work_stage(w1, jsonb_build_object('title', 'Foundations', 'pct', 40, 'done_on', current_date, 'cert_ref', 'IPC-01'));
+  assert (select payment_term = 'ipc' from public.lo_orders where id = o), 'IPC service: by IPC';
+  begin perform public.lo_save_work_stage(null, jsonb_build_object('order_id', o, 'title', 'X')); assert false, 'no stages for IPC';
+  exception when raise_exception then assert sqlerrm like 'Deliverables are for%', sqlerrm; end;
   begin perform public.lo_add_invoice(o, jsonb_build_object('kind', 'ipc', 'invoice_no', 'SC-X', 'invoice_date', current_date, 'amount', 1000)); assert false, 'IPC from the execution team only';
   exception when raise_exception then null; end;
   reset role;
   insert into public.sub_certs (exec_project_id, subcontractor, period, gross) values ((select exec_project_id from public.lo_requests where id = r), 'Sub Co', 'Oct 2026', 400000) returning id into i;
   insert into public.sub_invoices (code, exec_project_id, sub_cert_id, subcontractor, invoice_no, invoice_date, amount, status, see_at, created_by)
   values ('SI-T-1', (select exec_project_id from public.lo_requests where id = r), i, 'Sub Co', 'SC-1', current_date, 400000, 'approved', now(), (select id from u where role = 'operations_exec'))
-  returning id into i;
+  returning id into s1;
   set role authenticated;
-  i := public.lo_add_stage_ipc(w1, i, jsonb_build_object('advance_recovered', 40000, 'has_variation', 'yes', 'variation_amount', 25000, 'variation_note', 'VO-2 extra poles'));
-  assert (select work_stage_id = w1 and amount = 400000 and advance_recovered = 40000 and variation_amount = 25000 and see_on is not null from public.lo_invoices where id = i), 'approved IPC under stage 1';
-  begin perform public.lo_add_stage_ipc(w2, (select sub_invoice_id from public.lo_invoices where id = i), '{}'); assert false, 'IPC taken once';
+  i := public.lo_take_ipc(o, s1, jsonb_build_object('advance_recovered', 40000, 'has_variation', 'yes', 'variation_amount', 25000, 'variation_note', 'VO-2 extra poles'));
+  assert (select work_stage_id is null and amount = 400000 and advance_recovered = 40000 and variation_amount = 25000 and see_on is not null from public.lo_invoices where id = i), 'approved IPC taken';
+  begin perform public.lo_take_ipc(o, s1, '{}'); assert false, 'IPC taken once';
   exception when raise_exception then null; end;
   perform public.lo_add_invoice(o, jsonb_build_object('kind', 'advance', 'invoice_no', 'ADV-1', 'invoice_date', current_date, 'amount', 100000));
   begin perform public.lo_add_invoice(o, jsonb_build_object('kind', 'advance', 'invoice_no', 'ADV-2', 'invoice_date', current_date, 'amount', 1000)); assert false, 'one advance';
   exception when unique_violation then null; end;
-  begin perform public.lo_link_invoice_stage((select id from public.lo_invoices where order_id = o and kind = 'advance'), w1); assert false, 'advance is not progress';
-  exception when raise_exception then null; end;
+  -- the planned completion: needed before the signed agreement, fixed after it
   reset role;
-  begin insert into public.lo_steps (request_id, order_id, step, done_on, recorded_by) values (r, o, 'work_done', current_date, auth.uid()); assert false, 'stage 2 not done';
-  exception when raise_exception then null; end;
+  begin insert into public.lo_steps (request_id, order_id, step, done_on, recorded_by) values (r, o, 'agreement_signed', current_date, (select id from u where role = 'operations_exec')); assert false, 'completion first';
+  exception when raise_exception then assert sqlerrm like 'Enter the planned completion%', sqlerrm; end;
   set role authenticated;
-  begin perform public.lo_remove_work_stage(w1); assert false, 'invoiced stage';
-  exception when raise_exception then null; end;
-  -- planned dates: fixed by the signed agreement; a change goes to the SEE, then SM Projects
-  perform public.lo_save_work_stage(w2, jsonb_build_object('title', 'Erection', 'pct', 60, 'planned_on', current_date + 30));
+  perform public.lo_set_expected(o, current_date + 30);
   reset role;
   insert into public.lo_steps (request_id, order_id, step, done_on, recorded_by) values (r, o, 'agreement_signed', current_date, (select id from u where role = 'operations_exec'));
   set role authenticated;
-  begin perform public.lo_save_work_stage(w2, jsonb_build_object('title', 'Erection', 'pct', 60, 'planned_on', current_date + 45)); assert false, 'fixed by the agreement';
-  exception when raise_exception then null; end;
-  perform set_config('test.w2', w2::text, true);
-  perform set_config('test.chg', public.lo_request_stage_date(w2, current_date + 45, 'Rain – 2 weeks lost')::text, true);
-  assert (select status = 'pending_see' from public.lo_work_stage_changes where id = current_setting('test.chg')::uuid), 'waits for the SEE';
+  begin perform public.lo_set_expected(o, current_date + 45, 'supplier', 'Sub Co', 'Rain'); assert false, 'fixed by the agreement';
+  exception when raise_exception then assert sqlerrm like 'The planned completion is fixed%', sqlerrm; end;
+  perform set_config('test.ipco', o::text, true);
+  perform set_config('test.chg', public.lo_request_completion(o, current_date + 45, 'other', 'Rain – 2 weeks lost')::text, true);
+  assert (select status = 'pending_see' from public.lo_completion_changes where id = current_setting('test.chg')::uuid), 'waits for the SEE';
 end $$;
 reset role;
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
-do $$ begin perform public.lo_decide_stage_date(current_setting('test.chg')::uuid, true, null); end $$;
+do $$ begin perform public.lo_decide_completion(current_setting('test.chg')::uuid, true, null); end $$;
 reset role;
 select pg_temp.act_as('sm_projects'); set role authenticated;
 do $$ begin
-  perform public.lo_decide_stage_date(current_setting('test.chg')::uuid, true, null);
-  assert (select planned_on = current_date + 45 from public.lo_work_stages where id = current_setting('test.w2')::uuid), 'date moved after both approvals';
+  perform public.lo_decide_completion(current_setting('test.chg')::uuid, true, null);
+  assert (select expected_on = current_date + 45 and committed_on = current_date + 30 from public.lo_orders where id = current_setting('test.ipco')::uuid), 'date moved after both approvals';
+  assert (select count(*) from public.order_date_changes where order_id = current_setting('test.ipco')::uuid) = 2, 'kept in the date history';
 end $$;
 reset role;
--- after signing no planned date is set directly; service payment terms follow the billing; hire: periods and usage
+-- service payment terms follow the billing; hire: periods and usage; work basis: deliverables
 select pg_temp.act_as('operations_exec'); set role authenticated;
-do $$ declare w2 uuid := current_setting('test.w2')::uuid; o uuid := (select order_id from public.lo_work_stages where id = current_setting('test.w2')::uuid);
-  r uuid; w3 uuid; h uuid; i uuid; d date := current_date;
+do $$ declare o uuid := current_setting('test.ipco')::uuid; r uuid; w3 uuid; h uuid; i uuid; d date := current_date;
 begin
-  begin perform public.lo_save_work_stage(null, jsonb_build_object('order_id', o, 'title', 'Testing', 'planned_on', d + 60)); assert false, 'no date after signing';
-  exception when raise_exception then assert sqlerrm like 'Planned dates are set at the agreement stage%', sqlerrm; end;
-  w3 := public.lo_save_work_stage(null, jsonb_build_object('order_id', o, 'title', 'Testing'));
-  perform public.lo_request_stage_date(w3, d + 60, 'Added by variation VO-3');
-  assert exists (select 1 from public.lo_work_stage_changes where stage_id = w3 and old_date is null and new_date = d + 60), 'first date requested';
-  assert (select payment_term from public.lo_orders where id = o) = 'ipc', 'IPC service: by IPC';
   r := (select request_id from public.lo_orders where id = o);
   reset role;
   update public.lo_requests set kind = 'both' where id = r;
   set role authenticated;
-  begin perform public.lo_save_order(o, jsonb_build_object('title', 'Pole erection – stages', 'kind', 'service', 'billing', 'ipc', 'supplier', 'Sub Co', 'payment_term', 'after_delivery')); assert false, 'term fits IPC';
+  begin perform public.lo_save_order(o, jsonb_build_object('title', 'Pole erection – IPC', 'kind', 'service', 'billing', 'ipc', 'supplier', 'Sub Co', 'payment_term', 'after_delivery')); assert false, 'term fits IPC';
   exception when raise_exception then assert sqlerrm like 'Choose the payment term – % advance%', sqlerrm; end;
-  perform public.lo_save_order(o, jsonb_build_object('title', 'Pole erection – stages', 'kind', 'service', 'billing', 'ipc', 'supplier', 'Sub Co', 'payment_term', 'advance_ipc', 'advance_pct', 20));
+  perform public.lo_save_order(o, jsonb_build_object('title', 'Pole erection – IPC', 'kind', 'service', 'billing', 'ipc', 'supplier', 'Sub Co', 'payment_term', 'advance_ipc', 'advance_pct', 20));
   assert (select payment_term = 'advance_ipc' and advance_pct = 20 from public.lo_orders where id = o), '% advance + IPC';
-  begin perform public.lo_save_order(o, jsonb_build_object('title', 'X', 'kind', 'service', 'billing', 'single', 'supplier', 'Sub Co', 'payment_term', 'after_delivery')); assert false, 'stages';
-  exception when raise_exception then assert sqlerrm like '%work stages%', sqlerrm; end;
   -- a crane on hire by the day
   h := public.lo_save_order(null, jsonb_build_object('request_id', r, 'title', 'Crane 25 t', 'kind', 'service', 'billing', 'hire', 'supplier', 'Lift Co', 'payment_term', 'periodic', 'hire_unit', 'day', 'hire_rate', 45000, 'value', 900000));
   assert (select billing = 'hire' and hire_unit = 'day' from public.lo_orders where id = h) and (select hire_rate = 45000 from public.lo_order_values where order_id = h), 'hire order';
@@ -8129,16 +8113,16 @@ begin
   perform public.lo_save_work_stage(w3, jsonb_build_object('title', 'Concept report', 'pct', 40, 'planned_on', d + 10, 'done_on', d));
   i := public.lo_add_invoice(h, jsonb_build_object('invoice_no', 'DC-1', 'invoice_date', d, 'amount', 80000, 'work_stage_id', w3, 'advance_recovered', 8000));
   assert (select work_stage_id = w3 and advance_recovered = 8000 from public.lo_invoices where id = i), 'invoice for the deliverable';
-  -- an IPC service needs its programme before the signed agreement
-  h := public.lo_save_order(null, jsonb_build_object('request_id', r, 'title', 'Trenching', 'kind', 'service', 'billing', 'ipc', 'supplier', 'Dig Co', 'payment_term', 'ipc'));
+  -- a work-basis service needs its deliverables (with dates) before the signed agreement
+  h := public.lo_save_order(null, jsonb_build_object('request_id', r, 'title', 'Survey', 'kind', 'service', 'billing', 'milestone', 'supplier', 'Survey Co', 'payment_term', 'milestone'));
   reset role;
   begin insert into public.lo_steps (request_id, order_id, step, done_on, recorded_by) values (r, h, 'agreement_signed', d, auth.uid()); assert false, 'programme first';
-  exception when raise_exception then assert sqlerrm like 'Enter the work stages%', sqlerrm; end;
+  exception when raise_exception then assert sqlerrm like 'Enter the deliverables%', sqlerrm; end;
   set role authenticated;
-  perform public.lo_save_work_stage(null, jsonb_build_object('order_id', h, 'title', 'Trench 1 km'));
+  perform public.lo_save_work_stage(null, jsonb_build_object('order_id', h, 'title', 'Survey report'));
   reset role;
   begin insert into public.lo_steps (request_id, order_id, step, done_on, recorded_by) values (r, h, 'agreement_signed', d, auth.uid()); assert false, 'dates first';
-  exception when raise_exception then assert sqlerrm like '1 work stage(s) without a planned completion%', sqlerrm; end;
+  exception when raise_exception then assert sqlerrm like '1 deliverable(s) without a planned date%', sqlerrm; end;
 end $$;
 reset role;
 -- the material request follows its orders: ordered only when every order has its PO; expected date; delivery; site receipt

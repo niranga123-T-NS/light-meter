@@ -62,8 +62,10 @@ export type LoStepDef = { key: string; scope: 'r' | 'o'; stage: number; seq: num
 export type LoStep = { id: string; request_id: string; order_id: string | null; step: string; done_on: string; ref: string | null; note: string | null; recorded_by: string; recorded_at: string };
 /** A stage of a service (e.g. subcontract work): what, % of the work, planned and done / certified dates, IPC reference */
 export type LoWorkStage = { id: string; order_id: string; seq: number; title: string; pct: number | null; planned_on: string | null; done_on: string | null; cert_ref: string | null; note: string | null };
-/** A request to move a work stage's planned date after the agreement is signed: the SEE, then SM Projects approve */
+/** A request to move a deliverable's planned date after the agreement is signed: the SEE, then SM Projects approve */
 export type LoStageChange = { id: string; stage_id: string; old_date: string | null; new_date: string; reason: string; status: 'pending_see' | 'pending_smp' | 'approved' | 'rejected'; requested_by: string; requested_at: string; decision_note: string | null };
+/** A request to move an IPC service's planned completion after the agreement is signed: the SEE, then SM Projects approve */
+export type LoCompletionChange = { id: string; order_id: string; old_date: string | null; new_date: string; reason: string; note: string; status: 'pending_see' | 'pending_smp' | 'approved' | 'rejected'; requested_by: string; requested_at: string; decision_note: string | null };
 export type LoDelivery = { id: string; order_id: string; delivered_on: string; dn_no: string; items: string | null; signed_by: string | null; note: string | null };
 export type InvoicePoint = 'see' | 'smp' | 'dgm' | 'proc' | 'finance' | 'paid';
 export type LoInvoice = {
@@ -124,7 +126,7 @@ export const HIRE_UNITS: { value: HireUnit; label: string }[] = [
   { value: 'week', label: 'Week' },
   { value: 'month', label: 'Month' },
 ];
-export const BILLING_LABEL: Record<LoBilling, string> = { single: 'Single invoice', ipc: 'Paid by IPC – work stages', hire: 'Hire – per period', milestone: 'Work basis – per deliverable' };
+export const BILLING_LABEL: Record<LoBilling, string> = { single: 'Single invoice', ipc: 'Paid by IPC', hire: 'Hire – per period', milestone: 'Work basis – per deliverable' };
 export const termLabel = (o: Pick<LoOrder, 'payment_term' | 'advance_pct'> & Partial<Pick<LoOrder, 'kind' | 'billing'>>) => {
   const t = paymentTerms(o.kind ?? 'material', o.billing ?? 'single').find((x) => x.value === o.payment_term) ?? [...PAYMENT_TERMS, ...paymentTerms('service', 'ipc'), ...paymentTerms('service', 'hire'), ...paymentTerms('service', 'milestone')].find((x) => x.value === o.payment_term);
   const label = t?.label ?? o.payment_term;

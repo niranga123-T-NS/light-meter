@@ -8,9 +8,11 @@
 --  * Hire billing: the hire unit (hour, day, week, month) and agreed rate; on-hire and off-hire dates (Operations or the
 --    SEE); each invoice covers a period with the usage certified by the SEE (no overlaps). "Work completed" is the
 --    off-hire; the order closes when the invoices cover the hire up to the off-hire.
---  * The work stages of an IPC service are the agreement's programme: each with its planned completion before
---    "Signed agreement issued" is recorded; after that no planned date is set directly – a first date or a change is
---    requested and approved by the SEE, then SM Projects.
+--  * An IPC service has no work stages: the execution team's approved IPCs are taken straight onto the order (claimed to
+--    date, advance recovered, variations). Its planned completion is set before "Signed agreement issued" (which needs it)
+--    and is fixed from then on: a change is requested and approved by the SEE, then SM Projects.
+--  * The deliverables of a work-basis service are the agreement's: each with its planned date before the signed
+--    agreement; after that a date is requested and approved by the SEE, then SM Projects.
 
 alter table public.lo_orders drop constraint if exists lo_orders_payment_term_check;
 alter table public.lo_orders add constraint lo_orders_payment_term_check
@@ -26,6 +28,10 @@ alter table public.lo_order_values add column if not exists hire_rate numeric(16
 alter table public.lo_invoices add column if not exists period_from date;
 alter table public.lo_invoices add column if not exists period_to date;
 alter table public.lo_invoices add column if not exists usage_qty numeric(12, 2) check (usage_qty is null or usage_qty > 0);
+
+-- IPC services keep their IPCs, without work stages
+update public.lo_invoices i set work_stage_id = null from public.lo_orders o where o.id = i.order_id and o.billing = 'ipc' and i.work_stage_id is not null;
+delete from public.lo_work_stages w using public.lo_orders o where o.id = w.order_id and o.billing = 'ipc';
 
 /** The payment term an order's billing allows, from the one it had */
 create or replace function app.lo_map_term(p_term text, p_billing text) returns text
@@ -89,7 +95,7 @@ begin
   perform app.require(r.kind = 'both' or r.kind = k, format('This request is for %s', case r.kind when 'material' then 'materials' else 'services' end));
   b := case when k = 'material' then 'single' else coalesce(nullif(p ->> 'billing', ''), o.billing, 'single') end;
   perform app.require(b in ('single', 'ipc', 'hire', 'milestone'), 'Single invoice, IPC, work basis or hire?');
-  perform app.require(b in ('ipc', 'milestone') or o.id is null or not exists (select 1 from public.lo_work_stages where order_id = o.id), 'This order has work stages – remove them first');
+  perform app.require(b = 'milestone' or o.id is null or not exists (select 1 from public.lo_work_stages where order_id = o.id), 'This order has work stages – remove them first');
   perform app.require(b = 'hire' or o.id is null or not exists (select 1 from public.lo_invoices where order_id = o.id and period_from is not null and status <> 'cancelled'), 'This order has hire invoices – it stays a hire');
   perform app.require(coalesce(btrim(p ->> 'title'), '') <> '', 'What is ordered from this supplier?');
   perform app.require(coalesce(btrim(p ->> 'supplier'), '') <> '', 'Enter the supplier / service provider');
@@ -137,7 +143,7 @@ begin
   perform app.require(found, 'Order not found');
   perform app.require(p_billing in ('single', 'ipc', 'hire', 'milestone'), 'Single invoice, IPC, work basis or hire?');
   perform app.require(o.kind = 'service' or p_billing = 'single', 'Materials are billed by invoice');
-  perform app.require(p_billing in ('ipc', 'milestone') or not exists (select 1 from public.lo_work_stages where order_id = o.id), 'This order has work stages – remove them first');
+  perform app.require(p_billing = 'milestone' or not exists (select 1 from public.lo_work_stages where order_id = o.id), 'This order has work stages – remove them first');
   t := app.lo_map_term(o.payment_term, p_billing);
   update public.lo_orders set billing = p_billing, payment_term = t, advance_pct = case when t like 'advance%' then coalesce(advance_pct, 10) end,
          hire_unit = case when p_billing = 'hire' then coalesce(hire_unit, 'day') end, updated_at = now() where id = o.id;
@@ -218,13 +224,13 @@ begin
   return iid;
 end $$;
 
--- work stages (or deliverables) only for a service paid by IPC or on a work basis
+-- deliverables only for a work-basis service
 create or replace function app.lo_stage_needs_ipc() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
   if current_setting('app.purging', true) = 'on' then return new; end if;
-  if (select billing from public.lo_orders where id = new.order_id) not in ('ipc', 'milestone') then
-    raise exception 'Work stages are for a service paid by IPC or per deliverable – set the billing first';
+  if (select billing from public.lo_orders where id = new.order_id) <> 'milestone' then
+    raise exception 'Deliverables are for a service paid per deliverable (work basis) – an IPC service takes its approved IPCs directly';
   end if;
   return new;
 end $$;
@@ -237,15 +243,17 @@ declare o public.lo_orders; n int;
 begin
   if current_setting('app.purging', true) = 'on' or new.order_id is null or new.step not in ('work_done', 'agreement_signed', 'closed') then return new; end if;
   select * into o from public.lo_orders where id = new.order_id;
-  if new.step = 'agreement_signed' and o.billing in ('ipc', 'milestone') then
+  if new.step = 'agreement_signed' and o.billing = 'ipc' and o.expected_on is null then
+    raise exception 'Enter the planned completion (Expected completion) before the signed agreement – the agreement fixes it';
+  elsif new.step = 'agreement_signed' and o.billing = 'milestone' then
     if not exists (select 1 from public.lo_work_stages where order_id = o.id) then
-      raise exception 'Enter the work stages of the agreement (each with its planned completion) before the signed agreement';
+      raise exception 'Enter the deliverables of the agreement (each with its planned date) before the signed agreement';
     end if;
     select count(*) into n from public.lo_work_stages where order_id = o.id and planned_on is null and done_on is null;
-    if n > 0 then raise exception '% work stage(s) without a planned completion – the agreement fixes them', n; end if;
+    if n > 0 then raise exception '% deliverable(s) without a planned date – the agreement fixes them', n; end if;
   elsif new.step = 'work_done' then
     select count(*) into n from public.lo_work_stages where order_id = new.order_id and done_on is null;
-    if n > 0 then raise exception '% work stage(s) not done yet – record them first', n; end if;
+    if n > 0 then raise exception '% deliverable(s) not accepted yet – record them first', n; end if;
     if o.billing = 'hire' and o.hire_to is null then raise exception 'Record the off-hire date first'; end if;
   elsif new.step = 'closed' and o.billing = 'hire' then
     if coalesce((select max(period_to) from public.lo_invoices where order_id = o.id and status <> 'cancelled' and period_to is not null), '-infinity') < o.hire_to then
@@ -355,6 +363,182 @@ begin
 end $$;
 
 grant execute on function public.lo_add_invoice(uuid, jsonb), public.lo_save_order(uuid, jsonb) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- IPC services: the approved IPCs straight onto the order; the planned completion fixed by the signed agreement
+
+drop function if exists public.lo_add_stage_ipc(uuid, uuid, jsonb);
+
+/** Operations: take the execution team's approved IPC onto an IPC service order.
+ *  p: {received_on, advance_recovered, has_variation, variation_amount, variation_note, note} */
+create or replace function public.lo_take_ipc(p_order uuid, p_sub uuid, p jsonb) returns uuid
+language plpgsql security definer set search_path = public as $$
+declare o public.lo_orders; r public.lo_requests; v public.sub_invoices; iid uuid;
+        rec date := coalesce(nullif(p ->> 'received_on', '')::date, (now() at time zone app.tz())::date);
+        adv numeric := coalesce(nullif(p ->> 'advance_recovered', '')::numeric, 0);
+        var_on boolean := coalesce(p ->> 'has_variation', '') in ('yes', 'true');
+        var_amt numeric := nullif(p ->> 'variation_amount', '')::numeric;
+begin
+  perform app.require(app.lo_keeper(), 'The Operations Executive records invoices');
+  select * into o from public.lo_orders where id = p_order;
+  perform app.require(found, 'Order not found');
+  perform app.require(o.status = 'open', 'The order is closed');
+  perform app.require(o.kind = 'service' and o.billing = 'ipc', 'This order is not paid by IPC');
+  select * into r from public.lo_requests where id = o.request_id;
+  select * into v from public.sub_invoices where id = p_sub;
+  perform app.require(found and v.exec_project_id = r.exec_project_id, 'Choose an IPC of this project');
+  perform app.require(v.status in ('approved', 'docs_received'), 'Only an approved IPC');
+  perform app.require(not exists (select 1 from public.lo_invoices where sub_invoice_id = v.id and status <> 'cancelled'), 'This IPC is already taken');
+  perform app.require(adv <= v.amount, 'The advance recovered is more than the IPC');
+  perform app.require(not var_on or coalesce(var_amt, 0) > 0, 'Enter the variation amount');
+  perform app.require(rec <= (now() at time zone app.tz())::date, 'The received date cannot be in the future');
+  insert into public.lo_invoices (order_id, kind, invoice_no, invoice_date, amount, sub_invoice_id, received_on, see_on,
+                                  advance_recovered, variation_amount, variation_note, note)
+  values (o.id, 'ipc', coalesce(v.invoice_no, v.code), coalesce(v.invoice_date, rec), v.amount, v.id, rec,
+          -- the SEE approved it in the IPC flow
+          coalesce((v.see_at at time zone app.tz())::date, rec),
+          nullif(adv, 0), case when var_on then var_amt end, case when var_on then nullif(btrim(p ->> 'variation_note'), '') end, nullif(btrim(p ->> 'note'), ''))
+  returning id into iid;
+  perform app.notify_many(app.role_users('sm_projects'), 'local_order', 'IPC invoice to approve',
+    concat_ws(' · ', app.lo_order_head(o), coalesce(v.invoice_no, v.code), app.fmt_money(v.amount, 'LKR')), 'normal', 'lo_order', o.id, '/orders/local/' || o.id);
+  return iid;
+end $$;
+grant execute on function public.lo_take_ipc(uuid, uuid, jsonb) to authenticated;
+
+-- an execution project's IPC invoice only from an approved IPC; an advance is not progress
+create or replace function app.lo_invoice_rules() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare exec uuid;
+begin
+  if current_setting('app.purging', true) = 'on' then return new; end if;
+  if new.kind = 'advance' and new.work_stage_id is not null then
+    raise exception 'The advance is not progress – it is not under a deliverable';
+  end if;
+  if tg_op = 'INSERT' and new.kind = 'ipc' and new.sub_invoice_id is null then
+    select r.exec_project_id into exec from public.lo_orders o join public.lo_requests r on r.id = o.request_id where o.id = new.order_id;
+    if exec is not null then
+      raise exception 'IPC invoices of an execution project come from the execution team''s approved IPCs – take it with + IPC';
+    end if;
+  end if;
+  return new;
+end $$;
+
+-- the planned completion of an IPC service is the agreement's: fixed once it is signed
+create or replace function public.lo_set_expected(p_order uuid, p_date date, p_reason text default null, p_party text default null, p_note text default null) returns void
+language plpgsql security definer set search_path = public as $$
+declare o public.lo_orders; r public.lo_requests; first boolean;
+begin
+  perform app.require(app.lo_keeper(), 'The Operations Executive records the dates');
+  select * into o from public.lo_orders where id = p_order for update;
+  perform app.require(found and o.status = 'open', 'Order not found or closed');
+  perform app.require(not (o.billing = 'ipc' and app.lo_agreement_signed(o.id)),
+    'The planned completion is fixed by the signed agreement – request a change (the SEE and SM Projects approve it)');
+  select * into r from public.lo_requests where id = o.request_id;
+  perform app.require(p_date is not null, 'Enter the date');
+  first := o.expected_on is null;
+  perform app.require(first or p_date is distinct from o.expected_on, 'The date is the same');
+  perform app.require(first or p_reason in ('supplier', 'material', 'payment', 'documents', 'carrier', 'customs', 'other'), 'Choose the reason for the change');
+  update public.lo_orders set expected_on = p_date, committed_on = coalesce(committed_on, p_date), updated_at = now() where id = p_order;
+  insert into public.order_date_changes (module, order_id, kind, old_date, new_date, reason, party, note)
+  values ('lo', p_order, 'delivery', o.expected_on, p_date, case when first then 'first' else p_reason end, nullif(btrim(p_party), ''), nullif(btrim(p_note), ''));
+  if not first then
+    perform app.order_date_alert('lo', p_order, app.lo_order_head(o), p_date, r.required_on,
+      format('%s now %s (was %s, committed %s) – %s', case when o.kind = 'service' then 'completion' else 'delivery' end, to_char(p_date, 'DD Mon YYYY'),
+             to_char(o.expected_on, 'DD Mon'), to_char(o.committed_on, 'DD Mon'), app.order_reason_label(p_reason)),
+      '/orders/local/' || p_order, app.lo_followers(r.id));
+  end if;
+end $$;
+
+create table if not exists public.lo_completion_changes (
+  id uuid primary key default gen_random_uuid(),
+  order_id uuid not null references public.lo_orders (id) on delete cascade,
+  old_date date,
+  new_date date not null,
+  reason text not null check (reason in ('supplier', 'material', 'payment', 'documents', 'other')),
+  note text not null,
+  status text not null default 'pending_see' check (status in ('pending_see', 'pending_smp', 'approved', 'rejected')),
+  requested_by uuid default auth.uid() references public.profiles (id),
+  requested_at timestamptz not null default now(),
+  see_by uuid references public.profiles (id),
+  see_at timestamptz,
+  smp_by uuid references public.profiles (id),
+  smp_at timestamptz,
+  decision_note text
+);
+create index if not exists lo_completion_changes_order on public.lo_completion_changes (order_id, requested_at desc);
+alter table public.lo_completion_changes enable row level security;
+drop policy if exists lo_completion_changes_read on public.lo_completion_changes;
+create policy lo_completion_changes_read on public.lo_completion_changes for select to authenticated using (app.lo_can_read(app.lo_order_request(order_id)));
+grant select on public.lo_completion_changes to authenticated;
+
+/** Operations or the SEE ask to move an IPC service's planned completion after the agreement is signed */
+create or replace function public.lo_request_completion(p_order uuid, p_date date, p_reason text, p_note text) returns uuid
+language plpgsql security definer set search_path = public as $$
+declare o public.lo_orders; cid uuid; see boolean; head text;
+begin
+  select * into o from public.lo_orders where id = p_order;
+  perform app.require(found and o.status = 'open', 'Order not found or closed');
+  see := app.lo_see_of(o.request_id) = auth.uid();
+  perform app.require(app.lo_keeper() or see, 'Operations or the project''s SEE ask for the change');
+  perform app.require(o.billing = 'ipc' and app.lo_agreement_signed(o.id), 'Before the agreement is signed, Operations sets the date directly');
+  perform app.require(p_date is not null and p_date is distinct from o.expected_on, 'Choose the new date');
+  perform app.require(p_reason in ('supplier', 'material', 'payment', 'documents', 'other'), 'Choose the reason');
+  perform app.require(coalesce(btrim(p_note), '') <> '', 'Say what happened');
+  perform app.require(not exists (select 1 from public.lo_completion_changes where order_id = o.id and status in ('pending_see', 'pending_smp')), 'A change is already waiting for approval');
+  -- the SEE asking is the SEE's approval
+  insert into public.lo_completion_changes (order_id, old_date, new_date, reason, note, status, see_by, see_at)
+  values (o.id, o.expected_on, p_date, p_reason, btrim(p_note), case when see then 'pending_smp' else 'pending_see' end, case when see then auth.uid() end, case when see then now() end)
+  returning id into cid;
+  head := concat_ws(' · ', app.lo_order_head(o), 'completion ' || coalesce(to_char(o.expected_on, 'DD Mon'), 'no date') || ' → ' || to_char(p_date, 'DD Mon YYYY'), btrim(p_note));
+  if see then
+    perform app.notify_many(app.role_users('sm_projects'), 'local_order', 'Completion date change to approve', head, 'normal', 'lo_order', o.id, '/orders/local/' || o.id, null, true);
+  else
+    perform app.notify(app.lo_see_of(o.request_id), 'local_order', 'Completion date change to approve', head, 'normal', 'lo_order', o.id, '/orders/local/' || o.id, null, true);
+  end if;
+  return cid;
+end $$;
+
+/** The SEE, then SM Projects: approve or reject; on the last approval the planned completion moves (kept in the date history) */
+create or replace function public.lo_decide_completion(p_change uuid, p_approve boolean, p_note text default null) returns void
+language plpgsql security definer set search_path = public as $$
+declare c public.lo_completion_changes; o public.lo_orders; r public.lo_requests; head text;
+begin
+  select * into c from public.lo_completion_changes where id = p_change for update;
+  perform app.require(found, 'Change not found');
+  select * into o from public.lo_orders where id = c.order_id for update;
+  select * into r from public.lo_requests where id = o.request_id;
+  perform app.require(p_approve or coalesce(btrim(p_note), '') <> '', 'Give the reason');
+  head := concat_ws(' · ', app.lo_order_head(o), 'completion ' || coalesce(to_char(c.old_date, 'DD Mon'), 'no date') || ' → ' || to_char(c.new_date, 'DD Mon YYYY'));
+  if c.status = 'pending_see' then
+    perform app.require(app.lo_see_of(o.request_id) = auth.uid() or app.has_role('senior_elec_engineer'), 'The project''s SEE approves first');
+    update public.lo_completion_changes set status = case when p_approve then 'pending_smp' else 'rejected' end, see_by = auth.uid(), see_at = now(),
+           decision_note = nullif(btrim(p_note), '') where id = c.id;
+    if p_approve then
+      perform app.notify_many(app.role_users('sm_projects'), 'local_order', 'Completion date change to approve', head || ' · ' || c.note, 'normal', 'lo_order', o.id, '/orders/local/' || o.id, null, true);
+    end if;
+  elsif c.status = 'pending_smp' then
+    perform app.require(app.has_role('sm_projects'), 'SM Projects approves after the SEE');
+    update public.lo_completion_changes set status = case when p_approve then 'approved' else 'rejected' end, smp_by = auth.uid(), smp_at = now(),
+           decision_note = coalesce(nullif(btrim(p_note), ''), decision_note) where id = c.id;
+    if p_approve then
+      update public.lo_orders set expected_on = c.new_date, committed_on = coalesce(committed_on, c.new_date), updated_at = now() where id = o.id;
+      insert into public.order_date_changes (module, order_id, kind, old_date, new_date, reason, party, note)
+      values ('lo', o.id, 'delivery', o.expected_on, c.new_date, case when o.expected_on is null then 'first' else c.reason end, o.supplier, c.note || ' (approved by the SEE and SM Projects)');
+      if o.expected_on is not null then
+        perform app.order_date_alert('lo', o.id, app.lo_order_head(o), c.new_date, r.required_on,
+          format('completion now %s (was %s) – %s', to_char(c.new_date, 'DD Mon YYYY'), to_char(o.expected_on, 'DD Mon'), app.order_reason_label(c.reason)),
+          '/orders/local/' || o.id, app.lo_followers(r.id));
+      end if;
+    end if;
+  else
+    perform app.require(false, 'Already decided');
+  end if;
+  if not p_approve or c.status = 'pending_smp' then
+    perform app.notify_many(array[c.requested_by] || app.role_users('operations_exec'), 'local_order', case when p_approve then 'Completion date changed' else 'Completion date change rejected' end,
+      concat_ws(' · ', head, nullif(btrim(p_note), '')), 'normal', 'lo_order', o.id, '/orders/local/' || o.id);
+  end if;
+end $$;
+grant execute on function public.lo_request_completion(uuid, date, text, text), public.lo_decide_completion(uuid, boolean, text) to authenticated;
 
 select app.purge_guard_triggers();
 select app.fix_function_owners();
