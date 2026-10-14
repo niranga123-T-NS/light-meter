@@ -62,12 +62,21 @@ export async function editShipment(dialog: Dialog, orderOptions: Option[], s?: S
       { key: 'via_sea', label: 'Transhipment port(s)', initial: m === 'sea' ? s?.via ?? '' : '', hint: 'e.g. Jebel Ali – several with commas', when: SEA },
       { key: 'pod_sea', label: 'Port of discharge', initial: m === 'sea' ? s?.pod ?? 'Colombo' : 'Colombo', when: SEA },
       // air
-      { key: 'flight', label: 'Flight no.', initial: m === 'air' ? s?.vessel_flight ?? '' : '', hint: 'e.g. EK 348 – the flight date is the ETD', when: AIR },
+      { key: 'legs', label: 'Flights', type: 'select', required: true, initial: s?.multi_leg ? 'multi' : 'direct', when: AIR, options: [{ value: 'direct', label: 'Direct flight to Colombo' }, { value: 'multi', label: 'More than one flight – transshipment (tick when not direct)' }], hint: 'With more than one flight, Sales and the SEE see "transshipment possible – contact Ops"; each flight is checked until the cargo reaches Colombo' },
+      { key: 'flight', label: 'Flight no. (the first flight)', initial: m === 'air' ? s?.vessel_flight ?? '' : '', hint: 'e.g. EK 348 – the flight date is the ETD', when: AIR },
       { key: 'airline', label: 'Airline', initial: m === 'air' ? s?.carrier ?? '' : '', when: AIR },
       { key: 'awb', label: 'AWB no.', initial: m === 'air' ? s?.bl_awb ?? '' : '', hint: 'e.g. 176-12345675', when: AIR },
       { key: 'pieces', label: 'Pieces and weight', initial: m === 'air' ? s?.containers ?? '' : '', hint: 'e.g. 12 pcs, 840 kg', when: AIR },
       { key: 'pol_air', label: 'Airport of departure', initial: m === 'air' ? s?.pol ?? loading ?? '' : '', hint: 'e.g. FRA, Frankfurt', when: AIR },
-      { key: 'via_air', label: 'Transit airport(s)', initial: m === 'air' ? s?.via ?? '' : '', hint: 'e.g. DXB', when: AIR },
+      { key: 'via_air', label: 'Transit airport(s)', initial: m === 'air' ? s?.via ?? '' : '', hint: 'e.g. DXB', when: { key: 'legs', in: ['multi'] } },
+      // the next flight, when already known (more can be added on the shipment page)
+      ...(s?.multi_leg
+        ? []
+        : [
+            { key: 'leg2_flight', label: 'Next flight no. (if known now)', hint: 'e.g. EK 650 – leave empty if not known yet; add it later on the shipment', when: { key: 'legs', in: ['multi'] } },
+            { key: 'leg2_date', label: 'Next flight date', type: 'date' as const, when: { key: 'legs', in: ['multi'] } },
+            { key: 'leg2_to', label: 'Next flight to', initial: 'CMB', hint: 'CMB when it is the flight to Colombo; else the next transit airport', when: { key: 'legs', in: ['multi'] } },
+          ]),
       { key: 'pod_air', label: 'Airport of arrival', initial: m === 'air' ? s?.pod ?? 'Colombo (CMB)' : 'Colombo (CMB)', when: AIR },
       // courier
       { key: 'courier', label: 'Courier company', initial: m === 'courier' ? s?.carrier ?? '' : '', hint: 'e.g. DHL, FedEx, UPS', when: COURIER },
@@ -115,6 +124,14 @@ export async function editShipment(dialog: Dialog, orderOptions: Option[], s?: S
       notes: r.notes,
     };
     id = (await rpc('fo_save_shipment', { p_id: s?.id ?? null, p })) as string;
+    if (air) {
+      const multi = r.legs === 'multi';
+      if (multi !== !!s?.multi_leg) await rpc('fo_set_multi_leg', { p_shipment: id, p_multi: multi });
+      if (multi && r.leg2_flight?.trim()) {
+        if (!r.leg2_date) throw new Error('Saved – enter the next flight’s date on the shipment page (+ Next flight)');
+        await rpc('fo_save_leg', { p_id: null, p: { shipment_id: id, flight: r.leg2_flight, from: r.via_air, to: r.leg2_to, etd: r.leg2_date } });
+      }
+    }
   }, 'Saved');
   return id;
 }

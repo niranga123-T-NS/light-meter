@@ -3,13 +3,13 @@ import { Text, View } from 'react-native';
 import { Card, colors, Loading, Muted, Pill, Row } from '@/components/ui';
 import type { MrRouteOrder } from '@/lib/execution';
 import { fmtDate } from '@/lib/format';
-import { route as foRoute, SHORT_STAGES, standing as foStanding, type FoOrder, type Handover, type Step, type StepDef } from '@/lib/foreignOrders';
+import { multiLegOpen, route as foRoute, SHORT_STAGES, standing as foStanding, type FlightLeg, type FoOrder, type Handover, type Shipment, type Step, type StepDef } from '@/lib/foreignOrders';
 import { useLoad } from '@/lib/hooks';
 import { DIC_LIMIT, INVOICE_POINTS, invoiceChain, LO_SHORT, loRoute, loStanding, type InvoicePoint, type LoOrder, type LoRequest, type LoStep, type LoStepDef } from '@/lib/localOrders';
 import { supabase } from '@/lib/supabase';
 
 type Progress = { order_id: string; dic_pr: boolean; dic_sel: boolean; invoices: (Record<`${InvoicePoint}_on`, string | null> & { invoice_no: string; kind: string; status: string; received_on: string })[] };
-type Card_ = { o: MrRouteOrder; stages: string[]; stage: number; now: string; with: string; last: { label: string; on: string } | null; late: boolean; invoices: Progress['invoices']; chain: InvoicePoint[] };
+type Card_ = { transship?: 'open' | 'known' | null; o: MrRouteOrder; stages: string[]; stage: number; now: string; with: string; last: { label: string; on: string } | null; late: boolean; invoices: Progress['invoices']; chain: InvoicePoint[] };
 
 /** The orders made for a material request, as the site sees them: the stage reached, what is being done now and by whom,
  *  the last step done and the invoice approvals (no values) – the same steps Operations records. */
@@ -32,6 +32,15 @@ export function OrderProgress({ mrId, orders }: { mrId: string; orders: MrRouteO
       fo.length ? supabase.from('fo_steps').select('*').in('handover_id', foH) : Promise.resolve({ data: [] }),
     ]);
     const holidays = new Set(((hol.data ?? []) as { day: string }[]).map((x) => x.day));
+    // import orders on an air shipment with more than one flight: transshipment
+    const foIds = fo.map((x) => x.order_id);
+    const so = foIds.length ? (((await supabase.from('fo_shipment_orders').select('shipment_id, order_id').in('order_id', foIds)).data ?? []) as { shipment_id: string; order_id: string }[]) : [];
+    const ships = so.length ? (((await supabase.from('fo_shipments').select('*').in('id', so.map((x) => x.shipment_id)).eq('multi_leg', true)).data ?? []) as Shipment[]) : [];
+    const legs = ships.length ? (((await supabase.from('fo_flight_legs').select('*').in('shipment_id', ships.map((x) => x.id))).data ?? []) as FlightLeg[]) : [];
+    const transship = (orderId: string): Card_['transship'] => {
+      const sh = ships.find((x) => !x.arrived_on && so.some((y) => y.order_id === orderId && y.shipment_id === x.id));
+      return sh ? (multiLegOpen(sh, legs.filter((l) => l.shipment_id === sh.id)) ? 'open' : 'known') : null;
+    };
     const out: Card_[] = [];
     for (const x of orders) {
       if (x.module === 'lo') {
@@ -52,7 +61,7 @@ export function OrderProgress({ mrId, orders }: { mrId: string; orders: MrRouteO
         const lines = foRoute((fd.data ?? []) as StepDef[], h, o, ((fst.data ?? []) as Step[]).filter((s) => s.handover_id === h.id), os, holidays);
         const st = foStanding(lines);
         const done = lines.filter((l) => l.done).sort((a, b) => (a.done!.done_on + String(a.def.seq).padStart(3, '0')).localeCompare(b.done!.done_on + String(b.def.seq).padStart(3, '0'))).at(-1);
-        out.push({ o: x, stages: SHORT_STAGES, stage: st.stage, now: st.now.map((l) => l.def.label).join(' · '), with: st.with, late: st.late, last: done ? { label: done.def.label, on: done.done!.done_on } : null, invoices: [], chain: [] });
+        out.push({ transship: transship(o.id), o: x, stages: SHORT_STAGES, stage: st.stage, now: st.now.map((l) => l.def.label).join(' · '), with: st.with, late: st.late, last: done ? { label: done.def.label, on: done.done!.done_on } : null, invoices: [], chain: [] });
       }
     }
     return out;
@@ -93,6 +102,11 @@ export function OrderProgress({ mrId, orders }: { mrId: string; orders: MrRouteO
               <Text style={{ color: colors.ink }}>
                 <Text style={{ fontWeight: '700' }}>Now: </Text>
                 {`${c.now}${c.with ? ` – with ${c.with}` : ''}`}
+              </Text>
+            ) : null}
+            {c.transship ? (
+              <Text style={{ color: colors.amber, fontWeight: '600' }}>
+                {c.transship === 'open' ? '✈ Transshipment possible – the onward flight is not confirmed yet. Contact Ops for updates.' : '✈ Transshipment – the cargo changes flights on the way. Contact Ops for updates.'}
               </Text>
             ) : null}
             {c.last ? <Muted>{`Last done: ${c.last.label} · ${fmtDate(c.last.on)}`}</Muted> : null}

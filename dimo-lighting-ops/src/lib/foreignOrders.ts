@@ -88,6 +88,11 @@ export type Shipment = {
   flight_landed_at?: string | null;
   flight_route?: string | null;
   flight_checked_at?: string | null;
+  /** an air shipment on more than one flight (transshipment) */
+  multi_leg?: boolean;
+  cargo_status?: 'on_next' | 'offloaded' | 'arrived' | 'not_shown' | null;
+  cargo_note?: string | null;
+  cargo_checked_at?: string | null;
   ais_destination?: string | null;
   ais_eta?: string | null;
   ais_speed?: number | null;
@@ -286,6 +291,34 @@ export function standing(lines: Line[]) {
   return { stage, now, with: [...new Set(now.map((l) => (l.def.key === 'arrived' ? 'In transit' : l.def.node)))].join(', '), late: now.some((l) => l.late) };
 }
 
+/** A later flight of a multi-flight air shipment (flight 2, 3 …; flight 1 is the shipment's own) */
+export type FlightLeg = { id: string; shipment_id: string; seq: number; flight: string; from_ap: string | null; to_ap: string | null; etd: string | null; flight_status: string | null; departed_at: string | null; arrival_at: string | null; landed_at: string | null; note: string | null };
+/** An airport in Sri Lanka – the destination */
+export const isDestination = (ap?: string | null) => /\bCMB\b|colombo|katunayake|bandaranaike|sri lanka|\bHRI\b|mattala/i.test(ap ?? '');
+/** A multi-flight shipment not yet on a flight to Sri Lanka: Ops checks the AWB until the last flight is known */
+export const multiLegOpen = (s: Shipment, legs: FlightLeg[]) => !!s.multi_leg && !s.arrived_on && !legs.some((l) => isDestination(l.to_ap));
+export const CARGO_STATUS: Record<string, string> = { on_next: 'On the next flight', offloaded: 'Offloaded / rebooked', arrived: 'Arrived', not_shown: 'Nothing new shown' };
+/** The airline's cargo tracking page from the AWB prefix (the AWB no. is typed or pasted there); else a multi-airline tracker */
+const AIRLINE_CARGO: Record<string, { name: string; url: string }> = {
+  '157': { name: 'Qatar Airways Cargo', url: 'https://www.qrcargo.com' },
+  '176': { name: 'Emirates SkyCargo', url: 'https://www.skycargo.com' },
+  '235': { name: 'Turkish Cargo', url: 'https://www.turkishcargo.com' },
+  '618': { name: 'Singapore Airlines Cargo', url: 'https://www.siacargo.com' },
+  '160': { name: 'Cathay Cargo', url: 'https://www.cathaycargo.com' },
+  '607': { name: 'Etihad Cargo', url: 'https://www.etihadcargo.com' },
+  '020': { name: 'Lufthansa Cargo', url: 'https://www.lufthansa-cargo.com' },
+  '057': { name: 'Air France KLM Cargo', url: 'https://www.afklcargo.com' },
+  '074': { name: 'Air France KLM Cargo', url: 'https://www.afklcargo.com' },
+  '217': { name: 'Thai Cargo', url: 'https://www.thaicargo.com' },
+  '098': { name: 'Air India Cargo', url: 'https://www.airindia.com' },
+  '603': { name: 'SriLankan Cargo', url: 'https://www.srilankancargo.com' },
+  '125': { name: 'IAG Cargo', url: 'https://www.iagcargo.com' },
+};
+export function awbTracking(awb?: string | null) {
+  const digits = (awb ?? '').replace(/\D/g, '');
+  const a = AIRLINE_CARGO[digits.slice(0, 3)];
+  return { airline: a?.name ?? null, url: a?.url ?? 'https://www.track-trace.com/aircargo', awb: digits.length >= 11 ? `${digits.slice(0, 3)}-${digits.slice(3, 11)}` : awb ?? '' };
+}
 export const MODE_LABEL = { sea: 'Sea freight', air: 'Air freight', courier: 'Courier' } as const;
 export const termsLabel = (o: FoOrder) =>
   o.kind === 'service' ? `Service · ${o.payment}` : `${o.incoterm} · ${o.payment}${o.duty ? ` · duty ${o.duty}` : ''}${o.planned_mode ? ` · ${MODE_LABEL[o.planned_mode]}` : ''}`;
