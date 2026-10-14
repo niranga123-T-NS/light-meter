@@ -2,6 +2,7 @@ import { Text, View } from 'react-native';
 import { Attachments } from '@/components/Attachments';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, Muted, Pill, Row, Section } from '@/components/ui';
+import { pickDocument, uploadAttachment } from '@/lib/files';
 import { fmtDate, fmtDateTime } from '@/lib/format';
 import { DELAY_DAYS, STAGES, todayIso, type FoNote, type StepLine } from '@/lib/foreignOrders';
 import type { Profile } from '@/lib/types';
@@ -54,7 +55,7 @@ export function FoNotes({
   const add = async () => {
     const r = await dialog.prompt({
       title: 'Record a mistake, delay, complaint or notice',
-      message: `Alerts ${who}. Attach references after saving.`,
+      message: `Alerts ${who}. After recording you can attach references – the complaint letter, e-mail, photo or document.`,
       fields: [
         { key: 'kind', label: 'Type', type: 'select', required: true, initial: 'delay', options: Object.entries(NOTE_KIND).map(([value, k]) => ({ value, label: k.label })) },
         { key: 'stage', label: 'Stage', type: 'select', required: true, options: stages.map((s) => ({ value: String(s), label: `${s} · ${STAGE[s - 1]}` })) },
@@ -74,10 +75,28 @@ export function FoNotes({
       confirmLabel: 'Record and alert',
     });
     if (!r) return;
+    let noteId: string | null = null;
     await dialog.run(async () => {
-      await rpc(`${module}_add_note`, { p: { ...r, [module === 'fo' ? 'handover_id' : 'request_id']: handoverId, order_id: orderId, steps: r.steps ? r.steps.split(',').filter(Boolean) : [] } });
+      noteId = (await rpc(`${module}_add_note`, { p: { ...r, [module === 'fo' ? 'handover_id' : 'request_id']: handoverId, order_id: orderId, steps: r.steps ? r.steps.split(',').filter(Boolean) : [] } })) as unknown as string;
       onChange();
     }, 'Recorded – the managers and owners are alerted');
+    if (noteId) await attach(noteId, r.title, 0);
+  };
+  /** Right after recording: the references, one file after another (the button press opens the file picker) */
+  const attach = async (id: string, title: string, n: number) => {
+    const more = await dialog.confirm(n ? 'Attach another reference?' : 'Attach a reference?', `${title}${n ? ` · ${n} attached` : ''} – the complaint letter, e-mail, photo or document. You can also add them later under References.`, {
+      confirmLabel: 'Choose file',
+    });
+    if (!more) return;
+    const file = await pickDocument();
+    if (!file) return;
+    let ok = false;
+    await dialog.run(async () => {
+      await uploadAttachment(`${module}_note`, id, `${module}_reference`, file);
+      ok = true;
+      onChange();
+    }, 'Attached');
+    if (ok) await attach(id, title, n + 1);
   };
   const resolve = async (n: Omit<FoNote, 'handover_id'>) => {
     const r = await dialog.prompt({ title: `Resolve: ${n.title}`, fields: [{ key: 'how', label: 'How it was resolved', type: 'multiline', required: true }], confirmLabel: 'Resolve' });
