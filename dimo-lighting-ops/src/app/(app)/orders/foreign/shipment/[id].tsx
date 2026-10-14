@@ -30,11 +30,12 @@ export default function ShipmentPage() {
     const ids = ((so.data ?? []) as { order_id: string }[]).map((x) => x.order_id);
     const orders = ids.length ? (((await supabase.from('fo_orders').select('*').in('id', ids)).data ?? []) as FoOrder[]) : [];
     const hos = orders.length ? (((await supabase.from('fo_handovers').select('*').in('id', [...new Set(orders.map((o) => o.handover_id))])).data ?? []) as Handover[]) : [];
+    const air = s.data.mode === 'air' && ids.length ? (((await supabase.rpc('fo_air_lines', { p_orders: ids.slice(0, 1) })).data ?? []) as { line: string | null }[])[0]?.line ?? null : null;
     const openOrders = keeper ? (((await supabase.from('fo_orders').select('*').eq('kind', 'material').neq('status', 'cancelled')).data ?? []) as FoOrder[]) : [];
-    return { s: s.data as Shipment, orders, hos, openOrders, positions: (pos.data ?? []) as FoPosition[], legs: (lg.data ?? []) as FlightLeg[], log: (log.data ?? []) as { id: string; eta: string | null; note: string | null; changed_at: string }[] };
+    return { s: s.data as Shipment, orders, hos, openOrders, air, positions: (pos.data ?? []) as FoPosition[], legs: (lg.data ?? []) as FlightLeg[], log: (log.data ?? []) as { id: string; eta: string | null; note: string | null; changed_at: string }[] };
   }, [id, keeper]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const { s, orders, hos, openOrders, positions, log, legs } = data;
+  const { s, orders, hos, openOrders, positions, log, legs, air } = data;
   const multiOpen = multiLegOpen(s, legs);
   const trk = awbTracking(s.bl_awb);
   const ho = (o: FoOrder) => hos.find((h) => h.id === o.handover_id);
@@ -131,6 +132,7 @@ export default function ShipmentPage() {
           <Row gap={6} style={{ marginTop: 4 }}>
             <Pill label={s.arrived_on ? 'Arrived' : sailed ? 'In transit' : 'Booked'} tone={s.arrived_on ? colors.green : colors.blue} />
           </Row>
+          {air ? <Text style={{ color: colors.ink, fontWeight: '600', marginTop: 4 }}>{air}</Text> : null}
         </View>
         {keeper ? (
           <Row gap={8} wrap>
@@ -191,7 +193,14 @@ export default function ShipmentPage() {
                 <Muted>{`1. ${legLine(s.vessel_flight ?? 'Flight not entered', s.pol, s.via, s.etd, s.flight_status, s.flight_departed_at, s.flight_arrival_at, s.flight_landed_at)}`}</Muted>
                 {legs.map((l) => (
                   <Row key={l.id} wrap gap={6} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Text style={{ color: isDestination(l.to_ap) ? colors.ink : colors.muted, flexShrink: 1 }}>{`${l.seq}. ${legLine(l.flight, l.from_ap, l.to_ap, l.etd, l.flight_status, l.departed_at, l.arrival_at, l.landed_at)}${l.note ? ` · ${l.note}` : ''}`}</Text>
+                    <View style={{ flexShrink: 1 }}>
+                      <Text style={{ color: isDestination(l.to_ap) ? colors.ink : colors.muted }}>{`${l.seq}. ${legLine(l.flight, l.from_ap, l.to_ap, l.etd, l.flight_status, l.departed_at, l.arrival_at, l.landed_at)}${l.note ? ` · ${l.note}` : ''}`}</Text>
+                      {l.connection_min != null ? (
+                        <Text style={{ fontSize: 12, fontWeight: '600', color: l.connection_min < 0 ? colors.red : l.connection_min < 180 ? colors.amber : colors.green }}>
+                          {l.connection_min < 0 ? `Connection likely missed (${Math.round(-l.connection_min / 6) / 10} h short) – check the AWB` : `Connection ${Math.floor(l.connection_min / 60)} h ${String(l.connection_min % 60).padStart(2, '0')}${l.connection_min < 180 ? ' – tight' : ''}`}
+                        </Text>
+                      ) : null}
+                    </View>
                     {keeper && !s.arrived_on && !l.landed_at ? (
                       <Row gap={4}>
                         <Button small variant="ghost" title="Change" onPress={() => saveLeg(l)} />

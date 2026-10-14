@@ -64,10 +64,12 @@ export default function ForeignOrder() {
     const shipIds = ((so.data ?? []) as { shipment_id: string }[]).map((x) => x.shipment_id);
     const positions = shipIds.length ? (((await supabase.from('fo_positions').select('*').in('shipment_id', shipIds)).data ?? []) as FoPosition[]) : [];
     const ships = shipIds.length ? ((await supabase.from('fo_shipments').select('*').in('id', shipIds).order('eta')).data ?? []) as Shipment[] : [];
+    const airLine = ships.some((x) => x.mode === 'air') ? (((await supabase.rpc('fo_air_lines', { p_orders: [id] })).data ?? []) as { line: string | null }[]).map((x) => x.line).filter(Boolean).join(' | ') : '';
     const legs = ships.some((x) => x.multi_leg) ? (((await supabase.from('fo_flight_legs').select('*').in('shipment_id', shipIds)).data ?? []) as FlightLeg[]) : [];
     // open material orders a new shipment can also carry
     const openOrders = keeper ? ((await supabase.from('fo_orders').select('*').eq('status', 'open').eq('kind', 'material')).data ?? []) as FoOrder[] : [];
     return {
+      airLine,
       legs,
       o: order,
       h: h.data as Handover,
@@ -85,7 +87,7 @@ export default function ForeignOrder() {
     };
   }, [id, keeper]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const { o, h, sib, steps, defs, values, payments, ships, positions, openOrders, notes, holidays, dateChanges, legs } = data;
+  const { o, h, sib, steps, defs, values, payments, ships, positions, openOrders, notes, holidays, dateChanges, legs, airLine } = data;
   const shipEta = ships.length ? ships[ships.length - 1].eta : null;
   const all = route(defs, h, o, steps, sib, holidays);
   const st = standing(all);
@@ -150,6 +152,7 @@ export default function ForeignOrder() {
           </Row>
         ) : null}
       </Row>
+      {airLine ? <Text style={{ color: colors.ink, fontWeight: '600' }}>{airLine}</Text> : null}
       {ships
         .filter((sh) => sh.mode === 'air' && sh.multi_leg && !sh.arrived_on)
         .map((sh) => (

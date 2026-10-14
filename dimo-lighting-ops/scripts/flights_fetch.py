@@ -98,6 +98,7 @@ def reading(s, f):
         'id': s['id'], 'leg': s.get('leg'), 'status': status,
         'dep_iata': d_iata, 'dep_name': d_name, 'dep_lat': d_lat, 'dep_lng': d_lng,
         'arr_iata': a_iata, 'arr_name': a_name, 'arr_lat': a_lat, 'arr_lng': a_lng,
+        'dep_sched_at': first(dep, 'revisedTime', 'scheduledTime'),
         'departed_at': departed, 'arrival_at': first(arr, 'predictedTime', 'revisedTime', 'scheduledTime'), 'landed_at': landed,
     }
 

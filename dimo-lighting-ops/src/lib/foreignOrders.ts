@@ -292,7 +292,7 @@ export function standing(lines: Line[]) {
 }
 
 /** A later flight of a multi-flight air shipment (flight 2, 3 …; flight 1 is the shipment's own) */
-export type FlightLeg = { id: string; shipment_id: string; seq: number; flight: string; from_ap: string | null; to_ap: string | null; etd: string | null; flight_status: string | null; departed_at: string | null; arrival_at: string | null; landed_at: string | null; note: string | null };
+export type FlightLeg = { connection_min?: number | null; dep_sched_at?: string | null; id: string; shipment_id: string; seq: number; flight: string; from_ap: string | null; to_ap: string | null; etd: string | null; flight_status: string | null; departed_at: string | null; arrival_at: string | null; landed_at: string | null; note: string | null };
 /** An airport in Sri Lanka – the destination */
 export const isDestination = (ap?: string | null) => /\bCMB\b|colombo|katunayake|bandaranaike|sri lanka|\bHRI\b|mattala/i.test(ap ?? '');
 /** A multi-flight shipment not yet on a flight to Sri Lanka: Ops checks the AWB until the last flight is known */
