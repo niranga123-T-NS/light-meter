@@ -8,7 +8,7 @@ import { useDialog } from '@/components/dialog';
 import { TestingBanner } from '@/components/Testing';
 import { Button, Card, colors, DateField, ErrorBanner, Field, Grid, Muted, NumberField, Pill, Row, Screen, Section, Segmented, Select, Toggle } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import type { ExecProject } from '@/lib/execution';
+import { MR_ROUTES, type ExecProject, type MrRouteKind } from '@/lib/execution';
 import { useLoad } from '@/lib/hooks';
 import type { StockMatch } from '@/lib/returns';
 import { pickDocument, type PickedFile, uploadAttachment } from '@/lib/files';
@@ -57,6 +57,7 @@ export default function NewMaterialRequest() {
   const [project, setProject] = useState<string | null>(params.project ?? null);
   const [required, setRequired] = useState<string | null>(null);
   const [priority, setPriority] = useState<'normal' | 'urgent'>('normal');
+  const [route, setRoute] = useState<MrRouteKind>('sap');
   const [activity, setActivity] = useState<string | null>(null);
   const [purpose, setPurpose] = useState('');
   const [deliverTo, setDeliverTo] = useState('');
@@ -102,6 +103,7 @@ export default function NewMaterialRequest() {
         p: {
           required_date: required,
           priority,
+          route,
           activity_id: activity,
           purpose,
           deliver_to: deliverTo,
@@ -145,6 +147,11 @@ export default function NewMaterialRequest() {
               <Segmented value={priority} onChange={setPriority} options={[{ value: 'normal', label: 'Normal' }, { value: 'urgent', label: 'Urgent' }]} />
             </View>
           </Grid>
+          <View style={{ marginBottom: 10 }}>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 4 }}>How it is sourced</Text>
+            <Segmented value={route} onChange={setRoute} options={MR_ROUTES.map((r) => ({ value: r.value, label: r.label }))} />
+            <Muted style={{ marginTop: 4 }}>{`${MR_ROUTES.find((r) => r.value === route)?.hint}. The SEE can change it before it is ordered.`}</Muted>
+          </View>
           <Select
             label="For programme activity"
             searchable

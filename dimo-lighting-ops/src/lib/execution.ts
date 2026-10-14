@@ -364,6 +364,13 @@ export const VAR_STATUS: Record<Variation['status'], string> = {
 export const VAR_ROUTES: Record<string, string> = { A: 'Design + estimation', B: 'Estimation only', C: 'Contract rates' };
 
 // ---- Materials, documents, design queries (step 7a) ----
+export type MrRouteKind = 'sap' | 'local' | 'import';
+/** How the person raising the request sources it – Operations no longer decides */
+export const MR_ROUTES: { value: MrRouteKind; label: string; hint: string }[] = [
+  { value: 'sap', label: 'SAP (order / stock)', hint: 'Operations orders it in SAP or issues it from stock' },
+  { value: 'local', label: 'Buy locally', hint: 'A local request (LR-) goes to Operations on approval' },
+  { value: 'import', label: 'Import', hint: 'An import request (IR-) goes to Operations on approval' },
+];
 /** The route a material request took – a local request (LR-) or an import request (IR-) – and how far its orders are */
 export type MrRoute = { mr_id: string; module: 'lo' | 'fo'; ref_id: string; code: string | null; orders: number; ordered: number; delivered: number; expected: string | null };
 export type MrRouteOrder = { module: 'lo' | 'fo'; order_id: string; ref_id: string; code: string | null; supplier: string | null; po: string | null; expected: string | null; delivered: boolean };
@@ -392,6 +399,7 @@ export type MaterialRequest = {
   supplier: string | null;
   expected_date: string | null;
   priority?: 'normal' | 'urgent';
+  route?: MrRouteKind;
   activity_id?: string | null;
   deliver_to?: string | null;
   site_contact?: string | null;

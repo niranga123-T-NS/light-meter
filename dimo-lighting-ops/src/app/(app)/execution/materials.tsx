@@ -6,7 +6,7 @@ import { MaterialRows } from '@/components/exec/MaterialRows';
 import { TestingBanner } from '@/components/Testing';
 import { Button, colors, ErrorBanner, Field, Grid, Loading, Muted, Pill, Row, Screen, Segmented, Select, Stat, Toggle } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { MR_STATUS, mrDaysLate, routeLabel, type ExecProject, type MaterialRequest, type MrLine, type MrRoute } from '@/lib/execution';
+import { MR_ROUTES, MR_STATUS, mrDaysLate, routeLabel, type ExecProject, type MaterialRequest, type MrLine, type MrRoute } from '@/lib/execution';
 import { fmtDate, fmtTime, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { supabase } from '@/lib/supabase';
@@ -63,7 +63,7 @@ export default function Materials() {
     (m.status === 'submitted' && me.role === 'senior_elec_engineer') ||
     (m.status === 'pending_smp' && me.role === 'sm_projects') ||
     // sent to local or foreign orders, it is followed there
-    (m.status === 'approved' && me.role === 'operations_exec' && !route(m.id)) ||
+    (m.status === 'approved' && me.role === 'operations_exec' && !route(m.id) && (m.route ?? 'sap') === 'sap') ||
     (me.role === 'operations_exec' && m.status === 'ordered' && !m.delivery_at) ||
     (me.role === 'assistant_engineer' && (m.status === 'ae_review' || (m.requested_by === me.id && !['received', 'rejected', 'cancelled'].includes(m.status)))) ||
     (me.role === 'sub_supervisor' && !['received', 'rejected', 'cancelled'].includes(m.status));
@@ -158,7 +158,7 @@ export default function Materials() {
                 w: 190,
                 v: (m) => {
                   const r = route(m.id);
-                  return r ? routeLabel(r) : m.po_no ? 'SAP' : ['approved'].includes(m.status) ? '— not chosen —' : '';
+                  return r ? routeLabel(r) : m.po_no ? `SAP ${m.po_no}` : MR_ROUTES.find((x) => x.value === (m.route ?? 'sap'))?.label ?? '';
                 },
               },
               { h: 'Delivery', w: 140, v: (m) => (m.delivery_at ? `${fmtDate(m.delivery_at)} ${fmtTime(m.delivery_at)}${m.reschedules ? `\nmoved ${m.reschedules}×` : ''}` : '— not set —') },

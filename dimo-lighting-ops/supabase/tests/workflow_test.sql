@@ -7965,6 +7965,24 @@ begin
   exception when unique_violation then null; end;
 end $$;
 reset role;
+-- the requester chooses the route; the SEE corrects it; approval sends it by itself
+insert into public.material_requests (id, code, exec_project_id, requested_by, required_date, purpose, status, route)
+values ('00000000-0000-0000-0000-00000000aa05', 'MR-T-5', current_setting('test.lo_exec')::uuid, (select id from u where role = 'assistant_engineer'), current_date + 30, 'Floodlights', 'submitted', 'import'),
+       ('00000000-0000-0000-0000-00000000aa06', 'MR-T-6', current_setting('test.lo_exec')::uuid, (select id from u where role = 'assistant_engineer'), current_date + 30, 'Cable', 'submitted', 'sap');
+insert into public.material_request_lines (mr_id, item, unit, qty) values ('00000000-0000-0000-0000-00000000aa05', 'Floodlight 400 W', 'nos', 12), ('00000000-0000-0000-0000-00000000aa06', 'Cable 4C 16 mm', 'm', 300);
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin
+  perform public.set_mr_route('00000000-0000-0000-0000-00000000aa05', 'local');
+  perform public.decide_material_request('00000000-0000-0000-0000-00000000aa05', true, null);
+  assert exists (select 1 from public.lo_requests where mr_id = '00000000-0000-0000-0000-00000000aa05' and quantity like '%Floodlight 400 W%'), 'local request created on approval';
+  perform public.decide_material_request('00000000-0000-0000-0000-00000000aa06', true, null);
+  assert not exists (select 1 from public.lo_requests where mr_id = '00000000-0000-0000-0000-00000000aa06'), 'SAP route: Operations orders it';
+  perform public.set_mr_route('00000000-0000-0000-0000-00000000aa06', 'import');
+  assert exists (select 1 from public.fo_handovers where mr_id = '00000000-0000-0000-0000-00000000aa06'), 'changed to import after approval: sent';
+  begin perform public.set_mr_route('00000000-0000-0000-0000-00000000aa06', 'local'); assert false, 'already sent';
+  exception when raise_exception then null; end;
+end $$;
+reset role;
 -- undoing an invoice payment reopens a closed order
 do $$ declare o uuid; r uuid; inv uuid; ops uuid := (select id from u where role = 'operations_exec'); begin
   select id into r from public.lo_requests limit 1;

@@ -4,10 +4,11 @@ import { Text } from 'react-native';
 import { Attachments } from '@/components/Attachments';
 import { useDialog } from '@/components/dialog';
 import { mrTone } from '@/components/exec/MaterialRows';
+import { OrderProgress } from '@/components/exec/OrderProgress';
 import { TestingBanner } from '@/components/Testing';
 import { Button, Card, colors, ErrorBanner, Field, KeyValue, ListRow, Loading, Muted, Notice, NumberField, Pill, Row, Screen, Section, Select } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { CUSTODY, MR_STATUS, mrDaysLate, type ExecMember, type MaterialReceipt, type MaterialRequest, type MrLine, type MrRouteOrder } from '@/lib/execution';
+import { CUSTODY, MR_ROUTES, MR_STATUS, mrDaysLate, type ExecMember, type MaterialReceipt, type MaterialRequest, type MrLine, type MrRouteOrder } from '@/lib/execution';
 import { fmtDate, fmtDateTime, fmtNumber, fmtTime, todayISO } from '@/lib/format';
 import { slTime } from '@/lib/hse';
 import { loadSubcontractors } from '@/lib/subcontractors';
@@ -52,19 +53,19 @@ export default function MaterialScreen() {
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const { m, lines, receipts, members, local, imported, orders } = data;
   const routed = !!(local || imported);
-  const canBuyLocally = m.status === 'approved' && !local && !imported && (me.role === 'senior_elec_engineer' || me.role === 'operations_exec');
-  const sendImport = async () => {
+  // how it is sourced: chosen by the person raising it; the SEE corrects it until it is ordered or sent
+  const mrRoute = m.route ?? 'sap';
+  const canRoute =
+    (['ae_review', 'submitted', 'pending_smp'].includes(m.status) && (me.role === 'senior_elec_engineer' || me.role === 'sm_projects' || m.requested_by === me.id || me.role === 'assistant_engineer')) ||
+    (m.status === 'approved' && !routed && !m.po_no && (me.role === 'senior_elec_engineer' || me.role === 'sm_projects'));
+  const changeRoute = async () => {
     const r = await dialog.prompt({
-      title: 'Import – send to Operations',
-      message: 'Operations gets an import request with these items, the project, the site and the required date, and splits it into import orders.',
-      fields: [{ key: 'note', label: 'Note for Operations', type: 'multiline', hint: 'e.g. same make as the approved sample' }],
-      confirmLabel: 'Send for import',
+      title: 'How is it sourced?',
+      message: m.status === 'approved' ? 'Approved already: a local or import request is sent to Operations at once.' : 'A local or import request is sent to Operations when the request is approved.',
+      fields: [{ key: 'route', label: 'Route', type: 'select', required: true, initial: mrRoute, options: MR_ROUTES.map((x) => ({ value: x.value, label: `${x.label} – ${x.hint}` })) }],
+      confirmLabel: 'Save',
     });
-    if (!r) return;
-    await dialog.run(async () => {
-      const hid = (await rpc('fo_request_from_mr', { p_mr: m.id, p_note: r.note || null })) as string;
-      router.push(`/orders/foreign/ho/${hid}`);
-    }, 'Sent to Operations for import');
+    if (r && r.route !== mrRoute) await dialog.run(async () => { await rpc('set_mr_route', { p_id: m.id, p_route: r.route }); await reload(); }, 'Route changed');
   };
   const isAe = me.role === 'assistant_engineer' && members.some((x) => x.user_id === me.id);
   const isSub = me.role === 'sub_supervisor';
@@ -72,7 +73,7 @@ export default function MaterialScreen() {
   const pendingReceipt = receipts.find((r) => r.status === 'pending');
   const canAeReview = m.status === 'ae_review' && (isAe || me.role === 'senior_elec_engineer');
   const canDecide = (m.status === 'submitted' && me.role === 'senior_elec_engineer') || (m.status === 'pending_smp' && me.role === 'sm_projects');
-  const canOrder = m.status === 'approved' && me.role === 'operations_exec' && !routed;
+  const canOrder = m.status === 'approved' && me.role === 'operations_exec' && !routed && (m.route ?? 'sap') === 'sap';
   const canSchedule = ['approved', 'ordered', 'part_received'].includes(m.status) && me.role === 'operations_exec';
   const late = mrDaysLate(m, todayISO());
   const canReceive = ['ordered', 'part_received'].includes(m.status) && !pendingReceipt && (isAe || isSub || me.role === 'senior_elec_engineer' || me.role === 'operations_exec');
@@ -171,6 +172,7 @@ export default function MaterialScreen() {
         {m.purpose ? <KeyValue label="For" value={m.purpose} /> : null}
         <KeyValue label="Requested by" value={`${people[m.requested_by]?.full_name ?? ''} · ${fmtDateTime(m.requested_at)}`} />
         {m.po_no || m.supplier ? <KeyValue label={m.status === 'approved' && routed ? 'Ordered so far' : 'Order'} value={[m.po_no ? `${routed ? 'PO' : 'SAP'} ${m.po_no}` : null, m.supplier].filter(Boolean).join(' · ')} /> : null}
+        <KeyValue label="Sourced by" value={`${MR_ROUTES.find((x) => x.value === mrRoute)?.label ?? mrRoute}${(local ?? imported) ? ` · ${(local ?? imported)?.code ?? ''}` : ''}`} />
         {m.expected_date && ['approved', 'ordered', 'part_received'].includes(m.status) ? <KeyValue label="Expected" value={`${fmtDate(m.expected_date)}${routed ? ' · follows the order' : ''}`} /> : null}
         <KeyValue
           label="Delivery"
@@ -184,8 +186,7 @@ export default function MaterialScreen() {
           {canDecide ? <Button title="Approve" onPress={() => decide(true)} /> : null}
           {canDecide ? <Button variant="secondary" title="Reject" onPress={() => decide(false)} /> : null}
           {canOrder ? <Button variant="secondary" title="Ordered in SAP" onPress={order} /> : null}
-          {canBuyLocally ? <Button variant="secondary" title="Buy locally – send to Operations" onPress={() => router.push({ pathname: '/orders/local/request-form', params: { mr: m.id } })} /> : null}
-          {canBuyLocally ? <Button variant="secondary" title="Import – send to Operations" onPress={sendImport} /> : null}
+          {canRoute ? <Button variant="secondary" title="Change route" onPress={changeRoute} /> : null}
           {imported ? <Button variant="ghost" title={`Import request ${imported.code ?? ''} ›`} onPress={() => router.push(`/orders/foreign/ho/${imported.id}`)} /> : null}
           {local ? <Button variant="ghost" title={`Local request ${local.code ?? ''} ›`} onPress={() => router.push(`/orders/local/r/${local.id}`)} /> : null}
           {canSchedule ? <Button title={m.delivery_at ? 'Move the delivery' : 'Set delivery date & time'} onPress={schedule} /> : null}
@@ -202,17 +203,7 @@ export default function MaterialScreen() {
       </Card>
       {orders.length ? (
         <Section title={`Orders for this request (${orders.filter((o) => o.po).length} of ${orders.length} ordered)`}>
-          <Card style={{ padding: 0, overflow: 'hidden' }}>
-            {orders.map((o) => (
-              <ListRow
-                key={o.order_id}
-                onPress={() => router.push(o.module === 'lo' ? `/orders/local/${o.order_id}` : `/orders/foreign/${o.order_id}`)}
-                title={`${o.code ?? ''} · ${o.supplier ?? '—'}`}
-                subtitle={[o.module === 'lo' ? 'Local order' : 'Import order', o.po ? `PO ${o.po}` : 'PO not issued yet', o.expected ? `expected ${fmtDate(o.expected)}` : null].filter(Boolean).join(' · ')}
-                right={<Pill label={o.delivered ? 'Delivered' : o.po ? 'Ordered' : 'Being sourced'} tone={o.delivered ? colors.green : o.po ? colors.blue : colors.amber} />}
-              />
-            ))}
-          </Card>
+          <OrderProgress mrId={m.id} orders={orders} />
           <Muted>Ordered when every order has its PO. The expected date follows the orders; when the site records the full receipt here, the orders are marked delivered.</Muted>
         </Section>
       ) : routed ? (
