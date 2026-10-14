@@ -184,14 +184,14 @@ export default function LocalOrder() {
       fields: [
         { key: 'title', label: 'What', required: true, initial: w?.title ?? '' },
         { key: 'pct', label: '% of the whole work (optional)', initial: w?.pct != null ? String(w.pct) : '' },
-        ...(agreementSigned ? [] : [{ key: 'planned_on', label: 'Planned completion (agreement work programme)', type: 'date' as const, initial: w?.planned_on ?? '', hint: 'Fixed once the agreement is signed – then changed only with the SEE’s and SM Projects’ approval' }]),
-        { key: 'done_on', label: 'Done / certified on (when done)', type: 'date', initial: w?.done_on ?? '' },
+        ...(agreementSigned && w?.planned_on ? [] : [{ key: 'planned_on', label: 'Planned completion (agreement work programme)', type: 'date' as const, initial: w?.planned_on ?? '', hint: 'Fixed once the agreement is signed – then changed only with the SEE’s and SM Projects’ approval' }]),
+        { key: 'done_on', label: 'Done / certified on (when done)', type: 'date', initial: w?.done_on ?? '', hint: 'Leave empty until the stage is actually done – not a future date' },
         { key: 'cert_ref', label: 'IPC / certificate no.', initial: w?.cert_ref ?? '' },
         { key: 'note', label: 'Note', initial: w?.note ?? '' },
       ],
       confirmLabel: 'Save',
     });
-    if (x) await dialog.run(async () => { await rpc('lo_save_work_stage', { p_id: w?.id ?? null, p: { ...x, ...(agreementSigned ? { planned_on: w?.planned_on ?? '' } : {}), order_id: o.id } }); await reload(); }, 'Saved');
+    if (x) await dialog.run(async () => { await rpc('lo_save_work_stage', { p_id: w?.id ?? null, p: { ...x, ...(agreementSigned && w?.planned_on ? { planned_on: w.planned_on } : {}), order_id: o.id } }); await reload(); }, 'Saved');
   };
   const askDate = async (w: LoWorkStage) => {
     const x = await dialog.prompt({
@@ -261,7 +261,7 @@ export default function LocalOrder() {
             <Row gap={6} style={{ alignItems: 'center' }}>
               <Pill label={w.done_on ? 'Done' : late ? 'Late' : 'In progress'} tone={w.done_on ? colors.green : late ? colors.red : colors.blue} />
               {workEditor && open ? <Button small variant="ghost" title="Edit" onPress={() => saveStage(w)} /> : null}
-              {workEditor && open && agreementSigned && !w.done_on && !stageChanges.some((c) => c.stage_id === w.id && c.status.startsWith('pending')) ? (
+              {workEditor && open && agreementSigned && w.planned_on && !w.done_on && !stageChanges.some((c) => c.stage_id === w.id && c.status.startsWith('pending')) ? (
                 <Button small variant="ghost" title="Change date…" onPress={() => askDate(w)} />
               ) : null}
               {workEditor && open && !inv.length ? <Button small variant="ghost" title="Remove" onPress={async () => { if (await dialog.confirm(`Remove work stage ${w.seq}?`)) await dialog.run(async () => { await rpc('lo_remove_work_stage', { p_id: w.id }); await reload(); }, 'Removed'); }} /> : null}

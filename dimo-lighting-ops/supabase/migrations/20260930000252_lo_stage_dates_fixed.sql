@@ -1,5 +1,6 @@
 -- Local orders – services in stages: the planned completion of each work stage is the agreement's work programme. It is
--- set until the agreement is signed ("Signed agreement issued to the provider"); after that it is fixed and changes
+-- set until the agreement is signed ("Signed agreement issued to the provider") – and a stage without a date can get its
+-- first one any time; after that it is fixed and changes
 -- only through a request approved by the project's SEE and then SM Projects (the history is kept).
 
 create or replace function app.lo_agreement_signed(p_order uuid) returns boolean
@@ -21,9 +22,9 @@ begin
   perform app.require(o.status = 'open', 'The order is closed');
   perform app.require(app.lo_keeper() or app.lo_see_of(o.request_id) = auth.uid(), 'Operations or the project''s SEE record the work');
   perform app.require(coalesce(btrim(p ->> 'title'), '') <> '', 'What is this stage of the work?');
-  perform app.require(done is null or done <= (now() at time zone app.tz())::date, 'The done date cannot be in the future');
+  perform app.require(done is null or done <= (now() at time zone app.tz())::date, '“Done / certified on” is the date the stage was actually done – leave it empty until then (the planned date can be in the future)');
   -- the planned dates are the agreement's: fixed once it is signed (a change goes to the SEE and SM Projects)
-  if app.lo_agreement_signed(o.id) and plan is distinct from w.planned_on then
+  if app.lo_agreement_signed(o.id) and w.planned_on is not null and plan is distinct from w.planned_on then
     perform app.require(false, 'The planned date is fixed by the signed agreement – request a change (the SEE and SM Projects approve it)');
   end if;
   if p_id is null then
