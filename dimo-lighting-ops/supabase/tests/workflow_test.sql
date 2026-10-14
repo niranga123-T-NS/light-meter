@@ -8092,6 +8092,43 @@ do $$ begin
   assert (select count(*) from public.order_date_changes where order_id = current_setting('test.ipco')::uuid) = 2, 'kept in the date history';
 end $$;
 reset role;
+-- the project pays its subcontractor IPCs through that local order: the certificate stops at "IPC approved", the invoice
+-- needs no Operations approval, and the local order's progress shows on both
+do $$ declare o uuid := current_setting('test.ipco')::uuid; e uuid; c uuid; v uuid; li uuid;
+begin
+  e := (select r.exec_project_id from public.lo_orders x join public.lo_requests r on r.id = x.request_id where x.id = o);
+  assert app.exec_pays_by_lo(e), 'paid through the local order';
+  insert into public.sub_certs (exec_project_id, subcontractor, period, gross, status) values (e, 'Sub Co', 'Nov 2026', 200000, 'verified') returning id into c;
+  insert into public.sub_invoices (code, exec_project_id, sub_cert_id, subcontractor, invoice_no, invoice_date, amount, status, created_by)
+  values ('SI-T-2', e, c, 'Sub Co', 'SC-2', current_date, 200000, 'submitted', (select id from u where role = 'assistant_engineer')) returning id into v;
+  perform set_config('test.sc', c::text, true); perform set_config('test.sv', v::text, true);
+end $$;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin
+  assert public.decide_sub_invoice(current_setting('test.sv')::uuid, true, null) = 'approved', 'SEE approval is enough';
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  begin perform public.advance_sub_cert(current_setting('test.sc')::uuid, true, null); assert false, 'approved on the local order';
+  exception when raise_exception then assert sqlerrm like 'Paid through the project''s local service order%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare li uuid; begin
+  li := public.lo_take_ipc(current_setting('test.ipco')::uuid, current_setting('test.sv')::uuid, '{}');
+  assert (select lo_invoice_id = li and lo_next = 'smp' from public.sub_invoices where id = current_setting('test.sv')::uuid), 'with SM Projects on the local order';
+  perform set_config('test.li', li::text, true);
+end $$;
+reset role;
+do $$ begin
+  update public.lo_invoices set smp_on = current_date, dgm_on = current_date, proc_on = current_date, finance_on = current_date, paid_on = current_date, pay_ref = 'PAY-9', status = 'paid'
+   where id = current_setting('test.li')::uuid;
+  assert (select lo_next = 'paid' and lo_paid_on = current_date from public.sub_invoices where id = current_setting('test.sv')::uuid), 'paid on the invoice';
+  assert (select status = 'paid' and paid_ref like 'Local order %PAY-9' from public.sub_certs where id = current_setting('test.sc')::uuid), 'certificate paid';
+  update public.lo_invoices set paid_on = null, pay_ref = null, status = 'open' where id = current_setting('test.li')::uuid;
+  assert (select status = 'verified' from public.sub_certs where id = current_setting('test.sc')::uuid), 'payment undone';
+end $$;
 -- service payment terms follow the billing; hire: periods and usage; work basis: deliverables
 select pg_temp.act_as('operations_exec'); set role authenticated;
 do $$ declare o uuid := current_setting('test.ipco')::uuid; r uuid; w3 uuid; h uuid; i uuid; d date := current_date;

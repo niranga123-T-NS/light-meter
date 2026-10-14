@@ -721,6 +721,9 @@ export type SubInvoice = {
   return_note: string | null;
   docs_received_at: string | null;
   docs_note: string | null;
+  /** paid through the project's local service order: where its IPC invoice is (the next approval, or paid) */
+  lo_next?: string | null;
+  lo_paid_on?: string | null;
 };
 export const SINV_STATUS: Record<SubInvoice['status'], { label: string; tone: 'grey' | 'amber' | 'blue' | 'green' | 'red' }> = {
   draft: { label: 'Draft – attach the copy and submit', tone: 'grey' },
@@ -732,6 +735,10 @@ export const SINV_STATUS: Record<SubInvoice['status'], { label: string; tone: 'g
   docs_received: { label: 'Physical documents received', tone: 'green' },
   cancelled: { label: 'Withdrawn', tone: 'grey' },
 };
+const LO_POINT: Record<string, string> = { see: 'the SEE', smp: 'SM Projects', dgm: 'the DGM', proc: 'Procurement', finance: 'Finance', paid: 'payment' };
+/** A subcontractor invoice paid through the local order: its progress there */
+export const subInvoicePayment = (v: Pick<SubInvoice, 'lo_next' | 'lo_paid_on'>) =>
+  !v.lo_next ? null : v.lo_next === 'paid' ? `Paid${v.lo_paid_on ? ` ${v.lo_paid_on.split('-').reverse().join('/')}` : ''}` : `Payment: with ${LO_POINT[v.lo_next] ?? v.lo_next}`;
 /** Shown wherever an invoice is recorded: the record is for reference, the originals go to the office */
 export const SINV_NOTICE =
   'This submission is for recording purposes only. The physical documents must be submitted to the DIMO Lighting Solutions office for processing – you will be told here when they can be submitted.';
