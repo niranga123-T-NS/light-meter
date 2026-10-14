@@ -8,7 +8,7 @@ import { OrderProgress } from '@/components/exec/OrderProgress';
 import { TestingBanner } from '@/components/Testing';
 import { Button, Card, colors, ErrorBanner, Field, KeyValue, ListRow, Loading, Muted, Notice, NumberField, Pill, Row, Screen, Section, Select } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { CUSTODY, MR_ROUTES, MR_STATUS, mrDaysLate, type ExecMember, type MaterialReceipt, type MaterialRequest, type MrLine, type MrRouteOrder } from '@/lib/execution';
+import { CUSTODY, type ExecMember, type MaterialReceipt, type MaterialRequest, MR_BILLING, MR_ROUTES, MR_STATUS, mrDaysLate, type MrLine, type MrRouteOrder } from '@/lib/execution';
 import { fmtDate, fmtDateTime, fmtNumber, fmtTime, todayISO } from '@/lib/format';
 import { slTime } from '@/lib/hse';
 import { loadSubcontractors } from '@/lib/subcontractors';
@@ -66,6 +66,20 @@ export default function MaterialScreen() {
       confirmLabel: 'Save',
     });
     if (r && r.route !== mrRoute) await dialog.run(async () => { await rpc('set_mr_route', { p_id: m.id, p_route: r.route }); await reload(); }, 'Route changed');
+  };
+  // a service: how it is paid – the requester / AEs choose it, the SEE (or SM Projects) corrects it; Operations' order follows
+  const canBilling =
+    m.kind === 'service' &&
+    ((['ae_review', 'submitted', 'pending_smp'].includes(m.status) && (me.role === 'senior_elec_engineer' || me.role === 'sm_projects' || m.requested_by === me.id || me.role === 'assistant_engineer')) ||
+      (['approved', 'ordered'].includes(m.status) && (me.role === 'senior_elec_engineer' || me.role === 'sm_projects')));
+  const changeBilling = async () => {
+    const r = await dialog.prompt({
+      title: 'How is the service paid?',
+      message: routed ? 'Operations’ order changes with it (its payment term moves to the nearest that fits) and Operations is told.' : 'Operations orders it this way.',
+      fields: [{ key: 'billing', label: 'Paid', type: 'select', required: true, initial: m.billing ?? '', options: MR_BILLING.map((x) => ({ value: x.value, label: `${x.label} – ${x.hint}` })) }],
+      confirmLabel: 'Save',
+    });
+    if (r && r.billing !== m.billing) await dialog.run(async () => { await rpc('set_mr_billing', { p_id: m.id, p_billing: r.billing }); await reload(); }, 'Changed');
   };
   const isAe = me.role === 'assistant_engineer' && members.some((x) => x.user_id === me.id);
   const isSub = me.role === 'sub_supervisor';
@@ -176,6 +190,7 @@ export default function MaterialScreen() {
         <KeyValue label="Requested by" value={`${people[m.requested_by]?.full_name ?? ''} · ${fmtDateTime(m.requested_at)}`} />
         {m.po_no || m.supplier ? <KeyValue label={m.status === 'approved' && routed ? 'Ordered so far' : 'Order'} value={[m.po_no ? `${routed ? 'PO' : 'SAP'} ${m.po_no}` : null, m.supplier].filter(Boolean).join(' · ')} /> : null}
         <KeyValue label="Sourced by" value={`${m.kind === 'service' ? (mrRoute === 'import' ? 'Foreign service provider' : 'Local service provider') : MR_ROUTES.find((x) => x.value === mrRoute)?.label ?? mrRoute}${(local ?? imported) ? ` · ${(local ?? imported)?.code ?? ''}` : ''}`} />
+        {m.kind === 'service' ? <KeyValue label="Paid" value={m.billing ? `${MR_BILLING.find((x) => x.value === m.billing)?.label} – ${MR_BILLING.find((x) => x.value === m.billing)?.hint}` : 'Not chosen – Operations decides'} /> : null}
         {m.expected_date && ['approved', 'ordered', 'part_received'].includes(m.status) ? <KeyValue label="Expected" value={`${fmtDate(m.expected_date)}${routed ? ' · follows the order' : ''}`} /> : null}
         <KeyValue
           label="Delivery"
@@ -190,6 +205,7 @@ export default function MaterialScreen() {
           {canDecide ? <Button variant="secondary" title="Reject" onPress={() => decide(false)} /> : null}
           {canOrder ? <Button variant="secondary" title="Ordered in SAP" onPress={order} /> : null}
           {canRoute ? <Button variant="secondary" title="Change route" onPress={changeRoute} /> : null}
+          {canBilling ? <Button variant="secondary" title={m.billing ? 'Change how it is paid' : 'Choose how it is paid'} onPress={changeBilling} /> : null}
           {imported ? <Button variant="ghost" title={`Import request ${imported.code ?? ''} ›`} onPress={() => router.push(`/orders/foreign/ho/${imported.id}`)} /> : null}
           {local ? <Button variant="ghost" title={`Local request ${local.code ?? ''} ›`} onPress={() => router.push(`/orders/local/r/${local.id}`)} /> : null}
           {canSchedule ? <Button title={m.delivery_at ? 'Move the delivery' : 'Set delivery date & time'} onPress={schedule} /> : null}

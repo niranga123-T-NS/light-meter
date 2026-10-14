@@ -7988,7 +7988,34 @@ insert into public.material_requests (id, code, exec_project_id, requested_by, r
 values ('00000000-0000-0000-0000-00000000aa07', 'MR-T-7', current_setting('test.lo_exec')::uuid, (select id from u where role = 'assistant_engineer'), current_date + 20, 'Trenching', 'submitted', 'local', 'service');
 insert into public.material_request_lines (mr_id, item, unit, qty, custom) values ('00000000-0000-0000-0000-00000000aa07', 'Trenching and backfilling 0.6 m', 'm', 450, true);
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
-do $$ begin perform public.decide_material_request('00000000-0000-0000-0000-00000000aa07', true, null); end $$;
+do $$ begin
+  perform public.decide_material_request('00000000-0000-0000-0000-00000000aa07', true, null);
+  -- how the service is paid: the site's choice (the SEE corrects it)
+  perform public.set_mr_billing('00000000-0000-0000-0000-00000000aa07', 'ipc');
+  assert (select billing = 'ipc' from public.material_requests where id = '00000000-0000-0000-0000-00000000aa07'), 'site chose IPC';
+end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare r uuid := (select id from public.lo_requests where mr_id = '00000000-0000-0000-0000-00000000aa07'); o uuid; begin
+  begin perform public.lo_save_order(null, jsonb_build_object('request_id', r, 'title', 'Trenching', 'kind', 'service', 'billing', 'single', 'supplier', 'Civil Co', 'payment_term', 'after_delivery')); assert false, 'Ops cannot change it';
+  exception when raise_exception then assert sqlerrm like 'The site chose "Paid by IPC"%', sqlerrm; end;
+  o := public.lo_save_order(null, jsonb_build_object('request_id', r, 'title', 'Trenching (IPC)', 'kind', 'service', 'supplier', 'Civil Co', 'payment_term', 'advance_ipc', 'advance_pct', 15));
+  assert (select billing = 'ipc' from public.lo_orders where id = o), 'order follows the site';
+  begin perform public.lo_set_billing(o, 'single'); assert false, 'Ops cannot change it';
+  exception when raise_exception then null; end;
+  begin perform public.set_mr_billing('00000000-0000-0000-0000-00000000aa07', 'hire'); assert false, 'only the SEE after approval';
+  exception when raise_exception then null; end;
+  perform set_config('test.mrbo', o::text, true);
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin
+  perform public.set_mr_billing('00000000-0000-0000-0000-00000000aa07', 'hire');
+  assert (select billing = 'hire' and payment_term = 'advance_periodic' and advance_pct = 15 and hire_unit = 'day' from public.lo_orders where id = current_setting('test.mrbo')::uuid), 'the order follows the SEE';
+end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ begin perform public.lo_cancel_order(current_setting('test.mrbo')::uuid, 'Test order'); end $$;
 reset role;
 do $$ declare r uuid := (select id from public.lo_requests where mr_id = '00000000-0000-0000-0000-00000000aa07'); o uuid; ops uuid := (select id from u where role = 'operations_exec'); begin
   assert (select kind = 'service' from public.lo_requests where id = r), 'local service request';

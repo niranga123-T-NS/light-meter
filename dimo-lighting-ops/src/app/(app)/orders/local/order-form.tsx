@@ -4,9 +4,9 @@ import { View } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { rpc } from '@/components/foreign/actions';
 import { TestingBanner } from '@/components/Testing';
-import { Button, Card, ErrorBanner, Field, Loading, Muted, NumberField, Row, Screen, Section, Select } from '@/components/ui';
+import { Button, Card, ErrorBanner, Field, KeyValue, Loading, Muted, NumberField, Row, Screen, Section, Select } from '@/components/ui';
 import { useLoad } from '@/lib/hooks';
-import { ADVANCE_TERMS, DIC_LIMIT, fmtLkr, HIRE_UNITS, paymentTerms, type LoBilling, type LoOrder, type LoRequest, type PaymentTerm } from '@/lib/localOrders';
+import { ADVANCE_TERMS, BILLING_LABEL, DIC_LIMIT, fmtLkr, HIRE_UNITS, paymentTerms, type LoBilling, type LoOrder, type LoRequest, type PaymentTerm } from '@/lib/localOrders';
 import { supabase } from '@/lib/supabase';
 
 /** A supplier order from Procurement's final selection (Ops): supplier, terms Ops confirms (lead time, delivery arrangement, payment term) and the selected value. */
@@ -26,13 +26,16 @@ export default function LocalOrderForm() {
     }
     const r = await supabase.from('lo_requests').select('*').eq('id', o?.request_id ?? request ?? '').single();
     if (r.error) throw new Error(r.error.message);
-    return { o, value, rate, r: r.data as LoRequest };
+    const req = r.data as LoRequest & { mr_id?: string | null };
+    // a service the site asked for: how it is paid is the site's choice
+    const siteBilling = req.mr_id ? (((await supabase.from('material_requests').select('billing, kind').eq('id', req.mr_id).maybeSingle()).data as { billing: LoBilling | null; kind: string } | null) ?? null) : null;
+    return { o, value, rate, r: req, siteBilling: siteBilling?.kind === 'service' ? siteBilling.billing : null };
   }, [id, request]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   return <Form {...data} />;
 }
 
-function Form({ o, value, rate, r }: { o: LoOrder | null; value: number | null; rate: number | null; r: LoRequest }) {
+function Form({ o, value, rate, r, siteBilling }: { o: LoOrder | null; value: number | null; rate: number | null; r: LoRequest; siteBilling: LoBilling | null }) {
   const dialog = useDialog();
   const [title, setTitle] = useState(o?.title ?? (r.kind === 'both' ? '' : r.title));
   const [kind, setKind] = useState<string>(o?.kind ?? (r.kind === 'service' ? 'service' : 'material'));
@@ -45,7 +48,7 @@ function Form({ o, value, rate, r }: { o: LoOrder | null; value: number | null; 
   const [delivery, setDelivery] = useState(o?.delivery_arrangement ?? '');
   const [val, setVal] = useState<number | null>(value);
   const [notes, setNotes] = useState(o?.notes ?? '');
-  const [billing, setBilling] = useState<LoBilling>(o?.billing ?? 'single');
+  const [billing, setBilling] = useState<LoBilling>(siteBilling ?? o?.billing ?? 'single');
   const [unit, setUnit] = useState<string>(o?.hire_unit ?? 'day');
   const [hireRate, setHireRate] = useState<number | null>(rate);
   const service = kind === 'service';
@@ -90,7 +93,9 @@ function Form({ o, value, rate, r }: { o: LoOrder | null; value: number | null; 
         {r.kind === 'both' ? (
           <Select label="Material or service" required value={kind} onChange={setKind} options={[{ value: 'material', label: 'Material – PO, delivery notes' }, { value: 'service', label: 'Service – PO / LOA, bonds, agreement, IPCs' }]} />
         ) : null}
-        {service ? (
+        {service && siteBilling ? (
+          <KeyValue label="Billing – chosen by the site" value={`${BILLING_LABEL[siteBilling]} · the SEE changes it on the service request`} />
+        ) : service ? (
           <Select
             label="Billing"
             required

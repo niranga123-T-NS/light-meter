@@ -366,6 +366,14 @@ export const VAR_ROUTES: Record<string, string> = { A: 'Design + estimation', B:
 // ---- Materials, documents, design queries (step 7a) ----
 export type MrRouteKind = 'sap' | 'local' | 'import';
 /** How the person raising the request sources it – Operations no longer decides */
+/** How a service is paid – chosen with the request (the SEE corrects it); Operations' local order follows it */
+export type MrBilling = 'single' | 'ipc' | 'milestone' | 'hire';
+export const MR_BILLING: { value: MrBilling; label: string; hint: string }[] = [
+  { value: 'single', label: 'Single invoice', hint: 'one-off job, paid when done (a repair, a single crane lift)' },
+  { value: 'ipc', label: 'Paid by IPC', hint: 'subcontract work measured and claimed by IPC' },
+  { value: 'milestone', label: 'Per deliverable', hint: 'work basis – each deliverable paid once accepted (e.g. a consultant’s design, report)' },
+  { value: 'hire', label: 'Hire', hint: 'machine, equipment or consultant time – paid per period from the time sheet' },
+];
 export const MR_ROUTES: { value: MrRouteKind; label: string; hint: string }[] = [
   { value: 'sap', label: 'SAP (order / stock)', hint: 'Operations orders it in SAP or issues it from stock' },
   { value: 'local', label: 'Buy locally', hint: 'A local request (LR-) goes to Operations on approval' },
@@ -401,6 +409,7 @@ export type MaterialRequest = {
   priority?: 'normal' | 'urgent';
   route?: MrRouteKind;
   kind?: 'material' | 'service';
+  billing?: MrBilling | null;
   activity_id?: string | null;
   deliver_to?: string | null;
   site_contact?: string | null;
