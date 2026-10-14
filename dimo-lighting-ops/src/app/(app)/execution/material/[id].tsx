@@ -62,7 +62,7 @@ export default function MaterialScreen() {
     const r = await dialog.prompt({
       title: 'How is it sourced?',
       message: m.status === 'approved' ? 'Approved already: a local or import request is sent to Operations at once.' : 'A local or import request is sent to Operations when the request is approved.',
-      fields: [{ key: 'route', label: 'Route', type: 'select', required: true, initial: mrRoute, options: MR_ROUTES.map((x) => ({ value: x.value, label: `${x.label} – ${x.hint}` })) }],
+      fields: [{ key: 'route', label: 'Route', type: 'select', required: true, initial: mrRoute, options: MR_ROUTES.filter((x) => m.kind !== 'service' || x.value !== 'sap').map((x) => ({ value: x.value, label: `${x.label} – ${x.hint}` })) }],
       confirmLabel: 'Save',
     });
     if (r && r.route !== mrRoute) await dialog.run(async () => { await rpc('set_mr_route', { p_id: m.id, p_route: r.route }); await reload(); }, 'Route changed');
@@ -76,7 +76,7 @@ export default function MaterialScreen() {
   const canOrder = m.status === 'approved' && me.role === 'operations_exec' && !routed && (m.route ?? 'sap') === 'sap';
   const canSchedule = ['approved', 'ordered', 'part_received'].includes(m.status) && me.role === 'operations_exec';
   const late = mrDaysLate(m, todayISO());
-  const canReceive = ['ordered', 'part_received'].includes(m.status) && !pendingReceipt && (isAe || isSub || me.role === 'senior_elec_engineer' || me.role === 'operations_exec');
+  const canReceive = m.kind !== 'service' && ['ordered', 'part_received'].includes(m.status) && !pendingReceipt && (isAe || isSub || me.role === 'senior_elec_engineer' || me.role === 'operations_exec');
   // Who acknowledges a pending delivery: the AE side (if not yet) and the named supervisor (if not yet)
   const canAck = (r: MaterialReceipt) =>
     r.status === 'pending' && ((!r.ae_ack_at && (isAe || me.role === 'senior_elec_engineer')) || (!r.sub_ack_at && r.supervisor_id === me.id));
@@ -164,15 +164,18 @@ export default function MaterialScreen() {
       <Card style={{ borderLeftWidth: 4, borderLeftColor: mrTone(m.status) }}>
         <Row style={{ justifyContent: 'space-between' }} wrap>
           <Text style={{ fontSize: 18, fontWeight: '700', color: colors.ink }}>{`${m.code} · ${m.exec_projects?.name ?? ''}`}</Text>
-          <Pill label={MR_STATUS[m.status]} tone={mrTone(m.status)} solid />
+          <Row gap={6}>
+            {m.kind === 'service' ? <Pill label="Service" tone={colors.blue} /> : null}
+            <Pill label={m.kind === 'service' && m.status === 'received' ? 'Work completed' : MR_STATUS[m.status]} tone={mrTone(m.status)} solid />
+          </Row>
         </Row>
-        <KeyValue label="Needed on site by" value={`${fmtDate(m.required_date)}${m.priority === 'urgent' ? ' · URGENT' : ''}`} />
+        <KeyValue label={m.kind === 'service' ? 'Needed by' : 'Needed on site by'} value={`${fmtDate(m.required_date)}${m.priority === 'urgent' ? ' · URGENT' : ''}`} />
         {m.deliver_to ? <KeyValue label="Deliver to" value={m.deliver_to} /> : null}
         {m.site_contact ? <KeyValue label="Site contact" value={m.site_contact} /> : null}
         {m.purpose ? <KeyValue label="For" value={m.purpose} /> : null}
         <KeyValue label="Requested by" value={`${people[m.requested_by]?.full_name ?? ''} · ${fmtDateTime(m.requested_at)}`} />
         {m.po_no || m.supplier ? <KeyValue label={m.status === 'approved' && routed ? 'Ordered so far' : 'Order'} value={[m.po_no ? `${routed ? 'PO' : 'SAP'} ${m.po_no}` : null, m.supplier].filter(Boolean).join(' · ')} /> : null}
-        <KeyValue label="Sourced by" value={`${MR_ROUTES.find((x) => x.value === mrRoute)?.label ?? mrRoute}${(local ?? imported) ? ` · ${(local ?? imported)?.code ?? ''}` : ''}`} />
+        <KeyValue label="Sourced by" value={`${m.kind === 'service' ? (mrRoute === 'import' ? 'Foreign service provider' : 'Local service provider') : MR_ROUTES.find((x) => x.value === mrRoute)?.label ?? mrRoute}${(local ?? imported) ? ` · ${(local ?? imported)?.code ?? ''}` : ''}`} />
         {m.expected_date && ['approved', 'ordered', 'part_received'].includes(m.status) ? <KeyValue label="Expected" value={`${fmtDate(m.expected_date)}${routed ? ' · follows the order' : ''}`} /> : null}
         <KeyValue
           label="Delivery"

@@ -400,6 +400,7 @@ export type MaterialRequest = {
   expected_date: string | null;
   priority?: 'normal' | 'urgent';
   route?: MrRouteKind;
+  kind?: 'material' | 'service';
   activity_id?: string | null;
   deliver_to?: string | null;
   site_contact?: string | null;

@@ -90,7 +90,7 @@ export default function Materials() {
     .sort((a, b) => mrDaysLate(b, today) - mrDaysLate(a, today) || (a.delivery_at ?? a.required_date).localeCompare(b.delivery_at ?? b.required_date));
   return (
     <Screen refreshing={loading} onRefresh={reload} maxWidth={1400}>
-      <Stack.Screen options={{ title: 'Materials & stores' }} />
+      <Stack.Screen options={{ title: 'Materials, services & stores' }} />
       <TestingBanner what="Materials and stores" />
       <Grid min={150}>
         <Stat label={me.role === 'assistant_engineer' || me.role === 'sub_supervisor' ? 'My open requests' : 'Waiting for you'} value={action.length} tone={action.length ? 'amber' : undefined} onPress={() => setTab('action')} />
@@ -107,7 +107,7 @@ export default function Materials() {
             { value: 'status', label: 'Order status' },
           ]}
         />
-        {['senior_elec_engineer', 'assistant_engineer', 'sub_supervisor'].includes(me.role) ? <Button title="+ Material request" onPress={() => router.push('/execution/material/new')} /> : null}
+        {['senior_elec_engineer', 'assistant_engineer', 'sub_supervisor'].includes(me.role) ? <Button title="+ Request (materials / services)" onPress={() => router.push('/execution/material/new')} /> : null}
       </Row>
       {tab === 'action' ? (
         <MaterialRows rows={action} projectName={pname} routes={data.routes} />
@@ -150,7 +150,7 @@ export default function Materials() {
             edge={(m) => toneOf(m, mrDaysLate(m, today), today)}
             emptyTitle="No orders match the filters"
             columns={[
-              { h: 'MR', w: 110, v: (m) => m.code, bold: true },
+              { h: 'MR', w: 110, v: (m) => `${m.code}${m.kind === 'service' ? '\nService' : ''}`, bold: true },
               { h: 'Project', w: 190, v: (m) => `${pcode(m.exec_project_id)}\n${pname(m.exec_project_id)}`.trim() },
               { h: 'Status', w: 210, v: (m) => <Pill label={MR_STATUS[m.status]} tone={toneOf(m, mrDaysLate(m, today), today)} /> },
               {

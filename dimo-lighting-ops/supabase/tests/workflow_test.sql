@@ -7983,6 +7983,21 @@ do $$ begin
   exception when raise_exception then null; end;
 end $$;
 reset role;
+-- a service request: local service request on approval, completed when the work is completed
+insert into public.material_requests (id, code, exec_project_id, requested_by, required_date, purpose, status, route, kind)
+values ('00000000-0000-0000-0000-00000000aa07', 'MR-T-7', current_setting('test.lo_exec')::uuid, (select id from u where role = 'assistant_engineer'), current_date + 20, 'Trenching', 'submitted', 'local', 'service');
+insert into public.material_request_lines (mr_id, item, unit, qty, custom) values ('00000000-0000-0000-0000-00000000aa07', 'Trenching and backfilling 0.6 m', 'm', 450, true);
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin perform public.decide_material_request('00000000-0000-0000-0000-00000000aa07', true, null); end $$;
+reset role;
+do $$ declare r uuid := (select id from public.lo_requests where mr_id = '00000000-0000-0000-0000-00000000aa07'); o uuid; ops uuid := (select id from u where role = 'operations_exec'); begin
+  assert (select kind = 'service' from public.lo_requests where id = r), 'local service request';
+  insert into public.lo_orders (request_id, seq_no, title, kind, supplier, payment_term) values (r, 1, 'Trenching', 'service', 'Civil Co', 'after_delivery') returning id into o;
+  insert into public.lo_steps (request_id, order_id, step, done_on, ref, recorded_by) values (r, o, 'loa_issued', current_date, 'LOA-1', ops);
+  assert (select status = 'ordered' from public.material_requests where id = '00000000-0000-0000-0000-00000000aa07'), 'ordered';
+  insert into public.lo_steps (request_id, order_id, step, done_on, recorded_by) values (r, o, 'work_done', current_date, ops);
+  assert (select status = 'received' from public.material_requests where id = '00000000-0000-0000-0000-00000000aa07'), 'service completed with the work';
+end $$;
 -- undoing an invoice payment reopens a closed order
 do $$ declare o uuid; r uuid; inv uuid; ops uuid := (select id from u where role = 'operations_exec'); begin
   select id into r from public.lo_requests limit 1;

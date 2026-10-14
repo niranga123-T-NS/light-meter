@@ -73,7 +73,7 @@ export const EXEC_NAV = {
   hse: { href: '/execution/hse', label: 'HSE', icon: '⚠', testing: true } as NavItem,
   variations: { href: '/execution/variations', label: 'Variations', icon: '±', testing: true } as NavItem,
   access: { href: '/execution/team', label: 'Execution access', icon: '☺', testing: true } as NavItem,
-  materials: { href: '/execution/materials', label: 'Materials & stores', icon: '⛟', testing: true } as NavItem,
+  materials: { href: '/execution/materials', label: 'Materials, services & stores', icon: '⛟', testing: true } as NavItem,
   documents: { href: '/execution/documents', label: 'Documents', icon: '❏', testing: true } as NavItem,
   queries: { href: '/execution/queries', label: 'Design queries', icon: '?', testing: true } as NavItem,
   certs: { href: '/execution/certs', label: 'Subcontractor invoices', icon: '⧉', testing: true } as NavItem,
