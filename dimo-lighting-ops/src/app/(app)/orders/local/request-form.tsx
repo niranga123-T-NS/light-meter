@@ -1,10 +1,12 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
+import { Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { rpc } from '@/components/foreign/actions';
 import { TestingBanner } from '@/components/Testing';
 import { Button, Card, colors, DateField, ErrorBanner, Field, Loading, Muted, Notice, Row, Screen, Section, Select } from '@/components/ui';
 import { useMe } from '@/lib/auth';
+import { fmtDate } from '@/lib/format';
 import { todayIso } from '@/lib/foreignOrders';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { LO_KEEPER, type LoRequest } from '@/lib/localOrders';
@@ -53,6 +55,8 @@ function Form({ execs, won, r, mr }: { execs: Exec[]; won: Won[]; r: LoRequest |
   const [quantity, setQuantity] = useState(r?.quantity ?? '');
   const [specs, setSpecs] = useState(r?.specs ?? '');
   const [required, setRequired] = useState<string | null>(r?.required_on ?? mr?.required_date ?? null);
+  // the required date belongs to whoever raised the request (the site or sales): Operations does not change it
+  const dateLocked = !!mr || !!r?.mr_id || (!!r && ![r.requested_by, r.created_by, r.sales_person_id].includes(me.id) && me.role !== 'senior_elec_engineer');
   const [location, setLocation] = useState(r?.delivery_location ?? (execs.length === 1 ? execs[0].site_address ?? '' : ''));
   const [received, setReceived] = useState<string | null>(r?.received_on ?? todayIso());
   const [notes, setNotes] = useState(r?.notes ?? '');
@@ -139,7 +143,15 @@ function Form({ execs, won, r, mr }: { execs: Exec[]; won: Won[]; r: LoRequest |
           <Field label="Technical details" multiline value={details} onChangeText={setDetails} hint="Operations checks these before raising the PR" />
           <Field label="Quantity" multiline value={quantity} onChangeText={setQuantity} placeholder={mr ? 'Copied from the material request if left empty' : 'e.g. 120 m trays, 12 poles'} />
           <Field label="Specifications" multiline value={specs} onChangeText={setSpecs} placeholder="e.g. 300 mm hot-dip galvanised; 8 m octagonal poles" />
-          <DateField label="Required by" value={required} onChange={setRequired} />
+          {dateLocked ? (
+            <View style={{ marginBottom: 12 }}>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 4 }}>Required by</Text>
+              <Text style={{ color: colors.ink }}>{required ? fmtDate(required) : '—'}</Text>
+              <Muted>{r?.mr_id ? 'From the site material request – the SEE changes it there.' : 'Set by the project / sales team – only they change it.'}</Muted>
+            </View>
+          ) : (
+            <DateField label="Required by" value={required} onChange={setRequired} />
+          )}
           <Field label="Delivery / work location" required value={location} onChangeText={setLocation} />
           {keeper && !r ? <DateField label="Request received on" value={received} onChange={setReceived} /> : null}
           <Field label="Notes" multiline value={notes} onChangeText={setNotes} />

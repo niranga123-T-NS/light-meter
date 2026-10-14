@@ -7992,6 +7992,12 @@ do $$ declare o uuid; r uuid; inv uuid; ops uuid := (select id from u where role
   update public.lo_invoices set status = 'open', paid_on = null where id = inv;
   assert (select status = 'open' from public.lo_orders where id = o) and not exists (select 1 from public.lo_steps where order_id = o and step = 'closed'), 'order reopened';
 end $$;
+-- Operations cannot change the required date the site set
+select pg_temp.act_as('operations_exec');
+do $$ begin
+  update public.lo_requests set required_on = required_on + 5 where mr_id = '00000000-0000-0000-0000-00000000aa01';
+  assert false, 'Ops changed the site''s required date';
+exception when raise_exception then assert sqlerrm like '%material request%', sqlerrm; end $$;
 -- the material request follows its orders: ordered only when every order has its PO; expected date; delivery; site receipt
 do $$ declare r uuid := (select id from public.lo_requests where mr_id = '00000000-0000-0000-0000-00000000aa01');
   o1 uuid; o2 uuid; mr uuid := '00000000-0000-0000-0000-00000000aa01'; req uuid; ops uuid := (select id from u where role = 'operations_exec');
