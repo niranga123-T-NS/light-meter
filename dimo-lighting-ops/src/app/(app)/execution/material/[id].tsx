@@ -88,7 +88,8 @@ export default function MaterialScreen() {
   const canAeReview = m.status === 'ae_review' && (isAe || me.role === 'senior_elec_engineer');
   const canDecide = (m.status === 'submitted' && me.role === 'senior_elec_engineer') || (m.status === 'pending_smp' && me.role === 'sm_projects');
   const canOrder = m.status === 'approved' && me.role === 'operations_exec' && !routed && (m.route ?? 'sap') === 'sap';
-  const canSchedule = ['approved', 'ordered', 'part_received'].includes(m.status) && me.role === 'operations_exec';
+  // a delivery to site is scheduled for materials only – a service's timing is its order's (completion, deliverables, hire)
+  const canSchedule = m.kind !== 'service' && ['approved', 'ordered', 'part_received'].includes(m.status) && me.role === 'operations_exec';
   const late = mrDaysLate(m, todayISO());
   const canReceive = m.kind !== 'service' && ['ordered', 'part_received'].includes(m.status) && !pendingReceipt && (isAe || isSub || me.role === 'senior_elec_engineer' || me.role === 'operations_exec');
   // Who acknowledges a pending delivery: the AE side (if not yet) and the named supervisor (if not yet)
@@ -184,7 +185,7 @@ export default function MaterialScreen() {
           </Row>
         </Row>
         <KeyValue label={m.kind === 'service' ? 'Needed by' : 'Needed on site by'} value={`${fmtDate(m.required_date)}${m.priority === 'urgent' ? ' · URGENT' : ''}`} />
-        {m.deliver_to ? <KeyValue label="Deliver to" value={m.deliver_to} /> : null}
+        {m.deliver_to ? <KeyValue label={m.kind === 'service' ? 'Work location' : 'Deliver to'} value={m.deliver_to} /> : null}
         {m.site_contact ? <KeyValue label="Site contact" value={m.site_contact} /> : null}
         {m.purpose ? <KeyValue label="For" value={m.purpose} /> : null}
         <KeyValue label="Requested by" value={`${people[m.requested_by]?.full_name ?? ''} · ${fmtDateTime(m.requested_at)}`} />
@@ -192,12 +193,14 @@ export default function MaterialScreen() {
         <KeyValue label="Sourced by" value={`${m.kind === 'service' ? (mrRoute === 'import' ? 'Foreign service provider' : 'Local service provider') : MR_ROUTES.find((x) => x.value === mrRoute)?.label ?? mrRoute}${(local ?? imported) ? ` · ${(local ?? imported)?.code ?? ''}` : ''}`} />
         {m.kind === 'service' ? <KeyValue label="Paid" value={m.billing ? `${MR_BILLING.find((x) => x.value === m.billing)?.label} – ${MR_BILLING.find((x) => x.value === m.billing)?.hint}` : 'Not chosen – Operations decides'} /> : null}
         {m.expected_date && ['approved', 'ordered', 'part_received'].includes(m.status) ? <KeyValue label="Expected" value={`${fmtDate(m.expected_date)}${routed ? ' · follows the order' : ''}`} /> : null}
+        {m.kind === 'service' ? null : (
         <KeyValue
           label="Delivery"
           value={m.delivery_at ? `${fmtDateTime(m.delivery_at)}${m.reschedules ? ` · moved ${m.reschedules}×` : ''}${m.delivery_note ? ` · ${m.delivery_note}` : ''}` : ['approved', 'ordered'].includes(m.status) ? 'Not set yet – Operations sets it when the delivery is ready' : '—'}
         />
+        )}
         {m.decision_note ? <Notice tone={m.status === 'rejected' ? colors.red : colors.blue}>{m.decision_note}</Notice> : null}
-        {late ? <Notice tone={colors.red}>{`Delivery ${late} day${late === 1 ? '' : 's'} late${late > 4 ? ' – SM Projects told' : late > 2 ? ' – the SEE told' : ''}`}</Notice> : null}
+        {late && m.kind !== 'service' ? <Notice tone={colors.red}>{`Delivery ${late} day${late === 1 ? '' : 's'} late${late > 4 ? ' – SM Projects told' : late > 2 ? ' – the SEE told' : ''}`}</Notice> : null}
         <Row wrap gap={6} style={{ marginTop: 8 }}>
           {canAeReview ? <Button title="Forward to SEE" onPress={() => aeReview(true)} /> : null}
           {canAeReview ? <Button variant="secondary" title="Return" onPress={() => aeReview(false)} /> : null}
@@ -228,7 +231,7 @@ export default function MaterialScreen() {
       ) : routed ? (
         <Muted style={{ marginTop: 4 }}>{`With Operations – ${local ? 'local request' : 'import request'} ${(local ?? imported)?.code ?? ''}; no supplier order yet.`}</Muted>
       ) : null}
-      <Section title="Items">
+      <Section title={m.kind === 'service' ? 'Scope of the service' : 'Items'}>
         <Card style={{ padding: 0, overflow: 'hidden' }}>
           {lines.map((l) => (
             <ListRow
@@ -320,8 +323,8 @@ export default function MaterialScreen() {
           </Card>
         </Section>
       ) : null}
-      <Attachments entityType="material_request" entityId={m.id} kinds={['datasheet']} title="Datasheets and drawings of the items" canUpload={me.role !== 'gm' && !['received', 'rejected', 'cancelled'].includes(m.status)} />
-      <Attachments entityType="material_request" entityId={m.id} kinds={['mr_doc', 'grn_photo']} title="Delivery notes and photos" allowCamera canUpload={me.role !== 'gm'} />
+      <Attachments entityType="material_request" entityId={m.id} kinds={['datasheet']} title={m.kind === 'service' ? 'Scope documents (drawings, specifications, BOQ)' : 'Datasheets and drawings of the items'} canUpload={me.role !== 'gm' && !['received', 'rejected', 'cancelled'].includes(m.status)} />
+      {m.kind === 'service' ? null : <Attachments entityType="material_request" entityId={m.id} kinds={['mr_doc', 'grn_photo']} title="Delivery notes and photos" allowCamera canUpload={me.role !== 'gm'} />}
     </Screen>
   );
 }
