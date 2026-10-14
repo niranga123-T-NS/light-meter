@@ -1,0 +1,57 @@
+# Read-only database check (run by hand): calls the scheduled checks' functions the way they are called (as the public
+# role, with a wrong secret – so nothing runs) and reports who owns them and the schema rights, as notices in the run.
+# Uses the Supabase Management API with SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF; nothing is changed.
+name: DIMO – database check
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+    steps:
+      - name: Check
+        run: |
+          q() {
+            curl -sS -X POST "https://api.supabase.com/v1/projects/$PROJECT_REF/database/query" \
+              -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H "Content-Type: application/json" \
+              -d "$(jq -n --arg q "$1" '{query: $q}')"
+          }
+          sql=$(cat <<'SQL'
+          create temp table if not exists _probe (fn text, result text);
+          truncate _probe;
+          do $$
+          declare f text; msg text; ctx text;
+          begin
+            foreach f in array array['fo_flights_due', 'fo_vessels_due'] loop
+              begin
+                execute 'set local role anon';
+                execute format('select public.%I(%L)', f, 'wrong-secret');
+                execute 'reset role';
+                insert into _probe values (f, 'ran');
+              exception when others then
+                get stacked diagnostics msg = message_text, ctx = pg_exception_context;
+                execute 'reset role';
+                insert into _probe values (f, sqlstate || ' ' || msg || ' | ' || left(replace(ctx, E'\n', ' / '), 300));
+              end;
+            end loop;
+          end $$;
+          select fn || ': ' || result as line from _probe
+          union all
+          select 'owner ' || p.oid::regprocedure::text || ' = ' || pg_get_userbyid(p.proowner) || ' definer=' || p.prosecdef
+            from pg_proc p where p.proname in ('fo_flights_due', 'fo_vessels_due', 'fo_flight_ingest', 'fx_secret', 'require')
+          union all
+          select 'schema app owner = ' || pg_get_userbyid(nspowner) from pg_namespace where nspname = 'app'
+          union all
+          select 'usage on app: anon=' || has_schema_privilege('anon', 'app', 'usage') || ' authenticated=' || has_schema_privilege('authenticated', 'app', 'usage')
+                 || ' postgres=' || has_schema_privilege('postgres', 'app', 'usage')
+          union all
+          select 'current_user=' || current_user || ' session_user=' || session_user;
+          SQL
+          )
+          out=$(q "$sql")
+          echo "$out" | jq -r 'if type == "array" then .[].line else tostring end' | while read -r l; do echo "::notice::$l"; done
