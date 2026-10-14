@@ -28,6 +28,8 @@ import {
   type OrderValues,
   type Payment,
   type Shipment,
+  type FlightLeg,
+  multiLegOpen,
   type Step,
   type StepDef,
 } from '@/lib/foreignOrders';
@@ -62,9 +64,11 @@ export default function ForeignOrder() {
     const shipIds = ((so.data ?? []) as { shipment_id: string }[]).map((x) => x.shipment_id);
     const positions = shipIds.length ? (((await supabase.from('fo_positions').select('*').in('shipment_id', shipIds)).data ?? []) as FoPosition[]) : [];
     const ships = shipIds.length ? ((await supabase.from('fo_shipments').select('*').in('id', shipIds).order('eta')).data ?? []) as Shipment[] : [];
+    const legs = ships.some((x) => x.multi_leg) ? (((await supabase.from('fo_flight_legs').select('*').in('shipment_id', shipIds)).data ?? []) as FlightLeg[]) : [];
     // open material orders a new shipment can also carry
     const openOrders = keeper ? ((await supabase.from('fo_orders').select('*').eq('status', 'open').eq('kind', 'material')).data ?? []) as FoOrder[] : [];
     return {
+      legs,
       o: order,
       h: h.data as Handover,
       sib: (sib.data ?? []) as FoOrder[],
@@ -81,7 +85,7 @@ export default function ForeignOrder() {
     };
   }, [id, keeper]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const { o, h, sib, steps, defs, values, payments, ships, positions, openOrders, notes, holidays, dateChanges } = data;
+  const { o, h, sib, steps, defs, values, payments, ships, positions, openOrders, notes, holidays, dateChanges, legs } = data;
   const shipEta = ships.length ? ships[ships.length - 1].eta : null;
   const all = route(defs, h, o, steps, sib, holidays);
   const st = standing(all);
@@ -146,6 +150,19 @@ export default function ForeignOrder() {
           </Row>
         ) : null}
       </Row>
+      {ships
+        .filter((sh) => sh.mode === 'air' && sh.multi_leg && !sh.arrived_on)
+        .map((sh) => (
+          <Notice key={`ml-${sh.id}`} tone={colors.amber}>
+            {multiLegOpen(sh, legs.filter((l) => l.shipment_id === sh.id))
+              ? keeper
+                ? `⚠ ${sh.code}: multi-flight warning – please check. The flight to Colombo is not entered yet; check the AWB on the airline site and add the next flight.`
+                : `✈ ${sh.code}: transshipment possible – the onward flight is not confirmed yet. Contact Ops for updates.`
+              : keeper
+                ? `${sh.code}: more than one flight – check the AWB on the airline site at each transit.`
+                : `✈ ${sh.code}: transshipment – the cargo changes flights on the way. Contact Ops for updates.`}
+          </Notice>
+        ))}
       {!ciplDone && !ships.length ? <Muted>Booked once the commercial invoice and packing list are confirmed (stage 6).</Muted> : null}
       {ships.map((sh) => (
         <ListRow

@@ -7775,6 +7775,40 @@ do $$ begin
   assert (select count(*) from public.order_date_changes where module = 'fo' and order_id = current_setting('test.fo_o1')::uuid and kind = 'eta') >= 2, 'ETA changes kept per order';
   assert exists (select 1 from public.order_date_changes where module = 'fo' and kind = 'eta' and reason = 'carrier'), 'against the airline';
 end $$;
+-- an air shipment on two flights: the first lands at the transit airport, the ETA follows the last flight
+set session_replication_role = replica;
+insert into public.fo_shipments (id, code, mode, vessel_flight, etd, eta, bl_awb) values ('00000000-0000-0000-0000-0000000ff0a2', 'SHP-T-AIR2', 'air', 'QR 70', current_date, current_date + 2, '157-12345675');
+insert into public.fo_shipment_orders (shipment_id, order_id) values ('00000000-0000-0000-0000-0000000ff0a2', current_setting('test.fo_o1')::uuid);
+set session_replication_role = origin;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare sid uuid := '00000000-0000-0000-0000-0000000ff0a2'; lid uuid;
+begin
+  perform public.fo_set_multi_leg(sid, true);
+  assert (select multi_leg from public.fo_shipments where id = sid), 'more than one flight';
+  begin perform public.fo_save_leg(null, jsonb_build_object('shipment_id', sid, 'flight', 'xx', 'etd', current_date)); assert false, 'flight no.';
+  exception when raise_exception then assert sqlerrm like 'Enter the flight no.%', sqlerrm; end;
+  lid := public.fo_save_leg(null, jsonb_build_object('shipment_id', sid, 'flight', 'QR 668', 'from', 'DOH', 'to', 'CMB', 'etd', current_date + 1));
+  assert (select seq = 2 from public.fo_flight_legs where id = lid), 'second flight';
+  begin perform public.fo_save_leg(lid, jsonb_build_object('flight', 'QR 664', 'from', 'DOH', 'to', 'CMB', 'etd', current_date + 1)); assert false, 'reason';
+  exception when raise_exception then assert sqlerrm like 'Give the reason%', sqlerrm; end;
+  begin perform public.fo_cargo_check(sid, 'offloaded'); assert false, 'what happened';
+  exception when raise_exception then null; end;
+  perform public.fo_cargo_check(sid, 'on_next', 'Shows booked on QR 668');
+  perform set_config('test.leg', lid::text, true);
+end $$;
+reset role;
+do $$ declare sid uuid := '00000000-0000-0000-0000-0000000ff0a2'; lid uuid := current_setting('test.leg')::uuid; d jsonb;
+begin
+  d := public.fo_flights_due('fx-test-secret');
+  assert d @> jsonb_build_array(jsonb_build_object('id', sid, 'flight', 'QR70')) and d @> jsonb_build_array(jsonb_build_object('leg', lid, 'flight', 'QR668')), d::text;
+  perform public.fo_flight_ingest('fx-test-secret', jsonb_build_array(jsonb_build_object('id', sid, 'status', 'Arrived', 'arr_iata', 'DOH', 'landed_at', now())));
+  assert (select eta = current_date + 2 from public.fo_shipments where id = sid), 'first flight lands at transit – ETA not moved';
+  assert exists (select 1 from public.notifications where title = 'Landed at transit' and body like '%next QR 668%'), 'landed at transit told';
+  perform public.fo_flight_ingest('fx-test-secret', jsonb_build_array(jsonb_build_object('id', sid, 'leg', lid, 'status', 'Arrived', 'arr_iata', 'CMB', 'landed_at', now() + interval '5 days')));
+  assert (select eta = ((now() + interval '5 days') at time zone app.tz())::date from public.fo_shipments where id = sid), 'ETA follows the last flight';
+  assert (select landed_at is not null from public.fo_flight_legs where id = lid), 'second flight landed';
+  assert exists (select 1 from public.notifications where title = 'Flight landed' and body like '%QR 668%'), 'arrival told';
+end $$;
 -- not on a shipment yet: the ready date sets the expected date at site
 delete from public.fo_shipment_orders where order_id = current_setting('test.fo_o1')::uuid;
 select pg_temp.act_as('operations_exec'); set role authenticated;

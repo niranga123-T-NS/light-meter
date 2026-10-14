@@ -1,5 +1,5 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { Text, View } from 'react-native';
+import { Linking, Platform, Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { editShipment, orderOption, rpc } from '@/components/foreign/actions';
 import { ShipmentRoute, type FoPosition } from '@/components/foreign/ShipmentRoute';
@@ -7,7 +7,7 @@ import { TestingBanner } from '@/components/Testing';
 import { Button, Card, colors, ErrorBanner, Grid, KeyValue, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { fmtDate, fmtDateTime } from '@/lib/format';
-import { FLIGHT_STATUS, FO_KEEPER, todayIso, type FoOrder, type Handover, type Shipment } from '@/lib/foreignOrders';
+import { awbTracking, CARGO_STATUS, FLIGHT_STATUS, FO_KEEPER, isDestination, multiLegOpen, todayIso, type FlightLeg, type FoOrder, type Handover, type Shipment } from '@/lib/foreignOrders';
 import { useLoad } from '@/lib/hooks';
 import { supabase } from '@/lib/supabase';
 
@@ -18,11 +18,12 @@ export default function ShipmentPage() {
   const dialog = useDialog();
   const keeper = FO_KEEPER.includes(me.role);
   const { data, error, reload } = useLoad(async () => {
-    const [s, so, log, pos] = await Promise.all([
+    const [s, so, log, pos, lg] = await Promise.all([
       supabase.from('fo_shipments').select('*').eq('id', id).maybeSingle(),
       supabase.from('fo_shipment_orders').select('order_id').eq('shipment_id', id),
       supabase.from('fo_eta_log').select('*').eq('shipment_id', id).order('changed_at', { ascending: false }),
       supabase.from('fo_positions').select('*').eq('shipment_id', id),
+      supabase.from('fo_flight_legs').select('*').eq('shipment_id', id).order('seq'),
     ]);
     if (s.error) throw new Error(s.error.message);
     if (!s.data) throw new Error('Shipment not found');
@@ -30,10 +31,12 @@ export default function ShipmentPage() {
     const orders = ids.length ? (((await supabase.from('fo_orders').select('*').in('id', ids)).data ?? []) as FoOrder[]) : [];
     const hos = orders.length ? (((await supabase.from('fo_handovers').select('*').in('id', [...new Set(orders.map((o) => o.handover_id))])).data ?? []) as Handover[]) : [];
     const openOrders = keeper ? (((await supabase.from('fo_orders').select('*').eq('kind', 'material').neq('status', 'cancelled')).data ?? []) as FoOrder[]) : [];
-    return { s: s.data as Shipment, orders, hos, openOrders, positions: (pos.data ?? []) as FoPosition[], log: (log.data ?? []) as { id: string; eta: string | null; note: string | null; changed_at: string }[] };
+    return { s: s.data as Shipment, orders, hos, openOrders, positions: (pos.data ?? []) as FoPosition[], legs: (lg.data ?? []) as FlightLeg[], log: (log.data ?? []) as { id: string; eta: string | null; note: string | null; changed_at: string }[] };
   }, [id, keeper]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const { s, orders, hos, openOrders, positions, log } = data;
+  const { s, orders, hos, openOrders, positions, log, legs } = data;
+  const multiOpen = multiLegOpen(s, legs);
+  const trk = awbTracking(s.bl_awb);
   const ho = (o: FoOrder) => hos.find((h) => h.id === o.handover_id);
   const sailed = !!s.etd && s.etd <= todayIso();
 
@@ -69,6 +72,54 @@ export default function ShipmentPage() {
     if (r) await dialog.run(async () => { await rpc('fo_check_shipment', { p_shipment: s.id, p_note: r.note }); await reload(); }, 'Saved');
   };
 
+  // more than one flight: the next flights (entered when known), the airline's AWB tracking, what it shows
+  const saveLeg = async (l?: FlightLeg) => {
+    const last = legs[legs.length - 1];
+    const r = await dialog.prompt({
+      title: l ? `Flight ${l.seq} – change` : `Next flight (flight ${legs.length + 2})`,
+      message: l ? 'A changed flight (rebooked by the airline or the forwarder) is told to Ops, Sales and the SEE.' : 'From the forwarder or the airline’s AWB tracking. It is checked automatically like the first flight; the one to Colombo sets the ETA.',
+      fields: [
+        { key: 'flight', label: 'Flight no.', required: true, initial: l?.flight ?? '', hint: 'e.g. EK 650' },
+        { key: 'etd', label: 'Flight date', type: 'date', required: true, initial: l?.etd ?? '' },
+        { key: 'from', label: 'From', initial: l?.from_ap ?? last?.to_ap ?? s.via ?? '', hint: 'the transit airport, e.g. DXB' },
+        { key: 'to', label: 'To', initial: l?.to_ap ?? 'CMB', hint: 'CMB for the flight to Colombo; else the next transit airport' },
+        ...(l ? [{ key: 'note', label: 'Reason for the change', type: 'multiline' as const, hint: 'Needed when the flight or its date changes' }] : []),
+      ],
+      confirmLabel: 'Save',
+    });
+    if (r) await dialog.run(async () => { await rpc('fo_save_leg', { p_id: l?.id ?? null, p: { ...r, shipment_id: s.id } }); await reload(); }, 'Saved – Sales and the SEE are told');
+  };
+  const removeLeg = async (l: FlightLeg) => {
+    if (await dialog.confirm(`Remove flight ${l.seq} (${l.flight})?`)) await dialog.run(async () => { await rpc('fo_remove_leg', { p_id: l.id }); await reload(); }, 'Removed');
+  };
+  const openAwb = async () => {
+    if (Platform.OS === 'web') {
+      try {
+        await navigator.clipboard.writeText(trk.awb);
+      } catch {
+        // the AWB is shown in the message anyway
+      }
+    }
+    dialog.toast(`AWB ${trk.awb}${Platform.OS === 'web' ? ' copied' : ''} – enter it on ${trk.airline ?? 'the tracking page'}`);
+    await Linking.openURL(trk.url);
+  };
+  const cargo = async () => {
+    const r = await dialog.prompt({
+      title: 'What the airline’s AWB tracking shows',
+      message: `AWB ${trk.awb}${trk.airline ? ` · ${trk.airline}` : ''}. Offloaded / rebooked is told to Sales, the SEE and SM Projects – add the new flight too.`,
+      fields: [
+        { key: 'status', label: 'Cargo', type: 'select', required: true, options: Object.entries(CARGO_STATUS).map(([value, label]) => ({ value, label })) },
+        { key: 'note', label: 'Details', type: 'multiline', hint: 'e.g. booked on EK 650 21 Oct; offloaded at DXB, rebooked EK 652 22 Oct' },
+      ],
+      confirmLabel: 'Save',
+    });
+    if (r) await dialog.run(async () => { await rpc('fo_cargo_check', { p_shipment: s.id, p_status: r.status, p_note: r.note || null }); await reload(); }, 'Saved');
+  };
+  const legLine = (flight: string, from: string | null | undefined, to: string | null | undefined, etd: string | null | undefined, st: string | null | undefined, dep: string | null | undefined, arr: string | null | undefined, landed: string | null | undefined) =>
+    [`${flight} ${from ?? '?'} → ${to ?? '?'}`, etd ? fmtDate(etd) : null, st ? FLIGHT_STATUS[st] ?? st : null, dep ? `departed ${fmtDateTime(dep)}` : null, landed ? `landed ${fmtDateTime(landed)}` : arr ? `expected ${fmtDateTime(arr)}` : null]
+      .filter(Boolean)
+      .join(' · ');
+
   return (
     <Screen maxWidth={1000}>
       <Stack.Screen options={{ title: s.code ?? 'Shipment' }} />
@@ -94,6 +145,17 @@ export default function ShipmentPage() {
       {orders.some((o) => o.dangerous) ? (
         <Notice tone={colors.red}>{`⚠ DANGEROUS GOODS on this shipment – ${orders.filter((o) => o.dangerous).map((o) => `${o.code}: ${o.dg_details ?? ''}`).join('; ')}`}</Notice>
       ) : null}
+      {s.mode === 'air' && s.multi_leg && !s.arrived_on ? (
+        keeper ? (
+          multiOpen ? (
+            <Notice tone={colors.amber}>⚠ Multi-flight warning – please check: the flight to Colombo is not entered yet. Check the AWB on the airline site and add the next flight when known (at each transit until the cargo reaches Sri Lanka).</Notice>
+          ) : (
+            <Notice tone={colors.blue}>More than one flight – each is checked automatically; check the AWB on the airline site at each transit.</Notice>
+          )
+        ) : (
+          <Notice tone={colors.amber}>{`✈ Transshipment possible – the cargo changes flights on the way${multiOpen ? '; the onward flight is not confirmed yet' : ''}. Contact Ops for updates.`}</Notice>
+        )
+      ) : null}
       {s.mode === 'air' ? (
         <Notice tone={s.flight_status === 'Canceled' || s.flight_status === 'Diverted' ? colors.red : s.flight_landed_at ? colors.green : colors.blue}>
           {s.flight_checked_at
@@ -111,6 +173,42 @@ export default function ShipmentPage() {
               ? `Position checked automatically morning and evening once sailed (MMSI ${s.mmsi}).${s.ais_checked_at ? ` Not heard yet – last check ${fmtDateTime(s.ais_checked_at)}; ships far out at sea are heard again near the coast.` : ''}`
               : 'Enter the vessel’s MMSI no. (Edit / ETA) – its position is then recorded automatically morning and evening.'}
         </Notice>
+      ) : null}
+      {s.mode === 'air' && (s.multi_leg || s.bl_awb) ? (
+        <Section
+          title={s.multi_leg ? `Flights · ${legs.length + 1}` : 'AWB'}
+          right={
+            <Row gap={6} wrap>
+              {s.bl_awb ? <Button small variant="secondary" title="Check AWB on airline site" onPress={openAwb} /> : null}
+              {keeper && s.bl_awb && !s.arrived_on ? <Button small variant="ghost" title="Cargo status…" onPress={cargo} /> : null}
+              {keeper && s.multi_leg && !s.arrived_on ? <Button small title="+ Next flight" onPress={() => saveLeg()} /> : null}
+            </Row>
+          }
+        >
+          <Card style={{ gap: 6 }}>
+            {s.multi_leg ? (
+              <>
+                <Muted>{`1. ${legLine(s.vessel_flight ?? 'Flight not entered', s.pol, s.via, s.etd, s.flight_status, s.flight_departed_at, s.flight_arrival_at, s.flight_landed_at)}`}</Muted>
+                {legs.map((l) => (
+                  <Row key={l.id} wrap gap={6} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Text style={{ color: isDestination(l.to_ap) ? colors.ink : colors.muted, flexShrink: 1 }}>{`${l.seq}. ${legLine(l.flight, l.from_ap, l.to_ap, l.etd, l.flight_status, l.departed_at, l.arrival_at, l.landed_at)}${l.note ? ` · ${l.note}` : ''}`}</Text>
+                    {keeper && !s.arrived_on && !l.landed_at ? (
+                      <Row gap={4}>
+                        <Button small variant="ghost" title="Change" onPress={() => saveLeg(l)} />
+                        {!l.departed_at ? <Button small variant="ghost" title="Remove" onPress={() => removeLeg(l)} /> : null}
+                      </Row>
+                    ) : null}
+                  </Row>
+                ))}
+                {multiOpen ? <Muted>Next: the flight to Colombo – not entered yet.</Muted> : null}
+              </>
+            ) : null}
+            <Muted>
+              {[`AWB ${trk.awb || '—'}${trk.airline ? ` · ${trk.airline}` : ''}`, s.cargo_status ? `airline shows: ${CARGO_STATUS[s.cargo_status]}${s.cargo_note ? ` – ${s.cargo_note}` : ''} (${fmtDateTime(s.cargo_checked_at)})` : 'cargo status not checked yet']
+                .join(' · ')}
+            </Muted>
+          </Card>
+        </Section>
       ) : null}
       <ShipmentRoute shipment={s} orders={orders} site={hos.length === 1 ? hos[0].delivery_location : null} positions={positions} keeper={keeper} onChange={reload} />
       <Grid min={200}>
