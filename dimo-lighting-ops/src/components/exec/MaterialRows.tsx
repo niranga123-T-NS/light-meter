@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { Card, colors, Empty, ListRow, Pill, Row } from '@/components/ui';
 import { MR_STATUS, mrDaysLate, routeLabel, type MaterialRequest, type MrRoute } from '@/lib/execution';
-import { fmtDate, fmtDateTime, todayISO } from '@/lib/format';
+import { fmtDate, todayISO } from '@/lib/format';
 import { usePeople } from '@/lib/hooks';
 
 export const mrTone = (s: MaterialRequest['status']) =>
@@ -22,7 +22,7 @@ export function MaterialRows({ rows, projectName, routes, empty = 'No material r
             onPress={() => router.push(`/execution/material/${m.id}`)}
             highlight={late ? colors.red : undefined}
             title={`${m.code}${m.kind === 'service' ? ' · Service' : ''}${m.purpose ? ` – ${m.purpose}` : ''}`}
-            subtitle={[projectName?.(m.exec_project_id), `needed ${fmtDate(m.required_date)}`, m.delivery_at ? `delivery ${fmtDateTime(m.delivery_at)}` : null, rt ? routeLabel(rt) : m.po_no ? `SAP ${m.po_no}` : null, people[m.requested_by]?.full_name]
+            subtitle={[projectName?.(m.exec_project_id), `needed ${fmtDate(m.required_date)}`, m.kind !== 'service' && m.expected_date && !['received', 'rejected', 'cancelled'].includes(m.status) ? `expected ${fmtDate(m.expected_date)}` : null, rt ? routeLabel(rt) : m.po_no ? `SAP ${m.po_no}` : null, people[m.requested_by]?.full_name]
               .filter(Boolean)
               .join(' · ')}
             right={

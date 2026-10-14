@@ -421,7 +421,9 @@ export type MaterialRequest = {
 /** Days a delivery is late: past the set delivery date, or the needed-by date until one is set (0 when not late / done). */
 export const mrDaysLate = (m: MaterialRequest, today: string) => {
   if (!['approved', 'ordered', 'part_received'].includes(m.status)) return 0;
-  const due = m.delivery_at ? new Date(new Date(m.delivery_at).getTime() + 330 * 60000).toISOString().slice(0, 10) : m.required_date;
+  // late against the expected date (the orders', or the SAP order's), else the required date; a service is not delivered
+  if (m.kind === 'service') return 0;
+  const due = m.expected_date ?? m.required_date;
   return Math.max(0, Math.round((Date.parse(today) - Date.parse(due)) / 864e5));
 };
 export const CUSTODY = [

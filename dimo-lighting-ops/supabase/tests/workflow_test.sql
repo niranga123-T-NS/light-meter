@@ -6089,19 +6089,24 @@ select public.decide_material_request(current_setting('test.mt')::uuid, true), p
 reset role;
 select pg_temp.act_as('operations_exec'); set role authenticated;
 do $$ begin
-  perform public.schedule_delivery(current_setting('test.mt')::uuid, now() + interval '20 hours');
-  assert (select status = 'ordered' and delivery_at is not null from public.material_requests where id = current_setting('test.mt')::uuid), 'delivery scheduled';
-  begin perform public.schedule_delivery(current_setting('test.mt')::uuid, now() + interval '30 hours'); assert false, 'reason for later';
-  exception when others then assert sqlerrm = 'Give the reason for the later delivery', sqlerrm; end;
-  perform public.schedule_delivery(current_setting('test.mg')::uuid, now() + interval '20 hours');
-  perform public.schedule_delivery(current_setting('test.ml')::uuid, now() + interval '2 hours');
+  -- ordered in SAP with the expected date (no separate delivery appointment)
+  begin perform public.order_material_request(current_setting('test.mt')::uuid, 'PO-7', 'Cable Co', null); assert false, 'expected date';
+  exception when others then assert sqlerrm = 'Enter the expected delivery date', sqlerrm; end;
+  perform public.order_material_request(current_setting('test.mt')::uuid, 'PO-7', 'Cable Co', (now() at time zone app.tz())::date + 1);
+  assert (select status = 'ordered' and expected_date is not null from public.material_requests where id = current_setting('test.mt')::uuid), 'ordered, expected';
+  begin perform public.set_mr_expected(current_setting('test.mt')::uuid, (now() at time zone app.tz())::date + 3); assert false, 'reason for the change';
+  exception when others then assert sqlerrm = 'Give the reason for the change', sqlerrm; end;
+  perform public.order_material_request(current_setting('test.mg')::uuid, null, null, (now() at time zone app.tz())::date + 1);
+  perform public.order_material_request(current_setting('test.ml')::uuid, null, null, (now() at time zone app.tz())::date);
+  begin perform public.schedule_delivery(current_setting('test.ml')::uuid, now()); assert false, 'no appointment any more';
+  exception when insufficient_privilege then null; end;
 end $$;
 reset role;
 do $$ declare ops uuid := (select id from u where role = 'operations_exec'); see uuid := (select id from u where role = 'senior_elec_engineer');
 begin
   perform public.materials_tick(now());
-  assert exists (select 1 from public.notifications where recipient_id = ops and title = 'Material delivery coming'), 'Operations reminded';
-  assert exists (select 1 from public.notifications where recipient_id = see and title = 'Material delivery coming'), 'SEE reminded';
+  assert exists (select 1 from public.notifications where recipient_id = ops and title = 'Material expected tomorrow'), 'Operations reminded';
+  assert exists (select 1 from public.notifications where recipient_id = see and title = 'Material expected tomorrow'), 'SEE reminded';
   -- the junction boxes never arrive: more than 2 days late → SEE; more than 4 days → SM Projects
   -- (ticks a day further on, so the delivery's Sri Lanka date crossing midnight does not matter)
   perform public.materials_tick(now() + interval '4 days');
@@ -6410,7 +6415,7 @@ select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
 select public.decide_material_request(current_setting('test.rmr')::uuid, true);
 reset role;
 select pg_temp.act_as('operations_exec'); set role authenticated;
-select public.schedule_delivery(current_setting('test.rmr')::uuid, now() + interval '5 hours');
+select public.order_material_request(current_setting('test.rmr')::uuid, null, null, current_date + 1);
 reset role;
 select pg_temp.act_as('assistant_engineer'); set role authenticated;
 select public.receive_material(current_setting('test.rmr')::uuid,

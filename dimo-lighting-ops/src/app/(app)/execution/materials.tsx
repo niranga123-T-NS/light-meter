@@ -7,7 +7,7 @@ import { TestingBanner } from '@/components/Testing';
 import { Button, colors, ErrorBanner, Field, Grid, Loading, Muted, Pill, Row, Screen, Segmented, Select, Stat, Toggle } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { MR_ROUTES, MR_STATUS, mrDaysLate, routeLabel, type ExecProject, type MaterialRequest, type MrLine, type MrRoute } from '@/lib/execution';
-import { fmtDate, fmtTime, todayISO } from '@/lib/format';
+import { fmtDate, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { supabase } from '@/lib/supabase';
 
@@ -24,7 +24,7 @@ const toneOf = (m: MaterialRequest, late: number, today: string) => {
   if (late > 0) return colors.red;
   if (m.status === 'received') return colors.green;
   if (m.status === 'rejected' || m.status === 'cancelled') return colors.grey;
-  const due = (m.delivery_at ?? m.required_date).slice(0, 10);
+  const due = (m.expected_date ?? m.required_date).slice(0, 10);
   if (Date.parse(due) - Date.parse(today) <= 2 * 864e5) return colors.amber;
   if (m.status === 'ordered' || m.status === 'part_received') return colors.blue;
   return colors.amber;
@@ -64,7 +64,6 @@ export default function Materials() {
     (m.status === 'pending_smp' && me.role === 'sm_projects') ||
     // sent to local or foreign orders, it is followed there
     (m.status === 'approved' && me.role === 'operations_exec' && !route(m.id) && (m.route ?? 'sap') === 'sap') ||
-    (me.role === 'operations_exec' && m.status === 'ordered' && !m.delivery_at) ||
     (me.role === 'assistant_engineer' && (m.status === 'ae_review' || (m.requested_by === me.id && !['received', 'rejected', 'cancelled'].includes(m.status)))) ||
     (me.role === 'sub_supervisor' && !['received', 'rejected', 'cancelled'].includes(m.status));
   const action = data.rows.filter(mine);
@@ -87,7 +86,7 @@ export default function Materials() {
         !ql ||
         `${m.code} ${pname(m.exec_project_id)} ${pn(m.requested_by)} ${m.po_no ?? ''} ${m.supplier ?? ''} ${route(m.id)?.code ?? ''} ${lines(m.id).map((l) => l.item).join(' ')}`.toLowerCase().includes(ql),
     )
-    .sort((a, b) => mrDaysLate(b, today) - mrDaysLate(a, today) || (a.delivery_at ?? a.required_date).localeCompare(b.delivery_at ?? b.required_date));
+    .sort((a, b) => mrDaysLate(b, today) - mrDaysLate(a, today) || (a.expected_date ?? a.required_date).localeCompare(b.expected_date ?? b.required_date));
   return (
     <Screen refreshing={loading} onRefresh={reload} maxWidth={1400}>
       <Stack.Screen options={{ title: 'Materials, services & stores' }} />
@@ -161,7 +160,7 @@ export default function Materials() {
                   return r ? routeLabel(r) : m.po_no ? `SAP ${m.po_no}` : MR_ROUTES.find((x) => x.value === (m.route ?? 'sap'))?.label ?? '';
                 },
               },
-              { h: 'Delivery', w: 140, v: (m) => (m.delivery_at ? `${fmtDate(m.delivery_at)} ${fmtTime(m.delivery_at)}${m.reschedules ? `\nmoved ${m.reschedules}×` : ''}` : '— not set —') },
+              { h: 'Expected', w: 120, v: (m) => (m.kind === 'service' ? '' : m.expected_date ? `${fmtDate(m.expected_date)}${m.reschedules ? `\nmoved ${m.reschedules}×` : ''}` : '— not set —') },
               { h: 'Late', w: 70, right: true, v: (m) => (mrDaysLate(m, today) ? `${mrDaysLate(m, today)} d` : ''), bold: true, tone: () => colors.red },
               { h: 'Needed by', w: 100, v: (m) => fmtDate(m.required_date) },
               { h: 'Received', w: 80, right: true, v: (m) => `${pct(m.id)}%`, tone: (m) => (pct(m.id) >= 100 ? colors.green : undefined) },

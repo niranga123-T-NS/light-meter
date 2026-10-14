@@ -1,6 +1,6 @@
 import { esc, printHtml, reportHtml } from './export';
 import { custodyLabel, MR_STATUS, mrDaysLate, type ExecProject, type MaterialRequest } from './execution';
-import { fmtDate, fmtDateTime, todayISO } from './format';
+import { fmtDate, todayISO } from './format';
 import { supabase, rpc } from './supabase';
 
 // Materials report of one project (SEE): requests and deliveries, the store by custody, usage, special releases and warnings.
@@ -56,14 +56,14 @@ export async function exportMaterialsReport(p: ExecProject, people: Record<strin
 </div>
 ${h2(`Material requests (${reqs.length})`)}
 ${table(
-  ['Request', 'Requested', 'By', 'Needed by', 'Status', 'Delivery', 'Days late', 'Items (received / requested)'],
+  ['Request', 'Requested', 'By', 'Needed by', 'Status', 'Expected', 'Days late', 'Items (received / requested)'],
   reqs.map((m) => [
     m.code,
     fmtDate(m.requested_at),
     name(m.requested_by),
     fmtDate(m.required_date),
     MR_STATUS[m.status],
-    m.delivery_at ? fmtDateTime(m.delivery_at) : '—',
+    m.expected_date ? fmtDate(m.expected_date) : '—',
     mrDaysLate(m, today) || '',
     lines.filter((l) => l.mr_id === m.id).map((l) => `${l.item} ${num(l.received_qty)}/${num(l.qty)} ${l.unit}`).join('; '),
   ]),
