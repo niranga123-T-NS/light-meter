@@ -364,6 +364,19 @@ export const VAR_STATUS: Record<Variation['status'], string> = {
 export const VAR_ROUTES: Record<string, string> = { A: 'Design + estimation', B: 'Estimation only', C: 'Contract rates' };
 
 // ---- Materials, documents, design queries (step 7a) ----
+/** The route a material request took – a local request (LR-) or an import request (IR-) – and how far its orders are */
+export type MrRoute = { mr_id: string; module: 'lo' | 'fo'; ref_id: string; code: string | null; orders: number; ordered: number; delivered: number; expected: string | null };
+export type MrRouteOrder = { module: 'lo' | 'fo'; order_id: string; ref_id: string; code: string | null; supplier: string | null; po: string | null; expected: string | null; delivered: boolean };
+export const routeHref = (r: { module: 'lo' | 'fo'; ref_id: string }) => (r.module === 'lo' ? `/orders/local/r/${r.ref_id}` : `/orders/foreign/ho/${r.ref_id}`);
+/** "Local LR-12 · 1 of 2 ordered" */
+export function routeLabel(r: MrRoute) {
+  const what = `${r.module === 'lo' ? 'Local' : 'Import'} ${r.code ?? ''}`.trim();
+  if (!r.orders) return `${what} · being sourced`;
+  if (r.delivered >= r.orders) return `${what} · delivered`;
+  if (r.ordered < r.orders) return `${what} · ${r.ordered} of ${r.orders} ordered`;
+  return `${what} · ordered${r.delivered ? ` · ${r.delivered} of ${r.orders} delivered` : ''}`;
+}
+
 export type MaterialRequest = {
   id: string;
   code: string;
