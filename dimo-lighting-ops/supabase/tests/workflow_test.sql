@@ -6115,6 +6115,12 @@ begin
   perform public.materials_tick(now() + interval '6 days');
   assert exists (select 1 from public.notifications where recipient_id = (select id from u where role = 'sm_projects') and title like 'Material delivery % days late'), 'SM Projects notified';
 end $$;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ begin
+  perform public.receive_material(current_setting('test.mt')::uuid, '[]'::jsonb);
+  assert false, 'the receipt is the site''s';
+exception when raise_exception then assert sqlerrm like 'Only the project team on site%', sqlerrm; end $$;
+reset role;
 select pg_temp.act_as('assistant_engineer'); set role authenticated;
 do $$ declare l uuid;
 begin

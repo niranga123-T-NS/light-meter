@@ -89,7 +89,7 @@ export default function MaterialScreen() {
   // the expected date follows the local / import orders; ordered in SAP, Operations keeps it here (materials only)
   const canExpect = m.kind !== 'service' && !routed && ['ordered', 'part_received'].includes(m.status) && me.role === 'operations_exec';
   const late = mrDaysLate(m, todayISO());
-  const canReceive = m.kind !== 'service' && ['ordered', 'part_received'].includes(m.status) && !pendingReceipt && (isAe || isSub || me.role === 'senior_elec_engineer' || me.role === 'operations_exec');
+  const canReceive = m.kind !== 'service' && ['ordered', 'part_received'].includes(m.status) && !pendingReceipt && (isAe || isSub || me.role === 'senior_elec_engineer');
   // Who acknowledges a pending delivery: the AE side (if not yet) and the named supervisor (if not yet)
   const canAck = (r: MaterialReceipt) =>
     r.status === 'pending' && ((!r.ae_ack_at && (isAe || me.role === 'senior_elec_engineer')) || (!r.sub_ack_at && r.supervisor_id === me.id));
