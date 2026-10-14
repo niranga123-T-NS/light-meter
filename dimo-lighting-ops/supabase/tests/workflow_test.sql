@@ -8203,6 +8203,7 @@ begin
   insert into public.lo_steps (request_id, order_id, step, done_on, ref, recorded_by) values (r, o1, 'po_issued', current_date, 'PO-A', ops);
   assert (select status = 'approved' and po_no = 'PO-A' from public.material_requests where id = mr), 'partly ordered: still approved, PO listed';
   insert into public.lo_steps (request_id, order_id, step, done_on, ref, recorded_by) values (r, o2, 'po_issued', current_date, 'PO-B', ops);
+  assert (select count(*) from public.mr_order_stage(array[mr]) where module = 'lo' and stage between 1 and 7) = 2, 'order stage for the list';
   assert (select status = 'ordered' and po_no = 'PO-A, PO-B' and supplier = 'Supplier A, Supplier B' and expected_date = current_date + 8 from public.material_requests where id = mr),
     (select row(status, po_no, supplier, expected_date)::text from public.material_requests where id = mr);
   req := (select requested_by from public.material_requests where id = mr);

@@ -1,6 +1,9 @@
 import { Redirect } from 'expo-router';
+import { SITE_ROLES } from '@/components/OrdersTabs';
+import { useMe } from '@/lib/auth';
 
-/** Foreign & local orders: opens on the foreign orders sub-tab */
+/** Foreign & local orders: opens on the site's requests (office) or the foreign orders sub-tab */
 export default function Orders() {
-  return <Redirect href="/orders/foreign" />;
+  const me = useMe();
+  return <Redirect href={SITE_ROLES.includes(me.role) ? '/orders/site-requests' : '/orders/foreign'} />;
 }
