@@ -7483,6 +7483,7 @@ begin
   perform public.fo_record_step(h, o1, 'vendor_ready', b + 8);
   perform public.fo_record_step(h, null, 'project_requested', b + 9);
   perform public.fo_record_step(h, null, 'project_approved', b + 12);
+  perform public.fo_record_step(h, null, 'project_fbp', b + 12);
   perform public.fo_record_step(h, null, 'sap_requested', b + 12);
   begin perform public.fo_record_step(h, null, 'sap_created', b + 15); assert false, 'SAP project no.';
   exception when others then assert sqlerrm = 'Enter the SAP project no.', sqlerrm; end;
