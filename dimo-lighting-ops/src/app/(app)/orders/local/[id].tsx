@@ -36,7 +36,7 @@ import {
 } from '@/lib/localOrders';
 import { supabase } from '@/lib/supabase';
 
-type SubInv = { id: string; code: string | null; invoice_no: string; amount: number; status: string };
+type SubInv = { id: string; code: string | null; invoice_no: string; amount: number; status: string; subcontractor: string | null; invoice_date: string };
 
 /** A supplier order: its approvals, PO / LOA, bonds, deliveries or work, and the invoices through the owner's approval to payment. */
 export default function LocalOrder() {
@@ -66,9 +66,16 @@ export default function LocalOrder() {
       supabase.from('lo_work_stage_changes').select('*, lo_work_stages!inner(order_id)').eq('lo_work_stages.order_id', id).order('requested_at', { ascending: false }),
     ]);
     const req = r.data as LoRequest;
-    // subcontractor invoices (IPCs) recorded on the execution project, to link a service invoice to
+    // the execution team's approved IPCs on the project not yet taken under a work stage
     const subs = keeper && order.kind === 'service' && req.exec_project_id
-      ? (((await supabase.from('sub_invoices').select('id, code, invoice_no, amount, status').eq('exec_project_id', req.exec_project_id).neq('status', 'cancelled')).data ?? []) as SubInv[])
+      ? await (async () => {
+          const [si, used] = await Promise.all([
+            supabase.from('sub_invoices').select('id, code, invoice_no, amount, status, subcontractor, invoice_date').eq('exec_project_id', req.exec_project_id).in('status', ['approved', 'docs_received']),
+            supabase.from('lo_invoices').select('sub_invoice_id').not('sub_invoice_id', 'is', null).neq('status', 'cancelled'),
+          ]);
+          const taken = new Set(((used.data ?? []) as { sub_invoice_id: string }[]).map((x) => x.sub_invoice_id));
+          return ((si.data ?? []) as SubInv[]).filter((x) => !taken.has(x.id));
+        })()
       : [];
     return {
       o: order,
@@ -90,6 +97,7 @@ export default function LocalOrder() {
   }, [id, keeper]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const { o, r, steps, defs, prValue, value, seeValues, deliveries, invoices, holidays, notes, subs, dateChanges, work, stageChanges } = data;
+  const hasAdvance = invoices.some((i) => i.kind === 'advance' && i.status !== 'cancelled');
   // the planned dates of the work stages are the agreement's: fixed once it is signed
   const agreementSigned = steps.some((x) => x.order_id === o.id && x.step === 'agreement_signed');
   const workEditor = (keeper || me.role === 'senior_elec_engineer') && o.kind === 'service';
@@ -124,15 +132,27 @@ export default function LocalOrder() {
   const addInvoice = async () => {
     const x = await dialog.prompt({
       title: o.kind === 'service' ? 'Invoice / IPC received' : 'Invoice received',
-      message: o.kind === 'material' ? 'Submitted to Procurement with the signed delivery notes.' : r.exec_project_id ? 'Link the IPC recorded on the project (Subcontractor invoices).' : 'An invoice, or an IPC-based invoice.',
+      message: o.kind === 'material' ? 'Submitted to Procurement with the signed delivery notes.' : r.exec_project_id ? 'IPCs come from the execution team: when approved, take them under the work stage (+ IPC).' : 'An invoice, or an IPC-based invoice.',
       fields: [
-        { key: 'kind', label: 'Type', type: 'select', required: true, initial: o.kind === 'service' ? 'ipc' : 'invoice', options: [{ value: 'invoice', label: 'Invoice' }, ...(o.kind === 'service' ? [{ value: 'ipc', label: 'IPC-based invoice' }] : []), { value: 'advance', label: 'Advance invoice' }] },
+        {
+          key: 'kind',
+          label: 'Type',
+          type: 'select',
+          required: true,
+          initial: 'invoice',
+          options: [
+            { value: 'invoice', label: 'Invoice' },
+            // an execution project's IPCs come from the execution team, under a work stage
+            ...(o.kind === 'service' && !r.exec_project_id ? [{ value: 'ipc', label: 'IPC-based invoice' }] : []),
+            // one advance per order – not progress
+            ...(hasAdvance ? [] : [{ value: 'advance', label: 'Advance invoice (not progress)' }]),
+          ],
+        },
         { key: 'invoice_no', label: 'Invoice no.', required: true },
         { key: 'invoice_date', label: 'Invoice date', type: 'date', required: true, initial: todayIso() },
         { key: 'amount', label: 'Amount (LKR)', required: true },
         ...(o.kind === 'material' ? [{ key: 'dn_nos', label: 'Delivery note nos.', initial: deliveries.map((d) => d.dn_no).join(', '), hint: 'Not needed for an advance invoice' }] : []),
-        ...(subs.length ? [{ key: 'sub_invoice_id', label: 'Subcontractor invoice (IPC) on the project', type: 'select' as const, options: [{ value: '', label: '—' }, ...subs.map((s) => ({ value: s.id, label: `${s.code ?? ''} · ${s.invoice_no} · ${fmtLkr(s.amount)}` }))] }] : []),
-        ...(work.length ? [{ key: 'work_stage_id', label: 'For work stage', type: 'select' as const, options: [{ value: '', label: '—' }, ...work.map((w) => ({ value: w.id, label: `${w.seq}. ${w.title}${w.pct ? ` · ${w.pct}%` : ''}${w.cert_ref ? ` · IPC ${w.cert_ref}` : ''}` }))], hint: 'The stage of the work this IPC claims' }] : []),
+        ...(work.length && !r.exec_project_id ? [{ key: 'work_stage_id', label: 'For work stage', when: { key: 'kind', in: ['ipc'] }, type: 'select' as const, options: [{ value: '', label: '—' }, ...work.map((w) => ({ value: w.id, label: `${w.seq}. ${w.title}${w.pct ? ` · ${w.pct}%` : ''}${w.cert_ref ? ` · IPC ${w.cert_ref}` : ''}` }))], hint: 'The stage of the work this IPC claims' }] : []),
         { key: 'received_on', label: 'Received on', type: 'date', required: true, initial: todayIso() },
         { key: 'note', label: 'Note' },
       ],
@@ -192,6 +212,29 @@ export default function LocalOrder() {
       confirmLabel: 'Save',
     });
     if (x) await dialog.run(async () => { await rpc('lo_save_work_stage', { p_id: w?.id ?? null, p: { ...x, ...(agreementSigned && w?.planned_on ? { planned_on: w.planned_on } : {}), order_id: o.id } }); await reload(); }, 'Saved');
+  };
+  const addIpc = async (w: LoWorkStage) => {
+    if (!subs.length) return dialog.toast('No approved IPC waiting – it appears here once the execution team’s IPC is approved', 'error');
+    const x = await dialog.prompt({
+      title: `IPC for stage ${w.seq}. ${w.title}`,
+      message: 'The execution team’s approved IPCs on this project. The invoice then follows its approvals below (the SEE’s is already given).',
+      fields: [
+        { key: 'sub', label: 'Approved IPC', type: 'select', required: true, options: subs.map((v) => ({ value: v.id, label: `${v.code ?? ''} · ${v.invoice_no} · ${v.subcontractor ?? ''} · ${fmtLkr(v.amount)} · ${fmtDate(v.invoice_date)}` })) },
+        { key: 'received_on', label: 'Received on', type: 'date', required: true, initial: todayIso() },
+        { key: 'advance_recovered', label: 'Advance recovered in this IPC (LKR)', hint: 'Leave empty when none' },
+        { key: 'has_variation', label: 'Includes a variation?', type: 'select', initial: 'no', options: [{ value: 'no', label: 'No' }, { value: 'yes', label: 'Yes – enter it separately' }] },
+        { key: 'variation_amount', label: 'Variation amount (LKR)', required: true, when: { key: 'has_variation', in: ['yes'] } },
+        { key: 'variation_note', label: 'Variation (no. / what)', when: { key: 'has_variation', in: ['yes'] } },
+        { key: 'note', label: 'Note' },
+      ],
+      confirmLabel: 'Add IPC',
+    });
+    if (!x) return;
+    await dialog.run(async () => {
+      const { sub, ...p } = x;
+      await rpc('lo_add_stage_ipc', { p_stage: w.id, p_sub: sub, p: { ...p, advance_recovered: p.advance_recovered.replace(/,/g, ''), variation_amount: p.variation_amount.replace(/,/g, '') } });
+      await reload();
+    }, 'IPC added – SM Projects approves next');
   };
   const askDate = async (w: LoWorkStage) => {
     const x = await dialog.prompt({
@@ -260,6 +303,7 @@ export default function LocalOrder() {
             </View>
             <Row gap={6} style={{ alignItems: 'center' }}>
               <Pill label={w.done_on ? 'Done' : late ? 'Late' : 'In progress'} tone={w.done_on ? colors.green : late ? colors.red : colors.blue} />
+              {keeper && open && r.exec_project_id ? <Button small variant="secondary" title="+ IPC" onPress={() => addIpc(w)} /> : null}
               {workEditor && open ? <Button small variant="ghost" title="Edit" onPress={() => saveStage(w)} /> : null}
               {workEditor && open && agreementSigned && w.planned_on && !w.done_on && !stageChanges.some((c) => c.stage_id === w.id && c.status.startsWith('pending')) ? (
                 <Button small variant="ghost" title="Change date…" onPress={() => askDate(w)} />
@@ -288,7 +332,7 @@ export default function LocalOrder() {
               <Text style={{ color: colors.ink, fontWeight: '600', flexShrink: 1 }}>{`${i.kind === 'ipc' ? 'IPC invoice' : i.kind === 'advance' ? 'Advance invoice' : 'Invoice'} ${i.invoice_no} · ${fmtLkr(i.amount)}`}</Text>
               <Pill label={i.status === 'paid' ? `Paid ${fmtDate(i.paid_on)}` : i.status === 'cancelled' ? 'Cancelled' : next === 'paid' || !next ? 'Awaiting payment' : `With ${INVOICE_POINTS[next].who}`} tone={i.status === 'paid' ? colors.green : i.status === 'cancelled' ? colors.grey : colors.blue} />
             </Row>
-            <Muted>{[i.work_stage_id ? `for stage ${work.find((w) => w.id === i.work_stage_id)?.seq ?? ''}. ${work.find((w) => w.id === i.work_stage_id)?.title ?? ''}` : null, `dated ${fmtDate(i.invoice_date)}`, `received ${fmtDate(i.received_on)}`, i.dn_nos ? `DN ${i.dn_nos}` : null, i.pay_ref ? `payment ref. ${i.pay_ref}` : null, i.note].filter(Boolean).join(' · ')}</Muted>
+            <Muted>{[i.work_stage_id ? `for stage ${work.find((w) => w.id === i.work_stage_id)?.seq ?? ''}. ${work.find((w) => w.id === i.work_stage_id)?.title ?? ''}` : null, `dated ${fmtDate(i.invoice_date)}`, `received ${fmtDate(i.received_on)}`, i.dn_nos ? `DN ${i.dn_nos}` : null, i.advance_recovered ? `advance recovered ${fmtLkr(i.advance_recovered)}` : null, i.variation_amount ? `variation ${fmtLkr(i.variation_amount)}${i.variation_note ? ` (${i.variation_note})` : ''}` : null, i.kind === 'advance' ? 'not progress' : null, i.pay_ref ? `payment ref. ${i.pay_ref}` : null, i.note].filter(Boolean).join(' · ')}</Muted>
             {/* the approval chain: done (date), the next one, then waiting */}
             <Row wrap gap={4} style={{ alignItems: 'center' }}>
               {chain.map((p, k) => {
