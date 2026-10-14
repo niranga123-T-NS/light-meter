@@ -7918,7 +7918,7 @@ begin
   perform public.lo_record_step(r, os, 'legal_approved', d);
   perform public.lo_record_step(r, os, 'agreement_signed', d);
   perform public.lo_record_step(r, os, 'work_done', d);
-  i := public.lo_add_invoice(os, jsonb_build_object('kind', 'ipc', 'invoice_no', 'IPC-1', 'invoice_date', d, 'amount', 2400000));
+  i := public.lo_add_invoice(os, jsonb_build_object('kind', 'invoice', 'invoice_no', 'INV-S1', 'invoice_date', d, 'amount', 2400000));
   perform public.lo_invoice_step(i, 'see', d); perform public.lo_invoice_step(i, 'smp', d); perform public.lo_invoice_step(i, 'dgm', d);
   perform public.lo_invoice_step(i, 'proc', d); perform public.lo_invoice_step(i, 'finance', d); perform public.lo_invoice_step(i, 'paid', d);
   perform public.lo_record_step(r, os, 'closed', d);
@@ -8015,7 +8015,7 @@ do $$ begin
 exception when raise_exception then assert sqlerrm like '%material request%', sqlerrm; end $$;
 -- services in stages: work stages, IPC invoices linked to a stage, "Work completed" only when every stage is done
 select pg_temp.act_as('operations_exec'); set role authenticated;
-do $$ declare r uuid := (select id from public.lo_requests where mr_id is null order by received_on limit 1); o uuid; w1 uuid; w2 uuid; i uuid;
+do $$ declare r uuid := (select id from public.lo_requests where mr_id is null and exec_project_id is not null order by received_on limit 1); o uuid; w1 uuid; w2 uuid; i uuid;
 begin
   reset role;
   insert into public.lo_orders (request_id, seq_no, title, kind, supplier, payment_term) values (r, 20, 'Pole erection – stages', 'service', 'Sub Co', 'after_delivery') returning id into o;
@@ -8025,9 +8025,23 @@ begin
   begin perform public.lo_save_work_stage(null, jsonb_build_object('order_id', o, 'title', 'Extra', 'pct', 10)); assert false, 'over 100%';
   exception when raise_exception then null; end;
   perform public.lo_save_work_stage(w1, jsonb_build_object('title', 'Foundations', 'pct', 40, 'done_on', current_date, 'cert_ref', 'IPC-01'));
-  i := public.lo_add_invoice(o, jsonb_build_object('kind', 'ipc', 'invoice_no', 'SC-1', 'invoice_date', current_date, 'amount', 400000));
-  perform public.lo_link_invoice_stage(i, w1);
-  assert (select work_stage_id = w1 from public.lo_invoices where id = i), 'IPC invoice for stage 1';
+  begin perform public.lo_add_invoice(o, jsonb_build_object('kind', 'ipc', 'invoice_no', 'SC-X', 'invoice_date', current_date, 'amount', 1000)); assert false, 'IPC from the execution team only';
+  exception when raise_exception then null; end;
+  reset role;
+  insert into public.sub_certs (exec_project_id, subcontractor, period, gross) values ((select exec_project_id from public.lo_requests where id = r), 'Sub Co', 'Oct 2026', 400000) returning id into i;
+  insert into public.sub_invoices (code, exec_project_id, sub_cert_id, subcontractor, invoice_no, invoice_date, amount, status, see_at, created_by)
+  values ('SI-T-1', (select exec_project_id from public.lo_requests where id = r), i, 'Sub Co', 'SC-1', current_date, 400000, 'approved', now(), (select id from u where role = 'operations_exec'))
+  returning id into i;
+  set role authenticated;
+  i := public.lo_add_stage_ipc(w1, i, jsonb_build_object('advance_recovered', 40000, 'has_variation', 'yes', 'variation_amount', 25000, 'variation_note', 'VO-2 extra poles'));
+  assert (select work_stage_id = w1 and amount = 400000 and advance_recovered = 40000 and variation_amount = 25000 and see_on is not null from public.lo_invoices where id = i), 'approved IPC under stage 1';
+  begin perform public.lo_add_stage_ipc(w2, (select sub_invoice_id from public.lo_invoices where id = i), '{}'); assert false, 'IPC taken once';
+  exception when raise_exception then null; end;
+  perform public.lo_add_invoice(o, jsonb_build_object('kind', 'advance', 'invoice_no', 'ADV-1', 'invoice_date', current_date, 'amount', 100000));
+  begin perform public.lo_add_invoice(o, jsonb_build_object('kind', 'advance', 'invoice_no', 'ADV-2', 'invoice_date', current_date, 'amount', 1000)); assert false, 'one advance';
+  exception when unique_violation then null; end;
+  begin perform public.lo_link_invoice_stage((select id from public.lo_invoices where order_id = o and kind = 'advance'), w1); assert false, 'advance is not progress';
+  exception when raise_exception then null; end;
   reset role;
   begin insert into public.lo_steps (request_id, order_id, step, done_on, recorded_by) values (r, o, 'work_done', current_date, auth.uid()); assert false, 'stage 2 not done';
   exception when raise_exception then null; end;

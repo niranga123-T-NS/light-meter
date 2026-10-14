@@ -79,6 +79,9 @@ export type LoInvoice = {
   status: 'open' | 'paid' | 'cancelled';
   note: string | null;
   work_stage_id?: string | null;
+  advance_recovered?: number | null;
+  variation_amount?: number | null;
+  variation_note?: string | null;
 };
 export type LoNote = Omit<FoNote, 'handover_id'> & { request_id: string };
 
