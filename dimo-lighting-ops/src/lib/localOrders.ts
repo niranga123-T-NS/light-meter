@@ -53,6 +53,8 @@ export type LoOrder = {
 };
 export type LoStepDef = { key: string; scope: 'r' | 'o'; stage: number; seq: number; label: string; node: string; conds: string[]; after: string[]; ref_label: string | null; sla_days: number | null; optional?: boolean };
 export type LoStep = { id: string; request_id: string; order_id: string | null; step: string; done_on: string; ref: string | null; note: string | null; recorded_by: string; recorded_at: string };
+/** A stage of a service (e.g. subcontract work): what, % of the work, planned and done / certified dates, IPC reference */
+export type LoWorkStage = { id: string; order_id: string; seq: number; title: string; pct: number | null; planned_on: string | null; done_on: string | null; cert_ref: string | null; note: string | null };
 export type LoDelivery = { id: string; order_id: string; delivered_on: string; dn_no: string; items: string | null; signed_by: string | null; note: string | null };
 export type InvoicePoint = 'see' | 'smp' | 'dgm' | 'proc' | 'finance' | 'paid';
 export type LoInvoice = {
@@ -74,6 +76,7 @@ export type LoInvoice = {
   pay_ref: string | null;
   status: 'open' | 'paid' | 'cancelled';
   note: string | null;
+  work_stage_id?: string | null;
 };
 export type LoNote = Omit<FoNote, 'handover_id'> & { request_id: string };
 

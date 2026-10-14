@@ -7998,6 +7998,29 @@ do $$ begin
   update public.lo_requests set required_on = required_on + 5 where mr_id = '00000000-0000-0000-0000-00000000aa01';
   assert false, 'Ops changed the site''s required date';
 exception when raise_exception then assert sqlerrm like '%material request%', sqlerrm; end $$;
+-- services in stages: work stages, IPC invoices linked to a stage, "Work completed" only when every stage is done
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare r uuid := (select id from public.lo_requests where mr_id is null order by received_on limit 1); o uuid; w1 uuid; w2 uuid; i uuid;
+begin
+  reset role;
+  insert into public.lo_orders (request_id, seq_no, title, kind, supplier, payment_term) values (r, 20, 'Pole erection – stages', 'service', 'Sub Co', 'after_delivery') returning id into o;
+  set role authenticated;
+  w1 := public.lo_save_work_stage(null, jsonb_build_object('order_id', o, 'title', 'Foundations', 'pct', 40));
+  w2 := public.lo_save_work_stage(null, jsonb_build_object('order_id', o, 'title', 'Erection', 'pct', 60));
+  begin perform public.lo_save_work_stage(null, jsonb_build_object('order_id', o, 'title', 'Extra', 'pct', 10)); assert false, 'over 100%';
+  exception when raise_exception then null; end;
+  perform public.lo_save_work_stage(w1, jsonb_build_object('title', 'Foundations', 'pct', 40, 'done_on', current_date, 'cert_ref', 'IPC-01'));
+  i := public.lo_add_invoice(o, jsonb_build_object('kind', 'ipc', 'invoice_no', 'SC-1', 'invoice_date', current_date, 'amount', 400000));
+  perform public.lo_link_invoice_stage(i, w1);
+  assert (select work_stage_id = w1 from public.lo_invoices where id = i), 'IPC invoice for stage 1';
+  reset role;
+  begin insert into public.lo_steps (request_id, order_id, step, done_on, recorded_by) values (r, o, 'work_done', current_date, auth.uid()); assert false, 'stage 2 not done';
+  exception when raise_exception then null; end;
+  set role authenticated;
+  begin perform public.lo_remove_work_stage(w1); assert false, 'invoiced stage';
+  exception when raise_exception then null; end;
+end $$;
+reset role;
 -- the material request follows its orders: ordered only when every order has its PO; expected date; delivery; site receipt
 do $$ declare r uuid := (select id from public.lo_requests where mr_id = '00000000-0000-0000-0000-00000000aa01');
   o1 uuid; o2 uuid; mr uuid := '00000000-0000-0000-0000-00000000aa01'; req uuid; ops uuid := (select id from u where role = 'operations_exec');
