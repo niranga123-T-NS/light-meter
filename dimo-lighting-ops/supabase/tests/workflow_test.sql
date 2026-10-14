@@ -7964,6 +7964,29 @@ begin
   exception when unique_violation then null; end;
 end $$;
 reset role;
+-- the material request follows its orders: ordered only when every order has its PO; expected date; delivery; site receipt
+do $$ declare r uuid := (select id from public.lo_requests where mr_id = '00000000-0000-0000-0000-00000000aa01');
+  o1 uuid; o2 uuid; mr uuid := '00000000-0000-0000-0000-00000000aa01'; req uuid; ops uuid := (select id from u where role = 'operations_exec');
+begin
+  insert into public.lo_orders (request_id, seq_no, title, kind, supplier, payment_term, expected_on) values (r, 1, 'Rods – part 1', 'material', 'Supplier A', 'after_delivery', current_date + 7) returning id into o1;
+  insert into public.lo_orders (request_id, seq_no, title, kind, supplier, payment_term, expected_on) values (r, 2, 'Rods – part 2', 'material', 'Supplier B', 'after_delivery', current_date + 8) returning id into o2;
+  insert into public.lo_steps (request_id, order_id, step, done_on, ref, recorded_by) values (r, o1, 'po_issued', current_date, 'PO-A', ops);
+  assert (select status = 'approved' and po_no = 'PO-A' from public.material_requests where id = mr), 'partly ordered: still approved, PO listed';
+  insert into public.lo_steps (request_id, order_id, step, done_on, ref, recorded_by) values (r, o2, 'po_issued', current_date, 'PO-B', ops);
+  assert (select status = 'ordered' and po_no = 'PO-A, PO-B' and supplier = 'Supplier A, Supplier B' and expected_date = current_date + 8 from public.material_requests where id = mr),
+    (select row(status, po_no, supplier, expected_date)::text from public.material_requests where id = mr);
+  req := (select requested_by from public.material_requests where id = mr);
+  update public.lo_orders set expected_on = current_date + 20 where id = o2;
+  assert (select expected_date = current_date + 20 from public.material_requests where id = mr), 'expected date follows the order';
+  assert exists (select 1 from public.notifications where recipient_id = req and title = 'Delivery date moved' and body like '%required%'), 'site told, after the required date';
+  insert into public.lo_deliveries (order_id, delivered_on, dn_no, added_by) values (o1, current_date, 'DN-1', ops);
+  assert exists (select 1 from public.notifications where recipient_id = req and title = 'Delivered to site – confirm the receipt' and body like '%DN-1%'), 'site asked to confirm';
+  -- the site receives everything: both orders delivered, entered once
+  update public.material_requests set status = 'received' where id = mr;
+  assert (select count(*) from public.lo_steps where request_id = r and step = 'delivered') = 2, 'orders marked delivered';
+  assert exists (select 1 from public.lo_deliveries where order_id = o2 and dn_no like 'Site receipt%'), 'delivery recorded for the order without one';
+  assert (select count(*) from public.lo_deliveries where order_id = o1) = 1, 'no second delivery where one exists';
+end $$;
 -- a site material request to import
 insert into public.material_requests (id, code, exec_project_id, requested_by, required_date, purpose, status)
 values ('00000000-0000-0000-0000-00000000aa02', 'MR-T-2', current_setting('test.lo_exec')::uuid, (select id from u where role = 'senior_elec_engineer'), current_date + 60, 'Façade luminaires', 'approved');
@@ -7979,6 +8002,16 @@ begin
   exception when others then assert sqlerrm like '%Already sent%' or sqlerrm like 'Only an approved%', sqlerrm; end;
 end $$;
 reset role;
+do $$ declare mr uuid := '00000000-0000-0000-0000-00000000aa02'; h uuid := (select id from public.fo_handovers where mr_id = '00000000-0000-0000-0000-00000000aa02'); o uuid;
+  ops uuid := (select id from u where role = 'operations_exec');
+begin
+  insert into public.fo_orders (handover_id, seq_no, title, kind, vendor, incoterm, duty, expected_ready, planned_mode) values (h, 1, 'Façade luminaires', 'material', 'Maker GmbH', 'FOB', 'paid', current_date + 30, 'sea') returning id into o;
+  insert into public.fo_steps (handover_id, order_id, step, done_on, ref, recorded_by) values (h, o, 'po_issued', current_date, 'PO-F1', ops);
+  assert (select status = 'ordered' and po_no = 'PO-F1' and expected_date = current_date + 62 from public.material_requests where id = mr),
+    (select row(status, po_no, expected_date)::text from public.material_requests where id = mr);
+  update public.material_requests set status = 'received' where id = mr;
+  assert exists (select 1 from public.fo_steps where order_id = o and step = 'delivered'), 'import order marked delivered from the site receipt';
+end $$;
 rollback to savepoint lo1;
 
 -- Clean-up (GM / DGM): preview changes nothing; delete takes a project with all that hangs off it; users; no broken links

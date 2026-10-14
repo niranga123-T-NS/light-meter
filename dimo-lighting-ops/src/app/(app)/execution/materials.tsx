@@ -6,7 +6,7 @@ import { MaterialRows } from '@/components/exec/MaterialRows';
 import { TestingBanner } from '@/components/Testing';
 import { Button, colors, ErrorBanner, Field, Grid, Loading, Muted, Pill, Row, Screen, Segmented, Select, Stat, Toggle } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { MR_STATUS, mrDaysLate, type ExecProject, type MaterialRequest, type MrLine } from '@/lib/execution';
+import { MR_STATUS, mrDaysLate, routeLabel, type ExecProject, type MaterialRequest, type MrLine, type MrRoute } from '@/lib/execution';
 import { fmtDate, fmtTime, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { supabase } from '@/lib/supabase';
@@ -48,17 +48,22 @@ export default function Materials() {
       supabase.from('material_request_lines').select('id, mr_id, item, unit, qty, received_qty'),
     ]);
     if (m.error) throw new Error(m.error.message);
-    return { rows: (m.data ?? []) as MaterialRequest[], projects: (p.data ?? []) as ExecProject[], lines: (l.data ?? []) as MrLine[] };
+    const rows = (m.data ?? []) as MaterialRequest[];
+    const ids = rows.filter((x) => ['approved', 'ordered', 'part_received', 'received'].includes(x.status)).map((x) => x.id);
+    const rt = ids.length ? await supabase.rpc('mr_routes', { p_ids: ids }) : { data: [] };
+    return { rows, projects: (p.data ?? []) as ExecProject[], lines: (l.data ?? []) as MrLine[], routes: (rt.data ?? []) as MrRoute[] };
   });
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const pname = (id: string) => data.projects.find((p) => p.id === id)?.name ?? '';
   const pcode = (id: string) => data.projects.find((p) => p.id === id)?.code ?? '';
   const pn = (id: string) => people[id]?.full_name ?? '—';
+  const route = (id: string) => data.routes.find((r) => r.mr_id === id) ?? null;
   // Approvers see what waits for their step; Assistant Engineers see their own open requests (to follow up and receive)
   const mine = (m: MaterialRequest) =>
     (m.status === 'submitted' && me.role === 'senior_elec_engineer') ||
     (m.status === 'pending_smp' && me.role === 'sm_projects') ||
-    (m.status === 'approved' && me.role === 'operations_exec') ||
+    // sent to local or foreign orders, it is followed there
+    (m.status === 'approved' && me.role === 'operations_exec' && !route(m.id)) ||
     (me.role === 'operations_exec' && m.status === 'ordered' && !m.delivery_at) ||
     (me.role === 'assistant_engineer' && (m.status === 'ae_review' || (m.requested_by === me.id && !['received', 'rejected', 'cancelled'].includes(m.status)))) ||
     (me.role === 'sub_supervisor' && !['received', 'rejected', 'cancelled'].includes(m.status));
@@ -80,7 +85,7 @@ export default function Materials() {
     .filter(
       (m) =>
         !ql ||
-        `${m.code} ${pname(m.exec_project_id)} ${pn(m.requested_by)} ${m.po_no ?? ''} ${m.supplier ?? ''} ${lines(m.id).map((l) => l.item).join(' ')}`.toLowerCase().includes(ql),
+        `${m.code} ${pname(m.exec_project_id)} ${pn(m.requested_by)} ${m.po_no ?? ''} ${m.supplier ?? ''} ${route(m.id)?.code ?? ''} ${lines(m.id).map((l) => l.item).join(' ')}`.toLowerCase().includes(ql),
     )
     .sort((a, b) => mrDaysLate(b, today) - mrDaysLate(a, today) || (a.delivery_at ?? a.required_date).localeCompare(b.delivery_at ?? b.required_date));
   return (
@@ -105,7 +110,7 @@ export default function Materials() {
         {['senior_elec_engineer', 'assistant_engineer', 'sub_supervisor'].includes(me.role) ? <Button title="+ Material request" onPress={() => router.push('/execution/material/new')} /> : null}
       </Row>
       {tab === 'action' ? (
-        <MaterialRows rows={action} projectName={pname} />
+        <MaterialRows rows={action} projectName={pname} routes={data.routes} />
       ) : (
         <View style={{ gap: 8 }}>
           <Grid min={220}>
@@ -116,7 +121,7 @@ export default function Materials() {
               onChange={(v) => setProject(v || null)}
               options={[{ value: '', label: 'All projects' }, ...data.projects.map((p) => ({ value: p.id, label: `${p.code ?? ''} ${p.name}` }))]}
             />
-            <Field label="Search" value={q} onChangeText={setQ} placeholder="MR no., item, requester, PO, supplier" />
+            <Field label="Search" value={q} onChangeText={setQ} placeholder="MR no., item, requester, PO, supplier, LR / IR" />
           </Grid>
           <Row wrap gap={8} style={{ alignItems: 'center' }}>
             <Segmented
@@ -148,6 +153,14 @@ export default function Materials() {
               { h: 'MR', w: 110, v: (m) => m.code, bold: true },
               { h: 'Project', w: 190, v: (m) => `${pcode(m.exec_project_id)}\n${pname(m.exec_project_id)}`.trim() },
               { h: 'Status', w: 210, v: (m) => <Pill label={MR_STATUS[m.status]} tone={toneOf(m, mrDaysLate(m, today), today)} /> },
+              {
+                h: 'Route',
+                w: 190,
+                v: (m) => {
+                  const r = route(m.id);
+                  return r ? routeLabel(r) : m.po_no ? 'SAP' : ['approved'].includes(m.status) ? '— not chosen —' : '';
+                },
+              },
               { h: 'Delivery', w: 140, v: (m) => (m.delivery_at ? `${fmtDate(m.delivery_at)} ${fmtTime(m.delivery_at)}${m.reschedules ? `\nmoved ${m.reschedules}×` : ''}` : '— not set —') },
               { h: 'Late', w: 70, right: true, v: (m) => (mrDaysLate(m, today) ? `${mrDaysLate(m, today)} d` : ''), bold: true, tone: () => colors.red },
               { h: 'Needed by', w: 100, v: (m) => fmtDate(m.required_date) },
@@ -161,7 +174,7 @@ export default function Materials() {
                 },
               },
               { h: 'Requested by', w: 150, v: (m) => `${pn(m.requested_by)}\n${fmtDate(m.requested_at)}` },
-              { h: 'SAP PO / supplier', w: 170, v: (m) => [m.po_no, m.supplier].filter(Boolean).join(' · ') || '—' },
+              { h: 'PO / supplier', w: 170, v: (m) => [m.po_no, m.supplier].filter(Boolean).join(' · ') || '—' },
             ]}
           />
           <Muted>{`${shown.length} of ${data.rows.length} requests · late counts from the delivery date, or the needed-by date until Operations sets one`}</Muted>

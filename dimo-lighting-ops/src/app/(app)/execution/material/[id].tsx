@@ -7,7 +7,7 @@ import { mrTone } from '@/components/exec/MaterialRows';
 import { TestingBanner } from '@/components/Testing';
 import { Button, Card, colors, ErrorBanner, Field, KeyValue, ListRow, Loading, Muted, Notice, NumberField, Pill, Row, Screen, Section, Select } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { CUSTODY, MR_STATUS, mrDaysLate, type ExecMember, type MaterialReceipt, type MaterialRequest, type MrLine } from '@/lib/execution';
+import { CUSTODY, MR_STATUS, mrDaysLate, type ExecMember, type MaterialReceipt, type MaterialRequest, type MrLine, type MrRouteOrder } from '@/lib/execution';
 import { fmtDate, fmtDateTime, fmtNumber, fmtTime, todayISO } from '@/lib/format';
 import { slTime } from '@/lib/hse';
 import { loadSubcontractors } from '@/lib/subcontractors';
@@ -45,11 +45,13 @@ export default function MaterialScreen() {
       subs: await loadSubcontractors(mr.exec_project_id).catch(() => []),
       // bought locally through Operations (Local orders)
       imported: ((await supabase.from('fo_handovers').select('id, code, status').eq('mr_id', mr.id).neq('status', 'cancelled').maybeSingle()).data ?? null) as { id: string; code: string | null; status: string } | null,
+      orders: ((await supabase.rpc('mr_route_orders', { p_mr: mr.id })).data ?? []) as MrRouteOrder[],
       local: ((await supabase.from('lo_requests').select('id, code, status').eq('mr_id', mr.id).neq('status', 'cancelled').maybeSingle()).data ?? null) as { id: string; code: string | null; status: string } | null,
     };
   }, [id]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const { m, lines, receipts, members, local, imported } = data;
+  const { m, lines, receipts, members, local, imported, orders } = data;
+  const routed = !!(local || imported);
   const canBuyLocally = m.status === 'approved' && !local && !imported && (me.role === 'senior_elec_engineer' || me.role === 'operations_exec');
   const sendImport = async () => {
     const r = await dialog.prompt({
@@ -70,7 +72,7 @@ export default function MaterialScreen() {
   const pendingReceipt = receipts.find((r) => r.status === 'pending');
   const canAeReview = m.status === 'ae_review' && (isAe || me.role === 'senior_elec_engineer');
   const canDecide = (m.status === 'submitted' && me.role === 'senior_elec_engineer') || (m.status === 'pending_smp' && me.role === 'sm_projects');
-  const canOrder = m.status === 'approved' && me.role === 'operations_exec';
+  const canOrder = m.status === 'approved' && me.role === 'operations_exec' && !routed;
   const canSchedule = ['approved', 'ordered', 'part_received'].includes(m.status) && me.role === 'operations_exec';
   const late = mrDaysLate(m, todayISO());
   const canReceive = ['ordered', 'part_received'].includes(m.status) && !pendingReceipt && (isAe || isSub || me.role === 'senior_elec_engineer' || me.role === 'operations_exec');
@@ -168,7 +170,8 @@ export default function MaterialScreen() {
         {m.site_contact ? <KeyValue label="Site contact" value={m.site_contact} /> : null}
         {m.purpose ? <KeyValue label="For" value={m.purpose} /> : null}
         <KeyValue label="Requested by" value={`${people[m.requested_by]?.full_name ?? ''} · ${fmtDateTime(m.requested_at)}`} />
-        {m.po_no || m.supplier ? <KeyValue label="Order" value={[m.po_no ? `SAP ${m.po_no}` : null, m.supplier].filter(Boolean).join(' · ')} /> : null}
+        {m.po_no || m.supplier ? <KeyValue label={m.status === 'approved' && routed ? 'Ordered so far' : 'Order'} value={[m.po_no ? `${routed ? 'PO' : 'SAP'} ${m.po_no}` : null, m.supplier].filter(Boolean).join(' · ')} /> : null}
+        {m.expected_date && ['approved', 'ordered', 'part_received'].includes(m.status) ? <KeyValue label="Expected" value={`${fmtDate(m.expected_date)}${routed ? ' · follows the order' : ''}`} /> : null}
         <KeyValue
           label="Delivery"
           value={m.delivery_at ? `${fmtDateTime(m.delivery_at)}${m.reschedules ? ` · moved ${m.reschedules}×` : ''}${m.delivery_note ? ` · ${m.delivery_note}` : ''}` : ['approved', 'ordered'].includes(m.status) ? 'Not set yet – Operations sets it when the delivery is ready' : '—'}
@@ -197,6 +200,24 @@ export default function MaterialScreen() {
           ) : null}
         </Row>
       </Card>
+      {orders.length ? (
+        <Section title={`Orders for this request (${orders.filter((o) => o.po).length} of ${orders.length} ordered)`}>
+          <Card style={{ padding: 0, overflow: 'hidden' }}>
+            {orders.map((o) => (
+              <ListRow
+                key={o.order_id}
+                onPress={() => router.push(o.module === 'lo' ? `/orders/local/${o.order_id}` : `/orders/foreign/${o.order_id}`)}
+                title={`${o.code ?? ''} · ${o.supplier ?? '—'}`}
+                subtitle={[o.module === 'lo' ? 'Local order' : 'Import order', o.po ? `PO ${o.po}` : 'PO not issued yet', o.expected ? `expected ${fmtDate(o.expected)}` : null].filter(Boolean).join(' · ')}
+                right={<Pill label={o.delivered ? 'Delivered' : o.po ? 'Ordered' : 'Being sourced'} tone={o.delivered ? colors.green : o.po ? colors.blue : colors.amber} />}
+              />
+            ))}
+          </Card>
+          <Muted>Ordered when every order has its PO. The expected date follows the orders; when the site records the full receipt here, the orders are marked delivered.</Muted>
+        </Section>
+      ) : routed ? (
+        <Muted style={{ marginTop: 4 }}>{`With Operations – ${local ? 'local request' : 'import request'} ${(local ?? imported)?.code ?? ''}; no supplier order yet.`}</Muted>
+      ) : null}
       <Section title="Items">
         <Card style={{ padding: 0, overflow: 'hidden' }}>
           {lines.map((l) => (
