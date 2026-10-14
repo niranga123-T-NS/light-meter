@@ -6089,19 +6089,24 @@ select public.decide_material_request(current_setting('test.mt')::uuid, true), p
 reset role;
 select pg_temp.act_as('operations_exec'); set role authenticated;
 do $$ begin
-  perform public.schedule_delivery(current_setting('test.mt')::uuid, now() + interval '20 hours');
-  assert (select status = 'ordered' and delivery_at is not null from public.material_requests where id = current_setting('test.mt')::uuid), 'delivery scheduled';
-  begin perform public.schedule_delivery(current_setting('test.mt')::uuid, now() + interval '30 hours'); assert false, 'reason for later';
-  exception when others then assert sqlerrm = 'Give the reason for the later delivery', sqlerrm; end;
-  perform public.schedule_delivery(current_setting('test.mg')::uuid, now() + interval '20 hours');
-  perform public.schedule_delivery(current_setting('test.ml')::uuid, now() + interval '2 hours');
+  -- ordered in SAP with the expected date (no separate delivery appointment)
+  begin perform public.order_material_request(current_setting('test.mt')::uuid, 'PO-7', 'Cable Co', null); assert false, 'expected date';
+  exception when others then assert sqlerrm = 'Enter the expected delivery date', sqlerrm; end;
+  perform public.order_material_request(current_setting('test.mt')::uuid, 'PO-7', 'Cable Co', (now() at time zone app.tz())::date + 1);
+  assert (select status = 'ordered' and expected_date is not null from public.material_requests where id = current_setting('test.mt')::uuid), 'ordered, expected';
+  begin perform public.set_mr_expected(current_setting('test.mt')::uuid, (now() at time zone app.tz())::date + 3); assert false, 'reason for the change';
+  exception when others then assert sqlerrm = 'Give the reason for the change', sqlerrm; end;
+  perform public.order_material_request(current_setting('test.mg')::uuid, null, null, (now() at time zone app.tz())::date + 1);
+  perform public.order_material_request(current_setting('test.ml')::uuid, null, null, (now() at time zone app.tz())::date);
+  begin perform public.schedule_delivery(current_setting('test.ml')::uuid, now()); assert false, 'no appointment any more';
+  exception when insufficient_privilege then null; end;
 end $$;
 reset role;
 do $$ declare ops uuid := (select id from u where role = 'operations_exec'); see uuid := (select id from u where role = 'senior_elec_engineer');
 begin
   perform public.materials_tick(now());
-  assert exists (select 1 from public.notifications where recipient_id = ops and title = 'Material delivery coming'), 'Operations reminded';
-  assert exists (select 1 from public.notifications where recipient_id = see and title = 'Material delivery coming'), 'SEE reminded';
+  assert exists (select 1 from public.notifications where recipient_id = ops and title = 'Material expected tomorrow'), 'Operations reminded';
+  assert exists (select 1 from public.notifications where recipient_id = see and title = 'Material expected tomorrow'), 'SEE reminded';
   -- the junction boxes never arrive: more than 2 days late → SEE; more than 4 days → SM Projects
   -- (ticks a day further on, so the delivery's Sri Lanka date crossing midnight does not matter)
   perform public.materials_tick(now() + interval '4 days');
@@ -6410,7 +6415,7 @@ select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
 select public.decide_material_request(current_setting('test.rmr')::uuid, true);
 reset role;
 select pg_temp.act_as('operations_exec'); set role authenticated;
-select public.schedule_delivery(current_setting('test.rmr')::uuid, now() + interval '5 hours');
+select public.order_material_request(current_setting('test.rmr')::uuid, null, null, current_date + 1);
 reset role;
 select pg_temp.act_as('assistant_engineer'); set role authenticated;
 select public.receive_material(current_setting('test.rmr')::uuid,
@@ -7988,7 +7993,34 @@ insert into public.material_requests (id, code, exec_project_id, requested_by, r
 values ('00000000-0000-0000-0000-00000000aa07', 'MR-T-7', current_setting('test.lo_exec')::uuid, (select id from u where role = 'assistant_engineer'), current_date + 20, 'Trenching', 'submitted', 'local', 'service');
 insert into public.material_request_lines (mr_id, item, unit, qty, custom) values ('00000000-0000-0000-0000-00000000aa07', 'Trenching and backfilling 0.6 m', 'm', 450, true);
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
-do $$ begin perform public.decide_material_request('00000000-0000-0000-0000-00000000aa07', true, null); end $$;
+do $$ begin
+  perform public.decide_material_request('00000000-0000-0000-0000-00000000aa07', true, null);
+  -- how the service is paid: the site's choice (the SEE corrects it)
+  perform public.set_mr_billing('00000000-0000-0000-0000-00000000aa07', 'ipc');
+  assert (select billing = 'ipc' from public.material_requests where id = '00000000-0000-0000-0000-00000000aa07'), 'site chose IPC';
+end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare r uuid := (select id from public.lo_requests where mr_id = '00000000-0000-0000-0000-00000000aa07'); o uuid; begin
+  begin perform public.lo_save_order(null, jsonb_build_object('request_id', r, 'title', 'Trenching', 'kind', 'service', 'billing', 'single', 'supplier', 'Civil Co', 'payment_term', 'after_delivery')); assert false, 'Ops cannot change it';
+  exception when raise_exception then assert sqlerrm like 'The site chose "Paid by IPC"%', sqlerrm; end;
+  o := public.lo_save_order(null, jsonb_build_object('request_id', r, 'title', 'Trenching (IPC)', 'kind', 'service', 'supplier', 'Civil Co', 'payment_term', 'advance_ipc', 'advance_pct', 15));
+  assert (select billing = 'ipc' from public.lo_orders where id = o), 'order follows the site';
+  begin perform public.lo_set_billing(o, 'single'); assert false, 'Ops cannot change it';
+  exception when raise_exception then null; end;
+  begin perform public.set_mr_billing('00000000-0000-0000-0000-00000000aa07', 'hire'); assert false, 'only the SEE after approval';
+  exception when raise_exception then null; end;
+  perform set_config('test.mrbo', o::text, true);
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin
+  perform public.set_mr_billing('00000000-0000-0000-0000-00000000aa07', 'hire');
+  assert (select billing = 'hire' and payment_term = 'advance_periodic' and advance_pct = 15 and hire_unit = 'day' from public.lo_orders where id = current_setting('test.mrbo')::uuid), 'the order follows the SEE';
+end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ begin perform public.lo_cancel_order(current_setting('test.mrbo')::uuid, 'Test order'); end $$;
 reset role;
 do $$ declare r uuid := (select id from public.lo_requests where mr_id = '00000000-0000-0000-0000-00000000aa07'); o uuid; ops uuid := (select id from u where role = 'operations_exec'); begin
   assert (select kind = 'service' from public.lo_requests where id = r), 'local service request';
@@ -8065,6 +8097,43 @@ do $$ begin
   assert (select count(*) from public.order_date_changes where order_id = current_setting('test.ipco')::uuid) = 2, 'kept in the date history';
 end $$;
 reset role;
+-- the project pays its subcontractor IPCs through that local order: the certificate stops at "IPC approved", the invoice
+-- needs no Operations approval, and the local order's progress shows on both
+do $$ declare o uuid := current_setting('test.ipco')::uuid; e uuid; c uuid; v uuid; li uuid;
+begin
+  e := (select r.exec_project_id from public.lo_orders x join public.lo_requests r on r.id = x.request_id where x.id = o);
+  assert app.exec_pays_by_lo(e), 'paid through the local order';
+  insert into public.sub_certs (exec_project_id, subcontractor, period, gross, status) values (e, 'Sub Co', 'Nov 2026', 200000, 'verified') returning id into c;
+  insert into public.sub_invoices (code, exec_project_id, sub_cert_id, subcontractor, invoice_no, invoice_date, amount, status, created_by)
+  values ('SI-T-2', e, c, 'Sub Co', 'SC-2', current_date, 200000, 'submitted', (select id from u where role = 'assistant_engineer')) returning id into v;
+  perform set_config('test.sc', c::text, true); perform set_config('test.sv', v::text, true);
+end $$;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin
+  assert public.decide_sub_invoice(current_setting('test.sv')::uuid, true, null) = 'approved', 'SEE approval is enough';
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  begin perform public.advance_sub_cert(current_setting('test.sc')::uuid, true, null); assert false, 'approved on the local order';
+  exception when raise_exception then assert sqlerrm like 'Paid through the project''s local service order%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare li uuid; begin
+  li := public.lo_take_ipc(current_setting('test.ipco')::uuid, current_setting('test.sv')::uuid, '{}');
+  assert (select lo_invoice_id = li and lo_next = 'smp' from public.sub_invoices where id = current_setting('test.sv')::uuid), 'with SM Projects on the local order';
+  perform set_config('test.li', li::text, true);
+end $$;
+reset role;
+do $$ begin
+  update public.lo_invoices set smp_on = current_date, dgm_on = current_date, proc_on = current_date, finance_on = current_date, paid_on = current_date, pay_ref = 'PAY-9', status = 'paid'
+   where id = current_setting('test.li')::uuid;
+  assert (select lo_next = 'paid' and lo_paid_on = current_date from public.sub_invoices where id = current_setting('test.sv')::uuid), 'paid on the invoice';
+  assert (select status = 'paid' and paid_ref like 'Local order %PAY-9' from public.sub_certs where id = current_setting('test.sc')::uuid), 'certificate paid';
+  update public.lo_invoices set paid_on = null, pay_ref = null, status = 'open' where id = current_setting('test.li')::uuid;
+  assert (select status = 'verified' from public.sub_certs where id = current_setting('test.sc')::uuid), 'payment undone';
+end $$;
 -- service payment terms follow the billing; hire: periods and usage; work basis: deliverables
 select pg_temp.act_as('operations_exec'); set role authenticated;
 do $$ declare o uuid := current_setting('test.ipco')::uuid; r uuid; w3 uuid; h uuid; i uuid; d date := current_date;

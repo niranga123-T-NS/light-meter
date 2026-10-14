@@ -11,7 +11,7 @@ import { useLoad } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 import { addSubcontractor, canKeepSubs, loadSubcontractors, NEW_SUB, subOptions } from '@/lib/subcontractors';
 import type { Attachment } from '@/lib/types';
-import { certForMe, certTone } from './CertRows';
+import { certForMe, certTone, useLoPaidProjects } from './CertRows';
 
 type Tab = 'measure' | 'ipa' | 'ipc';
 type Var = { id: string; sub_cert_id?: string; invoice_id?: string; var_code: string };
@@ -51,6 +51,7 @@ function FileLinks({ files, label }: { files: Attachment[]; label: string }) {
 /** Subcontractor IPC & invoices in three sub-tabs – Measurements, IPA, IPC – each with its downloadable format, its uploads and every record, also after approval. */
 export function SubCertsTab({ p }: { p: ExecProject }) {
   const me = useMe();
+  const loPaid = useLoPaidProjects();
   const dialog = useDialog();
   const [tab, setTab] = useState<Tab>('measure');
   const [subFilter, setSubFilter] = useState<string | null>(null);
@@ -106,7 +107,7 @@ export function SubCertsTab({ p }: { p: ExecProject }) {
     i === 0 || cycle(list[i - 1]) !== cycle(list[i]) ? (
       <Text key={`h-${list[i].id}`} style={{ fontWeight: '700', color: colors.muted, marginTop: i ? 14 : 4, marginBottom: 2 }}>{`Cycle: ${cycle(list[i])}`}</Text>
     ) : null;
-  const mine = (c: SubCert) => certForMe(c, me);
+  const mine = (c: SubCert) => certForMe(c, me, loPaid);
   const invMine = (v: SubInvoice) =>
     (v.created_by === me.id && (v.status === 'draft' || v.status === 'returned')) ||
     (me.role === 'assistant_engineer' && v.status === 'ae_review') ||

@@ -4,7 +4,7 @@ import { useDialog } from '@/components/dialog';
 import { DocSlot } from '@/components/exec/DocSlot';
 import { Button, Card, colors, ErrorBanner, KeyValue, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { SINV_NOTICE, SINV_STATUS, type SubInvoice } from '@/lib/execution';
+import { SINV_NOTICE, SINV_STATUS, subInvoicePayment, type SubInvoice } from '@/lib/execution';
 import { listAttachments, openAttachment } from '@/lib/files';
 import { fmtDate, fmtDateTime, fmtMoney } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
@@ -126,6 +126,7 @@ export default function SubInvoicePage() {
         <Row wrap gap={16} style={{ marginTop: 8 }}>
           <KeyValue label="Invoice" value={`${v.invoice_no} · ${fmtDate(v.invoice_date)}`} />
           <KeyValue label="Amount" value={fmtMoney(v.amount, 'LKR')} />
+          {subInvoicePayment(v) ? <KeyValue label="Payment (local order)" value={subInvoicePayment(v)!} /> : null}
           <KeyValue label="Payment certificate" value={v.sub_certs ? `${v.sub_certs.code} · ${v.sub_certs.var_code ? `Variation ${v.sub_certs.var_code}` : 'BOQ work'} · ${v.sub_certs.period} · net ${fmtMoney(v.sub_certs.net, 'LKR')}` : '—'} />
           <KeyValue label="Recorded by" value={`${people[v.created_by]?.full_name ?? '—'}${v.revision ? ` · revision ${v.revision}` : ''}`} />
         </Row>

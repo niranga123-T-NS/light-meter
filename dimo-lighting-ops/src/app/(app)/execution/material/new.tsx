@@ -8,7 +8,7 @@ import { useDialog } from '@/components/dialog';
 import { TestingBanner } from '@/components/Testing';
 import { Button, Card, colors, DateField, ErrorBanner, Field, Grid, Muted, NumberField, Pill, Row, Screen, Section, Segmented, Select, Toggle } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { MR_ROUTES, type ExecProject, type MrRouteKind } from '@/lib/execution';
+import { MR_BILLING, MR_ROUTES, type ExecProject, type MrBilling, type MrRouteKind } from '@/lib/execution';
 import { useLoad } from '@/lib/hooks';
 import type { StockMatch } from '@/lib/returns';
 import { pickDocument, type PickedFile, uploadAttachment } from '@/lib/files';
@@ -60,6 +60,8 @@ export default function NewMaterialRequest() {
   const [route, setRoute] = useState<MrRouteKind>('sap');
   // a request is for materials (store / catalogue items) or services (scope of work)
   const [kind, setKind] = useState<'material' | 'service'>('material');
+  // a service: how it is paid (the SEE can correct it; Operations' order follows it)
+  const [billing, setBilling] = useState<MrBilling | ''>('');
   const [scope, setScope] = useState<{ item: string; qty: string; unit: string; note: string }[]>([{ item: '', qty: '', unit: '', note: '' }]);
   const setScopeLine = (i: number, l: Partial<{ item: string; qty: string; unit: string; note: string }>) => setScope((s) => s.map((x, k) => (k === i ? { ...x, ...l } : x)));
   const [activity, setActivity] = useState<string | null>(null);
@@ -96,6 +98,7 @@ export default function NewMaterialRequest() {
       if (!used.length) return setError('Describe the service – at least one line of the scope');
       const bad = used.findIndex((l) => !Number(l.qty) || !l.unit.trim());
       if (bad >= 0) return setError(`Scope line ${bad + 1}: give the quantity and unit (e.g. 450 m, 1 lot)`);
+      if (!billing) return setError('Choose how the service is paid');
       await dialog.run(async () => {
         const id = await rpc<string>('raise_material_request', {
           p_exec: proj,
@@ -111,6 +114,7 @@ export default function NewMaterialRequest() {
             lines: used.map((l) => ({ custom: true, item: l.item.trim(), category: 'Service', unit: l.unit.trim(), qty: l.qty, note: l.note })),
           },
         });
+        await rpc('set_mr_billing', { p_id: id, p_billing: billing });
         router.replace(`/execution/material/${id}`);
       }, sub ? 'Sent to the Assistant Engineer' : 'Requested – the Senior Electrical Engineer approves it');
       return;
@@ -229,6 +233,14 @@ export default function NewMaterialRequest() {
               <Field label="Note (specification, conditions)" value={l.note} onChangeText={(t) => setScopeLine(i, { note: t })} />
             </Card>
           ))}
+          <Select
+            label="How is it paid?"
+            required
+            value={billing}
+            onChange={(v) => setBilling(v as MrBilling)}
+            options={MR_BILLING.map((b) => ({ value: b.value, label: `${b.label} – ${b.hint}` }))}
+            hint="Operations orders it this way and agrees the payment term (advance etc.) with the provider. The SEE can change it until the work is done."
+          />
           <Muted>The SEE approves it; on approval it goes to Operations as a local (or import) service request, and it is completed when the service provider’s work is completed.</Muted>
         </Section>
       ) : (

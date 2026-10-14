@@ -8,16 +8,14 @@ import { OrderProgress } from '@/components/exec/OrderProgress';
 import { TestingBanner } from '@/components/Testing';
 import { Button, Card, colors, ErrorBanner, Field, KeyValue, ListRow, Loading, Muted, Notice, NumberField, Pill, Row, Screen, Section, Select } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { CUSTODY, MR_ROUTES, MR_STATUS, mrDaysLate, type ExecMember, type MaterialReceipt, type MaterialRequest, type MrLine, type MrRouteOrder } from '@/lib/execution';
-import { fmtDate, fmtDateTime, fmtNumber, fmtTime, todayISO } from '@/lib/format';
-import { slTime } from '@/lib/hse';
+import { CUSTODY, type ExecMember, type MaterialReceipt, type MaterialRequest, MR_BILLING, MR_ROUTES, MR_STATUS, mrDaysLate, type MrLine, type MrRouteOrder } from '@/lib/execution';
+import { fmtDate, fmtDateTime, fmtNumber, todayISO } from '@/lib/format';
 import { loadSubcontractors } from '@/lib/subcontractors';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 
 /** One material request: approvals, the order (PO), and deliveries received into the site store. */
 /** The Sri Lanka date of a timestamp */
-const slDay = (ts: string) => new Date(new Date(ts).getTime() + 330 * 60000).toISOString().slice(0, 10);
 
 export default function MaterialScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -67,6 +65,20 @@ export default function MaterialScreen() {
     });
     if (r && r.route !== mrRoute) await dialog.run(async () => { await rpc('set_mr_route', { p_id: m.id, p_route: r.route }); await reload(); }, 'Route changed');
   };
+  // a service: how it is paid – the requester / AEs choose it, the SEE (or SM Projects) corrects it; Operations' order follows
+  const canBilling =
+    m.kind === 'service' &&
+    ((['ae_review', 'submitted', 'pending_smp'].includes(m.status) && (me.role === 'senior_elec_engineer' || me.role === 'sm_projects' || m.requested_by === me.id || me.role === 'assistant_engineer')) ||
+      (['approved', 'ordered'].includes(m.status) && (me.role === 'senior_elec_engineer' || me.role === 'sm_projects')));
+  const changeBilling = async () => {
+    const r = await dialog.prompt({
+      title: 'How is the service paid?',
+      message: routed ? 'Operations’ order changes with it (its payment term moves to the nearest that fits) and Operations is told.' : 'Operations orders it this way.',
+      fields: [{ key: 'billing', label: 'Paid', type: 'select', required: true, initial: m.billing ?? '', options: MR_BILLING.map((x) => ({ value: x.value, label: `${x.label} – ${x.hint}` })) }],
+      confirmLabel: 'Save',
+    });
+    if (r && r.billing !== m.billing) await dialog.run(async () => { await rpc('set_mr_billing', { p_id: m.id, p_billing: r.billing }); await reload(); }, 'Changed');
+  };
   const isAe = me.role === 'assistant_engineer' && members.some((x) => x.user_id === me.id);
   const isSub = me.role === 'sub_supervisor';
   const supervisors = members.filter((x) => x.member_role === 'sub_supervisor');
@@ -74,7 +86,8 @@ export default function MaterialScreen() {
   const canAeReview = m.status === 'ae_review' && (isAe || me.role === 'senior_elec_engineer');
   const canDecide = (m.status === 'submitted' && me.role === 'senior_elec_engineer') || (m.status === 'pending_smp' && me.role === 'sm_projects');
   const canOrder = m.status === 'approved' && me.role === 'operations_exec' && !routed && (m.route ?? 'sap') === 'sap';
-  const canSchedule = ['approved', 'ordered', 'part_received'].includes(m.status) && me.role === 'operations_exec';
+  // the expected date follows the local / import orders; ordered in SAP, Operations keeps it here (materials only)
+  const canExpect = m.kind !== 'service' && !routed && ['ordered', 'part_received'].includes(m.status) && me.role === 'operations_exec';
   const late = mrDaysLate(m, todayISO());
   const canReceive = m.kind !== 'service' && ['ordered', 'part_received'].includes(m.status) && !pendingReceipt && (isAe || isSub || me.role === 'senior_elec_engineer' || me.role === 'operations_exec');
   // Who acknowledges a pending delivery: the AE side (if not yet) and the named supervisor (if not yet)
@@ -113,32 +126,28 @@ export default function MaterialScreen() {
   const order = async () => {
     const res = await dialog.prompt({
       title: 'Ordered in SAP',
-      message: 'Then set the delivery date and time once the delivery is ready.',
+      message: 'The site is told the expected date and reminded the day before.',
       fields: [
+        { key: 'd', label: 'Expected delivery', type: 'date', required: true, initial: m.required_date },
         { key: 'po', label: 'SAP order / PO reference (optional)' },
         { key: 's', label: 'Supplier (optional)' },
       ],
       confirmLabel: 'Save',
     });
-    if (res) await dialog.run(async () => { await rpc('order_material_request', { p_id: m.id, p_po: res.po || null, p_supplier: res.s || null, p_expected: null }); await reload(); }, 'The site is told');
+    if (res) await dialog.run(async () => { await rpc('order_material_request', { p_id: m.id, p_po: res.po || null, p_supplier: res.s || null, p_expected: res.d }); await reload(); }, 'The site is told');
   };
-  // Operations sets (or moves) the delivery date and time; the site, the SEE and the requester are told
-  const schedule = async () => {
-    const moving = !!m.delivery_at;
+  // Ordered in SAP (no local / import order): Operations keeps the expected date here – a change needs the reason
+  const moveExpected = async () => {
     const res = await dialog.prompt({
-      title: moving ? 'Move the delivery' : 'Delivery ready – set the date and time',
+      title: m.expected_date ? 'Change the expected date' : 'Set the expected date',
+      message: 'The site is told; it gets a reminder the day before. A later date is a delay – the SEE, then SM Projects hear of it.',
       fields: [
-        { key: 'd', label: 'Delivery date', type: 'date', required: true, initial: m.delivery_at ? slDay(m.delivery_at) : m.required_date },
-        { key: 't', label: 'Time (24h)', required: true, initial: m.delivery_at ? fmtTime(m.delivery_at) : '09:00' },
-        { key: 'n', label: moving ? 'Reason for the new date' : 'Note (vehicle, contact…)', type: 'multiline', required: moving },
+        { key: 'd', label: 'Expected delivery', type: 'date', required: true, initial: m.expected_date ?? m.required_date },
+        ...(m.expected_date ? [{ key: 'n', label: 'Reason for the change', type: 'multiline' as const, required: true }] : []),
       ],
       confirmLabel: 'Save',
     });
-    if (res)
-      await dialog.run(async () => {
-        await rpc('schedule_delivery', { p_id: m.id, p_at: slTime(res.d, res.t), p_note: res.n || null });
-        await reload();
-      }, 'Delivery set – the site and the SEE are told');
+    if (res) await dialog.run(async () => { await rpc('set_mr_expected', { p_id: m.id, p_date: res.d, p_reason: res.n || null }); await reload(); }, 'Saved – the site is told');
   };
   const receive = async () => {
     if (!recv) return;
@@ -170,19 +179,21 @@ export default function MaterialScreen() {
           </Row>
         </Row>
         <KeyValue label={m.kind === 'service' ? 'Needed by' : 'Needed on site by'} value={`${fmtDate(m.required_date)}${m.priority === 'urgent' ? ' · URGENT' : ''}`} />
-        {m.deliver_to ? <KeyValue label="Deliver to" value={m.deliver_to} /> : null}
+        {m.deliver_to ? <KeyValue label={m.kind === 'service' ? 'Work location' : 'Deliver to'} value={m.deliver_to} /> : null}
         {m.site_contact ? <KeyValue label="Site contact" value={m.site_contact} /> : null}
         {m.purpose ? <KeyValue label="For" value={m.purpose} /> : null}
         <KeyValue label="Requested by" value={`${people[m.requested_by]?.full_name ?? ''} · ${fmtDateTime(m.requested_at)}`} />
         {m.po_no || m.supplier ? <KeyValue label={m.status === 'approved' && routed ? 'Ordered so far' : 'Order'} value={[m.po_no ? `${routed ? 'PO' : 'SAP'} ${m.po_no}` : null, m.supplier].filter(Boolean).join(' · ')} /> : null}
         <KeyValue label="Sourced by" value={`${m.kind === 'service' ? (mrRoute === 'import' ? 'Foreign service provider' : 'Local service provider') : MR_ROUTES.find((x) => x.value === mrRoute)?.label ?? mrRoute}${(local ?? imported) ? ` · ${(local ?? imported)?.code ?? ''}` : ''}`} />
-        {m.expected_date && ['approved', 'ordered', 'part_received'].includes(m.status) ? <KeyValue label="Expected" value={`${fmtDate(m.expected_date)}${routed ? ' · follows the order' : ''}`} /> : null}
-        <KeyValue
-          label="Delivery"
-          value={m.delivery_at ? `${fmtDateTime(m.delivery_at)}${m.reschedules ? ` · moved ${m.reschedules}×` : ''}${m.delivery_note ? ` · ${m.delivery_note}` : ''}` : ['approved', 'ordered'].includes(m.status) ? 'Not set yet – Operations sets it when the delivery is ready' : '—'}
-        />
+        {m.kind === 'service' ? <KeyValue label="Paid" value={m.billing ? `${MR_BILLING.find((x) => x.value === m.billing)?.label} – ${MR_BILLING.find((x) => x.value === m.billing)?.hint}` : 'Not chosen – Operations decides'} /> : null}
+        {['approved', 'ordered', 'part_received'].includes(m.status) ? (
+          <KeyValue
+            label="Expected"
+            value={m.expected_date ? `${fmtDate(m.expected_date)}${m.reschedules ? ` · moved ${m.reschedules}×` : ''}${routed ? ' · follows the order' : ''}` : routed ? 'When the order gives its date' : 'Operations gives it when ordering'}
+          />
+        ) : null}
         {m.decision_note ? <Notice tone={m.status === 'rejected' ? colors.red : colors.blue}>{m.decision_note}</Notice> : null}
-        {late ? <Notice tone={colors.red}>{`Delivery ${late} day${late === 1 ? '' : 's'} late${late > 4 ? ' – SM Projects told' : late > 2 ? ' – the SEE told' : ''}`}</Notice> : null}
+        {late && m.kind !== 'service' ? <Notice tone={colors.red}>{`Expected delivery ${late} day${late === 1 ? '' : 's'} late${late > 4 ? ' – SM Projects told' : late > 2 ? ' – the SEE told' : ''}`}</Notice> : null}
         <Row wrap gap={6} style={{ marginTop: 8 }}>
           {canAeReview ? <Button title="Forward to SEE" onPress={() => aeReview(true)} /> : null}
           {canAeReview ? <Button variant="secondary" title="Return" onPress={() => aeReview(false)} /> : null}
@@ -190,9 +201,10 @@ export default function MaterialScreen() {
           {canDecide ? <Button variant="secondary" title="Reject" onPress={() => decide(false)} /> : null}
           {canOrder ? <Button variant="secondary" title="Ordered in SAP" onPress={order} /> : null}
           {canRoute ? <Button variant="secondary" title="Change route" onPress={changeRoute} /> : null}
+          {canBilling ? <Button variant="secondary" title={m.billing ? 'Change how it is paid' : 'Choose how it is paid'} onPress={changeBilling} /> : null}
           {imported ? <Button variant="ghost" title={`Import request ${imported.code ?? ''} ›`} onPress={() => router.push(`/orders/foreign/ho/${imported.id}`)} /> : null}
           {local ? <Button variant="ghost" title={`Local request ${local.code ?? ''} ›`} onPress={() => router.push(`/orders/local/r/${local.id}`)} /> : null}
-          {canSchedule ? <Button title={m.delivery_at ? 'Move the delivery' : 'Set delivery date & time'} onPress={schedule} /> : null}
+          {canExpect ? <Button variant="secondary" title={m.expected_date ? 'Change expected date' : 'Set expected date'} onPress={moveExpected} /> : null}
           {canReceive && !recv ? (
             <Button
               title="Record a delivery"
@@ -212,7 +224,7 @@ export default function MaterialScreen() {
       ) : routed ? (
         <Muted style={{ marginTop: 4 }}>{`With Operations – ${local ? 'local request' : 'import request'} ${(local ?? imported)?.code ?? ''}; no supplier order yet.`}</Muted>
       ) : null}
-      <Section title="Items">
+      <Section title={m.kind === 'service' ? 'Scope of the service' : 'Items'}>
         <Card style={{ padding: 0, overflow: 'hidden' }}>
           {lines.map((l) => (
             <ListRow
@@ -304,8 +316,8 @@ export default function MaterialScreen() {
           </Card>
         </Section>
       ) : null}
-      <Attachments entityType="material_request" entityId={m.id} kinds={['datasheet']} title="Datasheets and drawings of the items" canUpload={me.role !== 'gm' && !['received', 'rejected', 'cancelled'].includes(m.status)} />
-      <Attachments entityType="material_request" entityId={m.id} kinds={['mr_doc', 'grn_photo']} title="Delivery notes and photos" allowCamera canUpload={me.role !== 'gm'} />
+      <Attachments entityType="material_request" entityId={m.id} kinds={['datasheet']} title={m.kind === 'service' ? 'Scope documents (drawings, specifications, BOQ)' : 'Datasheets and drawings of the items'} canUpload={me.role !== 'gm' && !['received', 'rejected', 'cancelled'].includes(m.status)} />
+      {m.kind === 'service' ? null : <Attachments entityType="material_request" entityId={m.id} kinds={['mr_doc', 'grn_photo']} title="Delivery notes and photos" allowCamera canUpload={me.role !== 'gm'} />}
     </Screen>
   );
 }

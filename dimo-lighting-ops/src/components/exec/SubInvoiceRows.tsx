@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { Card, colors, Empty, ListRow, Pill } from '@/components/ui';
-import { SINV_STATUS, type SubInvoice } from '@/lib/execution';
+import { SINV_STATUS, subInvoicePayment, type SubInvoice } from '@/lib/execution';
 import { fmtDate, fmtMoney } from '@/lib/format';
 
 const TONE = { grey: colors.grey, amber: colors.amber, blue: colors.blue, green: colors.green, red: colors.red };
@@ -18,7 +18,7 @@ export function SubInvoiceRows({ rows, projectName, empty = 'No invoices recorde
             wrapRight
             highlight={v.status === 'returned' ? colors.red : undefined}
             title={`${v.code} · ${v.subcontractor} · invoice ${v.invoice_no}`}
-            subtitle={[projectName?.(v.exec_project_id), fmtDate(v.invoice_date), v.status === 'returned' && v.return_note ? `returned: ${v.return_note}` : null].filter(Boolean).join(' · ')}
+            subtitle={[projectName?.(v.exec_project_id), fmtDate(v.invoice_date), subInvoicePayment(v), v.status === 'returned' && v.return_note ? `returned: ${v.return_note}` : null].filter(Boolean).join(' · ')}
             right={
               <>
                 <Pill label={fmtMoney(v.amount, 'LKR')} />

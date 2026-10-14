@@ -366,6 +366,14 @@ export const VAR_ROUTES: Record<string, string> = { A: 'Design + estimation', B:
 // ---- Materials, documents, design queries (step 7a) ----
 export type MrRouteKind = 'sap' | 'local' | 'import';
 /** How the person raising the request sources it – Operations no longer decides */
+/** How a service is paid – chosen with the request (the SEE corrects it); Operations' local order follows it */
+export type MrBilling = 'single' | 'ipc' | 'milestone' | 'hire';
+export const MR_BILLING: { value: MrBilling; label: string; hint: string }[] = [
+  { value: 'single', label: 'Single invoice', hint: 'one-off job, paid when done (a repair, a single crane lift)' },
+  { value: 'ipc', label: 'Paid by IPC', hint: 'subcontract work measured and claimed by IPC' },
+  { value: 'milestone', label: 'Per deliverable', hint: 'work basis – each deliverable paid once accepted (e.g. a consultant’s design, report)' },
+  { value: 'hire', label: 'Hire', hint: 'machine, equipment or consultant time – paid per period from the time sheet' },
+];
 export const MR_ROUTES: { value: MrRouteKind; label: string; hint: string }[] = [
   { value: 'sap', label: 'SAP (order / stock)', hint: 'Operations orders it in SAP or issues it from stock' },
   { value: 'local', label: 'Buy locally', hint: 'A local request (LR-) goes to Operations on approval' },
@@ -401,6 +409,7 @@ export type MaterialRequest = {
   priority?: 'normal' | 'urgent';
   route?: MrRouteKind;
   kind?: 'material' | 'service';
+  billing?: MrBilling | null;
   activity_id?: string | null;
   deliver_to?: string | null;
   site_contact?: string | null;
@@ -412,7 +421,9 @@ export type MaterialRequest = {
 /** Days a delivery is late: past the set delivery date, or the needed-by date until one is set (0 when not late / done). */
 export const mrDaysLate = (m: MaterialRequest, today: string) => {
   if (!['approved', 'ordered', 'part_received'].includes(m.status)) return 0;
-  const due = m.delivery_at ? new Date(new Date(m.delivery_at).getTime() + 330 * 60000).toISOString().slice(0, 10) : m.required_date;
+  // late against the expected date (the orders', or the SAP order's), else the required date; a service is not delivered
+  if (m.kind === 'service') return 0;
+  const due = m.expected_date ?? m.required_date;
   return Math.max(0, Math.round((Date.parse(today) - Date.parse(due)) / 864e5));
 };
 export const CUSTODY = [
@@ -712,6 +723,9 @@ export type SubInvoice = {
   return_note: string | null;
   docs_received_at: string | null;
   docs_note: string | null;
+  /** paid through the project's local service order: where its IPC invoice is (the next approval, or paid) */
+  lo_next?: string | null;
+  lo_paid_on?: string | null;
 };
 export const SINV_STATUS: Record<SubInvoice['status'], { label: string; tone: 'grey' | 'amber' | 'blue' | 'green' | 'red' }> = {
   draft: { label: 'Draft – attach the copy and submit', tone: 'grey' },
@@ -723,6 +737,10 @@ export const SINV_STATUS: Record<SubInvoice['status'], { label: string; tone: 'g
   docs_received: { label: 'Physical documents received', tone: 'green' },
   cancelled: { label: 'Withdrawn', tone: 'grey' },
 };
+const LO_POINT: Record<string, string> = { see: 'the SEE', smp: 'SM Projects', dgm: 'the DGM', proc: 'Procurement', finance: 'Finance', paid: 'payment' };
+/** A subcontractor invoice paid through the local order: its progress there */
+export const subInvoicePayment = (v: Pick<SubInvoice, 'lo_next' | 'lo_paid_on'>) =>
+  !v.lo_next ? null : v.lo_next === 'paid' ? `Paid${v.lo_paid_on ? ` ${v.lo_paid_on.split('-').reverse().join('/')}` : ''}` : `Payment: with ${LO_POINT[v.lo_next] ?? v.lo_next}`;
 /** Shown wherever an invoice is recorded: the record is for reference, the originals go to the office */
 export const SINV_NOTICE =
   'This submission is for recording purposes only. The physical documents must be submitted to the DIMO Lighting Solutions office for processing – you will be told here when they can be submitted.';
