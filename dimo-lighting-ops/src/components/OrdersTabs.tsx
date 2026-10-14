@@ -2,21 +2,23 @@ import { router } from 'expo-router';
 import { Segmented } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 
-/** Who sees subcontractor invoices among the orders: Operations, SM Projects, GM / DGM and the SEE */
-const SUB_ROLES = ['operations_exec', 'sm_projects', 'gm', 'senior_elec_engineer'];
-const HREF = { foreign: '/orders/foreign', local: '/orders/local', sub: '/orders/subcontractor' } as const;
+/** Who sees the site's requests and the subcontractor invoices among the orders: Operations, SM Projects, GM / DGM and the SEE */
+export const SITE_ROLES = ['operations_exec', 'sm_projects', 'gm', 'senior_elec_engineer'];
+const HREF = { requests: '/orders/site-requests', foreign: '/orders/foreign', local: '/orders/local', sub: '/orders/subcontractor' } as const;
 
 /** The sub-tabs of Foreign & local orders */
-export function OrdersTabs({ value }: { value: 'foreign' | 'local' | 'sub' }) {
+export function OrdersTabs({ value }: { value: 'requests' | 'foreign' | 'local' | 'sub' }) {
   const me = useMe();
+  const site = SITE_ROLES.includes(me.role);
   return (
     <Segmented
       value={value}
       onChange={(v) => router.replace(HREF[v])}
       options={[
+        ...(site ? [{ value: 'requests' as const, label: 'Site requests' }] : []),
         { value: 'foreign' as const, label: 'Foreign orders ✈' },
         { value: 'local' as const, label: 'Local orders' },
-        ...(SUB_ROLES.includes(me.role) ? [{ value: 'sub' as const, label: 'Subcontractor invoices' }] : []),
+        ...(site ? [{ value: 'sub' as const, label: 'Subcontractor invoices' }] : []),
       ]}
     />
   );
