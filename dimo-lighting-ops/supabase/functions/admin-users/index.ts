@@ -1,5 +1,5 @@
 // User administration for the System Administrator and GM / DGM (SRS Section 2): invite a user with a role,
-// deactivate (never delete) and reactivate logins. GM / DGM cannot create or change System Administrator logins.
+// deactivate and reactivate logins; the GM / DGM's clean-up removes test logins (after admin_purge). GM / DGM cannot create or change System Administrator logins.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const cors = {
@@ -147,6 +147,37 @@ Deno.serve(async (req) => {
         if (error) return json({ error: error.message }, 400);
         await admin.from('profiles').update({ active }).eq('id', body.user_id);
         await admin.from('audit_log').insert({ user_id: caller.user.id, table_name: 'users', record_id: body.user_id, action: active ? 'ACTIVATE' : 'DEACTIVATE' });
+        return json({ ok: true });
+      }
+      // Clean-up (GM / DGM): after admin_purge has deleted the records, the files of their attachments and the login
+      case 'purge_files': {
+        if (me.role !== 'gm') return json({ error: 'Only the GM / DGM deletes records' }, 403);
+        const paths = (Array.isArray(body.paths) ? body.paths : []).map(String).filter((p: string) => p && !p.includes('..')).slice(0, 2000);
+        if (!paths.length) return json({ removed: 0 });
+        // only files no attachment points to any more
+        const { data: still } = await admin.from('attachments').select('storage_path').in('storage_path', paths);
+        const keep = new Set((still ?? []).map((r: { storage_path: string }) => r.storage_path));
+        const gone = paths.filter((p: string) => !keep.has(p));
+        let removed = 0;
+        for (let i = 0; i < gone.length; i += 500) {
+          const { data, error } = await admin.storage.from('files').remove(gone.slice(i, i + 500));
+          if (error) return json({ error: error.message, removed }, 400);
+          removed += data?.length ?? 0;
+        }
+        return json({ removed });
+      }
+      case 'delete_login': {
+        if (me.role !== 'gm') return json({ error: 'Only the GM / DGM deletes users' }, 403);
+        if (!body.user_id || body.user_id === caller.user.id) return json({ error: 'Choose another user' }, 400);
+        // the clean-up must have removed the user's records and profile first
+        const { data: prof } = await admin.from('profiles').select('id').eq('id', body.user_id).maybeSingle();
+        if (prof) return json({ error: 'Delete the user from the clean-up first' }, 400);
+        const since = new Date(Date.now() - 3600000).toISOString();
+        const { data: log } = await admin.from('purge_log').select('id').eq('kind', 'user').eq('target', body.user_id).eq('done_by', caller.user.id).gte('done_at', since).limit(1);
+        if (!log?.length) return json({ error: 'This login was not cleaned up by you in the last hour' }, 400);
+        const { error } = await admin.auth.admin.deleteUser(body.user_id);
+        if (error) return json({ error: error.message }, 400);
+        await admin.from('audit_log').insert({ user_id: caller.user.id, table_name: 'users', record_id: body.user_id, action: 'DELETE_LOGIN', new_data: { by_role: me.role } });
         return json({ ok: true });
       }
       default:

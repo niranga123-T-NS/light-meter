@@ -1,6 +1,7 @@
 import { router, Stack } from 'expo-router';
 import { useState } from 'react';
 import { useDialog } from '@/components/dialog';
+import { Cleanup } from '@/components/admin/Cleanup';
 import { Avatar, Button, Card, colors, ErrorBanner, ListRow, Muted, Notice, Pill, Row, Screen, Section, Segmented } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { fmtDate, fmtDateTime, fmtWorkDays, todayISO, WORKING_HOURS_PER_DAY } from '@/lib/format';
@@ -10,7 +11,7 @@ import { DAY_OPTIONS, daysLabel, describe, toCron, toPlan, type AlertJob } from 
 import { callFunction, rpc, supabase } from '@/lib/supabase';
 import type { Profile, Role } from '@/lib/types';
 
-type Tab = 'users' | 'alerts' | 'masters' | 'sla' | 'settings' | 'calendar' | 'brands' | 'competitors';
+type Tab = 'users' | 'alerts' | 'masters' | 'sla' | 'settings' | 'calendar' | 'brands' | 'competitors' | 'cleanup';
 const ROLES = Object.keys(ROLE_LABELS) as Role[];
 
 /** Administration: users and roles, master lists, SLA rules, settings, holidays, exchange rates, brands, competitors. */
@@ -33,11 +34,12 @@ export default function Admin() {
           { value: 'calendar', label: 'Holidays & rates' },
           { value: 'brands', label: 'Brands' },
           { value: 'competitors', label: 'Competitors' },
+          ...(me.role === 'gm' ? [{ value: 'cleanup' as Tab, label: 'Delete test data' }] : []),
         ]}
       />
       {me.role === 'gm' && tab === 'calendar' ? (
         <Notice>You can set the monthly USD → LKR exchange rate here. Holidays are entered by the System Administrator.</Notice>
-      ) : me.role !== 'sys_admin' && tab !== 'users' && tab !== 'competitors' && tab !== 'alerts' ? (
+      ) : me.role !== 'sys_admin' && tab !== 'users' && tab !== 'competitors' && tab !== 'alerts' && tab !== 'cleanup' ? (
         <Notice>Changes to SLA settings and master data are made by the System Administrator and approved by GM / DGM.</Notice>
       ) : null}
       {tab === 'users' ? <Users /> : null}
@@ -48,6 +50,7 @@ export default function Admin() {
       {tab === 'calendar' ? <Calendar /> : null}
       {tab === 'brands' ? <Brands /> : null}
       {tab === 'competitors' ? <Competitors /> : null}
+      {tab === 'cleanup' && me.role === 'gm' ? <Cleanup /> : null}
     </Screen>
   );
 }
