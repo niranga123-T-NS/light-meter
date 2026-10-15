@@ -59,7 +59,7 @@ table.spec{width:100%;border-collapse:collapse;font-size:13px}table.spec td{padd
 <!-- ============ HOME ============ -->
 <div id="home">
   <div class="card hero">
-    <div><h2>Dacademy – Lighting Academy</h2><div class="m">Seven modules. Short lessons with live graphics, words to use with clients and a quick check.</div><div class="m" id="saveNote" style="font-size:12px;margin-top:4px"></div></div>
+    <div><h2>Dacademy – Lighting Academy</h2><div class="m">Eight modules. Short lessons with live graphics, words to use with clients and a quick check.</div><div class="m" id="saveNote" style="font-size:12px;margin-top:4px"></div></div>
     <div><div class="m" style="font-size:12px;margin-bottom:4px" id="progText">Your progress</div><div class="bar"><i id="progBar" style="width:0%"></i></div><div style="margin-top:8px" id="contBtn"></div></div>
   </div>
   <div class="mods" id="mods"></div>
@@ -241,6 +241,27 @@ table.spec{width:100%;border-collapse:collapse;font-size:13px}table.spec td{padd
     </div></div>
     <div class="part"><div class="num">6</div><div class="body"><h4>Message log – how each command travelled</h4><div class="info" id="cLog" style="min-height:0;font-size:12.5px"></div></div></div>
     <div class="part"><div class="num">7</div><div class="body"><h4>Watch out</h4><div class="watch">This is a <b>teaching demo with invented data</b> – not Fonda’s actual software screens. Fonda’s product range (SCCS platform, NEMA / Zhaga controllers on NB-IoT, LTE Cat.1, LoRa / LoRaWAN, PLC) is from its own published material; <b>check on the TALQ Consortium list whether the CMS and each gateway are TALQ-certified</b> before promising multi-brand control in an offer.</div></div></div>
+  </div>
+</div>
+
+
+<!-- ============ LIVE: SPORTS LIGHTING ============ -->
+<div id="sportv" class="hidden">
+  <div class="crumb" onclick="back()">◀ All lessons · Sports lighting</div>
+  <div class="card">
+    <div class="hero"><div><span class="pill">Live · 6 min</span><h2 style="margin-top:6px">Sports lighting playground</h2></div><span class="m">Pick the sport and level, then change masts, height, fittings and beam – the light on the field is calculated live</span></div>
+    <div class="row" style="margin-top:12px" id="spSport"></div>
+    <div class="part"><div class="num">1</div><div class="body"><h4>In one line</h4><div id="spLine"></div></div></div>
+    <div class="part"><div class="num">2</div><div class="body"><h4>See it – the field from above</h4>
+      <div class="row" id="spLvl" style="margin-bottom:6px"></div>
+      <div class="stage"><svg id="spTop" viewBox="0 0 760 420"></svg></div>
+      <div class="row" style="margin-top:6px"><span class="btn" id="spAimBtn" style="padding:4px 9px;font-size:12px" onclick="spAim=!spAim;sport()">Show aiming lines</span><span class="btn p" style="padding:4px 9px;font-size:12px" onclick="spSize()">Size the fittings for this level</span></div>
+      <div class="ctl" id="spCtl"></div>
+      <div class="kpis" id="spKpi"></div>
+      <div class="m" id="spVerdict" style="font-size:13px"></div>
+    </div></div>
+    <div class="part"><div class="num">3</div><div class="body"><h4>Say this to the client</h4><div class="say" id="spSay"></div></div></div>
+    <div class="part"><div class="num">4</div><div class="body"><h4>Watch out</h4><div class="watch" id="spWatch"></div></div></div>
   </div>
 </div>
 
@@ -1383,6 +1404,136 @@ L.push({ mod: 'road', sec: 'TALQ smart control', id: 'lab_cms', icon: '🖥️',
   quiz: [Q('In the demo, how do Fonda’s Main Road lights reach the CMS?', ['Directly over cellular – no gateway', 'Through a Brand A gateway', 'They cannot'], 0), Q('How do Brand B’s lights join the same CMS?', ['Through Brand B’s gateway and the TALQ interface', 'Through Fonda’s PLC concentrator', 'They need their own CMS always'], 0), Q('A fault alarm can automatically create…', ['a work order in the maintenance system', 'a new pole', 'a price list'], 0)] });
 LESSONS.lab_cms = L[L.length - 1];
 
+
+// ================================================================ SPORTS LIGHTING playground (point-by-point, symmetric floodlights aimed at a grid of points)
+const SPORTS = {
+  cricket: { name: 'Cricket', icon: '🏏', kind: 'oval', R: 70, infR: 27.4, L: 150, W: 150, masts: [4, 6, 8], m: 6, h: 45, hR: [30, 60], per: 16, perR: [4, 60], lm: 150000, lmR: [60000, 250000], beam: 40, beamR: [10, 70],
+    levels: { Recreational: [300, 500, 0.4], Club: [500, 750, 0.5], National: [750, 1000, 0.6] },
+    line: 'A cricket ground is a large oval lit from 4–8 tall masts around the boundary. The <b>infield</b> (inside the 30-yard circle) needs more light than the outfield, the light must be <b>even</b> so fielders can follow a high ball, and glare must stay low for batters and fielders.',
+    say: (r) => `“For club cricket we design about ${r.tin} lx on the infield and ${r.tout} lx on the outfield from ${r.masts} masts at ${r.h} m, aimed one by one – and the same masts can take extra fittings later for TV.”`,
+    watch: 'For TV broadcast the requirement is vertical light towards the cameras (often 1,400–2,500 lx) and flicker-free drivers – a horizontal-lux design is not enough. Check the ICC / board requirements for the level of play, and the mast foundations for wind load.' },
+  tennis: { name: 'Tennis', icon: '🎾', kind: 'rect', L: 36.6, W: 18.3, court: [23.77, 10.97], masts: [4, 6, 8], m: 6, h: 10, hR: [7, 16], per: 2, perR: [1, 4], lm: 60000, lmR: [10000, 90000], beam: 100, beamR: [20, 120],
+    levels: { 'Recreational (III)': [200, 0, 0.5], 'Club (II)': [300, 0, 0.6], 'Competition (I)': [500, 0, 0.7] },
+    line: 'Tennis courts are lit from poles along the <b>long sides only</b> – never behind the baselines, where players look up to serve. The whole playing area including run-off must be even, because the ball is small and fast.',
+    say: (r) => `“We use ${r.masts} poles at ${r.h} m along the sides with asymmetric floodlights – ${r.avg} lx with good uniformity and no glare when players look up to serve.”`,
+    watch: 'Never place poles behind the baselines. Asymmetric (flat-glass) floodlights keep glare and spill low for neighbours; residential areas often limit light spill after 22:00.' },
+  volley: { name: 'Volleyball (outdoor)', icon: '🏐', kind: 'rect', L: 24, W: 15, court: [18, 9], masts: [4, 6], m: 4, h: 9, hR: [6, 14], per: 2, perR: [1, 4], lm: 50000, lmR: [8000, 90000], beam: 90, beamR: [20, 120],
+    levels: { 'Recreational (III)': [200, 0, 0.5], 'Club (II)': [300, 0, 0.6], 'Competition (I)': [500, 0, 0.7] },
+    line: 'Volleyball players look straight up at a high ball most of the time – so the light must come from the <b>sides</b>, mounted high enough and aimed low enough that nobody looks into a floodlight.',
+    say: (r) => `“Four ${r.h} m poles on the sides give ${r.avg} lx on the court and keep the fittings out of the players’ upward view.”`,
+    watch: 'No fittings above the court or behind the end lines for outdoor courts. For indoor volleyball halls the levels are higher (500–750 lx for competition) and ceiling fittings need low-glare optics.' },
+  indoor: { name: 'Indoor stadium / multi-sport hall', icon: '🏟️', kind: 'hall', L: 44, W: 24, court: [28, 15], masts: null, rows: 4, rowsR: [2, 8], cols: 8, colsR: [3, 14], h: 12, hR: [7, 20], lm: 27000, lmR: [15000, 90000], beam: 70, beamR: [30, 120],
+    levels: { 'Recreational (III)': [300, 0, 0.5], 'Club (II)': [500, 0, 0.7], 'Competition (I)': [750, 0, 0.7] },
+    line: 'An indoor arena (basketball, volleyball, badminton, futsal) is lit from high-bay or sports floodlights on the roof structure. With LED, <b>instant on</b>, <b>scenes</b> (training / match / event) and <b>flicker-free</b> drivers for TV and slow-motion are standard.',
+    say: (r) => `“${r.n} sports high-bays at ${r.h} m give ${r.avg} lx for club play, with training, match and event scenes on DALI – and flicker-free for live streaming.”`,
+    watch: 'Badminton and volleyball players look up – avoid fittings directly above the court lines or use low-glare optics. Use impact-resistant fittings or guards (IK10, ball-proof), and check the roof structure loads before quoting.' },
+};
+let spK = 'cricket', spAim = false, spLv = {}; const SPP = {};
+Object.entries(SPORTS).forEach(([k, s]) => { SPP[k] = { m: s.m, h: s.h, per: s.per, lm: s.lm, beam: s.beam, rows: s.rows, cols: s.cols }; spLv[k] = Object.keys(s.levels)[1]; });
+function spLayout(k, p) {
+  const s = SPORTS[k], fx = [];
+  if (s.kind === 'hall') { for (let i = 0; i < p.rows; i++) for (let j = 0; j < p.cols; j++) { const x = (j + 0.5) * s.L / p.cols, y = (i + 0.5) * s.W / p.rows; fx.push({ mx: x, my: y, ax: x, ay: y }); } return { masts: [], fx }; }
+  let masts = [];
+  if (s.kind === 'oval') for (let i = 0; i < p.m; i++) { const a = (i + 0.5) * 2 * Math.PI / p.m; masts.push([s.L / 2 + (s.R + 10) * Math.cos(a), s.W / 2 + (s.R + 10) * Math.sin(a)]); }
+  else { const per = p.m / 2; for (let i = 0; i < per; i++) { const x = per === 1 ? s.L / 2 : s.L * (0.08 + 0.84 * i / (per - 1)); masts.push([x, -1.5], [x, s.W + 1.5]); } }
+  const N = masts.length * p.per, pts = [];
+  if (s.kind === 'oval') for (let k2 = 0; k2 < N; k2++) { const r = s.R * 0.97 * Math.pow((k2 + 0.5) / N, 0.72), a = k2 * 2.39996; pts.push([s.L / 2 + r * Math.cos(a), s.W / 2 + r * Math.sin(a)]); }
+  else { const nx = Math.max(1, Math.round(Math.sqrt(N * s.L / s.W))), ny = Math.ceil(N / nx); for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) if (pts.length < N) pts.push([(i + 0.5) * s.L / nx, (j + 0.5) * s.W / ny]); }
+  const cap = masts.map(() => p.per), cx = s.L / 2, cy = s.W / 2;
+  pts.sort((a, b) => Math.hypot(b[0] - cx, b[1] - cy) - Math.hypot(a[0] - cx, a[1] - cy)).forEach(([ax, ay]) => {
+    // the far half of the field is lit from the opposite side – pick the mast with free capacity that is nearest to the point mirrored through the centre
+    const tx = s.kind === 'oval' ? ax : ax, ty = s.kind === 'oval' ? ay : (ay < cy ? s.W + 1.5 : -1.5);
+    let best = -1, bd = 1e9; masts.forEach(([mx, my], i) => { if (!cap[i]) return; const d = s.kind === 'oval' ? Math.hypot(mx - tx, my - ty) : Math.abs(mx - ax) + Math.abs(my - ty) * 3; if (d < bd) { bd = d; best = i; } });
+    if (best < 0) return; cap[best]--; fx.push({ mx: masts[best][0], my: masts[best][1], ax, ay });
+  });
+  return { masts, fx };
+}
+function spCalc(k, p) {
+  // bell-shaped beam: intensity falls to 50% at half the beam angle (that is what “beam angle” means)
+  const s = SPORTS[k], lay = spLayout(k, p), half = p.beam / 2 * Math.PI / 180, h = p.h, shape = (th) => Math.exp(-Math.LN2 * (th / half) * (th / half));
+  let flux = 0; for (let t = 0.0025; t < Math.PI / 2; t += 0.005) flux += shape(t) * Math.sin(t) * 0.005;
+  const I0 = p.lm * 0.85 / (2 * Math.PI * flux), I = (th) => I0 * shape(th);
+  const pre = lay.fx.map((f) => { const ax = f.ax - f.mx, ay = f.ay - f.my, az = -h, n = Math.hypot(ax, ay, az); return [f.mx, f.my, ax / n, ay / n, az / n, Math.atan(Math.hypot(ax, ay) / h)]; });
+  const E = (x, y) => { let e = 0; for (const [mx, my, ux, uy, uz] of pre) { const vx = x - mx, vy = y - my, vz = -h, d = Math.hypot(vx, vy, vz), c = (vx * ux + vy * uy + vz * uz) / d, th = Math.acos(Math.max(-1, Math.min(1, c))); e += I(th) * (h / d) / (d * d); } return e; };
+  const step = s.kind === 'oval' ? 5 : s.kind === 'hall' ? 1.5 : Math.max(1, s.L / 24), pts = [];
+  const ca = s.kind === 'hall' ? [(s.L - s.court[0]) / 2 - 1, (s.W - s.court[1]) / 2 - 1, (s.L + s.court[0]) / 2 + 1, (s.W + s.court[1]) / 2 + 1] : [0, 0, s.L, s.W];
+  for (let y = ca[1] + step / 2; y < ca[3]; y += step) for (let x = ca[0] + step / 2; x < ca[2]; x += step) { if (s.kind === 'oval' && Math.hypot(x - s.L / 2, y - s.W / 2) > s.R) continue; const inf = s.kind === 'oval' && Math.hypot(x - s.L / 2, y - s.W / 2) <= s.infR; pts.push([x, y, E(x, y), inf]); }
+  const all = pts.map((q) => q[2]), avg = all.reduce((a, b) => a + b, 0) / all.length, min = Math.min(...all), max = Math.max(...all);
+  const inn = pts.filter((q) => q[3]).map((q) => q[2]), out = pts.filter((q) => !q[3]).map((q) => q[2]);
+  const mean = (a) => a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0;
+  return { lay, pts, step, E, avg, min, max, U1: min / avg, U2: min / max, inAvg: mean(inn), outAvg: mean(out), n: lay.fx.length, kw: lay.fx.length * p.lm / 140 / 1000, aimMax: Math.max(...pre.map((q) => q[5] * 180 / Math.PI)) };
+}
+function sportUI() {
+  $('spSport').innerHTML = Object.entries(SPORTS).map(([k, s]) => `<span class="btn ${k === spK ? 'on' : ''}" onclick="spK='${k}';sportUI()">${s.icon} ${s.name}</span>`).join('');
+  const s = SPORTS[spK], p = SPP[spK];
+  $('spLine').innerHTML = s.line; $('spWatch').textContent = s.watch;
+  $('spLvl').innerHTML = '<span class="m" style="align-self:center;font-size:12px">Level of play:</span>' + Object.keys(s.levels).map((l) => `<span class="btn ${l === spLv[spK] ? 'on' : ''}" style="padding:4px 9px;font-size:12px" onclick="spLv[spK]='${l}';sportUI()">${l}</span>`).join('');
+  const sl = (key, label, [mi, ma], st, u) => `<div><label>${label} <b id="sv_${key}">${key === 'lm' ? p[key].toLocaleString() : p[key]}${u}</b></label><input type="range" min="${mi}" max="${ma}" step="${st}" value="${p[key]}" oninput="SPP[spK].${key}=+this.value;sport()"></div>`;
+  let c = '';
+  if (s.kind === 'hall') c = sl('rows', 'Rows of fittings', s.rowsR, 1, '') + sl('cols', 'Fittings per row', s.colsR, 1, '') + sl('h', 'Mounting height', s.hR, 0.5, ' m');
+  else c = `<div><label>${s.kind === 'oval' ? 'Masts' : 'Poles'}</label><div class="row">${s.masts.map((m) => `<span class="btn ${m === p.m ? 'on' : ''}" style="padding:4px 9px;font-size:12px" onclick="SPP[spK].m=${m};sportUI()">${m}</span>`).join('')}</div></div>` + sl('h', s.kind === 'oval' ? 'Mast height' : 'Pole height', s.hR, s.kind === 'oval' ? 1 : 0.5, ' m') + sl('per', s.kind === 'oval' ? 'Floodlights per mast' : 'Floodlights per pole', s.perR, 1, '');
+  c += sl('lm', 'Lumens per fitting', s.lmR, 1000, ' lm') + sl('beam', 'Beam angle', s.beamR, 1, '°');
+  $('spCtl').innerHTML = c; sport();
+}
+function sport() {
+  const s = SPORTS[spK], p = SPP[spK], r = spCalc(spK, p), [tOut, tIn, tU] = s.levels[spLv[spK]];
+  for (const k of ['h', 'per', 'lm', 'beam', 'rows', 'cols']) { const e = $('sv_' + k); if (e) e.textContent = (k === 'lm' ? p[k].toLocaleString() : p[k]) + ({ h: ' m', lm: ' lm', beam: '°' }[k] || ''); }
+  $('spAimBtn').classList.toggle('on', spAim);
+  // top view
+  const pad = s.kind === 'oval' ? 22 : 6, X0 = -pad, X1 = s.L + pad, Y0 = -pad, Y1 = s.W + pad, sc = Math.min(730 / (X1 - X0), 400 / (Y1 - Y0)), ox = 15 - X0 * sc, oy = 10 - Y0 * sc, X = (x) => ox + x * sc, Y = (y) => oy + y * sc;
+  const H = Math.round((Y1 - Y0) * sc + 20), tgt = Math.max(tIn || tOut, 1) * 1.4;
+  let g = `<rect width="760" height="${H}" fill="#0f1218"/>`;
+  if (s.kind === 'oval') g += `<ellipse cx="${X(s.L / 2)}" cy="${Y(s.W / 2)}" rx="${s.R * sc}" ry="${s.R * sc}" fill="#14301c"/>`;
+  else g += `<rect x="${X(0)}" y="${Y(0)}" width="${s.L * sc}" height="${s.W * sc}" fill="${s.kind === 'hall' ? '#2a2f3a' : '#14301c'}"/>`;
+  g += r.pts.map(([x, y, e]) => `<rect x="${(X(x - r.step / 2)).toFixed(1)}" y="${(Y(y - r.step / 2)).toFixed(1)}" width="${(r.step * sc + 0.6).toFixed(1)}" height="${(r.step * sc + 0.6).toFixed(1)}" fill="rgba(253,200,90,${Math.min(0.92, Math.pow(e / tgt, 0.8)).toFixed(3)})"><title>${Math.round(e)} lx</title></rect>`).join('');
+  if (s.kind === 'oval') g += `<circle cx="${X(s.L / 2)}" cy="${Y(s.W / 2)}" r="${s.infR * sc}" fill="none" stroke="#e5e7eb" stroke-dasharray="5 5" opacity=".7"/><rect x="${X(s.L / 2 - 1.5)}" y="${Y(s.W / 2 - 10)}" width="${3 * sc}" height="${20 * sc}" fill="#d6c7a1"/><circle cx="${X(s.L / 2)}" cy="${Y(s.W / 2)}" r="${s.R * sc}" fill="none" stroke="#e5e7eb" opacity=".8"/>`;
+  if (s.court) g += `<rect x="${X((s.L - s.court[0]) / 2)}" y="${Y((s.W - s.court[1]) / 2)}" width="${s.court[0] * sc}" height="${s.court[1] * sc}" fill="none" stroke="#f8fafc" stroke-width="1.5"/><line x1="${X(s.L / 2)}" x2="${X(s.L / 2)}" y1="${Y((s.W - s.court[1]) / 2)}" y2="${Y((s.W + s.court[1]) / 2)}" stroke="#f8fafc" stroke-width="1.5"/>`;
+  if (spAim) g += r.lay.fx.map((f) => `<line x1="${X(f.mx)}" y1="${Y(f.my)}" x2="${X(f.ax)}" y2="${Y(f.ay)}" stroke="#60a5fa" stroke-width=".8" opacity=".55"/><circle cx="${X(f.ax)}" cy="${Y(f.ay)}" r="2" fill="#93c5fd"/>`).join('');
+  if (s.kind === 'hall') g += r.lay.fx.map((f) => `<rect x="${X(f.mx) - 5}" y="${Y(f.my) - 5}" width="10" height="10" rx="2" fill="#fde68a" stroke="#0f1218"/>`).join('');
+  else g += r.lay.masts.map(([mx, my], i) => `<circle cx="${X(mx)}" cy="${Y(my)}" r="7" fill="#e5e7eb" stroke="#0f1218" stroke-width="2"/><text x="${X(mx)}" y="${Y(my) + (my < s.W / 2 ? -11 : 19)}" text-anchor="middle" font-size="10" fill="#cbd5e1">${s.kind === 'oval' ? 'M' : 'P'}${i + 1}</text>`).join('');
+  g += `<text x="${X(X0) + 6}" y="${H - 6}" font-size="10" fill="#94a3b8">${s.kind === 'oval' ? `boundary ⌀ ${s.R * 2} m · dashed = 30-yard infield` : `playing area ${s.L} × ${s.W} m`} · hover a square for lux</text>`;
+  $('spTop').setAttribute('viewBox', `0 0 760 ${H}`); $('spTop').innerHTML = g;
+  // results
+  const ok = s.kind === 'oval' ? r.inAvg >= tIn && r.outAvg >= tOut && r.U1 >= tU : r.avg >= tOut && r.U1 >= tU, glare = s.kind !== 'hall' && r.aimMax > 70;
+  $('spKpi').innerHTML = (s.kind === 'oval' ? `<div><b>${Math.round(r.inAvg)} lx</b>infield average (target ${tIn})</div><div><b>${Math.round(r.outAvg)} lx</b>outfield average (target ${tOut})</div>` : `<div><b>${Math.round(r.avg)} lx</b>average (target ${tOut})</div>`) +
+    `<div><b>${r.U1.toFixed(2)}</b>uniformity min ÷ avg (target ${tU})</div><div><b>${r.U2.toFixed(2)}</b>min ÷ max</div><div><b>${r.n}</b>fittings</div><div><b>${r.kw.toFixed(r.kw < 10 ? 1 : 0)} kW</b>connected load (140 lm/W)</div>${s.kind !== 'hall' ? `<div><b style="color:${glare ? '#b91c1c' : 'inherit'}">${Math.round(r.aimMax)}°</b>steepest aiming from vertical</div>` : ''}`;
+  $('spVerdict').innerHTML = `<b style="color:${ok ? 'var(--good)' : '#b91c1c'}">${ok ? '✓ Meets' : '✕ Does not meet'} ${spLv[spK]}</b> (typical targets). ${!ok ? (r.U1 < tU ? 'Uneven – more fittings with a narrower beam, taller masts or more masts. ' : '') + ((s.kind === 'oval' ? r.inAvg < tIn || r.outAvg < tOut : r.avg < tOut) ? 'Too dark – press “Size the fittings”. ' : '') : (r.avg > (tIn || tOut) * 1.5 ? 'Well above target – you could save fittings. ' : '')}${glare ? 'Aiming above 70° from vertical causes glare and spill – raise the masts.' : ''}`;
+  $('spSay').textContent = s.say({ masts: (r.lay.masts || []).length, h: p.h, avg: Math.round(r.avg), tin: tIn, tout: tOut, n: r.n });
+}
+function spSize() { // scale the number of fittings (or lumens) so the level is met – light grows in proportion to the number of fittings
+  const s = SPORTS[spK], p = SPP[spK], [tOut, tIn] = s.levels[spLv[spK]];
+  for (let it = 0; it < 4; it++) { const r = spCalc(spK, p), need = s.kind === 'oval' ? Math.max(tIn / Math.max(r.inAvg, 1), tOut / Math.max(r.outAvg, 1)) : tOut / Math.max(r.avg, 1);
+    if (s.kind === 'hall') { const n = Math.ceil(p.rows * p.cols * need * 1.05), cols = Math.min(s.colsR[1], Math.max(s.colsR[0], Math.round(Math.sqrt(n * s.L / s.W)))); p.cols = cols; p.rows = Math.min(s.rowsR[1], Math.max(s.rowsR[0], Math.ceil(n / cols))); }
+    else p.per = Math.min(s.perR[1], Math.max(s.perR[0], Math.ceil(p.per * need * 1.05))); }
+  sportUI();
+}
+MODULES.push(['sport', 'Sports lighting', 'Cricket, tennis, volleyball, indoor stadium']);
+const SQ = (t) => [Q(`In the playground, what usually improves uniformity on a ${t}?`, ['More fittings with a narrower beam or taller masts', 'Fewer, brighter fittings', 'A warmer colour temperature'], 0), Q('Aiming floodlights more than about 70° from vertical causes…', ['glare and spill light', 'better uniformity', 'lower cost'], 0), Q('Where do the exact requirements come from?', ['EN 12193 and the sport’s governing body (ICC, ITF, FIVB…)', 'The fitting brochure', 'The tariff'], 0)];
+add('sport', 'Live', 'lab_sport', '🏟️', 'Sports lighting playground', { type: 'lab', lab: 'sportv', preset: 'cricket', mins: 6, live: 1, quiz: SQ('cricket ground') });
+add('sport', 'Sports', 's_cricket', '🏏', 'Cricket', { type: 'lab', lab: 'sportv', preset: 'cricket', quiz: [Q('Which area of a cricket ground needs the most light?', ['The infield (30-yard circle)', 'The car park', 'The outfield boundary rope'], 0), Q('Cricket grounds are usually lit from…', ['4–8 tall masts around the boundary', 'poles behind the bowler only', 'the pavilion roof only'], 0), Q('TV broadcast adds a requirement for…', ['vertical light towards the cameras and flicker-free lighting', 'a lower lux level', 'warm 2700 K light'], 0)] });
+add('sport', 'Sports', 's_tennis', '🎾', 'Tennis', { type: 'lab', lab: 'sportv', preset: 'tennis', quiz: [Q('Where must tennis poles never stand?', ['Behind the baselines', 'Along the long sides', 'Outside the fence'], 0), Q('Why do tennis courts need very even light?', ['The ball is small and fast', 'To save poles', 'For colour'], 0), Q('Asymmetric flat-glass floodlights help to…', ['reduce glare and spill to neighbours', 'increase lumens', 'change the CCT'], 0)] });
+add('sport', 'Sports', 's_volley', '🏐', 'Volleyball', { type: 'lab', lab: 'sportv', preset: 'volley', quiz: [Q('Volleyball players mostly look…', ['upwards at a high ball', 'at the floor', 'at the crowd'], 0), Q('On an outdoor court the floodlights go…', ['on poles at the sides', 'directly above the net', 'behind the end lines'], 0), Q('Indoor volleyball competitions usually need…', ['more light than recreational outdoor play', 'less light', 'no light'], 0)] });
+add('sport', 'Sports', 's_indoor', '🏟️', 'Indoor stadium / multi-sport hall', { type: 'lab', lab: 'sportv', preset: 'indoor', quiz: [Q('A key LED advantage in arenas is…', ['instant on and scenes (training / match / event)', 'a longer warm-up time', 'needing no driver'], 0), Q('Fittings in a sports hall should be…', ['impact resistant (ball-proof)', 'made of glass only', 'as small as possible'], 0), Q('Live streaming and slow-motion need…', ['flicker-free drivers', 'phase-cut dimmers', 'lower CRI'], 0)] });
+add('sport', 'Topics', 's_classes', '🏅', 'Lighting classes & TV broadcast', {
+  line: 'Sports lighting is designed for a <b>class</b> – recreational, club / training or national / international competition – and, when matches are filmed, for <b>TV broadcast</b>.',
+  body: '<table class="spec"><tr><td>Class III</td><td>Recreational and school play – lowest level</td></tr><tr><td>Class II</td><td>Club competitions and training</td></tr><tr><td>Class I</td><td>National and international competition</td></tr><tr><td>TV broadcast</td><td>Vertical illuminance towards the cameras (often 1,000–2,500 lx), uniformity in both directions, CRI ≥ 80–90, flicker-free for slow-motion</td></tr><tr><td>Sources</td><td>EN 12193 plus the governing body: ICC (cricket), ITF (tennis), FIVB (volleyball), FIBA, BWF, FIFA…</td></tr></table>',
+  say: '“We design for club level today and size the masts, cables and switchboard so TV-level fittings can be added later without new foundations.”',
+  watch: 'Always ask which level of play and whether TV is planned – the difference can be 3–5 times the number of fittings.',
+  quiz: [Q('Class I is for…', ['national and international competition', 'school play', 'car parks'], 0), Q('TV broadcast lighting is mainly about…', ['vertical light towards the cameras', 'warm colour', 'fewer fittings'], 0), Q('Which body sets cricket requirements?', ['ICC', 'FIFA', 'ITF'], 0)] });
+add('sport', 'Topics', 's_glare', '🌙', 'Glare, spill & neighbours', {
+  line: 'Good sports lighting puts the light on the field – not in the players’ eyes, the neighbours’ windows or the sky.',
+  body: '<table class="spec"><tr><td>Aiming</td><td>Keep aiming below about 65–70° from vertical; taller masts allow lower angles</td></tr><tr><td>Optics</td><td>Asymmetric flat-glass floodlights, visors and shields cut spill and sky glow</td></tr><tr><td>Glare rating</td><td>EN 12193 limits glare (GR) for players and spectators</td></tr><tr><td>Neighbours</td><td>Check spill (lux at windows) and curfew times with the local authority</td></tr></table>',
+  say: '“With asymmetric optics on taller masts the light stays on the ground – the homes behind the stands see almost no spill.”',
+  watch: 'Cheap symmetric floodlights tilted up “to reach further” cause glare and complaints – often the start of neighbour disputes and curfews.',
+  quiz: [Q('Taller masts let you…', ['aim at lower angles with less glare', 'use fewer foundations always', 'avoid uniformity checks'], 0), Q('Spill light is…', ['light that falls outside the field', 'light on the pitch', 'emergency light'], 0), Q('Which optic reduces spill most?', ['Asymmetric flat glass with visors', 'Symmetric tilted up', 'Bare LED'], 0)] });
+add('sport', 'Topics', 's_ops', '⚙️', 'Masts, controls & operation', {
+  line: 'Sports lighting is used in short, intense sessions – LED with scenes and instant on saves a lot compared with metal halide that needs warm-up and restrike time.',
+  body: '<table class="spec"><tr><td>Scenes</td><td>Training (e.g. 50%), match (100%), TV and show scenes – DMX or DALI</td></tr><tr><td>Instant on</td><td>No 10–15 minute warm-up or restrike after a power dip</td></tr><tr><td>Masts</td><td>Head frames with aiming scales; lowering or service platforms for maintenance</td></tr><tr><td>Electrical</td><td>Separate drivers in ground-level boxes on tall masts make maintenance easier</td></tr><tr><td>Show lighting</td><td>RGB and dynamic effects for events on LED systems</td></tr></table>',
+  say: '“Training at half power, matches at full and a light show for events – all from one tablet, and the lights are back instantly after a power dip.”',
+  watch: 'Plan safe maintenance access (mast platforms or lowering systems) – a 45 m mast without access makes every driver change a crane hire.',
+  quiz: [Q('A big LED advantage over metal halide is…', ['instant on with no restrike delay', 'warm-up time', 'heavier fittings'], 0), Q('Training scenes typically run at…', ['reduced output (e.g. 50%)', '150%', 'only at night'], 0), Q('On very tall masts plan…', ['safe maintenance access', 'no access at all', 'only one fitting'], 0)] });
+L.forEach((l) => { LESSONS[l.id] = l; });
+
 // ================================================================ ACADEMY engine – widgets, quiz, routing, progress
 // ---- small widgets
 function wLux() { const lm = +$('luxLm').value, b = +$('luxB').value, d = +$('luxD').value, half = b / 2 * Math.PI / 180, I0 = lm * 0.85 / (2 * Math.PI * (1 - Math.cos(half))), E = I0 / (d * d), dia = 2 * d * Math.tan(half);
@@ -1486,7 +1637,7 @@ function renderHome() {
 const BG = ['#fef3c7', '#ffedd5', '#fce7f3', '#e0e7ff', '#e0f2fe', '#dcfce7', '#f1f5f9', '#ede9fe'];
 
 // ---- lessons and labs
-const VIEWS = ['home', 'lesson', 'tech', 'fix', 'chip', 'ctlv', 'lmsv', 'roadv', 'talqv', 'cmsv'];
+const VIEWS = ['home', 'lesson', 'tech', 'fix', 'chip', 'ctlv', 'lmsv', 'roadv', 'talqv', 'cmsv', 'sportv'];
 function showView(v) { VIEWS.forEach((x) => $(x).classList.toggle('hidden', x !== v)); window.scrollTo(0, 0); }
 function back() { location.hash = '#home'; }
 function parkWidgets() { document.querySelectorAll('[data-parked]').forEach((w) => { $('wstore').appendChild(w); w.removeAttribute('data-parked'); }); }
@@ -1498,6 +1649,7 @@ const LAB_INIT = {
   lmsv: (p) => lmsTab(+p || 1),
   roadv: (p) => { if (p === 'single') rArr = 'single'; roadUI(); if (p === 'compare' || p === 'height') setTimeout(() => $(p === 'compare' ? 'rCmp' : 'rCtl').scrollIntoView({ behavior: 'smooth', block: 'center' }), 50); },
   cmsv: () => cmsUI(),
+  sportv: (p) => { spK = SPORTS[p] ? p : 'cricket'; sportUI(); },
   talqv: (p) => { tqM = ['mixed', 'talq', 'none'].includes(p) ? p : 'mixed'; tqDraw(); },
 };
 const MODN = Object.fromEntries(MODULES.map(([k, n]) => [k, n]));
