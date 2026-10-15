@@ -8362,5 +8362,54 @@ do $$ declare c record; m bigint; begin
 end $$;
 rollback to savepoint purge1;
 
+-- Project references: only the Lighting Designer adds, edits and removes; others with Sales Tools only read
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  begin
+    insert into public.project_references (title) values ('Not mine to add');
+    assert false, 'sales cannot add references';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select pg_temp.act_as('lighting_designer'); set role authenticated;
+do $$ declare rid uuid; begin
+  insert into public.project_references (title, description, year, value, location, country, category, applications, outdoor_types, brands, photos, architect, mep_consultant)
+  values ('Hotel ballroom', 'LED retrofit with DALI scenes', 2026, 12500000, 'Colombo 02', 'Sri Lanka', 'hospitality', array['indoor', 'outdoor', 'controls', 'lv'], array['roads', 'yards'], array['Philips'], array['ref/x/1.jpg'], 'DGFI', 'Mott MacDonald')
+  returning id into rid;
+  perform set_config('test.ref', rid::text, false);
+  begin
+    insert into public.project_references (title, applications) values ('Bad', array['indoor', 'roads']);
+    assert false, 'unknown application type refused';
+  exception when check_violation then null; end;
+  begin
+    insert into public.project_references (title, applications, outdoor_types) values ('No outdoor', array['indoor'], array['roads']);
+    assert false, 'outdoor kinds only with Outdoor Lighting';
+  exception when check_violation then null; end;
+  begin
+    insert into public.project_references (title, photos) values ('Too many', array['a', 'b', 'c', 'd', 'e']);
+    assert false, 'at most 4 photos';
+  exception when check_violation then null; end;
+  update public.project_references set title = 'Hotel ballroom – Colombo' where id = rid;
+  assert found, 'the Lighting Designer edits';
+end $$;
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ declare n int; begin
+  assert exists (select 1 from public.project_references where id = current_setting('test.ref')::uuid), 'GM sees references';
+  update public.project_references set title = 'Changed' where id = current_setting('test.ref')::uuid;
+  get diagnostics n = row_count;
+  assert n = 0, 'GM only reads';
+  delete from public.project_references where id = current_setting('test.ref')::uuid;
+  get diagnostics n = row_count;
+  assert n = 0, 'GM cannot remove';
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin
+  assert not exists (select 1 from public.project_references), 'no Sales Tools – no references';
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
