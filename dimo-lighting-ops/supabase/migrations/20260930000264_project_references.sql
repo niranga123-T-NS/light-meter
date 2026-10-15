@@ -1,5 +1,6 @@
 -- Project references (Sales Tools → References): completed projects to show clients – up to 4 photos, a short description,
--- year, project value (when known), location and country, project category, application types and the brands used.
+-- year, project value (when known), location and country, project category, application types, the brands used and – when
+-- known – the client, architect, interior designer, MEP consultant and electrical consultant.
 --  * Seen by everyone with Sales Tools; anyone with Sales Tools adds references.
 --  * The person who added a reference, SM Projects, GM / DGM and the System Administrator edit or remove it.
 --  * Photos are kept in the private "references" bucket (images up to 10 MB each), under ref/<reference id>/.
@@ -11,6 +12,10 @@ create table if not exists public.project_references (
   id uuid primary key default gen_random_uuid(),
   title text not null check (length(trim(title)) between 1 and 160),
   client text,
+  architect text,
+  interior_designer text,
+  mep_consultant text,
+  elec_consultant text,
   description text check (description is null or length(description) <= 600),
   year int check (year is null or year between 1980 and 2100),
   value numeric(16, 2) check (value is null or value >= 0),
@@ -18,7 +23,7 @@ create table if not exists public.project_references (
   location text,
   country text not null default 'Sri Lanka',
   category text check (category is null or category in ('hospitality', 'retail', 'institutions', 'commercial', 'infrastructure', 'industrial')),
-  applications text[] not null default '{}' check (applications <@ array['indoor', 'outdoor', 'controls', 'special']::text[]),
+  applications text[] not null default '{}' check (applications <@ array['indoor', 'outdoor', 'controls', 'lv', 'special']::text[]),
   brands text[] not null default '{}',
   photos text[] not null default '{}' check (coalesce(array_length(photos, 1), 0) <= 4),
   active boolean not null default true,

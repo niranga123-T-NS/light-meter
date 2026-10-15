@@ -33,7 +33,7 @@ export function References() {
       (!year || String(r.year) === year) &&
       (!country || r.country === country) &&
       (!apps.length || apps.some((a) => r.applications.includes(a))) &&
-      (!s || [r.title, r.client, r.location, r.country, r.description, ...r.brands].filter(Boolean).join(' ').toLowerCase().includes(s)),
+      (!s || [r.title, r.client, r.architect, r.interior_designer, r.mep_consultant, r.elec_consultant, r.location, r.country, r.description, ...r.brands].filter(Boolean).join(' ').toLowerCase().includes(s)),
   );
   const filtered = !!(category || year || country || apps.length || s);
 
@@ -41,7 +41,7 @@ export function References() {
     <View style={{ gap: 10 }}>
       <Row gap={8} wrap style={{ alignItems: 'flex-end' }}>
         <View style={{ flex: 1, minWidth: 240 }}>
-          <Field label="Search" value={q} onChangeText={setQ} placeholder="Project, client, place or brand" />
+          <Field label="Search" value={q} onChangeText={setQ} placeholder="Project, client, consultant, place or brand" />
         </View>
         <Button title="+ Add reference" onPress={() => router.push('/tools/reference/new')} />
       </Row>

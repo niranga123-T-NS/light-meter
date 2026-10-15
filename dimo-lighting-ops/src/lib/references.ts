@@ -8,6 +8,10 @@ export type ProjectReference = {
   id: string;
   title: string;
   client: string | null;
+  architect: string | null;
+  interior_designer: string | null;
+  mep_consultant: string | null;
+  elec_consultant: string | null;
   description: string | null;
   year: number | null;
   value: number | null;
@@ -28,10 +32,21 @@ export const APPLICATIONS = [
   { value: 'indoor', label: 'Indoor Lighting' },
   { value: 'outdoor', label: 'Outdoor Lighting' },
   { value: 'controls', label: 'Lighting Controls' },
+  { value: 'lv', label: 'LV Installations' },
   { value: 'special', label: 'Special Projects' },
 ];
 export const applicationLabel = (v: string) => APPLICATIONS.find((a) => a.value === v)?.label ?? v;
 export const MAX_PHOTOS = 4;
+
+/** The people behind the project – each shown only when known (ticked) */
+export type PartyKey = 'client' | 'architect' | 'interior_designer' | 'mep_consultant' | 'elec_consultant';
+export const PARTIES: { key: PartyKey; label: string }[] = [
+  { key: 'client', label: 'Client' },
+  { key: 'architect', label: 'Architect' },
+  { key: 'interior_designer', label: 'Interior designer' },
+  { key: 'mep_consultant', label: 'MEP Consultant' },
+  { key: 'elec_consultant', label: 'Electrical Consultant' },
+];
 
 /** SM Projects, GM / DGM and the System Administrator edit every reference; others edit the ones they added */
 export const REFERENCE_KEEPERS: Role[] = ['sm_projects', 'gm', 'sys_admin'];

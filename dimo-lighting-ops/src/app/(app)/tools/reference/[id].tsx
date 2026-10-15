@@ -1,22 +1,22 @@
 import { Image } from 'expo-image';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
-import { Button, Card, Chip, colors, ErrorBanner, Field, H1, KeyValue, Loading, Muted, MultiSelect, Notice, NumberField, Pill, Row, Screen, Section, Segmented, Select } from '@/components/ui';
+import { Button, Card, Chip, colors, ErrorBanner, Field, H1, KeyValue, Loading, Muted, MultiSelect, Notice, NumberField, Pill, Row, Screen, Section, Segmented, Select, styles, Toggle } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { pickImage, uuid, type PickedFile } from '@/lib/files';
 import { fmtMoney } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
-import { applicationLabel, APPLICATIONS, canEditReference, MAX_PHOTOS, photoUrls, removePhotos, uploadPhoto, type ProjectReference } from '@/lib/references';
+import { applicationLabel, APPLICATIONS, canEditReference, MAX_PHOTOS, PARTIES, photoUrls, removePhotos, uploadPhoto, type ProjectReference } from '@/lib/references';
 import { projectTypeLabel, PROJECT_TYPES } from '@/lib/roles';
 import { TOOLS_ROLES } from '@/lib/standards';
 import { supabase } from '@/lib/supabase';
 import type { Currency } from '@/lib/types';
 
 type Photo = { path?: string; file?: PickedFile; uri: string };
-type Form = Pick<ProjectReference, 'title' | 'client' | 'description' | 'year' | 'value' | 'currency' | 'location' | 'country' | 'category' | 'applications' | 'brands'>;
-const BLANK: Form = { title: '', client: null, description: null, year: new Date().getFullYear(), value: null, currency: 'LKR', location: null, country: 'Sri Lanka', category: null, applications: [], brands: [] };
+type Form = Pick<ProjectReference, 'title' | 'client' | 'architect' | 'interior_designer' | 'mep_consultant' | 'elec_consultant' | 'description' | 'year' | 'value' | 'currency' | 'location' | 'country' | 'category' | 'applications' | 'brands'>;
+const BLANK: Form = { title: '', client: null, architect: null, interior_designer: null, mep_consultant: null, elec_consultant: null, description: null, year: new Date().getFullYear(), value: null, currency: 'LKR', location: null, country: 'Sri Lanka', category: null, applications: [], brands: [] };
 const COUNTRIES = ['Sri Lanka', 'Maldives', 'India', 'Bangladesh', 'United Arab Emirates', 'Qatar', 'Other'];
 
 /** A project reference: up to 4 photos, short description, year, value, location, country, category, applications and brands */
@@ -77,7 +77,7 @@ export default function ReferencePage() {
       const refId = isNew ? newId : (id as string);
       const row = {
         title: f.title.trim(),
-        client: f.client?.trim() || null,
+        ...Object.fromEntries(PARTIES.map((p) => [p.key, f[p.key]?.trim() || null])),
         description: f.description?.trim() || null,
         year: f.year,
         value: f.value,
@@ -141,7 +141,6 @@ export default function ReferencePage() {
         </Section>
         <Card style={{ gap: 4 }}>
           <Field label="Project name" required value={f.title} onChangeText={(v) => set({ title: v })} maxLength={160} placeholder="e.g. Cinnamon Lakeside – Ballroom" />
-          <Field label="Client" value={f.client ?? ''} onChangeText={(v) => set({ client: v })} placeholder="Optional" />
           <Field label="Short description" multiline value={f.description ?? ''} onChangeText={(v) => set({ description: v })} maxLength={600} placeholder="What was done and what makes it special – scope, results, highlights" />
           <Row gap={8} wrap>
             <View style={{ flex: 1, minWidth: 140 }}>
@@ -170,6 +169,19 @@ export default function ReferencePage() {
               <Chip key={a.value} label={a.label} on={f.applications.includes(a.value)} onPress={() => set({ applications: f.applications.includes(a.value) ? f.applications.filter((x) => x !== a.value) : [...f.applications, a.value] })} />
             ))}
           </Row>
+          <Text style={{ fontWeight: '600', color: colors.ink, marginTop: 4 }}>Project team – tick the ones you know</Text>
+          {PARTIES.map((p) => (
+            <View key={p.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <View style={{ width: 210 }}>
+                <Toggle label={p.label} value={f[p.key] != null} onChange={(on) => set({ [p.key]: on ? '' : null })} />
+              </View>
+              {f[p.key] != null ? (
+                <View style={{ flex: 1, minWidth: 220 }}>
+                  <TextInput value={f[p.key] ?? ''} onChangeText={(v) => set({ [p.key]: v })} placeholder={`Name of the ${p.label.toLowerCase()}`} placeholderTextColor={colors.faint} style={[styles.input, { marginBottom: 8 }]} autoFocus={!f[p.key]} />
+                </View>
+              ) : null}
+            </View>
+          ))}
           <MultiSelect label="Brands involved" values={f.brands} onChange={(v) => set({ brands: v })} options={[...new Set([...data.brands, ...f.brands])].map((n) => ({ value: n, label: n }))} />
         </Card>
         <Row gap={8} style={{ marginTop: 10 }}>
@@ -217,7 +229,7 @@ export default function ReferencePage() {
         </Row>
         <KeyValue label="Year" value={r.year ?? '—'} />
         <KeyValue label="Location" value={[r.location, r.country].filter(Boolean).join(', ') || '—'} />
-        {r.client ? <KeyValue label="Client" value={r.client} /> : null}
+        {PARTIES.map((p) => (r[p.key] ? <KeyValue key={p.key} label={p.label} value={r[p.key]} /> : null))}
         <KeyValue label="Brands involved" value={r.brands.join(', ') || '—'} />
         <KeyValue label="Project value" value={r.value != null ? fmtMoney(r.value, r.currency) : 'Not given'} />
       </Card>

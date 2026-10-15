@@ -8366,8 +8366,8 @@ rollback to savepoint purge1;
 reset role;
 select pg_temp.act_as('asm_building'); set role authenticated;
 do $$ declare rid uuid; n int; begin
-  insert into public.project_references (title, description, year, value, location, country, category, applications, brands, photos)
-  values ('Hotel ballroom', 'LED retrofit with DALI scenes', 2026, 12500000, 'Colombo 02', 'Sri Lanka', 'hospitality', array['indoor', 'controls'], array['Philips'], array['ref/x/1.jpg'])
+  insert into public.project_references (title, description, year, value, location, country, category, applications, brands, photos, architect, mep_consultant)
+  values ('Hotel ballroom', 'LED retrofit with DALI scenes', 2026, 12500000, 'Colombo 02', 'Sri Lanka', 'hospitality', array['indoor', 'controls', 'lv'], array['Philips'], array['ref/x/1.jpg'], 'DGFI', 'Mott MacDonald')
   returning id into rid;
   perform set_config('test.ref', rid::text, false);
   begin
