@@ -8420,5 +8420,31 @@ do $$ begin
   exception when check_violation then null; end;
 end $$;
 
+-- Lighting Academy progress
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ declare r record; begin
+  perform public.academy_record('cct', 1, 3);
+  select * into r from public.academy_mine() where lesson = 'cct';
+  assert r.attempts = 1 and not r.done, 'one wrong try is not done';
+  perform public.academy_record('cct', 3, 3);
+  perform public.academy_record('cct', 0, 3);
+  select * into r from public.academy_mine() where lesson = 'cct';
+  assert r.attempts = 3 and r.done and r.best = 3, 'best kept, done stays';
+  begin perform public.academy_record('bad lesson', 1, 3); assert false, 'bad id refused'; exception when raise_exception then null; end;
+  begin perform public.academy_team(); assert false, 'sales cannot see the team'; exception when raise_exception then null; end;
+end $$;
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ begin
+  assert (select lessons_done from public.academy_team() where role = 'asm_building' and lessons_done > 0 limit 1) = 1, 'GM sees team progress';
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin
+  begin perform public.academy_record('cct', 3, 3); assert false, 'no Sales Tools – no academy'; exception when raise_exception then null; end;
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

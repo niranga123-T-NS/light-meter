@@ -2,7 +2,7 @@
 # Run it by hand (GitHub → Actions → "DIMO – update phone apps"), as part of a deploy – after the website is updated.
 # The phones download it when the app opens or comes back to the front, and offer "Restart now".
 #
-# Only apps built with the same app version (app.json "version", e.g. 0.5.0) take the update. When a native module is
+# Only apps built with the same app version (app.json "version", e.g. 0.6.0) take the update. When a native module is
 # added or changed, raise the version and build new apps – older apps then keep their version instead of crashing.
 #
 # Repository secret needed: EXPO_TOKEN (the same one the build workflows use).
