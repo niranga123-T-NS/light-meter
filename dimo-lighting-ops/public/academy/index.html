@@ -164,6 +164,8 @@ table.spec{width:100%;border-collapse:collapse;font-size:13px}table.spec td{padd
       <div class="row" style="margin-top:6px" id="rCls"></div>
       <div class="kpis" id="rKpi"></div>
       <div class="m" id="rVerdict" style="font-size:13px"></div>
+      <div class="info" style="min-height:0;margin-top:10px"><h5>Smart control with Fonda controllers</h5><div class="m" style="font-size:12.5px">One Fonda NEMA or Zhaga controller per luminaire – NB-IoT / LTE Cat.1 straight to the Fonda SCCS platform, or PLC / LoRa through a Fonda concentrator – dims the road after the evening peak.</div>
+        <div class="ctl" id="rSmCtl"></div><div class="kpis" id="rSmKpi"></div></div>
       <div class="legend" style="margin-top:8px"><span style="--c:var(--s1)">Light along the road centre (lux)</span></div>
       <div class="chartbox"><svg id="rLong" viewBox="0 0 760 180" style="width:100%;height:auto;display:block"></svg><div class="tip" id="rLongTip"></div></div>
     </div></div>
@@ -199,8 +201,46 @@ table.spec{width:100%;border-collapse:collapse;font-size:13px}table.spec td{padd
         <tr><td>Third-party systems</td><td>GIS / asset register, maintenance work orders, energy billing, smart-city platform, traffic / weather / air-quality sensors – connected through the CMS’s own APIs (TALQ 2 also covers other smart-city devices)</td></tr>
       </table>
     </div></div>
-    <div class="part"><div class="num">4</div><div class="body"><h4>Say this to the client</h4><div class="say">“We supply TALQ-certified controllers, so your CMS is not tied to one brand – you can add other makers’ lights later and still manage everything from one map, and send failures straight to your maintenance system.”</div></div></div>
+    <div class="part"><div class="num">4</div><div class="body"><h4>Say this to the client</h4><div class="say">“With a TALQ-certified CMS and gateways, your system is not tied to one brand – you can add other makers’ lights later and still manage everything from one map, and send failures straight to your maintenance system.”</div></div></div>
     <div class="part"><div class="num">5</div><div class="body"><h4>Watch out</h4><div class="watch">Ask for <b>TALQ certification</b> of both the CMS and the gateway (the TALQ Consortium lists certified products) – “TALQ compatible” on a brochure is not the same. Agree early who owns the data and the CMS licence, and which third-party interfaces (work orders, GIS, billing) are in the price.</div></div></div>
+  </div>
+</div>
+
+
+<!-- ============ LIVE: CMS DASHBOARD (demo) ============ -->
+<div id="cmsv" class="hidden">
+  <div class="crumb" onclick="back()">◀ All lessons · Road lighting & TALQ</div>
+  <div class="card">
+    <div class="hero"><div><span class="pill">Live · 8 min · demo data</span><h2 style="margin-top:6px">CMS dashboard – Fonda SCCS with Brands A, B, C</h2></div><span class="m">One management screen for every street light – Fonda’s own controllers and third-party brands through TALQ gateways</span></div>
+    <div class="part"><div class="num">1</div><div class="body"><h4>In one line</h4>A CMS shows every street light on a map with its status, runs the dimming schedules, collects energy data, raises alarms and sends work orders. Here <b>Fonda’s own controllers</b> (NB-IoT / LTE Cat.1 direct, PLC and LoRa through Fonda concentrators) and <b>Brands A, B and C</b> (through their TALQ gateways) are managed from one screen.</div></div>
+    <div class="part"><div class="num">2</div><div class="body"><h4>See it – drive the dashboard</h4>
+      <div class="row" id="cBrand" style="margin-bottom:6px"></div>
+      <div class="kpis" id="cKpi" style="grid-template-columns:repeat(auto-fit,minmax(105px,1fr))"></div>
+      <div class="two" style="grid-template-columns:1.6fr 1fr">
+        <div><div class="stage"><svg id="cMap" viewBox="0 0 640 380"></svg></div>
+          <div class="ctl" style="grid-template-columns:1fr"><div><label>Night clock <b id="cClkV"></b></label><input id="cClk" type="range" min="18" max="31" step="0.25" value="23"></div></div>
+          <div class="legend" style="font-size:12px"><span style="--c:#f59e0b">On / dimmed (brightness = level)</span><span style="--c:#dc2626">Fault</span><span style="--c:#64748b">Offline</span></div></div>
+        <div class="info" id="cInfo" style="min-height:300px"></div>
+      </div>
+    </div></div>
+    <div class="part"><div class="num">3</div><div class="body"><h4>Schedules – dimming profile per road</h4>
+      <div class="row" id="cGrp"></div>
+      <div class="ctl" id="cSch"></div>
+      <div class="row" style="margin-top:6px"><span class="btn p" onclick="cApply()">Send schedule</span><span class="btn" onclick="cCmd(100)">Switch selected road to 100% now</span><span class="btn" onclick="cCmd(0)">Switch off now</span></div>
+      <div class="legend" style="margin-top:10px"><span style="--c:var(--s2)">Without dimming</span><span style="--c:var(--s1)">With this schedule</span></div>
+      <div class="chartbox"><svg id="cPow" viewBox="0 0 760 200" style="width:100%;height:auto;display:block"></svg><div class="tip" id="cPowTip"></div></div>
+      <div class="m" style="font-size:12px">Power of all lights in the selected road through tonight (kW).</div>
+    </div></div>
+    <div class="part"><div class="num">4</div><div class="body"><h4>Alarms & work orders</h4>
+      <div class="row" style="margin-bottom:6px"><span class="btn" onclick="cFault()">Simulate a fault</span></div>
+      <div style="overflow-x:auto"><table class="spec" id="cAlm" style="min-width:620px"></table></div>
+    </div></div>
+    <div class="part"><div class="num">5</div><div class="body"><h4>Energy – last 7 nights</h4>
+      <div class="legend"><span style="--c:var(--s1)">kWh per night (all roads)</span></div>
+      <div class="chartbox"><svg id="cEn" viewBox="0 0 760 200" style="width:100%;height:auto;display:block"></svg><div class="tip" id="cEnTip"></div></div>
+    </div></div>
+    <div class="part"><div class="num">6</div><div class="body"><h4>Message log – how each command travelled</h4><div class="info" id="cLog" style="min-height:0;font-size:12.5px"></div></div></div>
+    <div class="part"><div class="num">7</div><div class="body"><h4>Watch out</h4><div class="watch">This is a <b>teaching demo with invented data</b> – not Fonda’s actual software screens. Fonda’s product range (SCCS platform, NEMA / Zhaga controllers on NB-IoT, LTE Cat.1, LoRa / LoRaWAN, PLC) is from its own published material; <b>check on the TALQ Consortium list whether the CMS and each gateway are TALQ-certified</b> before promising multi-brand control in an offer.</div></div></div>
   </div>
 </div>
 
@@ -1145,9 +1185,17 @@ function road() {
   lineChart($('rLong'), $('rLongTip'), { W: 760, H: 180, xs, series: [{ name: 'Road centre', c: 'var(--s1)', ys }], xLabel: 'm along the road', yFmt: (y, f) => `${y.toFixed(f ? 1 : 0)}${f ? ' lx' : ''}`, xFmt: (x) => `${Math.round(x)} m` });
   $('rCmp').innerHTML = `<tr><td style="font-weight:700;color:var(--ink)">Arrangement</td><td style="font-weight:700;color:var(--ink)">Average</td><td style="font-weight:700;color:var(--ink)">U0</td><td style="font-weight:700;color:var(--ink)">Ul</td><td style="font-weight:700;color:var(--ink)">Poles / km</td><td style="font-weight:700;color:var(--ink)">kW / km</td><td style="font-weight:700;color:var(--ink)">${rCls}</td></tr>` +
     Object.entries(RARR).map(([k, n]) => { const q = rCalc(k, p, rOpt), okk = rClassOk(q, rCls); return `<tr style="cursor:pointer;${k === rArr ? 'background:#f0f6ff' : ''}" onclick="rArr='${k}';roadUI()"><td style="color:var(--ink);font-weight:${k === rArr ? 700 : 400}">${n}</td><td>${q.avg.toFixed(1)} lx</td><td>${q.U0.toFixed(2)}</td><td>${q.Ul.toFixed(2)}</td><td>${Math.round(q.poles)}</td><td>${q.kw.toFixed(2)}</td><td style="color:${okk ? 'var(--good)' : '#b91c1c'};font-weight:700">${okk ? '✓' : '✕'}</td></tr>`; }).join('');
+  rSmart(r);
   $('rSay').textContent = `“For this ${p.W} m road we use ${RARR[rArr].toLowerCase()} poles at ${p.H} m with a ${p.S} m span – ${Math.round(r.poles)} poles per km and about ${r.kw.toFixed(1)} kW per km${ok ? `, meeting ${rCls}` : ''}. The final design and compliance report come from our DLux Road calculation.”`;
 }
 
+
+const RSM = { t1: 22, l2: 50, t2: 29.5, tar: 45 };
+function rSmart(r) {
+  $('rSmCtl').innerHTML = `<div><label>Full light until <b>${hm(RSM.t1)}</b></label><input type="range" min="20" max="25" step="0.25" value="${RSM.t1}" oninput="RSM.t1=+this.value;road()"></div><div><label>Night level <b>${RSM.l2}%</b></label><input type="range" min="20" max="100" step="5" value="${RSM.l2}" oninput="RSM.l2=+this.value;road()"></div><div><label>Back to 100% at <b>${hm(RSM.t2)}</b></label><input type="range" min="26" max="30.25" step="0.25" value="${RSM.t2}" oninput="RSM.t2=+this.value;road()"></div><div><label>Tariff <b>LKR ${RSM.tar}/kWh</b></label><input type="range" min="20" max="80" value="${RSM.tar}" oninput="RSM.tar=+this.value;road()"></div>`;
+  const night = 12, dimH = Math.max(0, RSM.t2 - RSM.t1), f = ((night - dimH) + dimH * RSM.l2 / 100) / night, yearKwh = r.kw * night * 365, withKwh = yearKwh * f;
+  $('rSmKpi').innerHTML = `<div><b>${Math.round(yearKwh).toLocaleString()} kWh</b>per km per year, no dimming</div><div><b>${Math.round(withKwh).toLocaleString()} kWh</b>with the Fonda schedule</div><div><b style="color:var(--good)">${Math.round(100 * (1 - f))}%</b>energy saved</div><div><b>LKR ${fmt((yearKwh - withKwh) * RSM.tar)}</b>saved per km per year</div><div><b>${Math.round(r.poles * (rArr === 'single' ? 1 : rArr === 'central' ? 2 : 1))}</b>controllers per km</div>`;
+}
 // ================================================================ TALQ lab
 // modes: 'talq' – both makers through TALQ gateways; 'none' – each maker its own CMS; 'mixed' – the CMS maker's own nodes go direct (no gateway), a third-party maker joins through its TALQ gateway
 let tqM = 'mixed', tqLog = [], tqLv = { A: 1, B: 1 }, tqFail = { A: false, B: false };
@@ -1172,14 +1220,14 @@ function tqDraw() {
   s += `<line x1="${TN.sensor[0]}" y1="${TN.sensor[1] - 15}" x2="${TN.ext4[0]}" y2="${TN.ext4[1] + 15}" stroke="#a78bfa" stroke-width="2" stroke-dasharray="3 3"/>`;
   const lamp = (v) => { const [x, y] = TN['lum' + v], lv = tqLv[v]; return [-36, 0, 36].map((dx) => { const bad = tqFail[v] && dx === 36; return `<circle cx="${x + dx}" cy="${y}" r="${8 + 9 * lv}" fill="rgba(253,200,90,${(0.15 + 0.6 * lv).toFixed(2)})"/><circle cx="${x + dx}" cy="${y}" r="8" fill="${bad ? '#fecaca' : `rgba(253,200,90,${(0.3 + 0.7 * lv).toFixed(2)})`}" stroke="${bad ? '#dc2626' : '#94a3b8'}"/>`; }).join(''); };
   s += lamp('A') + lamp('B');
-  const nameA = tqM === 'mixed' ? 'Maker A (CMS maker’s own lights)' : 'Maker A lights', nameB = tqM === 'mixed' ? 'Maker B (third party)' : 'Maker B lights';
+  const nameA = tqM === 'mixed' ? 'Fonda (SCCS maker’s own lights)' : 'Fonda lights', nameB = tqM === 'mixed' ? 'Brand A (third party)' : 'Brand A lights';
   s += `<text x="${TN.lumA[0]}" y="${TN.lumA[1] + 32}" text-anchor="middle" font-size="10" fill="#475569">${nameA}</text><text x="${TN.lumB[0]}" y="${TN.lumB[1] + 32}" text-anchor="middle" font-size="10" fill="#475569">${nameB}</text>`;
-  s += b('ctlA', 130, 30, 'Controllers A', tqM === 'mixed' ? '#dbeafe' : '#e2e8f0', tqM === 'mixed' ? 'cellular node, direct to CMS' : 'maker A') + b('ctlB', 130, 30, 'Controllers B', '#e2e8f0', 'maker B');
-  s += b('netA', 140, 28, tqM === 'mixed' ? 'NB-IoT / LTE-M' : 'Network A', '#e0f2fe') + b('netB', 140, 28, tqM === 'mixed' ? 'RF mesh' : 'Network B', '#e0f2fe');
-  if (tqM !== 'mixed') s += b('gwA', 110, 32, 'Gateway A', '#e2e8f0', 'maker A');
-  s += b('gwB', 120, 32, 'Gateway B', tqM === 'none' ? '#e2e8f0' : '#dcfce7', tqM === 'none' ? 'maker B' : 'TALQ-certified');
-  if (tqM !== 'none') s += b('talq', 140, 30, 'TALQ interface', '#bbf7d0', 'open standard') + b('cms', 150, 38, tqM === 'mixed' ? 'CMS of maker A' : 'One CMS', '#dcfce7', tqM === 'mixed' ? 'native + TALQ-certified' : 'any TALQ-certified brand');
-  else s += b('cms', 140, 38, 'CMS of maker A', '#fee2e2', 'only maker A lights') + b('cmsB', 140, 38, 'CMS of maker B', '#fee2e2', 'only maker B lights');
+  s += b('ctlA', 130, 30, 'Fonda controllers', tqM === 'mixed' ? '#dbeafe' : '#e2e8f0', tqM === 'mixed' ? 'NB-IoT / LTE Cat.1, direct to SCCS' : 'Fonda') + b('ctlB', 130, 30, 'Brand A controllers', '#e2e8f0', 'Brand A');
+  s += b('netA', 140, 28, tqM === 'mixed' ? 'NB-IoT / LTE-M' : 'Fonda network', '#e0f2fe') + b('netB', 140, 28, tqM === 'mixed' ? 'RF mesh' : 'Brand A network', '#e0f2fe');
+  if (tqM !== 'mixed') s += b('gwA', 110, 32, 'Fonda concentrator', '#e2e8f0', 'Fonda');
+  s += b('gwB', 120, 32, 'Brand A gateway', tqM === 'none' ? '#e2e8f0' : '#dcfce7', tqM === 'none' ? 'Brand A' : 'TALQ-certified');
+  if (tqM !== 'none') s += b('talq', 140, 30, 'TALQ interface', '#bbf7d0', 'open standard') + b('cms', 150, 38, tqM === 'mixed' ? 'Fonda SCCS (CMS)' : 'One CMS', '#dcfce7', tqM === 'mixed' ? 'own nodes + TALQ (demo)' : 'any TALQ-certified brand');
+  else s += b('cms', 140, 38, 'Fonda SCCS (CMS)', '#fee2e2', 'only Fonda lights') + b('cmsB', 140, 38, 'CMS of Brand A', '#fee2e2', 'only Brand A lights');
   s += b('ext1', 160, 30, 'GIS / asset register', '#ede9fe') + b('ext2', 160, 30, 'Maintenance work orders', '#ede9fe') + b('ext3', 160, 30, 'Energy & billing', '#ede9fe') + b('ext4', 160, 30, 'Smart-city platform', '#ede9fe') + b('sensor', 160, 30, 'Traffic / weather sensors', '#fae8ff');
   s += `<text x="650" y="12" text-anchor="middle" font-size="10" fill="#7c3aed">Third-party systems (CMS APIs)</text><g id="tqDots"></g>`;
   $('tq').innerHTML = s;
@@ -1189,15 +1237,15 @@ function tqDraw() {
 }
 const TQS = [
   ['Midnight: dim to 50%', () => [tqRoute('A'), tqM === 'none' ? null : tqRoute('B')].filter(Boolean), () => { tqLv.A = 0.5; if (tqM !== 'none') tqLv.B = 0.5; },
-    () => ({ mixed: 'One schedule in the CMS, <b>two routes</b>: maker A’s own nodes receive it <b>directly</b> over the cellular network and each node stores it; maker B receives it as a <b>TALQ calendar / control program</b> through gateway B, which runs it for its nodes. Both dim at midnight – even if the link to the CMS is down later.', talq: 'The schedule goes as a TALQ calendar / control program to both gateways; each gateway runs it locally.', none: 'Maker A’s CMS reaches only maker A – <b>maker B’s lights stay at 100%</b> until the schedule is set again in maker B’s software.' })[tqM]],
-  ['Maker A light fails', () => [[...tqUp('A'), 'ext2']], () => { tqFail.A = true; },
-    () => ({ mixed: 'Maker A’s node reports the fault <b>straight to the CMS</b> in the maker’s own protocol – no gateway in between. The CMS shows it on the map and opens a maintenance work order.', talq: 'Controller → network → gateway A → TALQ event → CMS → work order.', none: 'The alarm reaches maker A’s CMS; the work-order link must be built for each brand separately.' })[tqM]],
-  ['Maker B light fails', () => [tqM === 'none' ? tqUp('B') : [...tqUp('B'), 'ext2']], () => { tqFail.B = true; },
-    () => ({ mixed: 'Maker B’s controller reports to <b>gateway B</b>, which sends it as a <b>TALQ event / alarm</b> to maker A’s CMS – it appears on the same map and becomes the same kind of work order as maker A’s faults.', talq: 'Same route as maker A – gateway B → TALQ → the one CMS → work order.', none: 'Only maker B’s own CMS sees it – the city has to watch two screens.' })[tqM]],
+    () => ({ mixed: 'One schedule in the CMS, <b>two routes</b>: Fonda’s own nodes receive it <b>directly</b> over the cellular network and each node stores it; Brand A receives it as a <b>TALQ calendar / control program</b> through Brand A’s gateway, which runs it for its nodes. Both dim at midnight – even if the link to the CMS is down later.', talq: 'The schedule goes as a TALQ calendar / control program to both gateways; each gateway runs it locally.', none: 'Fonda’s CMS reaches only Fonda – <b>Brand A’s lights stay at 100%</b> until the schedule is set again in Brand A’s software.' })[tqM]],
+  ['Fonda light fails', () => [[...tqUp('A'), 'ext2']], () => { tqFail.A = true; },
+    () => ({ mixed: 'Fonda’s node reports the fault <b>straight to the CMS</b> in the maker’s own protocol – no gateway in between. The CMS shows it on the map and opens a maintenance work order.', talq: 'Controller → network → gateway A → TALQ event → CMS → work order.', none: 'The alarm reaches Fonda’s CMS; the work-order link must be built for each brand separately.' })[tqM]],
+  ['Brand A light fails', () => [tqM === 'none' ? tqUp('B') : [...tqUp('B'), 'ext2']], () => { tqFail.B = true; },
+    () => ({ mixed: 'Brand A’s controller reports to <b>Brand A’s gateway</b>, which sends it as a <b>TALQ event / alarm</b> to Fonda’s CMS – it appears on the same map and becomes the same kind of work order as Fonda’s faults.', talq: 'Same route as Fonda – Brand A’s gateway → TALQ → the one CMS → work order.', none: 'Only Brand A’s own CMS sees it – the city has to watch two screens.' })[tqM]],
   ['Read energy & hours', () => [[...tqUp('A'), 'ext3'], tqM === 'none' ? tqUp('B') : [...tqUp('B'), 'ext3']], () => {},
-    () => ({ mixed: '<b>Data collection</b> from both: maker A’s nodes upload directly, gateway B collects from its nodes and delivers over TALQ. The CMS sends one combined energy report to billing.', talq: 'Both gateways deliver energy and burning hours over TALQ; one report to billing.', none: 'Two systems, two reports in different formats – merged by hand every month.' })[tqM]],
+    () => ({ mixed: '<b>Data collection</b> from both: Fonda’s nodes upload directly, Brand A’s gateway collects from its nodes and delivers over TALQ. The CMS sends one combined energy report to billing.', talq: 'Both gateways deliver energy and burning hours over TALQ; one report to billing.', none: 'Two systems, two reports in different formats – merged by hand every month.' })[tqM]],
   ['Heavy traffic: raise the light', () => [['sensor', 'ext4', ...tqRoute('B')]], () => { tqLv.B = 1; },
-    () => tqM === 'none' ? 'The city platform would need a separate link into maker B’s own CMS.' : '<b>Third-party integration</b>: a traffic sensor tells the smart-city platform; the platform asks the CMS (API) to raise the light on that road; the CMS commands maker B’s lights through gateway B over TALQ – <b>adaptive lighting</b>.'],
+    () => tqM === 'none' ? 'The city platform would need a separate link into Brand A’s own CMS.' : '<b>Third-party integration</b>: a traffic sensor tells the smart-city platform; the platform asks the CMS (API) to raise the light on that road; the CMS commands Brand A’s lights through Brand A’s gateway over TALQ – <b>adaptive lighting</b>.'],
   ['Add another maker', () => [tqM === 'none' ? ['gwB', 'cmsB'] : ['gwB', 'talq', 'cms', 'ext1']], () => {},
     () => tqM === 'none' ? 'Without TALQ a new maker brings <b>its own CMS</b> – another login, map and contract.' : 'The new maker installs its <b>TALQ-certified gateway</b>, registers it with the existing CMS and its lights appear on the same map and in the <b>GIS / asset register</b>. No change for the city’s own lights.'],
   ['Reset', () => [], () => { tqLv = { A: 1, B: 1 }; tqFail = { A: false, B: false }; tqLog = []; }, () => ''],
@@ -1255,6 +1303,85 @@ add('road', 'TALQ smart control', 'talq_third', '🔗', 'Third-party integration
   watch: 'Integrations are often priced separately – list each interface (work orders, GIS, billing, platform) in the offer and confirm who maintains it.',
   quiz: [Q('Third-party systems usually connect through…', ['the CMS’s APIs', 'the LED driver', 'the pole'], 0), Q('A typical automatic integration is…', ['alarm → maintenance work order', 'driver → paint colour', 'lens → billing'], 0), Q('Before quoting integrations agree…', ['which interfaces, data ownership and licence costs', 'only the pole colour', 'nothing'], 0)] });
 L.forEach((l) => { LESSONS[l.id] = l; });
+
+
+// ================================================================ CMS DASHBOARD (demo data – Fonda SCCS + Brands A, B, C)
+const CBR = { Fonda: '#2563eb', 'Brand A': '#c2410c', 'Brand B': '#0d9488', 'Brand C': '#a21caf' };
+const CROADS = [
+  { id: 'R1', name: 'Main Road', brand: 'Fonda', via: 'Fonda NB-IoT / LTE Cat.1 controllers – direct to SCCS, no gateway', short: 'direct (cellular)', a: [30, 60], b: [610, 60], n: 14, W: 120 },
+  { id: 'R2', name: 'Ring Road', brand: 'Fonda', via: 'Fonda PLC controllers → Fonda PLC concentrator → SCCS', short: 'PLC concentrator', a: [50, 110], b: [50, 355], n: 8, W: 90 },
+  { id: 'R3', name: 'Harbour Road', brand: 'Brand A', via: 'Brand A controllers → Brand A gateway → TALQ → SCCS', short: 'TALQ gateway A', a: [110, 355], b: [610, 355], n: 12, W: 150 },
+  { id: 'R4', name: 'Park Avenue', brand: 'Brand B', via: 'Brand B controllers → Brand B gateway → TALQ → SCCS', short: 'TALQ gateway B', a: [140, 120], b: [420, 300], n: 9, W: 60 },
+  { id: 'R5', name: 'Industrial Lane', brand: 'Brand C', via: 'Brand C controllers → Brand C gateway → TALQ → SCCS', short: 'TALQ gateway C', a: [480, 110], b: [610, 300], n: 7, W: 100 },
+];
+const CP = []; // poles
+CROADS.forEach((r, ri) => { for (let i = 0; i < r.n; i++) { const f = r.n === 1 ? 0 : i / (r.n - 1); CP.push({ id: `P-${String(CP.length + 1).padStart(3, '0')}`, road: r.id, brand: r.brand, x: r.a[0] + (r.b[0] - r.a[0]) * f, y: r.a[1] + (r.b[1] - r.a[1]) * f, W: r.W, hours: 9000 + ((CP.length * 7919) % 21000), st: 'ok', ov: null }); } });
+[[16, 'fault', 'Lamp / driver failure'], [33, 'offline', 'No communication (power cut?)'], [44, 'fault', 'Low supply voltage']].forEach(([i, st, t]) => { CP[i].st = st; CP[i].alarm = t; CP[i].wo = null; });
+const CSCH = Object.fromEntries(CROADS.map((r) => [r.id, { t1: 22, l2: 60, t2: 29.5 }])); // applied schedules (t in hours, 24+ = after midnight)
+let cDraft = { ...CSCH.R1 }, cRoad = 'R1', cSel = null, cFilt = 'All', cOv = {}, cLog = [];
+const DUSK = 18.25, DAWN = 30.25, hm = (h) => { const x = ((h % 24) + 24) % 24, a = Math.floor(x), b = Math.round((x - a) * 60); return `${String(a).padStart(2, '0')}:${String(b === 60 ? 0 : b).padStart(2, '0')}`; };
+const cLevel = (p, h, sch) => { if (p.st === 'offline') return null; if (h < DUSK || h >= DAWN) return 0; if (p.ov != null) return p.ov; if (cOv[p.road] != null) return cOv[p.road]; const s = sch || CSCH[p.road]; return h >= s.t1 && h < s.t2 ? s.l2 : 100; };
+const cPower = (p, h, sch) => { if (p.st === 'fault') return 0; const l = cLevel(p, h, sch); return l == null ? 0 : p.W * (l / 100) * (l ? 0.92 + 0.08 * l / 100 : 0); };
+const cNightKWh = (ps, sch, nodim) => ps.reduce((s, p) => { let e = 0; for (let h = DUSK; h < DAWN; h += 0.25) e += (nodim ? (p.st === 'fault' || p.st === 'offline' ? 0 : p.W) : cPower(p, h, sch && sch[p.road])) * 0.25; return s + e / 1000; }, 0);
+function cmsUI() {
+  $('cBrand').innerHTML = '<span class="m" style="align-self:center;font-size:12px">Show:</span>' + ['All', ...Object.keys(CBR)].map((b) => `<span class="btn ${b === cFilt ? 'on' : ''}" style="padding:4px 9px;font-size:12px" onclick="cFilt='${b}';cms()">${b === 'All' ? 'All brands' : `<span style="color:${b === cFilt ? '#fff' : CBR[b]}">●</span> ${b}`}</span>`).join('');
+  $('cGrp').innerHTML = '<span class="m" style="align-self:center;font-size:12px">Road:</span>' + CROADS.map((r) => `<span class="btn ${r.id === cRoad ? 'on' : ''}" style="padding:4px 9px;font-size:12px" onclick="cRoad='${r.id}';cDraft={...CSCH.${r.id}};cmsUI()">${r.name} · ${r.brand}</span>`).join('');
+  const d = cDraft;
+  $('cSch').innerHTML = `<div><label>Full light until <b>${hm(d.t1)}</b></label><input type="range" min="20" max="25" step="0.25" value="${d.t1}" oninput="cDraft.t1=+this.value;cmsUI()"></div><div><label>Night level <b>${d.l2}%</b></label><input type="range" min="0" max="100" step="5" value="${d.l2}" oninput="cDraft.l2=+this.value;cmsUI()"></div><div><label>Back to 100% at <b>${hm(d.t2)}</b></label><input type="range" min="26" max="30.25" step="0.25" value="${d.t2}" oninput="cDraft.t2=+this.value;cmsUI()"></div>`;
+  cms();
+}
+function cms() {
+  const h = +$('cClk').value; $('cClkV').textContent = hm(h);
+  const vis = CP.filter((p) => cFilt === 'All' || p.brand === cFilt);
+  // map
+  let s = `<rect width="640" height="380" fill="#0f1218"/>`;
+  CROADS.forEach((r) => { const dim = cFilt !== 'All' && r.brand !== cFilt; s += `<line x1="${r.a[0]}" y1="${r.a[1]}" x2="${r.b[0]}" y2="${r.b[1]}" stroke="#374151" stroke-width="10" stroke-linecap="round" opacity="${dim ? 0.35 : 1}"/>`; });
+  CROADS.forEach((r) => { const mx = (r.a[0] + r.b[0]) / 2, my = (r.a[1] + r.b[1]) / 2; s += `<text x="${mx + (r.id === 'R2' ? 14 : 0)}" y="${my + (r.id === 'R2' ? 0 : -14)}" font-size="10" fill="#cbd5e1" text-anchor="${r.id === 'R2' ? 'start' : 'middle'}">${r.name} · ${r.brand} · ${r.short}</text>`; });
+  s += `<rect x="70" y="100" width="64" height="18" rx="3" fill="#1e3a8a"/><text x="102" y="113" text-anchor="middle" font-size="9" fill="#fff">PLC concentr.</text>`;
+  [['R3', 610, 330, 'GW A'], ['R4', 430, 290, 'GW B'], ['R5', 620, 280, 'GW C']].forEach(([rid, x, y, t]) => { const c = CBR[CROADS.find((r) => r.id === rid).brand]; s += `<rect x="${x - 26}" y="${y - 9}" width="52" height="18" rx="3" fill="${c}"/><text x="${x}" y="${y + 4}" text-anchor="middle" font-size="9" fill="#fff">${t}</text>`; });
+  CP.forEach((p) => { const shown = cFilt === 'All' || p.brand === cFilt, l = cLevel(p, h), sel = cSel === p.id;
+    const fill = p.st === 'fault' ? '#dc2626' : p.st === 'offline' ? '#64748b' : `rgba(245,158,11,${l ? (0.25 + 0.75 * l / 100).toFixed(2) : 0.08})`;
+    s += `<g data-pole="${p.id}" style="cursor:pointer" opacity="${shown ? 1 : 0.2}">${l && p.st === 'ok' ? `<circle cx="${p.x}" cy="${p.y}" r="${7 + 9 * l / 100}" fill="rgba(253,200,90,${(0.1 + 0.3 * l / 100).toFixed(2)})"/>` : ''}<circle cx="${p.x}" cy="${p.y}" r="6.5" fill="${fill}" stroke="${CBR[p.brand]}" stroke-width="2.5"/>${p.st === 'fault' ? `<text x="${p.x}" y="${p.y + 3.5}" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">!</text>` : ''}${sel ? `<circle cx="${p.x}" cy="${p.y}" r="11" fill="none" stroke="#fff" stroke-width="2"/>` : ''}</g>`; });
+  s += `<rect x="8" y="8" width="96" height="22" rx="4" fill="#1f2937"/><text x="56" y="23" text-anchor="middle" font-size="11" fill="#fde68a">🕘 ${hm(h)}</text>`;
+  $('cMap').innerHTML = s;
+  // KPIs
+  const on = vis.filter((p) => p.st === 'ok' && (cLevel(p, h) || 0) > 0), lv = on.length ? on.reduce((a, p) => a + cLevel(p, h), 0) / on.length : 0, kw = vis.reduce((a, p) => a + cPower(p, h), 0) / 1000;
+  const eNow = cNightKWh(vis), eNo = cNightKWh(vis, null, true);
+  $('cKpi').innerHTML = `<div><b>${vis.length}</b>lights</div><div><b>${on.length}</b>on now</div><div><b>${Math.round(lv)}%</b>average level</div><div><b style="color:#b91c1c">${vis.filter((p) => p.st === 'fault').length}</b>faults</div><div><b style="color:#475569">${vis.filter((p) => p.st === 'offline').length}</b>offline</div><div><b>${kw.toFixed(2)} kW</b>power now</div><div><b>${eNow.toFixed(0)} kWh</b>tonight</div><div><b style="color:var(--good)">${eNo ? Math.round(100 * (1 - eNow / eNo)) : 0}%</b>saved by dimming</div>`;
+  // selected light
+  const p = CP.find((x) => x.id === cSel), r = p && CROADS.find((x) => x.id === p.road);
+  $('cInfo').innerHTML = p ? `<h5>${p.id} · ${r.name}</h5><table class="spec"><tr><td>Brand</td><td><span style="color:${CBR[p.brand]}">●</span> ${p.brand}</td></tr><tr><td>Connection</td><td>${r.via}</td></tr><tr><td>Status</td><td>${p.st === 'ok' ? '✓ OK' : p.st === 'fault' ? `<b style="color:#b91c1c">Fault – ${p.alarm}</b>` : `<b>Offline – ${p.alarm}</b>`}</td></tr><tr><td>Level now</td><td>${cLevel(p, h) == null ? '—' : cLevel(p, h) + '%'}${p.ov != null ? ' (manual)' : ''}</td></tr><tr><td>Power now</td><td>${cPower(p, h).toFixed(0)} W of ${p.W} W</td></tr><tr><td>Energy tonight</td><td>${cNightKWh([p]).toFixed(2)} kWh</td></tr><tr><td>Burning hours</td><td>${p.hours.toLocaleString()} h</td></tr></table><div class="row" style="margin-top:8px"><span class="btn" style="padding:4px 9px;font-size:12px" onclick="cOne('${p.id}',30)">Dim this light to 30%</span><span class="btn" style="padding:4px 9px;font-size:12px" onclick="cOne('${p.id}',null)">Back to schedule</span>${p.st !== 'ok' && !p.wo ? `<span class="btn p" style="padding:4px 9px;font-size:12px" onclick="cWO('${p.id}')">Create work order</span>` : ''}</div>`
+    : `<h5>Tap a light on the map</h5><div class="m">See its brand, how it connects (direct, concentrator or TALQ gateway), level, power, energy and alarms – and send commands. Drag the night clock to watch the schedules dim the roads.</div>`;
+  // power chart for the selected road: draft vs no dimming
+  const rp = CP.filter((x) => x.road === cRoad), xs = [...Array(53).keys()].map((i) => 18 + i * 0.25);
+  lineChart($('cPow'), $('cPowTip'), { W: 760, H: 200, xs, series: [{ name: 'No dimming', c: 'var(--s2)', ys: xs.map((t) => rp.reduce((a, q) => a + (q.st === 'ok' && t >= DUSK && t < DAWN ? q.W : 0), 0) / 1000) }, { name: 'This schedule', c: 'var(--s1)', ys: xs.map((t) => rp.reduce((a, q) => a + cPower(q, t, cDraft), 0) / 1000) }], xLabel: 'time tonight', yFmt: (y, f) => `${y.toFixed(1)}${f ? ' kW' : ''}`, xFmt: (x) => hm(x), marker: h });
+  // alarms
+  const al = CP.filter((x) => x.st !== 'ok');
+  $('cAlm').innerHTML = `<tr><td style="font-weight:700;color:var(--ink)">Light</td><td style="font-weight:700;color:var(--ink)">Brand · road</td><td style="font-weight:700;color:var(--ink)">Alarm</td><td style="font-weight:700;color:var(--ink)">Came in through</td><td style="font-weight:700;color:var(--ink)">Action</td></tr>` + (al.length ? al.map((x) => { const rr = CROADS.find((q) => q.id === x.road); return `<tr><td style="color:var(--ink);cursor:pointer" onclick="cSel='${x.id}';cms()">${x.id}</td><td><span style="color:${CBR[x.brand]}">●</span> ${x.brand} · ${rr.name}</td><td>${x.st === 'fault' ? '⚠ ' : '⨯ '}${x.alarm}</td><td>${rr.short}</td><td>${x.wo ? `<span style="color:var(--good)">✓ ${x.wo} sent</span> <span class="btn" style="padding:2px 7px;font-size:11px" onclick="cFix('${x.id}')">Mark repaired</span>` : `<span class="btn p" style="padding:3px 8px;font-size:12px" onclick="cWO('${x.id}')">Create work order</span>`}</td></tr>`; }).join('') : '<tr><td colspan="5">No open alarms ✓</td></tr>');
+  // energy – last 7 nights (bars, direct labels, hover titles)
+  const tonight = cNightKWh(CP), vals = [-6, -5, -4, -3, -2, -1, 0].map((d) => d === 0 ? tonight : tonight * (1.18 - 0.03 * (d + 6)) * (1 + 0.03 * Math.sin(d * 2.1)));
+  const mx = Math.max(...vals) * 1.15, bw = 70, gap = 30; let e = '';
+  [0, 0.5, 1].forEach((f) => { const y = 170 - 150 * f; e += `<line x1="50" x2="740" y1="${y}" y2="${y}" stroke="#e3e5ea"/><text x="44" y="${y + 4}" text-anchor="end" font-size="10" fill="#5f6673">${Math.round(mx * f)}</text>`; });
+  vals.forEach((v, i) => { const x = 70 + i * (bw + gap), hgt = 150 * v / mx; e += `<g><title>${i === 6 ? 'Tonight' : `${6 - i} night${6 - i > 1 ? 's' : ''} ago`}: ${v.toFixed(0)} kWh</title><path d="M${x} 170 V ${170 - hgt + 4} Q ${x} ${170 - hgt} ${x + 4} ${170 - hgt} H ${x + bw - 4} Q ${x + bw} ${170 - hgt} ${x + bw} ${170 - hgt + 4} V 170 Z" fill="var(--s1)" opacity="${i === 6 ? 1 : 0.7}"/><text x="${x + bw / 2}" y="${165 - hgt}" text-anchor="middle" font-size="11" fill="#14161c">${v.toFixed(0)}</text><text x="${x + bw / 2}" y="188" text-anchor="middle" font-size="10" fill="#5f6673">${i === 6 ? 'Tonight' : `−${6 - i}`}</text></g>`; });
+  $('cEn').innerHTML = e;
+  $('cLog').innerHTML = cLog.length ? cLog.map((l) => `<div style="margin-bottom:5px">${l}</div>`).join('') : '<span class="m">Send a schedule or a command – the log shows the route each brand’s message takes.</span>';
+}
+const cRouteTxt = (r) => r.brand === 'Fonda' ? (r.id === 'R1' ? 'SCCS → cellular (NB-IoT / LTE Cat.1) → each Fonda controller directly – <b>no gateway</b>' : 'SCCS → Fonda PLC concentrator → over the power cable → each Fonda controller') : `SCCS → <b>TALQ interface</b> → ${r.brand} gateway → ${r.brand}’s own network → each ${r.brand} controller`;
+const cAdd = (t) => { cLog.unshift(`<b>${hm(+$('cClk').value)}</b> ${t}`); cLog = cLog.slice(0, 8); };
+function cApply() { const r = CROADS.find((x) => x.id === cRoad); CSCH[cRoad] = { ...cDraft }; delete cOv[cRoad]; cAdd(`Schedule for <b>${r.name}</b> (${r.n} ${r.brand} lights): 100% until ${hm(cDraft.t1)}, ${cDraft.l2}% until ${hm(cDraft.t2)}, then 100% until dawn. Route: ${cRouteTxt(r)}. ${r.brand === 'Fonda' ? 'Each controller stores the schedule.' : 'Sent as a TALQ calendar / control program – the gateway runs it locally.'}`); cms(); }
+function cCmd(l) { const r = CROADS.find((x) => x.id === cRoad); cOv[cRoad] = l; cAdd(`Command <b>${l ? 'switch on 100%' : 'switch off'}</b> to ${r.name}. Route: ${cRouteTxt(r)}.`); cms(); }
+function cOne(id, l) { const p = CP.find((x) => x.id === id), r = CROADS.find((x) => x.id === p.road); p.ov = l; cAdd(`${l == null ? 'Back to schedule' : `Dim to ${l}%`} for <b>${p.id}</b> (${p.brand}). Route: ${cRouteTxt(r)}.`); cms(); }
+let woN = 4100;
+function cWO(id) { const p = CP.find((x) => x.id === id), r = CROADS.find((x) => x.id === p.road); p.wo = `WO-${++woN}`; cAdd(`Alarm on <b>${p.id}</b> (${p.brand}, ${r.name}: ${p.alarm}) → SCCS → <b>maintenance system (third-party API)</b>: work order ${p.wo} with location and fault.`); cms(); }
+function cFix(id) { const p = CP.find((x) => x.id === id); p.st = 'ok'; cAdd(`${p.id} repaired – the controller reports OK again; ${p.wo} closed automatically.`); p.wo = null; cms(); }
+function cFault() { const ok = CP.filter((x) => x.st === 'ok'), p = ok[(ok.length * 7 + cLog.length * 13) % ok.length], r = CROADS.find((x) => x.id === p.road); p.st = 'fault'; p.alarm = ['Lamp / driver failure', 'Over-temperature', 'Low power factor'][cLog.length % 3]; p.wo = null; cSel = p.id;
+  cAdd(`New alarm: <b>${p.id}</b> (${p.brand}, ${r.name}) – ${p.alarm}. It came in: ${r.brand === 'Fonda' ? (r.id === 'R1' ? 'controller → cellular → SCCS (direct)' : 'controller → PLC concentrator → SCCS') : `controller → ${r.brand} gateway → <b>TALQ event</b> → SCCS`}.`); cms(); }
+$('cClk').addEventListener('input', cms);
+$('cMap').addEventListener('click', (ev) => { const g = ev.target.closest('[data-pole]'); if (g) { cSel = g.dataset.pole; cms(); } });
+
+L.push({ mod: 'road', sec: 'TALQ smart control', id: 'lab_cms', icon: '🖥️', title: 'CMS dashboard – Fonda SCCS with Brands A, B, C', mins: 8, type: 'lab', lab: 'cmsv', preset: 1, live: 1,
+  quiz: [Q('In the demo, how do Fonda’s Main Road lights reach the CMS?', ['Directly over cellular – no gateway', 'Through a Brand A gateway', 'They cannot'], 0), Q('How do Brand B’s lights join the same CMS?', ['Through Brand B’s gateway and the TALQ interface', 'Through Fonda’s PLC concentrator', 'They need their own CMS always'], 0), Q('A fault alarm can automatically create…', ['a work order in the maintenance system', 'a new pole', 'a price list'], 0)] });
+LESSONS.lab_cms = L[L.length - 1];
 
 // ================================================================ ACADEMY engine – widgets, quiz, routing, progress
 // ---- small widgets
@@ -1359,7 +1486,7 @@ function renderHome() {
 const BG = ['#fef3c7', '#ffedd5', '#fce7f3', '#e0e7ff', '#e0f2fe', '#dcfce7', '#f1f5f9', '#ede9fe'];
 
 // ---- lessons and labs
-const VIEWS = ['home', 'lesson', 'tech', 'fix', 'chip', 'ctlv', 'lmsv', 'roadv', 'talqv'];
+const VIEWS = ['home', 'lesson', 'tech', 'fix', 'chip', 'ctlv', 'lmsv', 'roadv', 'talqv', 'cmsv'];
 function showView(v) { VIEWS.forEach((x) => $(x).classList.toggle('hidden', x !== v)); window.scrollTo(0, 0); }
 function back() { location.hash = '#home'; }
 function parkWidgets() { document.querySelectorAll('[data-parked]').forEach((w) => { $('wstore').appendChild(w); w.removeAttribute('data-parked'); }); }
@@ -1370,6 +1497,7 @@ const LAB_INIT = {
   ctlv: (p) => { if (['v110', 'phase', 'dali', 'dmx', 'casambi'].includes(p)) prot = p; protUI(); daliV(); protTable(); if (p === 'daliv' || p === 'table') setTimeout(() => $(p === 'daliv' ? 'dBtns' : 'pTable').scrollIntoView({ behavior: 'smooth', block: 'center' }), 50); },
   lmsv: (p) => lmsTab(+p || 1),
   roadv: (p) => { if (p === 'single') rArr = 'single'; roadUI(); if (p === 'compare' || p === 'height') setTimeout(() => $(p === 'compare' ? 'rCmp' : 'rCtl').scrollIntoView({ behavior: 'smooth', block: 'center' }), 50); },
+  cmsv: () => cmsUI(),
   talqv: (p) => { tqM = ['mixed', 'talq', 'none'].includes(p) ? p : 'mixed'; tqDraw(); },
 };
 const MODN = Object.fromEntries(MODULES.map(([k, n]) => [k, n]));
