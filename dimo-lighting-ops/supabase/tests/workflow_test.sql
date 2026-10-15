@@ -8362,5 +8362,44 @@ do $$ declare c record; m bigint; begin
 end $$;
 rollback to savepoint purge1;
 
+-- Project references: Sales Tools people add; the owner, SM Projects and GM edit; others with Sales Tools only read
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ declare rid uuid; n int; begin
+  insert into public.project_references (title, description, year, value, location, country, category, applications, brands, photos)
+  values ('Hotel ballroom', 'LED retrofit with DALI scenes', 2026, 12500000, 'Colombo 02', 'Sri Lanka', 'hospitality', array['indoor', 'controls'], array['Philips'], array['ref/x/1.jpg'])
+  returning id into rid;
+  perform set_config('test.ref', rid::text, false);
+  begin
+    insert into public.project_references (title, applications) values ('Bad', array['indoor', 'roads']);
+    assert false, 'unknown application type refused';
+  exception when check_violation then null; end;
+  begin
+    insert into public.project_references (title, photos) values ('Too many', array['a', 'b', 'c', 'd', 'e']);
+    assert false, 'at most 4 photos';
+  exception when check_violation then null; end;
+end $$;
+reset role;
+select pg_temp.act_as('design_manager'); set role authenticated;
+do $$ declare n int; begin
+  assert exists (select 1 from public.project_references where id = current_setting('test.ref')::uuid), 'Sales Tools people see references';
+  update public.project_references set title = 'Changed' where id = current_setting('test.ref')::uuid;
+  get diagnostics n = row_count;
+  assert n = 0, 'only the owner, SMP or GM edits';
+end $$;
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ declare n int; begin
+  update public.project_references set title = 'Hotel ballroom – Colombo' where id = current_setting('test.ref')::uuid;
+  get diagnostics n = row_count;
+  assert n = 1, 'GM edits any reference';
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin
+  assert not exists (select 1 from public.project_references), 'no Sales Tools – no references';
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

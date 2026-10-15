@@ -4,14 +4,15 @@ import { Platform } from 'react-native';
 import { Catalogs } from '@/components/tools/Catalogs';
 import { LuxMeter } from '@/components/tools/LuxMeter';
 import { QuickCalcList } from '@/components/tools/QuickCalcList';
+import { References } from '@/components/tools/References';
 import { Standards } from '@/components/tools/Standards';
 import { Field, Notice, Screen, Segmented } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { TOOLS_ROLES } from '@/lib/standards';
 
-type Tab = 'standards' | 'catalogs' | 'lux' | 'calc';
+type Tab = 'standards' | 'catalogs' | 'lux' | 'calc' | 'refs';
 
-/** Sales Tools: Standards, Catalogs, Lux meter (measures in the Android app only) and DLux lighting calculations */
+/** Sales Tools: Standards, Catalogs, Lux meter (measures in the Android app only), DLux lighting calculations and project References */
 export default function SalesTools() {
   const me = useMe();
   const params = useLocalSearchParams<{ tab?: Tab }>();
@@ -30,6 +31,7 @@ export default function SalesTools() {
           { value: 'catalogs', label: 'Catalogs' },
           { value: 'lux', label: android ? 'Lux meter' : 'Lux meter (Android)' },
           { value: 'calc', label: 'DLux' },
+          { value: 'refs', label: 'References' },
         ]}
       />
       {tab === 'standards' ? (
@@ -39,6 +41,8 @@ export default function SalesTools() {
         </>
       ) : tab === 'calc' ? (
         <QuickCalcList />
+      ) : tab === 'refs' ? (
+        <References />
       ) : tab === 'catalogs' ? (
         <Catalogs />
       ) : (
