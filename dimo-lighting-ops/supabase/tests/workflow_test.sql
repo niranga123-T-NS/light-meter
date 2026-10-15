@@ -8446,5 +8446,28 @@ do $$ begin
 end $$;
 reset role;
 
+-- Visit briefs: written before the visit, on the own plan line or on the visit itself
+select pg_temp.act_as('asm_infra'); set role authenticated;
+do $$ declare ln uuid := (select id from public.visit_plan_lines where planned_objective = 'Tuesday visit' limit 1); begin
+  insert into public.visit_briefs (plan_line_id, previous, promised, done) values (ln, 'Discussed the lobby layout', 'Send samples', null);
+  update public.visit_briefs set done = 'Samples delivered' where plan_line_id = ln;
+  assert (select done from public.visit_briefs where plan_line_id = ln) = 'Samples delivered', 'brief kept';
+  perform set_config('test.brief_line', ln::text, false);
+end $$;
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  begin insert into public.visit_briefs (plan_line_id, previous) values (current_setting('test.brief_line')::uuid, 'x'); assert false, 'not my plan line'; exception when insufficient_privilege or check_violation then null; end;
+  assert not exists (select 1 from public.visit_briefs where plan_line_id = current_setting('test.brief_line')::uuid), 'others cannot read';
+  insert into public.visits (organization_id, project_id, visit_category, primary_objective, brief_previous, brief_promised, brief_done)
+  values ('00000000-0000-0000-0000-00000000a001', '00000000-0000-0000-0000-00000000b001', 'End-Client', 'Requirement Gathering', 'Layout discussed', 'Quote by Friday', 'Quote sent');
+  assert exists (select 1 from public.visits where brief_promised = 'Quote by Friday'), 'brief on the visit';
+  begin insert into public.visits (organization_id, project_id, visit_category, primary_objective, brief_done) values ('00000000-0000-0000-0000-00000000a001', '00000000-0000-0000-0000-00000000b001', 'End-Client', 'Requirement Gathering', repeat('x', 1600)); assert false, 'brief too long'; exception when check_violation then null; end;
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin assert exists (select 1 from public.visit_briefs where plan_line_id = current_setting('test.brief_line')::uuid), 'SM Projects reads briefs'; end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

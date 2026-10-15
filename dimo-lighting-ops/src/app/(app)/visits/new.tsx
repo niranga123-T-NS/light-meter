@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useDialog } from '@/components/dialog';
 import { CustomerPicker, ProjectPicker } from '@/components/pickers';
 import { Button, Card, colors, DateField, ErrorBanner, Field, MultiSelect, Muted, Notice, NumberField, Row, Screen, Section, Segmented, Select } from '@/components/ui';
+import { briefPayload, EMPTY_BRIEF, VisitBrief, type Brief } from '@/components/VisitBrief';
 import { captureLocation, ObjectivePicker } from '@/components/VisitBits';
 import { useMe } from '@/lib/auth';
 import { uuid } from '@/lib/files';
@@ -47,6 +48,7 @@ export default function NewVisit() {
   });
   const set = <K extends keyof typeof v>(k: K, val: (typeof v)[K]) => setV((s) => ({ ...s, [k]: val }));
   const [competitors, setCompetitors] = useState<string[]>([]);
+  const [brief, setBrief] = useState<Brief>(EMPTY_BRIEF);
 
   useEffect(() => {
     supabase.from('competitors').select('name').eq('active', true).order('name').then(({ data }) => setCompetitors((data ?? []).map((c) => c.name)));
@@ -82,6 +84,10 @@ export default function NewVisit() {
           tender_activity: l.tender_activity,
         }));
       });
+    // the brief prepared in advance on the plan line
+    supabase.from('visit_briefs').select('previous, promised, done').eq('plan_line_id', params.planLine).maybeSingle().then(({ data }) => {
+      if (data) setBrief({ previous: data.previous ?? '', promised: data.promised ?? '', done: data.done ?? '' });
+    });
   }, [params.planLine]);
 
   const onProject = (p: Project | null) => {
@@ -108,6 +114,7 @@ export default function NewVisit() {
       id,
       sales_person_id: me.id,
       ...v,
+      ...briefPayload(brief),
       tender_no: v.tender_no || null,
       brands_specified: v.brands_specified || null,
       next_action: v.next_action || null,
@@ -189,6 +196,12 @@ export default function NewVisit() {
           />
         </Card>
       </Section>
+
+      {v.organization_id ? (
+        <Section title="Before the visit">
+          <VisitBrief organizationId={v.organization_id} projectId={v.project_id} value={brief} onChange={setBrief} />
+        </Section>
+      ) : null}
 
       <Section title="Report">
         <Card>
