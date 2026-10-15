@@ -617,8 +617,10 @@ function PickerModal({
                 <View key={o.value}>
                   {header ? <Text style={styles.groupHeader}>{header}</Text> : null}
                   <Pressable onPress={() => onPick(o.value)} style={[styles.option, on && { backgroundColor: '#FDECEF' }]}>
-                    <Text style={{ color: colors.text, flex: 1 }}>{o.label}</Text>
-                    {o.hint ? <Text style={styles.hint}>{o.hint}</Text> : null}
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={{ color: colors.text }}>{o.label}</Text>
+                      {o.hint ? <Text style={styles.hint}>{o.hint}</Text> : null}
+                    </View>
                     {on ? <Text style={{ color: colors.brand, fontWeight: '700' }}>✓</Text> : null}
                   </Pressable>
                 </View>
