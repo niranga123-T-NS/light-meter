@@ -1,0 +1,1162 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DIMO Lighting Academy</title><meta name="robots" content="noindex">
+<style>
+:root{--red:#c8102e;--ink:#14161c;--mut:#5f6673;--line:#e3e5ea;--bg:#f4f5f7;--side:#1b1d24;--chip:#eef0f4;--s1:#2a6fdb;--s2:#c2410c;--good:#15803d;--warn:#b45309;--sel:#2a6fdb}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:var(--bg)}
+.app{display:flex;min-height:100vh}.side{width:220px;background:var(--side);color:#cfd3dc;padding:16px 12px;flex-shrink:0}
+.logo{background:#fff;color:#1d3c8f;font-weight:900;font-size:26px;border-radius:10px;padding:14px;text-align:center}
+.side .sub{font-size:12px;margin:8px 4px 16px}.side a{display:block;padding:7px 8px;border-radius:6px;color:#cfd3dc}.side a.on{background:#2c2f39;color:#fff;font-weight:600}
+.main{flex:1;min-width:0}.top{background:#fff;padding:16px 24px;font-weight:700;font-size:20px;border-bottom:1px solid var(--line)}
+.wrap{padding:16px 20px;max-width:1120px;margin:0 auto}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}.tab{padding:6px 14px;border-radius:999px;background:#fff;border:1px solid var(--line);font-weight:600;cursor:pointer}.tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.mods{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0 4px}
+.mod{background:#fff;border:2px solid var(--line);border-radius:12px;padding:12px;cursor:pointer}.mod.on{border-color:var(--red)}.mod b{display:block;font-size:15px}.mod .m{font-size:12px}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px}
+h2{margin:0 0 4px;font-size:20px}h3{margin:18px 0 8px;font-size:15px}.m{color:var(--mut)}
+.hero{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.bar{height:8px;background:var(--chip);border-radius:99px;overflow:hidden;width:220px}.bar i{display:block;height:100%;background:var(--red)}
+.sec{margin-top:18px;font-weight:700;font-size:12px;letter-spacing:.5px;text-transform:uppercase;color:var(--mut)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-top:8px}
+.topic{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;cursor:pointer;position:relative}
+.topic:hover{border-color:var(--red)}.topic .ic{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:8px}
+.topic b{display:block}.topic .t{font-size:12px;color:var(--mut)}.done{position:absolute;top:10px;right:10px;font-size:12px;font-weight:700;color:var(--good)}
+.live{position:absolute;top:10px;right:10px;font-size:11px;font-weight:700;color:#fff;background:var(--red);border-radius:99px;padding:1px 8px}
+.btn{display:inline-block;padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:#fff;font-weight:600;font-size:13px;cursor:pointer;font-family:inherit;color:var(--ink)}
+.btn.p{background:var(--red);color:#fff;border-color:var(--red)}.btn.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.part{display:flex;gap:10px;align-items:flex-start;margin-top:16px}.num{flex-shrink:0;width:26px;height:26px;border-radius:50%;background:var(--ink);color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center}
+.part .body{flex:1;min-width:0}.part h4{margin:2px 0 6px;font-size:15px}
+.say{background:#f0f6ff;border-left:4px solid var(--s1);padding:10px 12px;border-radius:6px}
+.watch{background:#fff7ed;border-left:4px solid var(--warn);padding:10px 12px;border-radius:6px}
+.scene{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}.scene svg{width:100%;height:auto;border-radius:10px;display:block}.scene .cap{text-align:center;font-size:12px;color:var(--mut);margin-top:4px}
+input[type=range]{width:100%;accent-color:var(--red)}
+.kelvin{display:flex;justify-content:space-between;font-size:12px;color:var(--mut)}
+.pill{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:700;background:var(--chip)}
+.q{margin-top:10px}.q p{margin:0 0 6px;font-weight:600}.opt{display:block;width:100%;text-align:left;margin:4px 0;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;cursor:pointer;font:inherit}
+.opt.ok{background:#dcfce7;border-color:var(--good)}.opt.no{background:#fee2e2;border-color:#dc2626}
+.links{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.inputs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.inputs label{font-size:12px;color:var(--mut)}.inputs input{width:100%;padding:7px 8px;border:1px solid var(--line);border-radius:8px;font:inherit}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:12px 0}.kpis div{background:var(--chip);border-radius:10px;padding:10px;text-align:center;font-size:12px;color:var(--mut)}.kpis b{display:block;font-size:20px;color:var(--ink)}
+.legend{display:flex;gap:16px;font-size:13px;margin-bottom:4px;flex-wrap:wrap}.legend span::before{content:'';display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle;background:var(--c)}
+.chartbox{position:relative}.tip{position:absolute;pointer-events:none;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:12px;box-shadow:0 4px 14px rgba(0,0,0,.08);display:none;white-space:nowrap;z-index:2}
+.hidden{display:none!important}.crumb{color:var(--mut);margin-bottom:8px;cursor:pointer}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ctl{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px 18px;margin-top:10px}
+.ctl label{font-size:12px;color:var(--mut);display:flex;justify-content:space-between}.ctl label b{color:var(--ink)}
+.stage{background:#0f1218;border-radius:12px;overflow:hidden}
+.stage svg{display:block;width:100%;height:auto}
+.two{display:grid;grid-template-columns:1.35fr 1fr;gap:14px}
+.info{border:1px solid var(--line);border-radius:10px;padding:12px;min-height:150px}
+.info h5{margin:0 0 4px;font-size:15px}.info .k{font-size:12px;color:var(--mut);margin-top:8px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.plist{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.plist .btn{padding:4px 9px;font-size:12px}
+[data-part]{cursor:pointer}
+table.spec{width:100%;border-collapse:collapse;font-size:13px}table.spec td{padding:5px 0;border-bottom:1px solid var(--line);vertical-align:top}table.spec td:first-child{color:var(--mut);width:38%}
+@media(max-width:900px){.scene,.two{grid-template-columns:1fr!important}.mods{grid-template-columns:1fr 1fr}.wrap{padding:12px 12px}.kpis{grid-template-columns:1fr 1fr!important}}
+#ipKpi b{font-size:15px}
+</style></head><body>
+<div class="wrap">
+<!-- ============ HOME ============ -->
+<div id="home">
+  <div class="card hero">
+    <div><h2>Lighting Academy</h2><div class="m">Six modules. Short lessons with live graphics, words to use with clients and a quick check.</div><div class="m" id="saveNote" style="font-size:12px;margin-top:4px"></div></div>
+    <div><div class="m" style="font-size:12px;margin-bottom:4px" id="progText">Your progress</div><div class="bar"><i id="progBar" style="width:0%"></i></div><div style="margin-top:8px" id="contBtn"></div></div>
+  </div>
+  <div class="mods" id="mods"></div>
+  <div id="modBody"></div>
+</div>
+
+<!-- ============ LESSON (generic) ============ -->
+<div id="lesson" class="hidden">
+  <div class="crumb" onclick="back()" id="lCrumb">◀ All lessons</div>
+  <div class="card">
+    <div class="hero"><div><span class="pill" id="lPill"></span><h2 style="margin-top:6px" id="lTitle"></h2></div><span class="m" id="lDone"></span></div>
+    <div class="part"><div class="num">1</div><div class="body"><h4>In one line</h4><div id="lLine"></div><div id="lBody" style="margin-top:8px"></div></div></div>
+    <div class="part" id="lSeeP"><div class="num">2</div><div class="body"><h4>See it</h4><div id="lSee"></div></div></div>
+    <div class="part"><div class="num">3</div><div class="body"><h4>Say this to the client</h4><div class="say" id="lSay"></div></div></div>
+    <div class="part"><div class="num">4</div><div class="body"><h4>Watch out</h4><div class="watch" id="lWatch"></div></div></div>
+    <div class="part"><div class="num">5</div><div class="body"><h4>Quick check</h4><div id="lQuiz"></div></div></div>
+  </div>
+</div>
+
+<!-- ============ WIDGET STORE (moved into lessons when needed) ============ -->
+<div id="wstore" class="hidden">
+  <div id="w_cct">
+    <div class="scene"><div><svg viewBox="0 0 300 190" id="s1"></svg><div class="cap">Hotel room</div></div><div><svg viewBox="0 0 300 190" id="s2"></svg><div class="cap">Office</div></div><div><svg viewBox="0 0 300 190" id="s3"></svg><div class="cap">Factory</div></div></div>
+    <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center"><b id="kval" style="font-size:22px">3000 K</b><span id="kmood" class="pill"></span></div>
+    <input id="k" type="range" min="2700" max="6500" step="100" value="3000">
+    <div class="kelvin"><span>2700 K warm</span><span>4000 K neutral</span><span>5000 K cool</span><span>6500 K daylight</span></div>
+    <div class="m" style="margin-top:8px;font-size:13px" id="khint"></div>
+  </div>
+  <div id="w_pay">
+    <div class="inputs">
+      <div><label>Fittings</label><input id="n" type="number" value="200"></div><div><label>Old fitting (W)</label><input id="wo" type="number" value="250"></div>
+      <div><label>LED fitting (W)</label><input id="wl" type="number" value="100"></div><div><label>Hours per day</label><input id="h" type="number" value="16"></div>
+      <div><label>Tariff (LKR / kWh)</label><input id="t" type="number" value="45"></div><div><label>LED price each (LKR)</label><input id="p" type="number" value="38000"></div>
+    </div>
+    <div class="kpis"><div><b id="kSave">—</b>saved per year</div><div><b id="kPay">—</b>payback</div><div><b id="kCo2">—</b>CO₂ cut per year</div></div>
+    <div class="legend"><span style="--c:var(--s2)">Keep old lighting</span><span style="--c:var(--s1)">Change to LED</span></div>
+    <div class="chartbox"><svg id="chart" viewBox="0 0 760 300" style="width:100%;height:auto;display:block"></svg><div class="tip" id="tip"></div></div>
+    <div class="say" id="saypay" style="margin-top:10px"></div>
+  </div>
+  <div id="w_lux">
+    <div class="two" style="grid-template-columns:1fr 1fr"><div class="stage"><svg id="luxSvg" viewBox="0 0 420 300"></svg></div>
+      <div><div class="ctl" style="grid-template-columns:1fr">
+        <div><label>Fitting output <b id="luxLmV"></b></label><input id="luxLm" type="range" min="500" max="20000" step="100" value="3000"></div>
+        <div><label>Beam angle <b id="luxBV"></b></label><input id="luxB" type="range" min="10" max="120" value="40"></div>
+        <div><label>Distance to the surface <b id="luxDV"></b></label><input id="luxD" type="range" min="1" max="20" step="0.5" value="4"></div></div>
+        <div class="kpis" id="luxKpi" style="grid-template-columns:1fr 1fr"></div></div></div>
+    <div class="m" style="font-size:13px" id="luxNote"></div>
+  </div>
+  <div id="w_eff">
+    <div class="ctl" style="grid-template-columns:1fr"><div><label>Light needed <b id="effV"></b></label><input id="effLm" type="range" min="1000" max="30000" step="500" value="10000"></div></div>
+    <div class="legend"><span style="--c:var(--s1)">Watts needed for the same light</span></div>
+    <div class="chartbox"><svg id="effSvg" viewBox="0 0 760 270" style="width:100%;height:auto;display:block"></svg></div>
+  </div>
+  <div id="w_cri">
+    <div class="stage"><svg id="criSvg" viewBox="0 0 640 230"></svg></div>
+    <div class="ctl" style="grid-template-columns:1fr"><div><label>Colour rendering (CRI / Ra) <b id="criV"></b></label><input id="criR" type="range" min="60" max="98" value="80"></div></div>
+    <div class="m" style="font-size:13px" id="criNote"></div>
+  </div>
+  <div id="w_ugr">
+    <div class="row" id="ugrFit"></div><div class="row" id="ugrRoom" style="margin-top:6px"></div>
+    <div class="stage" style="margin-top:8px"><svg id="ugrSvg" viewBox="0 0 640 140"></svg></div>
+    <div class="m" style="font-size:13px;margin-top:6px" id="ugrNote"></div>
+  </div>
+  <div id="w_polar">
+    <div class="two" style="grid-template-columns:1fr 1fr"><div class="stage"><svg id="polSvg" viewBox="0 0 400 260"></svg></div>
+      <div><div class="ctl" style="grid-template-columns:1fr"><div><label>Beam angle <b id="polV"></b></label><input id="polB" type="range" min="10" max="120" value="36"></div></div><div class="m" style="font-size:13px" id="polNote"></div></div></div>
+  </div>
+  <div id="w_life">
+    <div class="ctl" style="grid-template-columns:1fr"><div><label>Hours in use <b id="lifeV"></b></label><input id="lifeH" type="range" min="0" max="100000" step="1000" value="30000"></div></div>
+    <div class="kpis" id="lifeKpi"></div>
+    <div class="legend"><span style="--c:var(--s1)">Good LED (L90 at 50,000 h)</span><span style="--c:var(--s2)">Cheap LED (L70 at 20,000 h)</span></div>
+    <div class="chartbox"><svg id="lifeSvg" viewBox="0 0 760 240" style="width:100%;height:auto;display:block"></svg><div class="tip" id="lifeTip"></div></div>
+  </div>
+  <div id="w_flicker">
+    <div class="two" style="grid-template-columns:1fr 1fr"><div><div class="m" style="font-size:12px">Light output over 20 ms</div><div class="stage"><svg id="flSvg" viewBox="0 0 400 200"></svg></div></div>
+      <div><div class="m" style="font-size:12px">What a phone camera shows</div><div class="stage"><svg id="flCam" viewBox="0 0 400 200"></svg></div></div></div>
+    <div class="ctl" style="grid-template-columns:1fr"><div><label>Ripple in the driver output (flicker) <b id="flV"></b></label><input id="flR" type="range" min="0" max="100" value="40"></div></div>
+    <div class="m" style="font-size:13px" id="flNote"></div>
+  </div>
+  <div id="w_ip">
+    <div class="row" id="ipPre"></div>
+    <div class="ctl"><div><label>IP – first digit (solids, dust) <b id="ip1V"></b></label><input id="ip1" type="range" min="0" max="6" value="6"></div><div><label>IP – second digit (water) <b id="ip2V"></b></label><input id="ip2" type="range" min="0" max="8" value="6"></div><div><label>IK – impact <b id="ikV"></b></label><input id="ik" type="range" min="0" max="10" value="8"></div></div>
+    <div class="kpis" id="ipKpi" style="grid-template-columns:1fr 1fr 1fr"></div>
+  </div>
+  <div id="w_app"><table class="spec" id="appTable"></table><div class="m" style="font-size:12px;margin-top:6px">Typical values – check the exact requirement in Sales Tools → Standards.</div></div>
+  <div id="w_lab"><div id="labBtn"></div></div>
+</div>
+
+<!-- ============ LIVE: TECHNIQUES ============ -->
+<div id="tech" class="hidden">
+  <div class="crumb" onclick="back()">◀ All lessons · Lighting techniques</div>
+  <div class="card">
+    <div class="hero"><div><span class="pill">Live · 4 min</span><h2 style="margin-top:6px">Lighting techniques playground</h2></div><span class="m">Pick a technique, then change the beam, height and distance – the light is calculated live</span></div>
+    <div class="row" style="margin-top:12px" id="techBtns"></div>
+    <div class="part"><div class="num">1</div><div class="body"><h4>In one line</h4><div id="tLine"></div></div></div>
+    <div class="part"><div class="num">2</div><div class="body"><h4>See it – section through the room</h4>
+      <div class="stage"><svg id="room" viewBox="0 0 640 340"></svg></div>
+      <div class="ctl" id="tCtl"></div>
+      <div class="kpis" id="tKpi"></div>
+      <div class="legend"><span style="--c:var(--s1)" id="tChartName">Light on the floor (lux)</span></div>
+      <div class="chartbox"><svg id="tChart" viewBox="0 0 640 170" style="width:100%;height:auto;display:block"></svg><div class="tip" id="tTip"></div></div>
+      <div class="m" style="font-size:12px" id="tRule"></div>
+    </div></div>
+    <div class="part"><div class="num">3</div><div class="body"><h4>Say this to the client</h4><div class="say" id="tSay"></div></div></div>
+    <div class="part"><div class="num">4</div><div class="body"><h4>Watch out</h4><div class="watch" id="tWatch"></div></div></div>
+  </div>
+</div>
+
+<!-- ============ LIVE: FIXTURE CONSTRUCTION ============ -->
+<div id="fix" class="hidden">
+  <div class="crumb" onclick="back()">◀ All lessons · Fixture construction</div>
+  <div class="card">
+    <div class="hero"><div><span class="pill">Live · 4 min</span><h2 style="margin-top:6px">Inside the fixture</h2></div><span class="m">Pull the fitting apart, tap any part, switch on the light and heat flow</span></div>
+    <div class="row" style="margin-top:12px" id="fixBtns"></div>
+    <div class="part"><div class="num">1</div><div class="body"><h4>See it – cross-section</h4>
+      <div class="two">
+        <div>
+          <div class="stage" style="background:#f7f8fa;border:1px solid var(--line)"><svg id="fixSvg" viewBox="0 0 600 380"></svg></div>
+          <div class="ctl" style="grid-template-columns:2fr 1fr 1fr;align-items:end">
+            <div><label>Parts apart <b id="exV">0%</b></label><input id="ex" type="range" min="0" max="100" value="55"></div>
+            <span class="btn on" id="tgLight" onclick="tg('light')">💡 Light path</span>
+            <span class="btn" id="tgHeat" onclick="tg('heat')">♨ Heat flow</span>
+          </div>
+        </div>
+        <div class="info" id="fixInfo"></div>
+      </div>
+      <div class="plist" id="fixParts"></div>
+    </div></div>
+    <div class="part"><div class="num">2</div><div class="body"><h4>Say this to the client</h4><div class="say" id="fixSay"></div></div></div>
+    <div class="part"><div class="num">3</div><div class="body"><h4>Watch out – how cheap fittings save money</h4><div class="watch" id="fixWatch"></div></div></div>
+  </div>
+</div>
+
+<!-- ============ LIVE: LED CHIPS ============ -->
+<div id="chip" class="hidden">
+  <div class="crumb" onclick="back()">◀ All lessons · LED chips</div>
+  <div class="card">
+    <div class="hero"><div><span class="pill">Live · 5 min</span><h2 style="margin-top:6px">LED chip lab</h2></div><span class="m">Chip types, heat, drive current and colour consistency – all live</span></div>
+
+    <div class="part"><div class="num">1</div><div class="body"><h4>Chip types – tap one</h4>
+      <div class="row" id="chipBtns"></div>
+      <div class="two" style="margin-top:10px"><div class="stage" style="background:#f7f8fa;border:1px solid var(--line)"><svg id="chipSvg" viewBox="0 0 420 260"></svg></div><div class="info" id="chipInfo"></div></div>
+    </div></div>
+
+    <div class="part"><div class="num">2</div><div class="body"><h4>Heat and drive current – why the heat sink and driver decide the life</h4>
+      <div class="ctl">
+        <div><label>Drive current <b id="curV">100%</b></label><input id="cur" type="range" min="50" max="150" value="100"></div>
+        <div><label>Room / ambient temperature <b id="ambV">35 °C</b></label><input id="amb" type="range" min="20" max="50" value="35"></div>
+        <div><label>Heat sink</label><div class="row" id="hsBtns"></div></div>
+      </div>
+      <div class="kpis" id="labKpi"></div>
+      <div class="two" style="grid-template-columns:1fr 1fr">
+        <div><div class="legend"><span style="--c:var(--s1)">Light output</span><span style="--c:var(--s2)">Efficacy (lm/W)</span></div><div class="chartbox"><svg id="c1" viewBox="0 0 380 210" style="width:100%;height:auto;display:block"></svg><div class="tip" id="c1t"></div></div><div class="m" style="font-size:12px">% of the rated value, against drive current</div></div>
+        <div><div class="legend"><span style="--c:var(--s1)">Lifetime to 70% light (L70)</span></div><div class="chartbox"><svg id="c2" viewBox="0 0 380 210" style="width:100%;height:auto;display:block"></svg><div class="tip" id="c2t"></div></div><div class="m" style="font-size:12px">Hours, against LED junction temperature</div></div>
+      </div>
+      <div class="say" style="margin-top:10px" id="labSay"></div>
+    </div></div>
+
+    <div class="part"><div class="num">3</div><div class="body"><h4>Colour consistency – MacAdam steps (binning)</h4>
+      <div class="stage"><svg id="mac" viewBox="0 0 640 150"></svg></div>
+      <div class="ctl"><div><label>MacAdam step <b id="macV">3-step</b></label><input id="macS" type="range" min="1" max="7" value="3"></div><div class="m" id="macT" style="font-size:13px;align-self:center"></div></div>
+    </div></div>
+
+    <div class="part"><div class="num">4</div><div class="body"><h4>Watch out</h4><div class="watch">Ask which chip brand is inside (for example Lumileds, Nichia, ams OSRAM, Cree, Samsung, Seoul) and for the <b>LM-80 / TM-21</b> report. A cheap fitting often uses an unbranded chip driven hard on a thin heat sink – bright on day one, dim and patchy within two years.</div></div></div>
+  </div>
+</div>
+
+
+<!-- ============ LIVE: LIGHTING CONTROLS ============ -->
+<div id="ctlv" class="hidden">
+  <div class="crumb" onclick="back()">◀ All lessons · Lighting controls</div>
+  <div class="card">
+    <div class="hero"><div><span class="pill">Live · 6 min</span><h2 style="margin-top:6px">Dimming & control protocols</h2></div><span class="m">Pick a protocol, move the dimmer and watch the signal on the wire</span></div>
+    <div class="row" style="margin-top:12px" id="pBtns"></div>
+    <div class="part"><div class="num">1</div><div class="body"><h4>In one line</h4><div id="pLine"></div></div></div>
+    <div class="part"><div class="num">2</div><div class="body"><h4>See it – wiring and signal</h4>
+      <div class="two" style="grid-template-columns:1fr 1fr">
+        <div><div class="m" style="font-size:12px;margin-bottom:4px">Wiring</div><div class="stage" style="background:#f7f8fa;border:1px solid var(--line)"><svg id="pWire" viewBox="0 0 420 260"></svg></div></div>
+        <div><div class="m" style="font-size:12px;margin-bottom:4px" id="pSigName">Signal on the control wires</div><div class="stage"><svg id="pSig" viewBox="0 0 420 260"></svg></div></div>
+      </div>
+      <div class="ctl" id="pCtl"></div>
+      <div class="kpis" id="pKpi"></div>
+    </div></div>
+    <div class="part"><div class="num">3</div><div class="body"><h4>Say this to the client</h4><div class="say" id="pSay"></div></div></div>
+    <div class="part"><div class="num">4</div><div class="body"><h4>Watch out</h4><div class="watch" id="pWatch"></div></div></div>
+
+    <h3>DALI versions – tap one</h3>
+    <div class="row" id="dBtns"></div>
+    <div class="info" style="margin-top:8px;min-height:0" id="dInfo"></div>
+
+    <h3>Compare at a glance</h3>
+    <div style="overflow-x:auto"><table class="spec" id="pTable" style="min-width:820px"></table></div>
+    <div class="m" style="font-size:12px;margin-top:6px">Typical values – check the data sheet of each driver and controller.</div>
+  </div>
+</div>
+
+<!-- ============ LIVE: LMS & KNX ============ -->
+<div id="lmsv" class="hidden">
+  <div class="crumb" onclick="back()">◀ All lessons · LMS & KNX</div>
+  <div class="card">
+    <div class="hero"><div><span class="pill">Live · 8 min</span><h2 style="margin-top:6px">Lighting management (LMS) & KNX</h2></div><span class="m">A smart office day, a live KNX installation and a protocol comparison</span></div>
+    <div class="row" style="margin-top:12px"><span class="btn on" id="lt1" onclick="lmsTab(1)">1 · Smart office day (LMS)</span><span class="btn" id="lt2" onclick="lmsTab(2)">2 · KNX live</span><span class="btn" id="lt3" onclick="lmsTab(3)">3 · KNX vs other systems</span></div>
+
+    <div id="lmsA">
+      <div class="part"><div class="num">1</div><div class="body"><h4>In one line</h4>A lighting management system switches and dims every light automatically – by <b>time</b>, by <b>who is there</b> (occupancy sensors) and by <b>how much daylight comes in</b> – and reports energy and failures.</div></div>
+      <div class="part"><div class="num">2</div><div class="body"><h4>See it – drag the clock through the day</h4>
+        <div class="two" style="grid-template-columns:1.1fr 1fr">
+          <div><div class="stage"><svg id="plan" viewBox="0 0 440 280"></svg></div>
+            <div class="ctl" style="grid-template-columns:1fr"><div><label>Time of day <b id="hrV">10:00</b></label><input id="hr" type="range" min="6" max="21" step="0.25" value="10"></div></div></div>
+          <div>
+            <div class="m" style="font-size:12px;margin-bottom:4px">Switch strategies on and off</div>
+            <div class="row" id="lmsBtns"></div>
+            <div class="ctl" style="grid-template-columns:1fr 1fr"><div><label>Task tuning (max level) <b id="tuneV">80%</b></label><input id="tune" type="range" min="60" max="100" value="80"></div><div><label>Tariff <b id="tarV">LKR 45</b></label><input id="tar" type="range" min="20" max="80" value="45"></div></div>
+            <div class="kpis" id="lmsKpi"></div>
+          </div>
+        </div>
+        <div class="legend"><span style="--c:var(--s2)">Lights on all day (no controls)</span><span style="--c:var(--s1)">With LMS</span></div>
+        <div class="chartbox"><svg id="lmsChart" viewBox="0 0 760 230" style="width:100%;height:auto;display:block"></svg><div class="tip" id="lmsTip"></div></div>
+        <div class="m" style="font-size:12px">Power of the whole floor (kW) through one working day. The gap between the lines is the saving.</div>
+      </div></div>
+      <div class="part"><div class="num">3</div><div class="body"><h4>Say this to the client</h4><div class="say" id="lmsSay"></div></div></div>
+    </div>
+
+    <div id="lmsB" class="hidden">
+      <div class="part"><div class="num">1</div><div class="body"><h4>In one line</h4><b>KNX</b> is the open world standard (ISO/IEC 14543) for building control – lights, blinds, heating, AC and security on one green bus cable. There is no central computer: every device has its own small brain and they talk with <b>group addresses</b>.</div></div>
+      <div class="part"><div class="num">2</div><div class="body"><h4>See it – press a button and follow the telegram</h4>
+        <div class="stage" style="background:#f7f8fa;border:1px solid var(--line)"><svg id="knx" viewBox="0 0 760 330"></svg></div>
+        <div class="row" style="margin-top:8px" id="knxBtns"></div>
+        <div class="info" style="min-height:0;margin-top:8px;font-family:ui-monospace,Menlo,monospace;font-size:12px" id="knxLog"></div>
+      </div></div>
+      <div class="part"><div class="num">3</div><div class="body"><h4>How KNX is built</h4>
+        <table class="spec"><tr><td>Bus cable</td><td>Green twisted pair, 30 V DC safety extra-low voltage, 9600 bit/s (also KNX IP and KNX RF wireless)</td></tr>
+        <tr><td>Line</td><td>Up to 64 devices on one power supply; more with line repeaters</td></tr>
+        <tr><td>Topology</td><td>Lines → areas through couplers: 15 areas × 15 lines – tens of thousands of devices in one building</td></tr>
+        <tr><td>Addresses</td><td>Physical address (where the device is, e.g. 1.1.2) and group addresses (what it does, e.g. 1/0/1 “Office lights”)</td></tr>
+        <tr><td>Programming</td><td>One tool for all brands: ETS, by a KNX-certified integrator</td></tr>
+        <tr><td>Lighting</td><td>Switch / dimming actuators, or a KNX–DALI gateway to drive DALI drivers</td></tr></table>
+      </div></div>
+      <div class="part"><div class="num">4</div><div class="body"><h4>Say this to the client</h4><div class="say">“KNX is an open standard with hundreds of manufacturers – you are never locked to one brand, and the same system runs your lights, blinds and AC. For the lighting itself we connect DALI drivers through a KNX–DALI gateway.”</div></div></div>
+    </div>
+
+    <div id="lmsC" class="hidden">
+      <div class="part"><div class="num">1</div><div class="body"><h4>Set what matters for this project</h4>
+        <div class="ctl" id="wCtl"></div>
+        <div class="legend" style="margin-top:8px"><span style="--c:var(--s1)">Weighted score (0–100)</span></div>
+        <div class="chartbox"><svg id="rank" viewBox="0 0 760 300" style="width:100%;height:auto;display:block"></svg><div class="tip" id="rankTip"></div></div>
+        <div class="m" style="font-size:12px">Indicative scores to start a discussion – not a rating of any brand. Presets:
+          <span class="btn" style="padding:3px 8px;font-size:12px" onclick="preset('hotel')">Luxury hotel</span>
+          <span class="btn" style="padding:3px 8px;font-size:12px" onclick="preset('office')">Office tower with BMS</span>
+          <span class="btn" style="padding:3px 8px;font-size:12px" onclick="preset('retrofit')">Retrofit, small budget</span>
+          <span class="btn" style="padding:3px 8px;font-size:12px" onclick="preset('factory')">Factory / warehouse</span></div>
+      </div></div>
+      <div class="part"><div class="num">2</div><div class="body"><h4>Side by side – tap a row for details</h4>
+        <div style="overflow-x:auto"><table class="spec" id="sysTable" style="min-width:860px"></table></div>
+        <div class="info" style="min-height:0;margin-top:8px" id="sysInfo"></div>
+      </div></div>
+      <div class="part"><div class="num">3</div><div class="body"><h4>Watch out</h4><div class="watch">Open standards (KNX, DALI-2, BACnet, Modbus) let any qualified integrator maintain the system later. Proprietary systems (C-Bus, Lutron, Dynalite, Crestron…) can be excellent but tie the client to one brand and its partners for spares and changes – say so up front and price the service contract.</div></div></div>
+    </div>
+  </div>
+</div>
+</div>
+<script>
+const $ = (id) => document.getElementById(id);
+// ---------------------------------------------------------------- shared line chart (one y-axis, hover crosshair)
+function lineChart(svg, tip, { W, H, xs, series, xLabel, yFmt, xFmt, marker, yMax, yMin = 0, ref }) {
+  const l = 50, r = 14, t = 12, b = 30, max = yMax ?? (Math.max(...series.flatMap((s) => s.ys)) * 1.1 || 1);
+  const X = (x) => l + (W - l - r) * (x - xs[0]) / (xs[xs.length - 1] - xs[0]), Y = (y) => t + (H - t - b) * (1 - (y - yMin) / (max - yMin));
+  let s = '';
+  for (let i = 0; i <= 4; i++) { const y = yMin + (max - yMin) * i / 4; s += `<line x1="${l}" x2="${W - r}" y1="${Y(y)}" y2="${Y(y)}" stroke="#e3e5ea"/><text x="${l - 6}" y="${Y(y) + 4}" text-anchor="end" font-size="10" fill="#5f6673">${yFmt(y)}</text>`; }
+  for (let i = 0; i <= 4; i++) { const x = xs[0] + (xs[xs.length - 1] - xs[0]) * i / 4; s += `<text x="${X(x)}" y="${H - 12}" text-anchor="middle" font-size="10" fill="#5f6673">${xFmt(x)}</text>`; }
+  s += `<text x="${W - r}" y="${H - 1}" text-anchor="end" font-size="10" fill="#5f6673">${xLabel}</text>`;
+  if (ref) s += `<line x1="${l}" x2="${W - r}" y1="${Y(ref.y)}" y2="${Y(ref.y)}" stroke="#5f6673" stroke-dasharray="4 4"/><text x="${l + 6}" y="${Y(ref.y) - 5}" font-size="10" fill="#5f6673">${ref.label}</text>`;
+  for (const se of series) s += `<path d="${se.ys.map((y, i) => `${i ? 'L' : 'M'}${X(xs[i]).toFixed(1)} ${Y(Math.min(max, y)).toFixed(1)}`).join('')}" fill="none" stroke="${se.c}" stroke-width="2"/>`;
+  if (marker != null) { const i = xs.reduce((bi, x, k) => Math.abs(x - marker) < Math.abs(xs[bi] - marker) ? k : bi, 0); s += `<line x1="${X(xs[i])}" x2="${X(xs[i])}" y1="${t}" y2="${H - b}" stroke="#14161c" stroke-dasharray="3 3"/>`; for (const se of series) s += `<circle cx="${X(xs[i])}" cy="${Y(Math.min(max, se.ys[i]))}" r="5" fill="${se.c}" stroke="#fff" stroke-width="2"/>`; }
+  s += `<line class="cx" y1="${t}" y2="${H - b}" stroke="#5f6673" opacity="0"/><rect x="${l}" y="${t}" width="${W - l - r}" height="${H - t - b}" fill="transparent" class="hit"/>`;
+  svg.innerHTML = s;
+  const hit = svg.querySelector('.hit'), cx = svg.querySelector('.cx');
+  hit.onmousemove = (e) => { const p = svg.getBoundingClientRect(), sx = (e.clientX - p.left) * W / p.width; let i = 0; xs.forEach((x, k) => { if (Math.abs(X(x) - sx) < Math.abs(X(xs[i]) - sx)) i = k; });
+    cx.setAttribute('x1', X(xs[i])); cx.setAttribute('x2', X(xs[i])); cx.setAttribute('opacity', 1);
+    tip.style.display = 'block'; tip.style.left = Math.min(p.width - 170, X(xs[i]) * p.width / W + 10) + 'px'; tip.style.top = '6px';
+    tip.innerHTML = `<b>${xFmt(xs[i], true)}</b>` + series.map((se) => `<br><span style="color:${se.c}">■</span> ${se.name}: ${yFmt(se.ys[i], true)}`).join(''); };
+  hit.onmouseleave = () => { tip.style.display = 'none'; cx.setAttribute('opacity', 0); };
+}
+
+// ---------------------------------------------------------------- CCT
+function k2rgb(k) { const t = k / 100; let r, g, b; r = t <= 66 ? 255 : 329.7 * Math.pow(t - 60, -0.1332); g = t <= 66 ? 99.47 * Math.log(t) - 161.12 : 288.12 * Math.pow(t - 60, -0.0755); b = t >= 66 ? 255 : t <= 19 ? 0 : 138.52 * Math.log(t - 10) - 305.04; const c = (x) => Math.max(0, Math.min(255, Math.round(x))); return [c(r), c(g), c(b)]; }
+const rooms = {
+  s1: (L) => `<rect width="300" height="190" fill="${L(0.55)}"/><rect y="130" width="300" height="60" fill="${L(0.35)}"/><rect x="40" y="105" width="150" height="45" rx="6" fill="${L(0.85)}"/><rect x="40" y="95" width="40" height="20" rx="5" fill="${L(0.95)}"/><rect x="215" y="70" width="10" height="60" fill="${L(0.3)}"/><path d="M200 70h40l-8-25h-24z" fill="${L(1)}"/><ellipse cx="220" cy="60" rx="70" ry="40" fill="${L(1)}" opacity=".25"/>`,
+  s2: (L) => `<rect width="300" height="190" fill="${L(0.7)}"/><rect y="135" width="300" height="55" fill="${L(0.5)}"/>${[40, 130, 220].map((x) => `<rect x="${x}" y="12" width="50" height="8" rx="2" fill="${L(1)}"/><rect x="${x - 10}" y="105" width="70" height="8" fill="${L(0.4)}"/><rect x="${x + 10}" y="80" width="30" height="22" rx="2" fill="${L(0.25)}"/>`).join('')}`,
+  s3: (L) => `<rect width="300" height="190" fill="${L(0.5)}"/><rect y="140" width="300" height="50" fill="${L(0.4)}"/>${[50, 150, 250].map((x) => `<path d="M${x - 14} 10h28l-6 14h-16z" fill="${L(1)}"/><path d="M${x - 8} 24h16l40 116h-96z" fill="${L(1)}" opacity=".18"/>`).join('')}<rect x="20" y="95" width="60" height="45" fill="${L(0.3)}"/><rect x="200" y="85" width="80" height="55" fill="${L(0.3)}"/>`,
+};
+function cct() { const k = +$('k').value, [r, g, b] = k2rgb(k); const L = (f) => `rgb(${Math.round(r * f)},${Math.round(g * f)},${Math.round(b * f)})`;
+  for (const id in rooms) $(id).innerHTML = rooms[id](L); $('kval').textContent = `${k} K`;
+  const mood = k <= 3200 ? ['Warm white – relaxing, cosy', 'Hotels, restaurants, homes, lobbies.'] : k <= 4500 ? ['Neutral white – clear, comfortable', 'Offices, classrooms, hospitals, shops.'] : ['Cool white – crisp, alert', 'Factories, warehouses, car parks, sports, roads.'];
+  $('kmood').textContent = mood[0]; $('khint').textContent = 'Typical use: ' + mood[1]; }
+$('k').addEventListener('input', cct); cct();
+let right = 0, answered = 0;
+document.querySelectorAll('.q').forEach((q) => q.querySelectorAll('.opt').forEach((o, i) => o.onclick = () => { if (q.dataset.done) return; q.dataset.done = 1; answered++; const ok = i === +q.dataset.a; if (ok) right++; o.classList.add(ok ? 'ok' : 'no'); q.querySelectorAll('.opt')[+q.dataset.a].classList.add('ok'); if (answered === 2) $('score').innerHTML = `<b>${right} of 2 right.</b>`; }));
+
+// ---------------------------------------------------------------- payback
+const fmt = (n) => n >= 1e6 ? `${(n / 1e6).toFixed(1)} M` : `${Math.round(n / 1000)} k`;
+function calc() { const v = (id) => +$(id).value || 0; const n = v('n'), kO = n * v('wo') * v('h') * 30.4 / 1000, kL = n * v('wl') * v('h') * 30.4 / 1000, tf = v('t'), capex = n * v('p');
+  const xs = [...Array(61).keys()], old = xs.map((m) => kO * tf * m), led = xs.map((m) => capex + kL * tf * m); const save = (kO - kL) * tf * 12, pay = save > 0 ? capex / (save / 12) : Infinity;
+  $('kSave').textContent = 'LKR ' + fmt(save); $('kPay').textContent = isFinite(pay) ? `${pay.toFixed(1)} months` : 'none'; $('kCo2').textContent = `${Math.round((kO - kL) * 12 * 0.65 / 1000)} t`;
+  $('saypay').textContent = isFinite(pay) ? `“Changing your ${n} fittings to LED saves about LKR ${fmt(save)} a year on electricity. The upgrade pays for itself in about ${Math.round(pay)} months.”` : '“With these numbers LED does not pay back – check the hours and the tariff.”';
+  lineChart($('chart'), $('tip'), { W: 760, H: 300, xs, series: [{ name: 'Old lighting', c: 'var(--s2)', ys: old }, { name: 'LED', c: 'var(--s1)', ys: led }], xLabel: 'months', yFmt: (y) => 'LKR ' + fmt(y), xFmt: (x, full) => full ? `Month ${Math.round(x)}` : x ? `Year ${Math.round(x / 12)}` : 'Today', marker: isFinite(pay) && pay <= 60 ? pay : null }); }
+document.querySelectorAll('.inputs input').forEach((i) => i.addEventListener('input', calc));
+
+// ---------------------------------------------------------------- LIGHTING TECHNIQUES (live photometry in a room section)
+const TECH = {
+  down: { name: 'Downlighting', target: 'floor', p: { beam: 60, H: 3, S: 1.8, lm: 1500 },
+    line: 'Light from fittings in the ceiling pointing straight down – the basic way to light a floor or working area evenly.',
+    say: '“With 60° downlights at 3 m we keep them about 1.8 m apart, so the floor is evenly lit with no dark patches between fittings.”',
+    watch: 'Narrow beams far apart give bright pools and dark gaps. Keep spacing to about 1–1.5 × the mounting height for a 60° beam – check the spacing in the data sheet or in DLux.' },
+  wash: { name: 'Wall washing', target: 'wall', p: { beam: 100, H: 3, d: 1, aim: 20, lm: 1500 },
+    line: 'Wide, even light across a whole wall – it makes rooms feel bigger and brighter. Fittings stand back from the wall and tilt towards it.',
+    say: '“We use asymmetric wall-washers about one third of the wall height away from the wall, so the whole wall glows evenly – the room feels larger.”',
+    watch: 'Too close to the wall gives scallops (bright arcs at the top). Rule of thumb: distance from the wall ≈ ⅓ of the wall height, and spacing ≈ the distance.' },
+  graze: { name: 'Wall grazing', target: 'wall', p: { beam: 20, H: 3, d: 0.15, aim: 4, lm: 1000 },
+    line: 'Narrow light very close to a textured wall, shining along its surface – it brings out stone, brick or timber texture with strong shadows.',
+    say: '“For the stone feature wall we graze it from 15 cm away – the light skims the surface and every joint and texture comes alive.”',
+    watch: 'Grazing shows every defect – never graze a plastered wall with poor finish. The light is bright at the top and fades down by design; it is not even.' },
+  accent: { name: 'Accent lighting', target: 'art', p: { beam: 15, H: 3, d: 1.2, lm: 400, amb: 200 },
+    line: 'A narrow beam that makes one object – a painting, product or reception counter – brighter than its surroundings so the eye goes there first.',
+    say: '“We light the artwork at about 5 times the room level – that is enough to make it stand out without looking like a stage.”',
+    watch: 'Aim at about 30° from vertical to avoid reflections on glass and glare for people. Accent ratio: 3:1 noticeable, 5:1 clear, 10:1 or more dramatic.' },
+};
+let tech = 'down';
+const CTL = { beam: ['Beam angle', 10, 120, 1, '°'], H: ['Mounting height', 2.4, 6, 0.1, ' m'], S: ['Spacing between fittings', 0.6, 4, 0.1, ' m'], d: ['Distance from wall', 0.1, 2, 0.05, ' m'], aim: ['Tilt towards wall', 0, 45, 1, '°'], lm: ['Fitting output', 300, 5000, 100, ' lm'], amb: ['Room light level', 50, 500, 10, ' lx'] };
+function techUI() { $('techBtns').innerHTML = Object.entries(TECH).map(([k, t]) => `<span class="btn ${k === tech ? 'on' : ''}" onclick="tech='${k}';techUI();room()">${t.name}</span>`).join('');
+  const T = TECH[tech]; $('tLine').textContent = T.line; $('tSay').textContent = T.say; $('tWatch').textContent = T.watch;
+  $('tCtl').innerHTML = Object.keys(T.p).map((k) => { const [n, mi, ma, st, u] = CTL[k]; return `<div><label>${n} <b id="v_${k}">${T.p[k]}${u}</b></label><input type="range" min="${mi}" max="${ma}" step="${st}" value="${T.p[k]}" oninput="TECH[tech].p.${k}=+this.value;room()"></div>`; }).join(''); }
+function room() {
+  const T = TECH[tech], p = T.p, W = 640, Hp = 340, Rw = 6, s = Math.min(470 / Rw, 270 / p.H), x0 = 60, fy = 172 + p.H * s / 2, X = (x) => x0 + x * s, Y = (y) => fy - y * s, wallX = Rw;
+  for (const k in p) { const e = $('v_' + k); if (e) e.textContent = p[k] + CTL[k][4]; }
+  // fittings: [x, y, aim (rad from straight down, + towards wall)]
+  let fx = [];
+  if (tech === 'down') fx = [-1, 0, 1].map((i) => [3 + i * p.S, p.H - 0.05, 0]);
+  if (tech === 'wash' || tech === 'graze') fx = [[wallX - p.d, p.H - 0.05, p.aim * Math.PI / 180]];
+  if (tech === 'accent') fx = [[wallX - p.d, p.H - 0.05, Math.atan2(p.d, p.H - 0.05 - 1.6)]];
+  const half = p.beam / 2 * Math.PI / 180, I0 = p.lm * 0.85 / (2 * Math.PI * (1 - Math.cos(half)));
+  // wall-washers use an asymmetric reflector: less light towards the near (top) part of the wall, more towards the far (bottom) part – designed for a distance of about a third of the wall height
+  const gMin = Math.atan((p.H / 3) / (p.H - 0.3)), asym = (vx, vy) => tech === 'wash' ? 6 * Math.max(0.05, Math.min(1, Math.pow(Math.sin(gMin) / Math.max(0.01, Math.sin(Math.atan2(Math.abs(vx), -vy))), 3))) : 1;
+  const I = (th) => th <= half ? I0 : th < half * 1.25 ? I0 * (1 - (th - half) / (0.25 * half)) : 0;
+  const E = (px, py, nx, ny) => fx.reduce((sum, [x, y, a]) => { const vx = px - x, vy = py - y, r = Math.hypot(vx, vy); if (r < 0.01) return sum; const th = Math.acos(Math.max(-1, Math.min(1, (vx * Math.sin(a) - vy * Math.cos(a)) / r))); const inc = -(vx * nx + vy * ny) / r; return inc > 0 ? sum + I(th) * asym(vx, vy) * inc / (r * r) : sum; }, 0);
+  const floorXs = [...Array(61).keys()].map((i) => i * Rw / 60), wallYs = [...Array(61).keys()].map((i) => i * p.H / 60);
+  const floorE = floorXs.map((x) => E(x, 0, 0, 1) + (tech === 'accent' ? p.amb : 0)), wallE = wallYs.map((y) => E(wallX, y, -1, 0) + (tech === 'accent' ? p.amb : 0));
+  const maxE = Math.max(...floorE, ...wallE, 1);
+  // scene
+  let g = `<defs><clipPath id="rc"><rect x="${X(0)}" y="${Y(p.H)}" width="${Rw * s}" height="${p.H * s}"/></clipPath><linearGradient id="cone" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe9b0" stop-opacity=".55"/><stop offset="1" stop-color="#ffe9b0" stop-opacity=".08"/></linearGradient></defs>`;
+  g += `<rect x="${X(0)}" y="${Y(p.H)}" width="${Rw * s}" height="${p.H * s}" fill="#1a1f29"/>`;
+  // wall bricks
+  for (let row = 0; row * 0.25 < p.H; row++) for (let c = 0; c < 1; c++) g += `<line x1="${X(wallX)}" x2="${X(wallX) + 18}" y1="${Y(row * 0.25)}" y2="${Y(row * 0.25)}" stroke="#2a303c"/>`;
+  // light on surfaces
+  const glow = (e) => `rgba(255,214,140,${Math.min(1, Math.pow(e / maxE, 0.6)).toFixed(3)})`;
+  floorXs.slice(0, -1).forEach((x, i) => g += `<rect x="${X(x)}" y="${fy}" width="${s * Rw / 60 + 0.6}" height="10" fill="${glow(floorE[i])}"/>`);
+  wallYs.slice(0, -1).forEach((y, i) => g += `<rect x="${X(wallX)}" y="${Y(y + p.H / 60)}" width="18" height="${s * p.H / 60 + 0.6}" fill="${glow(wallE[i])}"/>`);
+  if (tech === 'graze') wallYs.forEach((y, i) => { if (i % 3 === 0) g += `<rect x="${X(wallX)}" y="${Y(y)}" width="18" height="2" fill="rgba(0,0,0,${0.5 * Math.min(1, wallE[i] / maxE)})"/>`; });
+  if (tech === 'accent') g += `<rect x="${X(wallX) - 3}" y="${Y(2.0)}" width="5" height="${0.8 * s}" fill="#8b5cf6"/><text x="${X(wallX) - 8}" y="${Y(2.05)}" text-anchor="end" font-size="11" fill="#c4b5fd">painting</text>`;
+  // cones
+  g += `<g clip-path="url(#rc)">` + fx.map(([x, y, a]) => { const L = 12, p1 = [x + L * Math.sin(a - half), y - L * Math.cos(a - half)], p2 = [x + L * Math.sin(a + half), y - L * Math.cos(a + half)]; return `<path d="M${X(x)} ${Y(y)}L${X(p1[0])} ${Y(p1[1])}L${X(p2[0])} ${Y(p2[1])}Z" fill="url(#cone)"/>`; }).join('') + `</g>`;
+  g += fx.map(([x, y, a]) => `<g transform="translate(${X(x)} ${Y(y)}) rotate(${-a * 180 / Math.PI})"><rect x="-9" y="-2" width="18" height="7" rx="2" fill="#e5e7eb"/><rect x="-5" y="5" width="10" height="2" fill="#fde68a"/></g>`).join('');
+  // room outline + dims
+  g += `<rect x="${X(0)}" y="${Y(p.H)}" width="${Rw * s}" height="${p.H * s}" fill="none" stroke="#3b4252"/><rect x="${X(0) - 4}" y="${Y(p.H) - 6}" width="${Rw * s + 26}" height="6" fill="#3b4252"/>`;
+  g += `<line x1="${X(0) - 22}" x2="${X(0) - 22}" y1="${Y(p.H)}" y2="${fy}" stroke="#8b93a3"/><text x="${X(0) - 26}" y="${(Y(p.H) + fy) / 2}" text-anchor="end" font-size="11" fill="#cfd3dc">${p.H} m</text>`;
+  if (p.S && tech === 'down') g += `<text x="${X(3 + p.S / 2)}" y="${Y(p.H) + 22}" text-anchor="middle" font-size="11" fill="#cfd3dc">↔ ${p.S} m</text>`;
+  if (p.d && tech !== 'down') g += `<text x="${X(wallX - p.d / 2)}" y="${Y(p.H) + 22}" text-anchor="middle" font-size="11" fill="#cfd3dc">${p.d} m</text>`;
+  g += `<text x="${X(0) + 6}" y="${fy - 6}" font-size="11" fill="#8b93a3">floor</text><text x="${X(wallX) + 22}" y="${Y(p.H / 2)}" font-size="11" fill="#8b93a3">wall</text>`;
+  $('room').innerHTML = g;
+  // numbers on the target surface
+  const st = (arr) => { const avg = arr.reduce((a, b) => a + b, 0) / arr.length, min = Math.min(...arr), max = Math.max(...arr); return { avg, min, max, u: avg ? min / avg : 0 }; };
+  let kp = '', rule = '';
+  if (tech === 'down') { const sel = floorE.filter((_, i) => floorXs[i] >= 3 - p.S && floorXs[i] <= 3 + p.S), r = st(sel), ratio = p.S / p.H;
+    kp = `<div><b>${Math.round(r.avg)} lx</b>average on the floor</div><div><b>${Math.round(r.min)} lx</b>darkest spot</div><div><b>${r.u.toFixed(2)}</b>uniformity (min ÷ avg)</div><div><b>${ratio.toFixed(2)}</b>spacing ÷ height</div>`;
+    rule = r.u >= 0.6 ? '✓ Even light – uniformity 0.6 or better is a good target for offices and shops.' : '⚠ Patchy – bring the fittings closer, use a wider beam or mount higher.';
+    $('tChartName').textContent = 'Light on the floor (lux) across the room'; lineChart($('tChart'), $('tTip'), { W: 640, H: 170, xs: floorXs, series: [{ name: 'Floor', c: 'var(--s1)', ys: floorE }], xLabel: 'm across the room', yFmt: (y, f) => `${Math.round(y)}${f ? ' lx' : ''}`, xFmt: (x, f) => `${x.toFixed(1)} m` }); }
+  else if (tech === 'accent') { const sel = wallE.filter((_, i) => wallYs[i] >= 1.2 && wallYs[i] <= 2.0), r = st(sel), ratio = r.avg / p.amb;
+    kp = `<div><b>${Math.round(r.avg)} lx</b>on the painting</div><div><b>${p.amb} lx</b>room level</div><div><b>${ratio.toFixed(1)} : 1</b>accent ratio</div><div><b>${Math.round(Math.atan2(p.d, p.H - 1.6) * 180 / Math.PI)}°</b>aiming angle</div>`;
+    rule = ratio >= 10 ? '★ Dramatic – a gallery or luxury shop look.' : ratio >= 5 ? '✓ Clear accent – the object stands out.' : ratio >= 3 ? 'Noticeable, but soft.' : '⚠ Too weak – use a narrower beam, more lumens or bring it closer.';
+    $('tChartName').textContent = 'Light on the wall (lux) from floor to ceiling'; lineChart($('tChart'), $('tTip'), { W: 640, H: 170, xs: wallYs, series: [{ name: 'Wall', c: 'var(--s1)', ys: wallE }], xLabel: 'm up the wall', yFmt: (y, f) => `${Math.round(y)}${f ? ' lx' : ''}`, xFmt: (x) => `${x.toFixed(1)} m` }); }
+  else { const sel = wallE.filter((_, i) => wallYs[i] >= 0.3 && wallYs[i] <= p.H - 0.3), r = st(sel);
+    kp = `<div><b>${Math.round(r.avg)} lx</b>average on the wall</div><div><b>${Math.round(r.max)} lx</b>brightest</div><div><b>${Math.round(r.min)} lx</b>darkest</div><div><b>${(r.max / Math.max(1, r.min)).toFixed(1)} : 1</b>top-to-bottom contrast</div>`;
+    rule = tech === 'wash' ? (r.max / Math.max(1, r.min) <= 3 ? '✓ Even wash – the wall reads as one bright surface.' : '⚠ Uneven – move the fitting further from the wall (≈ ⅓ of the height) or use a wider, asymmetric beam.') : (r.max / Math.max(1, r.min) > 3 ? '✓ Real grazing – strong light at the top fading down, texture throws shadows.' : 'Too far or too wide for grazing – move closer and use a narrow beam.');
+    $('tChartName').textContent = 'Light on the wall (lux) from floor to ceiling'; lineChart($('tChart'), $('tTip'), { W: 640, H: 170, xs: wallYs, series: [{ name: 'Wall', c: 'var(--s1)', ys: wallE }], xLabel: 'm up the wall', yFmt: (y, f) => `${Math.round(y)}${f ? ' lx' : ''}`, xFmt: (x) => `${x.toFixed(1)} m` }); }
+  $('tKpi').innerHTML = kp; $('tRule').textContent = rule;
+}
+techUI();
+
+// ---------------------------------------------------------------- FIXTURE CONSTRUCTION (2D exploded cross-sections)
+let fixK = 'down', fixSel = null, show = { light: true, heat: false };
+const R = (x, y, w, h, f, extra = '') => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${f}" ${extra}/>`;
+const FIX = {
+  down: { name: 'Recessed downlight', say: '“This downlight has a die-cast heat sink, a branded COB chip, a separate constant-current driver and a faceted reflector for a clean 36° beam with low glare – that is why it keeps its light for 50,000 hours.”',
+    watch: 'Cheap downlights use a thin pressed-steel body instead of a finned heat sink, a no-name chip and a driver built into the body where it cooks. Feel the weight – and ask for the driver brand and its life at 50 °C.',
+    parts: {
+      clips: ['Spring clips (recess mounting)', 'Hold the fitting in the ceiling cut-out – pushed up through the hole, they spring open behind the board.', 'Stainless spring steel, sized for the ceiling thickness.', 'Weak clips let the fitting drop or sit crooked.', (e) => `<path d="M${245 - 50 * e} 125 q-28 -6 -34 -30" stroke="#64748b" stroke-width="5" fill="none"/><path d="M${355 + 50 * e} 125 q28 -6 34 -30" stroke="#64748b" stroke-width="5" fill="none"/>`],
+      heatsink: ['Heat sink', 'Pulls heat away from the LED chip – the cooler the chip, the longer it lives and the more light it gives.', 'Die-cast or extruded aluminium with deep fins; heavier is usually better.', 'Thin pressed steel or plastic “heat sinks” – the chip runs hot and dims early.', (e) => { const dy = -70 * e; let f = ''; for (let x = 258; x <= 342; x += 8) f += R(x, 28 + dy, 4, 24, '#94a3b8'); return f + R(255, 50 + dy, 90, 38, '#a3aec0', 'rx="3"'); }],
+      led: ['LED chip (COB) on its board', 'Turns electricity into light. A COB is one round light source – a single, sharp shadow and easy beam control.', 'Branded chip (Lumileds, Nichia, Cree…), 3-step binning, LM-80 tested.', 'Unbranded chips, mixed bins – colour differs fitting to fitting.', (e) => { const dy = -38 * e; return R(268, 88 + dy, 64, 7, '#d4d4d8') + R(286, 95 + dy, 28, 4, '#fde047'); }],
+      reflector: ['Reflector', 'Collects the light and shapes it into the beam (narrow spot to wide flood); its depth and finish control glare.', 'Faceted vacuum-metallised or anodised aluminium; deep for low glare (UGR < 19).', 'Shallow, shiny plastic reflectors – glare and hot spots.', (e) => `<path d="M266 100 L334 100 L362 140 L238 140 Z" fill="#e2e8f0" stroke="#94a3b8"/><path d="M266 100 L238 140 M300 100 L300 140 M334 100 L362 140" stroke="#cbd5e1"/>`],
+      glass: ['Cover glass / diffuser', 'Protects the chip and reflector from dust, softens the light and cuts glare.', 'Tempered glass or PMMA with high transmission (> 90%).', 'Cheap polycarbonate yellows within 2–3 years.', (e) => R(236, 142 + 40 * e, 128, 5, '#bae6fd', 'opacity=".9"')],
+      trim: ['Trim (bezel)', 'The ring you see on the ceiling – holds the glass and gives the finished look.', 'Die-cast aluminium, powder coated, colour options.', 'Thin trims that bend and leave gaps.', (e) => R(208, 150 + 72 * e, 184, 8, '#f8fafc', 'stroke="#94a3b8" rx="2"')],
+      driver: ['LED driver', 'Converts 230 V AC mains into the steady low-voltage DC current the LED needs – it decides flicker, dimming and lifespan.', 'Constant-current, flicker-free, PF > 0.9, surge protected, branded (Philips, Tridonic, Meanwell…).', 'No-name drivers are the No. 1 cause of early failures and flicker.', (e) => R(440 + 30 * e, 58, 110, 36, '#cbd5e1', 'rx="4" stroke="#64748b"') + R(440 + 30 * e, 58, 110, 6, '#c8102e', 'rx="2"') + `<text x="${495 + 30 * e}" y="82" text-anchor="middle" font-size="11" fill="#334155">DRIVER</text>`],
+      cable: ['Cables & terminal block', 'Mains (brown live, blue neutral, green-yellow earth) into the driver; red / black DC cable from the driver to the LED.', 'Heat-resistant silicone cables, a proper terminal block with a cord grip.', 'Thin PVC wires that go brittle near the heat sink.', (e) => `<path d="M${345} ${70 - 70 * e} C 390 ${70 - 70 * e}, 400 74, ${440 + 30 * e} 74" stroke="#dc2626" stroke-width="3" fill="none"/><path d="M${345} ${76 - 70 * e} C 390 ${76 - 70 * e}, 400 80, ${440 + 30 * e} 80" stroke="#111827" stroke-width="3" fill="none"/><path d="M${550 + 30 * e} 70 H 600" stroke="#92400e" stroke-width="3"/><path d="M${550 + 30 * e} 77 H 600" stroke="#1d4ed8" stroke-width="3"/><path d="M${550 + 30 * e} 84 H 600" stroke="#65a30d" stroke-width="3" stroke-dasharray="6 4"/>`],
+    },
+    base: () => R(0, 148, 205, 12, '#e5e7eb') + R(395, 148, 205, 12, '#e5e7eb') + `<text x="10" y="176" font-size="11" fill="#64748b">ceiling</text>`,
+    light: (e) => [-50, -25, 0, 25, 50].map((dx) => `<line x1="${300 + dx * 0.25}" y1="${100}" x2="${300 + dx * 2.4}" y2="375" stroke="#f59e0b" stroke-width="2" opacity=".6"/>`).join(''),
+    heat: (e) => [270, 300, 330].map((x) => `<path d="M${x} ${85 - 38 * e} V ${18 - 70 * e}" stroke="#dc2626" stroke-width="3" marker-end="url(#ar)"/>`).join('') },
+  flood: { name: 'Floodlight', say: '“Each LED has its own lens, so the beam is accurate and the light lands on the pitch, not in the sky. The driver sits in its own sealed box away from the LED heat, and the glass is IP66 sealed with a silicone gasket.”',
+    watch: 'Cheap floods use one big plastic cover instead of individual lenses (light spills everywhere), the driver squeezed behind the hot LED board, and foam gaskets that let water in after one monsoon.',
+    parts: {
+      bracket: ['Mounting bracket', 'Fixes the flood to the mast or wall and lets you set the aiming angle.', 'Galvanised or stainless steel with an angle scale and a locking bolt.', 'Thin brackets that move in the wind – the aiming is lost.', (e) => `<path d="M${60 - 45 * e} 120 V 260 M${60 - 45 * e} 190 H ${92 - 45 * e}" stroke="#475569" stroke-width="8" fill="none"/><circle cx="${92 - 45 * e}" cy="190" r="7" fill="#475569"/>`],
+      housing: ['Housing & heat sink', 'The body is the heat sink: fins at the back carry the LED heat into the air.', 'Die-cast aluminium, deep fins, powder coated for coastal air.', 'Thin housings – LEDs overheat at 40 °C ambient.', (e) => { let f = ''; for (let y = 100; y <= 280; y += 12) f += R(80, y, 22, 6, '#94a3b8'); return f + R(100, 90, 72, 200, '#a3aec0', 'rx="4"'); }],
+      driver: ['Driver compartment', 'The driver sits in its own sealed box, away from the LED heat – it lives much longer.', 'Separate thermal compartment, branded outdoor driver, 10 kV surge protection.', 'Driver mounted straight behind the LED board – fails first.', (e) => R(104, 300 + 45 * e, 64, 38, '#cbd5e1', 'rx="4" stroke="#64748b"') + `<text x="${136}" y="${324 + 45 * e}" text-anchor="middle" font-size="10" fill="#334155">DRIVER</text>` + R(130, 338 + 45 * e, 12, 14, '#334155')],
+      led: ['LED board (high-power chips)', 'An aluminium board carrying many high-power LED chips, pressed on the housing with thermal paste.', 'Branded 3030 / 5050 high-power chips, metal-core board, even thermal paste.', 'Too few chips driven too hard to save cost.', (e) => R(172 + 40 * e, 100, 9, 180, '#d4d4d8') + [...Array(6).keys()].map((i) => R(181 + 40 * e, 108 + i * 30, 4, 12, '#fde047')).join('')],
+      lens: ['Lens array (optics)', 'One lens per LED shapes the beam – narrow for sports masts, wide or asymmetric for yards and façades.', 'PMMA or silicone lenses, many beam options (15°, 30°, 60°, asymmetric).', 'No lenses – one flat diffuser – light spills into the sky and neighbours.', (e) => R(186 + 75 * e, 100, 6, 180, '#e0f2fe') + [...Array(6).keys()].map((i) => `<path d="M${192 + 75 * e} ${106 + i * 30} q 12 8 0 16" fill="#bae6fd" stroke="#7dd3fc"/>`).join('')],
+      gasket: ['Silicone gasket', 'Seals the glass to the body – it is what makes the fitting IP66 (dust-tight, water jets).', 'Moulded silicone, stays soft for years in sun and heat.', 'Foam or rubber that hardens and lets water in.', (e) => R(205 + 105 * e, 92, 4, 196, '#111827')],
+      glass: ['Tempered glass', 'Protects the optics and takes impacts (IK rating).', '4–5 mm tempered glass, IK08 or better.', 'Thin glass or plastic covers that crack or yellow.', (e) => R(210 + 130 * e, 90, 6, 200, '#bae6fd', 'opacity=".9"')],
+      frame: ['Front frame & screws', 'Clamps glass and gasket evenly onto the body.', 'Die-cast frame with stainless screws.', 'Zinc screws that rust in 1–2 years near the sea.', (e) => R(217 + 155 * e, 86, 8, 208, '#94a3b8', 'rx="2"')],
+    },
+    base: () => '', light: (e) => [-60, -30, 0, 30, 60].map((d) => `<line x1="${230 + 155 * e}" y1="${190 + d * 0.5}" x2="600" y2="${190 + d * 2.2}" stroke="#f59e0b" stroke-width="2" opacity=".6"/>`).join(''),
+    heat: (e) => [130, 190, 250].map((y) => `<path d="M${170 + 40 * e} ${y} H 66" stroke="#dc2626" stroke-width="3" marker-end="url(#ar)"/>`).join('') },
+  street: { name: 'Street light', say: '“This street light has an asymmetric road lens that puts the light on the road, not on the houses, 10 kV surge protection against lightning and a NEMA socket so we can add a smart controller or photocell later.”',
+    watch: 'Without proper surge protection, one thunderstorm can kill a whole road of street lights. Also check the road lens type (ME / P classes) – a round “high-bay” lens on a pole wastes half the light.',
+    parts: {
+      clamp: ['Pole spigot clamp', 'Fixes the luminaire on the pole arm, with a tilt adjustment.', 'Fits 42–60 mm spigots, 0–15° tilt, stainless bolts.', 'Single-bolt clamps that loosen and the fitting turns.', (e) => R(40 - 30 * e, 152, 62, 22, '#64748b', 'rx="3"')],
+      housing: ['Housing & heat sink', 'The top shell carries heat away through its fins and keeps rain out.', 'Die-cast aluminium, fins on top, IP66, powder coated.', 'Thin housings with no fins – LEDs run hot on sunny days too.', (e) => { let f = ''; for (let x = 120; x <= 500; x += 14) f += R(x, 96 - 30 * e, 6, 16, '#94a3b8'); return f + `<path d="M100 ${150 - 30 * e} Q 110 ${110 - 30 * e} 160 ${110 - 30 * e} H 500 Q 525 ${115 - 30 * e} 520 ${150 - 30 * e} Z" fill="#a3aec0"/>`; }],
+      photocell: ['NEMA / Zhaga socket', 'A standard socket on top for a photocell or smart controller (dimming, remote monitoring).', '7-pin NEMA or Zhaga socket, ready for a central management system.', 'No socket – you cannot add smart control later.', (e) => R(300, 78 - 70 * e, 40, 16, '#334155', 'rx="6"')],
+      driver: ['Driver', 'Converts mains to LED current; often dimmable on a schedule after midnight to save energy.', 'Outdoor driver, programmable dimming, 50,000 h+ life.', 'Indoor-grade drivers inside outdoor fittings.', (e) => R(112, 152 + 50 * e, 116, 22, '#cbd5e1', 'rx="3" stroke="#64748b"') + `<text x="170" y="${167 + 50 * e}" text-anchor="middle" font-size="10" fill="#334155">DRIVER</text>`],
+      surge: ['Surge protection device', 'Absorbs voltage spikes from lightning and the grid before they reach the driver and LEDs.', '10 kV / 10 kA SPD, replaceable.', 'Only the driver’s small built-in protection – fails after the first storms.', (e) => R(238, 152 + 50 * e, 40, 22, '#fbbf24', 'rx="3"') + `<text x="258" y="${167 + 50 * e}" text-anchor="middle" font-size="9" fill="#78350f">SPD</text>`],
+      led: ['LED module', 'Rows of high-power chips on an aluminium board, pressed against the housing to lose heat.', 'Branded chips, replaceable module (Zhaga).', 'Glued-in boards you cannot replace.', (e) => R(290, 152 + 80 * e, 210, 8, '#d4d4d8') + [...Array(8).keys()].map((i) => R(298 + i * 26, 160 + 80 * e, 10, 3, '#fde047')).join('')],
+      lens: ['Road lens (asymmetric optics)', 'Throws light along the road and to the far side, not backwards onto houses or up into the sky.', 'Road distributions to EN 13201 (ME / P classes), no upward light.', 'Round symmetric lenses – half the light lands where it is not needed.', (e) => R(290, 165 + 105 * e, 210, 5, '#e0f2fe') + [...Array(8).keys()].map((i) => `<path d="M${296 + i * 26} ${170 + 105 * e} q 7 12 14 0" fill="#bae6fd" stroke="#7dd3fc"/>`).join('')],
+      glass: ['Flat tempered glass', 'Seals the optics; a flat glass keeps light from going upwards (dark-sky friendly).', 'Tempered flat glass, self-cleaning in rain.', 'Curved plastic bowls that yellow and scatter light.', (e) => R(282, 178 + 125 * e, 226, 5, '#bae6fd', 'opacity=".9"')],
+    },
+    base: () => R(8, 150, 30, 228, '#475569') + `<text x="12" y="372" font-size="10" fill="#fff">pole</text>`,
+    light: (e) => [-30, 0, 30, 70, 110].map((d) => `<line x1="${395}" y1="${183 + 125 * e}" x2="${395 + d * 2}" y2="378" stroke="#f59e0b" stroke-width="2" opacity=".6"/>`).join(''),
+    heat: (e) => [330, 400, 470].map((x) => `<path d="M${x} ${150 + 80 * e} V ${70 - 30 * e}" stroke="#dc2626" stroke-width="3" marker-end="url(#ar)"/>`).join('') },
+};
+function tg(k) { show[k] = !show[k]; $('tgLight').classList.toggle('on', show.light); $('tgHeat').classList.toggle('on', show.heat); drawFix(); }
+function drawFix() {
+  const F = FIX[fixK], e = +$('ex').value / 100; $('exV').textContent = Math.round(e * 100) + '%';
+  $('fixBtns').innerHTML = Object.entries(FIX).map(([k, f]) => `<span class="btn ${k === fixK ? 'on' : ''}" onclick="fixK='${k}';fixSel=null;drawFix()">${f.name}</span>`).join('');
+  let s = `<defs><marker id="ar" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#dc2626"/></marker></defs>` + F.base(e);
+  if (show.light) s += F.light(e);
+  for (const [k, pt] of Object.entries(F.parts)) s += `<g data-part="${k}" ${fixSel && fixSel !== k ? 'opacity=".35"' : ''} ${fixSel === k ? 'filter="drop-shadow(0 0 4px #2a6fdb)"' : ''}>${pt[4](e)}</g>`;
+  if (show.heat) s += F.heat(e);
+  $('fixSvg').innerHTML = fixK === 'down' ? s.replace('</defs>', '</defs><g transform="translate(0 75)">') + '</g>' : s;
+  $('fixParts').innerHTML = Object.entries(F.parts).map(([k, pt]) => `<span class="btn ${k === fixSel ? 'on' : ''}" onclick="fixSel=fixSel==='${k}'?null:'${k}';drawFix()">${pt[0]}</span>`).join('');
+  const pt = fixSel && F.parts[fixSel];
+  $('fixInfo').innerHTML = pt ? `<h5>${pt[0]}</h5><div>${pt[1]}</div><div class="k">Good quality</div><div>${pt[2]}</div><div class="k" style="color:var(--warn)">Cheap version</div><div>${pt[3]}</div>` : `<h5>${F.name}</h5><div class="m">Tap any part in the drawing (or a button below) to see what it does, what good quality looks like and how cheap fittings cut corners.</div><div class="k">Try</div><div>Slide “Parts apart”, switch on <b>Heat flow</b> to see where the LED heat goes.</div>`;
+  $('fixSay').textContent = F.say; $('fixWatch').textContent = F.watch;
+}
+$('fixSvg').addEventListener('click', (ev) => { const g = ev.target.closest('[data-part]'); if (g) { fixSel = g.dataset.part; drawFix(); } });
+$('ex').addEventListener('input', drawFix);
+
+// ---------------------------------------------------------------- LED CHIPS
+let chipK = 'cob';
+const CHIPS = {
+  smd2835: ['SMD 2835', '2.8 × 3.5 mm', '0.2 – 1 W each', '160 – 210 lm/W', 'Panels, battens, tubes, high-bays (in arrays)', 'Very efficient and cheap; heat is spread over many small chips.', 'Many bright dots – needs a good diffuser or lens to avoid glare.',
+    () => R(130, 40, 160, 200, '#f8fafc', 'stroke="#94a3b8" rx="6"') + R(150, 60, 120, 150, '#fde047', 'rx="4"') + R(196, 120, 28, 18, '#3b82f6', 'opacity=".45"') + R(130, 212, 60, 28, '#cbd5e1') + R(230, 212, 60, 28, '#cbd5e1') + `<text x="210" y="256" text-anchor="middle" font-size="11" fill="#5f6673">phosphor (yellow) over a blue die</text>`],
+  smd5050: ['SMD 5050', '5.0 × 5.0 mm', '0.2 – 1 W, often 3 dies', '100 – 150 lm/W (white)', 'LED strips, coves, colour-changing façades (RGB / RGBW)', 'Three dies in one package – red, green and blue for any colour.', 'Lower efficacy than 2835 for plain white light.',
+    () => R(110, 30, 200, 200, '#f8fafc', 'stroke="#94a3b8" rx="6"') + `<circle cx="210" cy="130" r="80" fill="#fef9c3" stroke="#e5e7eb"/>` + R(160, 115, 26, 26, '#ef4444') + R(197, 115, 26, 26, '#22c55e') + R(234, 115, 26, 26, '#3b82f6') + `<text x="210" y="252" text-anchor="middle" font-size="11" fill="#5f6673">R · G · B dies in one package</text>`],
+  cob: ['COB (chip-on-board)', 'Round light area 6 – 30 mm', '5 – 100 W', '130 – 170 lm/W', 'Downlights, spotlights, track lights, retail', 'One single light source – one clean shadow, easy beam control, high CRI options.', 'All heat in one small spot – needs a strong heat sink.',
+    () => R(90, 20, 240, 220, '#d4d4d8', 'rx="10"') + `<circle cx="210" cy="130" r="78" fill="#fde047" stroke="#eab308" stroke-width="3"/>` + [...Array(36).keys()].map((i) => `<rect x="${163 + (i % 6) * 16}" y="${83 + Math.floor(i / 6) * 16}" width="8" height="8" fill="#3b82f6" opacity=".25"/>`).join('') + R(98, 28, 26, 26, '#b45309', 'rx="3"') + R(296, 206, 26, 26, '#b45309', 'rx="3"') + `<text x="210" y="256" text-anchor="middle" font-size="11" fill="#5f6673">many tiny dies under one phosphor area</text>`],
+  csp: ['CSP (chip-scale package)', '≈ 1.5 × 1.5 mm, no package', '1 – 3 W each', '160 – 200 lm/W', 'Compact high-power floodlights and street lights, small optics', 'Tiny and very bright – fittings get smaller and lighter.', 'Needs very good boards and assembly; poor soldering fails early.',
+    () => R(40, 150, 340, 30, '#d4d4d8', 'rx="3"') + [...Array(6).keys()].map((i) => R(70 + i * 52, 128, 22, 22, '#fde047', 'stroke="#eab308"')).join('') + `<text x="210" y="210" text-anchor="middle" font-size="11" fill="#5f6673">shown on a board – each cube is the whole LED</text>`],
+  hp3535: ['High-power 3535 (ceramic)', '3.5 × 3.5 mm, ceramic base', '1 – 5 W each', '140 – 180 lm/W', 'Street lights, floodlights, sports, high-bays with lenses', 'Robust ceramic base, handles heat well, long life outdoors.', 'Fewer, stronger chips – each one needs its own lens.',
+    () => R(110, 30, 200, 200, '#f5f5f4', 'stroke="#a8a29e" rx="8"') + `<circle cx="210" cy="130" r="72" fill="#e0f2fe" stroke="#7dd3fc" stroke-width="3"/>` + R(180, 100, 60, 60, '#fde047') + `<text x="210" y="252" text-anchor="middle" font-size="11" fill="#5f6673">silicone dome lens over the chip</text>`],
+};
+function drawChip() { $('chipBtns').innerHTML = Object.entries(CHIPS).map(([k, c]) => `<span class="btn ${k === chipK ? 'on' : ''}" onclick="chipK='${k}';drawChip()">${c[0]}</span>`).join('');
+  const c = CHIPS[chipK]; $('chipSvg').innerHTML = c[7]();
+  $('chipInfo').innerHTML = `<h5>${c[0]}</h5><table class="spec"><tr><td>Size</td><td>${c[1]}</td></tr><tr><td>Power</td><td>${c[2]}</td></tr><tr><td>Typical efficacy</td><td>${c[3]}</td></tr><tr><td>Used in</td><td>${c[4]}</td></tr></table><div class="k">Strength</div><div>${c[5]}</div><div class="k" style="color:var(--warn)">Watch</div><div>${c[6]}</div>`; }
+let hs = 'avg'; const RTH = { good: 40, avg: 60, poor: 90 }, HSN = { good: 'Good (die-cast, finned)', avg: 'Average', poor: 'Poor (thin steel)' };
+const model = (cur, amb, rth) => { const i = cur / 100, pw = i * (1 + 0.08 * (i - 1)), tj = amb + rth * pw * 0.65, flux = Math.pow(i, 0.88) * (1 - 0.0025 * (tj - 25)), eff = flux / pw; return { tj, flux, eff }; };
+const life = (tj) => Math.min(150000, 100000 * Math.pow(2, (65 - tj) / 12));
+function lab() {
+  $('hsBtns').innerHTML = Object.keys(RTH).map((k) => `<span class="btn ${k === hs ? 'on' : ''}" style="padding:4px 9px;font-size:12px" onclick="hs='${k}';lab()">${HSN[k]}</span>`).join('');
+  const cur = +$('cur').value, amb = +$('amb').value, ref = model(100, 35, RTH.good), m = model(cur, amb, RTH[hs]), L = life(m.tj);
+  $('curV').textContent = cur + '%'; $('ambV').textContent = amb + ' °C';
+  $('labKpi').innerHTML = `<div><b>${Math.round(m.tj)} °C</b>LED junction temperature</div><div><b>${Math.round(100 * m.flux / ref.flux)}%</b>light output</div><div><b>${Math.round(100 * m.eff / ref.eff)}%</b>efficacy (lm/W)</div><div><b style="color:${L < 30000 ? '#b91c1c' : 'inherit'}">${L >= 100000 ? '> 100,000' : Math.round(L / 1000) * 1000 + ''} h</b>life to 70% light (L70)</div>`;
+  const xs = [...Array(21).keys()].map((i) => 50 + i * 5), pts = xs.map((c) => model(c, amb, RTH[hs]));
+  lineChart($('c1'), $('c1t'), { W: 380, H: 210, xs, series: [{ name: 'Light output', c: 'var(--s1)', ys: pts.map((q) => 100 * q.flux / ref.flux) }, { name: 'Efficacy', c: 'var(--s2)', ys: pts.map((q) => 100 * q.eff / ref.eff) }], xLabel: 'drive current %', yFmt: (y) => `${Math.round(y)}%`, xFmt: (x) => `${Math.round(x)}%`, marker: cur, yMax: 160 });
+  const ts = [...Array(19).keys()].map((i) => 40 + i * 5);
+  lineChart($('c2'), $('c2t'), { W: 380, H: 210, xs: ts, series: [{ name: 'L70', c: 'var(--s1)', ys: ts.map(life) }], xLabel: 'junction °C', yFmt: (y, f) => f ? `${Math.round(y / 1000)},000 h` : `${Math.round(y / 1000)}k`, xFmt: (x) => `${Math.round(x)} °C`, marker: m.tj, yMax: 160000, ref: { y: 50000, label: 'typical 50,000 h claim' } });
+  $('labSay').textContent = cur > 115 ? `Driving the chips at ${cur}% gives ${Math.round(100 * m.flux / ref.flux)}% light today, but the LED runs at ${Math.round(m.tj)} °C – life drops to about ${Math.round(L / 1000)},000 h. This is how cheap fittings show “more lumens per rupee”.` : hs === 'poor' ? `Same chip, poor heat sink: the LED runs at ${Math.round(m.tj)} °C and life falls to about ${Math.round(L / 1000)},000 h. The heat sink is not decoration.` : `Running the chips at ${cur}% with a ${HSN[hs].toLowerCase()} heat sink keeps the LED at ${Math.round(m.tj)} °C – a healthy life of ${L >= 100000 ? 'over 100,000' : Math.round(L / 1000) + ',000'} h. Good fittings drive chips gently.`;
+}
+['cur', 'amb'].forEach((id) => $(id).addEventListener('input', lab));
+const OFF = [[0.2, -0.5], [-0.7, 0.3], [0.9, 0.6], [-0.2, -0.9], [0.5, 0.9], [-0.9, -0.2], [0.7, -0.6], [-0.4, 0.8], [0.1, 0.2], [-0.6, -0.7]];
+function mac() { const st = +$('macS').value, [r0, g0, b0] = k2rgb(3000); $('macV').textContent = st + '-step';
+  let s = R(0, 0, 640, 150, '#14161c') + R(0, 0, 640, 14, '#2a2f3a');
+  OFF.forEach(([du, dv], i) => { const c = (v) => Math.max(0, Math.min(255, Math.round(v))); const col = `rgb(${c(r0 + st * du * 5)},${c(g0 + st * dv * 6)},${c(b0 - st * du * 4 + st * dv * 3)})`; const x = 40 + i * 62;
+    s += `<path d="M${x - 8} 14 L${x + 8} 14 L${x + 26} 140 L${x - 26} 140 Z" fill="${col}" opacity=".35"/><ellipse cx="${x}" cy="138" rx="28" ry="6" fill="${col}" opacity=".9"/>` + R(x - 9, 10, 18, 6, '#e5e7eb'); });
+  $('mac').innerHTML = s;
+  $('macT').innerHTML = st <= 2 ? '<b>1–2 step:</b> colour differences invisible – premium hotels, galleries.' : st <= 3 ? '<b>3-step:</b> hardly visible – the right ask for hotels, shops and offices with rows of downlights.' : st <= 5 ? '<b>4–5 step:</b> visible side by side on a white wall – OK for industrial and outdoor.' : '<b>6–7 step:</b> clearly different colours – typical of cheap fittings.'; }
+$('macS').addEventListener('input', mac);
+
+// ---------------------------------------------------------------- LIGHTING CONTROLS (protocol playground)
+const glowC = (lv, rgb = '255,214,140') => `rgba(${rgb},${(0.12 + 0.88 * Math.max(0, Math.min(1, lv))).toFixed(2)})`;
+const lampAt = (x, y, lv, rgb, label) => `<circle cx="${x}" cy="${y}" r="${10 + 10 * lv}" fill="${glowC(lv * 0.6, rgb)}"/><circle cx="${x}" cy="${y}" r="9" fill="${glowC(lv, rgb)}" stroke="#94a3b8"/>${label ? `<text x="${x}" y="${y + 26}" text-anchor="middle" font-size="10" fill="#475569">${label}</text>` : ''}`;
+const box = (x, y, w, h, t, fill = '#e2e8f0', sub = '') => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="5" fill="${fill}" stroke="#64748b"/><text x="${x + w / 2}" y="${y + h / 2 + (sub ? -2 : 4)}" text-anchor="middle" font-size="11" font-weight="700" fill="#1e293b">${t}</text>${sub ? `<text x="${x + w / 2}" y="${y + h / 2 + 12}" text-anchor="middle" font-size="9" fill="#475569">${sub}</text>` : ''}`;
+const darc = (pct) => pct <= 0 ? 0 : Math.max(1, Math.min(254, Math.round(1 + (253 / 3) * (Math.log10(pct) + 1))));
+const dpct = (arc) => arc === 0 ? 0 : Math.pow(10, (arc - 1) / (253 / 3) - 1);
+let prot = 'dali', lvl = 50, edge = 'trailing', dTarget = 'g1', dFail = false, dmxV = { r: 255, g: 120, b: 0, w: 40 }, farNode = false;
+const PROT = {
+  v110: { name: '1–10 V / 0–10 V', line: 'The oldest simple dimming: two extra control wires carry a DC voltage – 10 V is full light, 1 V is minimum. Every driver on the same pair dims together.',
+    say: '“For the warehouse 1–10 V dimming is enough – the sensors dim each row together and it is the lowest-cost dimmable option.”',
+    watch: '1–10 V cannot switch off – at 1 V the light is still at minimum, so a relay must cut the mains. 1–10 V (the driver supplies the current) and 0–10 V (the controller supplies it) are not always compatible – check both data sheets. No feedback: you will not know a driver has failed.' },
+  phase: { name: 'Phase-cut (TRIAC)', line: 'The dimmer sits on the live wire and cuts off part of every mains half-wave – less voltage, less light. No control wires at all.',
+    say: '“For the guest rooms we keep the existing wall dimmers – we supply phase-cut dimmable LED fittings that are tested with that dimmer type.”',
+    watch: 'Use trailing-edge dimmers for LED. Leading-edge (TRIAC) dimmers made for halogen often cause flicker, buzzing or a high minimum level. Check the minimum load – a 300 W dimmer may not work with two 7 W LEDs – and only use drivers marked “phase-cut dimmable”.' },
+  dali: { name: 'DALI', line: 'A digital 2-wire bus: every driver has its own address (0–63), so each light can be controlled alone or in groups and scenes – and it answers back (lamp failure, level, hours).',
+    say: '“With DALI-2 each light has its own address. Rearranging the office later is only reprogramming – no rewiring – and the system tells us when a driver fails.”',
+    watch: 'Max 64 drivers and 250 mA bus current per DALI line – count them and add line power supplies / routers for bigger jobs. Ask for DALI-2 certified drivers and controls (DiiA logo) so different brands work together.' },
+  dmx: { name: 'DMX512', line: 'The stage and façade protocol: a fast data cable sends 512 channel values (0–255) about 44 times a second – perfect for colour changing and effects.',
+    say: '“For the façade we use DMX: every RGBW fitting has its own channels, so we can run colour scenes, chases and festive programs from one controller.”',
+    watch: 'Daisy-chain the cable (no T-branches), use proper data cable and a 120 Ω terminator at the end. About 32 fittings per segment before a splitter is needed. Plain DMX is one-way – ask for RDM if remote addressing and feedback are needed.' },
+  casambi: { name: 'Casambi (Bluetooth)', line: 'Wireless control with an app: each light has a small Bluetooth module and passes messages on to the next (mesh). No control cables – ideal for retrofits.',
+    say: '“With Casambi we change only the fittings – no new control cables. Scenes, schedules and sensors are set up from a phone app, and it keeps working even without internet.”',
+    watch: 'It is a single-ecosystem system – all fittings need Casambi-ready drivers or modules. Thick concrete and metal ceilings shorten the radio range – plan enough nodes. Hand the network over properly (owner account) at handover.' },
+};
+function protUI() {
+  $('pBtns').innerHTML = Object.entries(PROT).map(([k, p]) => `<span class="btn ${k === prot ? 'on' : ''}" onclick="prot='${k}';protUI()">${p.name}</span>`).join('');
+  const P = PROT[prot]; $('pLine').textContent = P.line; $('pSay').textContent = P.say; $('pWatch').textContent = P.watch;
+  let c = `<div><label>Dimmer <b id="lvlV">${lvl}%</b></label><input type="range" min="0" max="100" value="${lvl}" oninput="lvl=+this.value;proto()"></div>`;
+  if (prot === 'phase') c += `<div><label>Dimmer type</label><div class="row">${['trailing', 'leading'].map((e) => `<span class="btn ${e === edge ? 'on' : ''}" style="padding:4px 9px;font-size:12px" onclick="edge='${e}';protUI()">${e === 'trailing' ? 'Trailing edge (for LED)' : 'Leading edge (TRIAC)'}</span>`).join('')}</div></div>`;
+  if (prot === 'dali') c += `<div><label>Send the command to</label><div class="row">${[['bc', 'Broadcast (all)'], ['g1', 'Group 1'], ['a3', 'Address 3']].map(([v, t]) => `<span class="btn ${v === dTarget ? 'on' : ''}" style="padding:4px 9px;font-size:12px" onclick="dTarget='${v}';protUI()">${t}</span>`).join('')}</div></div><div><label>Feedback</label><span class="btn ${dFail ? 'on' : ''}" style="padding:4px 9px;font-size:12px" onclick="dFail=!dFail;protUI()">${dFail ? 'Driver 2 has failed ✕' : 'Simulate a failed driver'}</span></div>`;
+  if (prot === 'dmx') c = ['r', 'g', 'b', 'w'].map((k) => `<div><label>${{ r: 'Red', g: 'Green', b: 'Blue', w: 'White' }[k]} channel <b id="dv_${k}">${dmxV[k]}</b></label><input type="range" min="0" max="255" value="${dmxV[k]}" oninput="dmxV.${k}=+this.value;proto()"></div>`).join('');
+  if (prot === 'casambi') c += `<div><label>Radio range</label><span class="btn ${farNode ? 'on' : ''}" style="padding:4px 9px;font-size:12px" onclick="farNode=!farNode;protUI()">${farNode ? 'Phone far from light 5' : 'Walk away from light 5'}</span></div>`;
+  $('pCtl').innerHTML = c; proto();
+}
+function proto() {
+  const L = lvl / 100; let w = '', s = '', k = '';
+  if ($('lvlV')) $('lvlV').textContent = lvl + '%';
+  const mains = (y1, xs) => `<path d="M10 ${y1} H 400" stroke="#92400e" stroke-width="3"/><path d="M10 ${y1 + 8} H 400" stroke="#1d4ed8" stroke-width="3"/><text x="12" y="${y1 - 5}" font-size="9" fill="#92400e">L (mains live)</text><text x="12" y="${y1 + 20}" font-size="9" fill="#1d4ed8">N</text>` + xs.map((x) => `<path d="M${x + 18} ${y1} V 110 M${x + 26} ${y1 + 8} V 110" stroke="#94a3b8" stroke-width="2"/>`).join('');
+  if (prot === 'v110') {
+    const v = 1 + 9 * L, xs = [170, 250, 330];
+    w = mains(40, xs) + box(20, 110, 100, 50, '1–10 V', '#ddd6fe', 'dimmer / sensor') + `<path d="M120 175 H 380 M120 185 H 380" stroke="#7c3aed" stroke-width="2"/><text x="125" y="200" font-size="9" fill="#7c3aed">+ / − control pair (all drivers in parallel)</text>` + xs.map((x) => `<path d="M${x + 15} 150 V 175 M${x + 29} 150 V 185" stroke="#7c3aed" stroke-width="2"/>` + box(x, 110, 44, 40, 'Driver', '#e2e8f0') + lampAt(x + 22, 228, lvl === 0 ? 0.03 : 0.05 + 0.95 * L)).join('') + `<path d="M120 135 H 150" stroke="#7c3aed" stroke-width="2"/>` + `<rect x="${130}" y="${30}" width="20" height="18" fill="#fef3c7" stroke="#b45309"/><text x="140" y="43" text-anchor="middle" font-size="9">R</text><text x="152" y="28" font-size="9" fill="#b45309">relay for OFF</text>`;
+    const y = (vv) => 230 - vv * 20;
+    s = `<rect width="420" height="260" fill="#0f1218"/>` + [0, 2, 4, 6, 8, 10].map((t) => `<line x1="60" x2="380" y1="${y(t)}" y2="${y(t)}" stroke="#262c38"/><text x="52" y="${y(t) + 4}" text-anchor="end" font-size="10" fill="#94a3b8">${t} V</text>`).join('') + `<rect x="120" y="${y(v)}" width="80" height="${230 - y(v)}" rx="4" fill="#a78bfa"/><text x="160" y="${y(v) - 8}" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">${v.toFixed(1)} V</text><rect x="250" y="${y(1)}" width="80" height="${230 - y(1)}" fill="#334155"/><text x="290" y="${y(1) - 6}" text-anchor="middle" font-size="10" fill="#cbd5e1">1 V = minimum, not off</text>`;
+    k = `<div><b>${v.toFixed(1)} V</b>control voltage</div><div><b>${lvl === 0 ? 'min + relay off' : lvl + '%'}</b>light</div><div><b>None</b>addressing – wired groups</div><div><b>No</b>feedback</div>`;
+    $('pSigName').textContent = 'Voltage on the control pair';
+  } else if (prot === 'phase') {
+    const xs = [170, 250, 330];
+    w = `<path d="M10 40 H 60" stroke="#92400e" stroke-width="3"/>` + box(60, 22, 80, 36, 'Dimmer', '#fde68a', edge + ' edge') + `<path d="M140 40 H 400" stroke="#92400e" stroke-width="3"/><path d="M10 52 H 400" stroke="#1d4ed8" stroke-width="3" transform="translate(0 16)"/><text x="12" y="34" font-size="9" fill="#92400e">L</text><text x="12" y="82" font-size="9" fill="#1d4ed8">N</text>` + xs.map((x) => `<path d="M${x + 18} 40 V 110 M${x + 26} 68 V 110" stroke="#94a3b8" stroke-width="2"/>` + box(x, 110, 44, 40, 'Driver', '#e2e8f0') + lampAt(x + 22, 210, edge === 'leading' && L < 0.25 && L > 0 ? (Math.random() * 0.4) : L)).join('') + `<text x="160" y="250" font-size="10" fill="#475569">Dimmer in series on the live – no control wires</text>`;
+    const pts = [], fill = [], A = 80, cy = 130, x0 = 30, W = 360;
+    for (let i = 0; i <= 360; i++) { const t = i / 360 * 4 * Math.PI, ph = (t % Math.PI) / Math.PI, on = edge === 'trailing' ? ph <= L : ph >= 1 - L; const yv = cy - A * Math.sin(t), x = x0 + W * i / 360; pts.push(`${i ? 'L' : 'M'}${x.toFixed(1)} ${yv.toFixed(1)}`); if (on) fill.push(`<line x1="${x}" x2="${x}" y1="${cy}" y2="${yv}" stroke="#f59e0b" stroke-width="1.3"/>`); }
+    s = `<rect width="420" height="260" fill="#0f1218"/><line x1="${x0}" x2="${x0 + W}" y1="${cy}" y2="${cy}" stroke="#334155"/>${fill.join('')}<path d="${pts.join('')}" fill="none" stroke="#64748b" stroke-dasharray="3 3"/><text x="${x0}" y="245" font-size="11" fill="#cbd5e1">Orange = the part of each half-wave passed to the light (${edge} edge)</text>`;
+    k = `<div><b>${Math.round(180 * L)}°</b>of each 180° half-wave</div><div><b>${lvl}%</b>light</div><div><b>None</b>control wires</div><div><b>${edge === 'trailing' ? 'Good' : 'Risky'}</b>for LED</div>`;
+    $('pSigName').textContent = 'Mains voltage after the dimmer';
+  } else if (prot === 'dali') {
+    const arc = darc(lvl), pct = dpct(arc), xs = [150, 210, 270, 330], grp = [true, true, false, false];
+    const hit = (i) => dTarget === 'bc' || (dTarget === 'g1' && grp[i]) || (dTarget === 'a3' && i === 3);
+    w = mains(30, xs) + box(20, 110, 100, 50, 'DALI-2', '#bbf7d0', 'controller + bus PSU') + `<path d="M120 175 H 390 M120 185 H 390" stroke="#16a34a" stroke-width="2"/><text x="125" y="200" font-size="9" fill="#15803d">DA / DA – 2 wires, no polarity, can share the 5-core mains cable</text><path d="M120 135 H 140" stroke="#16a34a" stroke-width="2"/>` +
+      xs.map((x, i) => `<path d="M${x + 15} 150 V 175 M${x + 29} 150 V 185" stroke="#16a34a" stroke-width="2"/>` + box(x, 110, 44, 40, `A${i}`, dFail && i === 2 ? '#fecaca' : '#e2e8f0', grp[i] ? 'Group 1' : '') + (dFail && i === 2 ? `<text x="${x + 22}" y="232" text-anchor="middle" font-size="22" fill="#dc2626">✕</text>` : lampAt(x + 22, 228, hit(i) ? pct / 100 : 0.12) + (hit(i) ? '' : `<text x="${x + 22}" y="254" text-anchor="middle" font-size="9" fill="#64748b">not addressed</text>`))).join('') + (dFail ? `<path d="M${270} 190 C 220 240, 120 240, 70 165" stroke="#dc2626" stroke-width="2" fill="none" stroke-dasharray="4 3" marker-end="url(#arr)"/><text x="80" y="250" font-size="9" fill="#dc2626">answer: “A2 lamp failure”</text>` : '');
+    w = `<defs><marker id="arr" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#dc2626"/></marker></defs>` + w;
+    const addr = dTarget === 'bc' ? 0xFE : dTarget === 'g1' ? 0x80 | (1 << 1) : (3 << 1), bits = [1, ...addr.toString(2).padStart(8, '0').split('').map(Number), ...arc.toString(2).padStart(8, '0').split('').map(Number)];
+    const bw = 21, x0 = 20, hi = 70, lo = 120; let p = `M${x0} ${hi}`;
+    bits.forEach((b, i) => { const x = x0 + i * bw; const first = b ? lo : hi, second = b ? hi : lo; p += ` L${x} ${first} L${x + bw / 2} ${first} L${x + bw / 2} ${second} L${x + bw} ${second}`; });
+    p += ` L${x0 + bits.length * bw} ${hi} L${x0 + bits.length * bw + 30} ${hi}`;
+    s = `<rect width="420" height="260" fill="#0f1218"/><path d="${p}" fill="none" stroke="#4ade80" stroke-width="2"/>` + bits.map((b, i) => `<text x="${x0 + i * bw + bw / 2}" y="142" text-anchor="middle" font-size="10" fill="${i === 0 ? '#94a3b8' : i <= 8 ? '#93c5fd' : '#fcd34d'}">${b}</text>`).join('') +
+      `<text x="${x0 + bw / 2}" y="160" text-anchor="middle" font-size="9" fill="#94a3b8">start</text><text x="${x0 + bw * 5}" y="160" text-anchor="middle" font-size="10" fill="#93c5fd">address byte (${dTarget === 'bc' ? 'broadcast' : dTarget === 'g1' ? 'group 1' : 'short address 3'})</text><text x="${x0 + bw * 13}" y="160" text-anchor="middle" font-size="10" fill="#fcd34d">arc level ${arc}</text>` +
+      `<text x="20" y="200" font-size="11" fill="#cbd5e1">Forward frame: 1 start bit + 16 bits, 1200 bit/s, Manchester coded</text><text x="20" y="220" font-size="11" fill="#cbd5e1">Arc level ${arc} of 254 → ${pct < 1 ? pct.toFixed(1) : Math.round(pct)}% light (logarithmic, like the eye sees)</text>` + (dFail ? `<text x="20" y="242" font-size="11" fill="#fca5a5">Backward frame from A2: status = lamp failure</text>` : '');
+    k = `<div><b>${arc}</b>arc level (0–254)</div><div><b>${pct < 1 ? pct.toFixed(1) : Math.round(pct)}%</b>light output</div><div><b>${dTarget === 'bc' ? 4 : dTarget === 'g1' ? 2 : 1} of 4</b>drivers obey</div><div><b>Yes</b>two-way feedback</div>`;
+    $('pSigName').textContent = 'Digital frame on the DALI bus';
+  } else if (prot === 'dmx') {
+    const col = (o) => `rgb(${Math.min(255, dmxV.r + dmxV.w * 0.9)},${Math.min(255, dmxV.g + dmxV.w * 0.85)},${Math.min(255, dmxV.b + dmxV.w * 0.7)})`;
+    const xs = [150, 230, 310];
+    w = box(20, 100, 100, 50, 'DMX', '#fbcfe8', 'controller') + `<path d="M120 125 H 150 M194 125 H 230 M274 125 H 310 M354 125 H 380" stroke="#db2777" stroke-width="3"/><rect x="380" y="117" width="22" height="16" fill="#fce7f3" stroke="#db2777"/><text x="391" y="150" text-anchor="middle" font-size="9" fill="#db2777">120 Ω</text><text x="125" y="95" font-size="9" fill="#db2777">data cable – daisy chain in and out</text>` +
+      xs.map((x, i) => box(x, 105, 44, 40, ['001', '005', '009'][i], '#e2e8f0', 'RGBW') + `<rect x="${x - 6}" y="175" width="56" height="34" rx="6" fill="${col()}" opacity="${0.15 + 0.85 * Math.max(dmxV.r, dmxV.g, dmxV.b, dmxV.w) / 255}"/>`).join('') + `<text x="150" y="235" font-size="10" fill="#475569">start address 001 uses channels 1–4, 005 uses 5–8 …</text>`;
+    const vals = [dmxV.r, dmxV.g, dmxV.b, dmxV.w], cc = ['#ef4444', '#22c55e', '#3b82f6', '#e5e7eb'];
+    s = `<rect width="420" height="260" fill="#0f1218"/><path d="M10 60 H 30 V 200 H 70 V 60 H 84" stroke="#f472b6" stroke-width="2" fill="none"/><text x="50" y="220" text-anchor="middle" font-size="9" fill="#f9a8d4">BREAK</text><text x="78" y="50" text-anchor="middle" font-size="9" fill="#f9a8d4">MAB</text><rect x="88" y="196" width="18" height="4" fill="#94a3b8"/><text x="97" y="220" text-anchor="middle" font-size="9" fill="#94a3b8">start 0</text>` +
+      [...Array(12).keys()].map((i) => { const v = vals[i % 4], h = 140 * v / 255, x = 112 + i * 24; return `<rect x="${x}" y="${200 - h}" width="18" height="${Math.max(2, h)}" fill="${cc[i % 4]}"/><text x="${x + 9}" y="214" text-anchor="middle" font-size="9" fill="#94a3b8">${i + 1}</text><text x="${x + 9}" y="${195 - h}" text-anchor="middle" font-size="8" fill="#cbd5e1">${v}</text>`; }).join('') + `<text x="405" y="28" text-anchor="end" font-size="10" fill="#94a3b8">… continues up to slot 512</text><text x="20" y="245" font-size="11" fill="#cbd5e1">One packet = 512 values (0–255), sent ~44 times a second</text>`;
+    k = `<div><b>${vals.join(' · ')}</b>R · G · B · W values</div><div><b>12 / 512</b>channels used</div><div><b>~44 / s</b>full refresh</div><div><b>${'RDM'}</b>needed for feedback</div>`;
+    $('pSigName').textContent = 'One DMX packet (first 12 of 512 channels)';
+  } else {
+    const N = [[110, 70], [220, 60], [320, 100], [180, 160], [360, 200]], ph = farNode ? [45, 150] : [290, 205];
+    const near = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]) < 140;
+    w = `<rect width="420" height="260" fill="#f8fafc"/>` + N.flatMap((a, i) => N.slice(i + 1).map((b) => near(a, b) ? `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="#93c5fd" stroke-dasharray="4 4"/>` : '')).join('') + N.map((n, i) => lampAt(n[0], n[1], L, '255,214,140', `light ${i + 1}`)).join('') + `<rect x="${ph[0] - 12}" y="${ph[1] - 20}" width="24" height="40" rx="5" fill="#1e293b"/><rect x="${ph[0] - 9}" y="${ph[1] - 15}" width="18" height="26" fill="#60a5fa"/><text x="${ph[0]}" y="${ph[1] + 34}" text-anchor="middle" font-size="10" fill="#475569">phone app</text>`;
+    const route = farNode ? ['Phone', 'Light 1', 'Light 2', 'Light 3', 'Light 5'] : ['Phone', 'Light 5'];
+    s = `<rect width="420" height="260" fill="#0f1218"/><text x="20" y="40" font-size="12" fill="#cbd5e1">Message “dim to ${lvl}%” to light 5 – each light passes it on:</text>` + route.map((r, i) => { const x = 20 + i * 80; return `<rect x="${x}" y="90" width="66" height="34" rx="6" fill="${i ? '#1e3a8a' : '#334155'}"/><text x="${x + 33}" y="111" text-anchor="middle" font-size="11" fill="#fff">${r}</text>` + (i < route.length - 1 ? `<path d="M${x + 66} 107 H ${x + 80}" stroke="#60a5fa" stroke-width="2"/>` : ''); }).join('') + `<text x="20" y="170" font-size="12" fill="#93c5fd">${route.length - 1} radio hop${route.length > 2 ? 's' : ''} – Bluetooth mesh</text><text x="20" y="200" font-size="11" fill="#94a3b8">No gateway or internet needed; the network lives in the lights.</text>`;
+    k = `<div><b>${route.length - 1}</b>radio hops</div><div><b>${lvl}%</b>light</div><div><b>None</b>control wires</div><div><b>App</b>set-up & scenes</div>`;
+    $('pSigName').textContent = 'Path of the radio message';
+  }
+  $('pWire').innerHTML = w; $('pSig').innerHTML = s; $('pKpi').innerHTML = k;
+}
+const DALIV = {
+  'DALI-1': 'The first edition of IEC 62386 (from 2002). Standardised the <b>drivers</b> only – controllers and sensors from different brands often did not work together. Still in many existing buildings.',
+  'DALI-2': 'Edition 2 of IEC 62386 with <b>certification by the DiiA</b> (DALI-2 logo). Adds standard <b>control devices</b> – push buttons, occupancy and daylight sensors – on the same bus, several controllers on one line, and tighter rules so mixed brands work together. <b>This is what to specify today.</b>',
+  'D4i': 'DALI-2 for the <b>Internet of Things</b>: the driver stores and reports <b>energy, operating hours, temperature and failures</b>, and powers small sensors or nodes on the luminaire (for street lights through a Zhaga-D4i socket). The basis of smart street lighting and smart buildings.',
+  'DT6 / DT8': '<b>Device types</b> say what the driver can do. DT6 = an LED driver (brightness). <b>DT8 = colour control</b>: tunable white (warm ↔ cool, Tc) and RGBW colours over the same two wires. Ask for DT8 for human-centric / tunable-white projects.',
+  'DALI+': 'The newest step: DALI-2 commands carried over <b>IP networks</b> – wireless (Thread) or wired Ethernet – so DALI lighting can be controlled without the DALI bus cable and joined to building IT networks.',
+};
+let dSel = 'DALI-2';
+function daliV() { $('dBtns').innerHTML = Object.keys(DALIV).map((k) => `<span class="btn ${k === dSel ? 'on' : ''}" onclick="dSel='${k}';daliV()">${k}</span>`).join(''); $('dInfo').innerHTML = `<h5>${dSel}</h5><div>${DALIV[dSel]}</div>`; }
+const PROT_ROWS = [['', '1–10 V / 0–10 V', 'Phase-cut', 'DALI-2', 'DMX512', 'Casambi'],
+  ['Control wiring', '2 extra wires (polarity matters)', 'None – dimmer on the live', '2 wires, no polarity, can share the mains cable', 'Data cable, daisy chain + 120 Ω end', 'None – Bluetooth radio'],
+  ['Each light separately?', 'No – wired groups', 'No – per dimmer', 'Yes – 64 addresses, 16 groups, 16 scenes', 'Yes – 512 channels per universe', 'Yes – in the app'],
+  ['Feedback (failures, energy)', 'No', 'No', 'Yes', 'Only with RDM', 'Status in the app'],
+  ['Devices per line', 'Limited by controller current', 'Limited by dimmer watts', '64 drivers + 64 controls', '~32 per segment, 512 channels', 'Hundreds per network'],
+  ['Colour / tunable white', 'Two channels needed', 'No', 'DT8', 'Yes – full RGBW, effects', 'Yes'],
+  ['Typical use', 'Warehouses, simple offices', 'Homes, hotel rooms, retrofit', 'Offices, hotels, hospitals, retail', 'Façades, stages, dynamic colour', 'Retrofits, shops, hospitality, homes'],
+  ['Relative cost', 'Low', 'Lowest', 'Medium', 'Medium–high', 'Medium']];
+function protTable() { $('pTable').innerHTML = PROT_ROWS.map((r, i) => `<tr>${r.map((c, j) => i === 0 ? `<td style="font-weight:700;color:var(--ink)">${c}</td>` : j === 0 ? `<td>${c}</td>` : `<td>${c}</td>`).join('')}</tr>`).join(''); }
+
+// ---------------------------------------------------------------- LMS & KNX
+function lmsTab(n) { ['A', 'B', 'C'].forEach((x, i) => $('lms' + x).classList.toggle('hidden', i + 1 !== n)); [1, 2, 3].forEach((i) => $('lt' + i).classList.toggle('on', i === n)); if (n === 1) lms(); if (n === 2) knx(); if (n === 3) rank(); }
+const ZONES = [
+  { n: 'Open office – window side', x: 20, y: 40, w: 250, h: 90, fit: 12, W: 36, day: 0.7, occ: (h) => (h >= 8 && h < 12) || (h >= 13 && h < 17.5) ? 1 : h >= 12 && h < 13 ? 0.4 : h >= 17.5 && h < 19 ? 0.3 : 0 },
+  { n: 'Open office – inner', x: 20, y: 130, w: 250, h: 80, fit: 12, W: 36, day: 0.25, occ: (h) => (h >= 8.5 && h < 12) || (h >= 13 && h < 17) ? 1 : h >= 12 && h < 13 ? 0.3 : h >= 17 && h < 18.5 ? 0.25 : 0 },
+  { n: 'Meeting room', x: 270, y: 40, w: 150, h: 90, fit: 6, W: 36, day: 0.5, occ: (h) => (h >= 9.5 && h < 11) || (h >= 14 && h < 15.5) ? 1 : 0 },
+  { n: 'Manager', x: 270, y: 130, w: 150, h: 80, fit: 4, W: 36, day: 0.3, occ: (h) => (h >= 9 && h < 12) || (h >= 14 && h < 17) ? 1 : 0 },
+  { n: 'Corridor', x: 20, y: 210, w: 400, h: 50, fit: 8, W: 20, day: 0, occ: (h) => h >= 7.5 && h < 19 ? 0.4 : 0.05, min: 0.2 },
+];
+let st = { sched: true, occ: true, day: true, tune: true };
+const SN = { sched: 'Time schedule', occ: 'Occupancy sensors', day: 'Daylight harvesting', tune: 'Task tuning' };
+const daylight = (h) => Math.max(0, Math.sin(Math.PI * (h - 6.5) / 12));
+function zoneLevel(z, h, on) { if (!on) return h >= 7 && h < 20 ? 1 : 0; if (st.sched && (h < 7.5 || h >= 19.5)) return 0; if (!st.sched && (h < 7 || h >= 20)) return 0;
+  let l = 1; if (st.occ) { const o = z.occ(h); l = z.min != null ? z.min + (1 - z.min) * o : o > 0 ? Math.max(0.3, o) : 0; } if (st.day) l *= 1 - z.day * daylight(h); if (st.tune) l *= +$('tune').value / 100; return l; }
+const kw = (h, on) => ZONES.reduce((s, z) => s + z.fit * z.W * zoneLevel(z, h, on), 0) / 1000;
+function lms() {
+  $('lmsBtns').innerHTML = Object.keys(SN).map((k) => `<span class="btn ${st[k] ? 'on' : ''}" style="padding:4px 9px;font-size:12px" onclick="st.${k}=!st.${k};lms()">${st[k] ? '✓ ' : ''}${SN[k]}</span>`).join('');
+  const h = +$('hr').value, hh = Math.floor(h), mm = Math.round((h - hh) * 60); $('hrV').textContent = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`; $('tuneV').textContent = $('tune').value + '%'; $('tarV').textContent = 'LKR ' + $('tar').value;
+  const d = daylight(h); let g = `<rect width="440" height="280" fill="#0f1218"/><rect x="20" y="20" width="400" height="16" fill="rgba(125,211,252,${0.15 + 0.7 * d})"/><text x="24" y="32" font-size="10" fill="#0c4a6e">windows – daylight ${Math.round(d * 100)}%</text><circle cx="400" cy="12" r="${6 + 6 * d}" fill="rgba(253,224,71,${0.2 + 0.8 * d})"/>`;
+  ZONES.forEach((z) => { const l = zoneLevel(z, h, true), o = z.occ(h); g += `<rect x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" fill="rgba(255,214,140,${(0.06 + 0.8 * l).toFixed(2)})" stroke="#334155"/><text x="${z.x + 6}" y="${z.y + 14}" font-size="10" fill="${l > 0.5 ? '#1e293b' : '#cbd5e1'}">${z.n}</text><text x="${z.x + 6}" y="${z.y + 28}" font-size="11" font-weight="700" fill="${l > 0.5 ? '#1e293b' : '#fde68a'}">${Math.round(l * 100)}%</text>` + [...Array(Math.round((z.min != null ? o * 3 : o * 4)))].map((_, i) => `<circle cx="${z.x + z.w - 16 - i * 16}" cy="${z.y + z.h - 14}" r="5" fill="#60a5fa"/>`).join(''); });
+  g += `<circle cx="34" cy="272" r="4" fill="#60a5fa"/><text x="42" y="276" font-size="9" fill="#94a3b8">people</text>`;
+  $('plan').innerHTML = g;
+  const xs = [...Array(61).keys()].map((i) => 6 + i * 0.25), base = xs.map((x) => kw(x, false)), lm = xs.map((x) => kw(x, true));
+  const eB = base.reduce((a, b) => a + b, 0) * 0.25, eL = lm.reduce((a, b) => a + b, 0) * 0.25, sav = eB ? 1 - eL / eB : 0, lkr = (eB - eL) * 260 * +$('tar').value;
+  $('lmsKpi').innerHTML = `<div><b>${eB.toFixed(0)} kWh</b>per day, no controls</div><div><b>${eL.toFixed(0)} kWh</b>per day, with LMS</div><div><b>${Math.round(sav * 100)}%</b>energy saved</div><div><b>LKR ${fmt(lkr)}</b>saved per year</div>`;
+  lineChart($('lmsChart'), $('lmsTip'), { W: 760, H: 230, xs, series: [{ name: 'No controls', c: 'var(--s2)', ys: base }, { name: 'With LMS', c: 'var(--s1)', ys: lm }], xLabel: 'time of day', yFmt: (y, f) => `${y.toFixed(1)}${f ? ' kW' : ''}`, xFmt: (x, f) => { const a = Math.floor(x), b = Math.round((x - a) * 60); return f ? `${String(a).padStart(2, '0')}:${String(b).padStart(2, '0')}` : `${a}:00`; }, marker: h });
+  $('lmsSay').textContent = `“On this floor the LMS cuts lighting energy by about ${Math.round(sav * 100)}% – roughly LKR ${fmt(lkr)} a year – by switching off empty rooms, dimming next to the windows and never over-lighting. The same system reports failed drivers, so maintenance is faster.”`;
+}
+['hr', 'tune', 'tar'].forEach((id) => $(id).addEventListener('input', lms));
+
+// KNX: devices, lines and group addresses
+const KD = {
+  '1.1.1': { n: 'Push button', x: 90, line: 1 }, '1.1.2': { n: 'Switch actuator', x: 200, line: 1 }, '1.1.3': { n: 'Presence detector', x: 310, line: 1 },
+  '1.2.1': { n: 'KNX–DALI gateway', x: 460, line: 2 }, '1.2.2': { n: 'Blind actuator', x: 570, line: 2 }, '1.2.3': { n: 'Thermostat', x: 680, line: 2 },
+};
+const GA = { '1/0/1': ['1.1.2', '1.2.1'], '1/1/1': ['1.2.1'], '2/0/1': ['1.2.2'], '3/0/1': ['1.2.3'] };
+const GAN = { '1/0/1': 'Office lights on/off', '1/1/1': 'Office lights dim value', '2/0/1': 'Blinds up/down', '3/0/1': 'Set-point temperature' };
+let ks = { relay: false, dali: 0, blind: 0, temp: 24 }, klog = [];
+const KACT = [['Button: lights ON', '1.1.1', '1/0/1', 'ON'], ['Button: lights OFF', '1.1.1', '1/0/1', 'OFF'], ['Button: dim to 30%', '1.1.1', '1/1/1', '30%'], ['Presence: room empty 15 min', '1.1.3', '1/0/1', 'OFF'], ['Button: blinds down', '1.1.1', '2/0/1', 'DOWN'], ['Button: blinds up', '1.1.1', '2/0/1', 'UP'], ['Button: set 22 °C', '1.1.1', '3/0/1', '22 °C']];
+const LY = 150, BY = 40, CX = { 1: 210, 2: 570 };
+function knxPath(a, b) { const A = KD[a], B = KD[b]; const p = [[A.x, 195], [A.x, LY]]; if (A.line !== B.line) { p.push([CX[A.line], LY], [CX[A.line], BY], [CX[B.line], BY], [CX[B.line], LY]); } p.push([B.x, LY], [B.x, 195]); return p; }
+function knx(anim) {
+  let s = `<rect width="760" height="330" fill="#f8fafc"/><path d="M40 ${BY} H 720" stroke="#16a34a" stroke-width="4"/><text x="44" y="${BY - 8}" font-size="11" font-weight="700" fill="#15803d">Backbone / area line (or KNX IP)</text>`;
+  [1, 2].forEach((l) => { const x0 = l === 1 ? 50 : 420, x1 = l === 1 ? 360 : 730; s += `<path d="M${x0} ${LY} H ${x1}" stroke="#16a34a" stroke-width="4"/><text x="${x0}" y="${LY - 8}" font-size="11" font-weight="700" fill="#15803d">Line 1.${l}</text><path d="M${CX[l]} ${BY} V ${LY}" stroke="#16a34a" stroke-width="4"/>` + `<rect x="${CX[l] - 44}" y="${(BY + LY) / 2 - 14}" width="88" height="28" rx="5" fill="#dcfce7" stroke="#16a34a"/><text x="${CX[l]}" y="${(BY + LY) / 2 + 4}" text-anchor="middle" font-size="10" font-weight="700" fill="#14532d">Line coupler</text><rect x="${x0}" y="${LY + 6}" width="40" height="18" rx="3" fill="#fef9c3" stroke="#ca8a04"/><text x="${x0 + 20}" y="${LY + 19}" text-anchor="middle" font-size="9" fill="#713f12">PSU</text>`; });
+  Object.entries(KD).forEach(([pa, d]) => { s += `<path d="M${d.x} ${LY} V 175" stroke="#16a34a" stroke-width="3"/><rect x="${d.x - 52}" y="175" width="104" height="38" rx="5" fill="#fff" stroke="#64748b"/><text x="${d.x}" y="191" text-anchor="middle" font-size="9.5" font-weight="700" fill="#1e293b">${d.n}</text><text x="${d.x}" y="205" text-anchor="middle" font-size="9" fill="#64748b">${pa}</text>`; });
+  s += `<path d="M200 213 V 240" stroke="#92400e" stroke-width="2"/>` + lampAt(185, 262, ks.relay ? 1 : 0.02) + lampAt(215, 262, ks.relay ? 1 : 0.02) + `<text x="200" y="300" text-anchor="middle" font-size="10" fill="#475569">230 V lights</text>`;
+  s += `<path d="M460 213 V 240 H 520" fill="none" stroke="#16a34a" stroke-width="2" stroke-dasharray="4 3"/>` + [440, 470, 500].map((x) => lampAt(x, 262, ks.dali)).join('') + `<text x="470" y="300" text-anchor="middle" font-size="10" fill="#475569">DALI drivers</text>`;
+  s += `<rect x="540" y="230" width="60" height="70" fill="#e0f2fe" stroke="#64748b"/><rect x="540" y="230" width="60" height="${70 * ks.blind}" fill="#94a3b8"/><text x="570" y="318" text-anchor="middle" font-size="10" fill="#475569">blind</text>`;
+  s += `<text x="680" y="262" text-anchor="middle" font-size="20" font-weight="700" fill="#1e293b">${ks.temp} °C</text><text x="680" y="282" text-anchor="middle" font-size="10" fill="#475569">set-point</text>`;
+  s += `<g id="dots"></g>`; $('knx').innerHTML = s;
+  $('knxBtns').innerHTML = KACT.map((a, i) => `<span class="btn" style="padding:4px 9px;font-size:12px" onclick="send(${i})">${a[0]}</span>`).join('');
+  $('knxLog').innerHTML = klog.length ? klog.map((l) => `<div>${l}</div>`).join('') : '<span class="m" style="font-family:inherit">Press a button above – the telegram travels on the bus, every device that listens to that group address reacts.</span>';
+}
+function send(i) {
+  const [, src, ga, val] = KACT[i], targets = GA[ga], paths = targets.map((t) => knxPath(src, t)), t0 = performance.now(), dur = 1400;
+  const pt = (p, f) => { const seg = []; let tot = 0; for (let k = 1; k < p.length; k++) { const l = Math.hypot(p[k][0] - p[k - 1][0], p[k][1] - p[k - 1][1]); seg.push(l); tot += l; } let d = f * tot; for (let k = 0; k < seg.length; k++) { if (d <= seg[k]) { const r = d / seg[k]; return [p[k][0] + (p[k + 1][0] - p[k][0]) * r, p[k][1] + (p[k + 1][1] - p[k][1]) * r]; } d -= seg[k]; } return p[p.length - 1]; };
+  const step = (now) => { const f = Math.min(1, (now - t0) / dur), g = document.getElementById('dots'); if (!g) return; g.innerHTML = paths.map((p) => { const [x, y] = pt(p, f); return `<circle cx="${x}" cy="${y}" r="7" fill="#f59e0b" stroke="#fff" stroke-width="2"/>`; }).join('');
+    if (f < 1) requestAnimationFrame(step); else { if (ga === '1/0/1') { ks.relay = val === 'ON'; ks.dali = val === 'ON' ? 1 : 0; } if (ga === '1/1/1') { ks.dali = 0.3; ks.relay = true; } if (ga === '2/0/1') ks.blind = val === 'DOWN' ? 1 : 0; if (ga === '3/0/1') ks.temp = 22;
+      const cross = targets.some((t) => KD[t].line !== KD[src].line);
+      klog.unshift(`${new Date().toTimeString().slice(0, 8)}  ${src} → group ${ga} (${GAN[ga]}) = ${val}   heard by ${targets.join(', ')}${cross ? '   · passed through the line couplers' : ''}`); klog = klog.slice(0, 6); knx(); } };
+  requestAnimationFrame(step);
+}
+// Comparison of building-control systems
+const CRIT = [['open', 'Open standard (no lock-in)'], ['cost', 'Low cost'], ['light', 'Lighting features'], ['bms', 'BMS / HVAC integration'], ['scale', 'Large buildings'], ['ease', 'Easy to install & change']];
+let wts = { open: 3, cost: 3, light: 3, bms: 3, scale: 3, ease: 3 };
+const SYS = [
+  ['KNX', 'Open – ISO/IEC 14543', [5, 2, 3, 4, 5, 2], 'Twisted pair 9600 bit/s, IP, RF', 'Tens of thousands of devices', 'Whole-building automation: villas, hotels, offices', 'Switch / dim actuators, DALI via gateway', 'Hundreds of manufacturers, one tool (ETS); needs a certified integrator.'],
+  ['DALI-2', 'Open – IEC 62386, DiiA certified', [5, 4, 5, 3, 3, 4], '2-wire bus, 1200 bit/s', '64 drivers + 64 controls per line, many lines via routers', 'Lighting in offices, hotels, hospitals, retail', 'Native – every driver addressed, feedback, tunable white (DT8)', 'Lighting only; joins KNX / BACnet through gateways.'],
+  ['BACnet', 'Open – ASHRAE 135 / ISO 16484-5', [5, 2, 2, 5, 5, 2], 'IP or MS/TP (RS-485)', 'Very large campuses', 'Building management (HVAC, chillers, central plant)', 'Through gateways from DALI / KNX', 'The language of the BMS – ask the MEP consultant which BMS is planned.'],
+  ['Modbus', 'Open – de facto industrial', [5, 4, 1, 4, 3, 3], 'RS-485 (RTU) or TCP/IP', 'Up to 247 devices per RS-485 network', 'Energy meters, gensets, industrial plant', 'Very basic – values in registers', 'Master–slave, no lighting meaning; the integrator maps every register by hand.'],
+  ['C-Bus', 'Proprietary – Schneider Electric (Clipsal)', [1, 3, 4, 3, 3, 4], 'Own bus on Cat-5 cable', 'About 100 units per network, networks bridged', 'Homes, hotels, commercial (strong in Australia / Asia)', 'Good native lighting control and scenes', 'One brand for devices, spares and programming software.'],
+  ['Casambi', 'Proprietary wireless ecosystem', [2, 4, 4, 2, 3, 5], 'Bluetooth Low Energy mesh', 'Hundreds of devices per network', 'Retrofits, shops, hospitality, homes', 'Native – scenes, tunable white, sensors', 'No control cables; many luminaire brands use it; BMS links are limited.'],
+  ['Proprietary LMS', 'Lutron, Signify Dynalite / Interact, Crestron, Helvar …', [1, 1, 5, 4, 4, 3], 'Vendor buses, often DALI-based', 'Very large', 'Premium hotels, offices, landmark projects', 'Deepest features, design scenes, dashboards', 'Excellent but locks the client to one brand – price the service contract.'],
+];
+const PRE = { hotel: { open: 2, cost: 1, light: 5, bms: 4, scale: 2, ease: 3 }, office: { open: 5, cost: 3, light: 3, bms: 5, scale: 5, ease: 2 }, retrofit: { open: 2, cost: 5, light: 3, bms: 1, scale: 2, ease: 5 }, factory: { open: 3, cost: 4, light: 2, bms: 3, scale: 4, ease: 4 } };
+function preset(k) { wts = { ...PRE[k] }; rank(); }
+function rank() {
+  $('wCtl').innerHTML = CRIT.map(([k, n]) => `<div><label>${n} <b>${wts[k]}</b></label><input type="range" min="0" max="5" value="${wts[k]}" oninput="wts.${k}=+this.value;rank()"></div>`).join('');
+  const tw = CRIT.reduce((s, [k]) => s + wts[k] * 5, 0) || 1;
+  const sc = SYS.map((r) => ({ n: r[0], v: Math.round(100 * CRIT.reduce((s, [k], i) => s + wts[k] * r[2][i], 0) / tw), r })).sort((a, b) => b.v - a.v);
+  const W = 760, H = 300, l = 140, rr = 50, bh = 26, gap = 12; let s = '';
+  [0, 25, 50, 75, 100].forEach((t) => { const x = l + (W - l - rr) * t / 100; s += `<line x1="${x}" x2="${x}" y1="10" y2="${H - 20}" stroke="#e3e5ea"/><text x="${x}" y="${H - 5}" text-anchor="middle" font-size="10" fill="#5f6673">${t}</text>`; });
+  sc.forEach((o, i) => { const y = 14 + i * (bh + gap), w = (W - l - rr) * o.v / 100; s += `<text x="${l - 8}" y="${y + bh / 2 + 4}" text-anchor="end" font-size="12" fill="#14161c" font-weight="${i === 0 ? 700 : 400}">${o.n}</text><path d="M${l} ${y} H ${l + w - 4} Q ${l + w} ${y} ${l + w} ${y + 4} V ${y + bh - 4} Q ${l + w} ${y + bh} ${l + w - 4} ${y + bh} H ${l} Z" fill="var(--s1)" opacity="${i === 0 ? 1 : 0.75}" data-i="${i}"/><text x="${l + w + 6}" y="${y + bh / 2 + 4}" font-size="12" fill="#14161c">${o.v}</text>`; });
+  const svg = $('rank'); svg.innerHTML = s;
+  svg.querySelectorAll('path[data-i]').forEach((p) => { p.onmousemove = (e) => { const o = sc[+p.dataset.i], b = svg.getBoundingClientRect(); $('rankTip').style.display = 'block'; $('rankTip').style.left = Math.min(b.width - 230, e.clientX - b.left + 12) + 'px'; $('rankTip').style.top = (e.clientY - b.top + 10) + 'px'; $('rankTip').innerHTML = `<b>${o.n} – ${o.v}</b>` + CRIT.map(([, n], i) => `<br>${n}: ${'●'.repeat(o.r[2][i])}${'○'.repeat(5 - o.r[2][i])}`).join(''); }; p.onmouseleave = () => $('rankTip').style.display = 'none'; });
+  $('sysTable').innerHTML = `<tr><td style="font-weight:700;color:var(--ink)">System</td><td style="font-weight:700;color:var(--ink)">Type</td><td style="font-weight:700;color:var(--ink)">Wire / speed</td><td style="font-weight:700;color:var(--ink)">Size</td><td style="font-weight:700;color:var(--ink)">Best for</td><td style="font-weight:700;color:var(--ink)">Lighting control</td></tr>` + SYS.map((r, i) => `<tr style="cursor:pointer" onclick="sysInfo(${i})"><td style="color:var(--ink);font-weight:700">${r[0]}</td><td>${r[1]}</td><td>${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td><td>${r[6]}</td></tr>`).join('');
+}
+function sysInfo(i) { const r = SYS[i]; $('sysInfo').innerHTML = `<h5>${r[0]}</h5><div>${r[7]}</div><div class="k">Scores (indicative)</div><div>${CRIT.map(([, n], j) => `${n}: <b>${r[2][j]}/5</b>`).join(' · ')}</div>`; }
+
+
+// ================================================================ ACADEMY – modules, lessons and quizzes
+// type 'page' = generic lesson (text + optional widget); type 'lab' = a live lab view (with a preset) + the lesson's quiz
+const MODULES = [
+  ['basics', 'Basics & selling', 'Light, quality, applications and selling'],
+  ['tech', 'Lighting techniques', 'Live room playground'],
+  ['fix', 'Fixture construction', 'Pull fittings apart'],
+  ['chip', 'LED chips', 'Chip lab'],
+  ['ctl', 'Lighting controls', 'Protocols live on the wire'],
+  ['lms', 'LMS & KNX', 'Smart office, KNX live, comparison'],
+];
+const Q = (q, a, c) => [q, a, c];
+const L = [];
+const add = (mod, sec, id, icon, title, o) => L.push({ mod, sec, id, icon, title, mins: 2, type: 'page', ...o });
+
+// ---------------- BASICS & SELLING
+add('basics', 'Light basics – start here', 'lux', '💡', 'Lumen, lux & candela', { widget: 'lux',
+  line: '<b>Lumen (lm)</b> is all the light a fitting gives out. <b>Candela (cd)</b> is how strong it is in one direction. <b>Lux (lx)</b> is how much light lands on a surface – what the client actually gets on the desk or floor.',
+  say: '“The data sheet says 3,000 lumens, but what matters for your office is 500 lux on the desk – we calculate that in DLux for your room.”',
+  watch: 'Lux falls with the square of the distance: twice as high, a quarter of the light. A narrow beam gives more lux in a small spot – the same lumens are not the same result.',
+  quiz: [Q('What does a lux meter measure?', ['Light leaving the fitting', 'Light landing on a surface', 'Electricity used'], 1), Q('You double the mounting height. The lux below the fitting becomes about…', ['Half', 'A quarter', 'The same'], 1), Q('Which unit describes the strength of light in one direction?', ['Candela', 'Lumen', 'Kelvin'], 0)] });
+add('basics', 'Light basics – start here', 'eff', '⚡', 'Efficacy (lm/W)', { widget: 'eff',
+  line: '<b>Efficacy</b> is light per watt (lm/W) – the fuel economy of a light. Higher lm/W means the same light for a smaller electricity bill.',
+  say: '“Our LED gives 150 lumens per watt; the old metal halide gave about 90 after its control gear. Same light, roughly 40% less power.”',
+  watch: 'Compare the efficacy of the whole fitting (luminaire lm/W), not the LED chip – chip figures can be 30% higher than what comes out of the fitting.',
+  quiz: [Q('Efficacy is measured in…', ['lux', 'lm/W', 'kelvin'], 1), Q('Which is usually the most efficient for general lighting today?', ['Halogen', 'Fluorescent T5', 'LED'], 2), Q('A data sheet shows 210 lm/W for the chip and 150 lm/W for the fitting. Which do you compare?', ['The chip value', 'The fitting value', 'Either'], 1)] });
+add('basics', 'Light basics – start here', 'cct', '🌡️', 'Colour temperature (CCT)', { widget: 'cct',
+  line: 'Colour temperature tells you whether white light looks <b>warm (yellowish)</b> or <b>cool (bluish)</b> – low kelvin is warm, high kelvin is cool. It is not about heat.',
+  say: '“For the guest rooms and restaurant we suggest 2700–3000 K – warm and welcoming. Offices 4000 K keeps people alert without feeling cold; the warehouse 5000 K looks crisp and bright.”',
+  watch: 'Mixing colour temperatures in one space looks cheap and patchy. Check the CCT on every line of the BOQ – and that replacement stock matches.',
+  quiz: [Q('Which colour temperature suits a hotel lobby best?', ['6500 K', '3000 K', '5000 K'], 1), Q('A higher kelvin value means the light looks…', ['warmer', 'brighter', 'cooler / bluer'], 2), Q('The usual choice for open-plan offices is…', ['4000 K', '2700 K', '6500 K'], 0)] });
+add('basics', 'Light basics – start here', 'cri', '🎨', 'Colour rendering (CRI)', { widget: 'cri',
+  line: '<b>CRI (Ra)</b> says how true colours look under the light, from 0 to 100 (daylight = 100). Low CRI makes skin look grey and food dull.',
+  say: '“For the fashion store and the restaurant we use CRI 90+ – skin, fabrics and food look natural and attractive.”',
+  watch: 'Ra 80 is fine for offices; retail, hospitality, galleries and hospitals need Ra 90+. Check R9 (saturated red) too – a cheap Ra 80 LED can have almost no red.',
+  quiz: [Q('CRI describes…', ['how bright the light is', 'how true colours look', 'how long the LED lasts'], 1), Q('What CRI is usually right for a clothing shop?', ['70', '80', '90 or more'], 2), Q('R9 is the score for…', ['saturated red', 'blue sky', 'glare'], 0)] });
+add('basics', 'Light basics – start here', 'ugr', '😎', 'Glare (UGR)', { widget: 'ugr',
+  line: '<b>UGR</b> (Unified Glare Rating) measures discomfort glare from fittings in a room. Lower is better – offices need UGR 19 or less.',
+  say: '“These panels are UGR < 19 with a micro-prismatic diffuser – staff can look up from their screens without squinting.”',
+  watch: 'UGR depends on the room and the layout, not only the fitting – the data sheet value is for a standard room. Opal panels often reach 22+, too high for offices.',
+  quiz: [Q('For an open office the UGR should be…', ['19 or less', '25 or more', 'it does not matter'], 0), Q('Which usually gives the lowest glare?', ['Bare LED strip', 'Opal panel', 'Deep louvred downlight'], 2), Q('UGR is about…', ['colour', 'discomfort glare', 'energy'], 1)] });
+add('basics', 'Light basics – start here', 'beam', '🔦', 'Beam angle & polar curves', { widget: 'polar',
+  line: 'The <b>beam angle</b> is where the light falls to half of its centre strength. The <b>polar curve</b> in the data sheet draws this shape – narrow and tall is a spot, wide and round is a flood.',
+  say: '“For the 8 m high warehouse we use a 60° beam – a 120° beam would spread too much light onto the racks and walls.”',
+  watch: 'Same lumens, different beam = very different lux. High ceilings need narrower beams; low ceilings need wider ones to avoid dark gaps.',
+  quiz: [Q('The beam angle is where the intensity drops to…', ['10%', '50%', '0%'], 1), Q('For a high warehouse ceiling you usually choose…', ['a narrower beam', 'a wider beam', 'any beam'], 0), Q('A tall, narrow polar curve means…', ['a flood light', 'a spot light', 'an uplight'], 1)] });
+add('basics', 'Light basics – start here', 'uni', '▦', 'Uniformity', { type: 'lab', lab: 'tech', preset: 'down',
+  line: 'Uniformity (U0 = minimum ÷ average lux) says how even the light is. 0.6 or better for offices and shops; dark patches between fittings mean poor uniformity.',
+  quiz: [Q('Uniformity U0 is…', ['max ÷ min', 'min ÷ average', 'average ÷ max'], 1), Q('A good target for offices is about…', ['0.2', '0.6', '1.5'], 1), Q('To improve uniformity you can…', ['move fittings closer or use a wider beam', 'use a narrower beam further apart', 'lower the CRI'], 0)] });
+add('basics', 'Product quality', 'life', '⏳', 'Lifetime L70 / L80 / B50', { widget: 'life',
+  line: 'LEDs rarely fail suddenly – they slowly get dimmer. <b>L70 at 50,000 h</b> means 70% of the light is left after 50,000 hours. <b>B50</b> means half of the fittings may be below that level; B10 means only 10%.',
+  say: '“Our fitting is rated L90 B10 at 50,000 hours – after 11 years of office use it still gives 90% of its light.”',
+  watch: 'A “50,000 hours” claim without L and B values means little. Ask for L80 or L90 and B10, backed by an LM-80 / TM-21 report.',
+  quiz: [Q('L70 at 50,000 h means…', ['the fitting fails at 50,000 h', '70% of the light remains at 50,000 h', '70% of fittings fail'], 1), Q('Which is the better specification?', ['L70 B50', 'L90 B10', 'They are the same'], 1), Q('Which report backs lifetime claims?', ['IP test', 'LM-80 / TM-21', 'UGR table'], 1)] });
+add('basics', 'Product quality', 'driver', '〰️', 'Driver, flicker & surge', { widget: 'flicker',
+  line: 'The <b>driver</b> turns mains power into steady DC current for the LEDs. A poor driver lets ripple through – the light flickers 100 times a second, causing headaches and stripes on camera.',
+  say: '“We use flicker-free branded drivers – no stripes on phone cameras or CCTV, no eye strain, and 6 kV surge protection for Sri Lankan grid spikes.”',
+  watch: 'Test with a phone camera in slow-motion or photo mode: stripes = flicker. Ask for flicker percentage (< 5%), power factor (> 0.9) and surge rating (6–10 kV outdoors).',
+  quiz: [Q('Most LED failures start in…', ['the driver', 'the cover glass', 'the mounting clips'], 0), Q('A quick flicker test on site is…', ['a phone camera', 'a lux meter', 'touching the fitting'], 0), Q('Surge protection matters most for…', ['outdoor and street lighting', 'table lamps', 'emergency signs only'], 0)] });
+add('basics', 'Product quality', 'ip', '💧', 'IP & IK ratings', { widget: 'ip',
+  line: '<b>IP</b> = protection against dust (first digit) and water (second digit). <b>IK</b> = protection against impact, from IK00 to IK10.',
+  say: '“For the car park we use IP66 IK08 fittings – dust-tight, safe against hose jets and strong enough for an accidental knock.”',
+  watch: 'IP65 is not enough where fittings are hosed down hard (IP66) or sit under water (IP67 / IP68). Check that cable glands keep the same IP rating.',
+  quiz: [Q('In IP66, the second 6 is about…', ['dust', 'water', 'impact'], 1), Q('Which rating is about impact?', ['IP', 'IK', 'UGR'], 1), Q('An in-ground uplight that may stand in water needs at least…', ['IP44', 'IP65', 'IP67'], 2)] });
+add('basics', 'Controls & applications', 'dim', '🎚️', 'Dimming & controls – overview', { type: 'lab', lab: 'ctlv', preset: 'dali',
+  line: 'Controls switch and dim lights automatically – by schedule, presence and daylight – to save energy and create scenes. The full module “Lighting controls” goes deeper.',
+  quiz: [Q('Which protocol gives every driver its own address?', ['1–10 V', 'DALI', 'Phase-cut'], 1), Q('Controls save energy mainly by…', ['switching off and dimming when not needed', 'using higher wattage', 'changing colour'], 0), Q('Which option needs no control wires at all?', ['DALI', 'Casambi', '1–10 V'], 1)] });
+add('basics', 'Controls & applications', 'emer', '🚪', 'Emergency lighting', {
+  line: 'Emergency lighting lets people leave safely when the power fails: <b>escape-route lighting</b>, <b>exit signs</b> and <b>anti-panic</b> lighting in open areas, running from batteries for usually 1–3 hours.',
+  body: '<table class="spec"><tr><td>Escape routes</td><td>At least 1 lux on the centre line (EN 1838)</td></tr><tr><td>Open areas (anti-panic)</td><td>At least 0.5 lux</td></tr><tr><td>Duration</td><td>1 hour minimum; 3 hours where people may stay (hotels, hospitals) – check local rules</td></tr><tr><td>Types</td><td>Maintained (always on) or non-maintained (only on power failure); self-contained battery or central battery</td></tr><tr><td>Testing</td><td>Monthly function test, yearly full-duration test – self-test or DALI-monitored fittings log it automatically</td></tr></table>',
+  say: '“We offer self-test emergency fittings that check their own batteries every month and report failures – no more manual testing walks.”',
+  watch: 'Fire authorities and insurers inspect emergency lighting. Batteries age – quote a 3-hour duration where needed and plan battery replacement every 4–5 years.',
+  quiz: [Q('Typical minimum on an escape route is…', ['0.1 lux', '1 lux', '100 lux'], 1), Q('A hotel usually needs emergency duration of…', ['15 minutes', '1 hour', '3 hours'], 2), Q('“Maintained” emergency lights are…', ['always on', 'only on in a power cut', 'only for exit signs'], 0)] });
+const APPS = {
+  app_office: ['🏢', 'Office', [['Desks / screens', '500 lx'], ['Glare', 'UGR ≤ 19'], ['Colour rendering', 'Ra ≥ 80'], ['Colour temperature', '4000 K (3000 K in meeting rooms)'], ['Uniformity', 'U0 ≥ 0.6'], ['Controls', 'Presence + daylight dimming (DALI-2)']], 'Even, low-glare light for screen work, with controls saving 40–60%.', '“UGR 19 panels with presence and daylight sensors – comfortable for screen work and about half the energy of always-on lighting.”', 'Check the desk layout before choosing spacing – and never quote opal panels for open offices without checking UGR.'],
+  app_retail: ['🛍️', 'Retail', [['General sales area', '300–500 lx'], ['Accent on products', '3–10 × the general level'], ['Colour rendering', 'Ra ≥ 90 (food, fashion)'], ['Colour temperature', '3000 K fashion, 4000 K supermarket'], ['Fittings', 'Track spots + general downlights'], ['Controls', 'Scenes, opening-hours schedule']], 'Light sells: accent products, keep colours true, and make the shop window stand out.', '“We light your products three to five times brighter than the aisle so they catch the eye, with CRI 90+ so colours look exactly right.”', 'Fresh food needs special spectra (meat, bakery, fruit) – generic white LEDs make meat look grey.'],
+  app_hosp: ['🏨', 'Hospitality', [['Lobby', '100–200 lx, layered'], ['Restaurant', '50–200 lx, dimmable'], ['Guest room', '100–300 lx, several scenes'], ['Colour temperature', '2700–3000 K'], ['Colour rendering', 'Ra ≥ 90'], ['Controls', 'Scenes, keycard, DALI / KNX / Casambi']], 'Atmosphere first: warm light in layers with scenes for every time of day.', '“Warm 2700 K light in layers – coves, downlights and accent – with breakfast, dinner and night scenes at the touch of a button.”', 'Dimming quality is everything in hotels – test the driver and dimmer together down to 1–5% without flicker.'],
+  app_ind: ['🏭', 'Industrial high-bay', [['Warehouse aisles', '100–200 lx'], ['Assembly / fine work', '300–750 lx'], ['Glare', 'UGR ≤ 22–25'], ['Protection', 'IP65+ in dusty or humid areas'], ['Colour temperature', '4000–5000 K'], ['Controls', 'Presence sensors per aisle']], 'Bright, robust and efficient – aisle sensors save a lot in warehouses.', '“Narrow-beam high-bays down each aisle with presence sensors – full light when a forklift comes, 10% when the aisle is empty.”', 'Heat under the roof can reach 45–50 °C – check the fitting’s rated ambient temperature (Ta) and the driver life at that temperature.'],
+  app_facade: ['🏛️', 'Façade', [['Approach', 'Light the architecture, not the sky'], ['Colour', '3000 K or RGBW for events'], ['Protection', 'IP66, UV-stable, coastal-grade finish'], ['Optics', 'Narrow / elliptical beams, close to the surface'], ['Controls', 'DMX for colour scenes, astro clock'], ['Care', 'Minimal light pollution and glare to neighbours']], 'Bring out the shape of the building at night with grazing, washing and accents.', '“We graze the columns with narrow beams and wash the upper façade – the building reads clearly from the road at night with no light into the sky.”', 'Mock up on site at night before ordering – what looks right in renders often needs a different beam on the real façade.'],
+  app_roads: ['🛣️', 'Roads', [['Main roads', 'M classes – luminance 0.5–2.0 cd/m² (EN 13201)'], ['Residential / footpaths', 'P classes – 2–15 lx average'], ['Optics', 'Asymmetric road lenses, no upward light'], ['Colour temperature', '3000–4000 K'], ['Protection', 'IP66, 10 kV surge'], ['Controls', 'Midnight dimming, CMS via NEMA / Zhaga']], 'Light the road surface evenly so drivers see obstacles, using as few poles as possible.', '“With the right road optics we keep the existing pole spacing, meet the M-class and dim 30% after midnight.”', 'Pole spacing, height and road width decide the design – use DLux Road, and never quote round high-bay optics on a pole.'],
+  app_sports: ['🏟️', 'Sports', [['Recreational', '75–200 lx'], ['Club / training', '200–500 lx'], ['National competition', '500–750 lx'], ['TV broadcast', '1,400–2,500 lx vertical'], ['Colour rendering', 'Ra ≥ 65, ≥ 90 for TV'], ['Flicker', 'Flicker-free for slow-motion cameras']], 'Even light on the field with glare control for players and spectators – broadcast needs vertical light on faces.', '“For the club level we design 300 lx with narrow-beam floodlights on four masts, upgradeable later to TV level by adding fittings.”', 'Check the governing body rules (FIFA, ICC, World Athletics) – the level depends on the class of play, not the sport alone.'],
+  app_ports: ['⚓', 'Ports & yards', [['Container yard', '20–50 lx'], ['Work areas (quay)', '50–100 lx'], ['Masts', '25–35 m high masts with asymmetric floods'], ['Protection', 'IP66, C5-M marine corrosion protection'], ['Glare', 'Shielded – no glare for crane operators and ships'], ['Controls', 'Zoning and dimming when areas are idle']], 'Large areas lit from few high masts – tough fittings that survive salt, wind and vibration.', '“We use asymmetric floodlights on high masts so the light reaches between container stacks without glare for crane drivers.”', 'Salt air destroys standard finishes – specify marine-grade coating and stainless fixings, and check wind load on the mast.'],
+};
+Object.entries(APPS).forEach(([id, [icon, title, rows, line, say, watch]]) => add('basics', 'Controls & applications', id, icon, title, { widget: 'app', rows, line, say, watch,
+  quiz: [Q(`Which is a typical light level for ${title.toLowerCase()}?`, [rows[0][1], '5 lx', '5,000 lx'], 0), Q('Where do you find the exact requirement in the app?', ['Sales Tools → Standards', 'Finance', 'Meetings'], 0), Q('Before quoting, the most important first step is…', ['to understand the use of the space', 'to choose the cheapest fitting', 'to pick a colour'], 0)] }));
+add('basics', 'Selling skills', 'pay', '💰', 'Energy saving & payback', { widget: 'pay', mins: 3,
+  line: 'LED costs more on day one but much less every month. <b>Payback</b> is the month when the money saved on the electricity bill has paid back the investment.',
+  say: '(The sentence above the quiz is filled in from your numbers.)',
+  watch: 'A cheap LED with a short life or a poor driver can fail before payback. Always show the L70 lifetime and warranty next to the payback – and use the client’s real tariff and hours.',
+  quiz: [Q('Payback is when…', ['the LED is installed', 'the savings equal the investment', 'the warranty ends'], 1), Q('Which input changes payback most for a factory?', ['Hours of use per day', 'Colour of the fitting', 'Cable colour'], 0), Q('Next to the payback you should also show…', ['lifetime and warranty', 'the brand logo only', 'nothing else'], 0)] });
+add('basics', 'Selling skills', 'datasheet', '📄', 'Reading a data sheet', {
+  line: 'A data sheet answers eight questions. Learn where they are and you can compare any two fittings in five minutes.',
+  body: '<table class="spec"><tr><td>1. Luminaire lumens</td><td>Light out of the fitting (not the chip)</td></tr><tr><td>2. System watts</td><td>Including the driver</td></tr><tr><td>3. Efficacy</td><td>lm/W of the fitting</td></tr><tr><td>4. CCT & CRI</td><td>e.g. 4000 K, Ra 80 (R9 > 0)</td></tr><tr><td>5. Beam / polar curve</td><td>and the IES file for DLux</td></tr><tr><td>6. UGR</td><td>for indoor fittings</td></tr><tr><td>7. Lifetime</td><td>L80 / L90 with B10 at x hours, at what ambient</td></tr><tr><td>8. IP / IK, driver, warranty</td><td>Protection, flicker, surge, years of warranty</td></tr></table>',
+  say: '“Let me show you on the data sheet: these are luminaire lumens with the driver included, so this is the real light you will get.”',
+  watch: 'Watch for chip lumens shown as fitting lumens, missing driver watts, lifetime without L/B values and “IP65” on a fitting with an open cable entry.',
+  quiz: [Q('Which lumens do you compare?', ['Chip lumens', 'Luminaire lumens', 'Either'], 1), Q('Which file do you need for a DLux calculation?', ['IES file', 'PDF brochure', 'Price list'], 0), Q('Lifetime should be stated with…', ['L and B values', 'only hours', 'only the warranty'], 0)] });
+add('basics', 'Selling skills', 'quotes', '⚖️', 'Comparing quotes – spec traps', {
+  line: 'A cheaper competitor quote is often a different product. Compare like with like before discussing price.',
+  body: '<table class="spec"><tr><td>Lumens</td><td>Same luminaire lumens? or chip lumens on their sheet?</td></tr><tr><td>Efficacy</td><td>Lower lm/W = higher bills for 10 years</td></tr><tr><td>Optics & UGR</td><td>Opal vs low-glare, symmetric vs road optics</td></tr><tr><td>Driver</td><td>Branded, flicker-free, surge kV?</td></tr><tr><td>Lifetime</td><td>L90 B10 vs “50,000 h”</td></tr><tr><td>Warranty</td><td>5 years on-site vs 2 years return-to-base</td></tr><tr><td>Controls</td><td>DALI-2 dimmable vs on/off only</td></tr></table>',
+  say: '“Their fitting is 20% cheaper, but it gives 25% less light and has a 2-year warranty. Per lux and per year, ours costs less.”',
+  watch: 'Never attack the competitor – compare the facts side by side in a simple table and let the client decide.',
+  quiz: [Q('A competitor shows 210 lm/W. First you check…', ['if that is the chip or the fitting value', 'their logo', 'the delivery date'], 0), Q('Which warranty is better?', ['2 years return-to-base', '5 years on-site', 'They are equal'], 1), Q('The best way to handle a cheaper quote is…', ['a side-by-side fact comparison', 'criticising the competitor', 'matching the price at once'], 0)] });
+add('basics', 'Selling skills', 'objections', '💬', 'Answering objections', {
+  line: 'Most objections are about cost, risk or habit. Answer with numbers, references and guarantees.',
+  body: '<table class="spec"><tr><td>“Too expensive”</td><td>Show payback and total cost over 10 years (energy + maintenance).</td></tr><tr><td>“The other quote is cheaper”</td><td>Compare lumens, efficacy, driver, lifetime and warranty side by side.</td></tr><tr><td>“We’ll use local fittings”</td><td>Show the lifetime and failure cost; offer a mock-up.</td></tr><tr><td>“LED gives a cold light”</td><td>Show 2700–3000 K and CRI 90 samples.</td></tr><tr><td>“We are not sure it works”</td><td>Show a similar reference project (Sales Tools → References) and a site mock-up.</td></tr></table>',
+  say: '“I understand the budget. Let’s look at the 10-year cost together – energy, maintenance and replacements – and then decide.”',
+  watch: 'Do not discount before you understand the real objection. Ask: “Apart from the price, is there anything else holding you back?”',
+  quiz: [Q('“Too expensive” is best answered with…', ['payback and 10-year cost', 'an immediate discount', 'a cheaper product without explaining'], 0), Q('Where can you find similar completed projects to show?', ['Sales Tools → References', 'Finance', 'HSE'], 0), Q('Before discounting you should…', ['understand the real objection', 'promise a lower price', 'end the meeting'], 0)] });
+
+// ---------------- LIGHTING TECHNIQUES
+add('tech', 'Live', 'lab_tech', '🧪', 'Techniques playground', { type: 'lab', lab: 'tech', preset: 'down', mins: 4, live: 1,
+  quiz: [Q('Wall-washers are usually placed about … of the wall height away from the wall.', ['one third', 'one tenth', 'the full height'], 0), Q('Grazing works best on…', ['textured stone or brick', 'smooth plaster with defects', 'glass'], 0), Q('An accent ratio of 5:1 means the object is…', ['five times brighter than the room', 'five times darker', 'equal'], 0)] });
+const TQ = (t) => [Q(`In the playground, which slider changes the evenness most for ${t}?`, ['Distance / spacing', 'Fitting colour', 'Tariff'], 0), Q('A narrower beam gives…', ['more light in a smaller area', 'less light everywhere', 'the same result'], 0), Q('Where can you check the result for a real room?', ['DLux', 'Payback calculator', 'References'], 0)];
+add('tech', 'Techniques', 't_down', '⬇️', 'Downlighting & spacing', { type: 'lab', lab: 'tech', preset: 'down', quiz: TQ('downlighting') });
+add('tech', 'Techniques', 't_accent', '🖼️', 'Accent lighting', { type: 'lab', lab: 'tech', preset: 'accent', quiz: TQ('accent lighting') });
+add('tech', 'Techniques', 't_wash', '▤', 'Wall washing', { type: 'lab', lab: 'tech', preset: 'wash', quiz: TQ('wall washing') });
+add('tech', 'Techniques', 't_graze', '🧱', 'Wall grazing', { type: 'lab', lab: 'tech', preset: 'graze', quiz: TQ('grazing') });
+add('tech', 'Techniques', 't_up', '⬆️', 'Uplighting & coves', {
+  line: '<b>Uplighting</b> throws light onto the ceiling so it bounces back softly. <b>Cove lighting</b> hides a linear LED in a ceiling recess – the ceiling glows with no visible fittings.',
+  body: '<table class="spec"><tr><td>Good for</td><td>Hotel lobbies, restaurants, high ceilings, architectural features</td></tr><tr><td>Fittings</td><td>Linear LED profiles in coves, wall uplights, in-ground uplights (IP67)</td></tr><tr><td>Key detail</td><td>Cove depth and the distance to the ceiling decide how smooth the glow is</td></tr></table>',
+  say: '“A hidden cove line makes the ceiling glow – the room feels taller and calm, and nobody sees a single fitting.”',
+  watch: 'Coves too shallow show hot spots and the LED dots – use a diffused profile and leave 150–300 mm to the ceiling. Uplighting wastes light on dark ceilings.',
+  quiz: [Q('Cove lighting is…', ['a hidden linear light washing the ceiling', 'a spotlight on art', 'a street light'], 0), Q('In-ground uplights need at least…', ['IP20', 'IP44', 'IP67'], 2), Q('Uplighting works poorly on…', ['white ceilings', 'dark ceilings', 'high ceilings'], 1)] });
+add('tech', 'Techniques', 't_layer', '🧩', 'Layered lighting', {
+  line: 'Good spaces combine three layers: <b>ambient</b> (general light), <b>task</b> (light where people work) and <b>accent</b> (light that creates interest).',
+  body: '<table class="spec"><tr><td>Ambient</td><td>Downlights, panels, coves – safe movement and a base level</td></tr><tr><td>Task</td><td>Desk, counter, mirror, kitchen light – the level the work needs</td></tr><tr><td>Accent</td><td>Spots on art, products, plants, textures – 3–10 × the ambient level</td></tr><tr><td>Controls</td><td>Each layer on its own circuit or DALI group, combined in scenes</td></tr></table>',
+  say: '“We design in layers – soft general light, good task light at the counters and accents on your feature wall – and set scenes for day and evening.”',
+  watch: 'Putting all layers on one switch kills the idea – plan separate circuits or DALI groups from the start.',
+  quiz: [Q('The three layers are…', ['ambient, task, accent', 'red, green, blue', 'indoor, outdoor, emergency'], 0), Q('Accent light is usually … the ambient level.', ['3–10 times', 'half', 'equal to'], 0), Q('To use layers well you need…', ['separate circuits or groups', 'one switch', 'one colour temperature only'], 0)] });
+add('tech', 'Techniques', 't_facade', '🏛️', 'Façade flood & wash', {
+  line: 'Façades are lit by <b>flooding</b> (from a distance), <b>washing</b> (evenly from close) or <b>grazing</b> (along the surface) – often combined with accents on columns and details.',
+  body: '<table class="spec"><tr><td>Flood</td><td>Simple, covers large areas, flatter look, more spill light</td></tr><tr><td>Wash / graze</td><td>Fittings close to the façade, narrow or elliptical beams, strong 3D effect</td></tr><tr><td>Colour</td><td>White 3000 K for heritage; RGBW with DMX for events and brands</td></tr><tr><td>Neighbours</td><td>Shield fittings, aim away from windows, no upward spill into the sky</td></tr></table>',
+  say: '“Instead of two big floodlights we place small fittings close to the columns – the building gets depth and nothing shines into neighbours’ windows.”',
+  watch: 'Always do a night mock-up on site. Check fixing points and cable routes with the architect early.',
+  quiz: [Q('Grazing a façade means…', ['light along the surface from close', 'light from far away', 'no light'], 0), Q('For colour-changing façades we usually use…', ['DMX', '1–10 V', 'Phase-cut'], 0), Q('Before ordering façade fittings you should…', ['do a night mock-up on site', 'skip testing', 'only look at renders'], 0)] });
+add('tech', 'Techniques', 't_flood', '🏟️', 'Floodlight aiming', {
+  line: 'Sports and area floodlights are <b>aimed</b> one by one: each fitting gets its own tilt and direction from the design so the field is even and glare stays low.',
+  body: '<table class="spec"><tr><td>Aiming angle</td><td>Usually below 65–70° from vertical to limit glare</td></tr><tr><td>Tools</td><td>Aiming sheet from the design, aiming device / laser, numbered fittings</td></tr><tr><td>Check</td><td>Lux grid measurement after aiming (Sales Tools → Lux meter)</td></tr><tr><td>Masts</td><td>Mast height ≈ 0.25 × distance to the far side of the field (typical)</td></tr></table>',
+  say: '“Every floodlight is aimed to its own point from our design – then we measure the field grid to prove the level and uniformity.”',
+  watch: 'Wrong aiming ruins a good design – budget time for night aiming and a lux grid measurement before handover.',
+  quiz: [Q('Floodlights are aimed…', ['individually from the design', 'all straight down', 'randomly'], 0), Q('After aiming you should…', ['measure a lux grid', 'paint the masts', 'nothing'], 0), Q('Aiming too high (close to horizontal) causes…', ['glare', 'better uniformity', 'lower cost'], 0)] });
+
+// ---------------- FIXTURE CONSTRUCTION
+add('fix', 'Live', 'lab_fix', '🔧', 'Inside the fixture', { type: 'lab', lab: 'fix', preset: 'down', mins: 4, live: 1,
+  quiz: [Q('The heat sink’s job is to…', ['keep the LED chip cool', 'hold the glass', 'connect the mains'], 0), Q('What makes a floodlight IP66?', ['the silicone gasket and sealed glass', 'the bracket', 'the lens colour'], 0), Q('A surge protection device protects against…', ['lightning and grid spikes', 'dust', 'glare'], 0)] });
+const FQ = (t) => [Q(`In a ${t}, the part that most decides lifetime is…`, ['heat sink and driver', 'the trim colour', 'the packaging'], 0), Q('Cheap fittings usually save money on…', ['heat sink, driver and chip', 'the instructions', 'the box'], 0), Q('Tap a part in the drawing to see…', ['what it does and good vs cheap', 'the price', 'the stock'], 0)];
+add('fix', 'Fittings', 'f_down', '⭕', 'Recessed downlight', { type: 'lab', lab: 'fix', preset: 'down', quiz: FQ('downlight') });
+add('fix', 'Fittings', 'f_flood', '🔆', 'Floodlight', { type: 'lab', lab: 'fix', preset: 'flood', quiz: FQ('floodlight') });
+add('fix', 'Fittings', 'f_street', '🛣️', 'Street light', { type: 'lab', lab: 'fix', preset: 'street', quiz: FQ('street light') });
+add('fix', 'Fittings', 'f_panel', '▭', 'Panel & linear', {
+  line: 'Panels and linear fittings light offices, schools and shops. The <b>optic</b> (opal, micro-prismatic, louvre) decides glare; <b>edge-lit vs back-lit</b> decides efficiency and evenness.',
+  body: '<table class="spec"><tr><td>Back-lit panel</td><td>LEDs behind the diffuser – efficient, even, slightly thicker</td></tr><tr><td>Edge-lit panel</td><td>LEDs at the edge with a light guide – very slim, the guide can yellow</td></tr><tr><td>Opal diffuser</td><td>Soft look, UGR often 22+</td></tr><tr><td>Micro-prismatic</td><td>UGR < 19 for screen work</td></tr><tr><td>Linear</td><td>Continuous lines, suspended or recessed, often with direct / indirect light</td></tr></table>',
+  say: '“For the office we use back-lit UGR 19 panels – efficient, even, and comfortable for screen work.”',
+  watch: 'Cheap edge-lit panels use light guides that yellow and lose light within a few years. Check the frame matches the ceiling grid (600 × 600 vs 625 × 625).',
+  quiz: [Q('Which diffuser is right for screen work?', ['Opal', 'Micro-prismatic', 'Clear'], 1), Q('Edge-lit panels risk…', ['yellowing of the light guide', 'being too heavy', 'needing DMX'], 0), Q('Before ordering panels check…', ['the ceiling grid size', 'the logo colour', 'the truck size'], 0)] });
+add('fix', 'Fittings', 'f_highbay', '🏭', 'High-bay', {
+  line: 'High-bays light factories and warehouses from 6–15 m. Look at the <b>optic</b> (narrow for aisles, wide for open areas), the <b>heat sink</b> and the <b>rated ambient temperature</b>.',
+  body: '<table class="spec"><tr><td>Optics</td><td>60° / 90° / 120° or aisle optics; PC lens or aluminium reflector</td></tr><tr><td>Ta</td><td>Rated ambient up to 50–55 °C for hot roofs</td></tr><tr><td>Protection</td><td>IP65 for dust and washing; IK08 against knocks</td></tr><tr><td>Controls</td><td>Built-in or plug-in presence sensors, DALI or 1–10 V</td></tr></table>',
+  say: '“These high-bays are rated for 50 °C under your roof and have aisle optics – the light goes onto the racks, not the roof.”',
+  watch: 'Check Ta – a fitting rated at 25 °C will dim and fail early under a hot metal roof. Heavy fittings need proper chains / safety wires.',
+  quiz: [Q('For long rack aisles you choose…', ['an aisle (narrow) optic', 'a 120° optic', 'a cove light'], 0), Q('Ta means…', ['rated ambient temperature', 'total amps', 'type approval'], 0), Q('Under a hot metal roof you must check…', ['the rated Ta', 'the colour of the box', 'the cable brand'], 0)] });
+add('fix', 'Fittings', 'f_track', '🎯', 'Track spot', {
+  line: 'Track spots slide on a powered track so shops and galleries can move and re-aim light as displays change.',
+  body: '<table class="spec"><tr><td>Track types</td><td>1-circuit, 3-circuit (three switched groups), DALI track</td></tr><tr><td>Beams</td><td>10° – 60°, interchangeable lenses</td></tr><tr><td>Glare</td><td>Snoots, honeycomb louvres, deep-set optics</td></tr><tr><td>Colour</td><td>CRI 90+, 3000 K fashion, special spectra for food</td></tr></table>',
+  say: '“With 3-circuit track you can move the spots anywhere and switch three groups separately – perfect when the window display changes every month.”',
+  watch: 'Track adapters must match the track brand system (Global / 3-circuit standards differ). Count the track load (amps).',
+  quiz: [Q('3-circuit track lets you…', ['switch three groups separately', 'use 3 colours only', 'fit 3 spots only'], 0), Q('Track adapters must…', ['match the track system', 'be any brand', 'be removed'], 0), Q('Honeycomb louvres are used to…', ['reduce glare', 'add colour', 'increase lumens'], 0)] });
+add('fix', 'Fittings', 'f_driver', '🧰', 'Drivers & surge protection', {
+  line: 'The <b>driver</b> is the heart of an LED fitting – most failures start there. Constant-current drivers feed fittings; constant-voltage (12 / 24 V) drivers feed LED strips.',
+  body: '<table class="spec"><tr><td>Constant current</td><td>e.g. 700 mA – for downlights, panels, high-bays</td></tr><tr><td>Constant voltage</td><td>12 / 24 V – for LED strips and coves</td></tr><tr><td>Key values</td><td>Flicker < 5%, PF > 0.9, THD < 20%, life at Ta (e.g. 50,000 h at tc 75 °C)</td></tr><tr><td>Surge</td><td>Indoor 2–4 kV; outdoor 6–10 kV + separate SPD for street lights</td></tr><tr><td>Dimming</td><td>Non-dim, 1–10 V, DALI-2, phase-cut, Casambi</td></tr></table>',
+  say: '“We use branded drivers with a 50,000-hour life at full temperature and 10 kV surge protection outside – the part that usually fails is the one we invest in.”',
+  watch: 'Never connect a constant-voltage strip to a constant-current driver (or the reverse). Leave room for driver heat – drivers inside insulation die early.',
+  quiz: [Q('LED strips usually need…', ['constant-voltage drivers', 'constant-current drivers', 'no driver'], 0), Q('Most LED fitting failures start in…', ['the driver', 'the glass', 'the screws'], 0), Q('Outdoor surge protection is typically…', ['6–10 kV', '0.1 kV', 'not needed'], 0)] });
+
+// ---------------- LED CHIPS
+add('chip', 'Live', 'lab_chip', '🔬', 'LED chip lab', { type: 'lab', lab: 'chip', preset: 'types', mins: 5, live: 1,
+  quiz: [Q('Driving chips harder than rated mainly…', ['shortens their life', 'improves colour', 'saves energy'], 0), Q('A poor heat sink makes the junction temperature…', ['higher', 'lower', 'no change'], 0), Q('For hotels with rows of downlights ask for…', ['3-step MacAdam or better', '7-step MacAdam', 'any binning'], 0)] });
+add('chip', 'LED chips', 'c_white', '🔵', 'How an LED makes white light', {
+  line: 'A white LED is a <b>blue LED chip</b> covered with a yellow <b>phosphor</b>. Some blue light passes through, the rest is turned into yellow-red light – together the eye sees white.',
+  body: '<table class="spec"><tr><td>More phosphor</td><td>Warmer light (2700–3000 K), slightly less efficient</td></tr><tr><td>Less phosphor</td><td>Cooler light (5000–6500 K), most efficient</td></tr><tr><td>High CRI</td><td>Extra red phosphor – better colours, a little less lm/W</td></tr><tr><td>Special spectra</td><td>Food, fashion, human-centric lighting – tuned phosphors</td></tr></table>',
+  say: '“Warm and high-CRI LEDs cost a little efficiency because more of the blue light is converted – that is why a 3000 K CRI 90 fitting has slightly fewer lumens.”',
+  watch: 'Do not compare a 5000 K Ra 70 fitting with a 3000 K Ra 90 fitting on lumens alone – they are different products.',
+  quiz: [Q('A white LED is usually…', ['a blue chip with phosphor', 'three red chips', 'a halogen inside'], 0), Q('Warmer CCT and higher CRI usually mean…', ['slightly lower efficacy', 'higher efficacy', 'no change'], 0), Q('The phosphor converts blue light into…', ['yellow-red light', 'UV light', 'heat only'], 0)] });
+add('chip', 'LED chips', 'c_types', '▪️', 'Chip types: SMD, COB, CSP, high-power', { type: 'lab', lab: 'chip', preset: 'types',
+  quiz: [Q('A single round light source used in spotlights is…', ['COB', 'SMD 5050', 'CSP'], 0), Q('RGB colour strips usually use…', ['SMD 5050', 'COB', '3535 ceramic'], 0), Q('Street lights often use…', ['high-power 3535 or CSP chips with lenses', 'COB with reflectors only', 'SMD 5050 RGB'], 0)] });
+add('chip', 'LED chips', 'c_tj', '🌡️', 'Junction temperature & life', { type: 'lab', lab: 'chip', preset: 'heat',
+  quiz: [Q('Junction temperature is…', ['the temperature inside the LED chip', 'the room temperature', 'the cable temperature'], 0), Q('Higher junction temperature means…', ['shorter life and less light', 'longer life', 'better colour'], 0), Q('The best way to keep it low is…', ['a good heat sink and moderate current', 'a brighter driver', 'a thinner body'], 0)] });
+add('chip', 'LED chips', 'c_current', '⚡', 'Drive current & droop', { type: 'lab', lab: 'chip', preset: 'heat',
+  quiz: [Q('At higher drive current the efficacy (lm/W)…', ['falls (droop)', 'rises', 'stays the same'], 0), Q('Cheap fittings often show more lumens by…', ['over-driving the chips', 'using better optics', 'adding heat sinks'], 0), Q('Good fittings drive chips…', ['gently, below their maximum', 'at maximum current', 'without a driver'], 0)] });
+add('chip', 'LED chips', 'c_bin', '🎯', 'Binning & MacAdam steps', { type: 'lab', lab: 'chip', preset: 'bin',
+  quiz: [Q('MacAdam steps describe…', ['colour consistency between LEDs', 'brightness', 'lifetime'], 0), Q('Which is more consistent?', ['3-step', '7-step', 'They are equal'], 0), Q('Where is consistency most visible?', ['Rows of downlights on a white wall', 'Street lights far apart', 'Emergency signs'], 0)] });
+add('chip', 'LED chips', 'c_lm80', '📑', 'LM-80 & TM-21 reports', {
+  line: '<b>LM-80</b> is a lab test of how an LED chip loses light over at least 6,000 hours at set temperatures. <b>TM-21</b> uses that data to project the lifetime (e.g. L90 at 50,000 h).',
+  body: '<table class="spec"><tr><td>LM-80</td><td>Measured data for the chip, at 55 °C, 85 °C and a third temperature</td></tr><tr><td>TM-21</td><td>Projection – limited to 6 × the test hours (e.g. 6,000 h test → max 36,000 h claim)</td></tr><tr><td>In-situ</td><td>The chip temperature inside the fitting (Ts) must be within the tested range</td></tr><tr><td>Ask for</td><td>The chip model, the LM-80 report, the TM-21 calculation and the fitting’s Ts measurement</td></tr></table>',
+  say: '“Our lifetime is backed by the chip maker’s LM-80 test and a TM-21 projection at the real temperature inside this fitting.”',
+  watch: 'A 100,000-hour claim from a 6,000-hour test is not allowed under TM-21. Reports must match the actual chip model in the fitting.',
+  quiz: [Q('LM-80 is…', ['a measured light-loss test of LED chips', 'a glare standard', 'an IP test'], 0), Q('TM-21 can project up to…', ['6 × the test hours', '100 × the test hours', 'any number'], 0), Q('The report must match…', ['the chip model used in the fitting', 'any chip from the brand', 'the driver'], 0)] });
+add('chip', 'LED chips', 'c_brands', '🏷️', 'Chip brands & what to ask', {
+  line: 'Well-known chip makers include <b>Lumileds, Nichia, ams OSRAM, Cree, Samsung and Seoul Semiconductor</b>. A branded chip with published data is the first sign of a serious fitting.',
+  body: '<table class="spec"><tr><td>Ask</td><td>Which chip brand and model? LM-80 / TM-21 reports? Binning (MacAdam step)? Drive current vs maximum? Ts measured in the fitting?</td></tr><tr><td>Good sign</td><td>Brand and model on the data sheet, reports provided on request</td></tr><tr><td>Warning sign</td><td>“Imported high-quality chips”, no model, no reports</td></tr></table>',
+  say: '“Inside are Nichia chips – here is the model and its LM-80 report.”',
+  watch: 'A famous chip brand alone is not enough – a good chip in a bad heat sink with a bad driver still fails early.',
+  quiz: [Q('Which is a warning sign?', ['“Imported high-quality chips” with no model', 'Chip model on the data sheet', 'LM-80 report available'], 0), Q('A branded chip guarantees a good fitting?', ['No – heat sink and driver matter too', 'Yes, always', 'Only outdoors'], 0), Q('You should ask for…', ['chip model, LM-80 / TM-21, binning', 'only the price', 'only the colour'], 0)] });
+
+// ---------------- LIGHTING CONTROLS
+add('ctl', 'Live', 'lab_ctl', '🎛️', 'Dimming & control protocols', { type: 'lab', lab: 'ctlv', preset: 'dali', mins: 6, live: 1,
+  quiz: [Q('How many drivers on one DALI line?', ['16', '64', '512'], 1), Q('DMX512 is best for…', ['colour-changing façades and effects', 'emergency lighting', 'switching a single lamp'], 0), Q('Which needs a relay to switch off completely?', ['1–10 V', 'DALI', 'Casambi'], 0)] });
+add('ctl', 'Protocols', 'p_v110', '〽️', '1–10 V / 0–10 V', { type: 'lab', lab: 'ctlv', preset: 'v110',
+  quiz: [Q('At 1 V a 1–10 V driver is…', ['at minimum light, not off', 'off', 'at full light'], 0), Q('Can 1–10 V address one fitting separately on a shared pair?', ['No', 'Yes', 'Only at night'], 0), Q('Does 1–10 V report a failed driver?', ['No', 'Yes', 'Only DALI-2 drivers'], 0)] });
+add('ctl', 'Protocols', 'p_phase', '🌗', 'Phase-cut (leading / trailing edge)', { type: 'lab', lab: 'ctlv', preset: 'phase',
+  quiz: [Q('For LED fittings the better dimmer type is…', ['trailing edge', 'leading edge', 'either'], 0), Q('Phase-cut dimming needs…', ['no control wires', 'two control wires', 'a data cable'], 0), Q('A common problem with the wrong dimmer is…', ['flicker and buzzing', 'too much light', 'colour change to blue'], 0)] });
+add('ctl', 'Protocols', 'p_dali', '🟢', 'DALI – addresses, groups, scenes', { type: 'lab', lab: 'ctlv', preset: 'dali',
+  quiz: [Q('DALI addresses run from…', ['0 to 63', '1 to 512', '1 to 10'], 0), Q('How many groups per DALI line?', ['16', '4', '64'], 0), Q('DALI bus wires…', ['have no polarity', 'must be shielded data cable', 'carry 230 V'], 0)] });
+add('ctl', 'Protocols', 'p_daliv', '🏷️', 'DALI-1, DALI-2, D4i, DT8, DALI+', { type: 'lab', lab: 'ctlv', preset: 'daliv',
+  quiz: [Q('Which should you specify today?', ['DALI-2 (certified)', 'DALI-1', 'Any analogue dimming'], 0), Q('D4i adds…', ['energy and diagnostic data, luminaire sensors', 'RGB colour', 'wireless only'], 0), Q('DT8 is for…', ['colour / tunable white', 'emergency', 'switching only'], 0)] });
+add('ctl', 'Protocols', 'p_dmx', '🌈', 'DMX512 & RDM', { type: 'lab', lab: 'ctlv', preset: 'dmx',
+  quiz: [Q('One DMX universe has…', ['512 channels', '64 addresses', '16 groups'], 0), Q('A DMX line ends with…', ['a 120 Ω terminator', 'nothing', 'a fuse'], 0), Q('RDM adds…', ['feedback and remote addressing', 'colour', 'battery backup'], 0)] });
+add('ctl', 'Protocols', 'p_casambi', '📶', 'Casambi & Bluetooth mesh', { type: 'lab', lab: 'ctlv', preset: 'casambi',
+  quiz: [Q('Casambi works over…', ['Bluetooth mesh', 'DALI wires', 'Wi-Fi only'], 0), Q('In a mesh, a far light gets messages…', ['through other lights', 'only from the phone directly', 'not at all'], 0), Q('Casambi is ideal for…', ['retrofits without new control cables', 'stadium broadcast', 'emergency only'], 0)] });
+add('ctl', 'Protocols', 'p_sensors', '🔎', 'Sensors: occupancy & daylight', {
+  line: '<b>Occupancy (presence) sensors</b> switch or dim lights when nobody is there. <b>Daylight sensors</b> dim lights near windows when the sun gives enough light.',
+  body: '<table class="spec"><tr><td>PIR</td><td>Detects body heat movement – offices, corridors, toilets</td></tr><tr><td>Microwave / HF</td><td>Detects small movement, through thin materials – warehouses, car parks (can over-detect)</td></tr><tr><td>Presence vs absence</td><td>Presence: auto on + off. Absence: manual on, auto off – saves more in offices</td></tr><tr><td>Daylight</td><td>Constant light control near windows – 20–40% saving there</td></tr><tr><td>Mounting</td><td>Check detection range for the mounting height; avoid aiming at doors and corridors</td></tr></table>',
+  say: '“Absence sensors in offices: people switch on when they need light, and the system switches off when they leave – the biggest single saving.”',
+  watch: 'Wrong sensor placement causes lights switching off on people at desks. Set hold times (10–20 min) and check coverage drawings.',
+  quiz: [Q('PIR sensors detect…', ['body heat movement', 'daylight', 'sound'], 0), Q('Absence detection means…', ['manual on, automatic off', 'automatic on and off', 'always on'], 0), Q('Daylight sensors save most…', ['near windows', 'in basements', 'in corridors without windows'], 0)] });
+add('ctl', 'Protocols', 'p_choose', '⚖️', 'Choosing the right protocol', { type: 'lab', lab: 'ctlv', preset: 'table',
+  quiz: [Q('A colour-changing façade usually uses…', ['DMX', 'phase-cut', '1–10 V'], 0), Q('A retrofit with no new cables suits…', ['Casambi', 'DALI', 'DMX'], 0), Q('An office needing feedback and regrouping suits…', ['DALI-2', 'phase-cut', '1–10 V'], 0)] });
+
+// ---------------- LMS & KNX
+add('lms', 'Live', 'lab_lms', '🏢', 'Smart office day (LMS)', { type: 'lab', lab: 'lmsv', preset: 1, mins: 5, live: 1,
+  quiz: [Q('Which strategy saves most near windows?', ['Daylight harvesting', 'Time schedule', 'Colour change'], 0), Q('Task tuning means…', ['limiting the maximum level to what is needed', 'switching off at night', 'changing CCT'], 0), Q('An LMS also helps maintenance by…', ['reporting failed drivers', 'cleaning fittings', 'changing tariffs'], 0)] });
+add('lms', 'Live', 'lab_knx', '🟩', 'KNX live installation', { type: 'lab', lab: 'lmsv', preset: 2, mins: 5, live: 1,
+  quiz: [Q('KNX devices talk using…', ['group addresses', 'IP cameras', 'DMX channels'], 0), Q('Is there a central controller in KNX?', ['No – every device has its own brain', 'Yes, always', 'Only in hotels'], 0), Q('KNX is programmed with…', ['ETS', 'DLux', 'Excel'], 0)] });
+add('lms', 'Live', 'lab_cmp', '⚖️', 'KNX vs Modbus, C-Bus, BACnet & others', { type: 'lab', lab: 'lmsv', preset: 3, mins: 5, live: 1,
+  quiz: [Q('Which is proprietary?', ['C-Bus', 'KNX', 'BACnet'], 0), Q('The usual language of a BMS for HVAC is…', ['BACnet', 'DMX', 'Casambi'], 0), Q('Modbus is mainly used for…', ['meters and industrial equipment', 'stage lighting', 'emergency signs'], 0)] });
+add('lms', 'Topics', 'l_strat', '⏱️', 'Control strategies & energy', {
+  line: 'Five strategies do most of the saving: <b>scheduling, occupancy, daylight harvesting, task tuning</b> and <b>personal control</b>. Combined they typically save 40–70% over always-on LED.',
+  body: '<table class="spec"><tr><td>Scheduling</td><td>Off outside working hours – 10–20%</td></tr><tr><td>Occupancy</td><td>Off / dimmed in empty rooms – 20–40%</td></tr><tr><td>Daylight harvesting</td><td>Dims near windows – 20–40% in those zones</td></tr><tr><td>Task tuning</td><td>Caps the level at what is needed – 10–20%</td></tr><tr><td>Personal control</td><td>Staff dim their own area – comfort plus 5–10%</td></tr></table>',
+  say: '“LED alone saves around half; adding controls saves roughly half of what is left – and pays back faster than the LED itself.”',
+  watch: 'Savings do not simply add up – each strategy works on what the previous one left. Use the Smart office lab to show realistic numbers.',
+  quiz: [Q('Which is NOT a control strategy?', ['Changing the cable colour', 'Daylight harvesting', 'Scheduling'], 0), Q('Controls on top of LED typically save…', ['40–70%', '1–2%', '100%'], 0), Q('Do strategy savings simply add up?', ['No – each works on what is left', 'Yes', 'Only at night'], 0)] });
+add('lms', 'Topics', 'l_knxtopo', '🧭', 'KNX topology & group addresses', { type: 'lab', lab: 'lmsv', preset: 2,
+  quiz: [Q('A KNX line has up to about … devices on one power supply.', ['64', '512', '5'], 0), Q('Physical address 1.2.3 means…', ['area 1, line 2, device 3', 'group 1, 2, 3', 'three lamps'], 0), Q('Couplers pass a telegram on when…', ['a device behind them listens to that group', 'always', 'never'], 0)] });
+add('lms', 'Topics', 'l_gateways', '🔗', 'Gateways: DALI ↔ KNX ↔ BACnet', {
+  line: 'Big buildings mix systems: DALI drives the lights, KNX runs rooms, BACnet runs the BMS. <b>Gateways</b> translate between them.',
+  body: '<table class="spec"><tr><td>KNX–DALI gateway</td><td>One KNX device controls 1–2 DALI lines (64 drivers each), with feedback into KNX</td></tr><tr><td>DALI–BACnet / Modbus</td><td>Lighting status and energy into the BMS</td></tr><tr><td>KNX IP / BACnet IP</td><td>Join systems over the building network</td></tr><tr><td>What to agree</td><td>Who programs which side, which data points the BMS needs, and the point list</td></tr></table>',
+  say: '“We deliver DALI-2 lighting with a KNX gateway; your BMS sees every lighting zone and its energy through BACnet.”',
+  watch: 'Agree the interface (point list, who programs what) with the MEP consultant early – gateways are where projects get stuck at commissioning.',
+  quiz: [Q('A KNX–DALI gateway…', ['lets KNX control DALI drivers', 'turns DALI into DMX', 'replaces drivers'], 0), Q('What must be agreed early with the MEP consultant?', ['the point list and who programs what', 'the fitting colour', 'nothing'], 0), Q('BACnet is mostly the language of…', ['the BMS', 'stage lighting', 'emergency signs'], 0)] });
+add('lms', 'Topics', 'l_open', '🔒', 'Open vs proprietary – what to tell the client', {
+  line: '<b>Open standards</b> (KNX, DALI-2, BACnet, Modbus) can be serviced by any qualified integrator. <b>Proprietary systems</b> can offer more features but tie the client to one brand.',
+  body: '<table class="spec"><tr><td>Open – pros</td><td>Many suppliers, competition on price, long-term spares, no lock-in</td></tr><tr><td>Open – cons</td><td>Needs a skilled integrator; features depend on the devices chosen</td></tr><tr><td>Proprietary – pros</td><td>One responsible supplier, polished features and design tools</td></tr><tr><td>Proprietary – cons</td><td>Lock-in, higher spares and service cost, depends on the brand’s local partner</td></tr></table>',
+  say: '“Both work. With an open standard you can choose any integrator later; with a proprietary system you get one responsible brand – let’s price the 10-year service either way.”',
+  watch: 'Be honest about lock-in up front – a client who discovers it later loses trust in us, not only in the brand.',
+  quiz: [Q('Which is an open standard?', ['KNX', 'C-Bus', 'A single-brand system'], 0), Q('The main risk of proprietary systems is…', ['lock-in to one brand', 'no features', 'no dimming'], 0), Q('A fair way to compare is…', ['10-year total cost including service', 'only the first price', 'only the brand name'], 0)] });
+
+const LESSONS = Object.fromEntries(L.map((l) => [l.id, l]));
+
+
+// ================================================================ ACADEMY engine – widgets, quiz, routing, progress
+// ---- small widgets
+function wLux() { const lm = +$('luxLm').value, b = +$('luxB').value, d = +$('luxD').value, half = b / 2 * Math.PI / 180, I0 = lm * 0.85 / (2 * Math.PI * (1 - Math.cos(half))), E = I0 / (d * d), dia = 2 * d * Math.tan(half);
+  $('luxLmV').textContent = lm.toLocaleString() + ' lm'; $('luxBV').textContent = b + '°'; $('luxDV').textContent = d + ' m';
+  const s = 260 / Math.max(d, 4), x0 = 210, y0 = 24, yf = y0 + d * s, rx = Math.min(200, dia / 2 * s);
+  $('luxSvg').innerHTML = `<rect width="420" height="300" fill="#0f1218"/><path d="M${x0} ${y0}L${x0 - rx} ${yf}L${x0 + rx} ${yf}Z" fill="rgba(255,225,150,.28)"/><ellipse cx="${x0}" cy="${yf}" rx="${rx}" ry="8" fill="rgba(255,214,140,${Math.min(0.95, 0.25 + E / 1500)})"/><rect x="${x0 - 14}" y="${y0 - 10}" width="28" height="10" rx="2" fill="#e5e7eb"/><line x1="380" x2="380" y1="${y0}" y2="${yf}" stroke="#94a3b8"/><text x="372" y="${(y0 + yf) / 2}" text-anchor="end" font-size="12" fill="#cbd5e1">${d} m</text><text x="${x0}" y="${yf + 26}" text-anchor="middle" font-size="12" fill="#fde68a">${Math.round(E).toLocaleString()} lx in the centre · spot ⌀ ${dia.toFixed(1)} m</text>`;
+  $('luxKpi').innerHTML = `<div><b>${Math.round(I0).toLocaleString()} cd</b>intensity in the centre</div><div><b>${Math.round(E).toLocaleString()} lx</b>on the surface</div><div><b>${dia.toFixed(1)} m</b>spot diameter</div><div><b>${Math.round(I0 / (4 * d * d)).toLocaleString()} lx</b>at twice the distance</div>`;
+  $('luxNote').textContent = 'Lux = candela ÷ distance². Twice the distance → a quarter of the lux; half the beam angle → about four times the lux.'; }
+const EFF = [['Incandescent', 12], ['Halogen', 18], ['CFL', 60], ['Metal halide (with gear)', 80], ['Fluorescent T5', 90], ['LED – standard', 130], ['LED – good', 160], ['LED – premium', 190]];
+function wEff() { const lm = +$('effLm').value; $('effV').textContent = lm.toLocaleString() + ' lm';
+  const W = 760, l = 190, r = 70, bh = 22, gap = 8, max = lm / EFF[0][1]; let s = '';
+  EFF.forEach(([n, e], i) => { const w = lm / e, y = 8 + i * (bh + gap), px = (W - l - r) * w / max; s += `<text x="${l - 8}" y="${y + 15}" text-anchor="end" font-size="12" fill="#14161c">${n} · ${e} lm/W</text><rect x="${l}" y="${y}" width="${Math.max(2, px)}" height="${bh}" rx="4" fill="var(--s1)" opacity="${i >= 5 ? 1 : 0.55}"/><text x="${l + px + 6}" y="${y + 15}" font-size="12" fill="#14161c">${Math.round(w).toLocaleString()} W</text>`; });
+  $('effSvg').innerHTML = s; }
+const SW = [['Skin', '#e0ac8c'], ['Red apple', '#c8102e'], ['Strawberry', '#e3263b'], ['Orange', '#f28c28'], ['Leaf', '#3f8f3a'], ['Denim', '#2f4f8f'], ['Wood', '#8b5a2b'], ['Purple', '#7b3fa0']];
+function hexHsl(h) { const r = parseInt(h.slice(1, 3), 16) / 255, g = parseInt(h.slice(3, 5), 16) / 255, b = parseInt(h.slice(5, 7), 16) / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b); let hh = 0, s = 0; const l = (mx + mn) / 2; if (mx !== mn) { const d = mx - mn; s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn); hh = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; hh *= 60; } return [hh, s * 100, l * 100]; }
+function wCri() { const c = +$('criR').value, q = (c - 60) / 38; $('criV').textContent = 'Ra ' + c;
+  let s = `<rect width="640" height="230" fill="#14161c"/><text x="20" y="28" font-size="12" fill="#cbd5e1">Daylight (Ra 100)</text><text x="20" y="128" font-size="12" fill="#cbd5e1">This LED (Ra ${c})</text>`;
+  SW.forEach(([n, hex], i) => { const [h, sat, l] = hexHsl(hex), red = h < 35 || h > 320, k = (1 - q) * (red ? 0.65 : 0.3), x = 20 + i * 76; s += `<rect x="${x}" y="38" width="66" height="54" rx="6" fill="${hex}"/><rect x="${x}" y="138" width="66" height="54" rx="6" fill="hsl(${h},${(sat * (1 - k)).toFixed(0)}%,${(l * (1 - k * 0.15)).toFixed(0)}%)"/><text x="${x + 33}" y="212" text-anchor="middle" font-size="11" fill="#94a3b8">${n}</text>`; });
+  $('criSvg').innerHTML = s;
+  $('criNote').textContent = c >= 90 ? 'Ra 90+: skin, food and fabrics look natural – right for retail, hospitality, galleries and healthcare.' : c >= 80 ? 'Ra 80: fine for offices and schools, but reds look duller.' : 'Below Ra 80: only for warehouses, roads and car parks – reds and skin look grey.'; }
+let ugrF = 'opal', ugrRm = 'office';
+const UGRF = { bare: ['Bare LED / unshielded high-bay', 28], opal: ['Opal panel', 22], prism: ['Micro-prismatic panel', 19], louvre: ['Deep louvre / deep downlight', 15] };
+const UGRR = { drawing: ['Technical drawing', 16], office: ['Office / classroom', 19], retail: ['Retail / fine industry', 22], warehouse: ['Warehouse / rough industry', 25], corridor: ['Corridor', 28] };
+function wUgr() { $('ugrFit').innerHTML = '<span class="m" style="align-self:center;font-size:12px">Fitting:</span>' + Object.entries(UGRF).map(([k, [n]]) => `<span class="btn ${k === ugrF ? 'on' : ''}" style="padding:4px 9px;font-size:12px" onclick="ugrF='${k}';wUgr()">${n}</span>`).join('');
+  $('ugrRoom').innerHTML = '<span class="m" style="align-self:center;font-size:12px">Room:</span>' + Object.entries(UGRR).map(([k, [n]]) => `<span class="btn ${k === ugrRm ? 'on' : ''}" style="padding:4px 9px;font-size:12px" onclick="ugrRm='${k}';wUgr()">${n}</span>`).join('');
+  const v = UGRF[ugrF][1], lim = UGRR[ugrRm][1], X = (u) => 30 + (u - 10) / 20 * 580, ok = v <= lim;
+  $('ugrSvg').innerHTML = `<rect width="640" height="140" fill="#14161c"/><defs><linearGradient id="ug" x1="0" x2="1"><stop offset="0" stop-color="#15803d"/><stop offset=".5" stop-color="#ca8a04"/><stop offset="1" stop-color="#b91c1c"/></linearGradient></defs><rect x="30" y="50" width="580" height="18" rx="9" fill="url(#ug)"/>` + [10, 13, 16, 19, 22, 25, 28].map((u) => `<text x="${X(u)}" y="90" text-anchor="middle" font-size="11" fill="#94a3b8">${u}</text>`).join('') + `<line x1="${X(lim)}" x2="${X(lim)}" y1="36" y2="78" stroke="#fff" stroke-dasharray="3 3"/><text x="${X(lim)}" y="30" text-anchor="middle" font-size="11" fill="#fff">limit ${lim}</text><circle cx="${X(v)}" cy="59" r="11" fill="#fff" stroke="#14161c" stroke-width="3"/><text x="${X(v)}" y="120" text-anchor="middle" font-size="13" font-weight="700" fill="${ok ? '#4ade80' : '#f87171'}">UGR ≈ ${v} – ${ok ? 'OK' : 'too much glare'}</text>`;
+  $('ugrNote').textContent = 'Typical values for a standard room – the real UGR depends on room size, surfaces and layout (DLux / the manufacturer’s UGR table).'; }
+function wPolar() { const b = +$('polB').value, half = b / 2 * Math.PI / 180, n = Math.log(0.5) / Math.log(Math.cos(half)); $('polV').textContent = b + '°';
+  const cx = 200, cy = 20, R = 220; let s = `<rect width="400" height="260" fill="#0f1218"/>`;
+  [0.25, 0.5, 0.75, 1].forEach((f) => s += `<path d="M${cx - R * f} ${cy} A ${R * f} ${R * f} 0 0 0 ${cx + R * f} ${cy}" fill="none" stroke="#262c38"/>`);
+  [-60, -30, 0, 30, 60].forEach((a) => { const t = a * Math.PI / 180; s += `<line x1="${cx}" y1="${cy}" x2="${cx + R * Math.sin(t)}" y2="${cy + R * Math.cos(t)}" stroke="#262c38"/>`; });
+  const pts = []; for (let a = -90; a <= 90; a += 1) { const t = a * Math.PI / 180, r = R * Math.pow(Math.max(0, Math.cos(t)), n); pts.push(`${a === -90 ? 'M' : 'L'}${(cx + r * Math.sin(t)).toFixed(1)} ${(cy + r * Math.cos(t)).toFixed(1)}`); }
+  s += `<path d="${pts.join('')}Z" fill="rgba(42,111,219,.25)" stroke="#60a5fa" stroke-width="2"/>`;
+  [-1, 1].forEach((sg) => { s += `<line x1="${cx}" y1="${cy}" x2="${cx + sg * R * 0.5 * Math.sin(half) * 1.9}" y2="${cy + R * 0.5 * Math.cos(half) * 1.9}" stroke="#fbbf24" stroke-dasharray="4 3"/>`; });
+  s += `<circle cx="${cx + R * 0.5 * Math.sin(half)}" cy="${cy + R * 0.5 * Math.cos(half)}" r="5" fill="#fbbf24"/><text x="${cx + R * 0.5 * Math.sin(half) + 8}" y="${cy + R * 0.5 * Math.cos(half) + 4}" font-size="11" fill="#fde68a">50%</text><text x="${cx}" y="250" text-anchor="middle" font-size="12" fill="#cbd5e1">beam angle ${b}° (between the 50% points)</text>`;
+  $('polSvg').innerHTML = s; $('polNote').innerHTML = b <= 25 ? '<b>Spot</b> – accent, high ceilings, sports floodlights.' : b <= 60 ? '<b>Medium</b> – downlights, high-bays, track.' : '<b>Flood / wide</b> – panels, low ceilings, general lighting.'; }
+function wLife() { const h = +$('lifeH').value; $('lifeV').textContent = h.toLocaleString() + ' h';
+  const good = (t) => 100 * Math.exp(Math.log(0.9) * t / 50000), cheap = (t) => 100 * Math.exp(Math.log(0.7) * t / 20000);
+  const xs = [...Array(51).keys()].map((i) => i * 2000);
+  $('lifeKpi').innerHTML = `<div><b>${good(h).toFixed(0)}%</b>good LED light left</div><div><b>${cheap(h).toFixed(0)}%</b>cheap LED light left</div><div><b>${(h / 4000).toFixed(1)} years</b>at 11 h × 365 days</div>`;
+  lineChart($('lifeSvg'), $('lifeTip'), { W: 760, H: 240, xs, series: [{ name: 'Good LED', c: 'var(--s1)', ys: xs.map(good) }, { name: 'Cheap LED', c: 'var(--s2)', ys: xs.map(cheap) }], xLabel: 'hours', yFmt: (y) => `${Math.round(y)}%`, xFmt: (x, f) => f ? `${Math.round(x).toLocaleString()} h` : `${Math.round(x / 1000)}k h`, marker: h, yMax: 100, yMin: 0, ref: { y: 70, label: 'L70 – end of useful life' } }); }
+function wFlicker() { const r = +$('flR').value / 100; $('flV').textContent = Math.round(r * 100) + '%';
+  let p = ''; for (let i = 0; i <= 400; i++) { const t = i / 400 * 0.02, v = 1 - r / 2 + (r / 2) * Math.cos(2 * Math.PI * 100 * t); p += `${i ? 'L' : 'M'}${i} ${(180 - v * 150).toFixed(1)}`; }
+  $('flSvg').innerHTML = `<rect width="400" height="200" fill="#0f1218"/><line x1="0" x2="400" y1="30" y2="30" stroke="#262c38"/><text x="6" y="24" font-size="10" fill="#94a3b8">100%</text><path d="${p}" fill="none" stroke="#fbbf24" stroke-width="2"/><text x="6" y="196" font-size="10" fill="#94a3b8">0 → 20 ms (one mains cycle = 2 flicker cycles at 100 Hz)</text>`;
+  let c = `<rect width="400" height="200" fill="#e5e7eb"/>`; for (let y = 0; y < 200; y += 20) c += `<rect x="0" y="${y}" width="400" height="10" fill="rgba(0,0,0,${(r * 0.55).toFixed(2)})"/>`;
+  $('flCam').innerHTML = c + `<text x="200" y="105" text-anchor="middle" font-size="14" font-weight="700" fill="#1e293b">${r < 0.05 ? 'No stripes – flicker-free' : 'Stripes = flicker'}</text>`;
+  $('flNote').textContent = r < 0.05 ? 'Below 5%: flicker-free – fine for offices, schools, TV and CCTV.' : r < 0.3 ? 'Noticeable on cameras and can cause eye strain over a day.' : 'Strong flicker – typical of cheap drivers; headaches and camera stripes.'; }
+const IP1 = ['No protection', 'Objects > 50 mm (hand)', 'Objects > 12.5 mm (fingers)', 'Objects > 2.5 mm (tools)', 'Objects > 1 mm (wires)', 'Dust protected', 'Dust-tight'];
+const IP2 = ['No protection', 'Dripping water (vertical)', 'Dripping water (tilted 15°)', 'Spraying water (up to 60°)', 'Splashing from all directions', 'Water jets (6.3 mm nozzle)', 'Powerful water jets (12.5 mm)', 'Temporary immersion up to 1 m', 'Continuous immersion beyond 1 m'];
+const IKJ = ['none', '0.14 J', '0.2 J', '0.35 J', '0.5 J', '0.7 J', '1 J', '2 J', '5 J – 1.7 kg dropped from 30 cm', '10 J', '20 J – 5 kg dropped from 40 cm'];
+const IPP = [['Office ceiling', 2, 0, 2], ['Bathroom', 4, 4, 2], ['Outdoor wall', 6, 5, 7], ['Floodlight', 6, 6, 8], ['Car park / tunnel', 6, 6, 10], ['In-ground uplight', 6, 7, 10]];
+function wIp() { const a = +$('ip1').value, b = +$('ip2').value, k = +$('ik').value; $('ip1V').textContent = a; $('ip2V').textContent = b; $('ikV').textContent = String(k).padStart(2, '0');
+  $('ipPre').innerHTML = '<span class="m" style="align-self:center;font-size:12px">Typical:</span>' + IPP.map(([n, x, y, z]) => `<span class="btn" style="padding:4px 9px;font-size:12px" onclick="$('ip1').value=${x};$('ip2').value=${y};$('ik').value=${z};wIp()">${n}</span>`).join('');
+  $('ipKpi').innerHTML = `<div><b>IP${a}${b} IK${String(k).padStart(2, '0')}</b>your rating</div><div><b>${IP1[a]}</b>first digit – solids</div><div><b>${IP2[b]}</b>second digit – water</div><div style="grid-column:1/-1"><b>${IKJ[k]}</b>impact strength</div>`; }
+function wApp(l) { $('appTable').innerHTML = l.rows.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join(''); }
+const WIDGET_INIT = { cct: () => cct(), pay: () => calc(), lux: wLux, eff: wEff, cri: wCri, ugr: wUgr, polar: wPolar, life: wLife, flicker: wFlicker, ip: wIp };
+[['luxLm', wLux], ['luxB', wLux], ['luxD', wLux], ['effLm', wEff], ['criR', wCri], ['polB', wPolar], ['lifeH', wLife], ['flR', wFlicker], ['ip1', wIp], ['ip2', wIp], ['ik', wIp]].forEach(([id, f]) => $(id).addEventListener('input', f));
+
+// ---- quiz (options shuffled the same way every time for a lesson)
+function seeded(str) { let h = 2166136261; for (const ch of str) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return ((h >>> 0) % 1000) / 1000; }; }
+function renderQuiz(el, les) {
+  const rnd = seeded(les.id); let right = 0, answered = 0;
+  el.innerHTML = les.quiz.map(([q, opts, c], qi) => { const order = opts.map((o, i) => [o, i, rnd()]).sort((a, b) => a[2] - b[2]); return `<div class="q" data-c="${c}" data-qi="${qi}"><p>${qi + 1}. ${q}</p>${order.map(([o, i]) => `<button class="opt" data-i="${i}">${o}</button>`).join('')}</div>`; }).join('') + `<div class="m" style="margin-top:8px" id="qRes_${les.id}"></div>`;
+  el.querySelectorAll('.q').forEach((qd) => qd.querySelectorAll('.opt').forEach((b) => b.onclick = () => {
+    if (qd.dataset.done) return; qd.dataset.done = 1; answered++; const ok = +b.dataset.i === +qd.dataset.c; if (ok) right++;
+    b.classList.add(ok ? 'ok' : 'no'); qd.querySelector(`.opt[data-i="${qd.dataset.c}"]`).classList.add('ok');
+    if (answered === les.quiz.length) finish(les, right, les.quiz.length, el);
+  }));
+}
+function finish(les, score, total, el) {
+  const pass = score * 3 >= total * 2, nx = nextLesson(les.id);
+  record(les.id, score, total);
+  el.querySelector(`#qRes_${les.id}`).innerHTML = `<b>${score} of ${total} right.</b> ${pass ? 'Lesson complete ✓' : 'Read it again and retry – 2 of 3 completes the lesson.'} <span class="btn" style="padding:4px 9px;font-size:12px" onclick="openLesson('${les.id}')">Try again</span> ${nx ? `<span class="btn p" style="padding:4px 9px;font-size:12px" onclick="openLesson('${nx.id}')">Next: ${nx.title} ▶</span>` : ''}`;
+}
+const nextLesson = (id) => { const i = L.findIndex((l) => l.id === id); return L[i + 1] && L[i + 1].mod === L[i].mod ? L[i + 1] : L.find((l, k) => k > i && !(prog[l.id] && prog[l.id].done)); };
+
+// ---- progress (Supabase through the app's sign-in, passed in by the app)
+let cfg = null, prog = {};
+function api(fn, body) { if (!cfg) return Promise.resolve(null); return fetch(`${cfg.sb}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: cfg.key, Authorization: `Bearer ${cfg.token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) }).then((r) => r.ok ? r.json() : Promise.reject(r.status)); }
+function record(id, score, total) {
+  const p = prog[id] || { best: 0, attempts: 0, done: false }; p.attempts++; p.best = Math.max(p.best, score); p.total = total; p.done = p.done || score * 3 >= total * 2; prog[id] = p; renderHome();
+  if (window.parent !== window) window.parent.postMessage({ type: 'academy:progress', lesson: id, score, total }, '*');
+  api('academy_record', { p_lesson: id, p_score: score, p_total: total }).catch(() => { $('saveNote').textContent = 'Could not save your progress – open the Academy again from the app.'; });
+}
+function loadProgress() { return api('academy_mine').then((rows) => { if (rows) { prog = {}; rows.forEach((r) => prog[r.lesson] = { best: r.best, total: r.total, attempts: r.attempts, done: r.done }); } renderHome(); }).catch(() => { $('saveNote').textContent = 'Signed out – open the Academy from the app (Sales Tools → Learn) to save your progress.'; }); }
+function setCfg(c) { cfg = c; $('saveNote').textContent = c ? `Signed in as ${c.name} – your progress is saved.` : 'Open from the DIMO app (Sales Tools → Learn) to save your progress.'; loadProgress(); }
+window.addEventListener('message', (e) => { if (e.data && e.data.type === 'academy:cfg') setCfg(e.data.cfg); });
+
+// ---- home
+let mod = 'basics';
+function renderHome() {
+  const doneN = L.filter((l) => prog[l.id] && prog[l.id].done).length;
+  $('progText').textContent = `Your progress · ${doneN} of ${L.length} lessons`; $('progBar').style.width = `${Math.round(100 * doneN / L.length)}%`;
+  const nx = L.find((l) => !(prog[l.id] && prog[l.id].done)); $('contBtn').innerHTML = nx ? `<span class="btn p" onclick="openLesson('${nx.id}')">${doneN ? 'Continue' : 'Start'}: ${nx.title} ▶</span>` : '<b style="color:var(--good)">All lessons complete ✓</b>';
+  $('mods').innerHTML = MODULES.map(([k, n, sub]) => { const ls = L.filter((l) => l.mod === k), d = ls.filter((l) => prog[l.id] && prog[l.id].done).length; return `<div class="mod ${k === mod ? 'on' : ''}" onclick="mod='${k}';renderHome()"><b>${n}</b><span class="m">${ls.length} lessons · ${sub}</span><div class="bar" style="width:100%;margin-top:6px;height:5px"><i style="width:${Math.round(100 * d / ls.length)}%"></i></div></div>`; }).join('');
+  const secs = [...new Set(L.filter((l) => l.mod === mod).map((l) => l.sec))];
+  $('modBody').innerHTML = secs.map((sec) => `<div class="sec">${sec}</div><div class="grid">${L.filter((l) => l.mod === mod && l.sec === sec).map((l, i) => { const p = prog[l.id];
+    return `<div class="topic" onclick="openLesson('${l.id}')">${p && p.done ? `<span class="done">✓ ${p.best}/${p.total}</span>` : l.live ? '<span class="live">● LIVE</span>' : ''}<div class="ic" style="background:${BG[i % BG.length]}">${l.icon}</div><b>${l.title}</b><span class="t">${l.type === 'lab' ? 'Interactive' : 'Lesson'} · ${l.mins} min · ${l.quiz.length} questions</span></div>`; }).join('')}</div>`).join('');
+}
+const BG = ['#fef3c7', '#ffedd5', '#fce7f3', '#e0e7ff', '#e0f2fe', '#dcfce7', '#f1f5f9', '#ede9fe'];
+
+// ---- lessons and labs
+const VIEWS = ['home', 'lesson', 'tech', 'fix', 'chip', 'ctlv', 'lmsv'];
+function showView(v) { VIEWS.forEach((x) => $(x).classList.toggle('hidden', x !== v)); window.scrollTo(0, 0); }
+function back() { location.hash = '#home'; }
+function parkWidgets() { document.querySelectorAll('[data-parked]').forEach((w) => { $('wstore').appendChild(w); w.removeAttribute('data-parked'); }); }
+const LAB_INIT = {
+  tech: (p) => { tech = p || 'down'; techUI(); room(); },
+  fix: (p) => { fixK = p || 'down'; fixSel = null; drawFix(); },
+  chip: (p) => { drawChip(); lab(); mac(); const idx = { types: 0, heat: 1, bin: 2 }[p] ?? 0; if (idx) setTimeout(() => $('chip').querySelectorAll('.card > .part')[idx].scrollIntoView({ behavior: 'smooth' }), 50); },
+  ctlv: (p) => { if (['v110', 'phase', 'dali', 'dmx', 'casambi'].includes(p)) prot = p; protUI(); daliV(); protTable(); if (p === 'daliv' || p === 'table') setTimeout(() => $(p === 'daliv' ? 'dBtns' : 'pTable').scrollIntoView({ behavior: 'smooth', block: 'center' }), 50); },
+  lmsv: (p) => lmsTab(+p || 1),
+};
+const MODN = Object.fromEntries(MODULES.map(([k, n]) => [k, n]));
+function openLesson(id) { if (location.hash !== '#l/' + id) location.hash = '#l/' + id; else route(); }
+function route() {
+  parkWidgets();
+  const h = location.hash.replace(/^#/, ''); if (!h.startsWith('l/')) { showView("home"); renderHome(); return; }
+  const les = LESSONS[h.slice(2)]; if (!les) { showView("home"); renderHome(); return; }
+  mod = les.mod; const p = prog[les.id], doneTxt = p && p.done ? `✓ Completed · best ${p.best}/${p.total}` : '';
+  if (les.type === 'lab') {
+    const v = $(les.lab); showView(les.lab);
+    v.querySelector('.crumb').textContent = `◀ All lessons · ${MODN[les.mod]}`;
+    v.querySelector('h2').textContent = les.title;
+    let qp = v.querySelector('.labquiz'); if (!qp) { qp = document.createElement('div'); qp.className = 'part labquiz'; qp.innerHTML = '<div class="num">✓</div><div class="body"><h4>Quick check</h4><div class="m labline" style="margin-bottom:6px"></div><div class="qbox"></div></div>'; v.querySelector('.card').appendChild(qp); }
+    qp.querySelector('.labline').innerHTML = les.line ? les.line + (doneTxt ? ` · <b style="color:var(--good)">${doneTxt}</b>` : '') : doneTxt;
+    LAB_INIT[les.lab](les.preset); renderQuiz(qp.querySelector('.qbox'), les); return;
+  }
+  showView("lesson");
+  $('lCrumb').textContent = `◀ All lessons · ${MODN[les.mod]}`; $('lPill').textContent = `${les.mins} min`; $('lTitle').textContent = les.title; $('lDone').innerHTML = doneTxt ? `<b style="color:var(--good)">${doneTxt}</b>` : '';
+  $('lLine').innerHTML = les.line; $('lBody').innerHTML = les.body || ''; $('lSay').textContent = les.say; $('lWatch').textContent = les.watch;
+  $('lSee').innerHTML = ''; $('lSeeP').classList.toggle('hidden', !les.widget);
+  if (les.widget) { const w = $('w_' + les.widget); w.setAttribute('data-parked', '1'); $('lSee').appendChild(w); if (les.widget === 'app') wApp(les); else WIDGET_INIT[les.widget](); if (les.widget === 'pay') $('lSay').textContent = 'See the sentence under the chart – it uses your numbers.'; }
+  renderQuiz($('lQuiz'), les);
+}
+window.addEventListener('hashchange', route);
+
+// ---- start: settings from the app (iframe message, or the link the phone app opens)
+(function start() {
+  const m = location.hash.match(/cfg=([^&]+)/);
+  if (m) { try { const c = JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(m[1]))))); history.replaceState(null, '', location.pathname + '#home'); setCfg(c); } catch { setCfg(null); } }
+  else if (window.parent !== window) { $('saveNote').textContent = 'Connecting…'; window.parent.postMessage({ type: 'academy:ready' }, '*'); }
+  else setCfg(null);
+  route();
+})();
+
+</script>
+</body></html>
