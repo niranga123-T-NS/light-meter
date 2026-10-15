@@ -1,0 +1,101 @@
+import { ACADEMY_SITE } from '@/lib/academy';
+
+export type CsiStage = 'inquiry' | 'design' | 'quotation' | 'delivery' | 'installation' | 'after_sales';
+export const CSI_STAGES: { value: CsiStage; label: string; icon: string }[] = [
+  { value: 'inquiry', label: 'Inquiry & first contact', icon: '💬' },
+  { value: 'design', label: 'Lighting design', icon: '📐' },
+  { value: 'quotation', label: 'Quotation', icon: '🧾' },
+  { value: 'delivery', label: 'Delivery', icon: '🚚' },
+  { value: 'installation', label: 'Installation & commissioning', icon: '🔧' },
+  { value: 'after_sales', label: 'After-sales & service', icon: '🤝' },
+];
+export const stageLabel = (s: string) => CSI_STAGES.find((x) => x.value === s)?.label ?? s;
+
+/** The swipe cards – each linked to an importance area for the importance / satisfaction view */
+export const CSI_CARDS: { key: string; text: string; area: CsiArea }[] = [
+  { key: 'understood', text: 'The sales person understood what we really needed', area: 'support' },
+  { key: 'expert', text: 'DIMO gave us expert technical advice', area: 'support' },
+  { key: 'on_time', text: 'Quotations and answers came on time', area: 'speed' },
+  { key: 'value', text: 'The price is fair for the quality we get', area: 'price' },
+  { key: 'quality', text: 'The products perform as promised', area: 'quality' },
+  { key: 'delivered', text: 'Deliveries arrived complete and on the date promised', area: 'speed' },
+  { key: 'site', text: 'The site team worked safely and cleanly', area: 'quality' },
+  { key: 'after', text: 'Problems after the sale are solved quickly', area: 'after_sales' },
+];
+
+export type CsiArea = 'price' | 'quality' | 'speed' | 'support' | 'after_sales';
+export const CSI_AREAS: { value: CsiArea; label: string; icon: string }[] = [
+  { value: 'price', label: 'Price', icon: '💰' },
+  { value: 'quality', label: 'Product quality', icon: '💡' },
+  { value: 'speed', label: 'Speed & delivery', icon: '⚡' },
+  { value: 'support', label: 'Technical support', icon: '🛠️' },
+  { value: 'after_sales', label: 'After-sales service', icon: '🤝' },
+];
+
+export const CSI_VS = [
+  { value: -2, label: 'Much worse' },
+  { value: -1, label: 'Worse' },
+  { value: 0, label: 'About the same' },
+  { value: 1, label: 'Better' },
+  { value: 2, label: 'Much better' },
+];
+
+export const STAGE_FACES = ['😢', '🙁', '😐', '🙂', '😄'];
+export const moodFace = (v: number) => (v >= 90 ? '😄' : v >= 75 ? '😊' : v >= 60 ? '🙂' : v >= 40 ? '😐' : v >= 20 ? '🙁' : '😢');
+export const moodWord = (v: number) => (v >= 90 ? 'Delighted' : v >= 75 ? 'Happy' : v >= 60 ? 'Fairly happy' : v >= 40 ? 'Not convinced' : v >= 20 ? 'Unhappy' : 'Very unhappy');
+
+export type CsiAnswers = {
+  overall: number;
+  stage_scores: Record<string, number>;
+  cards: Record<string, -1 | 0 | 1>;
+  points: Record<CsiArea, number>;
+  vs_others: number | null;
+  nps: number;
+  reference_ok: boolean;
+  quote_ok: boolean;
+  wish: string;
+};
+
+export type CsiContext = { code: string; status: 'open' | 'completed' | 'cancelled' | 'expired' | 'not_found'; customer: string; project: string | null; contact: string; sales: string; sales_phone: string | null; stages: CsiStage[] };
+
+export type CsiSurvey = {
+  id: string;
+  code: string;
+  token: string;
+  sales_person_id: string;
+  organization_id: string;
+  project_id: string | null;
+  contact_name: string;
+  contact_role: string | null;
+  stages: CsiStage[];
+  channel: 'link' | 'tablet' | 'call';
+  status: 'open' | 'completed' | 'cancelled';
+  expires_at: string;
+  filled_by: 'customer' | 'sales' | null;
+  overall: number | null;
+  stage_scores: Record<string, number> | null;
+  cards: Record<string, number> | null;
+  points: Record<string, number> | null;
+  vs_others: number | null;
+  nps: number | null;
+  reference_ok: boolean | null;
+  quote_ok: boolean | null;
+  wish: string | null;
+  completed_at: string | null;
+  alert: boolean;
+  follow_up_note: string | null;
+  followed_up_at: string | null;
+  created_at: string;
+  organizations?: { name: string } | null;
+  projects?: { name: string } | null;
+};
+
+/** The link the customer opens (no login) */
+export const csiLink = (token: string) => `${ACADEMY_SITE}/survey/${token}`;
+
+/** Net promoter score of a set of answers: % promoters (9–10) − % detractors (0–6) */
+export function npsOf(list: { nps: number | null }[]) {
+  const xs = list.map((x) => x.nps).filter((x): x is number => x != null);
+  if (!xs.length) return null;
+  return Math.round((100 * (xs.filter((x) => x >= 9).length - xs.filter((x) => x <= 6).length)) / xs.length);
+}
