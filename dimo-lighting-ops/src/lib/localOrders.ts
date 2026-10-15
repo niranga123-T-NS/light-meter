@@ -59,7 +59,7 @@ export type LoOrder = {
   cancel_reason: string | null;
 };
 export type LoStepDef = { key: string; scope: 'r' | 'o'; stage: number; seq: number; label: string; node: string; conds: string[]; after: string[]; ref_label: string | null; sla_days: number | null; optional?: boolean };
-export type LoStep = { id: string; request_id: string; order_id: string | null; step: string; done_on: string; ref: string | null; note: string | null; recorded_by: string; recorded_at: string; pre_system?: boolean };
+export type LoStep = { id: string; request_id: string; order_id: string | null; step: string; done_on: string; ref: string | null; note: string | null; recorded_by: string; recorded_at: string };
 /** A stage of a service (e.g. subcontract work): what, % of the work, planned and done / certified dates, IPC reference */
 export type LoWorkStage = { id: string; order_id: string; seq: number; title: string; pct: number | null; planned_on: string | null; done_on: string | null; cert_ref: string | null; note: string | null };
 /** A request to move a deliverable's planned date after the agreement is signed: the SEE, then SM Projects approve */
@@ -198,7 +198,7 @@ export function loRoute(defs: LoStepDef[], prValue: number | null, o: LoOrder | 
         else ready = false;
       }
       const start = dates.length ? dates.sort().at(-1)! : null;
-      const days = done ? (done.pre_system ? null : workdays(start, done.done_on, holidays)) : ready && start ? workdays(start, today, holidays) : null;
+      const days = done ? workdays(start, done.done_on, holidays) : ready && start ? workdays(start, today, holidays) : null;
       const late = !d.optional && d.sla_days != null && days != null && days > d.sla_days;
       return { def: d, done, ready, start, days, late };
     });

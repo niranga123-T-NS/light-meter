@@ -53,9 +53,9 @@ export default function LocalPerformance() {
   const timed: { l: LoLine; supplier: string | null }[] = [];
   for (const r of reqs) {
     const rs = steps.filter((s) => s.request_id === r.id);
-    for (const l of loRoute(defs, prv[r.id] ?? null, null, null, rs, holidays)) if (l.def.scope === 'r' && l.done && !l.done.pre_system && l.start) timed.push({ l, supplier: null });
+    for (const l of loRoute(defs, prv[r.id] ?? null, null, null, rs, holidays)) if (l.def.scope === 'r' && l.done && l.start) timed.push({ l, supplier: null });
     for (const o of orders.filter((x) => x.request_id === r.id && x.status !== 'cancelled'))
-      for (const l of loRoute(defs, prv[r.id] ?? null, o, ov[o.id] ?? null, rs, holidays)) if (l.def.scope === 'o' && l.done && !l.done.pre_system && l.start) timed.push({ l, supplier: o.supplier });
+      for (const l of loRoute(defs, prv[r.id] ?? null, o, ov[o.id] ?? null, rs, holidays)) if (l.def.scope === 'o' && l.done && l.start) timed.push({ l, supplier: o.supplier });
   }
   const inPeriod = timed.filter((t) => t.l.done!.done_on >= from);
   const groups = new Map<string, Agg>();

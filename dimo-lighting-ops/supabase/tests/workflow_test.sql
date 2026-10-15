@@ -8446,47 +8446,5 @@ do $$ begin
 end $$;
 reset role;
 
--- Orders that started before the system: Ops brings them up to date in one go
-select pg_temp.act_as('operations_exec'); set role authenticated;
-do $$ declare h uuid; o uuid; n int; r uuid; lo uuid; s record; begin
-  h := public.fo_save_handover(null, jsonb_build_object('project_name', 'Old Harbour', 'client', 'Example Ports', 'received_on', current_date - 120,
-         'sales_person_id', (select id from public.profiles where role = 'asm_building' limit 1), 'delivery_location', 'Port stores'));
-  o := public.fo_save_order(null, jsonb_build_object('handover_id', h, 'title', 'High masts', 'kind', 'material', 'vendor', 'Example Masts', 'incoterm', 'FOB', 'payment', 'LC', 'duty', 'paid'));
-  begin perform public.fo_catch_up(h, o, 'delivered', current_date); assert false, 'delivery is recorded as usual'; exception when raise_exception then null; end;
-  begin perform public.fo_catch_up(h, o, 'tt_sent', current_date); assert false, 'TT does not apply to an LC order'; exception when raise_exception then null; end;
-  begin perform public.fo_catch_up(h, o, 'shipped', current_date + 1); assert false, 'no future date'; exception when raise_exception then null; end;
-  n := public.fo_catch_up(h, o, 'shipped', current_date);
-  assert n >= 15, format('every step up to shipped recorded (%s)', n);
-  assert exists (select 1 from public.fo_steps where handover_id = h and order_id is null and step = 'sap_created' and pre_system), 'import request steps too';
-  assert exists (select 1 from public.fo_steps where order_id = o and step = 'lc_final' and pre_system), 'LC route followed';
-  assert not exists (select 1 from public.fo_steps where order_id = o and step in ('tt_sent', 'agent_set', 'pay_applied')), 'steps that do not apply (or optional) are not recorded';
-  assert app.fo_missing_before(h, o, 'arrived') is null, 'the next step can be recorded';
-  assert not exists (select 1 from public.notifications where entity_id = o), 'no notifications for old steps';
-  begin perform public.fo_catch_up(h, o, 'shipped', current_date); assert false, 'already recorded'; exception when raise_exception then null; end;
-  perform public.fo_record_step(h, o, 'arrived', current_date, null, null);
-
-  r := public.lo_save_request(null, jsonb_build_object('project_name', 'Old Plant', 'title', 'Cable', 'kind', 'material', 'delivery_location', 'Plant', 'received_on', current_date - 60));
-  lo := public.lo_save_order(null, jsonb_build_object('request_id', r, 'title', 'Cable', 'kind', 'material', 'supplier', 'Example Cables', 'payment_term', 'after_delivery', 'value', 500000));
-  begin perform public.lo_catch_up(r, lo, 'delivered', current_date); assert false, 'deliveries as usual'; exception when raise_exception then null; end;
-  n := public.lo_catch_up(r, lo, 'po_issued', current_date);
-  assert n >= 10, format('local steps up to the PO (%s)', n);
-  assert exists (select 1 from public.lo_steps where request_id = r and order_id is null and step = 'negotiated' and pre_system), 'request steps too';
-  assert not exists (select 1 from public.lo_steps where request_id = r and step in ('pr_dic', 'sel_dic', 'supplier_reg')), 'steps that do not apply are skipped';
-  assert app.lo_missing_before(r, lo, 'delivered') is null, 'ready for the delivery';
-end $$;
-reset role;
--- a real date makes it a normal step
-do $$ declare sid uuid := (select s.id from public.fo_steps s join public.fo_orders o on o.id = s.order_id where o.title = 'High masts' and s.step = 'po_issued'); begin
-  update public.fo_steps set ref = 'PO-1' where id = sid;
-  assert (select pre_system from public.fo_steps where id = sid), 'a reference alone keeps it';
-  update public.fo_steps set done_on = done_on - 1 where id = sid;
-  assert not (select pre_system from public.fo_steps where id = sid), 'edited to a real date';
-end $$;
-select pg_temp.act_as('sm_projects'); set role authenticated;
-do $$ begin
-  begin perform public.fo_catch_up(null, (select id from public.fo_orders where title = 'High masts'), 'po_issued', current_date); assert false, 'only Ops'; exception when raise_exception then null; end;
-end $$;
-reset role;
-
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

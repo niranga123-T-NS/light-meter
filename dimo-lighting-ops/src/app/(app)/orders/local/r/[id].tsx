@@ -1,7 +1,7 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
-import { catchUp, catchUpOptions, rpc } from '@/components/foreign/actions';
+import { rpc } from '@/components/foreign/actions';
 import { FoNotes } from '@/components/foreign/Notes';
 import { StepList } from '@/components/foreign/StepList';
 import { clearLoStep, recordLoStep } from '@/components/local/actions';
@@ -65,7 +65,6 @@ export default function LocalRequest() {
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const { r, orders, steps, defs, prValue, seeValues, values, holidays, notes, mr } = data;
   const lines = loRoute(defs, prValue, null, null, steps, holidays).filter((l) => l.def.scope === 'r');
-  const catchOpts = catchUpOptions(lines, []);
   const st = loStanding(lines);
   const open = r.status === 'open';
   const negotiated = steps.some((s) => s.step === 'negotiated' && !s.order_id);
@@ -143,7 +142,7 @@ export default function LocalRequest() {
       </Grid>
       {r.notes ? <Muted>{r.notes}</Muted> : null}
 
-      <Section title="Request, PR and sourcing" right={keeper && open && catchOpts.length ? <Button small variant="ghost" title="Started before the system…" onPress={async () => { if (await catchUp(dialog, catchOpts, 'lo_catch_up', { p_request: r.id, p_order: null })) await reload(); }} /> : null}>
+      <Section title="Request, PR and sourcing">
         <StepList
           lines={lines}
           keeper={keeper && open}
