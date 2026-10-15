@@ -8,7 +8,7 @@ import { Button, Loading, Row, Segmented } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { ACADEMY_SITE, ACADEMY_TEAM_VIEWERS, academyCfg, academyLink } from '@/lib/academy';
 
-export const ACADEMY_LESSONS = 120;
+export const ACADEMY_LESSONS = 131;
 
 /** Lighting Academy in the phone app: the lessons page inside the app (web view), signed in so progress is saved */
 export function Academy() {

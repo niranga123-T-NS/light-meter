@@ -426,6 +426,34 @@ table.spec{width:100%;border-collapse:collapse;font-size:13px}table.spec td{padd
   </div>
 </div>
 
+<!-- ============ LIVE: INDOOR APPLICATIONS – factories, warehouses, hospitals, offices against EN 12464-1 ============ -->
+<div id="indv" class="hidden">
+  <div class="crumb" onclick="back()">◀ All lessons · Indoor applications</div>
+  <div class="card">
+    <div class="hero"><div><span class="pill">Live · 8 min</span><h2 style="margin-top:6px">Indoor lighting design playground</h2></div><span class="m">Pick the space, then change the luminaires, layout and output – the light is calculated live and checked against EN 12464-1</span></div>
+    <div class="row" style="margin-top:12px" id="inCat"></div>
+    <div class="row" style="margin-top:8px" id="inArea"></div>
+    <div class="part"><div class="num">1</div><div class="body"><h4>In one line</h4><div id="inLine"></div></div></div>
+    <div class="part"><div class="num">2</div><div class="body"><h4>What the standard asks – and whether this design achieves it</h4>
+      <div class="kpis" id="inReq" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr))"></div>
+      <div class="info" id="inVerdict" style="min-height:0"></div>
+    </div></div>
+    <div class="part"><div class="num">3</div><div class="body"><h4>See it – the floor from above</h4>
+      <div class="m" style="font-size:12px;margin-bottom:4px">Luminaire type:</div><div class="row" id="inLum"></div>
+      <div class="stage" style="margin-top:8px;background:#fff;border:1px solid var(--line)"><svg id="inPlan" viewBox="0 0 760 380"></svg></div>
+      <div class="legend" style="margin-top:6px;font-size:12px" id="inLeg"></div>
+      <div class="ctl" id="inCtl"></div>
+      <div class="row" id="inOpt" style="margin-top:10px"></div>
+      <div class="row" style="margin-top:8px"><span class="btn p" style="padding:4px 9px;font-size:12px" onclick="inSize()">Size the output to the standard</span><span class="btn" style="padding:4px 9px;font-size:12px" onclick="inReset()">↺ Back to the starting design</span></div>
+      <div class="kpis" id="inKpi" style="grid-template-columns:repeat(auto-fit,minmax(110px,1fr))"></div>
+      <div class="legend"><span style="--c:var(--s1)">Illuminance across the middle of the room</span></div>
+      <div class="chartbox"><svg id="inChart" viewBox="0 0 760 190" style="width:100%;height:auto;display:block"></svg><div class="tip" id="inTip"></div></div>
+    </div></div>
+    <div class="part"><div class="num">4</div><div class="body"><h4>Say this</h4><div class="say" id="inSay"></div></div></div>
+    <div class="part"><div class="num">5</div><div class="body"><h4>Watch out</h4><div class="watch"><span id="inWatch"></span> The values are typical EN 12464-1:2021 requirements and the calculation is a simplified point-by-point model (UGR is an estimate) – always confirm a real project with DIALux / Relux and the current edition of the standard.</div></div></div>
+  </div>
+</div>
+
 <!-- ============ LIVE: TECHNIQUES ============ -->
 <div id="tech" class="hidden">
   <div class="crumb" onclick="back()">◀ All lessons · Lighting techniques</div>
@@ -2598,6 +2626,189 @@ add('airport', 'Topics', 'ap_sell', '🤝', 'Selling & delivering airport projec
   say: '“We plan the installation in night closures without stopping operations, and hand over with the flight check, training and a spares stock.”',
   watch: 'Never promise dates without the airport’s closure plan – works on an operational runway depend on NOTAMs and the airlines’ schedule.',
   quiz: [Q('Who approves airfield lighting in Sri Lanka?', ['The civil aviation authority (CAASL)', 'The municipal council', 'The supplier'], 0), Q('Airfield works on a live runway usually happen…', ['in night closures, phased', 'during peak hours', 'without notice'], 0), Q('Before service a new installation needs…', ['photometric measurement and a flight check', 'only a photo', 'nothing'], 0)] });
+// ================================================================ INDOOR APPLICATIONS – factories, warehouses, hospitals, offices (simplified point-by-point + inter-reflections, EN 12464-1)
+const INL = { // name, cos^m exponent, lm/W, base UGR, reference flux for UGR, line?, share of light upwards
+  line_wide: ['Continuous line – wide beam (trunking)', 1.2, 150, 22, 3500, 1, 0],
+  line_narrow: ['Continuous line – narrow beam / aisle lens', 5, 145, 20, 3500, 1, 0],
+  line_louvre: ['Continuous line – low-glare louvre / micro-prism', 1.6, 135, 17, 3500, 1, 0],
+  hb_round: ['High-bay round – 90° beam', 2.5, 160, 24, 20000, 0, 0],
+  hb_narrow: ['High-bay – 60° narrow beam', 5, 160, 22, 20000, 0, 0],
+  hb_linear: ['Linear high-bay with louvre', 1.8, 155, 22, 18000, 0, 0],
+  ip65: ['Hygiene batten IP65/IP69K', 1.2, 140, 21, 6000, 0, 0],
+  panel: ['LED panel 600 × 600 (UGR < 19)', 1.1, 125, 18, 3600, 0, 0],
+  louvre: ['Darklight louvre troffer', 1.6, 115, 16, 3600, 0, 0],
+  downlight: ['Downlight', 2, 110, 19, 2000, 0, 0],
+  line_office: ['Linear suspended direct / indirect', 1, 140, 16, 3000, 1, 0.4],
+  clean: ['Cleanroom / theatre luminaire IP65, Ra 90', 1.2, 120, 18, 5000, 0, 0],
+};
+const INCAT = {
+  factory: ['🏭 Factory floor', ['line_wide', 'line_louvre', 'line_narrow', 'hb_round', 'hb_narrow', 'hb_linear', 'ip65'], 6000, 0.3],
+  warehouse: ['📦 Warehouse & logistics', ['line_wide', 'line_narrow', 'hb_round', 'hb_narrow', 'hb_linear'], 6000, 0.4],
+  hospital: ['🏥 Hospital', ['panel', 'louvre', 'downlight', 'clean'], 5000, 0.25],
+  office: ['🏢 Office', ['panel', 'louvre', 'downlight', 'line_office'], 2600, 0.35],
+};
+// area: category, name, Em, U0, UGR, Ra, L, W, H, work plane, luminaire, rows, cols (grid) , flux (lm per luminaire or lm/m), reflectance, extras
+const INA = {
+  f_assy: ['factory', 'General assembly line', 300, 0.6, 25, 80, 60, 30, 8, 0.85, 'line_wide', 5, 0, 3000, 'med', { line: 'Medium assembly work needs 300 lx with good uniformity. <b>Continuous lines</b> running along the production lines give even light and are quick to install on one trunking rail.' }],
+  f_mach: ['factory', 'Metal machining workshop', 300, 0.6, 22, 60, 50, 25, 9, 0.85, 'hb_round', 4, 8, 16000, 'dark', { line: 'Machining with normal tolerances: 300 lx, UGR 22 (shiny metal and rotating parts make glare a real risk). High-bays over a grid are the usual choice.' }],
+  f_elec: ['factory', 'Electronics assembly (fine work)', 750, 0.7, 19, 80, 40, 20, 4, 0.85, 'line_wide', 6, 0, 3500, 'light', { line: 'Fine assembly needs 750 lx, high uniformity and low glare (UGR 19) – small parts, long hours. Close-spaced lines with good optics, often plus task lights.' }],
+  f_food: ['factory', 'Food & beverage processing', 500, 0.6, 22, 80, 40, 20, 6, 0.85, 'ip65', 6, 12, 7000, 'light', { line: 'Food processing: 500 lx and true colours (Ra 80+). Luminaires must be <b>hygienic</b> – IP65/IP69K, washable, shatter-proof (no glass) and food-safe.', hyg: 1 }],
+  f_garm: ['factory', 'Garment & sewing floor', 750, 0.7, 22, 80, 50, 25, 4.5, 0.85, 'line_wide', 8, 0, 3500, 'light', { line: 'Sewing and fine knitting need 750 lx with high uniformity – dark threads on dark fabric. Continuous lines over each row of machines are standard.' }],
+  f_heavy: ['factory', 'Heavy industry / foundry bay', 200, 0.4, 25, 60, 80, 30, 14, 0.85, 'hb_narrow', 3, 10, 22000, 'dark', { line: 'Rough work in a tall, dusty bay: 200 lx. Narrow-beam high-bays reach the floor from 12–15 m; dirt and heat make the maintenance factor important.' }],
+  f_insp: ['factory', 'Quality inspection & paint check', 1000, 0.7, 19, 90, 20, 12, 4, 0.85, 'line_wide', 6, 0, 4000, 'light', { line: 'Colour and defect inspection: 1000 lx, Ra 90 and very low glare – the highest level on the factory floor.' }],
+  w_bulk: ['warehouse', 'Bulk storage / stockroom', 100, 0.4, 25, 60, 60, 40, 10, 0, 'hb_round', 4, 6, 15000, 'med', { line: 'Stores and stockrooms need only 100 lx – but walkways and loading still need safe, even light. Presence detection saves a lot here.' }],
+  w_rack: ['warehouse', 'Racking aisles (manned)', 150, 0.4, 22, 60, 60, 36, 12, 0, 'line_narrow', 0, 0, 2500, 'dark', { line: 'Between high racks the light must reach the <b>floor and the rack faces</b>. Lines running <b>along each aisle</b> with narrow aisle optics beat a grid of round high-bays.', racks: 1 }],
+  w_pick: ['warehouse', 'Picking & packing area', 300, 0.6, 25, 60, 40, 25, 8, 0.85, 'hb_linear', 4, 8, 14000, 'med', { line: 'Picking and packing means reading labels and checking goods: 300 lx with good uniformity.' }],
+  w_dock: ['warehouse', 'Dispatch & loading bays', 150, 0.4, 25, 40, 50, 15, 8, 0, 'hb_round', 2, 6, 15000, 'dark', { line: 'Loading bays: 150 lx, with care to light into the trailers and avoid glare for forklift drivers.' }],
+  h_ward: ['hospital', 'Patient ward – general lighting', 100, 0.4, 19, 80, 8, 6, 3, 0.8, 'panel', 2, 2, 2500, 'light', { line: 'A ward needs calm general light (100 lx) seen from a bed – low glare is vital because patients look at the ceiling. Reading (300 lx) and examination (1000 lx) come from the bed-head unit.' }],
+  h_exam: ['hospital', 'Examination room', 500, 0.6, 19, 90, 5, 4, 3, 0.8, 'panel', 2, 2, 3600, 'light', { line: 'General examination: 500 lx with Ra 90 – skin tones and colours must be judged correctly. The examination itself uses a dedicated examination lamp (1000 lx).' }],
+  h_or: ['hospital', 'Operating theatre – general', 1000, 0.6, 19, 90, 7, 7, 3.2, 0.8, 'clean', 3, 3, 5000, 'light', { line: 'The operating theatre needs 1000 lx general light, Ra 90, sealed cleanroom luminaires (IP65) – the surgical light itself gives 40,000–160,000 lx at the wound (IEC 60601-2-41).', hyg: 1 }],
+  h_icu: ['hospital', 'Intensive care – general', 100, 0.4, 19, 90, 6, 5, 3, 0.8, 'panel', 2, 2, 2000, 'light', { line: 'ICU general light 100 lx, simple examination 300 lx and treatment 1000 lx – switchable and dimmable around the clock, with a night watch level for the patients’ sleep.' }],
+  h_corr: ['hospital', 'Corridor (day)', 100, 0.4, 22, 80, 30, 2.4, 3, 0, 'downlight', 1, 10, 1500, 'light', { line: 'Corridors: 100 lx by day and about 50 lx at night – often dimmed by a clock. Patients on trolleys look straight up: avoid glaring downlights above the centre.' }],
+  h_lab: ['hospital', 'Laboratory / pharmacy', 500, 0.6, 19, 80, 10, 7, 3, 0.8, 'panel', 2, 3, 3600, 'light', { line: 'Laboratories and pharmacy: 500 lx and low glare for reading labels and screens.' }],
+  o_open: ['office', 'Open-plan office – writing & computer work', 500, 0.6, 19, 80, 20, 12, 3, 0.75, 'panel', 4, 6, 3600, 'light', { line: 'Writing, reading and computer work: 500 lx, UGR 19, U0 0.6. The 2021 edition also asks for light on faces (cylindrical illuminance) and on walls and ceiling.' }],
+  o_draw: ['office', 'Technical drawing / CAD', 750, 0.7, 16, 80, 10, 8, 3, 0.75, 'louvre', 3, 4, 4000, 'light', { line: 'Technical drawing is the most demanding office task: 750 lx, UGR 16 – darklight louvres or very low-luminance optics.' }],
+  o_meet: ['office', 'Meeting room', 500, 0.6, 19, 80, 8, 5, 3, 0.75, 'downlight', 2, 3, 2500, 'light', { line: 'Meeting rooms: 500 lx on the table, dimmable for presentations and video calls – faces must be lit well (cylindrical illuminance).' }],
+  o_recep: ['office', 'Reception desk', 300, 0.6, 22, 80, 8, 6, 3.5, 0.75, 'downlight', 2, 3, 2000, 'light', { line: 'Reception: 300 lx – the first impression; add accent light on the logo wall.' }],
+  o_arch: ['office', 'Archive / store room', 200, 0.4, 25, 80, 6, 4, 3, 0, 'panel', 1, 2, 3600, 'med', { line: 'Archives and store rooms: 200 lx – presence detection is ideal.' }],
+};
+const INREF = { light: [0.7, 0.5, 0.2, 'Light (white ceiling & walls)'], med: [0.7, 0.4, 0.15, 'Medium'], dark: [0.5, 0.3, 0.1, 'Dark (industrial)'] };
+let inA = 'f_assy', inP = {};
+const inS = () => (inP[inA] = inP[inA] || inStart(inA));
+function inStart(k) { const a = INA[k]; return { lum: a[10], rows: a[11] || 2, cols: a[12] || 4, flux: a[13], L: a[6], W: a[7], H: a[8], mf: 0.8, refl: a[14], cri: a[5] >= 90 ? 90 : 80, ctl: false, aisle: 3.2 }; }
+function inCalc(k, s) {
+  const a = INA[k], T = INL[s.lum], m = T[1], line = T[5], up = T[6], wp = a[9], hm = Math.max(0.5, s.H - wp - (line ? 0.1 : 0.4)), racks = a[15].racks;
+  // sources
+  const src = []; let n = 0, total = 0;
+  if (racks) { // racks along the length, aisles between them, light over each aisle
+    const rackW = 1.1, pitch = s.aisle + 2 * rackW, na = Math.max(1, Math.floor(s.W / pitch));
+    const ys = [...Array(na).keys()].map((i) => (i + 0.5) * pitch);
+    s._aisles = ys;
+    if (line) for (const y of ys) { for (let x = 1; x <= s.L - 1; x += 1) src.push([x, y, s.flux]); total += s.flux * (s.L - 2); n++; }
+    else for (const y of ys) for (let j = 0; j < s.cols; j++) { src.push([(j + 0.5) * s.L / s.cols, y, s.flux]); total += s.flux; n++; }
+  } else {
+    s._aisles = null;
+    if (line) for (let i = 0; i < s.rows; i++) { const y = (i + 0.5) * s.W / s.rows; for (let x = 1; x <= s.L - 1; x += 1) src.push([x, y, s.flux]); total += s.flux * (s.L - 2); n++; }
+    else for (let i = 0; i < s.rows; i++) for (let j = 0; j < s.cols; j++) { src.push([(j + 0.5) * s.L / s.cols, (i + 0.5) * s.W / s.rows, s.flux]); total += s.flux; n++; }
+  }
+  // calculation points (0.5 m border excluded; in rack aisles only)
+  const nx = 30, ny = Math.max(8, Math.min(24, Math.round(30 * s.W / s.L))), pts = [];
+  const [rc, rw, rf] = INREF[s.refl], rho = (rc * s.L * s.W + rw * 2 * (s.L + s.W) * s.H + rf * s.L * s.W) / (2 * s.L * s.W + 2 * (s.L + s.W) * s.H);
+  const eInd = total * (racks ? 0.6 : 1) * rho / ((2 * s.L * s.W + 2 * (s.L + s.W) * s.H) * (1 - rho)) * (racks ? 0.5 : 1);
+  const I0k = (m + 1) / (2 * Math.PI) * (1 - up);
+  const bd = Math.min(3, Math.max(0.5, 0.08 * Math.min(s.L, s.W))); // perimeter band outside the task area
+  for (let i = 0; i < ny; i++) for (let j = 0; j < nx; j++) {
+    const x = 0.5 + (j + 0.5) * (s.L - 1) / nx, y = 0.5 + (i + 0.5) * (s.W - 1) / ny;
+    let inAisle = x >= bd && x <= s.L - bd && (racks || (y >= bd && y <= s.W - bd)); if (racks) inAisle = inAisle && s._aisles.some((ay) => Math.abs(ay - y) <= s.aisle / 2);
+    let e = 0;
+    for (const [sx, sy, f] of src) { if (racks && Math.abs(sy - y) > s.aisle / 2) continue; const d2 = (sx - x) ** 2 + (sy - y) ** 2 + hm * hm, c = hm / Math.sqrt(d2); e += f * I0k * Math.pow(c, m + 1) / d2; }
+    pts.push({ x, y, e: (e + eInd + (up ? total * up * rc / (s.L * s.W) * 0.9 : 0)) * s.mf, task: inAisle });
+  }
+  const tp = pts.filter((p) => p.task), Em = tp.reduce((t, p) => t + p.e, 0) / tp.length, Emin = Math.min(...tp.map((p) => p.e)), U0 = Emin / Em;
+  const lmW = T[2] * (s.cri >= 90 ? 0.88 : 1), watts = total / lmW, area = s.L * s.W;
+  const per = line ? s.flux : s.flux, ugr = Math.max(10, Math.min(30, T[3] + 6 * Math.log10(per / T[4]) + (s.L * s.W / (hm * (s.L + s.W)) > 3 ? 1 : 0)));
+  const cat = INCAT[a[0]], kwh = watts * cat[2] / 1000 * (s.ctl ? 1 - cat[3] : 1);
+  return { pts, nx, ny, Em, Emin, U0, ugr, watts, wpm2: watts / area, n, total, kwh, hm, src, lmW };
+}
+function inChecks(k, s, r) {
+  const a = INA[k], T = INL[s.lum], out = [];
+  const ok = (c, y, n, tip) => out.push([c, c ? y : n, c ? '' : tip]);
+  ok(Math.round(r.Em) >= a[2], `Ē ${Math.round(r.Em)} lx ≥ ${a[2]} lx`, `Ē ${Math.round(r.Em)} lx – below ${a[2]} lx`, 'raise the output, add rows / luminaires or a lighter finish');
+  ok(Math.round(r.U0 * 100) / 100 >= a[3], `U0 ${r.U0.toFixed(2)} ≥ ${a[3]}`, `U0 ${r.U0.toFixed(2)} – below ${a[3]}`, 'reduce the spacing, use more rows or a wider beam');
+  ok(Math.round(r.ugr) <= a[4], `UGR ≈ ${Math.round(r.ugr)} ≤ ${a[4]}`, `UGR ≈ ${Math.round(r.ugr)} – over ${a[4]}`, 'more, lower-output luminaires or better optics (louvre, prismatic, lens)');
+  ok(s.cri >= a[5], `Ra ${s.cri} ≥ ${a[5]}`, `Ra ${s.cri} – below ${a[5]}`, 'choose the Ra 90 version');
+  if (a[15].hyg) ok(['ip65', 'clean'].includes(s.lum), 'Hygienic sealed luminaires (IP65)', 'Not a hygienic luminaire – needs IP65, washable, no glass', 'choose the IP65 / cleanroom type');
+  if (r.Em > a[2] * 1.5) out.push([true, `Well above the requirement (${Math.round(r.Em / a[2] * 100)}%) – you could save energy`, '']);
+  return out;
+}
+function inUI() {
+  const a = INA[inA], s = inS(), cat = a[0];
+  $('inCat').innerHTML = Object.entries(INCAT).map(([k, c]) => `<span class="btn ${k === cat ? 'on' : ''}" onclick="inA=Object.keys(INA).find((x)=>INA[x][0]==='${k}');inUI()">${c[0]}</span>`).join('');
+  $('inArea').innerHTML = Object.entries(INA).filter(([, x]) => x[0] === cat).map(([k, x]) => `<span class="btn ${k === inA ? 'on' : ''}" style="padding:4px 9px;font-size:12px" onclick="inA='${k}';inUI()">${x[1]}</span>`).join('');
+  $('inLine').innerHTML = a[15].line;
+  $('inLum').innerHTML = INCAT[cat][1].map((k) => `<span class="btn ${k === s.lum ? 'on' : ''}" style="padding:4px 9px;font-size:12px" onclick="inSetLum('${k}')">${INL[k][0]}</span>`).join('');
+  const line = INL[s.lum][5], racks = a[15].racks, big = cat === 'factory' || cat === 'warehouse';
+  const sl = (key, label, mi, ma, st, u) => `<div><label>${label} <b id="inv_${key}"></b></label><input type="range" min="${mi}" max="${ma}" step="${st}" value="${s[key]}" oninput="inS().${key}=+this.value;inDraw()"></div>`;
+  $('inCtl').innerHTML = (big ? sl('L', 'Length', 10, 120, 1, ' m') + sl('W', 'Width', 6, 60, 1, ' m') + sl('H', 'Mounting height', 3, 16, 0.5, ' m') : sl('L', 'Length', 3, 40, 0.5, ' m') + sl('W', 'Width', 2, 20, 0.5, ' m') + sl('H', 'Ceiling height', 2.4, 5, 0.1, ' m')) +
+    (racks ? sl('aisle', 'Aisle width', 1.6, 4.5, 0.1, ' m') + (line ? '' : sl('cols', 'High-bays per aisle', 2, 20, 1, '')) : line ? sl('rows', 'Rows of lines', 1, 16, 1, '') : sl('rows', 'Rows', 1, 12, 1, '') + sl('cols', 'Luminaires per row', 1, 20, 1, '')) +
+    sl('flux', line ? 'Output per metre of line' : 'Output per luminaire', line ? 500 : 800, line ? 8000 : big ? 40000 : 8000, line ? 100 : big ? 500 : 100, line ? ' lm/m' : ' lm') + sl('mf', 'Maintenance factor', 0.6, 0.95, 0.01, '');
+  $('inOpt').innerHTML = '<span class="m" style="font-size:12px">Surfaces:</span>' + Object.entries(INREF).map(([k, r]) => `<span class="btn ${k === s.refl ? 'on' : ''}" style="padding:4px 9px;font-size:12px" onclick="inS().refl='${k}';inUI()">${r[3]}</span>`).join('') +
+    '<span class="m" style="font-size:12px;margin-left:8px">Colour rendering:</span>' + [80, 90].map((c) => `<span class="btn ${c === s.cri ? 'on' : ''}" style="padding:4px 9px;font-size:12px" onclick="inS().cri=${c};inUI()">Ra ${c}${c === 90 ? '+' : ''}</span>`).join('') +
+    `<span class="btn ${s.ctl ? 'on' : ''}" style="padding:4px 9px;font-size:12px;margin-left:8px" onclick="inS().ctl=!inS().ctl;inUI()">${s.ctl ? '✓ ' : ''}Presence & daylight control</span>`;
+  inDraw();
+}
+function inSetLum(k) { const s = inS(), was = INL[s.lum][5], now = INL[k][5]; s.lum = k; if (was !== now) s.flux = now ? 3000 : ['factory', 'warehouse'].includes(INA[inA][0]) ? 15000 : 3600; inUI(); }
+function inReset() { inP[inA] = inStart(inA); inUI(); }
+function inSize() { const s = inS(), a = INA[inA], line = INL[s.lum][5]; for (let it = 0; it < 3; it++) { const r = inCalc(inA, s); s.flux = Math.round(s.flux * a[2] * 1.08 / Math.max(1, r.Em) / 100) * 100; s.flux = Math.max(line ? 500 : 800, Math.min(line ? 8000 : 40000, s.flux)); } inUI(); }
+function inDraw() {
+  const a = INA[inA], s = inS(), r = inCalc(inA, s), T = INL[s.lum], line = T[5];
+  for (const [k, u] of [['L', ' m'], ['W', ' m'], ['H', ' m'], ['rows', ''], ['cols', ''], ['flux', line ? ' lm/m' : ' lm'], ['mf', ''], ['aisle', ' m']]) { const e = $('inv_' + k); if (e) e.textContent = (k === 'flux' ? s[k].toLocaleString() : s[k]) + u; }
+  // plan
+  const W = 760, sc = Math.min((W - 20) / s.L, 340 / s.W), H = Math.round(s.W * sc + 30), ox = (W - s.L * sc) / 2, oy = 12, X = (x) => ox + x * sc, Y = (y) => oy + y * sc, tgt = a[2];
+  const col = (e) => { const q = e / tgt; return q < 0.7 ? `rgb(${Math.round(60 + 120 * q)},${Math.round(90 + 120 * q)},230)` : q < 1 ? '#fde68a' : q < 1.5 ? '#86efac' : '#22c55e'; };
+  let g = `<rect width="${W}" height="${H}" fill="#fff"/><rect x="${X(0)}" y="${Y(0)}" width="${s.L * sc}" height="${s.W * sc}" fill="#f1f5f9" stroke="#64748b"/>`;
+  const cw = (s.L - 1) / r.nx * sc, ch = (s.W - 1) / r.ny * sc;
+  for (const p of r.pts) if (p.task) g += `<rect x="${(X(p.x) - cw / 2).toFixed(1)}" y="${(Y(p.y) - ch / 2).toFixed(1)}" width="${(cw + 0.5).toFixed(1)}" height="${(ch + 0.5).toFixed(1)}" fill="${col(p.e)}"><title>${Math.round(p.e)} lx</title></rect>`;
+  if (s._aisles) { const pitch = s.aisle + 2.2; for (const y of s._aisles) for (const sgn of [-1, 1]) g += `<rect x="${X(0.5)}" y="${Y(y + sgn * (s.aisle / 2) + (sgn < 0 ? -1.1 : 0))}" width="${(s.L - 1) * sc}" height="${1.1 * sc}" fill="#94a3b8" stroke="#64748b" stroke-width=".6"/>`; void pitch; }
+  if (line) { const ys = s._aisles || [...Array(s.rows).keys()].map((i) => (i + 0.5) * s.W / s.rows); g += ys.map((y) => `<line x1="${X(1)}" y1="${Y(y)}" x2="${X(s.L - 1)}" y2="${Y(y)}" stroke="#0f172a" stroke-width="3"/><line x1="${X(1)}" y1="${Y(y)}" x2="${X(s.L - 1)}" y2="${Y(y)}" stroke="#fde047" stroke-width="1.2"/>`).join(''); }
+  else { const seen = new Set(); for (const [x, y] of r.src) { const k = x.toFixed(2) + y.toFixed(2); if (seen.has(k)) continue; seen.add(k); g += s.lum.startsWith('hb') ? `<circle cx="${X(x)}" cy="${Y(y)}" r="${Math.max(3, 0.35 * sc)}" fill="#0f172a"/><circle cx="${X(x)}" cy="${Y(y)}" r="${Math.max(1.6, 0.18 * sc)}" fill="#fde047"/>` : s.lum === 'downlight' ? `<circle cx="${X(x)}" cy="${Y(y)}" r="${Math.max(3, 0.12 * sc)}" fill="#0f172a" stroke="#fde047"/>` : `<rect x="${X(x) - Math.max(3, (s.lum === 'ip65' ? 0.75 : 0.3) * sc)}" y="${Y(y) - Math.max(3, 0.3 * sc)}" width="${Math.max(6, (s.lum === 'ip65' ? 1.5 : 0.6) * sc)}" height="${Math.max(6, (s.lum === 'ip65' ? 0.15 : 0.6) * sc) }" fill="#0f172a" stroke="#fde047"/>`; } }
+  g += `<text x="${X(0)}" y="${H - 6}" font-size="11" fill="#475569">${s.L} m × ${s.W} m · ${T[0]} at ${s.H} m · ${r.n} ${line ? 'lines' : 'luminaires'} · hover a square for lux</text>`;
+  $('inPlan').setAttribute('viewBox', `0 0 ${W} ${H}`); $('inPlan').innerHTML = g;
+  $('inLeg').innerHTML = `<span style="--c:rgb(110,140,230)">below 70% of ${tgt} lx</span><span style="--c:#fde68a">70–100%</span><span style="--c:#86efac">meets</span><span style="--c:#22c55e">over 150%</span>${s._aisles ? '<span style="--c:#94a3b8">racks</span>' : ''}`;
+  // requirement & verdict
+  const chk = inChecks(inA, s, r);
+  $('inReq').innerHTML = `<div><b>${a[2]} lx</b>Ēm maintained</div><div><b>${a[3]}</b>U0 (min ÷ average)</div><div><b>≤ ${a[4]}</b>UGR limit</div><div><b>≥ ${a[5]}</b>Ra</div><div><b>${INCAT[a[0]][0].split(' ').slice(1).join(' ')}</b>${a[1]}</div>`;
+  const fails = chk.filter((c) => !c[0]);
+  $('inVerdict').innerHTML = `<h5 style="color:${fails.length ? '#b91c1c' : 'var(--good)'}">${fails.length ? `✕ Not achieved – ${fails.length} requirement${fails.length > 1 ? 's' : ''} missed` : '✓ Achieves EN 12464-1 for this task'}</h5>${chk.map(([c, t, tip]) => `<div style="font-size:13px;margin:3px 0"><b style="color:${c ? 'var(--good)' : '#b91c1c'}">${c ? '✓' : '✕'}</b> ${t}${tip ? ` <span class="m">→ ${tip}</span>` : ''}</div>`).join('')}`;
+  $('inKpi').innerHTML = `<div><b>${Math.round(r.Em)} lx</b>average (target ${a[2]})</div><div><b>${Math.round(r.Emin)} lx</b>minimum</div><div><b>${r.U0.toFixed(2)}</b>U0</div><div><b>≈ ${Math.round(r.ugr)}</b>UGR (estimate)</div><div><b>${(r.watts / 1000).toFixed(r.watts < 10000 ? 2 : 1)} kW</b>connected load</div><div><b>${r.wpm2.toFixed(1)}</b>W/m²</div><div><b>${(r.wpm2 / Math.max(1, r.Em) * 100).toFixed(2)}</b>W/m² per 100 lx</div><div><b>${Math.round(r.kwh).toLocaleString()}</b>kWh / year${s.ctl ? ' (with controls)' : ''}</div>`;
+  // section through the middle
+  const mid = Math.floor(r.ny / 2), row = r.pts.filter((p, i) => Math.floor(i / r.nx) === mid);
+  lineChart($('inChart'), $('inTip'), { W: 760, H: 190, xs: row.map((p) => p.x), series: [{ name: 'Illuminance', c: 'var(--s1)', ys: row.map((p) => p.e) }], xLabel: 'm along the room', yFmt: (y, f) => `${Math.round(y)}${f ? ' lx' : ''}`, xFmt: (x) => `${x.toFixed(1)} m`, yMax: Math.max(a[2] * 1.6, ...row.map((p) => p.e)) * 1.05, ref: { y: a[2], label: `required ${a[2]} lx` } });
+  $('inSay').textContent = fails.length ? `“A layout like this misses EN 12464-1 (${fails.map((f) => f[1].split(' – ')[0]).join(', ')}). We correct the optics and layout so you get ${a[2]} lx, U0 ${a[3]} and UGR ≤ ${a[4]} – and show it in the calculation report.”` : `“This design meets EN 12464-1 for ${a[1].toLowerCase()}: ${Math.round(r.Em)} lx, U0 ${r.U0.toFixed(2)}, UGR about ${Math.round(r.ugr)} – at ${r.wpm2.toFixed(1)} W/m²${s.ctl ? ', and the controls cut the energy further' : ''}.”`;
+  $('inWatch').textContent = { factory: 'Check machine shadows, crane runways and dust (IP rating, maintenance factor); for 24/7 shifts every watt counts.', warehouse: 'Rack layouts change – choose lines that can be moved along the trunking, and light the rack faces, not only the floor.', hospital: 'Hospitals also follow national health-building guides (e.g. HTM / CIBSE LG2) – emergency lighting, IP ratings and cleanability matter as much as lux.', office: 'Screens, daylight and glare decide comfort – dimmable luminaires with presence and daylight control are now standard.' }[a[0]];
+}
+MODULES.push(['indoor', 'Indoor applications', 'Factories, warehouses, hospitals, offices – EN 12464-1']);
+add('indoor', 'Live', 'lab_ind', '🏭', 'Indoor lighting design playground', { type: 'lab', lab: 'indv', preset: 'f_assy', mins: 8, live: 1, quiz: [Q('Which European standard sets indoor workplace lighting levels?', ['EN 12464-1', 'EN 13201', 'EN 1838'], 0), Q('U0 is…', ['minimum ÷ average illuminance', 'the glare rating', 'the colour rendering'], 0), Q('If U0 is too low, the usual fix is…', ['closer spacing, more rows or a wider beam', 'a warmer colour temperature', 'a darker floor'], 0)] });
+add('indoor', 'Spaces', 'in_f', '🏭', 'Factory floors – seven types', { type: 'lab', lab: 'indv', preset: 'f_mach', mins: 6, quiz: [Q('Fine electronics assembly typically needs…', ['750 lx with UGR 19', '100 lx', '50 lx'], 0), Q('Food processing luminaires should be…', ['IP65 / washable, no glass', 'open reflectors', 'decorative pendants'], 0), Q('Quality and colour inspection needs…', ['about 1000 lx and Ra 90', '150 lx and Ra 40', 'no special lighting'], 0)] });
+add('indoor', 'Spaces', 'in_w', '📦', 'Warehouse & logistics centre', { type: 'lab', lab: 'indv', preset: 'w_rack', mins: 6, quiz: [Q('In racking aisles the best layout is usually…', ['lines along each aisle with aisle optics', 'a square grid ignoring the racks', 'wall lights only'], 0), Q('Manned rack aisles need about…', ['150 lx', '1000 lx', '5 lx'], 0), Q('Where do presence sensors save most?', ['Rarely used aisles and stores', 'Operating theatres', 'Reception desks'], 0)] });
+add('indoor', 'Spaces', 'in_h', '🏥', 'Hospitals', { type: 'lab', lab: 'indv', preset: 'h_or', mins: 6, quiz: [Q('General lighting in an operating theatre is about…', ['1000 lx, Ra 90', '100 lx, Ra 60', '50 lx'], 0), Q('Why is glare critical in wards?', ['Patients lie looking at the ceiling', 'Wards are dark', 'For the cleaners'], 0), Q('The surgical light itself is covered by…', ['IEC 60601-2-41', 'EN 12464-2', 'EN 13201'], 0)] });
+add('indoor', 'Spaces', 'in_o', '🏢', 'Offices', { type: 'lab', lab: 'indv', preset: 'o_open', mins: 5, quiz: [Q('Writing and computer work need…', ['500 lx, UGR 19', '200 lx, UGR 28', '2000 lx'], 0), Q('Technical drawing asks for UGR…', ['16', '28', 'no limit'], 0), Q('The 2021 edition also asks for…', ['light on faces, walls and ceiling', 'only floor lux', 'coloured light'], 0)] });
+add('indoor', 'Topics', 'in_std', '📘', 'EN 12464-1 explained', {
+  line: 'EN 12464-1 sets the light for indoor work places, task by task: a <b>maintained illuminance</b>, a <b>uniformity</b>, a <b>glare limit</b> and a <b>colour rendering</b> – the 2021 edition adds light on faces, walls and ceilings.',
+  body: '<table class="spec"><tr><td>Ēm</td><td>Maintained average illuminance on the task area – the value that must still be there at the end of the maintenance cycle</td></tr><tr><td>U0</td><td>Uniformity: minimum ÷ average on the task (e.g. 0.6)</td></tr><tr><td>UGR<sub>L</sub></td><td>Unified glare rating limit (16 / 19 / 22 / 25 / 28 – lower is stricter)</td></tr><tr><td>Ra</td><td>Minimum colour rendering (60 / 80 / 90)</td></tr><tr><td>Ēz, walls, ceiling</td><td>2021: cylindrical illuminance for faces and minimum light on walls and ceiling – rooms must not look gloomy</td></tr><tr><td>Modifiers</td><td>2021: the level may be raised (critical tasks, older workers, low contrast) or lowered (short tasks, large details)</td></tr><tr><td>Areas</td><td>Task area, immediate surrounding (lower level allowed) and background</td></tr></table>',
+  say: '“We design to EN 12464-1 for each task in your building and give you the calculation report – maintained lux, uniformity, UGR and Ra, area by area.”',
+  watch: 'The values are maintained values: design with a realistic maintenance factor (dirt, LED depreciation) or the space will fall below the standard after a year.',
+  quiz: [Q('“Maintained” illuminance means…', ['the level that must still be there before maintenance', 'the level on day one', 'the lamp rating'], 0), Q('A lower UGR limit is…', ['stricter (less glare allowed)', 'more relaxed', 'unrelated to glare'], 0), Q('What did the 2021 edition add?', ['Light on faces, walls and ceiling, and modifiers', 'Street lighting classes', 'Emergency lighting'], 0)] });
+add('indoor', 'Topics', 'in_lines', '📏', 'Continuous line vs high-bay', {
+  line: 'Tall industrial spaces are lit either by <b>continuous lines</b> (a trunking rail with LED inserts) or by <b>high-bays</b> (point luminaires). Each wins in different places – try both in the playground.',
+  body: '<table class="spec"><tr><td>Continuous line</td><td>Very even light along the line, fast to install (power and control in the rail), inserts can be moved or changed, aisle and wide optics, easy DALI / emergency integration</td></tr><tr><td>High-bay</td><td>Fewer points to install, high output per point, best for tall open halls (8–15 m+) and heavy industry; narrow beams for height</td></tr><tr><td>Uniformity</td><td>Lines give high U0 across their length; high-bays need the spacing matched to height and beam</td></tr><tr><td>Glare</td><td>Big high-bays are bright points – check UGR when people look up (cranes, racks); lines spread the light</td></tr><tr><td>Choose</td><td>Production lines, sewing floors, rack aisles, low halls → lines · open halls, foundries, stores → high-bays</td></tr></table>',
+  say: '“Along your production lines a continuous trunking gives even light and moves with the layout; in the tall store we use narrow-beam high-bays – the right tool for each hall.”',
+  watch: 'A trunking system is only as good as its rail: check the load rating, the number of wires (control, emergency) and IP rating for dusty or wet halls.',
+  quiz: [Q('Continuous lines are strongest in…', ['production lines and rack aisles', 'very tall open foundries only', 'hotel lobbies'], 0), Q('High-bays suit best…', ['tall open halls', 'small offices', 'patient wards'], 0), Q('A trunking rail can carry…', ['power, control and emergency wires for the inserts', 'only one luminaire', 'water pipes'], 0)] });
+add('indoor', 'Topics', 'in_wh', '🛒', 'Warehouses – aisles, racks and energy', {
+  line: 'Warehouses are about <b>vertical light on the racks</b>, safe aisles for forklifts and very long burning hours – so optics and controls matter more than the lux number alone.',
+  body: '<table class="spec"><tr><td>Stores, stockrooms</td><td>100 lx</td></tr><tr><td>Manned rack aisles</td><td>150 lx, with good light on the rack faces for reading labels</td></tr><tr><td>Picking, packing, dispatch</td><td>300 lx</td></tr><tr><td>Loading bays</td><td>150 lx, light into trailers, no glare for drivers</td></tr><tr><td>Optics</td><td>Aisle (narrow-across, wide-along) lenses put light on the rack faces, not on the rack tops</td></tr><tr><td>Controls</td><td>Presence sensors per aisle dim to 10–20% when empty – often 40–60% savings</td></tr></table>',
+  say: '“With aisle optics and a sensor in every aisle, the lights only work when a forklift is there – most of your warehouse energy goes away.”',
+  watch: 'Rack layouts change during the life of the lighting – plan lines that can be shifted, or high-bays that still work if aisles move.',
+  quiz: [Q('Aisle optics put the light on…', ['the rack faces and aisle floor', 'the roof', 'the rack tops'], 0), Q('Typical savings with aisle presence sensors are…', ['40–60%', '1–2%', 'none'], 0), Q('Picking and packing areas need about…', ['300 lx', '20 lx', '2000 lx'], 0)] });
+add('indoor', 'Topics', 'in_hc', '⚕️', 'Healthcare lighting', {
+  line: 'Hospital lighting serves <b>patients</b> (rest, low glare, day–night rhythm), <b>staff</b> (accurate colour for diagnosis, high levels for treatment) and <b>hygiene</b> (sealed, cleanable luminaires).',
+  body: '<table class="spec"><tr><td>Ward</td><td>100 lx general, 300 lx reading, 1000 lx examination (bed-head unit), night light</td></tr><tr><td>Examination</td><td>500 lx general, Ra 90; examination lamp 1000 lx</td></tr><tr><td>Operating theatre</td><td>1000 lx general, Ra 90, IP65 cleanroom luminaires; surgical light 40,000–160,000 lx (IEC 60601-2-41)</td></tr><tr><td>ICU</td><td>100 / 300 / 1000 lx switchable, night watch level</td></tr><tr><td>Corridors</td><td>100 lx day, about 50 lx night</td></tr><tr><td>Also</td><td>Emergency lighting, tunable white for wellbeing, national guides (e.g. HTM / CIBSE LG2)</td></tr></table>',
+  say: '“Ra 90 cleanroom luminaires in the theatres, low-glare dimmable light in the wards and a night mode in the corridors – lit for patients, staff and infection control.”',
+  watch: 'In theatres the luminaires must not disturb the laminar air flow and must take cleaning chemicals – check the IP rating and material approvals.',
+  quiz: [Q('Examination lighting needs Ra…', ['90', '40', '20'], 0), Q('Theatre general luminaires are…', ['sealed IP65 cleanroom types', 'open battens', 'decorative pendants'], 0), Q('Corridors at night are typically…', ['dimmed to about 50 lx', 'brighter than by day', 'switched off completely'], 0)] });
+add('indoor', 'Topics', 'in_off', '💻', 'Offices – screens, glare and wellbeing', {
+  line: 'Office lighting is judged by people sitting there all day: <b>500 lx on the desk</b>, <b>low glare</b> on screens, light on faces and walls, and control over their own light.',
+  body: '<table class="spec"><tr><td>Writing, computer work</td><td>500 lx, UGR 19, U0 0.6, Ra 80</td></tr><tr><td>Technical drawing / CAD</td><td>750 lx, UGR 16</td></tr><tr><td>Meeting rooms</td><td>500 lx, dimmable, faces lit for video calls</td></tr><tr><td>Screens</td><td>Limit luminaire luminance at high angles to avoid reflections</td></tr><tr><td>Faces & walls</td><td>Cylindrical illuminance and light on walls – rooms feel bright and people look natural</td></tr><tr><td>Controls</td><td>Presence + daylight dimming typically save 30–50%; tunable white is popular</td></tr></table>',
+  say: '“UGR 19 panels with daylight and presence control: comfortable for screen work all day and half the energy of the old system.”',
+  watch: 'Do not chase 500 lx everywhere – corridors, archives and break-out areas need less; zone the design and save.',
+  quiz: [Q('Computer work needs a glare limit of UGR…', ['19', '28', '25'], 0), Q('Daylight and presence control in offices typically save…', ['30–50%', '0%', '95%'], 0), Q('Why light the walls?', ['The room feels bright and people look natural', 'To save paint', 'For the standard of street lighting'], 0)] });
+add('indoor', 'Topics', 'in_mf', '♻️', 'Maintenance factor & energy', {
+  line: 'Two numbers decide the real cost: the <b>maintenance factor</b> (how much light is left after dirt and ageing) and the <b>energy per year</b> (W/m² × hours, cut by controls).',
+  body: '<table class="spec"><tr><td>Maintenance factor</td><td>LED lumen maintenance × luminaire dirt × room dirt (e.g. 0.8 clean office, 0.6–0.7 dusty factory)</td></tr><tr><td>Effect</td><td>A lower MF means more light installed at day one – design for it, or the space falls below the standard</td></tr><tr><td>W/m² per 100 lx</td><td>A fair efficiency comparison between designs</td></tr><tr><td>LENI</td><td>EN 15193-1: lighting energy per m² per year including controls</td></tr><tr><td>Controls</td><td>Presence, daylight and constant-light-output dimming (no over-lighting at the start)</td></tr></table>',
+  say: '“We design with your real maintenance factor and add constant-light-output dimming – the space is never under the standard and never over-lit on day one.”',
+  watch: 'A cheap luminaire with poor lumen maintenance forces a low MF – more fittings and more watts for the same maintained lux.',
+  quiz: [Q('A dusty factory usually needs a maintenance factor of about…', ['0.6–0.7', '1.0', '0.1'], 0), Q('EN 15193-1 measures…', ['lighting energy per m² per year (LENI)', 'glare', 'colour rendering'], 0), Q('Constant light output dimming…', ['avoids over-lighting when the system is new', 'makes lights brighter over time', 'saves nothing'], 0)] });
 L.forEach((l) => { LESSONS[l.id] = l; });
 
 // ================================================================ ACADEMY engine – widgets, quiz, routing, progress
@@ -2703,7 +2914,7 @@ function renderHome() {
 const BG = ['#fef3c7', '#ffedd5', '#fce7f3', '#e0e7ff', '#e0f2fe', '#dcfce7', '#f1f5f9', '#ede9fe'];
 
 // ---- lessons and labs
-const VIEWS = ['home', 'lesson', 'tech', 'fix', 'chip', 'ctlv', 'lmsv', 'roadv', 'talqv', 'cmsv', 'sportv', 'thinkv', 'aglv', 'papiv', 'ccrv', 'twrv', 'vdgsv', 'servv'];
+const VIEWS = ['home', 'lesson', 'tech', 'fix', 'chip', 'ctlv', 'lmsv', 'roadv', 'talqv', 'cmsv', 'sportv', 'thinkv', 'aglv', 'papiv', 'ccrv', 'twrv', 'vdgsv', 'servv', 'indv'];
 function showView(v) { VIEWS.forEach((x) => $(x).classList.toggle('hidden', x !== v)); window.scrollTo(0, 0); }
 function back() { location.hash = '#home'; }
 function parkWidgets() { document.querySelectorAll('[data-parked]').forEach((w) => { $('wstore').appendChild(w); w.removeAttribute('data-parked'); }); }
@@ -2721,6 +2932,7 @@ const LAB_INIT = {
   ccrv: (p) => { if (CCT[p]) ccT = p; ccFault = p === 'fault' ? 'lamp' : null; ccDraw(); },
   twrv: (p) => { if (p === 'cat3') twV = 'cat3'; twArch(); twDraw(); },
   vdgsv: (p) => vdUI(p),
+  indv: (p) => { if (INA[p]) inA = p; inUI(); },
   servv: (p) => { if (SVP[p]) svSel = p; svDraw(); },
   thinkv: (p) => { if (THP[p]) thK = p; thUI(); const sec = { journey: 'thP5', lang: 'thP6', conflict: 'thP7' }[p]; if (sec) setTimeout(() => $(sec).scrollIntoView({ behavior: 'smooth' }), 50); },
   talqv: (p) => { tqM = ['mixed', 'talq', 'none'].includes(p) ? p : 'mixed'; tqDraw(); },
