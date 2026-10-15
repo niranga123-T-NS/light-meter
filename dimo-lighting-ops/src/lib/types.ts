@@ -153,6 +153,9 @@ export type Visit = {
   next_action: string | null;
   next_action_date: string | null;
   next_action_done_at: string | null;
+  brief_previous?: string | null;
+  brief_promised?: string | null;
+  brief_done?: string | null;
   status: 'open' | 'closed';
   reviewed_by: string | null;
   review_comment: string | null;

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Attachments } from '@/components/Attachments';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, DateField, ErrorBanner, Field, KeyValue, Loading, Muted, Notice, Pill, Row, Screen, Section, Select } from '@/components/ui';
+import { BriefView } from '@/components/VisitBrief';
 import { captureLocation, TenderResultForm } from '@/components/VisitBits';
 import { useMe } from '@/lib/auth';
 import { fmtDate, fmtDateTime, fmtMoney, fmtNumber } from '@/lib/format';
@@ -157,6 +158,12 @@ export default function VisitDetail() {
           {v.competitors_mentioned.length ? <KeyValue label="Competitors" value={v.competitors_mentioned.join(', ')} /> : null}
         </Row>
       </Card>
+
+      {v.brief_previous || v.brief_promised || v.brief_done ? (
+        <Section title="Before the visit">
+          <BriefView b={v} />
+        </Section>
+      ) : null}
 
       {v.status === 'closed' ? (
         <Section title="Report">

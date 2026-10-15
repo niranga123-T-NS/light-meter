@@ -361,6 +361,7 @@ export default function PlanDetail() {
                             <Button small variant="ghost" title="Remove" onPress={() => lineAction(l, 'delete')} />
                           )
                         ) : null}
+                        {mine && l.status === 'planned' ? <Button small variant="secondary" title="Prepare" onPress={() => router.push(`/visits/prepare?planLine=${l.id}`)} /> : null}
                         {mine && l.status === 'planned' && plan.status === 'approved' ? (
                           <Button small title="Check in" onPress={() => router.push(`/visits/new?planLine=${l.id}`)} />
                         ) : null}

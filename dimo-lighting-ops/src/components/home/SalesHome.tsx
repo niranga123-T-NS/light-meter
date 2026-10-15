@@ -163,7 +163,10 @@ export function SalesHome() {
                     l.status === 'completed' ? (
                       <Pill label="Done" tone={colors.green} />
                     ) : (
-                      <Button small title="Check in" onPress={() => router.push(`/visits/new?planLine=${l.id}`)} />
+                      <Row gap={6}>
+                        <Button small variant="secondary" title="Prepare" onPress={() => router.push(`/visits/prepare?planLine=${l.id}`)} />
+                        <Button small title="Check in" onPress={() => router.push(`/visits/new?planLine=${l.id}`)} />
+                      </Row>
                     )
                   }
                 />
