@@ -8374,13 +8374,17 @@ end $$;
 reset role;
 select pg_temp.act_as('lighting_designer'); set role authenticated;
 do $$ declare rid uuid; begin
-  insert into public.project_references (title, description, year, value, location, country, category, applications, brands, photos, architect, mep_consultant)
-  values ('Hotel ballroom', 'LED retrofit with DALI scenes', 2026, 12500000, 'Colombo 02', 'Sri Lanka', 'hospitality', array['indoor', 'controls', 'lv'], array['Philips'], array['ref/x/1.jpg'], 'DGFI', 'Mott MacDonald')
+  insert into public.project_references (title, description, year, value, location, country, category, applications, outdoor_types, brands, photos, architect, mep_consultant)
+  values ('Hotel ballroom', 'LED retrofit with DALI scenes', 2026, 12500000, 'Colombo 02', 'Sri Lanka', 'hospitality', array['indoor', 'outdoor', 'controls', 'lv'], array['roads', 'yards'], array['Philips'], array['ref/x/1.jpg'], 'DGFI', 'Mott MacDonald')
   returning id into rid;
   perform set_config('test.ref', rid::text, false);
   begin
     insert into public.project_references (title, applications) values ('Bad', array['indoor', 'roads']);
     assert false, 'unknown application type refused';
+  exception when check_violation then null; end;
+  begin
+    insert into public.project_references (title, applications, outdoor_types) values ('No outdoor', array['indoor'], array['roads']);
+    assert false, 'outdoor kinds only with Outdoor Lighting';
   exception when check_violation then null; end;
   begin
     insert into public.project_references (title, photos) values ('Too many', array['a', 'b', 'c', 'd', 'e']);

@@ -5,7 +5,7 @@ import { Text, View } from 'react-native';
 import { Button, Card, Chip, colors, Empty, ErrorBanner, Field, Grid, Loading, Muted, Pill, Row, Select } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { useLoad } from '@/lib/hooks';
-import { applicationLabel, APPLICATIONS, keepsReferences, photoUrls, type ProjectReference } from '@/lib/references';
+import { applicationText, APPLICATIONS, keepsReferences, OUTDOOR_TYPES, photoUrls, type ProjectReference } from '@/lib/references';
 import { projectTypeLabel, PROJECT_TYPES } from '@/lib/roles';
 import { fmtMoney } from '@/lib/format';
 import { supabase } from '@/lib/supabase';
@@ -19,6 +19,7 @@ export function References() {
   const [year, setYear] = useState('');
   const [country, setCountry] = useState('');
   const [apps, setApps] = useState<string[]>([]);
+  const [outs, setOuts] = useState<string[]>([]);
   const { data, error } = useLoad(async () => {
     const { data: rows, error: e } = await supabase.from('project_references').select('*').eq('active', true).order('year', { ascending: false, nullsFirst: false }).order('created_at', { ascending: false });
     if (e) throw new Error(e.message);
@@ -36,9 +37,10 @@ export function References() {
       (!year || String(r.year) === year) &&
       (!country || r.country === country) &&
       (!apps.length || apps.some((a) => r.applications.includes(a))) &&
+      (!outs.length || outs.some((o) => r.outdoor_types.includes(o))) &&
       (!s || [r.title, r.client, r.architect, r.interior_designer, r.mep_consultant, r.elec_consultant, r.location, r.country, r.description, ...r.brands].filter(Boolean).join(' ').toLowerCase().includes(s)),
   );
-  const filtered = !!(category || year || country || apps.length || s);
+  const filtered = !!(category || year || country || apps.length || outs.length || s);
 
   return (
     <View style={{ gap: 10 }}>
@@ -56,10 +58,26 @@ export function References() {
       <Row gap={6} wrap>
         <Muted style={{ alignSelf: 'center' }}>Application:</Muted>
         {APPLICATIONS.map((a) => (
-          <Chip key={a.value} label={a.label} on={apps.includes(a.value)} onPress={() => setApps(apps.includes(a.value) ? apps.filter((x) => x !== a.value) : [...apps, a.value])} />
+          <Chip
+            key={a.value}
+            label={a.label}
+            on={apps.includes(a.value)}
+            onPress={() => {
+              if (apps.includes(a.value) && a.value === 'outdoor') setOuts([]);
+              setApps(apps.includes(a.value) ? apps.filter((x) => x !== a.value) : [...apps, a.value]);
+            }}
+          />
         ))}
-        {filtered ? <Button small variant="ghost" title="Clear filters" onPress={() => { setQ(''); setCategory(''); setYear(''); setCountry(''); setApps([]); }} /> : null}
+        {filtered ? <Button small variant="ghost" title="Clear filters" onPress={() => { setQ(''); setCategory(''); setYear(''); setCountry(''); setApps([]); setOuts([]); }} /> : null}
       </Row>
+      {apps.includes('outdoor') ? (
+        <Row gap={6} wrap>
+          <Muted style={{ alignSelf: 'center' }}>Outdoor:</Muted>
+          {OUTDOOR_TYPES.map((o) => (
+            <Chip key={o.value} label={o.label} on={outs.includes(o.value)} onPress={() => setOuts(outs.includes(o.value) ? outs.filter((x) => x !== o.value) : [...outs, o.value])} />
+          ))}
+        </Row>
+      ) : null}
       <Muted>{`${shown.length} reference${shown.length === 1 ? '' : 's'}${filtered ? ` of ${data.refs.length}` : ''}`}</Muted>
       {!shown.length ? (
         <Empty title={data.refs.length ? 'No references match' : 'No references yet'} hint={data.refs.length ? 'Change or clear the filters.' : keeper ? 'Add a completed project with up to 4 photos.' : 'The Lighting Designer adds the references.'} />
@@ -82,7 +100,7 @@ export function References() {
                 {r.description ? <Muted numberOfLines={2}>{r.description}</Muted> : null}
                 <Row gap={4} wrap>
                   {r.category ? <Pill label={projectTypeLabel(r.category)} tone={colors.ink} /> : null}
-                  {r.applications.map((a) => <Pill key={a} label={applicationLabel(a)} tone={colors.blue} />)}
+                  {r.applications.map((a) => <Pill key={a} label={applicationText(a, r)} tone={colors.blue} />)}
                 </Row>
                 {r.brands.length ? <Muted numberOfLines={1}>{`Brands: ${r.brands.join(', ')}`}</Muted> : null}
                 {r.value != null ? <Muted>{fmtMoney(r.value, r.currency)}</Muted> : null}

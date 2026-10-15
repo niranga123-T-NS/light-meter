@@ -8,15 +8,15 @@ import { useMe } from '@/lib/auth';
 import { pickImage, uuid, type PickedFile } from '@/lib/files';
 import { fmtMoney } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
-import { applicationLabel, APPLICATIONS, keepsReferences, MAX_PHOTOS, PARTIES, photoUrls, removePhotos, uploadPhoto, type ProjectReference } from '@/lib/references';
+import { applicationText, APPLICATIONS, keepsReferences, MAX_PHOTOS, OUTDOOR_TYPES, PARTIES, photoUrls, removePhotos, uploadPhoto, type ProjectReference } from '@/lib/references';
 import { projectTypeLabel, PROJECT_TYPES } from '@/lib/roles';
 import { TOOLS_ROLES } from '@/lib/standards';
 import { supabase } from '@/lib/supabase';
 import type { Currency } from '@/lib/types';
 
 type Photo = { path?: string; file?: PickedFile; uri: string };
-type Form = Pick<ProjectReference, 'title' | 'client' | 'architect' | 'interior_designer' | 'mep_consultant' | 'elec_consultant' | 'description' | 'year' | 'value' | 'currency' | 'location' | 'country' | 'category' | 'applications' | 'brands'>;
-const BLANK: Form = { title: '', client: null, architect: null, interior_designer: null, mep_consultant: null, elec_consultant: null, description: null, year: new Date().getFullYear(), value: null, currency: 'LKR', location: null, country: 'Sri Lanka', category: null, applications: [], brands: [] };
+type Form = Pick<ProjectReference, 'title' | 'client' | 'architect' | 'interior_designer' | 'mep_consultant' | 'elec_consultant' | 'description' | 'year' | 'value' | 'currency' | 'location' | 'country' | 'category' | 'applications' | 'outdoor_types' | 'brands'>;
+const BLANK: Form = { title: '', client: null, architect: null, interior_designer: null, mep_consultant: null, elec_consultant: null, description: null, year: new Date().getFullYear(), value: null, currency: 'LKR', location: null, country: 'Sri Lanka', category: null, applications: [], outdoor_types: [], brands: [] };
 const COUNTRIES = ['Sri Lanka', 'Maldives', 'India', 'Bangladesh', 'United Arab Emirates', 'Qatar', 'Other'];
 
 /** A project reference: up to 4 photos, short description, year, value, location, country, category, applications and brands */
@@ -87,6 +87,7 @@ export default function ReferencePage() {
         country: f.country.trim() || 'Sri Lanka',
         category: f.category || null,
         applications: f.applications,
+        outdoor_types: f.applications.includes('outdoor') ? f.outdoor_types : [],
         brands: f.brands,
         updated_by: me.id,
         updated_at: new Date().toISOString(),
@@ -170,6 +171,16 @@ export default function ReferencePage() {
               <Chip key={a.value} label={a.label} on={f.applications.includes(a.value)} onPress={() => set({ applications: f.applications.includes(a.value) ? f.applications.filter((x) => x !== a.value) : [...f.applications, a.value] })} />
             ))}
           </Row>
+          {f.applications.includes('outdoor') ? (
+            <>
+              <Text style={{ fontWeight: '600', color: colors.ink }}>Outdoor – kind of project</Text>
+              <Row gap={6} wrap style={{ marginBottom: 8 }}>
+                {OUTDOOR_TYPES.map((o) => (
+                  <Chip key={o.value} label={o.label} on={f.outdoor_types.includes(o.value)} onPress={() => set({ outdoor_types: f.outdoor_types.includes(o.value) ? f.outdoor_types.filter((x) => x !== o.value) : [...f.outdoor_types, o.value] })} />
+                ))}
+              </Row>
+            </>
+          ) : null}
           <Text style={{ fontWeight: '600', color: colors.ink, marginTop: 4 }}>Project team – tick the ones you know</Text>
           {PARTIES.map((p) => (
             <View key={p.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -226,7 +237,7 @@ export default function ReferencePage() {
         {r.description ? <Text style={{ fontSize: 15, color: colors.ink, lineHeight: 22 }}>{r.description}</Text> : null}
         <Row gap={4} wrap>
           {r.category ? <Pill label={projectTypeLabel(r.category)} tone={colors.ink} /> : null}
-          {r.applications.map((a) => <Pill key={a} label={applicationLabel(a)} tone={colors.blue} />)}
+          {r.applications.map((a) => <Pill key={a} label={applicationText(a, r)} tone={colors.blue} />)}
         </Row>
         <KeyValue label="Year" value={r.year ?? '—'} />
         <KeyValue label="Location" value={[r.location, r.country].filter(Boolean).join(', ') || '—'} />

@@ -1,5 +1,6 @@
 -- Project references (Sales Tools → References): completed projects to show clients – up to 4 photos, a short description,
--- year, project value (when known), location and country, project category, application types, the brands used and – when
+-- year, project value (when known), location and country, project category, application types (outdoor with its kind –
+-- airports, ports, roads, sports, yards or other), the brands used and – when
 -- known – the client, architect, interior designer, MEP consultant and electrical consultant.
 --  * Seen by everyone with Sales Tools; only the Lighting Designer adds, edits and removes references.
 --  * Photos are kept in the private "references" bucket (images up to 10 MB each), under ref/<reference id>/.
@@ -23,11 +24,13 @@ create table if not exists public.project_references (
   country text not null default 'Sri Lanka',
   category text check (category is null or category in ('hospitality', 'retail', 'institutions', 'commercial', 'infrastructure', 'industrial')),
   applications text[] not null default '{}' check (applications <@ array['indoor', 'outdoor', 'controls', 'lv', 'special']::text[]),
+  outdoor_types text[] not null default '{}' check (outdoor_types <@ array['airports', 'ports', 'roads', 'sports', 'yards', 'other']::text[]),
   brands text[] not null default '{}',
   photos text[] not null default '{}' check (coalesce(array_length(photos, 1), 0) <= 4),
   active boolean not null default true,
   created_by uuid references public.profiles (id) default auth.uid(),
   created_at timestamptz not null default now(),
+  constraint project_references_outdoor check (outdoor_types = '{}' or 'outdoor' = any (applications)),
   updated_by uuid references public.profiles (id),
   updated_at timestamptz not null default now()
 );

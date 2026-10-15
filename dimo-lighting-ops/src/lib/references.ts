@@ -20,6 +20,7 @@ export type ProjectReference = {
   country: string;
   category: string | null;
   applications: string[];
+  outdoor_types: string[];
   brands: string[];
   photos: string[];
   active: boolean;
@@ -36,6 +37,18 @@ export const APPLICATIONS = [
   { value: 'special', label: 'Special Projects' },
 ];
 export const applicationLabel = (v: string) => APPLICATIONS.find((a) => a.value === v)?.label ?? v;
+/** Kinds of outdoor lighting – chosen under Outdoor Lighting */
+export const OUTDOOR_TYPES = [
+  { value: 'airports', label: 'Airports' },
+  { value: 'ports', label: 'Ports' },
+  { value: 'roads', label: 'Roads' },
+  { value: 'sports', label: 'Sports' },
+  { value: 'yards', label: 'Yards' },
+  { value: 'other', label: 'Other' },
+];
+/** "Outdoor Lighting – Roads, Sports" when the outdoor kinds are known */
+export const applicationText = (a: string, r: { outdoor_types: string[] }) =>
+  a === 'outdoor' && r.outdoor_types.length ? `${applicationLabel(a)} – ${r.outdoor_types.map((t) => OUTDOOR_TYPES.find((o) => o.value === t)?.label ?? t).join(', ')}` : applicationLabel(a);
 export const MAX_PHOTOS = 4;
 
 /** The people behind the project – each shown only when known (ticked) */
