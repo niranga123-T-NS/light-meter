@@ -8411,5 +8411,14 @@ do $$ begin
 end $$;
 reset role;
 
+-- Estimation scope takes Professional staff
+do $$ begin
+  update public.inquiries set estimation_scope = array['fixtures', 'staff'] where id = (select id from public.inquiries limit 1);
+  begin
+    update public.inquiries set estimation_scope = array['catering'] where id = (select id from public.inquiries limit 1);
+    assert false, 'unknown scope refused';
+  exception when check_violation then null; end;
+end $$;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

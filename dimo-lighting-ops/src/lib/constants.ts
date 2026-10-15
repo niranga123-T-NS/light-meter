@@ -22,6 +22,7 @@ export const ESTIMATION_SCOPE = [
   { value: 'electrical', label: 'Electrical (cables, DBs, wiring)' },
   { value: 'controls', label: 'Lighting controls (DALI, sensors, dimming)' },
   { value: 'poles', label: 'Poles & accessories' },
+  { value: 'staff', label: 'Professional staff (engineers, supervisors, technicians)' },
 ];
 export const ESTIMATION_BASIS = [
   { value: 'supply', label: 'Supply only' },
