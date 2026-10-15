@@ -299,6 +299,109 @@ table.spec{width:100%;border-collapse:collapse;font-size:13px}table.spec td{padd
   </div>
 </div>
 
+<!-- ============ LIVE: AIRPORT – AIRFIELD LIGHTING PLAYGROUND ============ -->
+<div id="aglv" class="hidden">
+  <div class="crumb" onclick="back()">◀ All lessons · Airport solutions</div>
+  <div class="card">
+    <div class="hero"><div><span class="pill">Live · 8 min</span><h2 style="margin-top:6px">Airfield lighting playground</h2></div><span class="m">A runway, taxiways and an apron at night – land or take off and watch which lights guide the aircraft and what changes</span></div>
+    <div class="row" style="margin-top:12px" id="agScn"></div>
+    <div class="part"><div class="num">1</div><div class="body"><h4>In one line</h4>Aeronautical ground lighting (AGL) is a <b>language of colours</b>: <b style="color:#16a34a">green</b> = where the runway starts and the taxi route, <b>white</b> = the runway, <b style="color:#ca8a04">yellow</b> = caution, <b style="color:#dc2626">red</b> = stop / runway end, <b style="color:#2563eb">blue</b> = taxiway edge. Every light type, its colour, spacing and intensity is set by ICAO Annex 14 (and FAA advisory circulars).</div></div>
+    <div class="part"><div class="num">2</div><div class="body"><h4>See it – the airfield from above</h4>
+      <div class="row" id="agVis" style="margin-bottom:6px"></div>
+      <div class="stage"><svg id="agSvg" viewBox="0 0 1000 440"><g id="agSt"></g><g id="agDyn"></g></svg></div>
+      <div class="row" style="margin-top:6px"><span class="btn p" id="agPlay" style="padding:4px 9px;font-size:12px" onclick="agToggle()">⏸ Pause</span><span class="btn" style="padding:4px 9px;font-size:12px" onclick="agRestart()">↺ Restart</span><span class="btn" id="agFtgB" style="padding:4px 9px;font-size:12px" onclick="agFtg=!agFtg;agStatic()">Follow-the-greens</span><span class="m" style="font-size:12px">Speed</span><input id="agSpd" type="range" min="0.5" max="3" step="0.25" value="1" style="width:120px"></div>
+      <div class="m" style="font-size:12px;margin-top:4px">Tap a light type to highlight it on the airfield:</div>
+      <div class="row" id="agTypes" style="margin-top:4px"></div>
+      <div class="two" style="margin-top:10px"><div class="info" id="agNow" style="min-height:0"></div><div class="info" id="agInfo" style="min-height:0"></div></div>
+    </div></div>
+    <div class="part"><div class="num">3</div><div class="body"><h4>Every light type at a glance</h4><div style="overflow-x:auto"><table class="spec" id="agTbl" style="min-width:640px"></table></div></div></div>
+    <div class="part"><div class="num">4</div><div class="body"><h4>Say this</h4><div class="say">“Our LED AGL is ICAO Annex 14 and FAA compliant, runs on your existing 6.6 A series circuits, and with individual light monitoring the tower sees every failed light – which is what keeps CAT II/III available.”</div></div></div>
+    <div class="part"><div class="num">5</div><div class="body"><h4>Watch out</h4><div class="watch">The drawing is a <b>teaching schematic</b> – the width is exaggerated and distances are simplified. Real layouts follow ICAO Annex 14 Vol I Chapter 5, the airport’s category of operation and the national authority (in Sri Lanka the CAASL); every new installation is flight-checked and photometrically measured before it goes into service.</div></div></div>
+  </div>
+</div>
+
+<!-- ============ LIVE: AIRPORT – PAPI ============ -->
+<div id="papiv" class="hidden">
+  <div class="crumb" onclick="back()">◀ All lessons · Airport solutions</div>
+  <div class="card">
+    <div class="hero"><div><span class="pill">Live · 4 min</span><h2 style="margin-top:6px">PAPI – fly the glide slope</h2></div><span class="m">Move the aircraft above or below the 3° approach path and see what the pilot sees</span></div>
+    <div class="part"><div class="num">1</div><div class="body"><h4>In one line</h4>The <b>PAPI</b> (precision approach path indicator) is four light units beside the runway. Each unit shows <b>white above</b> and <b>red below</b> its own angle. On the correct 3° path the pilot sees <b>two white and two red</b>.</div></div>
+    <div class="part"><div class="num">2</div><div class="body"><h4>See it</h4>
+      <div class="row" id="ppMode" style="margin-bottom:6px"></div>
+      <div class="two" style="grid-template-columns:1.6fr 1fr;align-items:start"><div class="stage"><svg id="ppSide" viewBox="0 0 760 260"></svg></div>
+        <div><div class="stage" style="background:#05070c"><svg id="ppPilot" viewBox="0 0 300 160"></svg></div><div class="info" id="ppSay" style="min-height:0;margin-top:8px"></div></div></div>
+      <div class="ctl"><div><label>Approach angle <b id="ppAV"></b></label><input id="ppA" type="range" min="1.5" max="4.5" step="0.05" value="3"></div><div><label>Distance to the PAPI <b id="ppDV"></b></label><input id="ppD" type="range" min="0.5" max="6" step="0.1" value="3"></div></div>
+      <div class="kpis" id="ppKpi"></div>
+    </div></div>
+    <div class="part"><div class="num">3</div><div class="body"><h4>Watch out</h4><div class="watch">PAPI units are aimed with an inclinometer to ± a few arc-minutes and checked by flight inspection. The setting depends on the glide slope and on the <b>eye-to-wheel height</b> of the largest aircraft (MEHT) – a PAPI set for small aircraft can bring a wide-body’s wheels too low over the threshold.</div></div></div>
+  </div>
+</div>
+
+<!-- ============ LIVE: AIRPORT – CCR & SERIES CIRCUIT ============ -->
+<div id="ccrv" class="hidden">
+  <div class="crumb" onclick="back()">◀ All lessons · Airport solutions</div>
+  <div class="card">
+    <div class="hero"><div><span class="pill">Live · 6 min</span><h2 style="margin-top:6px">Constant current regulator & series circuit</h2></div><span class="m">One regulator drives up to a few hundred lights in series – change the step, the load and the regulator type, then break something</span></div>
+    <div class="part"><div class="num">1</div><div class="body"><h4>In one line</h4>Airfield lights are not wired in parallel like buildings. They sit on a <b>series loop</b> fed by a <b>constant current regulator (CCR)</b> that keeps the <b>same current (up to 6.6 A)</b> through every light whatever the cable length or the number of lights. Each light hangs on an <b>isolating transformer</b>, so a failed lamp never opens the loop.</div></div>
+    <div class="part"><div class="num">2</div><div class="body"><h4>See it</h4>
+      <div class="row" id="ccType" style="margin-bottom:6px"></div>
+      <div class="stage"><svg id="ccSvg" viewBox="0 0 760 250"></svg></div>
+      <div class="row" id="ccStep" style="margin-top:8px"></div>
+      <div class="ctl"><div><label>Lights on the loop <b id="ccNV"></b></label><input id="ccN" type="range" min="10" max="250" step="5" value="120"></div><div><label>Light type</label><div class="row" id="ccLamp"></div></div><div><label>Loop cable length (6 mm²) <b id="ccLV"></b></label><input id="ccL" type="range" min="1" max="12" step="0.5" value="5"></div></div>
+      <div class="kpis" id="ccKpi" style="grid-template-columns:repeat(auto-fit,minmax(110px,1fr))"></div>
+      <div class="two"><div><div class="legend"><span style="--c:var(--s1)">Output current – one cycle</span></div><div class="chartbox"><svg id="ccWave" viewBox="0 0 400 150" style="width:100%;height:auto;display:block"></svg></div></div><div class="info" id="ccNote" style="min-height:0"></div></div>
+      <div class="row" style="margin-top:8px"><span class="m" style="font-size:12px">Simulate:</span><span class="btn" style="padding:4px 9px;font-size:12px" onclick="ccFault='lamp';ccDraw()">A light fails</span><span class="btn" style="padding:4px 9px;font-size:12px" onclick="ccFault='earth';ccDraw()">Earth fault</span><span class="btn" style="padding:4px 9px;font-size:12px" onclick="ccFault='cut';ccDraw()">Cable cut</span><span class="btn" style="padding:4px 9px;font-size:12px" onclick="ccFault=null;ccDraw()">Repair</span></div>
+    </div></div>
+    <div class="part"><div class="num">3</div><div class="body"><h4>Say this</h4><div class="say">“A pure-sine-wave CCR handles LED loads cleanly – no flicker, low harmonics and accurate current at every step – and with full L-829 monitoring the tower sees load, insulation resistance and lamp failures for every circuit.”</div></div></div>
+    <div class="part"><div class="num">4</div><div class="body"><h4>Watch out</h4><div class="watch">Series circuits run at <b>several kilovolts</b> on the primary – only trained AGL electricians work on them, with the CCR locked off. Size the CCR for the full load at 6.6 A plus cable and transformer losses, and check that the regulator is approved for LED loads (FAA AC 150/5345-10, IEC 61822).</div></div></div>
+  </div>
+</div>
+
+<!-- ============ LIVE: AIRPORT – CONTROL TOWER / ALCMS ============ -->
+<div id="twrv" class="hidden">
+  <div class="crumb" onclick="back()">◀ All lessons · Airport solutions</div>
+  <div class="card">
+    <div class="hero"><div><span class="pill">Live · 7 min · demo</span><h2 style="margin-top:6px">Control tower – airfield lighting control & monitoring</h2></div><span class="m">Be the tower: choose the runway and visibility, switch stop bars, then break lights and see whether CAT III stays available</span></div>
+    <div class="part"><div class="num">1</div><div class="body"><h4>In one line</h4>The <b>ALCMS</b> (airfield lighting control and monitoring system) lets air traffic control switch every circuit, brightness step and stop bar from a touchscreen in the tower – and shows instantly if any light, regulator or cable fails. With <b>individual light control (ILCMS)</b> every single light reports its own health.</div></div>
+    <div class="part"><div class="num">2</div><div class="body"><h4>See it – the tower touchscreen (demo)</h4>
+      <div class="row" id="twRwy" style="margin-bottom:6px"></div>
+      <div class="row" id="twVis" style="margin-bottom:6px"></div>
+      <div class="stage"><svg id="twMap" viewBox="0 0 760 250"></svg></div>
+      <div class="row" style="margin-top:6px"><span class="m" style="font-size:12px">Simulate:</span><span class="btn" style="padding:4px 9px;font-size:12px" onclick="twFail('cl')">2 adjacent centreline lights fail</span><span class="btn" style="padding:4px 9px;font-size:12px" onclick="twFail('edge')">3 edge lights fail</span><span class="btn" style="padding:4px 9px;font-size:12px" onclick="twFail('trip')">Edge CCR A trips</span><span class="btn" style="padding:4px 9px;font-size:12px" onclick="twFail('earth')">Earth fault on approach</span><span class="btn" style="padding:4px 9px;font-size:12px" onclick="twFail(null)">Repair all</span></div>
+      <div class="kpis" id="twKpi"></div>
+      <div style="overflow-x:auto"><table class="spec" id="twTbl" style="min-width:680px"></table></div>
+      <div class="info" id="twLog" style="min-height:0;margin-top:8px;font-size:12.5px"></div>
+    </div></div>
+    <div class="part"><div class="num">3</div><div class="body"><h4>How it is built – ADB SAFEGATE example</h4><div class="stage" style="background:#fff;border:1px solid var(--line)"><svg id="twArch" viewBox="0 0 760 270"></svg></div>
+      <div class="m" style="font-size:12px;margin-top:6px">Product names from ADB SAFEGATE’s published range: <b>ACE3</b> control & monitoring units in the vault, <b>CRE / VIS</b> pure-sine-wave CCRs, <b>RELIANCE</b> LED inset and elevated lights with the built-in <b>IQ</b> individual-light module, and <b>Safedock</b> A-VDGS at the gates. Check the current range and approvals with ADB SAFEGATE before an offer.</div></div></div>
+    <div class="part"><div class="num">4</div><div class="body"><h4>Watch out</h4><div class="watch">This is a <b>teaching demo with invented data</b> – not ADB SAFEGATE’s actual screens. The serviceability rules shown are simplified from ICAO Annex 14 Chapter 10; the airport’s own LVP procedures decide when a category is downgraded.</div></div></div>
+  </div>
+</div>
+
+<!-- ============ LIVE: AIRPORT – VDGS & BOARDING BRIDGE ============ -->
+<div id="vdgsv" class="hidden">
+  <div class="crumb" onclick="back()">◀ All lessons · Airport solutions</div>
+  <div class="card">
+    <div class="hero"><div><span class="pill">Live · 7 min</span><h2 style="margin-top:6px">Docking guidance & passenger boarding bridge</h2></div><span class="m">Dock an aircraft with the VDGS, then drive the boarding bridge to the door in 3D</span></div>
+    <div class="row" style="margin-top:12px" id="vdType"></div>
+    <div class="part"><div class="num">1</div><div class="body"><h4>In one line</h4>An <b>A-VDGS</b> (advanced visual docking guidance system, e.g. ADB SAFEGATE <b>Safedock</b>) scans the incoming aircraft with a 3D laser, <b>checks the type</b>, and shows the pilot left/right and distance-to-stop guidance until <b>STOP</b>. It is interlocked with the <b>passenger boarding bridge</b>: docking only starts when the bridge is parked safely, and the bridge drives to the door once the aircraft has stopped.</div></div>
+    <div class="part"><div class="num">2</div><div class="body"><h4>See it – dock the aircraft</h4>
+      <div class="two" style="grid-template-columns:1.4fr 1fr;align-items:start"><div class="stage"><svg id="vdTop" viewBox="0 0 460 300"></svg></div><div style="max-width:240px;width:100%;margin:0 auto"><div class="stage" style="background:#05070c"><svg id="vdDisp" viewBox="0 0 220 300"></svg></div></div></div>
+      <div class="row" style="margin-top:8px"><span class="btn p" style="padding:4px 9px;font-size:12px" onclick="vdStart()">▶ Start docking</span><span class="btn" style="padding:4px 9px;font-size:12px" onclick="vdSteer(-1)">◀ Steer left</span><span class="btn" style="padding:4px 9px;font-size:12px" onclick="vdSteer(1)">Steer right ▶</span><span class="btn" style="padding:4px 9px;font-size:12px" onclick="vdBrake()">Brake</span><span class="btn" style="padding:4px 9px;font-size:12px" onclick="vdDrift()">Add a crosswind drift</span><span class="btn" id="vdBridgeB" style="padding:4px 9px;font-size:12px" onclick="vdBridgeOut=!vdBridgeOut;vdTopDraw()">Bridge not parked (test interlock)</span></div>
+      <div class="info" id="vdNote" style="min-height:0;margin-top:8px"></div>
+    </div></div>
+    <div class="part" id="vdP3"><div class="num">3</div><div class="body"><h4>See it in 3D – the boarding bridge</h4>
+      <div class="stage" style="background:#cfe3f5"><svg id="pbSvg" viewBox="0 0 760 420"></svg></div>
+      <div class="row" style="margin-top:8px"><span class="btn p" style="padding:4px 9px;font-size:12px" onclick="pbGo(1)">Dock the bridge</span><span class="btn" style="padding:4px 9px;font-size:12px" onclick="pbGo(0)">Retract to parked</span></div>
+      <div class="ctl"><div><label>Turn the view <b id="pbYV"></b></label><input id="pbY" type="range" min="-85" max="85" step="5" value="-40"></div><div><label>Tilt <b id="pbPV"></b></label><input id="pbP" type="range" min="10" max="80" step="5" value="30"></div><div><label>Zoom <b id="pbZV"></b></label><input id="pbZ" type="range" min="0.6" max="2.2" step="0.1" value="1"></div></div>
+      <div class="kpis" id="pbKpi"></div>
+      <div class="info" id="pbNote" style="min-height:0"></div>
+    </div></div>
+    <div class="part"><div class="num">4</div><div class="body"><h4>Say this</h4><div class="say">“The A-VDGS identifies the aircraft, docks it to the centimetre without a marshaller, and is interlocked with the boarding bridge – so the gate turns faster and safer, and every docking time is logged for the airport.”</div></div></div>
+    <div class="part"><div class="num">5</div><div class="body"><h4>Watch out</h4><div class="watch">Door sill heights and stop positions here are <b>approximate</b>. Each stand has its own stop positions per aircraft type, set during commissioning; boarding bridges come from bridge manufacturers and are integrated with the VDGS, ground power (400 Hz) and pre-conditioned air.</div></div></div>
+  </div>
+</div>
+
 <!-- ============ LIVE: TECHNIQUES ============ -->
 <div id="tech" class="hidden">
   <div class="crumb" onclick="back()">◀ All lessons · Lighting techniques</div>
@@ -1843,6 +1946,546 @@ add('think', 'Work with them', 'th_present', '🧾', 'Presenting to designers', 
   say: '“Here is the same detail in a hotel we did last year – and here is the sample, so you can see the cove light on your own stone tomorrow.”',
   watch: 'Use your own reference projects (Sales Tools → References) – a real local project convinces more than any brochure.',
   quiz: [Q('What should a presentation to a designer show first?', ['The effect – references, renders, mood', 'The price list', 'Payment terms'], 0), Q('A mock-up on site helps because…', ['everyone sees the real effect on the real materials', 'it replaces calculations', 'it is free of cost always'], 0), Q('Planning value engineering with the designer early…', ['protects the design intent and the specification', 'is not allowed', 'always costs more'], 0)] });
+// ================================================================ AIRPORT SOLUTIONS – airfield lighting playground (schematic top view, RWY 09 in use)
+const AG = { T: 200, E: 860, RY: 120, HW: 18, TY: 250, s: 660 / 3000 };
+const agX = (m) => AG.T + m * AG.s;
+const AGC = { w: '#fff7d6', g: '#22c55e', r: '#ef4444', y: '#facc15', b: '#3b82f6' };
+const AGT = {
+  appr: ['Approach lights', 'White (red side barrettes for CAT II/III)', '900 m before the threshold, barrettes every 30 m, crossbar at 300 m; sequenced flashers', 'Lead the pilot’s eye to the runway centre line in the last part of the approach', 'Annex 14 5.3.4; FAA AC 150/5340-30 (ALSF-2, MALSR)'],
+  thr: ['Threshold & wing bars', 'Green (towards the approach)', 'Across the runway start, 3 m spacing; wing bars outside the edges', 'Show where the landing runway begins', 'Annex 14 5.3.10–5.3.11'],
+  end: ['Runway end lights', 'Red (towards the runway)', 'Across the runway end', 'Show where the runway stops', 'Annex 14 5.3.14'],
+  edge: ['Runway edge lights', 'White; yellow in the last 600 m', 'Along both edges, ≤ 60 m apart (instrument runway); elevated or inset', 'Outline the runway; yellow = caution, the end is near', 'Annex 14 5.3.9; FAA L-862 / L-850C'],
+  cl: ['Runway centreline lights', 'White; red/white alternating 900–300 m from the end, red in the last 300 m', 'Inset every 15 m (CAT II/III) or 30 m', 'Keep the aircraft on the centre line in low visibility, and warn of the runway end', 'Annex 14 5.3.12; FAA L-850A'],
+  tdz: ['Touchdown zone lights', 'White barrettes', 'Pairs of barrettes for the first 900 m, every 30–60 m', 'Show the touchdown zone in CAT II/III', 'Annex 14 5.3.13; FAA L-850B'],
+  retil: ['Rapid exit taxiway indicator lights (RETIL)', 'Yellow, unidirectional', '3-2-1 lights about 300, 200 and 100 m before the exit', 'Tell the pilot the rapid exit is coming – plan the braking', 'Annex 14 5.3.14 bis'],
+  papi: ['PAPI', 'Red / white', '4 units on the left side at the aiming point', 'Glide-slope guidance: 2 white + 2 red = on the 3° slope', 'Annex 14 5.3.5; FAA L-880'],
+  twcl: ['Taxiway centreline lights', 'Green; green/yellow alternating on runway exits and lead-on', 'Inset every 15–30 m (closer on curves)', 'The taxi route; green/yellow = still inside the runway strip / ILS sensitive area', 'Annex 14 5.3.17; FAA L-852'],
+  twedge: ['Taxiway edge lights', 'Blue', 'Along taxiway and apron edges', 'Outline taxiways where there are no centreline lights, and aprons', 'Annex 14 5.3.18; FAA L-861T'],
+  stop: ['Stop bars', 'Red, inset across the taxiway', 'At the runway holding position', 'Do not enter the runway – switched off by ATC with the clearance', 'Annex 14 5.3.20; FAA L-852S'],
+  rgl: ['Runway guard lights', 'Flashing yellow (pairs)', 'Each side of the taxiway at the holding position (or inset across it)', 'Warning: you are about to enter an active runway', 'Annex 14 5.3.23; FAA L-804'],
+  lead: ['Lead-on lights', 'Green/yellow', 'From the stop bar onto the runway centre line', 'Come on when the stop bar goes off – the cleared path', 'Annex 14 5.3.17'],
+  sign: ['Guidance signs', 'Mandatory: white on red · location: yellow on black · direction: black on yellow', 'At holding points and junctions, lit at night', 'Tell the pilot where they are and where to stop', 'Annex 14 5.4; FAA L-858'],
+  flood: ['Apron floodlights', 'White', 'High masts around the apron', 'Light the stands for ground handling; glare-free towards the tower and pilots', 'Annex 14 5.3.24; EN 12464-2'],
+  vdgs: ['Visual docking guidance (VDGS)', 'Amber / red display', 'On the terminal in front of each stand', 'Guides the pilot to the exact stop position', 'Annex 14 5.3.25–5.3.26'],
+};
+const AGVIS = {
+  day: { name: '☀️ Day VMC', step: 0, rvr: 'Good visibility', fog: 0, lvp: false, set: ['papi'] },
+  night: { name: '🌙 Night', step: 3, rvr: 'Night, good visibility', fog: 0, lvp: false, set: ['appr', 'thr', 'end', 'edge', 'cl', 'papi', 'retil', 'twcl', 'twedge', 'stop', 'rgl', 'sign', 'flood', 'vdgs'] },
+  cat1: { name: 'CAT I · RVR 550 m', step: 4, rvr: 'RVR ≥ 550 m, decision height 200 ft', fog: 0.28, lvp: false, set: ['appr', 'thr', 'end', 'edge', 'cl', 'papi', 'retil', 'twcl', 'twedge', 'stop', 'rgl', 'sign', 'flood', 'vdgs'] },
+  cat2: { name: 'CAT II · RVR 300 m', step: 5, rvr: 'RVR ≥ 300 m, DH 100 ft – low-visibility procedures', fog: 0.45, lvp: true, set: ['appr', 'thr', 'end', 'edge', 'cl', 'tdz', 'papi', 'retil', 'twcl', 'twedge', 'stop', 'rgl', 'lead', 'sign', 'flood', 'vdgs'] },
+  cat3: { name: 'CAT III · RVR 175 m', step: 5, rvr: 'RVR < 300 m (CAT IIIA/B) – LVP, stop bars H24', fog: 0.62, lvp: true, set: ['appr', 'thr', 'end', 'edge', 'cl', 'tdz', 'papi', 'retil', 'twcl', 'twedge', 'stop', 'rgl', 'lead', 'sign', 'flood', 'vdgs'] },
+};
+// taxi network (schematic) and the two routes
+const AGNET = [[[215, 138], [215, 250]], [[215, 250], [845, 250]], [[845, 250], [845, 138]], [[540, 120], [734, 250]], [[470, 250], [470, 300]], [[380, 300], [580, 300]], [[400, 300], [400, 385]], [[480, 300], [480, 385]], [[560, 300], [560, 385]]];
+const AGRT = {
+  land: { name: '🛬 Landing → rapid exit → stand', pts: [[-60, 120, 1, 90], [200, 120, 0.3, 80], [288, 120, 0, 70], [430, 120, 0, 45], [540, 120, 0, 30], [734, 250, 0, 22], [470, 250, 0, 20], [470, 300, 0, 14], [480, 300, 0, 10], [480, 385, 0, 6]],
+    ph: [[0, 'appr'], [1, 'thr'], [2, 'td'], [3, 'roll'], [4, 'ret'], [5, 'clear'], [7, 'apron'], [8, 'dock'], [9, 'docked']] },
+  to: { name: '🛫 Stand → taxi → stop bar → take-off', pts: [[480, 385, 0, 6, 'back'], [480, 300, 0, 12], [470, 300, 0, 14], [470, 250, 0, 20], [215, 250, 0, 20], [215, 178, 0, 12, 'wait'], [215, 120, 0, 10], [230, 120, 0, 25], [640, 120, 0, 95], [1060, 120, 1, 110]],
+    ph: [[0, 'push'], [1, 'taxi'], [5, 'lineup'], [7, 'roll'], [8, 'air']] },
+};
+const AGPH = {
+  appr: ['On final approach', ['Approach lights lead the eye to the centre line – the sequenced flashers run towards the threshold twice a second.', 'PAPI shows 2 white + 2 red: on the 3° glide slope.', 'All runway lights at the brightness step set for the visibility.']],
+  thr: ['Over the threshold', ['Green threshold lights and wing bars mark the start of the landing runway.', 'Edge lights white – yellow only in the last 600 m.']],
+  td: ['Touchdown', ['The aiming-point markings sit 400 m in; touchdown zone barrettes cover the first 900 m (CAT II/III).']],
+  roll: ['Rollout', ['Centreline lights keep the aircraft straight in fog.', 'The RETIL 3-2-1 yellow lights count down to the rapid exit – time to brake.']],
+  ret: ['Vacating via the rapid exit', ['Exit centreline lights alternate green/yellow – the aircraft is still inside the runway strip / ILS sensitive area.', 'The runway is not free yet.']],
+  clear: ['Runway vacated', ['All-green centreline: clear of the runway – the pilot reports “runway vacated” and the next aircraft can land.', 'Follow-the-greens: only the segments ahead of this aircraft light up, to its stand.']],
+  apron: ['On the apron', ['Taxilane centre line and blue apron edge lights; apron floodlights light the stands.', 'The VDGS at the stand switches on and shows the expected aircraft type.']],
+  dock: ['Docking at the stand', ['The VDGS scans the aircraft, confirms the type and gives left/right and distance guidance.']],
+  docked: ['Parked', ['VDGS shows STOP, then OK – chocks on.', 'The boarding bridge drives to door 1L; ground power and pre-conditioned air connect.']],
+  push: ['Pushback', ['The boarding bridge is retracted to its parked position first – an interlock with the VDGS and the stand.', 'The tug pushes the aircraft back onto the taxilane.']],
+  taxi: ['Taxi to the runway', ['Follow-the-greens lights the cleared route segment by segment.', 'Blue edge lights outline the apron; signs show the taxiway names.']],
+  hold: ['Holding short of the runway', ['Red stop bar across the taxiway and flashing yellow runway guard lights.', 'Red mandatory sign “09-27” – never cross a lit stop bar.']],
+  lineup: ['Cleared to line up', ['ATC switches the stop bar OFF – the green/yellow lead-on lights come on in the same moment.', 'Once the aircraft has passed, the stop bar switches back ON automatically (sensor or timer).']],
+  roll: ['Take-off roll', ['Centreline white, then red/white in the last 900 m and red in the last 300 m – the runway end is near.', 'Edge lights turn yellow in the last 600 m.']],
+  air: ['Airborne', ['The runway stays lit for the next movement; the tower sets steps by visibility.']],
+};
+let agScn = 'land', agVis = 'night', agSel = null, agFtg = true, agD = 0, agRun = true, agLast = 0, agWait = 0, agPhase = '', agRaf = 0, agLen = [];
+function agRouteLen(r) { const L = [0]; for (let i = 1; i < r.pts.length; i++) L.push(L[i - 1] + Math.hypot(r.pts[i][0] - r.pts[i - 1][0], r.pts[i][1] - r.pts[i - 1][1])); return L; }
+function agPos(d) {
+  const r = AGRT[agScn], L = agLen; let i = 1; while (i < L.length - 1 && L[i] < d) i++;
+  const a = r.pts[i - 1], b = r.pts[i], f = Math.max(0, Math.min(1, (d - L[i - 1]) / Math.max(1, L[i] - L[i - 1])));
+  let hd = Math.atan2(b[1] - a[1], b[0] - a[0]); if (a[4] === 'back') hd += Math.PI;
+  return { x: a[0] + (b[0] - a[0]) * f, y: a[1] + (b[1] - a[1]) * f, alt: a[2] + (b[2] - a[2]) * f, hd, seg: i - 1, f };
+}
+function agOn(k) { return AGVIS[agVis].set.includes(k); }
+const agDim = (k) => (agSel && agSel !== k ? 0.18 : 1);
+function agLight(x, y, c, k, r = 1.6) {
+  const night = agVis !== 'day', st = AGVIS[agVis].step, glow = night ? 2.2 + st * 0.7 : 0;
+  return `<g opacity="${agDim(k)}">${glow ? `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${glow.toFixed(1)}" fill="${c}" opacity=".28"/>` : ''}<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r}" fill="${c}"/></g>`;
+}
+function agNetLights() { // every taxiway centreline light: [x, y, colour]
+  const out = [];
+  for (const [[x1, y1], [x2, y2]] of AGNET) { const L = Math.hypot(x2 - x1, y2 - y1), n = Math.max(2, Math.round(L / 14));
+    for (let i = 0; i <= n; i++) { const x = x1 + (x2 - x1) * i / n, y = y1 + (y2 - y1) * i / n; const strip = y < 172 && !(x1 === 215 && y1 === 138 && y > 160); out.push([x, y, strip ? (i % 2 ? AGC.y : AGC.g) : AGC.g]); } }
+  return out;
+}
+function agStatic() {
+  const night = agVis !== 'day', V = AGVIS[agVis], R = AG.RY, HW = AG.HW;
+  const grass = night ? '#0b1710' : '#4d7a3f', asph = night ? '#1c1f25' : '#5b5f66', mk = night ? 'rgba(255,255,255,.55)' : '#f8fafc', yl = night ? 'rgba(250,204,21,.6)' : '#facc15';
+  let g = `<rect width="1000" height="440" fill="${grass}"/>`;
+  // apron, terminal, taxiways, runway
+  g += `<rect x="360" y="285" width="240" height="115" fill="${asph}" opacity=".95"/><rect x="340" y="400" width="280" height="40" fill="${night ? '#2b3240' : '#94a3b8'}"/><text x="480" y="425" text-anchor="middle" font-size="12" fill="${night ? '#cbd5e1' : '#1f2937'}">TERMINAL</text>`;
+  g += AGNET.map(([[x1, y1], [x2, y2]]) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${asph}" stroke-width="16" stroke-linecap="round"/>`).join('');
+  g += `<rect x="${AG.T - 6}" y="${R - HW}" width="${AG.E - AG.T + 12}" height="${HW * 2}" fill="${asph}"/>`;
+  // markings
+  for (let i = 0; i < 12; i++) { const yy = R - HW + 2 + i * ((HW * 2 - 4) / 12) + (i >= 6 ? 2 : 0); g += `<rect x="${agX(6)}" y="${yy.toFixed(1)}" width="${(30 * AG.s).toFixed(1)}" height="1.6" fill="${mk}"/><rect x="${agX(2964)}" y="${yy.toFixed(1)}" width="${(30 * AG.s).toFixed(1)}" height="1.6" fill="${mk}"/>`; }
+  g += `<text x="${agX(70)}" y="${R}" font-size="11" font-weight="700" fill="${mk}" text-anchor="middle" transform="rotate(90 ${agX(70)} ${R})" dominant-baseline="middle">09</text><text x="${agX(2930)}" y="${R}" font-size="11" font-weight="700" fill="${mk}" text-anchor="middle" transform="rotate(-90 ${agX(2930)} ${R})" dominant-baseline="middle">27</text>`;
+  for (let m = 120; m < 2880; m += 50) g += `<rect x="${agX(m)}" y="${R - 0.6}" width="${(30 * AG.s).toFixed(1)}" height="1.2" fill="${mk}"/>`;
+  for (const m of [400, 2600]) g += `<rect x="${agX(m)}" y="${R - 9}" width="${(50 * AG.s).toFixed(1)}" height="3" fill="${mk}"/><rect x="${agX(m)}" y="${R + 6}" width="${(50 * AG.s).toFixed(1)}" height="3" fill="${mk}"/>`;
+  for (const [m, n] of [[150, 3], [300, 3], [600, 2], [750, 2], [900, 1], [1050, 1]]) for (const mm of [m, 3000 - m - 22]) for (let i = 0; i < n; i++) g += `<rect x="${agX(mm)}" y="${R - 13 + i * 1.6}" width="${(22 * AG.s).toFixed(1)}" height="1" fill="${mk}"/><rect x="${agX(mm)}" y="${R + 11 - i * 1.6}" width="${(22 * AG.s).toFixed(1)}" height="1" fill="${mk}"/>`;
+  g += `<line x1="${AG.T}" y1="${R - HW + 1}" x2="${AG.E}" y2="${R - HW + 1}" stroke="${mk}" stroke-width=".8"/><line x1="${AG.T}" y1="${R + HW - 1}" x2="${AG.E}" y2="${R + HW - 1}" stroke="${mk}" stroke-width=".8"/>`;
+  g += AGNET.map(([[x1, y1], [x2, y2]]) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${yl}" stroke-width="1"/>`).join('');
+  for (const [x, y] of [[215, 178], [845, 178]]) g += `<line x1="${x - 8}" y1="${y - 2}" x2="${x + 8}" y2="${y - 2}" stroke="${yl}" stroke-width="1.2"/><line x1="${x - 8}" y1="${y}" x2="${x + 8}" y2="${y}" stroke="${yl}" stroke-width="1.2"/><line x1="${x - 8}" y1="${y + 2.5}" x2="${x + 8}" y2="${y + 2.5}" stroke="${yl}" stroke-width="1.2" stroke-dasharray="2 2"/><line x1="${x - 8}" y1="${y + 4.5}" x2="${x + 8}" y2="${y + 4.5}" stroke="${yl}" stroke-width="1.2" stroke-dasharray="2 2"/>`;
+  for (const x of [400, 480, 560]) g += `<line x1="${x - 7}" y1="385" x2="${x + 7}" y2="385" stroke="${yl}" stroke-width="2"/>`;
+  // lights (static ones)
+  const L = (k, x, y, c, r) => (agOn(k) ? agLight(x, y, c, k, r) : '');
+  if (agOn('edge')) for (let m = 0; m <= 3000; m += 60) { const c = m > 2400 ? AGC.y : AGC.w; g += L('edge', agX(m), R - HW - 2, c) + L('edge', agX(m), R + HW + 2, c); }
+  if (agOn('cl')) { const sp = V.lvp ? 15 : 30; for (let m = 15; m < 3000; m += sp) { const k = Math.round(m / sp); const c = m > 2700 ? AGC.r : m > 2100 ? (k % 2 ? AGC.r : AGC.w) : AGC.w; g += L('cl', agX(m), R + 1.5, c, 1.1); } }
+  if (agOn('tdz')) for (let m = 60; m <= 900; m += 60) for (const s of [-1, 1]) for (let i = 0; i < 3; i++) g += L('tdz', agX(m), R + s * (6 + i * 1.6), AGC.w, 0.9);
+  if (agOn('thr')) { for (let y = R - HW + 2; y <= R + HW - 2; y += 3) g += L('thr', agX(0) - 2, y, AGC.g, 1.2); for (let i = 0; i < 5; i++) g += L('thr', agX(0) - 2, R - HW - 5 - i * 3, AGC.g, 1.2) + L('thr', agX(0) - 2, R + HW + 5 + i * 3, AGC.g, 1.2); }
+  if (agOn('end')) for (let y = R - HW + 2; y <= R + HW - 2; y += 3) g += L('end', agX(3000) + 2, y, AGC.r, 1.2);
+  if (agOn('appr')) for (let m = 30; m <= 900; m += 30) { for (let i = -2; i <= 2; i++) g += L('appr', agX(-m), R + i * 2, AGC.w, 1); if (m === 300) for (let i = -10; i <= 10; i++) if (Math.abs(i) > 2) g += L('appr', agX(-m), R + i * 2.6, AGC.w, 1); if (V.lvp && m <= 270) for (const s of [-1, 1]) for (let i = 0; i < 3; i++) g += L('appr', agX(-m), R + s * (10 + i * 1.8), AGC.r, 0.9); }
+  const exM = (540 - AG.T) / AG.s;
+  if (agOn('retil')) for (const [d, n] of [[300, 3], [200, 2], [100, 1]]) for (let i = 0; i < n; i++) g += L('retil', agX(exM - d), R + 4 + i * 2.2, AGC.y, 1.1);
+  if (agOn('twedge')) { for (let x = 366; x <= 594; x += 19) g += L('twedge', x, 290, AGC.b, 1.1) + L('twedge', x, 396, AGC.b, 1.1); for (let y = 304; y <= 390; y += 18) g += L('twedge', 362, y, AGC.b, 1.1) + L('twedge', 598, y, AGC.b, 1.1); }
+  if (agOn('twcl') && !agFtg) g += agNetLights().map(([x, y, c]) => L('twcl', x, y, c, 1.1)).join('');
+  if (agOn('sign')) g += `<g opacity="${agDim('sign')}"><rect x="225" y="170" width="30" height="10" fill="#dc2626"/><text x="240" y="178" text-anchor="middle" font-size="7.5" font-weight="700" fill="#fff">09-27</text><rect x="256" y="170" width="11" height="10" fill="#111827" stroke="#facc15" stroke-width=".6"/><text x="261.5" y="178" text-anchor="middle" font-size="7.5" font-weight="700" fill="#facc15">A</text></g>`;
+  if (agOn('flood') && night) g += [[360, 285], [600, 285], [360, 398], [600, 398]].map(([x, y]) => `<g opacity="${agDim('flood')}"><circle cx="${x}" cy="${y}" r="45" fill="#fde68a" opacity=".05"/><circle cx="${x}" cy="${y}" r="3" fill="#fff7d6"/></g>`).join('');
+  g += `<text x="10" y="18" font-size="11" fill="${night ? '#94a3b8' : '#f8fafc'}">RWY 09/27 · 3000 m × 45 m · ${V.rvr}${V.step ? ` · runway CCRs at step B${V.step}` : ' · runway lights off (PAPI on)'}</text><text x="10" y="432" font-size="10" fill="${night ? '#64748b' : '#e5e7eb'}">Schematic – width exaggerated, not to scale</text>`;
+  if (V.fog) g += `<rect width="1000" height="440" fill="${night ? '#5b6573' : '#e5e7eb'}" opacity="${V.fog}" style="pointer-events:none"/>`;
+  $('agSt').innerHTML = g; $('agFtgB').classList.toggle('on', agFtg);
+  $('agVis').innerHTML = Object.entries(AGVIS).map(([k, v]) => `<span class="btn ${k === agVis ? 'on' : ''}" style="padding:4px 9px;font-size:12px" onclick="agVis='${k}';agStatic()">${v.name}</span>`).join('');
+  $('agTypes').innerHTML = Object.entries(AGT).map(([k, t]) => `<span class="btn ${k === agSel ? 'on' : ''}" style="padding:3px 8px;font-size:11.5px;${agOn(k) ? '' : 'opacity:.5'}" onclick="agSel=agSel==='${k}'?null:'${k}';agStatic();agInfo()">${t[0]}</span>`).join('');
+  agDyn();
+}
+function agPlane(p, c = '#e5e7eb') {
+  const sc = 1 + p.alt * 0.9, deg = p.hd * 180 / Math.PI, sh = p.alt * 26;
+  const body = 'M10 0 L6 -1.2 L1 -1.4 L-1 -9 L-3 -9 L-2.5 -1.4 L-7 -1.2 L-9 -4 L-10.5 -4 L-9.5 0 L-10.5 4 L-9 4 L-7 1.2 L-2.5 1.4 L-3 9 L-1 9 L1 1.4 L6 1.2 Z';
+  return `${p.alt > 0.02 ? `<g transform="translate(${(p.x + sh).toFixed(1)} ${(p.y + sh * 0.6).toFixed(1)}) rotate(${deg.toFixed(1)}) scale(1.1)"><path d="${body}" fill="#000" opacity=".35"/></g>` : ''}<g transform="translate(${p.x.toFixed(1)} ${p.y.toFixed(1)}) rotate(${deg.toFixed(1)}) scale(${(sc * 1.1).toFixed(2)})"><path d="${body}" fill="${c}" stroke="#0f172a" stroke-width=".5"/></g>`;
+}
+function agDyn() {
+  const r = AGRT[agScn], p = agPos(agD), V = AGVIS[agVis], now = performance.now(), R = AG.RY;
+  let ph = r.ph[0][1]; for (const [i, k] of r.ph) if (p.seg >= i) ph = k;
+  if (agScn === 'land' && agD >= agLen[agLen.length - 1] - 0.5) ph = 'docked';
+  if (agScn === 'to' && p.seg === 4 && p.f > 0.9) ph = 'hold';
+  let g = '';
+  // sequenced flashers on the approach (twice a second, running towards the threshold)
+  if (agOn('appr') && agVis !== 'day') { const k = Math.floor((now % 500) / 500 * 21); const m = 900 - k * 30; if (m >= 300) g += `<circle cx="${agX(-m)}" cy="${R}" r="5" fill="#fff" opacity="${0.85 * agDim('appr')}"/>`; }
+  // PAPI (2 white + 2 red when on slope; more white when high)
+  if (agOn('papi')) for (let i = 0; i < 4; i++) g += agLight(agX(400) + i * 5, R - AG.HW - 12, i < 2 ? AGC.w : AGC.r, 'papi', 1.8);
+  // follow-the-greens: only the route ahead of the aircraft
+  if (agOn('twcl') && agFtg) { const ahead = []; const total = agLen[agLen.length - 1]; const taxiing = agScn === 'land' ? p.seg >= 4 : p.seg <= 5;
+    if (taxiing) for (let d = agD + 6; d < Math.min(total, agD + 220); d += 13) { const q = agPos(d); if (q.alt > 0 || (agScn === 'to' && q.seg >= 6)) break; const strip = q.y < 172; ahead.push(agLight(q.x, q.y, strip ? (Math.round(d / 13) % 2 ? AGC.y : AGC.g) : AGC.g, 'twcl', 1.2)); }
+    g += ahead.join(''); }
+  // stop bars, lead-on and runway guard lights
+  const sbOff = agScn === 'to' && ph === 'lineup' && p.y > 140;
+  for (const x of [215, 845]) {
+    const off = x === 215 && sbOff;
+    if (agOn('stop')) for (let i = -2; i <= 2; i++) g += agLight(x + i * 3.2, 182, off ? '#3f1d1d' : AGC.r, 'stop', 1.3);
+    if (agOn('lead') && off) for (let y = 172; y > 124; y -= 7) g += agLight(x, y, Math.round(y / 7) % 2 ? AGC.y : AGC.g, 'lead', 1.2);
+    if (agOn('rgl')) { const on = Math.floor(now / 500) % 2; g += agLight(x - 12, 184, on ? AGC.y : '#3b3410', 'rgl', 1.5) + agLight(x + 12, 184, on ? '#3b3410' : AGC.y, 'rgl', 1.5); }
+  }
+  // RETIL highlight during the rollout
+  if (agOn('retil') && ph === 'roll') g += `<circle cx="${agX((540 - AG.T) / AG.s - 200)}" cy="${R + 6}" r="16" fill="none" stroke="#facc15" stroke-width="1" opacity=".7"/>`;
+  // VDGS at the stand
+  if (agOn('vdgs')) { const act = (agScn === 'land' && ['apron', 'dock', 'docked'].includes(ph)) || (agScn === 'to' && ph === 'push'); const txt = !act ? '' : ph === 'docked' ? 'STOP' : ph === 'push' ? 'OFF' : 'A320';
+    g += `<g opacity="${agDim('vdgs')}"><rect x="470" y="401" width="20" height="9" fill="#000" stroke="#475569" stroke-width=".6"/><text x="480" y="408" text-anchor="middle" font-size="6" font-weight="700" fill="${ph === 'docked' ? '#ef4444' : '#fbbf24'}">${txt}</text></g>`; }
+  g += agPlane(p);
+  $('agDyn').innerHTML = g;
+  if (ph !== agPhase) { agPhase = ph; agNowInfo(); }
+}
+function agNowInfo() {
+  const [t, l] = AGPH[agPhase] || ['', []];
+  $('agNow').innerHTML = `<h5>${t}</h5>${l.map((x) => `<div style="font-size:13px;margin:4px 0">• ${x}</div>`).join('')}${AGVIS[agVis].lvp ? '<div class="m" style="font-size:12px;margin-top:6px">Low-visibility procedures: stop bars lit H24, only one aircraft on the runway or its sensitive areas.</div>' : ''}`;
+}
+function agInfo() {
+  const t = AGT[agSel];
+  $('agInfo').innerHTML = t ? `<h5>${t[0]}</h5><div class="k">Colour</div>${t[1]}<div class="k">Where</div>${t[2]}<div class="k">Why</div>${t[3]}<div class="k">Standard</div>${t[4]}${agOn(agSel) ? '' : `<div class="m" style="margin-top:6px;font-size:12px">Not lit in “${AGVIS[agVis].name}” – try another visibility.</div>`}` : '<h5>Tap a light type</h5><div class="m" style="font-size:13px">Its lights stay bright on the airfield, the rest dim – with its colour, spacing, purpose and the ICAO / FAA reference.</div>';
+}
+function agLoop(ts) {
+  if ($('aglv').classList.contains('hidden')) { agRaf = 0; return; }
+  const dt = Math.min(0.1, (ts - (agLast || ts)) / 1000); agLast = ts;
+  if (agRun) { const r = AGRT[agScn], p = agPos(agD), spd = r.pts[p.seg][3] * +$('agSpd').value, total = agLen[agLen.length - 1];
+    if (r.pts[p.seg + 1] && r.pts[p.seg + 1][4] === 'wait' && p.f > 0.98 && agWait > 0) agWait -= dt;
+    else if (agD < total) agD = Math.min(total, agD + spd * dt);
+    else { agWait -= dt; if (agWait < -4) agRestart(); } }
+  agDyn(); agRaf = requestAnimationFrame(agLoop);
+}
+function agToggle() { agRun = !agRun; $('agPlay').textContent = agRun ? '⏸ Pause' : '▶ Play'; }
+function agRestart() { agD = 0; agWait = 2.5; agPhase = ''; agLen = agRouteLen(AGRT[agScn]); }
+function aglUI(p) {
+  if (AGRT[p]) agScn = p; if (AGVIS[p]) agVis = p;
+  $('agScn').innerHTML = Object.entries(AGRT).map(([k, r]) => `<span class="btn ${k === agScn ? 'on' : ''}" onclick="agScn='${k}';aglUI()">${r.name}</span>`).join('');
+  $('agTbl').innerHTML = '<tr><td><b>Light</b></td><td><b>Colour · where · why</b></td></tr>' + Object.entries(AGT).map(([k, t]) => `<tr style="cursor:pointer" onclick="agSel='${k}';agStatic();agInfo();$('agSvg').scrollIntoView({behavior:'smooth',block:'center'})"><td><b>${t[0]}</b><div class="m" style="font-size:11.5px">${t[4]}</div></td><td>${t[1]} · ${t[2]}<div class="m" style="font-size:12px">${t[3]}</div></td></tr>`).join('');
+  agRestart(); agStatic(); agInfo(); agRun = true; $('agPlay').textContent = '⏸ Pause';
+  if (!agRaf) agRaf = requestAnimationFrame(agLoop);
+}
+
+// ---------------------------------------------------------------- PAPI
+let ppM = 'papi';
+const PPSET = { papi: [2.5, 2 + 50 / 60, 3 + 10 / 60, 3.5], apapi: [2.75, 3.25] };
+const ppDeg = (a) => `${Math.floor(a)}°${String(Math.round((a % 1) * 60)).padStart(2, '0')}′`;
+function papi() {
+  const a = +$('ppA').value, D = +$('ppD').value, set = PPSET[ppM], X0 = 640, Y0 = 220, kx = 95, ky = 0.42;
+  $('ppAV').textContent = a.toFixed(2) + '°'; $('ppDV').textContent = D.toFixed(1) + ' km';
+  $('ppMode').innerHTML = [['papi', 'PAPI – 4 units'], ['apapi', 'APAPI – 2 units (smaller aerodromes)']].map(([k, n]) => `<span class="btn ${k === ppM ? 'on' : ''}" style="padding:4px 9px;font-size:12px" onclick="ppM='${k}';papi()">${n}</span>`).join('');
+  const yAt = (dkm, ang) => Y0 - dkm * 1000 * Math.tan(ang * Math.PI / 180) * ky;
+  let g = `<rect width="760" height="260" fill="#0b1220"/><rect x="0" y="${Y0}" width="760" height="40" fill="#14301c"/><rect x="${X0 - 40}" y="${Y0 - 3}" width="160" height="6" fill="#374151"/><text x="${X0 + 40}" y="${Y0 + 22}" font-size="11" fill="#94a3b8" text-anchor="middle">runway →</text>`;
+  set.forEach((s, i) => { const xe = 30, de = (X0 - xe) / kx; g += `<line x1="${X0}" y1="${Y0}" x2="${xe}" y2="${yAt(de, s).toFixed(1)}" stroke="${['#f87171', '#fb923c', '#facc15', '#a3e635'][i + (set.length === 2 ? 1 : 0)]}" stroke-width="1" stroke-dasharray="4 3" opacity=".75"/><text x="${xe + 4}" y="${(yAt(de, s) - 4).toFixed(1)}" font-size="10" fill="#cbd5e1">${ppDeg(s)}</text>`; });
+  g += `<line x1="${X0}" y1="${Y0}" x2="30" y2="${yAt((X0 - 30) / kx, 3).toFixed(1)}" stroke="#fff" stroke-width="1.6" opacity=".55"/><text x="${X0 - 140}" y="${(yAt(140 / kx, 3) - 8).toFixed(1)}" font-size="11" fill="#fff">3° glide slope</text>`;
+  const px = X0 - D * kx, py = yAt(D, a);
+  g += `<line x1="${X0}" y1="${Y0}" x2="${px.toFixed(1)}" y2="${py.toFixed(1)}" stroke="#60a5fa" stroke-width="1" opacity=".8"/><g transform="translate(${px.toFixed(1)} ${py.toFixed(1)}) rotate(${(-a * 3).toFixed(1)})"><path d="M-16 0 L10 -2 L16 0 L10 2 Z M-14 0 L-18 -8 L-13 -8 L-8 0 Z M-4 0 L-8 7 L-2 7 L4 0Z" fill="#e5e7eb"/></g>`;
+  g += `<rect x="${X0 - 8}" y="${Y0 - 9}" width="16" height="6" fill="#fbbf24"/><text x="${X0}" y="${Y0 - 13}" text-anchor="middle" font-size="10" fill="#fbbf24">PAPI</text><text x="10" y="18" font-size="11" fill="#94a3b8">Side view – heights exaggerated</text>`;
+  $('ppSide').innerHTML = g;
+  const lit = set.map((s) => a > s);
+  const nW = lit.filter(Boolean).length, n = set.length;
+  const W = 300, gap = W / (n + 1);
+  $('ppPilot').innerHTML = `<rect width="300" height="160" fill="#05070c"/><rect x="0" y="110" width="300" height="50" fill="#0b1710"/>${lit.map((w, i) => `<circle cx="${gap * (i + 1)}" cy="80" r="26" fill="${w ? '#fff7d6' : '#ef4444'}" opacity=".25"/><circle cx="${gap * (i + 1)}" cy="80" r="14" fill="${w ? '#fff7d6' : '#ef4444'}"/>`).join('')}<text x="150" y="150" text-anchor="middle" font-size="11" fill="#94a3b8">What the pilot sees (left of the runway)</text>`;
+  const st = n === 4 ? [['Too low – climb now!', '#ef4444'], ['Slightly low', '#f59e0b'], ['On the glide slope ✓', '#16a34a'], ['Slightly high', '#f59e0b'], ['Too high', '#ef4444']][nW] : [['Too low', '#ef4444'], ['On the glide slope ✓', '#16a34a'], ['Too high', '#ef4444']][nW];
+  $('ppSay').innerHTML = `<h5 style="color:${st[1]}">${st[0]}</h5><div style="font-size:13px">${nW} white · ${n - nW} red. ${n === 4 ? 'The rhyme pilots learn: <b>“white over white – you’ll fly all night; red over red – you’re dead”</b>.' : 'APAPI: one white + one red = on slope.'}</div>`;
+  const h = D * 1000 * Math.tan(a * Math.PI / 180);
+  $('ppKpi').innerHTML = `<div><b>${a.toFixed(2)}°</b>approach angle</div><div><b>${Math.round(h)} m</b>${Math.round(h * 3.281)} ft above the PAPI</div><div><b>${Math.round(D * 1000 * Math.tan(3 * Math.PI / 180))} m</b>height on a 3° slope here</div><div><b>${set.map(ppDeg).join(' · ')}</b>unit settings (outer → inner)</div>`;
+}
+$('ppA').addEventListener('input', papi); $('ppD').addEventListener('input', papi);
+
+// ---------------------------------------------------------------- CCR & series circuit
+const CCT = {
+  sine: ['Pure sine wave (IGBT / PWM)', 'Clean sine output at every step – no flicker and low harmonics with LED loads, fast regulation, digital monitoring. The modern choice (e.g. ADB SAFEGATE CRE / VIS).', 3, 0.93],
+  scr: ['Thyristor (SCR, phase control)', 'Chops the sine wave to set the current. Robust and economical, but the chopped wave creates harmonics and can upset LED drivers at low steps.', 0, 0.9],
+  ferro: ['Ferroresonant (older)', 'A saturating transformer that regulates by magnetics. Very rugged but heavy, slow, noisy and less efficient at light load – found on older airfields.', 6, 0.85],
+};
+const CCSTEPS = { 5: [[2.8, 0.16], [3.4, 0.8], [4.1, 4], [5.2, 20], [6.6, 100]], 3: [[4.8, 10], [5.5, 30], [6.6, 100]] };
+const CCLAMP = { led: ['LED inset (≈ 25 W)', 32], hal: ['Halogen inset (105 W)', 125], app: ['Halogen approach (200 W)', 230] };
+const CCKVA = [2.5, 4, 5, 7.5, 10, 12.5, 15, 20, 25, 30];
+let ccT = 'sine', ccS = 5, ccI = 4, ccLp = 'led', ccFault = null;
+function ccDraw() {
+  const N = +$('ccN').value, Lkm = +$('ccL').value, [I, pct] = CCSTEPS[ccS][Math.min(ccI, CCSTEPS[ccS].length - 1)], va = CCLAMP[ccLp][1], Rc = 3.08 * Lkm;
+  $('ccNV').textContent = N; $('ccLV').textContent = Lkm + ' km';
+  $('ccType').innerHTML = Object.entries(CCT).map(([k, t]) => `<span class="btn ${k === ccT ? 'on' : ''}" style="padding:4px 9px;font-size:12px" onclick="ccT='${k}';ccDraw()">${t[0]}</span>`).join('');
+  $('ccStep').innerHTML = [5, 3].map((s) => `<span class="btn ${s === ccS ? 'on' : ''}" style="padding:4px 9px;font-size:12px" onclick="ccS=${s};ccI=${s - 1};ccDraw()">${s}-step ${s === 5 ? '(runway, approach)' : '(taxiway)'}</span>`).join('') + '<span style="width:10px"></span>' + CCSTEPS[ccS].map(([a], i) => `<span class="btn ${i === ccI ? 'on' : ''}" style="padding:4px 9px;font-size:12px" onclick="ccI=${i};ccDraw()">B${i + 1} · ${a} A</span>`).join('');
+  $('ccLamp').innerHTML = Object.entries(CCLAMP).map(([k, l]) => `<span class="btn ${k === ccLp ? 'on' : ''}" style="padding:3px 8px;font-size:11.5px" onclick="ccLp='${k}';ccDraw()">${l[0]}</span>`).join('');
+  const full = N * va * 1.03 + 6.6 * 6.6 * Rc, kva = CCKVA.find((k) => k * 1000 >= full * 1.1) || null;
+  const lampAt = ccLp === 'led' ? va * (0.15 + 0.85 * pct / 100) : va * Math.pow(I / 6.6, 2.3), load = ccFault === 'cut' ? 0 : N * lampAt * 1.03 + I * I * Rc;
+  const volts = full / 6.6, thd = ccT === 'sine' ? 3 : ccT === 'ferro' ? 7 : Math.round(8 + (6.6 - I) * 9), eff = CCT[ccT][3] - (ccT === 'ferro' ? (1 - load / Math.max(full, 1)) * 0.12 : 0);
+  const ir = ccFault === 'earth' ? 0.4 : 600, failed = ccFault === 'lamp' ? 1 : 0;
+  $('ccKpi').innerHTML = `<div><b>${ccFault === 'cut' ? '0.0' : I.toFixed(1)} A</b>output current (step B${ccI + 1})</div><div><b>≈ ${pct}%</b>light intensity</div><div><b>${(full / 1000).toFixed(1)} kVA</b>load at 6.6 A</div><div><b style="color:${kva ? 'inherit' : '#b91c1c'}">${kva ? kva + ' kVA' : '> 30 kVA'}</b>${kva ? 'CCR size' : 'split the circuit'}</div><div><b>${Math.round(volts)} V</b>output voltage at 6.6 A</div><div><b>${thd}%</b>current THD</div><div><b style="color:${ir < 1 ? '#b91c1c' : 'inherit'}">${ir < 1 ? ir + ' MΩ' : '> 500 MΩ'}</b>insulation resistance</div><div><b>${(eff * 100).toFixed(0)}%</b>efficiency</div>`;
+  // the loop
+  const off = ccFault === 'cut', lit = (i) => !off && !(ccFault === 'lamp' && i === 4), lampC = ccLp === 'led' ? '#fff7d6' : '#fde68a', glow = Math.max(0.15, Math.pow(pct / 100, 0.35));
+  let g = `<rect width="760" height="250" fill="#0f1218"/><rect x="20" y="90" width="120" height="80" rx="8" fill="#1f2937" stroke="${off ? '#ef4444' : '#60a5fa'}" stroke-width="2"/><text x="80" y="118" text-anchor="middle" font-size="13" font-weight="700" fill="#e5e7eb">CCR</text><text x="80" y="136" text-anchor="middle" font-size="10.5" fill="#94a3b8">${CCT[ccT][0].split(' (')[0]}</text><text x="80" y="156" text-anchor="middle" font-size="11" fill="${off ? '#f87171' : '#93c5fd'}">${off ? 'OPEN CIRCUIT – OFF' : `${I.toFixed(1)} A · B${ccI + 1}`}</text>`;
+  const C = off ? '#7f1d1d' : '#60a5fa';
+  g += `<path d="M140 115 L180 115 L180 40 L730 40 L730 215 L180 215 L180 150 L140 150" fill="none" stroke="${C}" stroke-width="2.5"/>`;
+  if (!off) g += `<circle r="3.5" fill="#bfdbfe"><animateMotion dur="${(3 / (I / 6.6)).toFixed(1)}s" repeatCount="indefinite" path="M140 115 L180 115 L180 40 L730 40 L730 215 L180 215 L180 150 L140 150"/></circle>`;
+  for (let i = 0; i < 8; i++) { const x = 230 + i * 64;
+    g += `<g><circle cx="${x - 5}" cy="52" r="7" fill="none" stroke="#a78bfa" stroke-width="1.6"/><circle cx="${x + 5}" cy="52" r="7" fill="none" stroke="#a78bfa" stroke-width="1.6"/><line x1="${x}" y1="60" x2="${x}" y2="82" stroke="#94a3b8"/>
+      ${lit(i) ? `<circle cx="${x}" cy="94" r="${(8 + 10 * glow).toFixed(1)}" fill="${lampC}" opacity="${(0.25 * glow).toFixed(2)}"/>` : ''}<circle cx="${x}" cy="94" r="7" fill="${lit(i) ? lampC : '#374151'}" opacity="${lit(i) ? (0.4 + 0.6 * glow).toFixed(2) : 1}" stroke="#0f1218"/>${!lit(i) && !off ? `<path d="M${x - 9} 85 L${x + 9} 103 M${x + 9} 85 L${x - 9} 103" stroke="#ef4444" stroke-width="2"/>` : ''}</g>`; }
+  g += `<text x="455" y="130" text-anchor="middle" font-size="11" fill="#94a3b8">isolating transformers (6.6 A / 6.6 A) – ${N} lights on this loop, ${Lkm} km of 5 kV cable</text>`;
+  if (ccFault === 'earth') g += `<g transform="translate(470 215)"><line x1="0" y1="0" x2="0" y2="18" stroke="#f59e0b" stroke-width="2"/><line x1="-10" y1="18" x2="10" y2="18" stroke="#f59e0b" stroke-width="2"/><line x1="-6" y1="22" x2="6" y2="22" stroke="#f59e0b" stroke-width="2"/><line x1="-2" y1="26" x2="2" y2="26" stroke="#f59e0b" stroke-width="2"/></g><text x="490" y="238" font-size="11" fill="#fbbf24">earth fault – insulation resistance drops</text>`;
+  if (off) g += `<path d="M600 30 L612 50 M612 30 L600 50" stroke="#ef4444" stroke-width="3"/><text x="606" y="24" text-anchor="middle" font-size="11" fill="#f87171">cable cut</text>`;
+  $('ccSvg').innerHTML = g;
+  // one cycle of the output current
+  const pts = [], amp = I / 6.6, al = Math.PI * (1 - amp) * 0.75;
+  for (let k = 0; k <= 200; k++) { const th = (k / 200) * 2 * Math.PI, s = Math.sin(th), ph = th % Math.PI;
+    let v = ccT === 'sine' ? amp * s : ccT === 'ferro' ? amp * Math.max(-1, Math.min(1, s * 1.6)) / 1.25 : (ph < al ? 0 : s * Math.min(1.3, amp / Math.sqrt(Math.max(0.15, 1 - al / Math.PI + Math.sin(2 * al) / (2 * Math.PI)))));
+    if (off) v = 0; pts.push(`${(10 + k * 1.9).toFixed(1)},${(75 - v * 60).toFixed(1)}`); }
+  $('ccWave').innerHTML = `<rect width="400" height="150" fill="#fff"/><line x1="10" y1="75" x2="390" y2="75" stroke="#e5e7eb"/><polyline points="${pts.join(' ')}" fill="none" stroke="var(--s1)" stroke-width="2"/><text x="390" y="145" text-anchor="end" font-size="10" fill="#6b7280">${ccT === 'scr' ? 'phase-cut sine' : ccT === 'ferro' ? 'flattened (saturated) sine' : 'pure sine'} · 50 Hz</text>`;
+  const fx = { lamp: '<b>A light failed:</b> the secondary of its isolating transformer is now open, the transformer saturates – and the loop <b>keeps working</b>. The CCR monitoring (or ILCMS) reports the failed light; ICAO limits how many may fail before the category is downgraded.', earth: '<b>Earth fault:</b> one fault to earth does not stop the circuit, but the insulation monitor alarms (below about 1 MΩ). Find it before a second fault takes the circuit out.', cut: '<b>Cable cut:</b> the loop is open – the CCR detects the open circuit and switches off within a moment to protect people and equipment. Every light on this loop is dark – which is why runways use <b>two interleaved circuits</b> (every second light on each).' };
+  $('ccNote').innerHTML = `<h5>${CCT[ccT][0]}</h5><div style="font-size:13px">${CCT[ccT][1]}</div>${ccFault ? `<div style="font-size:13px;margin-top:8px">${fx[ccFault]}</div>` : `<div class="m" style="font-size:12px;margin-top:8px">Steps: 5-step for runway and approach (B1–B5: 2.8 / 3.4 / 4.1 / 5.2 / 6.6 A), 3-step for taxiways (4.8 / 5.5 / 6.6 A). FAA L-828 = without monitoring, L-829 = with monitoring.</div>`}`;
+}
+$('ccN').addEventListener('input', ccDraw); $('ccL').addEventListener('input', ccDraw);
+
+// ---------------------------------------------------------------- Control tower – ALCMS (demo)
+const TWC = [ // id, name, kVA, steps, lights, kind
+  ['C1', 'RWY edge – circuit A', 10, 5, 50, 'edge'], ['C2', 'RWY edge – circuit B', 10, 5, 50, 'edge'], ['C3', 'RWY centreline – circuit A', 7.5, 5, 50, 'cl'], ['C4', 'RWY centreline – circuit B', 7.5, 5, 50, 'cl'],
+  ['C5', 'Touchdown zone 09', 10, 5, 90, 'tdz'], ['C6', 'Approach 09 (CAT II/III)', 15, 5, 150, 'app09'], ['C7', 'Approach 27 (CAT I)', 12.5, 5, 110, 'app27'], ['C8', 'PAPI 09', 4, 5, 4, 'papi09'], ['C9', 'PAPI 27', 4, 5, 4, 'papi27'],
+  ['C10', 'Taxiway centreline', 10, 3, 180, 'twcl'], ['C11', 'Taxiway / apron edge', 5, 3, 120, 'twe'], ['C12', 'Stop bars & guard lights (ILCMS)', 5, 3, 40, 'sb'],
+];
+const TWVIS = { day: ['☀️ Day', 'Good visibility'], night: ['🌙 Night', 'Good visibility'], cat1: ['CAT I', 'RVR 550 m'], cat2: ['CAT II', 'RVR 300 m · LVP'], cat3: ['CAT III', 'RVR 175 m · LVP'] };
+let twR = '09', twV = 'cat3', twF = { cl: false, edge: false, trip: false, earth: false }, twSB = { A: true, B: true }, twLog = [], twClock = 22 * 60 + 14;
+function twStep(c) { // brightness step of a circuit for the runway in use and visibility (0 = off)
+  const k = c[5], v = twV, rwy = { 5: v === 'day' ? 0 : v === 'night' ? 3 : v === 'cat1' ? 4 : 5 };
+  if (k === 'edge' || k === 'cl') return k === 'cl' && v === 'day' ? 0 : rwy[5];
+  if (k === 'tdz') return twR === '09' && (v === 'cat2' || v === 'cat3') ? 5 : 0;
+  if (k === 'app09') return twR === '09' ? rwy[5] : 0;
+  if (k === 'app27') return twR === '27' ? Math.min(rwy[5], 5) : 0;
+  if (k === 'papi09') return twR === '09' ? (v === 'day' ? 5 : 3) : 0;
+  if (k === 'papi27') return twR === '27' ? (v === 'day' ? 5 : 3) : 0;
+  if (k === 'twcl' || k === 'twe') return v === 'day' ? 0 : v === 'night' ? 1 : v === 'cat1' ? 2 : 3;
+  if (k === 'sb') return v === 'cat2' || v === 'cat3' ? 3 : v === 'day' ? 0 : 2;
+  return 0;
+}
+const twAmps = (c, s) => (!s ? 0 : c[3] === 5 ? [2.8, 3.4, 4.1, 5.2, 6.6][s - 1] : [4.8, 5.5, 6.6][s - 1]);
+function twCat() {
+  const lv = twV === 'cat3' ? 3 : twV === 'cat2' ? 2 : 1, why = [];
+  if (twR === '27' && lv > 1) why.push('RWY 27 has CAT I approach lights and no touchdown zone lights – CAT II/III only on RWY 09');
+  if (twF.cl) why.push('two adjacent centreline lights failed');
+  if (twF.trip) why.push('edge circuit A tripped – only every second edge light is lit');
+  const avail = why.length ? 1 : 3;
+  return { need: lv, avail, why };
+}
+function twLogAdd(t) { twClock += 1 + Math.floor(Math.random() * 3); twLog.unshift(`${String(Math.floor(twClock / 60) % 24).padStart(2, '0')}:${String(twClock % 60).padStart(2, '0')} · ${t}`); twLog = twLog.slice(0, 8); }
+function twFail(k) {
+  if (!k) { twF = { cl: false, edge: false, trip: false, earth: false }; twLogAdd('Maintenance: all faults repaired – circuits back to normal'); }
+  else { twF[k] = true; twLogAdd({ cl: 'ALARM C3/C4 – centreline lights at 1,215 m and 1,230 m failed (ILCMS)', edge: 'Warning C1/C2 – 3 edge lights failed (97% serviceable)', trip: 'ALARM C1 – CCR tripped (over-voltage / open circuit) – check the vault', earth: 'Warning C6 – insulation resistance 0.3 MΩ (earth fault) – circuit still running' }[k]); }
+  twDraw();
+}
+function twSbToggle(h) {
+  twSB[h] = !twSB[h]; twLogAdd(`Stop bar ${h} switched ${twSB[h] ? 'ON' : 'OFF'} by ATC${twSB[h] ? '' : ' – lead-on lights ON'}`); twDraw();
+  if (!twSB[h]) setTimeout(() => { if (!twSB[h]) { twSB[h] = true; twLogAdd(`Stop bar ${h} back ON automatically – aircraft passed (sensor)`); if (!$('twrv').classList.contains('hidden')) twDraw(); } }, 4000);
+}
+function twDraw() {
+  $('twRwy').innerHTML = '<span class="m" style="font-size:12px;align-self:center">Runway in use:</span>' + ['09', '27'].map((r) => `<span class="btn ${r === twR ? 'on' : ''}" style="padding:4px 9px;font-size:12px" onclick="twR='${r}';twLogAdd('Runway in use changed to ${r} – approach, PAPI and TDZ switched');twDraw()">RWY ${r}</span>`).join('');
+  $('twVis').innerHTML = '<span class="m" style="font-size:12px;align-self:center">Visibility preset:</span>' + Object.entries(TWVIS).map(([k, v]) => `<span class="btn ${k === twV ? 'on' : ''}" style="padding:4px 9px;font-size:12px" onclick="twV='${k}';twLogAdd('Preset ${v[0]} (${v[1]}) – all circuits set');twDraw()">${v[0]}</span>`).join('');
+  const C = twCat(), lvp = twV === 'cat2' || twV === 'cat3';
+  // map
+  const on = (k) => TWC.filter((c) => c[5] === k).some((c) => twStep(c) > 0);
+  const col = (k, base) => (on(k) ? base : '#334155');
+  let g = '<rect width="760" height="250" fill="#0b1220"/><rect x="120" y="80" width="560" height="34" fill="#1f2937"/><text x="132" y="101" font-size="12" font-weight="700" fill="#94a3b8">09</text><text x="660" y="101" font-size="12" font-weight="700" fill="#94a3b8">27</text>';
+  for (let i = 0; i <= 28; i++) { const x = 120 + i * 20, a = i % 2 === 0, dead = (twF.trip && a) || (twF.edge && [5, 6, 7].includes(i)); for (const y of [76, 118]) g += `<circle cx="${x}" cy="${y}" r="2.6" fill="${dead ? '#7f1d1d' : col('edge', i > 22 && twR === '09' ? '#facc15' : i < 6 && twR === '27' ? '#facc15' : '#fff7d6')}"/>`; }
+  for (let i = 1; i < 56; i++) { const x = 120 + i * 10, dead = twF.cl && (i === 27 || i === 28); g += `<circle cx="${x}" cy="97" r="1.6" fill="${dead ? '#ef4444' : col('cl', '#fff7d6')}"/>${dead ? `<circle cx="${x}" cy="97" r="5" fill="none" stroke="#ef4444"/>` : ''}`; }
+  if (on('tdz')) for (let i = 1; i <= 9; i++) g += `<rect x="${125 + i * 10}" y="88" width="2" height="4" fill="#fff7d6"/><rect x="${125 + i * 10}" y="102" width="2" height="4" fill="#fff7d6"/>`;
+  for (let i = 1; i <= 9; i++) { g += `<rect x="${118 - i * 11}" y="94" width="2" height="7" fill="${col('app09', '#fff7d6')}"/><rect x="${680 + i * 11}" y="94" width="2" height="7" fill="${col('app27', '#fff7d6')}"/>`; }
+  if (twF.earth) g += '<text x="30" y="70" font-size="11" fill="#fbbf24">⚠ earth fault</text>';
+  for (const [x, p] of [[175, 'papi09'], [600, 'papi27']]) for (let i = 0; i < 4; i++) g += `<circle cx="${x + i * 7}" cy="64" r="2.6" fill="${on(p) ? (i < 2 ? '#fff7d6' : '#ef4444') : '#334155'}"/>`;
+  g += '<path d="M200 114 L200 190 L560 190 L560 114" fill="none" stroke="#1f2937" stroke-width="12"/><rect x="300" y="200" width="160" height="40" fill="#1f2937"/><text x="380" y="225" font-size="11" text-anchor="middle" fill="#64748b">APRON</text><line x1="380" y1="190" x2="380" y2="200" stroke="#1f2937" stroke-width="12"/>';
+  for (let x = 200; x <= 560; x += 12) g += `<circle cx="${x}" cy="190" r="1.6" fill="${col('twcl', '#22c55e')}"/>`;
+  for (const [h, x] of [['A', 200], ['B', 560]]) { const sb = twSB[h] && on('sb'); g += `<g style="cursor:pointer" onclick="twSbToggle('${h}')"><rect x="${x - 26}" y="${130}" width="52" height="24" fill="transparent"/>${[-2, -1, 0, 1, 2].map((i) => `<circle cx="${x + i * 4}" cy="140" r="2.4" fill="${sb ? '#ef4444' : '#3f1d1d'}"/>`).join('')}${!twSB[h] && on('sb') ? [0, 1, 2].map((i) => `<circle cx="${x}" cy="${130 - i * 6}" r="1.8" fill="${i % 2 ? '#facc15' : '#22c55e'}"/>`).join('') : ''}<text x="${x + 18}" y="${144}" font-size="10" fill="#cbd5e1">stop bar ${h}</text></g>`; }
+  g += `<text x="10" y="18" font-size="11" fill="#94a3b8">Tower view · RWY ${twR} in use · ${TWVIS[twV][0]} (${TWVIS[twV][1]}) · tap a stop bar to switch it</text>`;
+  $('twMap').innerHTML = g;
+  // circuits
+  const rows = TWC.map((c) => { const s = twStep(c), trip = twF.trip && c[0] === 'C1', A = trip ? 0 : twAmps(c, s), failed = (twF.cl && (c[0] === 'C3' || c[0] === 'C4') ? 1 : 0) + (twF.edge && (c[0] === 'C1' || c[0] === 'C2') ? (c[0] === 'C1' ? 2 : 1) : 0), ir = twF.earth && c[0] === 'C6' ? 0.3 : 200 + (c[4] % 7) * 37, load = A ? Math.round(30 + (A / 6.6) * 55) : 0;
+    const st = trip ? ['TRIPPED', '#b91c1c'] : ir < 1 ? ['IR alarm', '#b45309'] : failed ? [`${failed} lamp${failed > 1 ? 's' : ''} failed`, '#b45309'] : s ? ['OK', '#15803d'] : ['Off', '#64748b'];
+    return `<tr><td><b>${c[0]}</b> ${c[1]}</td><td>CRE ${c[2]} kVA · ${c[3]}-step</td><td>${s ? `B${s}` : '–'}</td><td>${A ? A.toFixed(1) + ' A' : '–'}</td><td>${load ? load + '%' : '–'}</td><td style="color:${ir < 1 ? '#b91c1c' : 'inherit'}">${ir < 1 ? ir + ' MΩ' : Math.round(ir) + ' MΩ'}</td><td>${c[4] - failed} / ${c[4]}</td><td style="color:${st[1]};font-weight:700">${st[0]}</td></tr>`; });
+  $('twTbl').innerHTML = '<tr><td><b>Circuit</b></td><td><b>Regulator</b></td><td><b>Step</b></td><td><b>Current</b></td><td><b>Load</b></td><td><b>Insulation</b></td><td><b>Lights OK</b></td><td><b>Status</b></td></tr>' + rows.join('');
+  const alarms = Object.values(twF).filter(Boolean).length, ok = C.avail >= C.need;
+  $('twKpi').innerHTML = `<div><b style="color:${ok ? 'var(--good)' : '#b91c1c'}">${ok ? '✓' : '✕'} CAT ${['I', 'II', 'III'][Math.min(C.avail, C.need) - 1]}</b>${ok ? 'operations available' : `requested CAT ${['I', 'II', 'III'][C.need - 1]} – downgraded`}</div><div><b>RWY ${twR}</b>in use</div><div><b>${TWC.filter((c) => twStep(c) > 0 && !(twF.trip && c[0] === 'C1')).length} / ${TWC.length}</b>CCRs on</div><div><b style="color:${alarms ? '#b45309' : 'inherit'}">${alarms}</b>active alarms</div><div><b>${lvp ? 'ON' : 'off'}</b>low-visibility procedures</div>`;
+  $('twLog').innerHTML = `${!ok ? `<div style="color:#b91c1c;font-weight:700;margin-bottom:6px">CAT ${['II', 'III'][C.need - 2] ?? 'I'} not available: ${C.why.join('; ')}. The tower tells pilots (ATIS / NOTAM) and maintenance is dispatched.</div>` : ''}<b>Event log</b>${twLog.map((l) => `<div>${l}</div>`).join('') || '<div class="m">No events yet.</div>'}`;
+}
+function twArch() {
+  const B = (x, y, w, h, t, s, c = '#eef2ff', sc = '#6366f1') => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="8" fill="${c}" stroke="${sc}"/><text x="${x + w / 2}" y="${y + (s ? 18 : h / 2 + 4)}" text-anchor="middle" font-size="11.5" font-weight="700" fill="#1e1b4b">${t}</text>${s ? `<text x="${x + w / 2}" y="${y + 33}" text-anchor="middle" font-size="10" fill="#475569">${s}</text>` : ''}`;
+  const A = (x1, y1, x2, y2) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#94a3b8" stroke-width="1.6"/>`;
+  $('twArch').innerHTML = B(20, 12, 180, 42, 'Tower HMI × 2', 'touchscreens, redundant') + B(290, 12, 180, 42, 'ALCMS servers', 'hot standby, logging') + B(560, 12, 180, 42, 'Maintenance station', 'alarms, reports, work orders') +
+    A(200, 33, 290, 33) + A(470, 33, 560, 33) + A(380, 54, 380, 80) +
+    `<rect x="40" y="80" width="680" height="22" rx="11" fill="#dbeafe" stroke="#3b82f6"/><text x="380" y="95" text-anchor="middle" font-size="11" font-weight="700" fill="#1e3a8a">Redundant fibre-optic ring</text>` +
+    A(130, 102, 130, 122) + A(380, 102, 380, 122) + A(630, 102, 630, 122) +
+    B(40, 122, 180, 42, 'ACE3 unit per CCR', 'control & L-829 monitoring', '#ecfdf5', '#10b981') + B(290, 122, 180, 42, 'CCR – CRE / VIS', 'pure sine wave, 6.6 A', '#ecfdf5', '#10b981') + B(540, 122, 180, 42, 'Series circuits', 'isolating transformers', '#ecfdf5', '#10b981') +
+    A(220, 143, 290, 143) + A(470, 143, 540, 143) + A(630, 164, 630, 184) +
+    B(470, 184, 270, 42, 'RELIANCE LED lights + IQ module', 'individual light control & monitoring (ILCMS)', '#fff7ed', '#f59e0b') +
+    B(20, 200, 200, 52, 'A-SMGCS / surface radar', 'routes → follow-the-greens', '#f8fafc', '#94a3b8') + B(240, 200, 200, 52, 'AODB · Safedock A-VDGS', 'stand allocation, docking', '#f8fafc', '#94a3b8') +
+    `<path d="M120 200 L120 176 L40 176" fill="none" stroke="#cbd5e1" stroke-dasharray="4 3"/><path d="M340 200 L340 176" fill="none" stroke="#cbd5e1" stroke-dasharray="4 3"/><text x="20" y="266" font-size="10" fill="#64748b">Example architecture – engineered per airport to its category and redundancy needs (FAA L-890 / ICAO).</text>`;
+}
+
+// ---------------------------------------------------------------- VDGS docking + boarding bridge (3D)
+const VDT = {
+  a320: { name: 'A320', L: 37.6, span: 35.8, d: 3.95, sill: 3.4, door: 5.5 },
+  b738: { name: 'B737-800', L: 39.5, span: 35.8, d: 3.76, sill: 2.7, door: 5.0 },
+  a333: { name: 'A330-300', L: 63.7, span: 60.3, d: 5.64, sill: 4.8, door: 10.7 },
+  b77w: { name: 'B777-300ER', L: 73.9, span: 64.8, d: 6.2, sill: 5.0, door: 11.0 },
+};
+let vdK = 'a320', vdS = 'idle', vdDist = 45, vdOff = 0, vdV = 0, vdDriftT = 0, vdBr = 0, vdBridgeOut = false, vdRaf = 0, vdLast = 0, vdT = 0;
+function vdUI(p) {
+  if (VDT[p]) vdK = p;
+  $('vdType').innerHTML = Object.entries(VDT).map(([k, t]) => `<span class="btn ${k === vdK ? 'on' : ''}" onclick="vdK='${k}';vdS='idle';vdDist=45;vdOff=0;vdUI();pbK=0;pbTarget=0;pbDraw()">✈ ${t.name}</span>`).join('');
+  vdTopDraw(); pbDraw();
+  if (p === 'bridge') setTimeout(() => $('vdP3').scrollIntoView({ behavior: 'smooth' }), 50);
+}
+function vdStart() {
+  if (vdBridgeOut) { vdS = 'blocked'; vdTopDraw(); return; }
+  vdS = 'scan'; vdDist = 45; vdOff = (Math.random() - 0.5) * 1.6; vdV = 2.2; vdT = 0; pbK = 0; pbTarget = 0; pbDraw();
+  if (!vdRaf) { vdLast = 0; vdRaf = requestAnimationFrame(vdLoop); }
+}
+const vdSteer = (s) => { vdOff += s * 0.5; };
+const vdBrake = () => { vdBr = 1.2; };
+const vdDrift = () => { vdDriftT = 4; };
+function vdLoop(ts) {
+  if ($('vdgsv').classList.contains('hidden') || !['scan', 'dock', 'stop'].includes(vdS)) { vdRaf = 0; return; }
+  const dt = Math.min(0.1, (ts - (vdLast || ts)) / 1000); vdLast = ts; vdT += dt;
+  if (vdS === 'scan' && vdT > 1.5) vdS = 'dock';
+  if (vdS === 'dock') {
+    const want = Math.max(0.35, Math.min(2.2, vdDist * 0.16)); vdV += (want - vdV) * dt * 1.5; if (vdBr > 0) { vdBr -= dt; vdV *= 1 - dt * 1.5; }
+    vdDist -= vdV * dt; if (vdDriftT > 0) { vdDriftT -= dt; vdOff += 0.35 * dt; }
+    if (vdDist <= 0) { vdDist = 0; vdS = 'stop'; vdT = 0; }
+  } else if (vdS === 'stop' && vdT > 1.6) { vdS = Math.abs(vdOff) <= 0.5 ? 'ok' : 'okoff'; vdTopDraw(); vdRaf = 0; return; }
+  vdTopDraw(); vdRaf = requestAnimationFrame(vdLoop);
+}
+function vdTopDraw() {
+  const t = VDT[vdK], sc = 4.2, stopY = 40, cx = 230, ny = stopY + vdDist * sc + (vdS === 'idle' ? 200 : 0), nx = cx + vdOff * sc * 2;
+  $('vdBridgeB').classList.toggle('on', vdBridgeOut);
+  let g = `<rect width="460" height="300" fill="#2b3038"/><rect x="0" y="0" width="460" height="26" fill="#475569"/><text x="10" y="17" font-size="11" fill="#e2e8f0">TERMINAL</text><rect x="${cx - 9}" y="8" width="18" height="12" fill="#000"/>`;
+  g += `<line x1="${cx}" y1="${stopY}" x2="${cx}" y2="300" stroke="#facc15" stroke-width="2"/><line x1="${cx - 22}" y1="${stopY}" x2="${cx + 22}" y2="${stopY}" stroke="#facc15" stroke-width="3"/><text x="${cx + 26}" y="${stopY + 4}" font-size="10" fill="#facc15">${t.name} stop</text>`;
+  // boarding bridge (top view): parked or out
+  g += `<rect x="${cx + 60}" y="30" width="16" height="16" rx="8" fill="#94a3b8"/><path d="M${cx + 68} 38 L${vdBridgeOut ? cx + 30 : cx + 120} ${vdBridgeOut ? 120 : 110}" stroke="#94a3b8" stroke-width="10"/><text x="${vdBridgeOut ? cx + 2 : cx + 96}" y="${vdBridgeOut ? 140 : 128}" font-size="10" fill="${vdBridgeOut ? '#f87171' : '#cbd5e1'}">${vdBridgeOut ? 'bridge NOT parked' : 'bridge parked'}</text>`;
+  // aircraft (nose up)
+  const L = t.L * sc * 0.55, span = t.span * sc * 0.55, w = t.d * sc * 0.7;
+  if (ny < 340) g += `<g transform="translate(${nx.toFixed(1)} ${ny.toFixed(1)})"><path d="M0 0 C ${w} 6, ${w} 14, ${w / 2 + 1} ${L * 0.25} L ${w / 2} ${L * 0.95} L 0 ${L} L ${-w / 2} ${L * 0.95} L ${-w / 2 - 1} ${L * 0.25} C ${-w} 14, ${-w} 6, 0 0 Z" fill="#e5e7eb"/><path d="M${w / 2} ${L * 0.38} L ${span / 2} ${L * 0.6} L ${span / 2} ${L * 0.66} L ${w / 2} ${L * 0.55} Z M${-w / 2} ${L * 0.38} L ${-span / 2} ${L * 0.6} L ${-span / 2} ${L * 0.66} L ${-w / 2} ${L * 0.55} Z" fill="#cbd5e1"/></g>`;
+  if (['scan', 'dock'].includes(vdS)) g += `<path d="M${cx} 20 L${nx - 10} ${ny + 8} L${nx + 10} ${ny + 8} Z" fill="#22d3ee" opacity=".12"/>`;
+  g += `<text x="10" y="292" font-size="10" fill="#94a3b8">${vdS === 'idle' ? 'Press Start docking' : `${vdDist.toFixed(1)} m to go · ${vdOff >= 0 ? 'right' : 'left'} of the centre line by ${Math.abs(vdOff).toFixed(1)} m`}</text>`;
+  $('vdTop').innerHTML = g;
+  // the pilot display
+  const A = '#fbbf24', Rr = '#ef4444', Gg = '#22c55e';
+  let d = '<rect width="220" height="300" rx="10" fill="#000"/>';
+  const big = (txt, c, y = 60, s = 34) => `<text x="110" y="${y}" text-anchor="middle" font-size="${s}" font-weight="800" fill="${c}" font-family="monospace">${txt}</text>`;
+  if (vdS === 'idle') d += big('—', '#334155');
+  else if (vdS === 'blocked') d += big('STOP', Rr) + big('GATE', Rr, 110, 26) + big('BLOCKED', Rr, 145, 22);
+  else if (vdS === 'scan') d += big(t.name, A, 60, t.name.length > 6 ? 24 : 32) + big('WAIT', A, 120, 22);
+  else if (vdS === 'dock') {
+    d += big(t.name, A, 46, t.name.length > 6 ? 22 : 28);
+    if (Math.abs(vdOff) > 0.3) d += `<text x="${vdOff > 0 ? 40 : 180}" y="104" text-anchor="middle" font-size="40" font-weight="800" fill="${Rr}">${vdOff > 0 ? '◀' : '▶'}</text>`;
+    d += `<rect x="102" y="70" width="16" height="52" fill="${A}"/><polygon points="110,128 98,142 122,142" fill="${A}"/>`;
+    const seg = Math.max(0, Math.min(16, Math.round(vdDist / 15 * 16)));
+    if (vdDist < 15) for (let i = 0; i < 16; i++) d += `<rect x="${i < seg ? 60 : 200}" y="${150 + i * 7}" width="${i < seg ? 100 : 0}" height="4" fill="${A}"/>`; else d += big(`${Math.round(vdDist)} m`, A, 200, 26);
+    if (vdDist < 15) d += big(`${vdDist.toFixed(1)} m`, A, 285, 20);
+    if (vdDist < 12 && vdV > 1.3) d += big('SLOW', Rr, 135, 18);
+  } else if (vdS === 'stop') d += big('STOP', Rr, 120, 44);
+  else d += big('STOP', Rr, 90, 36) + big(vdS === 'ok' ? 'OK' : 'CHECK', vdS === 'ok' ? Gg : A, 160, 36) + big(vdS === 'ok' ? 'CHOCK' : 'AZIMUTH', vdS === 'ok' ? Gg : A, 205, 18);
+  $('vdDisp').innerHTML = d;
+  $('vdNote').innerHTML = vdS === 'blocked' ? '<b style="color:#b91c1c">Interlock:</b> the boarding bridge is not in its parked position, so the A-VDGS refuses to start docking and shows STOP. Park the bridge (button again) and start.' : vdS === 'idle' ? 'Choose the aircraft type and press <b>Start docking</b>. The VDGS first identifies the aircraft type and checks it matches the one planned for the stand (from the AODB) – a wrong type stops the docking.' : ['ok', 'okoff'].includes(vdS) ? `<b>${vdS === 'ok' ? 'Parked on the centre line' : 'Parked, but off the centre line – check the azimuth'}.</b> The VDGS logs the on-block time for the airport. Chocks on, then the boarding bridge can dock – scroll down to drive it in 3D.` : 'Follow the display: <b>arrows</b> mean steer that way, the <b>closing-rate bar</b> shortens as the stop comes closer, <b>SLOW</b> means you are too fast, <b>STOP</b> at the stop position.';
+}
+
+// ---- 3D boarding bridge: a small painter's-algorithm renderer (metres; terminal facade at y = 0, apron towards +y, z up)
+let pbK = 0, pbTarget = 0, pbRaf = 0;
+const v3 = { add: (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]], sub: (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]], mul: (a, s) => [a[0] * s, a[1] * s, a[2] * s], dot: (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2], cross: (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], norm: (a) => { const l = Math.hypot(...a) || 1; return [a[0] / l, a[1] / l, a[2] / l]; } };
+function obox(F, c, u, v, w, hu, hv, hw, col) { // oriented box: centre c, unit axes u v w, half sizes
+  const P = (a, b, d) => v3.add(c, v3.add(v3.mul(u, a * hu), v3.add(v3.mul(v, b * hv), v3.mul(w, d * hw))));
+  const q = [[[-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1]], [[-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]], [[-1, -1, -1], [1, -1, -1], [1, -1, 1], [-1, -1, 1]], [[-1, 1, -1], [1, 1, -1], [1, 1, 1], [-1, 1, 1]], [[-1, -1, -1], [-1, 1, -1], [-1, 1, 1], [-1, -1, 1]], [[1, -1, -1], [1, 1, -1], [1, 1, 1], [1, -1, 1]]];
+  for (const f of q) F.push({ p: f.map((k) => P(...k)), c: col, o: c });
+}
+const abox = (F, x0, y0, z0, x1, y1, z1, col) => obox(F, [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2], [1, 0, 0], [0, 1, 0], [0, 0, 1], Math.abs(x1 - x0) / 2, Math.abs(y1 - y0) / 2, Math.abs(z1 - z0) / 2, col);
+function cyl(F, a, b, r, col, n = 12, rb = r, tipA = false, tipB = false) { // between centres a and b (radii r at a, rb at b)
+  const ax = v3.norm(v3.sub(b, a)), t = Math.abs(ax[2]) < 0.9 ? [0, 0, 1] : [1, 0, 0], e1 = v3.norm(v3.cross(ax, t)), e2 = v3.cross(ax, e1), o = v3.mul(v3.add(a, b), 0.5);
+  const ring = (c, rr) => [...Array(n).keys()].map((i) => { const th = (i / n) * 2 * Math.PI; return v3.add(c, v3.add(v3.mul(e1, Math.cos(th) * rr), v3.mul(e2, Math.sin(th) * rr))); });
+  const A = ring(a, tipA ? 0.001 : r), B = ring(b, tipB ? 0.001 : rb);
+  for (let i = 0; i < n; i++) { const j = (i + 1) % n; F.push({ p: [A[i], A[j], B[j], B[i]], c: col, o }); }
+  if (!tipA) F.push({ p: A, c: col, o }); if (!tipB) F.push({ p: B, c: col, o });
+}
+function pbScene() {
+  const t = VDT[vdK], F = [], r = t.d / 2, zc = t.sill + 0.3 * t.d, n0 = 6, L = t.L;
+  // ground, markings, terminal, VDGS
+  F.push({ p: [[-45, -1, 0], [45, -1, 0], [45, 80, 0], [-45, 80, 0]], c: [120, 124, 130], o: [0, 40, -1], flat: 1 });
+  F.push({ p: [[-0.15, n0, 0.02], [0.15, n0, 0.02], [0.15, 80, 0.02], [-0.15, 80, 0.02]], c: [250, 204, 21], o: [0, 40, -1], flat: 2 });
+  F.push({ p: [[-3, n0 - 0.25, 0.02], [3, n0 - 0.25, 0.02], [3, n0 + 0.25, 0.02], [-3, n0 + 0.25, 0.02]], c: [250, 204, 21], o: [0, 40, -1], flat: 2 });
+  const tF = F.length; abox(F, -45, -14, 0, 45, 0, 13, [148, 178, 205]); abox(F, -45, -14, 13, 45, 1, 14, [100, 116, 139]); for (let i = tF; i < F.length; i++) F[i].bg = 1;
+  abox(F, -1.4, 0, 8, 1.4, 0.6, 11, [15, 15, 18]);
+  // aircraft (nose towards the terminal)
+  const W = [241, 245, 249], G = [203, 213, 225], T = [30, 58, 138];
+  cyl(F, [0, n0 + 0.13 * L, zc], [0, n0 + 0.8 * L, zc], r, W, 14);
+  cyl(F, [0, n0, zc - 0.3 * r], [0, n0 + 0.13 * L, zc], r, W, 14, r, true, false);
+  cyl(F, [0, n0 + 0.8 * L, zc], [0, n0 + L, zc + 0.55 * r], r, W, 14, r * 0.15);
+  for (const s of [-1, 1]) {
+    const half = t.span / 2 - r, sw = 0.45, cy0 = n0 + 0.4 * L, u = v3.norm([s, sw, 0]);
+    obox(F, [s * (r + half / 2), cy0 + (half / 2) * sw, zc - 0.55 * r], u, v3.norm([-sw * s, 1, 0]), [0, 0, 1], half / 2 + 0.5, 0.075 * L, 0.18, G);
+    const ex = s * (r + t.span * 0.16), ey = n0 + 0.3 * L; cyl(F, [ex, ey, zc - r - 0.15], [ex, ey + 0.12 * L, zc - r - 0.15], 0.032 * L, [148, 163, 184], 12);
+    obox(F, [s * (r + 0.09 * t.span), n0 + 0.9 * L, zc + 0.25 * r], v3.norm([s, 0.35, 0]), [0, 1, 0], [0, 0, 1], 0.09 * t.span, 0.035 * L, 0.12, G);
+  }
+  obox(F, [0, n0 + 0.9 * L, zc + r + 0.1 * L], [0, 1, 0], [1, 0, 0], v3.norm([0, 0.45, 1]), 0.055 * L, 0.15, 0.1 * L, T);
+  F.push({ p: [[r + 0.02, n0 + t.door - 0.45, t.sill], [r + 0.02, n0 + t.door + 0.45, t.sill], [r + 0.02, n0 + t.door + 0.45, t.sill + 1.9], [r + 0.02, n0 + t.door - 0.45, t.sill + 1.9]], c: [71, 85, 105], o: [r - 1, n0 + t.door, t.sill + 1], decal: 1 });
+  // boarding bridge
+  const k = pbK, Rz = 4.2, R = [r + 13, 2.6], Pp = [r + 14, n0 + t.door + 16], Pd = [r + 2.0, n0 + t.door], P = [Pp[0] + (Pd[0] - Pp[0]) * k, Pp[1] + (Pd[1] - Pp[1]) * k], fz = 4.2 + (t.sill - 4.2) * k;
+  cyl(F, [R[0], R[1], 0], [R[0], R[1], Rz - 0.4], 0.45, [100, 116, 139], 10);
+  cyl(F, [R[0], R[1], Rz - 0.4], [R[0], R[1], Rz + 2.7], 2.1, [203, 213, 225], 16);
+  const dir2 = v3.norm([P[0] - R[0], P[1] - R[1], 0]), cabFace = v3.norm([dir2[0] * (1 - k) - k, dir2[1] * (1 - k), 0]), back = v3.sub([P[0], P[1], fz], v3.mul(cabFace, 1.6));
+  const a0 = [R[0] + dir2[0] * 2.1, R[1] + dir2[1] * 2.1, Rz], tl = v3.sub(back, a0), len = Math.hypot(...tl), ux = v3.norm(tl), vx = v3.norm(v3.cross([0, 0, 1], ux)), wx = v3.cross(ux, vx);
+  [[0, 0.42, 1.5, 1.45], [0.32, 0.72, 1.38, 1.37], [0.62, 1, 1.26, 1.3]].forEach(([s0, s1, hw, hh], i) => { const c = v3.add(a0, v3.mul(tl, (s0 + s1) / 2)); obox(F, v3.add(c, v3.mul(wx, hh)), ux, vx, wx, len * (s1 - s0) / 2, hw, hh, [[226, 232, 240], [214, 222, 232], [203, 213, 225]][i]); });
+  const dc = v3.add(a0, v3.mul(tl, 0.72));
+  for (const s of [-1, 1]) { const lp = v3.add(dc, v3.mul(vx, s * 1.1)); abox(F, lp[0] - 0.2, lp[1] - 0.2, 0.6, lp[0] + 0.2, lp[1] + 0.2, lp[2], [71, 85, 105]); }
+  abox(F, dc[0] - 1.6, dc[1] - 0.8, 0, dc[0] + 1.6, dc[1] + 0.8, 0.7, [30, 41, 59]);
+  const cv = v3.norm(v3.cross([0, 0, 1], cabFace));
+  obox(F, [P[0], P[1], fz + 1.4], cabFace, cv, [0, 0, 1], 1.6, 1.8, 1.45, [241, 245, 249]);
+  if (k > 0.97) obox(F, [P[0] + cabFace[0] * 1.75, P[1] + cabFace[1] * 1.75, fz + 1.2], cabFace, cv, [0, 0, 1], 0.2, 1.1, 1.2, [51, 65, 85]);
+  return { F, labels: [['Rotunda', [R[0], R[1], Rz + 3]], ['Telescopic tunnels', v3.add(a0, v3.mul(tl, 0.35)).map((x, i) => (i === 2 ? x + 3.2 : x))], ['Drive column', [dc[0], dc[1], 0.8]], ['Cab', [P[0], P[1], fz + 3.2]], ['Door 1L', [r, n0 + t.door, t.sill + 2.6]], ['VDGS', [0, 0.6, 11.8]]], P, fz, len, R };
+}
+function pbDraw() {
+  const yaw = +$('pbY').value * Math.PI / 180, pit = +$('pbP').value * Math.PI / 180, zoom = +$('pbZ').value, t = VDT[vdK];
+  $('pbYV').textContent = $('pbY').value + '°'; $('pbPV').textContent = $('pbP').value + '°'; $('pbZV').textContent = zoom.toFixed(1) + '×';
+  const S = pbScene(), sc = 11 * zoom * (37.6 / Math.max(37.6, t.L)) ** 0.35, foc = [t.d / 2 + 7, 6 + t.door + 4, 3];
+  const cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pit), sp = Math.sin(pit);
+  const pr = (p) => { const x = p[0] - foc[0], y = p[1] - foc[1], z = p[2] - foc[2], xr = cy * x - sy * y, yr = sy * x + cy * y; return [380 + xr * sc, 230 - (z * cp - yr * sp) * sc, -(yr * cp + z * sp)]; };
+  const dv = [sy * cp, cy * cp, sp], Ld = v3.norm([0.4, 0.5, 0.8]);
+  const items = [];
+  for (const f of S.F) {
+    let n = v3.norm(v3.cross(v3.sub(f.p[1], f.p[0]), v3.sub(f.p[2], f.p[0])));
+    const cen = v3.mul(f.p.reduce((a, b) => v3.add(a, b), [0, 0, 0]), 1 / f.p.length);
+    if (v3.dot(n, v3.sub(cen, f.o)) < 0) n = v3.mul(n, -1);
+    if (!f.flat && v3.dot(n, dv) < -0.02) continue;
+    const q = f.p.map(pr), depth = q.reduce((s, x) => s + x[2], 0) / q.length, lum = f.flat ? 1 : 0.55 + 0.45 * Math.max(0, v3.dot(n, Ld));
+    items.push([f.flat ? 1e9 - f.flat : f.bg ? 1e9 - 3 - depth * 1e-3 : f.decal ? depth - 0.6 : depth, `<polygon points="${q.map((x) => `${x[0].toFixed(1)},${x[1].toFixed(1)}`).join(' ')}" fill="rgb(${f.c.map((v) => Math.round(v * lum)).join(',')})" stroke="rgba(0,0,0,.08)" stroke-width=".4"/>`]);
+  }
+  items.sort((a, b) => b[0] - a[0]);
+  let g = '<rect width="760" height="420" fill="#cfe3f5"/>' + items.map((x) => x[1]).join('');
+  for (const [txt, p] of S.labels) { const q = pr(p); g += `<g><rect x="${(q[0] - txt.length * 3.2 - 4).toFixed(1)}" y="${(q[1] - 16).toFixed(1)}" width="${(txt.length * 6.4 + 8).toFixed(1)}" height="16" rx="4" fill="rgba(15,23,42,.75)"/><text x="${q[0].toFixed(1)}" y="${(q[1] - 4).toFixed(1)}" text-anchor="middle" font-size="11" fill="#fff">${txt}</text></g>`; }
+  const vq = pr([0, 0.62, 9.5]); g += `<text x="${vq[0].toFixed(1)}" y="${vq[1].toFixed(1)}" text-anchor="middle" font-size="${(6 * zoom).toFixed(1)}" font-weight="800" font-family="monospace" fill="${pbK > 0.97 ? '#22c55e' : '#fbbf24'}">${pbK > 0.97 ? 'OK' : t.name}</text>`;
+  $('pbSvg').innerHTML = g;
+  const slope = (4.2 - S.fz) / Math.max(1, S.len) * 100;
+  $('pbKpi').innerHTML = `<div><b>${t.name}</b>aircraft</div><div><b>≈ ${t.sill.toFixed(1)} m</b>door 1L sill height</div><div><b>${S.fz.toFixed(1)} m</b>cab floor now</div><div><b>${S.len.toFixed(1)} m</b>tunnel length</div><div><b style="color:${Math.abs(slope) > 8.3 ? '#b45309' : 'inherit'}">${slope >= 0 ? '' : '+'}${Math.abs(slope).toFixed(1)}%</b>bridge slope ${slope >= 0 ? 'down' : 'up'} to the cab</div><div><b>${pbK > 0.97 ? 'Docked' : pbK < 0.03 ? 'Parked' : 'Moving'}</b>bridge</div>`;
+  $('pbNote').innerHTML = `<b>How it docks:</b> 1 · the VDGS shows STOP / OK and the chocks go on. 2 · the operator (or auto-docking) drives the wheel bogie: the <b>telescopic tunnels</b> extend, the <b>rotunda</b> swivels and the <b>drive column</b> lifts the cab to the door sill. 3 · the <b>cab</b> turns square to the fuselage, the canopy closes and the <b>auto-leveller</b> follows the aircraft up and down as it is loaded. 4 · ground power (400 Hz) and pre-conditioned air connect. For departure it retracts to the parked position – which the VDGS checks before the next docking. A wide-body door sits higher (${VDT.b77w.sill} m on a B777 vs ${VDT.a320.sill} m on an A320), so the slope changes with the type – check the stand design limit (often around 1 : 12 for accessibility).`;
+}
+function pbGo(target) { pbTarget = target; if (!pbRaf) { let last = 0; const step = (ts) => { const dt = Math.min(0.1, (ts - (last || ts)) / 1000); last = ts; pbK += Math.sign(pbTarget - pbK) * Math.min(Math.abs(pbTarget - pbK), dt * 0.3); pbDraw(); if (Math.abs(pbTarget - pbK) > 1e-3 && !$('vdgsv').classList.contains('hidden')) pbRaf = requestAnimationFrame(step); else pbRaf = 0; }; pbRaf = requestAnimationFrame(step); } }
+for (const id of ['pbY', 'pbP', 'pbZ']) $(id).addEventListener('input', pbDraw);
+MODULES.push(['airport', 'Airport solutions', 'AGL, PAPI, CCR, tower control, VDGS & boarding bridges']);
+add('airport', 'Live', 'lab_agl', '🛬', 'Airfield lighting playground', { type: 'lab', lab: 'aglv', preset: 'land', mins: 8, live: 1, quiz: [Q('What colour are the threshold lights seen by a landing pilot?', ['Green', 'Red', 'Blue'], 0), Q('Runway edge lights in the last 600 m turn…', ['yellow', 'blue', 'green'], 0), Q('Taxiway edge lights are…', ['blue', 'white', 'red'], 0)] });
+add('airport', 'Live', 'lab_papi', '🎯', 'PAPI – fly the glide slope', { type: 'lab', lab: 'papiv', preset: 'papi', mins: 4, live: 1, quiz: [Q('On the correct glide slope a PAPI shows…', ['2 white and 2 red', '4 white', '4 red'], 0), Q('Four red lights mean the aircraft is…', ['too low', 'too high', 'on slope'], 0), Q('PAPI settings must consider…', ['the eye-to-wheel height of the aircraft (MEHT)', 'the terminal colour', 'the taxiway width'], 0)] });
+add('airport', 'Live', 'lab_ccr', '⚡', 'CCR & series circuit', { type: 'lab', lab: 'ccrv', preset: 'sine', mins: 6, live: 1, quiz: [Q('The maximum current of a standard AGL series circuit is…', ['6.6 A', '230 V', '20 mA'], 0), Q('When one light fails on a series circuit…', ['the loop keeps working – its isolating transformer saturates', 'every light goes off', 'the CCR doubles the current'], 0), Q('Why do runways use two interleaved circuits?', ['If one circuit fails, every second light stays on', 'To save cable', 'For colour'], 0)] });
+add('airport', 'Live', 'lab_twr', '🗼', 'Control tower – ALCMS (demo)', { type: 'lab', lab: 'twrv', preset: 'cat3', mins: 7, live: 1, quiz: [Q('Who switches stop bars off for a cleared aircraft?', ['Air traffic control in the tower', 'The pilot', 'The airline'], 0), Q('In the demo, two adjacent failed centreline lights…', ['stop CAT III operations until repaired', 'change nothing', 'close the airport'], 0), Q('ILCMS lets the tower…', ['see and switch every individual light', 'change the runway colour', 'skip maintenance'], 0)] });
+add('airport', 'Live', 'lab_vdgs', '🛩️', 'Docking guidance & boarding bridge', { type: 'lab', lab: 'vdgsv', preset: 'a320', mins: 7, live: 1, quiz: [Q('What does an A-VDGS check before guiding the aircraft in?', ['The aircraft type matches the planned type', 'The fuel level', 'The weather in the destination'], 0), Q('If the boarding bridge is not parked, the VDGS…', ['shows STOP and does not start docking', 'docks anyway', 'switches off the apron lights'], 0), Q('The bridge part that lifts the cab to the door height is the…', ['drive column', 'rotunda', 'canopy'], 0)] });
+add('airport', 'Flights', 'ap_landing', '🛬', 'Landing – what the pilot sees', { type: 'lab', lab: 'aglv', preset: 'land', mins: 4, quiz: [Q('RETIL lights tell the pilot…', ['a rapid exit is 300 / 200 / 100 m ahead', 'the runway is closed', 'to go around'], 0), Q('Green/yellow alternating taxiway lights after vacating mean…', ['still inside the runway strip / ILS sensitive area', 'clear of the runway', 'stop'], 0), Q('When is the runway reported vacated?', ['When the taxiway lights turn all green', 'At touchdown', 'At the stand'], 0)] });
+add('airport', 'Flights', 'ap_takeoff', '🛫', 'Taxi & take-off – stop bars and follow-the-greens', { type: 'lab', lab: 'aglv', preset: 'to', mins: 4, quiz: [Q('A lit red stop bar means…', ['never cross – wait for clearance', 'cross with care', 'runway closed for the day'], 0), Q('When ATC switches the stop bar off…', ['the green/yellow lead-on lights come on', 'all runway lights go off', 'the PAPI turns red'], 0), Q('Follow-the-greens means…', ['only the taxiway lights of the cleared route light up ahead of the aircraft', 'every light is green', 'pilots follow a car'], 0)] });
+add('airport', 'Flights', 'ap_lvp', '🌫️', 'Low visibility – CAT I, II and III', { type: 'lab', lab: 'aglv', preset: 'cat3', mins: 4, quiz: [Q('Which lights are added for CAT II/III?', ['Touchdown zone lights and red approach side barrettes', 'Blue runway lights', 'Only floodlights'], 0), Q('Under low-visibility procedures, stop bars are…', ['lit H24 at the holding positions', 'switched off', 'replaced by signs'], 0), Q('In fog the runway regulators run at…', ['the highest step (B5)', 'the lowest step', 'off'], 0)] });
+add('airport', 'Flights', 'ap_pbb', '🌉', 'The boarding bridge in 3D', { type: 'lab', lab: 'vdgsv', preset: 'bridge', mins: 3, quiz: [Q('The part that stays fixed to the terminal and swivels is the…', ['rotunda', 'cab', 'bogie'], 0), Q('A wide-body door sill is…', ['higher than a narrow-body’s', 'lower', 'the same'], 0), Q('The auto-leveller…', ['keeps the cab at the door as the aircraft moves up and down', 'parks the aircraft', 'opens the door'], 0)] });
+add('airport', 'Flights', 'ap_fault', '🛠️', 'Series circuit faults', { type: 'lab', lab: 'ccrv', preset: 'fault', mins: 3, quiz: [Q('A single earth fault on a series circuit…', ['raises an insulation alarm but the circuit keeps running', 'switches off the airport', 'is harmless forever'], 0), Q('A cable cut makes the CCR…', ['detect the open circuit and switch off', 'raise the voltage forever', 'change colour'], 0), Q('Which CCR suits LED loads best?', ['Pure sine wave', 'Ferroresonant', 'Any dimmer'], 0)] });
+add('airport', 'Topics', 'ap_std', '📘', 'Standards for airfield lighting', {
+  line: 'Airfield lighting is one of the most regulated lighting fields: <b>ICAO</b> sets the international rules, the <b>FAA</b> (USA) publishes detailed equipment specifications most of the world also buys to, and <b>IEC</b> covers the series circuits and regulators.',
+  body: '<table class="spec"><tr><td>ICAO Annex 14 Vol I</td><td>Aerodrome design & operations – Ch 5 visual aids (markings, lights, signs), Ch 8 electrical systems (secondary power, switch-over times), Ch 10 maintenance (serviceability)</td></tr><tr><td>ICAO Doc 9157</td><td>Aerodrome Design Manual – Part 4 Visual Aids, Part 5 Electrical Systems</td></tr><tr><td>ICAO Doc 9830 / 9476</td><td>A-SMGCS / SMGCS – stop bars, routing, follow-the-greens</td></tr><tr><td>FAA AC 150/5340-30</td><td>Design and installation details for airport visual aids</td></tr><tr><td>FAA AC 150/5345-…</td><td>-46 runway & taxiway lights · -10 CCRs (L-828 / L-829) · -47 isolation transformers · -28 PAPI · -44 signs · -56 ALCMS (L-890) · -53 equipment certification (ALECP)</td></tr><tr><td>IEC 61820 / 61821 / 61822 / 61823</td><td>Series circuit installations · their maintenance · constant current regulators · series transformers</td></tr><tr><td>Europe / Sri Lanka</td><td>EASA CS-ADR-DSN; in Sri Lanka the CAASL applies ICAO Annex 14</td></tr></table>',
+  say: '“Every fitting we offer is ICAO Annex 14 compliant and FAA-certified under the ALECP, with photometric test reports – so the authority and the flight check accept it first time.”',
+  watch: 'Secondary power switch-over is part of the standard too: ICAO asks for about 1 second for CAT II/III runway and approach lights (15 s for CAT I) – the UPS / generator design is part of the lighting offer.',
+  quiz: [Q('Which document sets the international rules for airfield lights?', ['ICAO Annex 14', 'EN 12464-1', 'IEC 60598 only'], 0), Q('FAA L-829 is…', ['a constant current regulator with monitoring', 'a runway edge light', 'a sign'], 0), Q('IEC 61822 covers…', ['constant current regulators', 'road lighting', 'emergency lighting'], 0)] });
+add('airport', 'Topics', 'ap_lights', '🚦', 'Runway & taxiway lights – colours and spacing', {
+  line: 'Each light type has a fixed colour, direction and spacing, so a pilot anywhere in the world reads the airfield the same way.',
+  body: '<table class="spec"><tr><td>Approach</td><td>White barrettes 900 m out, crossbar at 300 m; red side barrettes in the inner 270 m for CAT II/III; sequenced flashers</td></tr><tr><td>Threshold / end</td><td>Green towards the approach / red towards the runway</td></tr><tr><td>Edge</td><td>White, ≤ 60 m apart; yellow in the last 600 m (caution zone)</td></tr><tr><td>Centreline</td><td>White every 15 m (CAT II/III) or 30 m; red/white alternating 900–300 m from the end; red in the last 300 m</td></tr><tr><td>Touchdown zone</td><td>White barrettes for the first 900 m (CAT II/III)</td></tr><tr><td>RETIL</td><td>Yellow 3-2-1 lights before a rapid exit</td></tr><tr><td>Taxiway</td><td>Centreline green (green/yellow inside the runway strip), edge blue</td></tr><tr><td>Holding position</td><td>Red stop bar, flashing yellow runway guard lights, lead-on lights</td></tr><tr><td>PAPI</td><td>4 red/white units at the aiming point – 2 + 2 on slope</td></tr></table>',
+  say: '“Inset lights are bidirectional or unidirectional and come in 8″ and 12″ bases – we match the existing cans so the runway can be upgraded to LED during night closures.”',
+  watch: 'Colours are measured against ICAO chromaticity limits – a ‘white’ LED that is slightly off can fail the flight check.',
+  quiz: [Q('Runway centreline lights in the last 300 m are…', ['red', 'white', 'green'], 0), Q('Touchdown zone lights cover the first…', ['900 m', '100 m', '3,000 m'], 0), Q('Red side barrettes in the approach indicate…', ['a CAT II/III approach system', 'a closed runway', 'a helipad'], 0)] });
+add('airport', 'Topics', 'ap_mark', '🎨', 'Runway & taxiway markings', {
+  line: 'By day the <b>markings</b> do the job the lights do at night – runway markings are <b>white</b>, taxiway and apron markings <b>yellow</b>.',
+  body: '<table class="spec"><tr><td>Designator</td><td>Magnetic heading ÷ 10: “09” points to 090°, the other end “27”</td></tr><tr><td>Threshold</td><td>“Piano keys” – the number of stripes shows the width (e.g. 12 stripes = 45 m)</td></tr><tr><td>Aiming point</td><td>Two large blocks about 400 m in – where the PAPI and ILS bring the wheels</td></tr><tr><td>Touchdown zone</td><td>Pairs of stripe groups every 150 m (3-3-2-2-1-1)</td></tr><tr><td>Centre line</td><td>30 m stripes with gaps</td></tr><tr><td>Runway holding position</td><td>Two solid + two dashed yellow lines across the taxiway – solid on the taxiway side: stop here</td></tr><tr><td>Stand</td><td>Lead-in line, stop bars per aircraft type, safety lines</td></tr></table>',
+  say: '“Markings and lights are designed together – the stop bar sits on the holding position line, the PAPI at the aiming point.”',
+  watch: 'Marking paint must meet friction and retro-reflection requirements and be renewed regularly – rubber deposits in the touchdown zone hide markings and inset lights.',
+  quiz: [Q('Runway markings are…', ['white', 'yellow', 'blue'], 0), Q('The aiming point is about … from the threshold.', ['400 m', '40 m', '2,000 m'], 0), Q('On a holding position marking the solid lines are on the…', ['taxiway side', 'runway side', 'apron'], 0)] });
+add('airport', 'Topics', 'ap_led', '💡', 'LED AGL – the latest generation', {
+  line: 'Airports are moving from halogen to <b>LED airfield lights</b>: far lower energy, lights that last years instead of months, stable colours without filters – on the same 6.6 A series circuits.',
+  body: '<table class="spec"><tr><td>Energy</td><td>Typically 60–80% less than halogen at the same intensity</td></tr><tr><td>Life</td><td>Tens of thousands of hours vs about 1,000–2,000 h for halogen – fewer runway closures for re-lamping</td></tr><tr><td>Colour</td><td>Coloured LEDs instead of filters – no fading, sharper colours</td></tr><tr><td>Low protrusion</td><td>Thin inset lights that resist snow ploughs and tyre impact</td></tr><tr><td>Built-in intelligence</td><td>ILCMS modules inside the fitting (e.g. ADB SAFEGATE RELIANCE with IQ)</td></tr><tr><td>Retrofit</td><td>Same bases, isolating transformers and cables – but check the CCRs are LED-compatible</td></tr></table>',
+  say: '“LED cuts the AGL energy bill by more than half and the lights stay in the ground for years – your maintenance team stops re-lamping at night.”',
+  watch: 'LED loads are non-linear: old thyristor regulators can make them flicker at low steps – include CCR replacement (pure sine) or verified compatibility in the offer.',
+  quiz: [Q('A big LED advantage on the airfield is…', ['far fewer re-lamping closures', 'needing new 230 V wiring', 'colour filters'], 0), Q('LED AGL runs on…', ['the same 6.6 A series circuits', 'only DALI', 'solar panels only'], 0), Q('What must be checked when retrofitting LED?', ['CCR compatibility with LED loads', 'Runway colour', 'Terminal height'], 0)] });
+add('airport', 'Topics', 'ap_ccrt', '🔌', 'CCR types and sizing', {
+  line: 'A <b>constant current regulator</b> turns the mains into a precise series current – the brightness step is chosen by the tower. Choosing the right type and size is the core of every AGL power design.',
+  body: '<table class="spec"><tr><td>Output</td><td>6.6 A (FAA class 1) or 20 A (class 2); 3-step (taxiways) or 5-step (runway, approach)</td></tr><tr><td>Sizes</td><td>About 2.5 – 30 kVA – sum of the lights’ VA at 6.6 A plus cable and transformer losses, with margin</td></tr><tr><td>Types</td><td>Pure sine wave (IGBT/PWM) – best for LED; thyristor (SCR) – economical; ferroresonant – older, heavy</td></tr><tr><td>Monitoring</td><td>L-828 without, L-829 with monitoring: current, voltage, load, lamp failures, insulation resistance</td></tr><tr><td>Protection</td><td>Open-circuit and over-current protection, lightning surge protection</td></tr><tr><td>Redundancy</td><td>Interleaved circuits, standby CCRs, dual power feeds</td></tr></table>',
+  say: '“We size each regulator from the actual lamp list and cable lengths, and with L-829 monitoring the tower sees the health of every circuit.”',
+  watch: 'Never oversize a CCR massively for a small LED load – at very light load some regulators lose accuracy. Follow the manufacturer’s load range.',
+  quiz: [Q('A 5-step CCR is typically used for…', ['runway and approach lights', 'apron floodlights', 'signs only'], 0), Q('CCR size is based on…', ['the lights’ VA at 6.6 A plus cable and transformer losses', 'the runway length only', 'the tower height'], 0), Q('L-829 adds…', ['monitoring', 'colour', 'a second runway'], 0)] });
+add('airport', 'Topics', 'ap_ilcms', '🧠', 'Individual light control & follow-the-greens', {
+  line: '<b>ILCMS</b> puts an addressable module at every light, talking over the series circuit. The tower can switch and monitor <b>each light</b> – the basis for individually switched stop bars and <b>follow-the-greens</b>.',
+  body: '<table class="spec"><tr><td>Monitoring</td><td>The exact light that failed and its position – checks ICAO rules like “no two adjacent centreline lights out”</td></tr><tr><td>Control</td><td>Stop bars and taxiway segments switched individually</td></tr><tr><td>Follow-the-greens</td><td>With A-SMGCS / surface radar the route lights up segment by segment ahead of each aircraft; stop bars protect the no-go areas</td></tr><tr><td>Maintenance</td><td>Planned repairs instead of night patrols</td></tr><tr><td>Example</td><td>Trade press reports some 12,000 ADB SAFEGATE intelligent LED lights at Beijing Daxing supporting 24/7 follow-the-greens</td></tr></table>',
+  say: '“With individual light monitoring you know exactly which light failed and whether CAT III is still allowed – before the pilot reports it.”',
+  watch: 'Follow-the-greens is an operational change, not just equipment – ATC procedures, A-SMGCS and pilot briefing must come with it.',
+  quiz: [Q('ILCMS controls and monitors…', ['each individual light', 'only the whole runway', 'the terminal lights'], 0), Q('Follow-the-greens needs…', ['individually switchable taxiway segments and routing', 'blue lights', 'no stop bars'], 0), Q('A key ICAO check ILCMS makes easy is…', ['no two adjacent centreline lights failed', 'the tower height', 'paint colour'], 0)] });
+add('airport', 'Topics', 'ap_tower', '🗼', 'Control tower solutions – ADB SAFEGATE', {
+  line: 'ADB SAFEGATE offers the whole chain from the tower screen to the light in the ground – and on to the gate. A demo is in the “Control tower” lab.',
+  body: '<table class="spec"><tr><td>Tower</td><td>ALCMS – touchscreen HMI for ATC, redundant servers, maintenance station; interfaces to A-SMGCS / surface radar</td></tr><tr><td>Vault</td><td>ACE3 control & monitoring units (L-827 / L-829 monitoring, local touchscreen) at each regulator</td></tr><tr><td>Power</td><td>CRE / VIS pure-sine-wave CCRs for LED and mixed loads</td></tr><tr><td>Field</td><td>RELIANCE LED inset and elevated lights with the IQ individual-light module; runway guard lights, signs</td></tr><tr><td>Gate</td><td>Safedock A-VDGS (Safedock X adds sensor fusion with the 3D laser), interlocked with boarding bridges, linked to the AODB</td></tr></table>',
+  say: '“One supplier from tower to gate means one integration, one support line and one system the controllers learn once.”',
+  watch: 'Names and ranges change – confirm the current products, certificates and local support with ADB SAFEGATE before quoting.',
+  quiz: [Q('In the ADB SAFEGATE chain, ACE3 units sit…', ['in the vault at each regulator', 'on the runway', 'in the terminal shops'], 0), Q('Safedock is…', ['an advanced visual docking guidance system', 'a CCR', 'a runway light'], 0), Q('The ALCMS tower HMI is used by…', ['air traffic controllers', 'passengers', 'caterers'], 0)] });
+add('airport', 'Topics', 'ap_vdgs', '🅿️', 'VDGS – how docking guidance works', {
+  line: 'An <b>A-VDGS</b> scans the arriving aircraft with a 3D laser, identifies it, and guides the pilot to the exact stop position – no marshaller needed.',
+  body: '<table class="spec"><tr><td>Identify</td><td>Measures the aircraft shape and compares it with the planned type from the AODB – wrong type: STOP</td></tr><tr><td>Guide</td><td>Left/right arrows for the centre line, a closing-rate bar and distance to go, SLOW if too fast</td></tr><tr><td>Stop</td><td>STOP at the stop position for that type, then OK; logs on-block / off-block time (A-CDM)</td></tr><tr><td>Safety</td><td>Stops if an object or vehicle is in the way; interlock with the boarding bridge (must be parked)</td></tr><tr><td>Integration</td><td>Boarding bridge, 400 Hz ground power, pre-conditioned air, apron management</td></tr><tr><td>Standard</td><td>ICAO Annex 14 – visual docking guidance systems and advanced VDGS</td></tr></table>',
+  say: '“The A-VDGS docks every aircraft to the centimetre, records the on-block time automatically and refuses to dock if the bridge or a vehicle is in the way.”',
+  watch: 'Stop positions are set per aircraft type and stand during commissioning – changes in the fleet mix need new settings.',
+  quiz: [Q('An A-VDGS identifies the aircraft by…', ['laser scanning its shape', 'asking the pilot', 'reading the tail number only'], 0), Q('The closing-rate bar shows…', ['the distance left to the stop position', 'the fuel', 'the wind'], 0), Q('On-block times from the VDGS feed…', ['airport collaborative decision making (A-CDM)', 'the PAPI', 'the runway CCR'], 0)] });
+add('airport', 'Topics', 'ap_sell', '🤝', 'Selling & delivering airport projects', {
+  line: 'Airport projects are won on <b>compliance, references and delivery</b>: the authority, the airport operator and often a consultant check every detail, and the work happens at night on a live airfield.',
+  body: '<table class="spec"><tr><td>Who decides</td><td>Airport operator (in Sri Lanka AASL), the civil aviation authority (CAASL), consultants; military for air bases</td></tr><tr><td>What they ask</td><td>ICAO / FAA compliance, FAA ALECP certification, photometric reports, references at similar airports</td></tr><tr><td>Delivery</td><td>Factory acceptance tests, airside passes, night closures, phased works, NOTAMs</td></tr><tr><td>Commissioning</td><td>Photometric measurement, flight check, ALCMS testing, training</td></tr><tr><td>After sales</td><td>Spares (often 5–10%), maintenance contract, software support</td></tr></table>',
+  say: '“We plan the installation in night closures without stopping operations, and hand over with the flight check, training and a spares stock.”',
+  watch: 'Never promise dates without the airport’s closure plan – works on an operational runway depend on NOTAMs and the airlines’ schedule.',
+  quiz: [Q('Who approves airfield lighting in Sri Lanka?', ['The civil aviation authority (CAASL)', 'The municipal council', 'The supplier'], 0), Q('Airfield works on a live runway usually happen…', ['in night closures, phased', 'during peak hours', 'without notice'], 0), Q('Before service a new installation needs…', ['photometric measurement and a flight check', 'only a photo', 'nothing'], 0)] });
 L.forEach((l) => { LESSONS[l.id] = l; });
 
 // ================================================================ ACADEMY engine – widgets, quiz, routing, progress
@@ -1948,7 +2591,7 @@ function renderHome() {
 const BG = ['#fef3c7', '#ffedd5', '#fce7f3', '#e0e7ff', '#e0f2fe', '#dcfce7', '#f1f5f9', '#ede9fe'];
 
 // ---- lessons and labs
-const VIEWS = ['home', 'lesson', 'tech', 'fix', 'chip', 'ctlv', 'lmsv', 'roadv', 'talqv', 'cmsv', 'sportv', 'thinkv'];
+const VIEWS = ['home', 'lesson', 'tech', 'fix', 'chip', 'ctlv', 'lmsv', 'roadv', 'talqv', 'cmsv', 'sportv', 'thinkv', 'aglv', 'papiv', 'ccrv', 'twrv', 'vdgsv'];
 function showView(v) { VIEWS.forEach((x) => $(x).classList.toggle('hidden', x !== v)); window.scrollTo(0, 0); }
 function back() { location.hash = '#home'; }
 function parkWidgets() { document.querySelectorAll('[data-parked]').forEach((w) => { $('wstore').appendChild(w); w.removeAttribute('data-parked'); }); }
@@ -1961,6 +2604,11 @@ const LAB_INIT = {
   roadv: (p) => { if (p === 'single') rArr = 'single'; roadUI(); if (p === 'compare' || p === 'height') setTimeout(() => $(p === 'compare' ? 'rCmp' : 'rCtl').scrollIntoView({ behavior: 'smooth', block: 'center' }), 50); },
   cmsv: () => cmsUI(),
   sportv: (p) => { spK = SPORTS[p] ? p : 'cricket'; sportUI(); },
+  aglv: (p) => aglUI(p),
+  papiv: (p) => { if (PPSET[p]) ppM = p; papi(); },
+  ccrv: (p) => { if (CCT[p]) ccT = p; ccFault = p === 'fault' ? 'lamp' : null; ccDraw(); },
+  twrv: (p) => { if (p === 'cat3') twV = 'cat3'; twArch(); twDraw(); },
+  vdgsv: (p) => vdUI(p),
   thinkv: (p) => { if (THP[p]) thK = p; thUI(); const sec = { journey: 'thP5', lang: 'thP6', conflict: 'thP7' }[p]; if (sec) setTimeout(() => $(sec).scrollIntoView({ behavior: 'smooth' }), 50); },
   talqv: (p) => { tqM = ['mixed', 'talq', 'none'].includes(p) ? p : 'mixed'; tqDraw(); },
 };
