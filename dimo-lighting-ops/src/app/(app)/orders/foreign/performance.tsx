@@ -51,9 +51,9 @@ export default function ForeignPerformance() {
   for (const h of hos) {
     const os = orders.filter((o) => o.handover_id === h.id);
     const hs = steps.filter((s) => s.handover_id === h.id);
-    for (const l of route(defs, h, null, hs, os, holidays)) if (l.def.scope === 'h' && l.done && l.start) timed.push({ l, vendor: null });
+    for (const l of route(defs, h, null, hs, os, holidays)) if (l.def.scope === 'h' && l.done && !l.done.pre_system && l.start) timed.push({ l, vendor: null });
     for (const o of os.filter((x) => x.status !== 'cancelled'))
-      for (const l of route(defs, h, o, hs, os, holidays)) if (l.def.scope === 'o' && l.done && l.start) timed.push({ l, vendor: o.vendor });
+      for (const l of route(defs, h, o, hs, os, holidays)) if (l.def.scope === 'o' && l.done && !l.done.pre_system && l.start) timed.push({ l, vendor: o.vendor });
   }
   const inPeriod = timed.filter((t) => t.l.done!.done_on >= from);
   const groups = new Map<string, Agg>();

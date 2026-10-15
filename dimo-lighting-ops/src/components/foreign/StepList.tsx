@@ -64,7 +64,7 @@ export function StepList({
                     <Muted>
                       {[
                         l.def.node,
-                        l.done ? `done ${fmtDate(l.done.done_on)}` : l.ready && !l.def.optional ? 'now' : null,
+                        l.done ? (l.done.pre_system ? `done before the system (entered ${fmtDate(l.done.done_on)})` : `done ${fmtDate(l.done.done_on)}`) : l.ready && !l.def.optional ? 'now' : null,
                         l.done?.ref ? `${l.def.ref_label ?? 'Ref'} ${l.done.ref}` : null,
                         l.days != null && l.start && (l.done || !l.def.optional) ? `${l.days} working day${l.days === 1 ? '' : 's'}${l.done ? '' : ' so far'}` : null,
                         l.def.sla_days ? `SLA ${l.def.sla_days}` : null,

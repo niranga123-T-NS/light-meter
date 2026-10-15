@@ -1,7 +1,7 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
-import { rpc } from '@/components/foreign/actions';
+import { catchUp, catchUpOptions, rpc } from '@/components/foreign/actions';
 import { FoNotes } from '@/components/foreign/Notes';
 import { StepList } from '@/components/foreign/StepList';
 import { clearLoStep, recordLoStep } from '@/components/local/actions';
@@ -113,6 +113,7 @@ export default function LocalOrder() {
   const st = loStanding(all);
   const lines = all.filter((l) => l.def.scope === 'o');
   const open = o.status === 'open' && r.status === 'open';
+  const catchOpts = catchUpOptions(all, ['delivered', 'work_done', 'closed']);
   const ordered = steps.some((s) => s.order_id === o.id && (s.step === 'po_issued' || s.step === 'loa_issued'));
   const chain = invoiceChain(r);
   const paid = invoices.filter((i) => i.status === 'paid').reduce((t, i) => t + Number(i.amount), 0);
@@ -550,7 +551,7 @@ export default function LocalOrder() {
       />
       <Button small variant="ghost" title={`Request ${r.code} – details, PR and sourcing ›`} onPress={() => router.push(`/orders/local/r/${r.id}`)} />
 
-      <Section title="Steps">
+      <Section title="Steps" right={keeper && open && catchOpts.length ? <Button small variant="ghost" title="Started before the system…" onPress={async () => { if (await catchUp(dialog, catchOpts, 'lo_catch_up', { p_request: r.id, p_order: o.id })) await reload(); }} /> : null}>
         <StepList
           lines={lines}
           keeper={keeper && open}

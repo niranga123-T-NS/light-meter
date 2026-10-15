@@ -1,7 +1,7 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
-import { editShipment, orderOption, rpc } from '@/components/foreign/actions';
+import { catchUp, catchUpOptions, editShipment, orderOption, rpc } from '@/components/foreign/actions';
 import { FoNotes } from '@/components/foreign/Notes';
 import { RouteMap } from '@/components/foreign/RouteMap';
 import { ShipmentRoute, type FoPosition } from '@/components/foreign/ShipmentRoute';
@@ -97,6 +97,7 @@ export default function ForeignOrder() {
     .map((l) => (o.kind === 'service' && l.def.key === 'delivered' ? { ...l, def: { ...l.def, label: 'Service accepted – order closed', node: 'Sales · Operations' } } : l));
   const hDone = all.filter((l) => l.def.scope === 'h').every((l) => l.done);
   const open = o.status === 'open' && h.status === 'open';
+  const catchOpts = catchUpOptions(all, ['delivered']);
   const total = workdays(h.received_on, steps.find((s) => s.order_id === o.id && s.step === 'delivered')?.done_on ?? todayIso(), holidays);
   const cur = values?.currency ?? 'USD';
 
@@ -285,7 +286,7 @@ export default function ForeignOrder() {
       ) : null}
       <Button small variant="ghost" title={`Import request ${h.code} – client, SAP project, delivery location ›`} onPress={() => router.push(`/orders/foreign/ho/${h.id}`)} />
 
-      <Section title="Steps">
+      <Section title="Steps" right={keeper && open && catchOpts.length ? <Button small variant="ghost" title="Started before the system…" onPress={async () => { if (await catchUp(dialog, catchOpts, 'fo_catch_up', { p_handover: h.id, p_order: o.id })) await reload(); }} /> : null}>
         <StepList
           lines={lines}
           keeper={keeper && open}

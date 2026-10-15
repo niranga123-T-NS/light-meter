@@ -1,7 +1,7 @@
 import type { useDialog } from '@/components/dialog';
 import type { Option } from '@/components/ui';
 import { fmtDate } from '@/lib/format';
-import { todayIso, type FoOrder, type Handover, type Line, type Shipment } from '@/lib/foreignOrders';
+import { todayIso, type FoOrder, type Handover, type Line, type Shipment, type StepLine } from '@/lib/foreignOrders';
 import { supabase } from '@/lib/supabase';
 
 type Dialog = ReturnType<typeof useDialog>;
@@ -26,6 +26,25 @@ export async function recordStep(dialog: Dialog, l: Line, handoverId: string, or
   });
   if (!r) return false;
   return dialog.run(() => rpc('fo_record_step', { p_handover: handoverId, p_order: orderId, p_step: l.def.key, p_date: r.date, p_ref: r.ref ?? null, p_note: r.note || null }), 'Recorded');
+}
+
+/** Steps an order that started before the system can be brought up to (not done yet; the last ones are always recorded as usual) */
+export const catchUpOptions = (lines: StepLine[], usual: string[]): Option[] =>
+  lines.filter((l) => !l.done && !l.def.optional && !usual.includes(l.def.key)).map((l) => ({ value: l.def.key, label: `${l.def.stage} · ${l.def.label}`, hint: l.def.node }));
+
+/** An order that started before the system (Ops): the last step already done and every step before it are recorded at once */
+export async function catchUp(dialog: Dialog, options: Option[], fn: 'fo_catch_up' | 'lo_catch_up', args: Record<string, string | null>) {
+  const r = await dialog.prompt({
+    title: 'Started before the system',
+    message: 'Choose the last step already done. It and every step before it are recorded as “done before the system” – no one is notified and they are left out of the performance figures. Add a reference number or the real date later with Edit.',
+    fields: [
+      { key: 'step', label: 'Already done up to (and including)', type: 'select', options, required: true, searchable: options.length > 8 },
+      { key: 'date', label: 'Entered on', type: 'date', required: true, initial: todayIso(), hint: 'Usually today – the step after it counts its working days from here' },
+    ],
+    confirmLabel: 'Bring up to date',
+  });
+  if (!r) return false;
+  return dialog.run(() => rpc(fn, { ...args, p_upto: r.step, p_date: r.date }), 'Brought up to date');
 }
 
 export async function clearStep(dialog: Dialog, l: Line) {

@@ -1,7 +1,7 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { View } from 'react-native';
 import { useDialog } from '@/components/dialog';
-import { rpc } from '@/components/foreign/actions';
+import { catchUp, catchUpOptions, rpc } from '@/components/foreign/actions';
 import { FoNotes } from '@/components/foreign/Notes';
 import { StepList } from '@/components/foreign/StepList';
 import { TestingBanner } from '@/components/Testing';
@@ -48,6 +48,7 @@ export default function HandoverPage() {
   const approver = me.role === 'sm_projects' || me.role === 'sm_estimation';
   const myTurn = pending && ((me.role === 'sm_projects' && !pending.smp_by) || (me.role === 'sm_estimation' && !pending.est_by));
   const open = h.status === 'open';
+  const catchOpts = catchUpOptions(lines, []);
 
   const requestChange = async () => {
     const r = await dialog.prompt({
@@ -131,7 +132,7 @@ export default function HandoverPage() {
         ))}
       </Section>
 
-      <Section title="Import request steps (stages 1–3)">
+      <Section title="Import request steps (stages 1–3)" right={keeper && open && catchOpts.length ? <Button small variant="ghost" title="Started before the system…" onPress={async () => { if (await catchUp(dialog, catchOpts, 'fo_catch_up', { p_handover: h.id, p_order: null })) await reload(); }} /> : null}>
         <StepList lines={lines} keeper={keeper && open} handoverId={h.id} orderId={null} people={people} onChange={reload} />
       </Section>
 

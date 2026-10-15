@@ -107,7 +107,7 @@ export const FLIGHT_STATUS: Record<string, string> = {
   Approaching: 'Approaching', Delayed: 'Delayed', Arrived: 'Landed', Canceled: 'Cancelled', CanceledUncertain: 'Cancelled?', Diverted: 'Diverted', Unknown: 'Unknown',
 };
 export type StepDef = { key: string; scope: 'h' | 'o'; stage: number; seq: number; label: string; node: string; conds: string[]; after: string[]; ref_label: string | null; sla_days: number | null; optional?: boolean };
-export type Step = { id: string; handover_id: string; order_id: string | null; step: string; done_on: string; ref: string | null; note: string | null; recorded_by: string; recorded_at: string };
+export type Step = { id: string; handover_id: string; order_id: string | null; step: string; done_on: string; ref: string | null; note: string | null; recorded_by: string; recorded_at: string; pre_system?: boolean };
 export type LocationChange = {
   id: string;
   handover_id: string;
@@ -210,7 +210,7 @@ export const monthsAgo = (n: number) => new Date(Date.now() - n * 30.4 * 8640000
 /** What the step list needs of a line (foreign and local orders) */
 export type StepLine = {
   def: { key: string; scope: string; stage: number; label: string; node: string; ref_label: string | null; sla_days: number | null; optional?: boolean };
-  done: { id: string; done_on: string; ref: string | null; note: string | null; recorded_by: string } | null;
+  done: { id: string; done_on: string; ref: string | null; note: string | null; recorded_by: string; pre_system?: boolean } | null;
   ready: boolean;
   start: string | null;
   days: number | null;
@@ -276,7 +276,8 @@ export function route(defs: StepDef[], h: Handover, o: FoOrder | null, steps: St
       }
     }
     const start = dates.length ? dates.sort().at(-1)! : null;
-    const days = done ? workdays(start, done.done_on, holidays) : ready && start ? workdays(start, today, holidays) : null;
+    // done before the system: the days it took are not known
+    const days = done ? (done.pre_system ? null : workdays(start, done.done_on, holidays)) : ready && start ? workdays(start, today, holidays) : null;
     const late = !d.optional && d.sla_days != null && days != null && days > d.sla_days;
     return { def: d, done, ready, start, days, late };
   });
