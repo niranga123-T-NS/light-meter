@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DIMO Lighting Academy</title><meta name="robots" content="noindex">
+<title>Dacademy – DIMO Lighting Academy</title><meta name="robots" content="noindex">
 <style>
 :root{--red:#c8102e;--ink:#14161c;--mut:#5f6673;--line:#e3e5ea;--bg:#f4f5f7;--side:#1b1d24;--chip:#eef0f4;--s1:#2a6fdb;--s2:#c2410c;--good:#15803d;--warn:#b45309;--sel:#2a6fdb}
 *{box-sizing:border-box}body{margin:0;font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:var(--bg)}
@@ -59,7 +59,7 @@ table.spec{width:100%;border-collapse:collapse;font-size:13px}table.spec td{padd
 <!-- ============ HOME ============ -->
 <div id="home">
   <div class="card hero">
-    <div><h2>Lighting Academy</h2><div class="m">Six modules. Short lessons with live graphics, words to use with clients and a quick check.</div><div class="m" id="saveNote" style="font-size:12px;margin-top:4px"></div></div>
+    <div><h2>Dacademy – Lighting Academy</h2><div class="m">Six modules. Short lessons with live graphics, words to use with clients and a quick check.</div><div class="m" id="saveNote" style="font-size:12px;margin-top:4px"></div></div>
     <div><div class="m" style="font-size:12px;margin-bottom:4px" id="progText">Your progress</div><div class="bar"><i id="progBar" style="width:0%"></i></div><div style="margin-top:8px" id="contBtn"></div></div>
   </div>
   <div class="mods" id="mods"></div>
@@ -1096,8 +1096,8 @@ function record(id, score, total) {
   if (window.parent !== window) window.parent.postMessage({ type: 'academy:progress', lesson: id, score, total }, '*');
   api('academy_record', { p_lesson: id, p_score: score, p_total: total }).catch(() => { $('saveNote').textContent = 'Could not save your progress – open the Academy again from the app.'; });
 }
-function loadProgress() { return api('academy_mine').then((rows) => { if (rows) { prog = {}; rows.forEach((r) => prog[r.lesson] = { best: r.best, total: r.total, attempts: r.attempts, done: r.done }); } renderHome(); }).catch(() => { $('saveNote').textContent = 'Signed out – open the Academy from the app (Sales Tools → Learn) to save your progress.'; }); }
-function setCfg(c) { cfg = c; $('saveNote').textContent = c ? `Signed in as ${c.name} – your progress is saved.` : 'Open from the DIMO app (Sales Tools → Learn) to save your progress.'; loadProgress(); }
+function loadProgress() { return api('academy_mine').then((rows) => { if (rows) { prog = {}; rows.forEach((r) => prog[r.lesson] = { best: r.best, total: r.total, attempts: r.attempts, done: r.done }); } renderHome(); }).catch(() => { $('saveNote').textContent = 'Signed out – open the Academy from the app (Sales Tools → Dacademy) to save your progress.'; }); }
+function setCfg(c) { cfg = c; $('saveNote').textContent = c ? `Signed in as ${c.name} – your progress is saved.` : 'Open from the DIMO app (Sales Tools → Dacademy) to save your progress.'; loadProgress(); }
 window.addEventListener('message', (e) => { if (e.data && e.data.type === 'academy:cfg') setCfg(e.data.cfg); });
 
 // ---- home

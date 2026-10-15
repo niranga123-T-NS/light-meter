@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
 import type { Role } from './types';
 
-/** Lighting Academy (Sales Tools → Learn): the lessons are a static page; progress is saved through the person's own sign-in */
+/** Lighting Academy (Sales Tools → Dacademy): the lessons are a static page; progress is saved through the person's own sign-in */
 export const ACADEMY_PATH = '/academy/index.html';
 export const ACADEMY_SITE = 'https://dimo-lighting-ops.vercel.app';
 export const ACADEMY_TEAM_VIEWERS: Role[] = ['sm_projects', 'gm', 'sys_admin'];

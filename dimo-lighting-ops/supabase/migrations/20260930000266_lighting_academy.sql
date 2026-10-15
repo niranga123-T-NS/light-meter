@@ -1,4 +1,4 @@
--- Lighting Academy (Sales Tools → Learn): lessons with live graphics and a quick check. The lessons themselves are a
+-- Lighting Academy (Sales Tools → Dacademy): lessons with live graphics and a quick check. The lessons themselves are a
 -- static page (public/academy); this keeps each person's progress.
 --  * academy_record: saves a quiz result for the signed-in person (best score, attempts, completed at 2 of 3 or better).
 --  * academy_mine: the signed-in person's progress.

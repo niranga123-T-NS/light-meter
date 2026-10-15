@@ -13,7 +13,7 @@ import { TOOLS_ROLES } from '@/lib/standards';
 
 type Tab = 'standards' | 'catalogs' | 'lux' | 'calc' | 'refs' | 'learn';
 
-/** Sales Tools: Standards, Catalogs, Lux meter (measures in the Android app only), DLux lighting calculations, project References and the Lighting Academy (Learn) */
+/** Sales Tools: Standards, Catalogs, Lux meter (measures in the Android app only), DLux lighting calculations, project References and the Lighting Academy (Dacademy) */
 export default function SalesTools() {
   const me = useMe();
   const params = useLocalSearchParams<{ tab?: Tab }>();
@@ -33,7 +33,7 @@ export default function SalesTools() {
           { value: 'lux', label: android ? 'Lux meter' : 'Lux meter (Android)' },
           { value: 'calc', label: 'DLux' },
           { value: 'refs', label: 'References' },
-          { value: 'learn', label: 'Learn' },
+          { value: 'learn', label: 'Dacademy' },
         ]}
       />
       {tab === 'standards' ? (
