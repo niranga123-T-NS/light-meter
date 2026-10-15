@@ -320,6 +320,30 @@ table.spec{width:100%;border-collapse:collapse;font-size:13px}table.spec td{padd
   </div>
 </div>
 
+<!-- ============ LIVE: AIRPORT – SERIES CIRCUIT FROM VAULT TO LIGHT ============ -->
+<div id="servv" class="hidden">
+  <div class="crumb" onclick="back()">◀ All lessons · Airport solutions</div>
+  <div class="card">
+    <div class="hero"><div><span class="pill">Live · 6 min</span><h2 style="margin-top:6px">Series circuit – from the vault to the light</h2></div><span class="m">Tap each part: regulator, primary cable, connectors, isolating transformer, secondary cable, light base, monitoring module</span></div>
+    <div class="part"><div class="num">1</div><div class="body"><h4>In one line</h4>The regulator in the vault sends 6.6 A round a <b>primary cable</b> loop of several kilometres. At every light the loop passes through an <b>isolating transformer</b> in the light base; a short <b>secondary cable</b> feeds the fitting. Primary = high voltage, long, in ducts; secondary = low voltage, a few metres, inside the base.</div></div>
+    <div class="part"><div class="num">2</div><div class="body"><h4>See it – a cut through the airfield</h4>
+      <div class="two" style="grid-template-columns:1.5fr 1fr;align-items:start"><div class="stage"><svg id="svSvg" viewBox="0 0 760 330"></svg></div><div class="info" id="svInfo" style="min-height:0"></div></div>
+    </div></div>
+    <div class="part"><div class="num">3</div><div class="body"><h4>Size the isolating transformer</h4>
+      <div class="row" id="svLamp"></div>
+      <div class="ctl"><div><label>Fitting load <b id="svWV"></b></label><input id="svW" type="range" min="5" max="250" step="5" value="25"></div></div>
+      <div class="kpis" id="svKpi"></div><div class="m" id="svTx" style="font-size:13px"></div>
+    </div></div>
+    <div class="part"><div class="num">4</div><div class="body"><h4>Lamp monitoring – three generations</h4>
+      <div class="row" id="svMon" style="margin-bottom:6px"></div>
+      <div class="stage"><svg id="svMSvg" viewBox="0 0 760 150"></svg></div>
+      <div class="info" id="svMInfo" style="min-height:0;margin-top:8px"></div>
+    </div></div>
+    <div class="part"><div class="num">5</div><div class="body"><h4>Say this</h4><div class="say">“We supply the complete series circuit – 5 kV primary cable, moulded connector kits, isolating transformers sized for LED, light bases and smart LED fittings – so one supplier answers for the whole loop.”</div></div></div>
+    <div class="part"><div class="num">6</div><div class="body"><h4>Watch out</h4><div class="watch">Most AGL failures are <b>connectors and water in the light bases</b>, not the lights. Use certified connector kits, tape and seal every joint, keep cans drained, and test the insulation of every circuit before energising. Only trained AGL electricians work on series circuits – the primary can be at several kilovolts.</div></div></div>
+  </div>
+</div>
+
 <!-- ============ LIVE: AIRPORT – PAPI ============ -->
 <div id="papiv" class="hidden">
   <div class="crumb" onclick="back()">◀ All lessons · Airport solutions</div>
@@ -2432,6 +2456,94 @@ add('airport', 'Flights', 'ap_takeoff', '🛫', 'Taxi & take-off – stop bars a
 add('airport', 'Flights', 'ap_lvp', '🌫️', 'Low visibility – CAT I, II and III', { type: 'lab', lab: 'aglv', preset: 'cat3', mins: 4, quiz: [Q('Which lights are added for CAT II/III?', ['Touchdown zone lights and red approach side barrettes', 'Blue runway lights', 'Only floodlights'], 0), Q('Under low-visibility procedures, stop bars are…', ['lit H24 at the holding positions', 'switched off', 'replaced by signs'], 0), Q('In fog the runway regulators run at…', ['the highest step (B5)', 'the lowest step', 'off'], 0)] });
 add('airport', 'Flights', 'ap_pbb', '🌉', 'The boarding bridge in 3D', { type: 'lab', lab: 'vdgsv', preset: 'bridge', mins: 3, quiz: [Q('The part that stays fixed to the terminal and swivels is the…', ['rotunda', 'cab', 'bogie'], 0), Q('A wide-body door sill is…', ['higher than a narrow-body’s', 'lower', 'the same'], 0), Q('The auto-leveller…', ['keeps the cab at the door as the aircraft moves up and down', 'parks the aircraft', 'opens the door'], 0)] });
 add('airport', 'Flights', 'ap_fault', '🛠️', 'Series circuit faults', { type: 'lab', lab: 'ccrv', preset: 'fault', mins: 3, quiz: [Q('A single earth fault on a series circuit…', ['raises an insulation alarm but the circuit keeps running', 'switches off the airport', 'is harmless forever'], 0), Q('A cable cut makes the CCR…', ['detect the open circuit and switch off', 'raise the voltage forever', 'change colour'], 0), Q('Which CCR suits LED loads best?', ['Pure sine wave', 'Ferroresonant', 'Any dimmer'], 0)] });
+// ---------------------------------------------------------------- Series circuit anatomy, transformer sizing, monitoring generations
+const SVP = {
+  vault: ['Substation / vault', 'A building near the runway that houses the regulators, the switchgear, the control and monitoring units (e.g. ADB SAFEGATE ACE3) and the backup power changeover.', 'ICAO Annex 14 Ch 8; FAA AC 150/5340-30'],
+  ccr: ['Constant current regulator', 'Keeps 6.6 A (or a lower step) in the loop whatever the load. Types: pure sine wave (IGBT/PWM – best for LED), thyristor (SCR), ferroresonant (older). L-828 without, L-829 with monitoring.', 'FAA AC 150/5345-10; IEC 61822'],
+  prim: ['Primary cable', 'Single-core, high-voltage series cable – rated 5 kV (FAA L-824, typically #8 AWG ≈ 8.4 mm²) or 3.6/6 kV 6–10 mm² in IEC practice. It runs out and back in a loop of several kilometres; the voltage can reach a few kV at full load. Usually screened, in ducts under pavements.', 'FAA L-824 (AC 150/5345-7); IEC 61820'],
+  duct: ['Ducts & duct banks', 'PVC / HDPE ducts with draw pits; concrete-encased duct banks under runways and taxiways so cables can be replaced without breaking the pavement.', 'FAA AC 150/5340-30'],
+  cp: ['Counterpoise (lightning protection)', 'A bare copper conductor laid above the ducts and bonded to earth rods – it takes lightning strikes before they reach the series cables.', 'FAA AC 150/5340-30'],
+  conn: ['Primary connector kit', 'Moulded rubber plug and receptacle that join the primary cable to the transformer leads – watertight and quick to disconnect. Every joint is a weak point if badly made: always heat-shrink or tape and seal.', 'FAA L-823 (AC 150/5345-26)'],
+  iso: ['Isolating (series) transformer', 'Its primary is in the 6.6 A loop, its secondary feeds one light. It isolates the fitting from the high voltage and, if the lamp fails (open secondary), it saturates so the loop keeps working. Typical 6.6 / 6.6 A, rated about 10 – 300 VA; sized to the fitting.', 'FAA L-830 (60 Hz) / L-831 (50 Hz), AC 150/5345-47; IEC 61823'],
+  sec: ['Secondary cable', 'A short two-core low-voltage lead from the transformer to the fitting, inside the light base, with a 2-pin secondary connector. Tens of volts only – but keep it short and dry.', 'FAA L-823 secondary connector'],
+  base: ['Light base (can)', 'A steel base set in the pavement that holds the inset fitting and houses the transformer and connectors. L-868 is load-bearing (under aircraft wheels), L-867 non-load-bearing (shoulders). Water and dirt here cause most faults.', 'FAA L-867 / L-868 (AC 150/5345-42)'],
+  fit: ['Light fitting', 'The inset or elevated LED light – runway centreline, edge, taxiway, stop bar. Bolted onto the base with a gasket; optics aimed in the factory.', 'FAA AC 150/5345-46; ICAO Annex 14'],
+  ilcms: ['Individual monitoring module', 'An addressable module between transformer and fitting (or built into the LED fitting, e.g. ADB SAFEGATE IQ). It talks over the series cable to the vault: switches the light on/off and reports its health.', 'ILCMS – ICAO Doc 9157 Part 5'],
+  ret: ['Return path of the loop', 'The primary goes out past every light and comes back to the regulator – one continuous loop. Runways use two interleaved loops so a cut leaves every second light on.', 'IEC 61820'],
+};
+let svSel = 'iso', svLp = 'led', svM = 'ilcms';
+function svDraw() {
+  const hi = (k) => (svSel === k ? ' stroke="#2563eb" stroke-width="3"' : '');
+  const lab = (k, x, y, t, a = 'start') => `<text x="${x}" y="${y}" text-anchor="${a}" font-size="11" font-weight="700" fill="${svSel === k ? '#93c5fd' : '#e5e7eb'}" data-part="${k}" style="cursor:pointer">${t}</text>`;
+  let g = '<rect width="760" height="330" fill="#0f1218"/><rect x="0" y="0" width="760" height="110" fill="#111827"/><rect x="0" y="110" width="760" height="10" fill="#4b5563"/><rect x="0" y="120" width="760" height="210" fill="#3b2f25"/>';
+  g += `<g data-part="vault" style="cursor:pointer"><rect x="14" y="30" width="150" height="88" fill="#1f2937"${hi('vault')} stroke="#475569"/><polygon points="10,30 89,8 168,30" fill="#374151"/></g>${lab('vault', 22, 50, 'Vault')}`;
+  g += `<g data-part="ccr" style="cursor:pointer"><rect x="40" y="60" width="60" height="50" rx="4" fill="#334155"${hi('ccr')}/><text x="70" y="90" text-anchor="middle" font-size="12" font-weight="700" fill="#bfdbfe">CCR</text></g><rect x="110" y="70" width="40" height="40" rx="4" fill="#1e3a8a" data-part="vault"/><text x="130" y="95" text-anchor="middle" font-size="9" fill="#bfdbfe">ACE3</text>`;
+  // ducts, cables, counterpoise
+  g += `<g data-part="duct" style="cursor:pointer"><rect x="160" y="196" width="590" height="22" rx="11" fill="#6b7280" opacity=".55"${hi('duct')}/></g>${lab('duct', 600, 240, 'Ducts')}`;
+  g += `<g data-part="cp" style="cursor:pointer"><line x1="160" y1="168" x2="750" y2="168" stroke="#d97706" stroke-width="${svSel === 'cp' ? 3 : 1.6}"/>${[220, 520, 700].map((x) => `<line x1="${x}" y1="168" x2="${x}" y2="215" stroke="#d97706" stroke-width="1.4"/>`).join('')}</g>${lab('cp', 170, 162, 'Counterpoise')}`;
+  g += `<g data-part="prim" style="cursor:pointer"><path d="M100 100 L100 203 L410 203 M470 203 L670 203 M710 203 L750 203" fill="none" stroke="#ef4444" stroke-width="${svSel === 'prim' ? 5 : 3.5}"/></g>${lab('prim', 200, 196, 'Primary cable (5 kV)')}`;
+  g += `<g data-part="ret" style="cursor:pointer"><path d="M90 100 L90 211 L750 211" fill="none" stroke="#f97316" stroke-width="${svSel === 'ret' ? 4 : 2.5}" stroke-dasharray="6 4"/></g>${lab('ret', 200, 230, '… return of the loop')}`;
+  // light base 1 (cut-away)
+  g += `<g data-part="base" style="cursor:pointer"><rect x="385" y="118" width="110" height="112" rx="6" fill="#1f2937" stroke="#94a3b8" stroke-width="${svSel === 'base' ? 3 : 1.5}"/></g>${lab('base', 505, 134, 'Light base (L-868)')}`;
+  g += `<g data-part="conn" style="cursor:pointer"><rect x="398" y="196" width="16" height="14" rx="3" fill="#0f172a" stroke="#f59e0b"${hi('conn')}/><rect x="466" y="196" width="16" height="14" rx="3" fill="#0f172a" stroke="#f59e0b"${hi('conn')}/></g>${lab('conn', 330, 258, 'Primary connector kits (L-823)')}<line x1="406" y1="210" x2="406" y2="248" stroke="#f59e0b" stroke-dasharray="2 2"/>`;
+  g += `<g data-part="iso" style="cursor:pointer"><path d="M406 196 C406 180 420 178 425 175 M474 196 C474 180 460 178 455 175" stroke="#ef4444" stroke-width="2" fill="none"/><rect x="420" y="160" width="40" height="28" rx="5" fill="#7c3aed"${hi('iso')}/><text x="440" y="178" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">ISO TX</text></g>${lab('iso', 415, 150, 'Isolating transformer', 'end')}`;
+  g += `<g data-part="sec" style="cursor:pointer"><path d="M440 160 L440 150 L455 146" stroke="#22c55e" stroke-width="${svSel === 'sec' ? 4 : 2.5}" fill="none"/></g>${lab('sec', 505, 166, 'Secondary cable (2-core)')}`;
+  g += `<g data-part="ilcms" style="cursor:pointer"><rect x="452" y="138" width="22" height="14" rx="3" fill="#0e7490"${hi('ilcms')}/><text x="463" y="148" text-anchor="middle" font-size="7.5" fill="#fff">IQ</text></g>${lab('ilcms', 505, 150, 'IQ monitoring module')}`;
+  g += `<g data-part="fit" style="cursor:pointer"><ellipse cx="440" cy="118" rx="52" ry="7" fill="#9ca3af"${hi('fit')}/><circle cx="440" cy="112" r="6" fill="#fff7d6"/><circle cx="440" cy="112" r="14" fill="#fff7d6" opacity=".25"/></g>${lab('fit', 380, 100, 'Inset LED light', 'start')}`;
+  // second base (small)
+  g += `<rect x="660" y="118" width="60" height="100" rx="6" fill="#1f2937" stroke="#64748b"/><rect x="675" y="160" width="30" height="22" rx="4" fill="#7c3aed" opacity=".7"/><ellipse cx="690" cy="118" rx="32" ry="5" fill="#9ca3af"/><circle cx="690" cy="113" r="5" fill="#fff7d6"/><text x="690" y="100" text-anchor="middle" font-size="10" fill="#94a3b8">next light …</text>`;
+  g += '<text x="10" y="322" font-size="10" fill="#94a3b8">Schematic cut through the airfield – tap any part</text>';
+  $('svSvg').innerHTML = g;
+  const p = SVP[svSel];
+  $('svInfo').innerHTML = `<h5>${p[0]}</h5><div style="font-size:13px">${p[1]}</div><div class="k">Standard</div><div style="font-size:12.5px">${p[2]}</div><div class="plist">${Object.entries(SVP).map(([k, x]) => `<span class="btn ${k === svSel ? 'on' : ''}" onclick="svSel='${k}';svDraw()">${x[0].split(' (')[0]}</span>`).join('')}</div>`;
+  svSize(); svMon();
+}
+const SVVA = [10, 25, 45, 65, 100, 150, 200, 300];
+function svSize() {
+  const W = +$('svW').value, led = svLp === 'led', need = W / (led ? 0.8 : 0.9), va = SVVA.find((v) => v >= need) || null;
+  $('svWV').textContent = W + ' W';
+  $('svLamp').innerHTML = [['led', 'LED fitting'], ['hal', 'Halogen fitting']].map(([k, n]) => `<span class="btn ${k === svLp ? 'on' : ''}" style="padding:4px 9px;font-size:12px" onclick="svLp='${k}';svSize()">${n}</span>`).join('');
+  $('svKpi').innerHTML = `<div><b>${W} W</b>fitting load</div><div><b>${va ? va + ' VA' : '> 300 VA'}</b>transformer to choose</div><div><b>${va ? (va / 6.6).toFixed(1) + ' V' : '–'}</b>secondary voltage at 6.6 A (rated)</div><div><b>6.6 / 6.6 A</b>ratio</div>`;
+  $('svTx').innerHTML = va ? `Choose the next standard size above the fitting load plus losses. ${led ? '<b>LED:</b> do not oversize – a large transformer on a small LED load adds magnetising current and reactive load on the regulator, and some LED fittings specify the exact transformer rating.' : '<b>Halogen:</b> the lamp wattage plus about 10% for losses sets the size.'}` : 'Above 300 VA use a larger transformer type or split the load – check the manufacturer’s range.';
+}
+const SVM = {
+  ccr: ['1 · Regulator lamp-out count', 'The L-829 regulator measures the load: when lamps fail, the secondary opens and the load changes. The tower sees <b>how many</b> lamps failed on a circuit (or a % threshold) – but <b>not where</b>. Maintenance walks the runway at night to find them. Insulation resistance monitoring (IRM) watches for earth faults.'],
+  ilcms: ['2 · Individual light monitoring (ILCMS)', 'An addressable module at every light talks over the series cable (power-line communication). The tower sees <b>exactly which light</b> failed, can check rules like “no two adjacent centreline lights out”, and can switch single lights – stop bars and follow-the-greens.'],
+  smart: ['3 · Smart LED with built-in module', 'The module is built into the LED fitting (e.g. ADB SAFEGATE RELIANCE with IQ). Beyond on/off it reports the fitting’s own health – LED and driver condition, temperature, light output – so lights that are <b>degrading</b> are replaced before they fail: condition-based maintenance and fewer runway closures.'],
+};
+function svMon() {
+  $('svMon').innerHTML = Object.entries(SVM).map(([k, m]) => `<span class="btn ${k === svM ? 'on' : ''}" style="padding:4px 9px;font-size:12px" onclick="svM='${k}';svMon()">${m[0]}</span>`).join('');
+  const fail = [7, 8, 21], weak = [14, 27];
+  let g = '<rect width="760" height="150" fill="#0f1218"/><rect x="20" y="60" width="720" height="30" fill="#1f2937"/>';
+  for (let i = 0; i < 32; i++) { const x = 32 + i * 22.5, f = fail.includes(i), w = weak.includes(i);
+    const c = f ? (svM === 'ccr' ? '#374151' : '#ef4444') : w && svM === 'smart' ? '#f59e0b' : '#fff7d6';
+    g += `<circle cx="${x}" cy="75" r="${f ? 4 : 3.5}" fill="${c}"/>${f && svM !== 'ccr' ? `<circle cx="${x}" cy="75" r="9" fill="none" stroke="#ef4444"/>` : ''}${w && svM === 'smart' ? `<circle cx="${x}" cy="75" r="9" fill="none" stroke="#f59e0b"/>` : ''}`; }
+  g += svM === 'ccr' ? '<text x="380" y="125" text-anchor="middle" font-size="13" fill="#fbbf24">Circuit C3: 3 lamps failed (9%) – positions unknown</text>' : svM === 'ilcms' ? '<text x="380" y="125" text-anchor="middle" font-size="13" fill="#f87171">Failed: lights 8, 9 (adjacent!) and 22 – exact positions</text>' : '<text x="380" y="125" text-anchor="middle" font-size="13" fill="#fbbf24">Failed: 8, 9, 22 · degrading (light output falling): 15, 28 – replace in the next closure</text>';
+  g += '<text x="20" y="40" font-size="11" fill="#94a3b8">Runway centreline – circuit C3 (32 lights shown)</text>';
+  $('svMSvg').innerHTML = g;
+  $('svMInfo').innerHTML = `<h5>${SVM[svM][0]}</h5><div style="font-size:13px">${SVM[svM][1]}</div>`;
+}
+$('svSvg').addEventListener('click', (ev) => { const p = ev.target.closest('[data-part]'); if (p) { svSel = p.dataset.part; svDraw(); } });
+$('svW').addEventListener('input', svSize);
+add('airport', 'Live', 'lab_serv', '🧵', 'Series circuit – from the vault to the light', { type: 'lab', lab: 'servv', preset: 'iso', mins: 6, live: 1, quiz: [Q('The primary cable of a series circuit is…', ['a single-core high-voltage cable in a loop', 'a 230 V twin cable', 'a data cable'], 0), Q('What sits inside the light base?', ['The isolating transformer, connectors and the secondary lead', 'The CCR', 'The tower HMI'], 0), Q('Which monitoring shows the exact failed light?', ['Individual light monitoring (ILCMS)', 'A lamp-out count on the CCR only', 'A visual check from the tower'], 0)] });
+add('airport', 'Topics', 'ap_iso', '🧲', 'Isolating transformers', {
+  line: 'The <b>isolating (series) transformer</b> is the link between the high-voltage loop and each light: primary in the 6.6 A loop, secondary to one fitting.',
+  body: '<table class="spec"><tr><td>Job</td><td>Isolate the fitting from the loop voltage; keep the loop closed when a lamp fails (open secondary → the core saturates)</td></tr><tr><td>Ratio</td><td>Usually 6.6 / 6.6 A (other ratios for 20 A circuits)</td></tr><tr><td>Ratings</td><td>About 10 – 300 VA – matched to the fitting; small sizes for LED</td></tr><tr><td>Build</td><td>Moulded rubber, waterproof, with primary leads and connectors (L-823) and a secondary receptacle</td></tr><tr><td>Standards</td><td>FAA L-830 (60 Hz) / L-831 (50 Hz) in AC 150/5345-47; IEC 61823</td></tr><tr><td>Mistakes</td><td>Oversizing for LED (reactive load, poor regulation); wrong frequency type; unsealed connectors</td></tr></table>',
+  say: '“We match the transformer to each fitting – right VA, 50 Hz type and certified connectors – so the regulator sees a clean, efficient load.”',
+  watch: 'Sri Lanka is 50 Hz – order the 50 Hz transformer type (L-831 class), not the 60 Hz L-830 often listed first in US catalogues.',
+  quiz: [Q('When a lamp fails, its isolating transformer…', ['saturates and keeps the loop closed', 'opens the whole loop', 'doubles the current'], 0), Q('A typical ratio is…', ['6.6 / 6.6 A', '230 / 12 V', '11 kV / 400 V'], 0), Q('For Sri Lanka’s 50 Hz supply choose…', ['the 50 Hz type (L-831 class)', 'the 60 Hz type', 'either, it never matters'], 0)] });
+add('airport', 'Topics', 'ap_cable', '🧵', 'Primary & secondary cables', {
+  line: 'The <b>primary cable</b> carries the series current round the whole loop at up to a few kilovolts; the <b>secondary cable</b> is the short low-voltage lead from the transformer to the light.',
+  body: '<table class="spec"><tr><td>Primary</td><td>Single-core, 5 kV (FAA L-824, typically #8 AWG ≈ 8.4 mm²) or 3.6/6 kV 6–10 mm² (IEC practice); screened types common; out-and-back loop of several km</td></tr><tr><td>Installation</td><td>In PVC/HDPE ducts and concrete duct banks under pavements, draw pits, cable markers; counterpoise above for lightning</td></tr><tr><td>Joints</td><td>Moulded L-823 plug/receptacle kits, sealed with heat-shrink or tape – never ordinary joints</td></tr><tr><td>Secondary</td><td>Two-core low-voltage lead inside the light base, 2-pin secondary connector, as short as possible</td></tr><tr><td>Testing</td><td>Insulation resistance (high-voltage DC tester) of every circuit before energising and in routine maintenance; continuity and loop resistance</td></tr><tr><td>Standards</td><td>FAA AC 150/5345-7 (L-824), AC 150/5345-26 (L-823), AC 150/5340-30; IEC 61820, IEC 61821</td></tr></table>',
+  say: '“Primary cables go in ducts with draw pits, so a damaged section is pulled out and replaced in one night closure without breaking the runway.”',
+  watch: 'Never mix up series primary cable with ordinary LV cable – the loop voltage at full load can be several kV. Record every joint position on the as-built drawings.',
+  quiz: [Q('The primary cable is rated about…', ['5 kV', '50 V', '400 kV'], 0), Q('The secondary cable runs…', ['from the transformer to the light inside the base', 'from the vault to the tower', 'between two runways'], 0), Q('Before energising a new circuit you…', ['test its insulation resistance', 'paint it', 'skip testing'], 0)] });
+add('airport', 'Topics', 'ap_mon', '📡', 'Lamp monitoring – from lamp-out count to smart LEDs', {
+  line: 'Monitoring has moved from <b>“how many lamps are out on this circuit”</b> to <b>“exactly which light is out – and which will fail next”</b>.',
+  body: '<table class="spec"><tr><td>1 · Regulator (L-829)</td><td>Counts failed lamps from the load change; insulation resistance monitoring; alarms at set thresholds – no position</td></tr><tr><td>2 · ILCMS</td><td>An addressable module per light over the series cable: exact failed light, adjacent-failure checks, individual switching (stop bars, follow-the-greens)</td></tr><tr><td>3 · Smart LED</td><td>Module built into the fitting (e.g. RELIANCE with IQ): LED / driver health, temperature, light output – condition-based maintenance</td></tr><tr><td>Tower view</td><td>ALCMS shows each failure on the map and the category available (CAT I / II / III)</td></tr><tr><td>Benefit</td><td>Fewer night inspections, faster repairs, categories kept available, records for the authority</td></tr></table>',
+  say: '“With smart LED monitoring the maintenance team sees which lights are degrading and replaces them in planned closures – no surprise downgrade on a foggy morning.”',
+  watch: 'Individual monitoring needs compatible regulators, transformers and a communication design for long circuits – plan it with the manufacturer, it is not just a module in each can.',
+  quiz: [Q('Regulator-based monitoring tells you…', ['how many lamps failed, not where', 'the exact failed light', 'the lamp colour'], 0), Q('ILCMS modules communicate…', ['over the series cable', 'by Bluetooth to the pilot', 'they do not communicate'], 0), Q('Smart LED fittings also report…', ['their own health, such as falling light output', 'the weather', 'the passenger count'], 0)] });
 add('airport', 'Topics', 'ap_std', '📘', 'Standards for airfield lighting', {
   line: 'Airfield lighting is one of the most regulated lighting fields: <b>ICAO</b> sets the international rules, the <b>FAA</b> (USA) publishes detailed equipment specifications most of the world also buys to, and <b>IEC</b> covers the series circuits and regulators.',
   body: '<table class="spec"><tr><td>ICAO Annex 14 Vol I</td><td>Aerodrome design & operations – Ch 5 visual aids (markings, lights, signs), Ch 8 electrical systems (secondary power, switch-over times), Ch 10 maintenance (serviceability)</td></tr><tr><td>ICAO Doc 9157</td><td>Aerodrome Design Manual – Part 4 Visual Aids, Part 5 Electrical Systems</td></tr><tr><td>ICAO Doc 9830 / 9476</td><td>A-SMGCS / SMGCS – stop bars, routing, follow-the-greens</td></tr><tr><td>FAA AC 150/5340-30</td><td>Design and installation details for airport visual aids</td></tr><tr><td>FAA AC 150/5345-…</td><td>-46 runway & taxiway lights · -10 CCRs (L-828 / L-829) · -47 isolation transformers · -28 PAPI · -44 signs · -56 ALCMS (L-890) · -53 equipment certification (ALECP)</td></tr><tr><td>IEC 61820 / 61821 / 61822 / 61823</td><td>Series circuit installations · their maintenance · constant current regulators · series transformers</td></tr><tr><td>Europe / Sri Lanka</td><td>EASA CS-ADR-DSN; in Sri Lanka the CAASL applies ICAO Annex 14</td></tr></table>',
@@ -2591,7 +2703,7 @@ function renderHome() {
 const BG = ['#fef3c7', '#ffedd5', '#fce7f3', '#e0e7ff', '#e0f2fe', '#dcfce7', '#f1f5f9', '#ede9fe'];
 
 // ---- lessons and labs
-const VIEWS = ['home', 'lesson', 'tech', 'fix', 'chip', 'ctlv', 'lmsv', 'roadv', 'talqv', 'cmsv', 'sportv', 'thinkv', 'aglv', 'papiv', 'ccrv', 'twrv', 'vdgsv'];
+const VIEWS = ['home', 'lesson', 'tech', 'fix', 'chip', 'ctlv', 'lmsv', 'roadv', 'talqv', 'cmsv', 'sportv', 'thinkv', 'aglv', 'papiv', 'ccrv', 'twrv', 'vdgsv', 'servv'];
 function showView(v) { VIEWS.forEach((x) => $(x).classList.toggle('hidden', x !== v)); window.scrollTo(0, 0); }
 function back() { location.hash = '#home'; }
 function parkWidgets() { document.querySelectorAll('[data-parked]').forEach((w) => { $('wstore').appendChild(w); w.removeAttribute('data-parked'); }); }
@@ -2609,6 +2721,7 @@ const LAB_INIT = {
   ccrv: (p) => { if (CCT[p]) ccT = p; ccFault = p === 'fault' ? 'lamp' : null; ccDraw(); },
   twrv: (p) => { if (p === 'cat3') twV = 'cat3'; twArch(); twDraw(); },
   vdgsv: (p) => vdUI(p),
+  servv: (p) => { if (SVP[p]) svSel = p; svDraw(); },
   thinkv: (p) => { if (THP[p]) thK = p; thUI(); const sec = { journey: 'thP5', lang: 'thP6', conflict: 'thP7' }[p]; if (sec) setTimeout(() => $(sec).scrollIntoView({ behavior: 'smooth' }), 50); },
   talqv: (p) => { tqM = ['mixed', 'talq', 'none'].includes(p) ? p : 'mixed'; tqDraw(); },
 };
