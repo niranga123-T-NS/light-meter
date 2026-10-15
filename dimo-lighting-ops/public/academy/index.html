@@ -183,7 +183,7 @@ table.spec{width:100%;border-collapse:collapse;font-size:13px}table.spec td{padd
     <div class="hero"><div><span class="pill">Live · 6 min</span><h2 style="margin-top:6px">TALQ smart street lighting</h2></div><span class="m">Follow the messages between the lights, the network, the management software and other city systems</span></div>
     <div class="part"><div class="num">1</div><div class="body"><h4>In one line</h4><b>TALQ</b> is an open standard from the TALQ Consortium for the interface between a <b>Central Management Software (CMS)</b> and the <b>outdoor device networks</b> (gateways, luminaire controllers) – so a city can use one CMS with street-light controllers from different makers.</div></div>
     <div class="part"><div class="num">2</div><div class="body"><h4>See it – press a scenario</h4>
-      <div class="row" style="margin-bottom:6px"><span class="btn on" id="tqOn" onclick="tqMode(true)">With TALQ</span><span class="btn" id="tqOff" onclick="tqMode(false)">Without TALQ (each brand its own system)</span></div>
+      <div class="row" id="tqModes" style="margin-bottom:6px"></div><div class="m" id="tqNote" style="font-size:13px;margin-bottom:8px"></div>
       <div class="stage" style="background:#f7f8fa;border:1px solid var(--line)"><svg id="tq" viewBox="0 0 760 400"></svg></div>
       <div class="row" style="margin-top:8px" id="tqBtns"></div>
       <div class="info" style="min-height:0;margin-top:8px;font-size:13px" id="tqLog"></div>
@@ -193,7 +193,7 @@ table.spec{width:100%;border-collapse:collapse;font-size:13px}table.spec td{padd
         <tr><td>Luminaire</td><td>LED driver – ideally <b>D4i</b> (DALI-2 for IoT) so it reports energy, hours, temperature and failures</td></tr>
         <tr><td>Luminaire controller (node)</td><td>Plugs into a <b>Zhaga</b> or <b>NEMA</b> socket on the luminaire; switches, dims, measures, may carry sensors</td></tr>
         <tr><td>Outdoor network</td><td>RF mesh, LoRaWAN, NB-IoT / LTE-M or cellular – depends on the vendor</td></tr>
-        <tr><td>Gateway</td><td>Runs schedules locally and speaks <b>TALQ</b> to the CMS (some networks go straight to the cloud)</td></tr>
+        <tr><td>Gateway</td><td>Runs schedules locally and speaks <b>TALQ</b> to the CMS</td></tr><tr><td>Direct-to-CMS nodes (no gateway)</td><td>Many CMS makers’ <b>own</b> controllers use cellular NB-IoT / LTE-M and talk straight to their CMS in the maker’s own protocol. A <b>third-party</b> maker’s lights join that CMS through their own <b>TALQ-certified gateway</b>.</td></tr>
         <tr><td>TALQ interface</td><td>Standard web-service messages (HTTPS) for configuration, commands, calendars & control programs, data collection, events & alarms</td></tr>
         <tr><td>CMS</td><td>The city’s single map and dashboard: assets, schedules, energy, failures, reports</td></tr>
         <tr><td>Third-party systems</td><td>GIS / asset register, maintenance work orders, energy billing, smart-city platform, traffic / weather / air-quality sensors – connected through the CMS’s own APIs (TALQ 2 also covers other smart-city devices)</td></tr>
@@ -1149,49 +1149,64 @@ function road() {
 }
 
 // ================================================================ TALQ lab
-let tqWith = true, tqLog = [], tqLv = { A: 1, B: 1 }, tqFail = false;
-const TN = { lumA: [160, 350], lumB: [360, 350], ctlA: [160, 290], ctlB: [360, 290], net: [260, 235], gwA: [190, 175], gwB: [340, 175], talq: [265, 120], cms: [265, 60], cmsB: [455, 60], ext1: [650, 40], ext2: [650, 100], ext3: [650, 160], ext4: [650, 220], sensor: [650, 300] };
-function tqMode(w) { tqWith = w; $('tqOn').classList.toggle('on', w); $('tqOff').classList.toggle('on', !w); tqDraw(); }
+// modes: 'talq' – both makers through TALQ gateways; 'none' – each maker its own CMS; 'mixed' – the CMS maker's own nodes go direct (no gateway), a third-party maker joins through its TALQ gateway
+let tqM = 'mixed', tqLog = [], tqLv = { A: 1, B: 1 }, tqFail = { A: false, B: false };
+const TN = { lumA: [160, 355], lumB: [380, 355], ctlA: [160, 295], ctlB: [380, 295], netA: [160, 237], netB: [380, 237], gwA: [160, 177], gwB: [380, 177], talq: [300, 120], cms: [270, 58], cmsB: [450, 58], ext1: [650, 40], ext2: [650, 100], ext3: [650, 160], ext4: [650, 220], sensor: [650, 300] };
+const TQMODES = { mixed: 'Mixed: own brand direct + third party via gateway', talq: 'All makers through TALQ gateways', none: 'Without TALQ (each brand its own system)' };
+function tqMode(m) { tqM = m; tqDraw(); }
+const tqRoute = (v) => tqM === 'talq' ? ['cms', 'talq', `gw${v}`, `net${v}`, `ctl${v}`, `lum${v}`] : tqM === 'none' ? [v === 'A' ? 'cms' : 'cmsB', `gw${v}`, `net${v}`, `ctl${v}`, `lum${v}`] : v === 'A' ? ['cms', 'netA', 'ctlA', 'lumA'] : ['cms', 'talq', 'gwB', 'netB', 'ctlB', 'lumB'];
+const tqUp = (v) => [...tqRoute(v)].reverse();
 function tqDraw() {
+  $('tqModes').innerHTML = Object.entries(TQMODES).map(([k, n]) => `<span class="btn ${k === tqM ? 'on' : ''}" style="padding:5px 10px;font-size:12px" onclick="tqMode('${k}')">${n}</span>`).join('');
   const b = (k, w, h, t, f, sub = '') => { const [x, y] = TN[k]; return `<rect x="${x - w / 2}" y="${y - h / 2}" width="${w}" height="${h}" rx="6" fill="${f}" stroke="#64748b"/><text x="${x}" y="${y + (sub ? -2 : 4)}" text-anchor="middle" font-size="11" font-weight="700" fill="#1e293b">${t}</text>${sub ? `<text x="${x}" y="${y + 12}" text-anchor="middle" font-size="9" fill="#475569">${sub}</text>` : ''}`; };
-  const ln = (a, c, col = '#94a3b8', dash = '') => `<line x1="${TN[a][0]}" y1="${TN[a][1]}" x2="${TN[c][0]}" y2="${TN[c][1]}" stroke="${col}" stroke-width="2" ${dash ? `stroke-dasharray="${dash}"` : ''}/>`;
+  const ln = (a, c, col = '#94a3b8', dash = '', w = 2) => `<line x1="${TN[a][0]}" y1="${TN[a][1]}" x2="${TN[c][0]}" y2="${TN[c][1]}" stroke="${col}" stroke-width="${w}" ${dash ? `stroke-dasharray="${dash}"` : ''}/>`;
   let s = `<rect width="760" height="400" fill="#f8fafc"/>`;
-  s += [['Lights', 350], ['Controllers', 290], ['Network', 235], ['Gateways', 175], ['Interface', 120], ['CMS', 60]].map(([t, y]) => `<text x="8" y="${y + 4}" font-size="10" fill="#94a3b8">${t}</text>`).join('');
-  s += ln('lumA', 'ctlA') + ln('lumB', 'ctlB') + ln('ctlA', 'net') + ln('ctlB', 'net') + ln('net', 'gwA') + ln('net', 'gwB');
-  if (tqWith) s += ln('gwA', 'talq', '#16a34a') + ln('gwB', 'talq', '#16a34a') + ln('talq', 'cms', '#16a34a');
-  else s += ln('gwA', 'cms', '#94a3b8', '5 4') + `<line x1="${TN.gwB[0]}" y1="${TN.gwB[1]}" x2="${TN.cmsB[0]}" y2="${TN.cmsB[1]}" stroke="#94a3b8" stroke-width="2" stroke-dasharray="5 4"/>`;
+  s += [['Lights', 355], ['Controllers', 295], ['Network', 237], ['Gateways', 177], ['Interface', 120], ['CMS', 58]].map(([t, y]) => `<text x="8" y="${y + 4}" font-size="10" fill="#94a3b8">${t}</text>`).join('');
+  s += ln('lumA', 'ctlA') + ln('lumB', 'ctlB') + ln('ctlA', 'netA') + ln('ctlB', 'netB');
+  if (tqM === 'mixed') {
+    s += `<path d="M${TN.netA[0]} ${TN.netA[1] - 14} C ${TN.netA[0]} 120, ${TN.cms[0] - 60} 100, ${TN.cms[0] - 40} ${TN.cms[1] + 19}" fill="none" stroke="#2563eb" stroke-width="3"/><text x="${TN.netA[0] - 6}" y="140" text-anchor="end" font-size="10" fill="#1d4ed8">maker’s own protocol</text><text x="${TN.netA[0] - 6}" y="153" text-anchor="end" font-size="10" fill="#1d4ed8">– no gateway</text>`;
+    s += ln('netB', 'gwB') + ln('gwB', 'talq', '#16a34a', '', 3) + ln('talq', 'cms', '#16a34a', '', 3);
+  } else if (tqM === 'talq') s += ln('netA', 'gwA') + ln('netB', 'gwB') + ln('gwA', 'talq', '#16a34a', '', 3) + ln('gwB', 'talq', '#16a34a', '', 3) + ln('talq', 'cms', '#16a34a', '', 3);
+  else s += ln('netA', 'gwA') + ln('netB', 'gwB') + ln('gwA', 'cms', '#94a3b8', '5 4') + ln('gwB', 'cmsB', '#94a3b8', '5 4');
   ['ext1', 'ext2', 'ext3', 'ext4'].forEach((e) => s += `<line x1="${TN.cms[0] + 70}" y1="${TN.cms[1]}" x2="${TN[e][0] - 80}" y2="${TN[e][1]}" stroke="#a78bfa" stroke-width="2" stroke-dasharray="3 3"/>`);
-  s += `<line x1="${TN.sensor[0] - 80}" y1="${TN.sensor[1]}" x2="${TN.ext4[0]}" y2="${TN.ext4[1] + 18}" stroke="#a78bfa" stroke-width="2" stroke-dasharray="3 3"/>`;
-  const lamp = (k, lv, failed) => { const [x, y] = TN[k]; return [-36, 0, 36].map((dx) => `<circle cx="${x + dx}" cy="${y}" r="${8 + 9 * lv}" fill="rgba(253,200,90,${(0.15 + 0.6 * lv).toFixed(2)})"/><circle cx="${x + dx}" cy="${y}" r="8" fill="${failed && dx === 36 ? '#fecaca' : `rgba(253,200,90,${(0.3 + 0.7 * lv).toFixed(2)})`}" stroke="${failed && dx === 36 ? '#dc2626' : '#94a3b8'}"/>`).join('') + `<text x="${x}" y="${y + 30}" text-anchor="middle" font-size="9" fill="#475569">${k === 'lumA' ? 'Vendor A lights' : 'Vendor B lights'}</text>`; };
-  s += lamp('lumA', tqLv.A, tqFail) + lamp('lumB', tqLv.B, false);
-  s += b('ctlA', 120, 30, 'Controllers', '#e2e8f0', 'vendor A') + b('ctlB', 120, 30, 'Controllers', '#e2e8f0', 'vendor B') + b('net', 170, 28, 'Radio network', '#e0f2fe') + b('gwA', 110, 32, 'Gateway A', '#e2e8f0', 'vendor A') + b('gwB', 110, 32, 'Gateway B', '#e2e8f0', 'vendor B');
-  if (tqWith) s += b('talq', 150, 30, 'TALQ interface', '#bbf7d0', 'certified, open standard') + b('cms', 140, 38, 'One CMS', '#dcfce7', 'any TALQ-certified brand');
-  else s += b('cms', 140, 38, 'CMS of vendor A', '#fee2e2', 'only vendor A lights') + b('cmsB', 140, 38, 'CMS of vendor B', '#fee2e2', 'only vendor B lights');
+  s += `<line x1="${TN.sensor[0]}" y1="${TN.sensor[1] - 15}" x2="${TN.ext4[0]}" y2="${TN.ext4[1] + 15}" stroke="#a78bfa" stroke-width="2" stroke-dasharray="3 3"/>`;
+  const lamp = (v) => { const [x, y] = TN['lum' + v], lv = tqLv[v]; return [-36, 0, 36].map((dx) => { const bad = tqFail[v] && dx === 36; return `<circle cx="${x + dx}" cy="${y}" r="${8 + 9 * lv}" fill="rgba(253,200,90,${(0.15 + 0.6 * lv).toFixed(2)})"/><circle cx="${x + dx}" cy="${y}" r="8" fill="${bad ? '#fecaca' : `rgba(253,200,90,${(0.3 + 0.7 * lv).toFixed(2)})`}" stroke="${bad ? '#dc2626' : '#94a3b8'}"/>`; }).join(''); };
+  s += lamp('A') + lamp('B');
+  const nameA = tqM === 'mixed' ? 'Maker A (CMS maker’s own lights)' : 'Maker A lights', nameB = tqM === 'mixed' ? 'Maker B (third party)' : 'Maker B lights';
+  s += `<text x="${TN.lumA[0]}" y="${TN.lumA[1] + 32}" text-anchor="middle" font-size="10" fill="#475569">${nameA}</text><text x="${TN.lumB[0]}" y="${TN.lumB[1] + 32}" text-anchor="middle" font-size="10" fill="#475569">${nameB}</text>`;
+  s += b('ctlA', 130, 30, 'Controllers A', tqM === 'mixed' ? '#dbeafe' : '#e2e8f0', tqM === 'mixed' ? 'cellular node, direct to CMS' : 'maker A') + b('ctlB', 130, 30, 'Controllers B', '#e2e8f0', 'maker B');
+  s += b('netA', 140, 28, tqM === 'mixed' ? 'NB-IoT / LTE-M' : 'Network A', '#e0f2fe') + b('netB', 140, 28, tqM === 'mixed' ? 'RF mesh' : 'Network B', '#e0f2fe');
+  if (tqM !== 'mixed') s += b('gwA', 110, 32, 'Gateway A', '#e2e8f0', 'maker A');
+  s += b('gwB', 120, 32, 'Gateway B', tqM === 'none' ? '#e2e8f0' : '#dcfce7', tqM === 'none' ? 'maker B' : 'TALQ-certified');
+  if (tqM !== 'none') s += b('talq', 140, 30, 'TALQ interface', '#bbf7d0', 'open standard') + b('cms', 150, 38, tqM === 'mixed' ? 'CMS of maker A' : 'One CMS', '#dcfce7', tqM === 'mixed' ? 'native + TALQ-certified' : 'any TALQ-certified brand');
+  else s += b('cms', 140, 38, 'CMS of maker A', '#fee2e2', 'only maker A lights') + b('cmsB', 140, 38, 'CMS of maker B', '#fee2e2', 'only maker B lights');
   s += b('ext1', 160, 30, 'GIS / asset register', '#ede9fe') + b('ext2', 160, 30, 'Maintenance work orders', '#ede9fe') + b('ext3', 160, 30, 'Energy & billing', '#ede9fe') + b('ext4', 160, 30, 'Smart-city platform', '#ede9fe') + b('sensor', 160, 30, 'Traffic / weather sensors', '#fae8ff');
   s += `<text x="650" y="12" text-anchor="middle" font-size="10" fill="#7c3aed">Third-party systems (CMS APIs)</text><g id="tqDots"></g>`;
   $('tq').innerHTML = s;
   $('tqBtns').innerHTML = TQS.map((t, i) => `<span class="btn" style="padding:4px 9px;font-size:12px" onclick="tqRun(${i})">${t[0]}</span>`).join('');
-  $('tqLog').innerHTML = tqLog.length ? tqLog.map((l) => `<div style="margin-bottom:6px">${l}</div>`).join('') : '<span class="m">Press a scenario – a message travels through the layers. Switch “Without TALQ” to see why cities end up with one system per brand.</span>';
+  $('tqNote').innerHTML = { mixed: 'The CMS maker’s own controllers talk <b>straight to its CMS</b> (usually over cellular NB-IoT / LTE-M) in the maker’s own protocol – no gateway. A <b>third-party maker</b> joins the same CMS through its <b>TALQ-certified gateway</b>. One map, two routes.', talq: 'Every maker’s network ends in a TALQ-certified gateway; all of them report to one CMS through the TALQ interface.', none: 'No common interface – each maker’s gateway only talks to that maker’s CMS. Two maps, two logins, two contracts.' }[tqM];
+  $('tqLog').innerHTML = tqLog.length ? tqLog.map((l) => `<div style="margin-bottom:6px">${l}</div>`).join('') : '<span class="m">Press a scenario – a message travels through the layers. Switch the mode above to compare.</span>';
 }
-// scenarios: [label, path(s) of node keys, after(), log text]
 const TQS = [
-  ['Midnight: dim to 50%', () => [tqWith ? ['cms', 'talq', 'gwA', 'net', 'ctlA', 'lumA'] : ['cms', 'gwA', 'net', 'ctlA', 'lumA'], tqWith ? ['cms', 'talq', 'gwB', 'net', 'ctlB', 'lumB'] : null].filter(Boolean),
-    () => { tqLv.A = 0.5; if (tqWith) tqLv.B = 0.5; }, () => tqWith ? '<b>Calendar / control program</b> sent once from the CMS through the TALQ interface to both gateways. The gateways run it locally – lights dim at midnight even if the internet link is down.' : 'Vendor A’s CMS can only reach vendor A’s gateway – <b>vendor B’s lights stay at 100%</b> until someone sets the same schedule again in vendor B’s own software.'],
-  ['A driver fails', () => [tqWith ? ['lumA', 'ctlA', 'net', 'gwA', 'talq', 'cms', 'ext2'] : ['lumA', 'ctlA', 'net', 'gwA', 'cms']], () => { tqFail = true; },
-    () => tqWith ? 'The D4i driver reports a fault → the controller raises an <b>event / alarm</b> → gateway → TALQ → CMS shows it on the map → the CMS creates a <b>work order</b> in the maintenance system with the pole ID and location.' : 'The alarm reaches vendor A’s CMS only. A work-order link must be built separately for each brand’s software.'],
-  ['Read energy & hours', () => [tqWith ? ['lumA', 'ctlA', 'net', 'gwA', 'talq', 'cms', 'ext3'] : ['lumA', 'ctlA', 'net', 'gwA', 'cms'], tqWith ? ['lumB', 'ctlB', 'net', 'gwB', 'talq', 'cms', 'ext3'] : null].filter(Boolean), () => {},
-    () => tqWith ? '<b>Data collection</b>: each controller measures energy (kWh) and burning hours; the gateways send the data over TALQ; the CMS passes metered energy to the <b>billing</b> system – the city pays for real consumption, not estimates.' : 'Two systems, two reports in two formats – someone has to merge them in Excel every month.'],
-  ['Heavy traffic: raise the light', () => [tqWith ? ['sensor', 'ext4', 'cms', 'talq', 'gwA', 'net', 'ctlA', 'lumA'] : ['sensor', 'ext4', 'cms', 'gwA', 'net', 'ctlA', 'lumA']], () => { tqLv.A = 1; },
-    () => '<b>Third-party integration</b>: a traffic sensor reports heavy traffic to the smart-city platform, which asks the CMS (through its API) to raise the light; the CMS sends the command over TALQ – <b>adaptive lighting</b>.'],
-  ['Add new poles from another brand', () => [tqWith ? ['gwB', 'talq', 'cms', 'ext1'] : ['gwB', 'cmsB']], () => {},
-    () => tqWith ? 'The new brand’s TALQ-certified gateway registers its lights with the <b>same CMS</b>; the assets appear on the city map and in the <b>GIS / asset register</b>. No new software for the city.' : 'Without TALQ the new brand brings <b>its own CMS</b> – a second login, second map, second contract.'],
-  ['Reset', () => [], () => { tqLv = { A: 1, B: 1 }; tqFail = false; tqLog = []; }, () => ''],
+  ['Midnight: dim to 50%', () => [tqRoute('A'), tqM === 'none' ? null : tqRoute('B')].filter(Boolean), () => { tqLv.A = 0.5; if (tqM !== 'none') tqLv.B = 0.5; },
+    () => ({ mixed: 'One schedule in the CMS, <b>two routes</b>: maker A’s own nodes receive it <b>directly</b> over the cellular network and each node stores it; maker B receives it as a <b>TALQ calendar / control program</b> through gateway B, which runs it for its nodes. Both dim at midnight – even if the link to the CMS is down later.', talq: 'The schedule goes as a TALQ calendar / control program to both gateways; each gateway runs it locally.', none: 'Maker A’s CMS reaches only maker A – <b>maker B’s lights stay at 100%</b> until the schedule is set again in maker B’s software.' })[tqM]],
+  ['Maker A light fails', () => [[...tqUp('A'), 'ext2']], () => { tqFail.A = true; },
+    () => ({ mixed: 'Maker A’s node reports the fault <b>straight to the CMS</b> in the maker’s own protocol – no gateway in between. The CMS shows it on the map and opens a maintenance work order.', talq: 'Controller → network → gateway A → TALQ event → CMS → work order.', none: 'The alarm reaches maker A’s CMS; the work-order link must be built for each brand separately.' })[tqM]],
+  ['Maker B light fails', () => [tqM === 'none' ? tqUp('B') : [...tqUp('B'), 'ext2']], () => { tqFail.B = true; },
+    () => ({ mixed: 'Maker B’s controller reports to <b>gateway B</b>, which sends it as a <b>TALQ event / alarm</b> to maker A’s CMS – it appears on the same map and becomes the same kind of work order as maker A’s faults.', talq: 'Same route as maker A – gateway B → TALQ → the one CMS → work order.', none: 'Only maker B’s own CMS sees it – the city has to watch two screens.' })[tqM]],
+  ['Read energy & hours', () => [[...tqUp('A'), 'ext3'], tqM === 'none' ? tqUp('B') : [...tqUp('B'), 'ext3']], () => {},
+    () => ({ mixed: '<b>Data collection</b> from both: maker A’s nodes upload directly, gateway B collects from its nodes and delivers over TALQ. The CMS sends one combined energy report to billing.', talq: 'Both gateways deliver energy and burning hours over TALQ; one report to billing.', none: 'Two systems, two reports in different formats – merged by hand every month.' })[tqM]],
+  ['Heavy traffic: raise the light', () => [['sensor', 'ext4', ...tqRoute('B')]], () => { tqLv.B = 1; },
+    () => tqM === 'none' ? 'The city platform would need a separate link into maker B’s own CMS.' : '<b>Third-party integration</b>: a traffic sensor tells the smart-city platform; the platform asks the CMS (API) to raise the light on that road; the CMS commands maker B’s lights through gateway B over TALQ – <b>adaptive lighting</b>.'],
+  ['Add another maker', () => [tqM === 'none' ? ['gwB', 'cmsB'] : ['gwB', 'talq', 'cms', 'ext1']], () => {},
+    () => tqM === 'none' ? 'Without TALQ a new maker brings <b>its own CMS</b> – another login, map and contract.' : 'The new maker installs its <b>TALQ-certified gateway</b>, registers it with the existing CMS and its lights appear on the same map and in the <b>GIS / asset register</b>. No change for the city’s own lights.'],
+  ['Reset', () => [], () => { tqLv = { A: 1, B: 1 }; tqFail = { A: false, B: false }; tqLog = []; }, () => ''],
 ];
 function tqRun(i) {
-  const [, paths, after, text] = TQS[i], ps = paths().map((p) => p.map((k) => TN[k])), t0 = performance.now(), dur = 1800;
+  const [, paths, after, text] = TQS[i], ps = paths().map((p) => p.map((k) => TN[k])), t0 = performance.now(), dur = 1900;
   if (!ps.length) { after(); tqDraw(); return; }
   const pt = (p, f) => { const seg = []; let tot = 0; for (let k = 1; k < p.length; k++) { const l = Math.hypot(p[k][0] - p[k - 1][0], p[k][1] - p[k - 1][1]); seg.push(l); tot += l; } let d = f * tot; for (let k = 0; k < seg.length; k++) { if (d <= seg[k]) { const r = d / seg[k]; return [p[k][0] + (p[k + 1][0] - p[k][0]) * r, p[k][1] + (p[k + 1][1] - p[k][1]) * r]; } d -= seg[k]; } return p[p.length - 1]; };
-  const step = (now) => { const f = Math.min(1, (now - t0) / dur), g = document.getElementById('tqDots'); if (!g) return; g.innerHTML = ps.map((p) => { const [x, y] = pt(p, f); return `<circle cx="${x}" cy="${y}" r="7" fill="#f59e0b" stroke="#fff" stroke-width="2"/>`; }).join('');
+  const step = (now) => { const f = Math.min(1, (now - t0) / dur), g = document.getElementById('tqDots'); if (!g) return; g.innerHTML = ps.map((p, j) => { const [x, y] = pt(p, f); return `<circle cx="${x}" cy="${y}" r="7" fill="${j ? '#16a34a' : '#f59e0b'}" stroke="#fff" stroke-width="2"/>`; }).join('');
     if (f < 1) requestAnimationFrame(step); else { after(); const tx = text(); if (tx) { tqLog.unshift(`<b>${TQS[i][0]}</b> – ${tx}`); tqLog = tqLog.slice(0, 5); } tqDraw(); } };
   requestAnimationFrame(step);
 }
@@ -1224,6 +1239,9 @@ add('road', 'Road lighting', 'r_optics', '🔦', 'Road optics, glare & upward li
   quiz: [Q('A road optic is usually…', ['asymmetric', 'round and symmetric', 'a narrow spot'], 0), Q('TI measures…', ['disability glare for drivers', 'colour', 'energy'], 0), Q('To avoid upward light use…', ['flat glass and no up-tilt', 'more tilt', 'a bigger pole'], 0)] });
 add('road', 'TALQ smart control', 'lab_talq', '📡', 'TALQ smart street lighting', { type: 'lab', lab: 'talqv', preset: 1, mins: 6, live: 1,
   quiz: [Q('TALQ standardises the interface between…', ['the CMS and the outdoor device networks', 'the driver and the LED', 'the pole and the foundation'], 0), Q('The main benefit of TALQ for a city is…', ['one CMS for several brands of controllers', 'brighter LEDs', 'cheaper poles'], 0), Q('If the internet link fails, scheduled dimming…', ['still runs on the gateway', 'stops immediately', 'switches lights off'], 0)] });
+add('road', 'TALQ smart control', 'talq_mixed', '🔀', 'Own nodes direct, third parties via gateway', { type: 'lab', lab: 'talqv', preset: 'mixed',
+  line: 'A CMS maker’s own controllers usually connect straight to its CMS (no gateway). Other makers’ lights join the same CMS through their TALQ-certified gateway. Try each scenario in the “Mixed” mode.',
+  quiz: [Q('In a mixed system, the CMS maker’s own nodes usually connect…', ['directly to the CMS, without a gateway', 'only through a TALQ gateway', 'not at all'], 0), Q('A third-party maker’s lights join the CMS through…', ['their TALQ-certified gateway', 'the CMS maker’s nodes', 'a USB cable'], 0), Q('Does the city then need a second CMS?', ['No – one map for both', 'Yes, always', 'Only at night'], 0)] });
 add('road', 'TALQ smart control', 'talq_what', '🧩', 'What TALQ is – and what it is not', {
   line: 'TALQ is a <b>software interface standard</b> by the TALQ Consortium. It does not prescribe the radio network or the luminaire – it defines how a <b>CMS</b> and a <b>gateway</b> exchange configuration, commands, schedules, measurements and alarms.',
   body: '<table class="spec"><tr><td>Covers</td><td>Configuration, commands (switch / dim), calendars & control programs, data collection (energy, hours), events & alarms, logging</td></tr><tr><td>Does not cover</td><td>The radio network between controllers (vendor choice), the driver (D4i / DALI), the socket (Zhaga / NEMA)</td></tr><tr><td>Certification</td><td>Products are tested and listed by the TALQ Consortium</td></tr><tr><td>Beyond lighting</td><td>TALQ 2 extends the same approach to other smart-city devices and sensors</td></tr></table>',
@@ -1352,7 +1370,7 @@ const LAB_INIT = {
   ctlv: (p) => { if (['v110', 'phase', 'dali', 'dmx', 'casambi'].includes(p)) prot = p; protUI(); daliV(); protTable(); if (p === 'daliv' || p === 'table') setTimeout(() => $(p === 'daliv' ? 'dBtns' : 'pTable').scrollIntoView({ behavior: 'smooth', block: 'center' }), 50); },
   lmsv: (p) => lmsTab(+p || 1),
   roadv: (p) => { if (p === 'single') rArr = 'single'; roadUI(); if (p === 'compare' || p === 'height') setTimeout(() => $(p === 'compare' ? 'rCmp' : 'rCtl').scrollIntoView({ behavior: 'smooth', block: 'center' }), 50); },
-  talqv: () => tqDraw(),
+  talqv: (p) => { tqM = ['mixed', 'talq', 'none'].includes(p) ? p : 'mixed'; tqDraw(); },
 };
 const MODN = Object.fromEntries(MODULES.map(([k, n]) => [k, n]));
 function openLesson(id) { if (location.hash !== '#l/' + id) location.hash = '#l/' + id; else route(); }
