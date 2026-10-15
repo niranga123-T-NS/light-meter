@@ -1,12 +1,11 @@
 -- Project references (Sales Tools → References): completed projects to show clients – up to 4 photos, a short description,
 -- year, project value (when known), location and country, project category, application types, the brands used and – when
 -- known – the client, architect, interior designer, MEP consultant and electrical consultant.
---  * Seen by everyone with Sales Tools; anyone with Sales Tools adds references.
---  * The person who added a reference, SM Projects, GM / DGM and the System Administrator edit or remove it.
+--  * Seen by everyone with Sales Tools; only the Lighting Designer adds, edits and removes references.
 --  * Photos are kept in the private "references" bucket (images up to 10 MB each), under ref/<reference id>/.
 
 create or replace function app.keeps_references() returns boolean
-language sql stable as $$ select app.has_role('sm_projects', 'gm', 'sys_admin') $$;
+language sql stable as $$ select app.has_role('lighting_designer') $$;
 
 create table if not exists public.project_references (
   id uuid primary key default gen_random_uuid(),
@@ -39,12 +38,10 @@ drop policy if exists pref_read on public.project_references;
 drop policy if exists pref_insert on public.project_references;
 drop policy if exists pref_update on public.project_references;
 drop policy if exists pref_delete on public.project_references;
-create policy pref_read on public.project_references for select to authenticated using (app.sees_sales_tools() and (active or created_by = auth.uid() or app.keeps_references()));
-create policy pref_insert on public.project_references for insert to authenticated with check (app.sees_sales_tools() and created_by = auth.uid());
-create policy pref_update on public.project_references for update to authenticated
-  using (app.sees_sales_tools() and (created_by = auth.uid() or app.keeps_references()))
-  with check (app.sees_sales_tools() and (created_by = auth.uid() or app.keeps_references()));
-create policy pref_delete on public.project_references for delete to authenticated using (created_by = auth.uid() or app.keeps_references());
+create policy pref_read on public.project_references for select to authenticated using (app.sees_sales_tools() and (active or app.keeps_references()));
+create policy pref_insert on public.project_references for insert to authenticated with check (app.keeps_references() and created_by = auth.uid());
+create policy pref_update on public.project_references for update to authenticated using (app.keeps_references()) with check (app.keeps_references());
+create policy pref_delete on public.project_references for delete to authenticated using (app.keeps_references());
 grant select, insert, update, delete on public.project_references to authenticated;
 drop trigger if exists audit_project_references on public.project_references;
 create trigger audit_project_references after insert or update on public.project_references for each row execute function app.audit();
@@ -60,9 +57,8 @@ begin
     execute 'drop policy if exists references_insert on storage.objects';
     execute 'drop policy if exists references_delete on storage.objects';
     execute $p$create policy references_read on storage.objects for select to authenticated using (bucket_id = 'references' and app.sees_sales_tools())$p$;
-    execute $p$create policy references_insert on storage.objects for insert to authenticated with check (bucket_id = 'references' and app.sees_sales_tools())$p$;
-    execute $p$create policy references_delete on storage.objects for delete to authenticated using (bucket_id = 'references' and (app.keeps_references()
-      or exists (select 1 from public.project_references r where name like 'ref/' || r.id::text || '/%' and r.created_by = auth.uid())))$p$;
+    execute $p$create policy references_insert on storage.objects for insert to authenticated with check (bucket_id = 'references' and app.keeps_references())$p$;
+    execute $p$create policy references_delete on storage.objects for delete to authenticated using (bucket_id = 'references' and app.keeps_references())$p$;
   end if;
 end $$;
 

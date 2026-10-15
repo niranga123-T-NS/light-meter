@@ -8,7 +8,7 @@ import { useMe } from '@/lib/auth';
 import { pickImage, uuid, type PickedFile } from '@/lib/files';
 import { fmtMoney } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
-import { applicationLabel, APPLICATIONS, canEditReference, MAX_PHOTOS, PARTIES, photoUrls, removePhotos, uploadPhoto, type ProjectReference } from '@/lib/references';
+import { applicationLabel, APPLICATIONS, keepsReferences, MAX_PHOTOS, PARTIES, photoUrls, removePhotos, uploadPhoto, type ProjectReference } from '@/lib/references';
 import { projectTypeLabel, PROJECT_TYPES } from '@/lib/roles';
 import { TOOLS_ROLES } from '@/lib/standards';
 import { supabase } from '@/lib/supabase';
@@ -44,7 +44,8 @@ export default function ReferencePage() {
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const ref = data.ref;
   if (!isNew && !ref) return <Screen><Notice>Reference not found.</Notice></Screen>;
-  const canEdit = isNew || (ref ? canEditReference(ref, me) : false);
+  const canEdit = keepsReferences(me.role);
+  if (isNew && !canEdit) return <Screen><Notice>Only the Lighting Designer adds references.</Notice></Screen>;
   const f: Form = form ?? (ref ? { ...BLANK, ...ref } : BLANK);
   const set = (p: Partial<Form>) => setForm({ ...f, ...p });
   const pics: Photo[] = photos ?? (ref?.photos ?? []).map((p) => ({ path: p, uri: data.urls[p] ?? '' }));

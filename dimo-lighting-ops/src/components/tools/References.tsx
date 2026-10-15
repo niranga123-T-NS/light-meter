@@ -3,14 +3,17 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { Button, Card, Chip, colors, Empty, ErrorBanner, Field, Grid, Loading, Muted, Pill, Row, Select } from '@/components/ui';
+import { useMe } from '@/lib/auth';
 import { useLoad } from '@/lib/hooks';
-import { applicationLabel, APPLICATIONS, photoUrls, type ProjectReference } from '@/lib/references';
+import { applicationLabel, APPLICATIONS, keepsReferences, photoUrls, type ProjectReference } from '@/lib/references';
 import { projectTypeLabel, PROJECT_TYPES } from '@/lib/roles';
 import { fmtMoney } from '@/lib/format';
 import { supabase } from '@/lib/supabase';
 
 /** References: completed projects with photos, to show clients – filtered by category, year, country and application */
 export function References() {
+  const me = useMe();
+  const keeper = keepsReferences(me.role);
   const [q, setQ] = useState('');
   const [category, setCategory] = useState('');
   const [year, setYear] = useState('');
@@ -43,7 +46,7 @@ export function References() {
         <View style={{ flex: 1, minWidth: 240 }}>
           <Field label="Search" value={q} onChangeText={setQ} placeholder="Project, client, consultant, place or brand" />
         </View>
-        <Button title="+ Add reference" onPress={() => router.push('/tools/reference/new')} />
+        {keeper ? <Button title="+ Add reference" onPress={() => router.push('/tools/reference/new')} /> : null}
       </Row>
       <Row gap={8} wrap style={{ alignItems: 'flex-end' }}>
         <Select label="Project category" value={category} onChange={setCategory} options={[{ value: '', label: 'All categories' }, ...PROJECT_TYPES.map((p) => ({ value: p.value, label: p.label }))]} />
@@ -59,7 +62,7 @@ export function References() {
       </Row>
       <Muted>{`${shown.length} reference${shown.length === 1 ? '' : 's'}${filtered ? ` of ${data.refs.length}` : ''}`}</Muted>
       {!shown.length ? (
-        <Empty title={data.refs.length ? 'No references match' : 'No references yet'} hint={data.refs.length ? 'Change or clear the filters.' : 'Add a completed project with up to 4 photos.'} />
+        <Empty title={data.refs.length ? 'No references match' : 'No references yet'} hint={data.refs.length ? 'Change or clear the filters.' : keeper ? 'Add a completed project with up to 4 photos.' : 'The Lighting Designer adds the references.'} />
       ) : (
         <Grid min={260} max={3}>
           {shown.map((r) => (

@@ -48,9 +48,9 @@ export const PARTIES: { key: PartyKey; label: string }[] = [
   { key: 'elec_consultant', label: 'Electrical Consultant' },
 ];
 
-/** SM Projects, GM / DGM and the System Administrator edit every reference; others edit the ones they added */
-export const REFERENCE_KEEPERS: Role[] = ['sm_projects', 'gm', 'sys_admin'];
-export const canEditReference = (r: Pick<ProjectReference, 'created_by'>, me: { id: string; role: Role }) => r.created_by === me.id || REFERENCE_KEEPERS.includes(me.role);
+/** Only the Lighting Designer adds, edits and removes references; everyone else with Sales Tools sees them */
+export const REFERENCE_KEEPERS: Role[] = ['lighting_designer'];
+export const keepsReferences = (role: Role) => REFERENCE_KEEPERS.includes(role);
 
 const urlCache = new Map<string, { url: string; exp: number }>();
 
