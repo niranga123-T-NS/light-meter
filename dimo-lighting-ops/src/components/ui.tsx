@@ -552,7 +552,7 @@ export function MultiSelect({
       <Text style={styles.label}>{label}</Text>
       <Pressable onPress={() => setOpen(true)} style={[styles.input, styles.select]}>
         <Text style={{ color: values.length ? colors.text : colors.faint, flex: 1 }} numberOfLines={2}>
-          {values.length ? values.join(', ') : 'None'}
+          {values.length ? values.map((v) => options.find((o) => o.value === v)?.label ?? v).join(', ') : 'None'}
         </Text>
         <Text style={{ color: colors.muted }}>▾</Text>
       </Pressable>
