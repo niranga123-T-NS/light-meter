@@ -73,7 +73,8 @@ export function DesignBoard({ header }: { header?: ReactNode } = {}) {
         : Promise.resolve({ data: [] }),
     ]);
     if (e) throw new Error(e.message);
-    const list = (jobs ?? []) as DesignJob[];
+    // jobs of a discarded / cancelled inquiry leave the board unless they were finished
+    const list = ((jobs ?? []) as DesignJob[]).filter((j) => j.inquiries?.status !== 'cancelled' || ['approved', 'released'].includes(j.status));
     return { jobs: list, queue: (queue.data ?? []) as Inquiry[], colours: await clockColours('design_job', list.map((j) => j.id)), clocks: await workClocks('design_job', list.map((j) => j.id)) };
   });
 
@@ -244,7 +245,7 @@ export function EstimationBoard({ header }: { header?: ReactNode } = {}) {
       manager ? supabase.from('inquiries').select('*').eq('route', 'B').eq('status', 'submitted').order('customer_deadline') : Promise.resolve({ data: [] }),
     ]);
     if (e) throw new Error(e.message);
-    const list = (jobs ?? []) as EstimationJob[];
+    const list = ((jobs ?? []) as EstimationJob[]).filter((j) => j.inquiries?.status !== 'cancelled' || ['approved', 'released'].includes(j.status));
     return { jobs: list, direct: (direct.data ?? []) as Inquiry[], colours: await clockColours('estimation_job', list.map((j) => j.id)), clocks: await workClocks('estimation_job', list.map((j) => j.id)) };
   });
   const jobs = data?.jobs ?? [];

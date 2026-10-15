@@ -361,6 +361,28 @@ export default function InquiryDetail() {
         />,
       );
     }
+    // The sales person who raised it can discard it at any open stage – no approval, the reason is recorded
+    if (i.sales_person_id === me.id && !['won', 'lost', 'cancelled', 'rejected'].includes(i.status)) {
+      buttons.push(
+        <Button
+          key="discard"
+          variant="ghost"
+          title="Discard inquiry"
+          onPress={async () => {
+            const r = await dialog.prompt({
+              title: `Discard ${i.code}`,
+              message: `The inquiry is closed as cancelled – no approval needed. The reason is recorded with your name${['draft', 'submitted'].includes(i.status) ? '' : ', and design, estimation and SM Projects are told to stop work on it'}.`,
+              fields: [{ key: 'reason', label: 'Reason for discarding', type: 'multiline', required: true, hint: 'At least 10 characters, e.g. raised twice by mistake, customer dropped the project' }],
+              confirmLabel: 'Discard',
+              danger: true,
+            });
+            if (!r) return;
+            if (r.reason.trim().length < 10) return dialog.toast('Give the reason (at least 10 characters)', 'error');
+            await act('discard_inquiry', { p_inquiry: i.id, p_reason: r.reason }, 'Inquiry discarded');
+          }}
+        />,
+      );
+    }
     return buttons.length ? buttons : null;
   };
 
@@ -526,6 +548,7 @@ export default function InquiryDetail() {
               .join('\n')}
           </Notice>
         ) : null}
+        {i.discarded_at ? <Notice tone={colors.grey}>{`Discarded by ${people[i.discarded_by ?? '']?.full_name ?? 'the sales person'} on ${fmtDate(i.discarded_at)} – ${i.discard_reason}`}</Notice> : null}
         {i.status === 'on_hold' ? <Notice tone={colors.grey}>On hold: {i.hold_reason}</Notice> : null}
         {i.status === 'under_evaluation' ? (
           <Notice>{`Under evaluation by the client${i.evaluation_until ? ` – decision expected by ${fmtDate(i.evaluation_until)}` : ''}${i.evaluation_note ? ` · ${i.evaluation_note}` : ''}`}</Notice>

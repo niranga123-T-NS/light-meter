@@ -8469,5 +8469,28 @@ select pg_temp.act_as('sm_projects'); set role authenticated;
 do $$ begin assert exists (select 1 from public.visit_briefs where plan_line_id = current_setting('test.brief_line')::uuid), 'SM Projects reads briefs'; end $$;
 reset role;
 
+-- Discard an inquiry: the sales person who raised it, no approval, reason recorded
+select pg_temp.act_as('asm_building'); set role authenticated;
+insert into public.inquiries (id, project_id, organization_id, unit_id, route, duty_status, design_scope, customer_deadline, design_required_by, quotation_required_by, scope_description, solution_level, manufacturing_origin)
+values ('00000000-0000-0000-0000-00000000d9d1', '00000000-0000-0000-0000-00000000b001', '00000000-0000-0000-0000-00000000a001', '00000000-0000-0000-0000-00000000a002',
+        'A', 'duty_paid', 'lighting', current_date + 30, current_date + 12, current_date + 25, 'Raised twice by mistake – same lobby package', 'high', 'european');
+reset role;
+select pg_temp.act_as('asm_infra'); set role authenticated;
+do $$ begin
+  begin perform public.discard_inquiry('00000000-0000-0000-0000-00000000d9d1', 'Not my inquiry at all'); assert false, 'only the sales person who raised it'; exception when raise_exception then null; end;
+end $$;
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ declare i public.inquiries; begin
+  begin perform public.discard_inquiry('00000000-0000-0000-0000-00000000d9d1', 'dup'); assert false, 'reason too short'; exception when raise_exception then null; end;
+  perform public.discard_inquiry('00000000-0000-0000-0000-00000000d9d1', 'Raised twice by mistake – duplicate of the lobby inquiry');
+  select * into i from public.inquiries where id = '00000000-0000-0000-0000-00000000d9d1';
+  assert i.status = 'cancelled' and i.result = 'cancelled', 'closed as cancelled';
+  assert i.discard_reason like 'Raised twice%' and i.discarded_by = auth.uid() and i.discarded_at is not null, 'who, when, why recorded';
+  assert exists (select 1 from public.status_history where entity_id = i.id and to_status = 'cancelled' and reason like 'Discarded by the sales person%'), 'reason in the timeline';
+  begin perform public.discard_inquiry(i.id, 'Second time should not work'); assert false, 'already closed'; exception when raise_exception then null; end;
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

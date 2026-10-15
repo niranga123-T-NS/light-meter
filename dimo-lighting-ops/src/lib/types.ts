@@ -254,6 +254,9 @@ export type Inquiry = {
   client_response: string | null;
   result: string | null;
   lost_reason: string | null;
+  discard_reason?: string | null;
+  discarded_at?: string | null;
+  discarded_by?: string | null;
   order_value: number | null;
   order_date: string | null;
   debtor_flag: boolean;
