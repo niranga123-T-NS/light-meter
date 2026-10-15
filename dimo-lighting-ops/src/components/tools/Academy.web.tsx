@@ -5,7 +5,7 @@ import { Segmented } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { ACADEMY_PATH, ACADEMY_TEAM_VIEWERS, academyCfg } from '@/lib/academy';
 
-export const ACADEMY_LESSONS = 97;
+export const ACADEMY_LESSONS = 120;
 
 /** Lighting Academy on the website: the lessons page in a frame; it saves progress with the person's sign-in, passed to it here */
 export function Academy() {
