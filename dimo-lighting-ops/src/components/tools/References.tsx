@@ -1,11 +1,11 @@
-import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
+import { RefPhoto } from '@/components/RefPhoto';
 import { Button, Card, Chip, colors, Empty, ErrorBanner, Field, Grid, Loading, Muted, Pill, Row, Select } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { useLoad } from '@/lib/hooks';
-import { applicationText, APPLICATIONS, keepsReferences, OUTDOOR_TYPES, photoUrls, type ProjectReference } from '@/lib/references';
+import { applicationText, APPLICATIONS, isDrive, keepsReferences, OUTDOOR_TYPES, photoUrls, type ProjectReference } from '@/lib/references';
 import { projectTypeLabel, PROJECT_TYPES } from '@/lib/roles';
 import { fmtMoney } from '@/lib/format';
 import { supabase } from '@/lib/supabase';
@@ -80,18 +80,19 @@ export function References() {
       ) : null}
       <Muted>{`${shown.length} reference${shown.length === 1 ? '' : 's'}${filtered ? ` of ${data.refs.length}` : ''}`}</Muted>
       {!shown.length ? (
-        <Empty title={data.refs.length ? 'No references match' : 'No references yet'} hint={data.refs.length ? 'Change or clear the filters.' : keeper ? 'Add a completed project with up to 4 photos.' : 'The Lighting Designer adds the references.'} />
+        <Empty title={data.refs.length ? 'No references match' : 'No references yet'} hint={data.refs.length ? 'Change or clear the filters.' : keeper ? 'Add a completed project with photos – upload them or paste Google Drive links.' : 'The Lighting Designer adds the references.'} />
       ) : (
         <Grid min={260} max={3}>
           {shown.map((r) => (
             <Card key={r.id} style={{ padding: 0, overflow: 'hidden' }} onPress={() => router.push(`/tools/reference/${r.id}`)}>
-              {r.photos[0] && data.urls[r.photos[0]] ? (
-                <Image source={{ uri: data.urls[r.photos[0]] }} style={{ width: '100%', aspectRatio: 16 / 10, backgroundColor: colors.soft }} contentFit="cover" transition={150} />
-              ) : (
-                <View style={{ width: '100%', aspectRatio: 16 / 10, backgroundColor: colors.soft, alignItems: 'center', justifyContent: 'center' }}>
-                  <Muted>No photo</Muted>
-                </View>
-              )}
+              <View>
+                <RefPhoto uri={r.photos[0] ? data.urls[r.photos[0]] : undefined} drive={!!r.photos[0] && isDrive(r.photos[0])} hint={keeper} style={{ width: '100%', aspectRatio: 16 / 10 }} />
+                {r.photos.length > 1 || r.album_url ? (
+                  <View style={{ position: 'absolute', right: 8, bottom: 8, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 }}>
+                    <Text style={{ color: '#fff', fontSize: 12 }}>{`📷 ${r.photos.length}${r.album_url ? ' · 📁 album' : ''}`}</Text>
+                  </View>
+                ) : null}
+              </View>
               <View style={{ padding: 12, gap: 4 }}>
                 <Text style={{ fontWeight: '700', fontSize: 15, color: colors.ink }} numberOfLines={2}>
                   {r.title}
