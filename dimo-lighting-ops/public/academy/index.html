@@ -52,7 +52,10 @@ input[type=range]{width:100%;accent-color:var(--red)}
 .plist{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.plist .btn{padding:4px 9px;font-size:12px}
 [data-part]{cursor:pointer}
 table.spec{width:100%;border-collapse:collapse;font-size:13px}table.spec td{padding:5px 0;border-bottom:1px solid var(--line);vertical-align:top}table.spec td:first-child{color:var(--mut);width:38%}
-@media(max-width:900px){.scene,.two{grid-template-columns:1fr!important}.mods{grid-template-columns:1fr 1fr}.wrap{padding:12px 12px}.kpis{grid-template-columns:1fr 1fr!important}}
+.three{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.four{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.phr{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px}.phr details{border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;background:#fff}.phr summary{cursor:pointer;font-weight:700;font-size:14px}.phr details[open]{border-color:var(--s1);background:#f0f6ff}.phr details div{margin-top:6px}
+@media(max-width:900px){.three{grid-template-columns:1fr}.four{grid-template-columns:1fr 1fr}.scene,.two{grid-template-columns:1fr!important}.mods{grid-template-columns:1fr 1fr}.wrap{padding:12px 12px}.kpis{grid-template-columns:1fr 1fr!important}}
+@media(max-width:560px){.four{grid-template-columns:1fr}}
 #ipKpi b{font-size:15px}
 </style></head><body>
 <div class="wrap">
@@ -262,6 +265,37 @@ table.spec{width:100%;border-collapse:collapse;font-size:13px}table.spec td{padd
     </div></div>
     <div class="part"><div class="num">3</div><div class="body"><h4>Say this to the client</h4><div class="say" id="spSay"></div></div></div>
     <div class="part"><div class="num">4</div><div class="body"><h4>Watch out</h4><div class="watch" id="spWatch"></div></div></div>
+  </div>
+</div>
+
+<!-- ============ LIVE: DESIGN THINKING (architect · interior designer · lighting designer) ============ -->
+<div id="thinkv" class="hidden">
+  <div class="crumb" onclick="back()">◀ All lessons · Design thinking</div>
+  <div class="card">
+    <div class="hero"><div><span class="pill">Live · 8 min</span><h2 style="margin-top:6px">Three minds, one space</h2></div><span class="m">Light the same space yourself and see it through the eyes of the architect, the interior designer and the lighting designer</span></div>
+    <div class="row" style="margin-top:12px" id="thProj"></div>
+    <div class="part"><div class="num">1</div><div class="body"><h4>In one line</h4><div id="thLine"></div></div></div>
+    <div class="part" id="thP2"><div class="num">2</div><div class="body"><h4>See it – build the light layer by layer</h4>
+      <div class="row" id="thTime" style="margin-bottom:6px"></div>
+      <div class="stage"><svg id="thSvg" viewBox="0 0 760 400"></svg></div>
+      <div class="row" id="thAmb" style="margin-top:8px"></div>
+      <div class="ctl" id="thCtl"></div>
+      <div class="row" id="thOpt" style="margin-top:10px"></div>
+      <div class="kpis" id="thKpi" style="grid-template-columns:repeat(auto-fit,minmax(110px,1fr))"></div>
+    </div></div>
+    <div class="part" id="thP3"><div class="num">3</div><div class="body"><h4>How each of them judges your design</h4>
+      <div class="three" id="thJudge"></div><div class="m" id="thVerdict" style="font-size:13px;margin-top:8px"></div>
+    </div></div>
+    <div class="part" id="thP4"><div class="num">4</div><div class="body"><h4>Inside their heads</h4>
+      <div class="row" id="thRoleB" style="margin-bottom:8px"></div><div class="info" id="thRole" style="min-height:0"></div></div></div>
+    <div class="part" id="thP5"><div class="num">5</div><div class="body"><h4>The design journey – who thinks what, and when we step in</h4>
+      <div class="row" id="thStgB" style="margin-bottom:8px"></div><div class="four" id="thStg"></div></div></div>
+    <div class="part" id="thP6"><div class="num">6</div><div class="body"><h4>Speak their language – tap a phrase</h4>
+      <div class="row" id="thLangB" style="margin-bottom:8px"></div><div class="phr" id="thLang"></div></div></div>
+    <div class="part" id="thP7"><div class="num">7</div><div class="body"><h4>Resolve the conflict – pick the best solution</h4>
+      <div class="row" id="thCfB" style="margin-bottom:8px"></div><div id="thCf"></div></div></div>
+    <div class="part"><div class="num">8</div><div class="body"><h4>Say this</h4><div class="say" id="thSay"></div></div></div>
+    <div class="part"><div class="num">9</div><div class="body"><h4>Watch out</h4><div class="watch">These are <b>typical</b> ways of thinking, not rules – every architect and designer is different. Ask, listen and read their drawings before you propose a fitting. Never undermine the designer in front of the client: win the specification <b>with</b> them, not against them – and never swap a specified fitting for a “cheaper equal” without showing the photometry, CRI and glare data side by side.</div></div></div>
   </div>
 </div>
 
@@ -1532,6 +1566,261 @@ add('sport', 'Topics', 's_ops', '⚙️', 'Masts, controls & operation', {
   say: '“Training at half power, matches at full and a light show for events – all from one tablet, and the lights are back instantly after a power dip.”',
   watch: 'Plan safe maintenance access (mast platforms or lowering systems) – a 45 m mast without access makes every driver change a crane hire.',
   quiz: [Q('A big LED advantage over metal halide is…', ['instant on with no restrike delay', 'warm-up time', 'heavier fittings'], 0), Q('Training scenes typically run at…', ['reduced output (e.g. 50%)', '150%', 'only at night'], 0), Q('On very tall masts plan…', ['safe maintenance access', 'no access at all', 'only one fitting'], 0)] });
+// ================================================================ DESIGN THINKING – architect, interior designer, lighting designer (same room, three ways of judging it)
+const THP = {
+  lobby: { name: 'Hotel lobby', icon: '🛎️', task: 'reception counter', taskT: 300, amb: { day: [100, 450], eve: [50, 160] }, cct: [2700, 3000], acc: [3, 12], deco: 'key', vMin: 120, ugr: 22, wMax: 10, ceil: 6, nDown: 12, day: 350, cri: 90, tMax: 320, aMax: 1400, tVis: 0, aVis: 4,
+    wall: ['#d8c8b0', '#cdbb9f'], floor: '#8a6a4a', ceilC: '#ece6dc',
+    line: 'A hotel lobby is the first impression of the brand. The <b>architect</b> sees a volume with daylight and a calm ceiling, the <b>interior designer</b> sees warm materials, art and a hero chandelier, and the <b>lighting designer</b> must give 300 lx at the counter, glow on the walls and scenes from morning to midnight – all at once.',
+    say: '“We keep the ceiling clean with a hidden cove, warm 2700 K Ra 90 light on the stone and wood, accent on the art and a dimming scene for the evening – the chandelier stays the hero.”' },
+  office: { name: 'Open-plan office', icon: '💼', task: 'desks', taskT: 500, amb: { day: [300, 600], eve: [300, 600] }, cct: [3500, 4500], acc: [1, 3], deco: 'no', vMin: 150, ugr: 19, wMax: 9, ceil: 12, nDown: 18, day: 300, cri: 80, tMax: 350, aMax: 600, tVis: 0, aVis: 4,
+    wall: ['#e2e5ea', '#d6dae0'], floor: '#7d838c', ceilC: '#f3f3f3',
+    line: 'In an office the <b>lighting designer</b> leads with numbers – 500 lx on the desks, UGR below 19 and good wall brightness. The <b>architect</b> wants clean lines that follow the building grid and daylight first, and the <b>interior designer</b> wants it to feel human – not a flat, cold, clinical box.',
+    say: '“Linear up/down pendants follow the building grid, give 500 lx with UGR below 19 and light the ceiling so the office feels open – and daylight dimming cuts the bill.”' },
+  restaurant: { name: 'Restaurant', icon: '🍽️', task: 'tables', taskT: 150, amb: { day: [100, 260], eve: [30, 110] }, cct: [2200, 2700], acc: [3, 15], deco: 'key', vMin: 50, ugr: 22, wMax: 10, ceil: 8, nDown: 12, day: 250, cri: 90, tMax: 220, aMax: 900, tVis: 4, aVis: 4,
+    wall: ['#7a5640', '#6b4a36'], floor: '#4a3426', ceilC: '#3f332b',
+    line: 'A restaurant is sold on <b>mood</b>. The <b>interior designer</b> leads – warm, dark wood, glowing pendants and a lit bar. The <b>lighting designer</b> makes sure the food and faces look good on the tables, and the <b>architect</b> wants the space to read clearly without a field of downlights.',
+    say: '“Warm 2700 K pendants are the mood, hidden narrow spots put the light on the plates, the bar back is the focal point, and an evening scene dims everything down in one touch.”' },
+  retail: { name: 'Fashion store', icon: '👗', task: 'displays', taskT: 750, amb: { day: [300, 650], eve: [300, 650] }, cct: [3000, 4000], acc: [3, 6], deco: 'nice', vMin: 250, ugr: 22, wMax: 16, ceil: 20, nDown: 24, day: 100, cri: 90, tMax: 900, aMax: 2200, tVis: 8, aVis: 6,
+    wall: ['#f2f2f2', '#e6e6e6'], floor: '#cfc8bd', ceilC: '#fafafa',
+    line: 'A shop sells with light. The <b>lighting designer</b> builds contrast – bright displays and walls, softer aisles, accent on the hero mannequin. The <b>interior designer</b> cares about true colours of the fabric and the brand look, the <b>architect</b> about a clean ceiling instead of a forest of spots.',
+    say: '“Ra 90+ spots make the fabric colours true, the wall displays are washed so the whole shop looks bright from the street, and the hero mannequin gets 4–5 times the light of the aisle.”' },
+};
+const THAT = { down: ['Downlight grid', 450, 0.55, 0.25], cove: ['Hidden cove (indirect)', 260, 0.3, 0.7], line: ['Linear up/down pendants', 520, 0.6, 0.45] }; // [name, max lux, utilisation, vertical share]
+const thBase = () => ({ at: 'down', amb: 70, task: 0, acc: 0, wall: 0, deco: 0, blind: 30, cct: 4000, cri: 80, scn: false });
+const THGOOD = {
+  lobby: { at: 'cove', amb: 60, task: 70, acc: 60, wall: 45, deco: 60, blind: 80, cct: 2700, cri: 90, scn: true },
+  office: { at: 'line', amb: 75, task: 40, acc: 0, wall: 50, deco: 0, blind: 80, cct: 4000, cri: 80, scn: true },
+  restaurant: { at: 'cove', amb: 30, task: 70, acc: 60, wall: 25, deco: 80, blind: 70, cct: 2700, cri: 90, scn: true },
+  retail: { at: 'line', amb: 70, task: 80, acc: 70, wall: 70, deco: 40, blind: 60, cct: 3500, cri: 90, scn: true },
+};
+let thK = 'lobby', thT = 'day', thR = 'ld', thSt = 0, thLg = 'arch', thC = 0, thPick = {}; const THS = {};
+const thS = () => (THS[thK] = THS[thK] || thBase());
+function thCalc(k, s, t) {
+  const p = THP[k], A = THAT[s.at], lmW = s.cri >= 90 ? 97 : 110, f = (x) => x / 100;
+  const dayE = t === 'day' ? p.day * f(s.blind) : 0, eve = s.scn && t === 'eve' && p.amb.eve[1] < p.amb.day[1] ? 0.55 : 1, eInst = A[1] * f(s.amb);
+  // with scenes: daylight dimming in the day, an evening scene in hotels and restaurants
+  const eAmb = s.scn && t === 'day' ? eInst - Math.min(dayE * 0.7, eInst * 0.6) : eInst * eve, wl = f(s.wall) * eve, tk = f(s.task);
+  const eh = eAmb + 40 * wl + 20 * f(s.deco) + dayE, task = eh + p.tMax * tk, acc = p.aMax * f(s.acc), ratio = (eh + acc) / Math.max(eh, 1);
+  const v = eAmb * A[3] + 350 * wl + 30 * f(s.deco) + dayE * 0.5, ceil = (s.at === 'cove' ? eAmb * 1.3 : s.at === 'line' ? eAmb * 0.6 : eAmb * 0.08) + 60 * wl + 40 * f(s.deco) + dayE * 0.3;
+  const vis = (s.at === 'down' && s.amb > 0 ? p.nDown : s.at === 'line' && s.amb > 0 ? 6 : 0) + (s.task > 0 ? p.tVis : 0) + (s.acc > 0 ? p.aVis : 0);
+  const ugr = Math.max(s.amb > 0 ? (s.at === 'down' ? 14 + 7 * f(s.amb) : s.at === 'line' ? 13 + 4 * f(s.amb) : 10) : 10, 10) + 1.5 * f(s.acc) + (k !== 'office' ? 2 : 4) * f(s.deco);
+  const lpd = eInst / (lmW * A[2]) + p.tMax * f(s.task) / (lmW * 0.6) * 0.25 + acc / (lmW * 0.7) * 0.06 + 3 * f(s.wall) + 2 * f(s.deco);
+  const layers = [s.amb, s.task, s.acc, s.wall, s.deco].filter((x) => x >= 20).length + (dayE > 0 && s.blind >= 50 ? 1 : 0);
+  return { eh, task, acc, ratio, v, ceil, vis, ugr, lpd, layers, dayE, use: lpd * (s.scn ? 0.65 : 1) };
+}
+const thCctName = (c) => c <= 2400 ? 'candle-warm' : c <= 3000 ? 'warm white' : c <= 3600 ? 'soft neutral' : c <= 4500 ? 'neutral white' : 'cool white';
+function thJudge(k, s, t, r) {
+  const p = THP[k], [aLo, aHi] = p.amb[t], o = (ok, y, n) => [ok, ok ? y : n];
+  const arch = [o(r.vis <= p.ceil, `Calm ceiling – ${r.vis} visible fittings`, `Busy ceiling – ${r.vis} fittings dotted around (they want ≤ ${p.ceil})`),
+    o(s.wall >= 30 || (s.at === 'cove' && s.amb >= 30), 'Walls and volume are revealed', 'Walls go dark – the space looks flat and smaller'),
+    o(s.at !== 'down' || s.amb === 0, 'Light is part of the architecture (coves / lines)', 'Random dots – the light ignores the architecture'),
+    t === 'day' ? o(s.blind >= 60, 'Daylight and the view are brought in', 'Blinds down – the daylight and view are lost') : o(s.wall >= 30 || s.deco >= 30, 'The building glows and reads from outside at night', 'At night the building looks dead from outside'),
+    o(r.lpd <= p.wMax, `${r.lpd.toFixed(1)} W/m² – inside the green-building target`, `${r.lpd.toFixed(1)} W/m² – over the ${p.wMax} W/m² target`)];
+  const int = [o(s.cct >= p.cct[0] && s.cct <= p.cct[1], `${s.cct} K ${thCctName(s.cct)} – right mood for a ${p.name.toLowerCase()}`, s.cct > p.cct[1] ? `${s.cct} K feels cold and clinical here (they want ${p.cct[0]}–${p.cct[1]} K)` : `${s.cct} K is too yellow here (they want ${p.cct[0]}–${p.cct[1]} K)`),
+    o(s.cri >= p.cri, `Ra ${s.cri} – materials, fabric and skin look true`, `Ra ${s.cri} – wood, fabric and skin look dull`),
+    o(r.eh >= aLo && r.eh <= aHi, 'The brightness fits the mood', r.eh > aHi ? 'Over-lit – it feels like a supermarket' : 'Too dark and gloomy'),
+    p.acc[0] >= 3 ? o(s.acc >= 30, 'Art, displays and materials are highlighted', 'Nothing is highlighted – the décor disappears') : o(s.cct <= 4000 && (s.wall >= 30 || s.at !== 'down'), 'Soft and human – not a cold box', 'Flat and clinical – it looks like a hospital')];
+  if (p.deco === 'key') int.push(o(s.deco >= 40, 'The decorative hero pieces shine', 'Where is the chandelier / feature pendant?'));
+  else if (p.deco === 'nice' && s.deco >= 20) int.push([true, 'A decorative feature adds character']);
+  const ld = [o(r.task >= p.taskT, `${Math.round(r.task)} lx on the ${p.task} (target ${p.taskT})`, `Only ${Math.round(r.task)} lx on the ${p.task} (target ${p.taskT})`),
+    o(r.v >= p.vMin, `Walls lit (${Math.round(r.v)} lx) – the space feels bright`, `Dark walls (${Math.round(r.v)} lx) – the cave effect`),
+    o(r.layers >= 3, `${r.layers} layers of light`, `Only ${r.layers} layer${r.layers === 1 ? '' : 's'} – flat, one-note light`),
+    o(r.ratio >= p.acc[0] && r.ratio <= p.acc[1], `Contrast ${r.ratio.toFixed(1)} : 1 – a clear hierarchy`, r.ratio < p.acc[0] ? `Contrast ${r.ratio.toFixed(1)} : 1 – nothing stands out (aim ${p.acc[0]}–${p.acc[1]} : 1)` : `Contrast ${r.ratio.toFixed(1)} : 1 – too harsh (aim ${p.acc[0]}–${p.acc[1]} : 1)`),
+    o(r.ugr <= p.ugr, `Glare UGR ≈ ${Math.round(r.ugr)} – comfortable`, `Glare UGR ≈ ${Math.round(r.ugr)} – over ${p.ugr}`),
+    o(s.scn, 'Scenes, dimming and daylight control', 'One switch – no scenes, no dimming'),
+    o(r.lpd <= p.wMax, `${r.lpd.toFixed(1)} W/m² – efficient`, `${r.lpd.toFixed(1)} W/m² – too much power`)];
+  const sc = (l) => Math.round(100 * l.filter((x) => x[0]).length / l.length);
+  return { arch: [sc(arch), arch], int: [sc(int), int], ld: [sc(ld), ld] };
+}
+const THROLE = {
+  arch: { icon: '📐', name: 'Architect', q: '“How does the light reveal the building – and where does it live?”',
+    thinks: 'Space, volume, form, daylight, structure, the ceiling plan and the façade at night. Light is a building material – it should be <b>integrated</b>, not added.',
+    words: 'Clean ceiling · integrated · shadow gap · reveal the form · daylight first · read at night · grid · alignment',
+    fears: 'A ceiling full of random dots, fittings that clash with the setting-out, ugly surface boxes, a dead façade at night.',
+    need: 'Small, trimless or hidden fittings, coves and slot profiles, sections and details, BIM objects, consistent CCT across the whole building.',
+    proj: { lobby: 'The double-height volume and the daylight from the entrance – the ceiling must stay calm and the walls must glow.', office: 'Linear lines that follow the column grid; daylight first and the ceiling plan coordinated with air and sprinklers.', restaurant: 'A clear reading of the room and the bar – no field of downlights fighting the timber ceiling.', retail: 'A clean shopfront and ceiling – the shop must read from the street, and the track must follow the grid.' } },
+  int: { icon: '🎨', name: 'Interior designer', q: '“How will it feel – and will my materials look the way I chose them?”',
+    thinks: 'Mood, atmosphere, colour, texture, finishes, furniture and the brand story. Light is the final layer that makes the materials and the décor come alive.',
+    words: 'Warm · cosy · luxurious · mood · hero piece · materials must sing · statement · Instagrammable',
+    fears: 'Cold, flat light, dull colours, a “supermarket” feeling, decorative pieces that look cheap or are cut in value engineering.',
+    need: 'Mood images and samples to see in hand, warm CCT and Ra 90+, decorative pendants and wall lights, finishes and colours of the fittings.',
+    proj: { lobby: 'Warm stone and wood, a statement chandelier and art lit like in a gallery – “five-star from the first step”.', office: 'A human, comfortable workplace – some warmth, softness on the walls, breakout areas that feel like a café.', restaurant: 'Candle-warm glow, pendants over every table, a glowing bar and faces that look good.', retail: 'True colours of the fabric, the brand look, and a hero display that sells.' } },
+  ld: { icon: '💡', name: 'Lighting designer', q: '“Who uses this space, when, and what do they need to see?”',
+    thinks: 'People and tasks first, then <b>layers</b>: ambient, task, accent, decorative – plus vertical surfaces, contrast, glare, controls, standards, energy and maintenance.',
+    words: 'Layers · hierarchy · contrast ratio · vertical illuminance · UGR · scenes · beam angle · binning · uniformity',
+    fears: 'Glare, uneven light, wrong beam angles, mixed colour temperatures, cheap “equals” in tender, no controls, poor maintenance access.',
+    need: 'Photometry (IES / LDT files), accurate datasheets, beam and CCT options, glare data, samples for mock-ups, control integration and honest technical answers.',
+    proj: { lobby: '300 lx at the counter, light on the walls, accent 5–10 : 1 on the art and a day / evening / night scene.', office: '500 lx on the desks with UGR < 19, wall and ceiling brightness, daylight dimming and presence detection.', restaurant: '150 lx on the plates, faces at the table, a 2700 K Ra 90 palette and an evening scene.', retail: '750 lx+ on displays, 3–6 : 1 contrast, washed walls and Ra 90+ with good R9 for fabrics.' } },
+};
+const THSTG = [
+  ['Brief & concept', 'Massing, daylight, ceiling heights, the façade – where light can live in the building.', 'Mood boards, materials, colours and the brand story.', 'Who uses the space, when and for what – the lighting concept and its layers.', 'Listen first. Bring inspiration – reference projects, a short mood deck. Do not send a catalogue.'],
+  ['Schematic design', 'Reflected ceiling plan zones, coves and slots in the sections.', 'Decorative pieces, finishes, furniture layout.', 'Concept sketches, lux targets, generic fitting types, control intent.', 'Generic fitting families, a first DIALux, a budget range – help them make the concept real.'],
+  ['Detailed design', 'Coordination with structure and MEP, cove details, ceiling setting-out.', 'Final finishes, sample approvals, custom decorative pieces.', 'Final calculations, specification, aiming, the control schedule and scenes.', 'Datasheets, IES / LDT files, BIM objects, samples and a mock-up – this is where the specification is won.'],
+  ['Tender & value engineering', 'Protect the design intent and the clean ceiling.', 'Fight to keep the decorative pieces and the warm light.', 'Check every “equal” – photometry, CRI, binning, glare, driver.', 'Offer honest equals and VE options that keep the effect. Never swap blindly – it ends the relationship.'],
+  ['Site & installation', 'Ceiling finish, alignment of lines and fittings.', 'Placement of the decorative pieces and final styling.', 'Site visits, checking fittings, cut-outs and cables.', 'On-time delivery, technical support, installation guidance and quick answers.'],
+  ['Commissioning & handover', 'Final photos of the building by night.', 'Final styling and photos for the portfolio.', 'Aiming at night, scene programming, measurements.', 'Commissioning, training, O&M manuals – and ask for the photos: it becomes a project reference.'],
+];
+const THLANG = {
+  arch: [['“I want the ceiling to float.”', 'A shadow gap or perimeter cove with indirect light, so the ceiling edge glows.', 'Linear LED in a cove profile with an asymmetric optic, 2700–3000 K.'], ['“No visible fittings.”', 'Light from hidden sources – slots, coves, trimless or small-aperture recessed.', 'Trimless deep-recessed downlights, slot profiles, cove LED.'], ['“Express the structure.”', 'Graze the columns, beams and textured walls to show the form.', 'Narrow-beam grazers close to the surface, linear wall grazers.'], ['“Clean lines.”', 'Continuous lines aligned with the architecture, not dots.', 'Continuous linear systems with the same CCT across every run.'], ['“Let the building read at night.”', 'Show the form of the façade – not flood it.', 'Linear grazers, small accent projectors, warm white, curfew dimming.'], ['“Daylight first.”', 'Use daylight, add artificial light only where it is missing.', 'Daylight sensors, DALI dimming, tunable white.']],
+  int: [['“Warm and cosy.”', '2700 K or lower, low ambient light, pools of light.', '2700 K Ra 90, dim-to-warm, table and accent lights.'], ['“The materials must sing.”', 'High colour rendering and light that shows texture.', 'Ra 90+ with R9 > 50, grazing light on textured walls.'], ['“Make it feel luxurious.”', 'Contrast, sparkle and soft glow – not even brightness everywhere.', 'Accent 5 : 1, decorative crystal or glass pendants, low-glare spots.'], ['“It must not look like an office.”', 'No flat, cool, uniform light from panels.', 'Warm deep-recessed downlights, wall lights, cove light.'], ['“A hero piece.”', 'One statement decorative fitting.', 'A custom decorative pendant or chandelier, with hidden functional light around it.'], ['“Instagrammable.”', 'Strong focal points that photograph well.', 'Accent and backlit features with flicker-free drivers for phone cameras.']],
+  ld: [['“Layer the light.”', 'Combine ambient, task, accent and decorative light.', 'A mix of fitting families on controls with scenes.'], ['“Light the vertical surfaces.”', 'Walls make a room feel bright – not the floor.', 'Wall-washers, cove light, asymmetric downlights.'], ['“Control the glare.”', 'No bright source in the line of sight.', 'Deep-recessed darklight reflectors, honeycomb louvres, UGR < 19.'], ['“A 5 : 1 hierarchy.”', 'The most important object is five times brighter than its surroundings.', 'Narrow-beam spots, dimmable per circuit.'], ['“Scenes.”', 'Different light for different times and uses.', 'DALI or Casambi scenes, dimming, presence and daylight control.'], ['“Tight binning.”', 'All LEDs the same colour – no pink and green spots.', '≤ 3-step MacAdam binning, same production batch for the project.']],
+};
+const THCF = [
+  { t: 'Hotel lobby ceiling', sit: 'The <b>architect</b> wants a plain, dot-free plaster ceiling. The <b>lighting designer</b> needs 300 lx at the reception counter. The <b>interior designer</b> wants the chandelier to stay the hero.',
+    o: [['Add a grid of downlights anyway – the light level comes first.', [20, 45, 60], 'The numbers work, but the architect’s calm ceiling is lost and the chandelier competes with a field of dots.'],
+      ['Hidden cove for ambient light, a slot with narrow spots above the counter, table lamps on the counter – the chandelier stays the hero.', [90, 90, 90], 'Everyone wins: the ceiling stays clean, the counter gets its 300 lx and the chandelier is the only visible statement.'],
+      ['Leave it to the chandelier – it is bright enough.', [75, 70, 15], 'Beautiful at night, but the counter is dark, faces are lit from above only and the chandelier becomes a glare source.']], best: 1 },
+  { t: 'Restaurant tables', sit: 'The <b>interior designer</b> chose 2200 K filament pendants. The owner complains that the food looks dull and guests squint at the bare lamps.',
+    o: [['Replace the pendants with 4000 K panels so the food is visible.', [40, 5, 35], 'The mood is destroyed, and the interior designer will fight it – rightly.'],
+      ['Keep the pendants dimmed as the mood layer, add hidden 2700 K Ra 90 narrow spots onto each table, put a scene on DALI.', [85, 90, 95], 'The pendants keep the mood, the plates get crisp light with good colour, and the glare drops because the pendants are dimmed.'],
+      ['Put brighter lamps in the pendants.', [60, 50, 15], 'More glare, still poor colour – the bare lamps are now even more dazzling.']], best: 1 },
+  { t: 'Office with a concrete soffit', sit: 'The <b>architect</b> wants the exposed concrete ceiling to stay visible. The <b>interior designer</b> wants it to feel warm and homely. The <b>lighting designer</b> needs 500 lx and UGR < 19.',
+    o: [['Track spots everywhere for flexibility.', [35, 55, 20], 'Spots give glare and uneven light on desks – and a cluttered soffit.'],
+      ['Linear up/down pendants following the grid, 3500 K or tunable white, with light on the soffit.', [90, 80, 95], 'The lines respect the architecture, the uplight shows the concrete, the light is comfortable and the CCT is softer.'],
+      ['Uplights only, bounced off the concrete.', [70, 60, 30], 'Soft, but the dark concrete absorbs the light – desks stay dark and the energy use goes up.']], best: 1 },
+  { t: 'Value engineering in a store', sit: 'The contractor proposes to replace the specified 3000 K Ra 95 track spots with cheaper Ra 80 panels to save 30%.',
+    o: [['Accept it – the client wants to save money.', [40, 10, 15], 'The shop loses contrast and true colours – sales suffer, and the designers stop trusting us.'],
+      ['Keep the Ra 90+ spots on the displays and hero areas; save on the back-of-house and aisle ambient with efficient lines.', [85, 85, 90], 'Most of the saving stays, and the light that sells the product is protected – an honest VE.'],
+      ['Halve the number of spots without recalculating.', [55, 40, 25], 'Dark gaps on the walls and displays – the design falls apart.']], best: 1 },
+  { t: 'Façade at night', sit: 'The <b>architect</b> wants the building to read like a lantern. The <b>interior designer</b> wants warm light. The council worries about light pollution and the neighbours.',
+    o: [['Floodlights from the ground at full power all night.', [35, 40, 10], 'Glare, spill into the sky and the neighbours’ windows – and the architecture is flattened.'],
+      ['Warm linear grazers on the structure, the interior glow through the glass, dimmed after 23:00 on a schedule.', [95, 85, 90], 'The form reads, the light stays on the building and the curfew is respected.'],
+      ['RGB colour-changing light on the whole façade.', [25, 50, 40], 'It can be fun for events, but daily it fights the architecture and the brand.']], best: 1 },
+];
+const thPerc = (e, ref) => Math.max(0.1, Math.min(1, Math.pow(Math.max(e, 0) / ref, 0.5)));
+function thDraw(k, s, t, r) {
+  const p = THP[k], [cr, cg, cb] = k2rgb(s.cct), lc = (a) => `rgba(${cr},${cg},${cb},${a.toFixed(3)})`, f = (x) => x / 100, scr = 'style="mix-blend-mode:screen"';
+  const dark = (pts, b) => `<polygon points="${pts}" fill="#05070b" opacity="${(1 - b).toFixed(3)}"/>`;
+  const CE = '0,0 760,0 560,90 200,90', FL = '200,290 560,290 760,400 0,400', LW = '0,0 200,90 200,290 0,400', RW = '760,0 560,90 560,290 760,400', BW = '200,90 560,90 560,290 200,290';
+  let g = `<defs><radialGradient id="thG"><stop offset="0" stop-color="#fff" stop-opacity="1"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+    <linearGradient id="thWW" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${lc(1)}" stop-opacity=".9"/><stop offset="1" stop-color="${lc(1)}" stop-opacity=".15"/></linearGradient>
+    <linearGradient id="thCone" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${lc(1)}" stop-opacity=".55"/><stop offset="1" stop-color="${lc(1)}" stop-opacity="0"/></linearGradient></defs>`;
+  g += `<polygon points="${CE}" fill="${p.ceilC}"/><polygon points="${LW}" fill="${p.wall[1]}"/><polygon points="${RW}" fill="${p.wall[1]}"/><polygon points="${BW}" fill="${p.wall[0]}"/><polygon points="${FL}" fill="${p.floor}"/>`;
+  // window on the left wall
+  const sky = t === 'day' ? (s.blind > 0 ? '#bfe0ff' : '#9fb4c8') : '#0b1830';
+  g += `<polygon points="40,62 170,113 170,250 40,302" fill="${sky}"/><polygon points="40,62 170,113 170,${113 + (1 - f(s.blind)) * 137} 40,${62 + (1 - f(s.blind)) * 240}" fill="#c9c2b4" opacity="${t === 'day' ? 0.95 : 0.5}"/>`;
+  if (t === 'eve') g += '<circle cx="80" cy="120" r="1.5" fill="#fde68a"/><circle cx="120" cy="170" r="1.2" fill="#fde68a"/><circle cx="150" cy="150" r="1.4" fill="#fde68a"/>';
+  // furniture and objects per space
+  const O = {
+    lobby: '<rect x="330" y="122" width="100" height="70" fill="#8b5cf6"/><rect x="330" y="122" width="50" height="70" fill="#f59e0b" opacity=".8"/><circle cx="405" cy="150" r="16" fill="#0ea5e9" opacity=".8"/>' +
+      '<polygon points="295,248 465,248 475,262 285,262" fill="#e7dccb"/><rect x="285" y="262" width="190" height="42" fill="#5b4330"/><rect x="520" y="230" width="14" height="40" fill="#5b4330"/><circle cx="527" cy="218" r="22" fill="#3f6b3a"/>' +
+      '<polygon points="600,320 720,320 740,362 590,362" fill="#7c2d12"/><rect x="590" y="300" width="150" height="22" rx="8" fill="#9a3412"/>',
+    office: '<rect x="320" y="125" width="120" height="50" fill="#c8102e"/><text x="380" y="157" text-anchor="middle" font-size="20" font-weight="900" fill="#fff">BRAND</text>' +
+      [[250, 262, 260, 14], [190, 312, 380, 18]].map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#e5e7eb"/><rect x="${x}" y="${y + h}" width="${w}" height="6" fill="#9ca3af"/>` + [0.2, 0.45, 0.7].map((u) => `<rect x="${x + w * u}" y="${y - h * 1.6}" width="${w * 0.12}" height="${h * 1.4}" fill="#111827"/>`).join('')).join(''),
+    restaurant: '<rect x="300" y="120" width="160" height="95" fill="#2b1d14"/>' + [140, 170, 200].map((y) => `<rect x="300" y="${y}" width="160" height="3" fill="#a16207"/>`).join('') + [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => `<rect x="${308 + i * 15}" y="${[124, 154, 184][i % 3] + 2}" width="6" height="14" rx="2" fill="${['#16a34a', '#b45309', '#7c3aed', '#dc2626'][i % 4]}"/>`).join('') +
+      '<rect x="290" y="232" width="180" height="40" fill="#3b2a1e"/>' + [[255, 330, 50], [395, 352, 58], [560, 330, 50]].map(([x, y, rx]) => `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${rx * 0.28}" fill="#d6c3a5"/><rect x="${x - 3}" y="${y}" width="6" height="${rx * 0.6}" fill="#2b1d14"/>`).join(''),
+    retail: [0, 1, 2].map((i) => `<rect x="${215 + i * 115}" y="110" width="100" height="150" fill="#ffffff" stroke="#d1d5db"/>` + [0, 1, 2].map((j) => `<rect x="${222 + i * 115}" y="${125 + j * 45}" width="86" height="22" fill="${['#1d4ed8', '#be123c', '#a16207', '#0f766e', '#6d28d9', '#334155', '#ea580c', '#0891b2', '#4d7c0f'][i * 3 + j]}"/>`).join('')).join('') +
+      '<polygon points="320,300 460,300 480,330 300,330" fill="#e7e2da"/><rect x="300" y="330" width="180" height="16" fill="#a8a29e"/>' + [0, 1, 2, 3].map((i) => `<rect x="${330 + i * 34}" y="${302}" width="22" height="8" fill="${['#be123c', '#1d4ed8', '#f59e0b', '#0f766e'][i]}"/>`).join('') +
+      '<circle cx="625" cy="215" r="11" fill="#e5e7eb"/><polygon points="608,230 642,230 650,300 600,300" fill="#be123c"/><rect x="622" y="300" width="6" height="40" fill="#9ca3af"/><ellipse cx="625" cy="342" rx="22" ry="5" fill="#9ca3af"/>',
+  }[k];
+  g += O;
+  // brightness of each surface from the calculation
+  const flB = thPerc(r.eh, 420), wB = thPerc(r.v, 300), cB = thPerc(r.ceil, 260);
+  g += dark(CE, cB) + dark(LW, wB * 0.92) + dark(RW, wB * 0.92) + dark(BW, wB) + dark(FL, flB);
+  // daylight
+  if (t === 'day' && s.blind > 0) g += `<polygon points="170,${113 + (1 - f(s.blind)) * 137} 170,250 40,302 40,${62 + (1 - f(s.blind)) * 240}" fill="#e0f2fe" opacity=".85"/><polygon points="120,400 330,320 420,320 330,400" fill="#e0f2fe" opacity="${(0.28 * f(s.blind)).toFixed(3)}" ${scr}/>`;
+  // ambient
+  const A = f(s.amb);
+  if (s.amb > 0 && s.at === 'down') { const n = p.nDown, cols = n >= 18 ? 6 : 4, rows = Math.ceil(n / cols), pts = [];
+    for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) { const d = (j + 1) / (rows + 1), y = 90 - 80 * d, x0 = 200 - 200 * d, x1 = 560 + 200 * d; pts.push([x0 + (x1 - x0) * (i + 0.5) / cols, y, 1 - d * 0.5]); }
+    g += pts.slice(0, n).map(([x, y, sz]) => `<polygon points="${x - 4 * sz},${y} ${x + 4 * sz},${y} ${x + 45 * sz},${y + 230 + 70 * (1 - sz)} ${x - 45 * sz},${y + 230 + 70 * (1 - sz)}" fill="url(#thCone)" opacity="${(0.35 * A).toFixed(3)}" ${scr}/><ellipse cx="${x}" cy="${y}" rx="${7 * sz}" ry="${2.4 * sz}" fill="${lc(1)}" opacity="${(0.4 + 0.6 * A).toFixed(3)}"/>`).join(''); }
+  if (s.amb > 0 && s.at === 'cove') g += `<polygon points="0,0 760,0 560,90 200,90" fill="${lc(1)}" opacity="${(0.22 * A).toFixed(3)}" ${scr}/><polyline points="0,8 200,94 560,94 760,8" fill="none" stroke="${lc(1)}" stroke-width="${(3 + 4 * A).toFixed(1)}" opacity="${(0.5 + 0.5 * A).toFixed(3)}" ${scr}/><polyline points="0,8 200,94 560,94 760,8" fill="none" stroke="${lc(1)}" stroke-width="22" opacity="${(0.18 * A).toFixed(3)}" ${scr}/>`;
+  if (s.amb > 0 && s.at === 'line') g += [[48, 120, 640], [72, 210, 550]].map(([y, x0, x1]) => `<line x1="${x0 + 30}" y1="0" x2="${x0 + 30}" y2="${y}" stroke="#94a3b8"/><line x1="${x1 - 30}" y1="0" x2="${x1 - 30}" y2="${y}" stroke="#94a3b8"/><ellipse cx="${(x0 + x1) / 2}" cy="${y - 14}" rx="${(x1 - x0) / 2}" ry="22" fill="url(#thG)" opacity="${(0.35 * A).toFixed(3)}" ${scr}/><polygon points="${x0},${y + 4} ${x1},${y + 4} ${x1 + 60},${y + 230} ${x0 - 60},${y + 230}" fill="url(#thCone)" opacity="${(0.3 * A).toFixed(3)}" ${scr}/><rect x="${x0}" y="${y}" width="${x1 - x0}" height="5" rx="2" fill="#1f2937"/><rect x="${x0}" y="${y + 4}" width="${x1 - x0}" height="2" fill="${lc(1)}" opacity="${(0.5 + 0.5 * A).toFixed(3)}"/>`).join('');
+  // wall-wash
+  if (s.wall > 0) { const W = f(s.wall); g += `<polygon points="${BW}" fill="url(#thWW)" opacity="${(0.55 * W).toFixed(3)}" ${scr}/><polygon points="${RW}" fill="url(#thWW)" opacity="${(0.35 * W).toFixed(3)}" ${scr}/>` + [0, 1, 2, 3, 4, 5].map((i) => `<rect x="${215 + i * 60}" y="${80 - 0}" width="16" height="3" fill="${lc(1)}"/>`).join(''); }
+  // task light pools
+  if (s.task > 0) { const T = f(s.task), P = { lobby: [[380, 255, 95, 14]], office: [[380, 266, 135, 14], [380, 318, 195, 18]], restaurant: [[255, 330, 55, 16], [395, 352, 64, 18], [560, 330, 55, 16]], retail: [[265, 185, 50, 75], [380, 185, 50, 75], [495, 185, 50, 75], [390, 312, 95, 16]] }[k];
+    g += P.map(([x, y, rx, ry]) => `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="url(#thG)" opacity="${(0.55 * T).toFixed(3)}" ${scr}/>`).join('');
+    if (k === 'lobby') g += [310, 450].map((x) => `<rect x="${x - 2}" y="236" width="4" height="12" fill="#1f2937"/><polygon points="${x - 10},236 ${x + 10},236 ${x + 6},226 ${x - 6},226" fill="${lc(1)}" opacity="${(0.5 + 0.5 * T).toFixed(3)}"/>`).join(''); }
+  // accent
+  if (s.acc > 0) { const C = f(s.acc), [x, y, rx, ry, sx, sy] = { lobby: [380, 157, 62, 44, 380, 40], office: [380, 150, 72, 34, 380, 40], restaurant: [380, 168, 92, 58, 380, 40], retail: [625, 265, 42, 82, 640, 20] }[k];
+    g += `<polygon points="${sx - 3},${sy} ${sx + 3},${sy} ${x + rx},${y} ${x - rx},${y}" fill="url(#thCone)" opacity="${(0.4 * C).toFixed(3)}" ${scr}/><ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="url(#thG)" opacity="${(0.25 + 0.6 * C).toFixed(3)}" ${scr}/><circle cx="${sx}" cy="${sy}" r="4" fill="${lc(1)}"/>`; }
+  // decorative
+  if (s.deco > 0) { const D = f(s.deco), glow = (x, y, rr) => `<circle cx="${x}" cy="${y}" r="${rr * 3.2}" fill="url(#thG)" opacity="${(0.45 * D).toFixed(3)}" ${scr}/><circle cx="${x}" cy="${y}" r="${rr}" fill="${lc(1)}" opacity="${(0.5 + 0.5 * D).toFixed(3)}" stroke="#fff7d6" stroke-width=".8"/>`;
+    if (k === 'lobby') g += '<line x1="380" y1="0" x2="380" y2="40" stroke="#a3a3a3"/>' + [[380, 52, 9], [358, 58, 6], [402, 58, 6], [345, 70, 5], [415, 70, 5], [370, 74, 5], [390, 74, 5]].map(([x, y, rr]) => glow(x, y, rr)).join('');
+    else if (k === 'restaurant') g += [[255, 250], [395, 268], [560, 250]].map(([x, y]) => `<line x1="${x}" y1="0" x2="${x}" y2="${y - 10}" stroke="#a3a3a3"/>` + glow(x, y, 8)).join('');
+    else g += `<line x1="660" y1="0" x2="660" y2="80" stroke="#a3a3a3"/><ellipse cx="660" cy="88" rx="44" ry="9" fill="none" stroke="${lc(1)}" stroke-width="4" opacity="${(0.5 + 0.5 * D).toFixed(3)}"/><ellipse cx="660" cy="88" rx="70" ry="30" fill="url(#thG)" opacity="${(0.35 * D).toFixed(3)}" ${scr}/>`; }
+  g += `<text x="752" y="392" text-anchor="end" font-size="11" fill="#e5e7eb" opacity=".8">${p.name} · ${t === 'day' ? 'day' : 'evening'} · ${s.cct} K · Ra ${s.cri}</text>`;
+  $('thSvg').innerHTML = g;
+}
+function thUI() {
+  const s = thS();
+  $('thProj').innerHTML = Object.entries(THP).map(([k, p]) => `<span class="btn ${k === thK ? 'on' : ''}" onclick="thK='${k}';thUI()">${p.icon} ${p.name}</span>`).join('');
+  $('thLine').innerHTML = THP[thK].line; $('thSay').textContent = THP[thK].say;
+  $('thTime').innerHTML = [['day', '☀️ Day'], ['eve', '🌙 Evening']].map(([v, n]) => `<span class="btn ${v === thT ? 'on' : ''}" style="padding:4px 9px;font-size:12px" onclick="thT='${v}';thUI()">${n}</span>`).join('') + '<span style="flex:1"></span><span class="btn" style="padding:4px 9px;font-size:12px" onclick="THS[thK]=thBase();thUI()">↺ A typical first idea</span><span class="btn p" style="padding:4px 9px;font-size:12px" onclick="THS[thK]={...THGOOD[thK]};thUI()">Show the lighting designer’s version</span>';
+  $('thAmb').innerHTML = '<span class="m" style="font-size:12px">Ambient light from:</span>' + Object.entries(THAT).map(([k, a]) => `<span class="btn ${k === s.at ? 'on' : ''}" style="padding:4px 9px;font-size:12px" onclick="thS().at='${k}';thUI()">${a[0]}</span>`).join('');
+  const sl = (key, label, mi, ma, st, u, hint) => `<div><label>${label} <b id="thv_${key}"></b></label><input type="range" min="${mi}" max="${ma}" step="${st}" value="${s[key]}" oninput="thS().${key}=+this.value;th()"><div class="m" style="font-size:11px">${hint}</div></div>`;
+  const tk = THP[thK].task;
+  $('thCtl').innerHTML = sl('amb', 'Ambient', 0, 100, 5, '%', 'General light for moving around') + sl('task', 'Task', 0, 100, 5, '%', `Extra light on the ${tk}`) + sl('acc', 'Accent', 0, 100, 5, '%', 'Spots on art, displays, the bar') + sl('wall', 'Wall-wash', 0, 100, 5, '%', 'Light on the vertical surfaces') + sl('deco', 'Decorative', 0, 100, 5, '%', 'Chandelier, pendants – the sparkle') + sl('blind', 'Blinds open (daylight)', 0, 100, 10, '%', 'Daylight in the day scene') + sl('cct', 'Colour temperature', 2200, 5000, 100, ' K', 'Warm ↔ cool');
+  $('thOpt').innerHTML = `<span class="m" style="font-size:12px">Colour rendering:</span>${[80, 90].map((c) => `<span class="btn ${c === s.cri ? 'on' : ''}" style="padding:4px 9px;font-size:12px" onclick="thS().cri=${c};th()">Ra ${c}${c === 90 ? '+' : ''}</span>`).join('')}<span class="btn ${s.scn ? 'on' : ''}" style="padding:4px 9px;font-size:12px" onclick="thS().scn=!thS().scn;thUI()">${s.scn ? '✓ ' : ''}Scenes & dimming (DALI)</span>`;
+  thRole(); thStage(); thLang(); thConf(); th();
+}
+function th() {
+  const s = thS(), p = THP[thK], r = thCalc(thK, s, thT), J = thJudge(thK, s, thT, r);
+  for (const k of ['amb', 'task', 'acc', 'wall', 'deco', 'blind']) $('thv_' + k).textContent = s[k] + '%'; $('thv_cct').textContent = s.cct + ' K';
+  $('thOpt').querySelectorAll('.btn').forEach((b, i) => i < 2 && b.classList.toggle('on', [80, 90][i] === s.cri));
+  thDraw(thK, s, thT, r);
+  const [aLo, aHi] = p.amb[thT];
+  $('thKpi').innerHTML = `<div><b>${Math.round(r.task)} lx</b>on the ${p.task} (target ${p.taskT})</div><div><b>${Math.round(r.eh)} lx</b>general (${aLo}–${aHi})</div><div><b>${Math.round(r.v)} lx</b>on the walls</div><div><b>${r.ratio.toFixed(1)} : 1</b>accent contrast</div><div><b>≈ ${Math.round(r.ugr)}</b>glare (UGR)</div><div><b>${r.vis}</b>visible ceiling fittings</div><div><b>${r.lpd.toFixed(1)}</b>W/m² installed${s.scn ? ` · ≈ ${r.use.toFixed(1)} in use` : ''}</div><div><b>${r.layers}</b>layers of light</div>`;
+  const col = (v) => v >= 80 ? 'var(--good)' : v >= 50 ? 'var(--warn)' : '#b91c1c';
+  $('thJudge').innerHTML = ['arch', 'int', 'ld'].map((k) => { const [v, l] = J[k], R = THROLE[k]; return `<div class="info" style="min-height:0"><h5>${R.icon} ${R.name} <span style="float:right;color:${col(v)}">${v}%</span></h5><div class="bar" style="width:100%;height:6px;margin:4px 0 8px"><i style="width:${v}%;background:${col(v)}"></i></div>${l.map(([ok, tx]) => `<div style="font-size:12.5px;margin:3px 0"><b style="color:${ok ? 'var(--good)' : '#b91c1c'}">${ok ? '✓' : '✕'}</b> ${tx}</div>`).join('')}</div>`; }).join('');
+  const all = ['arch', 'int', 'ld'].map((k) => J[k][0]), lo = Math.min(...all), who = ['arch', 'int', 'ld'][all.indexOf(lo)];
+  $('thVerdict').innerHTML = lo >= 80 ? '<b style="color:var(--good)">✓ All three are happy</b> – this is the design that gets specified, built and photographed.' : `<b>${THROLE[who].icon} The ${THROLE[who].name.toLowerCase()} is least happy (${lo}%)</b> – look at the ✕ lines. A good design works for all three, not only one.`;
+}
+function thRole() {
+  $('thRoleB').innerHTML = Object.entries(THROLE).map(([k, R]) => `<span class="btn ${k === thR ? 'on' : ''}" onclick="thR='${k}';thRole()">${R.icon} ${R.name}</span>`).join('');
+  const R = THROLE[thR];
+  $('thRole').innerHTML = `<h5>${R.icon} ${R.name}</h5><div style="font-size:15px;margin:2px 0 6px"><i>${R.q}</i></div><div class="k">Thinks in</div>${R.thinks}<div class="k">In this ${THP[thK].name.toLowerCase()}</div>${R.proj[thK]}<div class="k">Words you will hear</div>${R.words}<div class="k">Afraid of</div>${R.fears}<div class="k">What they need from us</div>${R.need}`;
+}
+function thStage() {
+  $('thStgB').innerHTML = THSTG.map((x, i) => `<span class="btn ${i === thSt ? 'on' : ''}" style="padding:4px 9px;font-size:12px" onclick="thSt=${i};thStage()">${i + 1}. ${x[0]}</span>`).join('');
+  const x = THSTG[thSt];
+  $('thStg').innerHTML = [['📐 Architect', x[1]], ['🎨 Interior designer', x[2]], ['💡 Lighting designer', x[3]], ['🤝 DIMO – what we bring', x[4]]].map(([h, t], i) => `<div class="info" style="min-height:0;${i === 3 ? 'border-color:var(--red);background:#fff5f6' : ''}"><h5 style="font-size:14px">${h}</h5><div style="font-size:13px">${t}</div></div>`).join('');
+}
+function thLang() {
+  $('thLangB').innerHTML = Object.entries(THROLE).map(([k, R]) => `<span class="btn ${k === thLg ? 'on' : ''}" style="padding:4px 9px;font-size:12px" onclick="thLg='${k}';thLang()">${R.icon} The ${R.name.toLowerCase()} says…</span>`).join('');
+  $('thLang').innerHTML = THLANG[thLg].map(([ph, mean, off]) => `<details><summary>${ph}</summary><div><b>They mean:</b> ${mean}</div><div style="margin-top:4px"><b>We offer:</b> ${off}</div></details>`).join('');
+}
+function thConf() {
+  $('thCfB').innerHTML = THCF.map((c, i) => `<span class="btn ${i === thC ? 'on' : ''}" style="padding:4px 9px;font-size:12px" onclick="thC=${i};thConf()">${c.t}</span>`).join('');
+  const c = THCF[thC], pk = thPick[thC];
+  $('thCf').innerHTML = `<div style="margin-bottom:6px">${c.sit}</div>` + [0, 1, 2].map((j) => (j + thC) % 3).map((i) => `<button class="opt ${pk === undefined ? '' : i === c.best ? 'ok' : i === pk ? 'no' : ''}" onclick="thPick[${thC}]=${i};thConf()">${c.o[i][0]}</button>`).join('') +
+    (pk === undefined ? '<div class="m" style="font-size:12px;margin-top:4px">Pick one – then see how each of them reacts.</div>' : `<div class="info" style="min-height:0;margin-top:8px"><b style="color:${pk === c.best ? 'var(--good)' : '#b91c1c'}">${pk === c.best ? '✓ Best solution.' : '✕ Not the best.'}</b> ${c.o[pk][2]}${['arch', 'int', 'ld'].map((k, j) => { const v = c.o[pk][1][j], cl = v >= 80 ? 'var(--good)' : v >= 50 ? 'var(--warn)' : '#b91c1c'; return `<div style="display:flex;gap:8px;align-items:center;margin-top:6px;font-size:12.5px"><span style="width:150px">${THROLE[k].icon} ${THROLE[k].name}</span><div class="bar" style="flex:1;height:6px"><i style="width:${v}%;background:${cl}"></i></div><b style="width:34px;text-align:right">${v}%</b></div>`; }).join('')}</div>`);
+}
+MODULES.push(['think', 'Design thinking', 'Architects, interior & lighting designers']);
+const THQ = [Q('In the playground, which change usually makes a space feel brighter without more lux on the floor?', ['Light on the walls (wall-wash or cove)', 'More downlights', 'A cooler colour temperature only'], 0), Q('Who usually asks first “how will it feel?”', ['The interior designer', 'The electrical contractor', 'The quantity surveyor'], 0), Q('A design that all three accept usually has…', ['several layers of light with controls', 'one type of fitting everywhere', 'the highest possible lux'], 0)];
+add('think', 'Live', 'lab_think', '🧠', 'Three minds, one space', { type: 'lab', lab: 'thinkv', preset: 'lobby', mins: 8, live: 1, quiz: THQ });
+add('think', 'Spaces', 'th_lobby', '🛎️', 'Hotel lobby – three points of view', { type: 'lab', lab: 'thinkv', preset: 'lobby', mins: 4, quiz: [Q('What does the architect usually want in a lobby ceiling?', ['A calm ceiling with hidden or integrated light', 'As many downlights as possible', 'Fluorescent battens'], 0), Q('The interior designer’s hero piece in a lobby is usually…', ['a statement chandelier or pendant', 'the emergency light', 'the exit sign'], 0), Q('A typical lobby colour temperature is…', ['2700–3000 K', '5000–6500 K', '2000 K only'], 0)] });
+add('think', 'Spaces', 'th_office', '💼', 'Office – three points of view', { type: 'lab', lab: 'thinkv', preset: 'office', mins: 4, quiz: [Q('Office desks usually need…', ['500 lx with UGR below 19', '100 lx', '2000 lx'], 0), Q('Linear pendants that follow the column grid please the architect because…', ['the light becomes part of the architecture', 'they are cheapest', 'they hide the sprinklers'], 0), Q('The interior designer’s worry in offices is…', ['a flat, cold, clinical feel', 'too many decorative pieces', 'candle-warm light'], 0)] });
+add('think', 'Spaces', 'th_rest', '🍽️', 'Restaurant – three points of view', { type: 'lab', lab: 'thinkv', preset: 'restaurant', mins: 4, quiz: [Q('Who usually leads the lighting mood in a restaurant?', ['The interior designer', 'The structural engineer', 'The facility manager'], 0), Q('How do you light the plates without killing the mood?', ['Hidden narrow 2700 K Ra 90 spots onto each table', '4000 K panels', 'Brighter filament lamps'], 0), Q('An evening scene in a restaurant is…', ['dimmer and warmer', 'brighter and cooler', 'the same as cleaning light'], 0)] });
+add('think', 'Spaces', 'th_retail', '👗', 'Fashion store – three points of view', { type: 'lab', lab: 'thinkv', preset: 'retail', mins: 4, quiz: [Q('A good accent contrast for a hero display is about…', ['3–6 : 1', '1 : 1', '50 : 1'], 0), Q('Why Ra 90+ in fashion retail?', ['Fabric colours look true', 'It uses less energy', 'It is always cheaper'], 0), Q('Washing the shop walls makes the store…', ['look bright and inviting from the street', 'darker', 'need fewer displays'], 0)] });
+add('think', 'Work with them', 'th_journey', '🗺️', 'The design journey – when to step in', { type: 'lab', lab: 'thinkv', preset: 'journey', mins: 4, quiz: [Q('Where is the specification usually won?', ['In detailed design – with data, samples and mock-ups', 'At the site handover', 'After the invoice'], 0), Q('At the brief and concept stage you should bring…', ['inspiration and reference projects – listen first', 'a full price list', 'a VE proposal'], 0), Q('In value engineering a good supplier…', ['offers honest equals that keep the effect', 'swaps the fittings without telling anyone', 'removes all accent lights'], 0)] });
+add('think', 'Work with them', 'th_lang', '🗣️', 'Speak their language', { type: 'lab', lab: 'thinkv', preset: 'lang', mins: 3, quiz: [Q('“I want the ceiling to float” usually means…', ['a lit shadow gap or perimeter cove', 'a suspended grid of panels', 'no lighting at all'], 0), Q('“The materials must sing” points to…', ['high colour rendering and light that shows texture', 'cool white light', 'more emergency lights'], 0), Q('“Tight binning” protects…', ['the same colour across all LEDs', 'the cable size', 'the IP rating'], 0)] });
+add('think', 'Work with them', 'th_conflict', '⚖️', 'Resolve the conflict', { type: 'lab', lab: 'thinkv', preset: 'conflict', mins: 4, quiz: [Q('The architect wants a dot-free ceiling but the counter needs 300 lx. The best answer is…', ['a hidden cove plus a slot or local lights at the counter', 'a downlight grid anyway', 'leave the counter dark'], 0), Q('Façade lighting that respects the neighbours uses…', ['warm grazers on the structure and a curfew schedule', 'ground floodlights at full power all night', 'colour change all night'], 0), Q('A good conflict solution is judged by…', ['whether all three disciplines can accept it', 'the lowest price only', 'the brightest result'], 0)] });
+add('think', 'How they think', 'th_arch', '📐', 'How architects think about light', {
+  line: 'Architects think in <b>space, form, daylight and structure</b>. For them light is a building material that reveals volumes and surfaces – and it should be <b>integrated</b> into the architecture, not stuck on it.',
+  body: '<table class="spec"><tr><td>First question</td><td>“How does the light reveal the building – and where does it live?”</td></tr><tr><td>They love</td><td>Clean ceilings, continuous lines, hidden coves and slots, daylight, a building that reads at night</td></tr><tr><td>They dislike</td><td>Random dots, surface boxes, fittings that ignore the grid, mixed colours</td></tr><tr><td>Drawings to read</td><td>Reflected ceiling plan, sections, elevations, façade details</td></tr><tr><td>Bring them</td><td>Trimless and small-aperture fittings, linear profiles, details, BIM objects, a consistent CCT across the building</td></tr></table>',
+  say: '“The light follows your lines – a continuous slot in the ceiling and a cove at the wall, so nothing interrupts the plaster.”',
+  watch: 'Do not lead with lux tables and prices – lead with how the fitting disappears into the building. Show the detail drawing.',
+  quiz: [Q('Architects usually want light to be…', ['integrated into the architecture', 'as visible as possible', 'only decorative'], 0), Q('Which drawing shows where ceiling fittings go?', ['The reflected ceiling plan', 'The single-line diagram', 'The furniture schedule'], 0), Q('An architect’s view of daylight is usually…', ['use it first, add electric light where needed', 'block it', 'ignore it'], 0)] });
+add('think', 'How they think', 'th_int', '🎨', 'How interior designers think about light', {
+  line: 'Interior designers think in <b>mood, materials, colour and story</b>. Light is the final layer that makes their wood, stone, fabric and art come alive – and their decorative pieces are part of the identity.',
+  body: '<table class="spec"><tr><td>First question</td><td>“How will it feel – and will my materials look the way I chose them?”</td></tr><tr><td>They love</td><td>Warm light, high colour rendering, contrast and sparkle, statement pendants, wall lights</td></tr><tr><td>They dislike</td><td>Cold flat light, dull colours, a “supermarket” look, losing decorative pieces in value engineering</td></tr><tr><td>Bring them</td><td>Mood images, real samples to hold, finishes and colours of the fittings, Ra 90+ and dim-to-warm options</td></tr></table>',
+  say: '“With Ra 90 and 2700 K your walnut and brass will look exactly like the samples on your mood board.”',
+  watch: 'Never call a decorative piece “unnecessary” – it is often the heart of their design. Offer to light it better instead.',
+  quiz: [Q('Interior designers usually judge light first by…', ['how it feels and how materials look', 'the cable size', 'the IP rating'], 0), Q('Which helps wood and skin look rich?', ['High colour rendering (Ra 90+)', 'Cool 6500 K', 'Lower power factor'], 0), Q('The best thing to bring an interior designer is…', ['samples and mood images', 'a price list only', 'a cable schedule'], 0)] });
+add('think', 'How they think', 'th_ld', '💡', 'How lighting designers think', {
+  line: 'Lighting designers think in <b>people, tasks and layers</b>: ambient, task, accent and decorative light – plus vertical surfaces, contrast, glare, controls, standards, energy and maintenance. They bridge the architect’s form and the interior designer’s mood.',
+  body: '<table class="spec"><tr><td>First question</td><td>“Who uses this space, when, and what do they need to see?”</td></tr><tr><td>Layers</td><td>Ambient (general) · task (work) · accent (focus) · decorative (sparkle) · daylight</td></tr><tr><td>They check</td><td>Lux and uniformity, vertical light, contrast ratio, UGR, CCT and CRI, binning, beam angles</td></tr><tr><td>Controls</td><td>Scenes, dimming, presence and daylight sensors</td></tr><tr><td>Bring them</td><td>IES / LDT files, honest datasheets, glare data, samples for mock-ups, quick technical answers</td></tr></table>',
+  say: '“Here are the IES files and a sample – you can test the 24° and 36° beams on site before you decide.”',
+  watch: 'Lighting designers check data. One wrong datasheet or a “equal” that is not equal and they will not specify you again.',
+  quiz: [Q('The four classic layers of light are…', ['ambient, task, accent, decorative', 'red, green, blue, white', 'DALI, DMX, KNX, 0-10 V'], 0), Q('A lighting designer asks first…', ['who uses the space and what they need to see', 'what is cheapest', 'what colour the cables are'], 0), Q('What do lighting designers need from suppliers most?', ['Accurate photometric data and samples', 'Gifts', 'Only prices'], 0)] });
+add('think', 'Work with them', 'th_present', '🧾', 'Presenting to designers', {
+  line: 'Designers buy with their eyes and with data. A good presentation shows the <b>effect</b> first, then proves it with <b>numbers</b>, then makes it easy to <b>specify</b>.',
+  body: '<table class="spec"><tr><td>1 · Effect</td><td>Reference project photos, renders or a mood image of the effect – not a catalogue page</td></tr><tr><td>2 · Proof</td><td>DIALux / Relux results, IES / LDT files, glare and CRI data</td></tr><tr><td>3 · Touch</td><td>Samples, a demo case, or a mock-up on site at night</td></tr><tr><td>4 · Specify</td><td>Clear codes, options (beam, CCT, finish), BIM objects, specification text</td></tr><tr><td>5 · Protect</td><td>Budget options that keep the design intent – plan the value engineering with them before the contractor does</td></tr></table>',
+  say: '“Here is the same detail in a hotel we did last year – and here is the sample, so you can see the cove light on your own stone tomorrow.”',
+  watch: 'Use your own reference projects (Sales Tools → References) – a real local project convinces more than any brochure.',
+  quiz: [Q('What should a presentation to a designer show first?', ['The effect – references, renders, mood', 'The price list', 'Payment terms'], 0), Q('A mock-up on site helps because…', ['everyone sees the real effect on the real materials', 'it replaces calculations', 'it is free of cost always'], 0), Q('Planning value engineering with the designer early…', ['protects the design intent and the specification', 'is not allowed', 'always costs more'], 0)] });
 L.forEach((l) => { LESSONS[l.id] = l; });
 
 // ================================================================ ACADEMY engine – widgets, quiz, routing, progress
@@ -1637,7 +1926,7 @@ function renderHome() {
 const BG = ['#fef3c7', '#ffedd5', '#fce7f3', '#e0e7ff', '#e0f2fe', '#dcfce7', '#f1f5f9', '#ede9fe'];
 
 // ---- lessons and labs
-const VIEWS = ['home', 'lesson', 'tech', 'fix', 'chip', 'ctlv', 'lmsv', 'roadv', 'talqv', 'cmsv', 'sportv'];
+const VIEWS = ['home', 'lesson', 'tech', 'fix', 'chip', 'ctlv', 'lmsv', 'roadv', 'talqv', 'cmsv', 'sportv', 'thinkv'];
 function showView(v) { VIEWS.forEach((x) => $(x).classList.toggle('hidden', x !== v)); window.scrollTo(0, 0); }
 function back() { location.hash = '#home'; }
 function parkWidgets() { document.querySelectorAll('[data-parked]').forEach((w) => { $('wstore').appendChild(w); w.removeAttribute('data-parked'); }); }
@@ -1650,6 +1939,7 @@ const LAB_INIT = {
   roadv: (p) => { if (p === 'single') rArr = 'single'; roadUI(); if (p === 'compare' || p === 'height') setTimeout(() => $(p === 'compare' ? 'rCmp' : 'rCtl').scrollIntoView({ behavior: 'smooth', block: 'center' }), 50); },
   cmsv: () => cmsUI(),
   sportv: (p) => { spK = SPORTS[p] ? p : 'cricket'; sportUI(); },
+  thinkv: (p) => { if (THP[p]) thK = p; thUI(); const sec = { journey: 'thP5', lang: 'thP6', conflict: 'thP7' }[p]; if (sec) setTimeout(() => $(sec).scrollIntoView({ behavior: 'smooth' }), 50); },
   talqv: (p) => { tqM = ['mixed', 'talq', 'none'].includes(p) ? p : 'mixed'; tqDraw(); },
 };
 const MODN = Object.fromEntries(MODULES.map(([k, n]) => [k, n]));
