@@ -23,6 +23,8 @@ function RootNavigator() {
       <Stack.Protected guard={!profile}>
         <Stack.Screen name="sign-in" />
       </Stack.Protected>
+      {/* the customer survey link works with or without a login */}
+      <Stack.Screen name="survey/[token]" />
     </Stack>
   );
 }

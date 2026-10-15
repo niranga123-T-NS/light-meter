@@ -8492,5 +8492,43 @@ do $$ declare i public.inquiries; begin
 end $$;
 reset role;
 
+-- CSI survey: started by the sales person, filled by the customer through the link (no login)
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ declare sid uuid; begin
+  begin perform public.csi_create(jsonb_build_object('organization_id', '00000000-0000-0000-0000-00000000a001', 'contact_name', 'Mr Perera', 'stages', '[]'::jsonb)); assert false, 'stages needed'; exception when raise_exception then null; end;
+  sid := public.csi_create(jsonb_build_object('organization_id', '00000000-0000-0000-0000-00000000a001', 'project_id', '00000000-0000-0000-0000-00000000b001',
+           'contact_name', 'Mr Perera', 'contact_role', 'Chief Engineer', 'stages', '["inquiry","quotation","delivery"]'::jsonb, 'channel', 'link'));
+  perform set_config('test.csi_token', (select token from public.csi_surveys where id = sid), false);
+  perform set_config('test.csi', sid::text, false);
+end $$;
+reset role;
+set role anon;
+do $$ declare c jsonb := public.csi_context(current_setting('test.csi_token')); t text := current_setting('test.csi_token'); begin
+  assert c ->> 'status' = 'open' and c ->> 'contact' = 'Mr Perera', 'context by link without login';
+  assert (public.csi_context('not-a-real-token-at-all-not-a-real-token-xx') ->> 'status') = 'not_found', 'bad token';
+  begin perform public.csi_submit(t, '{"overall":80,"nps":9,"points":{"price":50,"quality":20,"speed":10,"support":10,"after_sales":20}}'); assert false, 'points must be 100'; exception when raise_exception then null; end;
+  begin perform public.csi_submit(t, '{"overall":80,"nps":9,"stage_scores":{"design":4},"points":{"price":20,"quality":20,"speed":20,"support":20,"after_sales":20}}'); assert false, 'stage not in the survey'; exception when raise_exception then null; end;
+  perform public.csi_submit(t, '{"overall":45,"nps":5,"stage_scores":{"inquiry":4,"quotation":2,"delivery":3},"cards":{"understood":1,"on_time":-1},"points":{"price":30,"quality":25,"speed":20,"support":15,"after_sales":10},"vs_others":0,"reference_ok":true,"wish":"Faster quotations please"}');
+  begin perform public.csi_submit(t, '{"overall":90,"nps":10,"points":{"price":20,"quality":20,"speed":20,"support":20,"after_sales":20}}'); assert false, 'only once'; exception when raise_exception then null; end;
+end $$;
+reset role;
+do $$ declare s public.csi_surveys; begin
+  select * into s from public.csi_surveys where id = current_setting('test.csi')::uuid;
+  assert s.status = 'completed' and s.filled_by = 'customer' and s.alert and s.reference_ok is null, 'completed, low → alert, no reference below 9';
+  assert exists (select 1 from public.notifications where entity_id = s.id and title like 'Low customer satisfaction%'), 'SM Projects alerted';
+end $$;
+select pg_temp.act_as('asm_infra'); set role authenticated;
+do $$ begin
+  assert not exists (select 1 from public.csi_surveys where id = current_setting('test.csi')::uuid), 'other sales people cannot see it';
+  begin perform public.csi_follow_up(current_setting('test.csi')::uuid, 'Called and agreed a plan'); assert false, 'not theirs'; exception when raise_exception then null; end;
+end $$;
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  perform public.csi_follow_up(current_setting('test.csi')::uuid, 'Called Mr Perera – quotations within 5 days from now on');
+  assert (select followed_up_at is not null from public.csi_surveys where id = current_setting('test.csi')::uuid), 'follow-up recorded';
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
