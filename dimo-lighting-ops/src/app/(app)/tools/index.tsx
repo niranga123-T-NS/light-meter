@@ -25,6 +25,7 @@ export default function SalesTools() {
     <Screen maxWidth={1100}>
       <Stack.Screen options={{ title: 'Sales Tools' }} />
       <Segmented
+        wrap
         value={tab}
         onChange={setTab}
         options={[
