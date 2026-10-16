@@ -64,7 +64,7 @@ export function CsiFlow({ ctx, onSubmit, byLine }: { ctx: CsiContext; onSubmit: 
         {step === 5 ? <Compare value={a.vs_others} onChange={(v) => set({ vs_others: v })} /> : null}
         {step === 6 ? <Recommend a={a} set={set} /> : null}
         {step === 7 ? <Wish value={a.wish} onChange={(w) => set({ wish: w })} /> : null}
-        {step === 8 ? <Thanks ctx={ctx} overall={a.overall} /> : null}
+        {step === 8 ? <Thanks ctx={ctx} /> : null}
 
         {err ? <Text style={{ color: '#fca5a5', textAlign: 'center' }}>{err}</Text> : null}
         {step < 8 ? (
@@ -351,13 +351,13 @@ function Wish({ value, onChange }: { value: string; onChange: (s: string) => voi
   );
 }
 
-function Thanks({ ctx, overall }: { ctx: CsiContext; overall: number }) {
+function Thanks({ ctx }: { ctx: CsiContext }) {
   const ini = ctx.sales.split(' ').map((x) => x[0]).join('').slice(0, 2).toUpperCase();
   return (
     <View style={{ gap: 14, alignItems: 'center' }}>
       <Lamp value={100} size={130} />
       <H>{`Thank you, ${ctx.contact}!`}</H>
-      <Sub>{overall >= 75 ? 'You lit us up – we will keep shining for you.' : 'Thank you for being honest – we will work on it and come back to you.'}</Sub>
+      <Sub>Your answers have been sent. They help us light up every project better.</Sub>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.card, borderRadius: 16, padding: 14 }}>
         <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#c8102e', alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ color: '#fff', fontWeight: '800', fontSize: 17 }}>{ini}</Text>
@@ -365,7 +365,7 @@ function Thanks({ ctx, overall }: { ctx: CsiContext; overall: number }) {
         <View>
           <Text style={{ color: C.text, fontWeight: '800' }}>{ctx.sales}</Text>
           <Text style={{ color: C.mut }}>{`DIMO Lighting${ctx.sales_phone ? ` · ${ctx.sales_phone}` : ''}`}</Text>
-          <Text style={{ color: C.mut, fontSize: 12 }}>Reads every answer personally</Text>
+          <Text style={{ color: C.mut, fontSize: 12 }}>Your DIMO contact</Text>
         </View>
       </View>
     </View>
