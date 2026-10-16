@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
-import { useState } from 'react';
-import { Pressable, ScrollView, Text, View, type GestureResponderEvent } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Platform, Pressable, ScrollView, Text, View, type GestureResponderEvent } from 'react-native';
 import Svg, { Circle, G, Line, Polyline } from 'react-native-svg';
 import { colors } from '@/components/ui';
 import { DISC, isCont, kindOf, offsetLine, routeOf, STATUS_COLOR, toU, type DItem, type Disc, type Drawing, type DRoute, type Pt } from '@/lib/drawings';
@@ -40,7 +40,8 @@ function Containment({ r, pts, col, sel }: { r: DRoute; pts: Pt[]; col: string; 
 
 /**
  * The drawing with its routes and items. Taps on the sheet come back in sheet units (x 0–1000); the parent decides what
- * a tap means (place an item, add a route point, set the scale, or pick the nearest route).
+ * a tap means (place an item, add a route point, set the scale, or pick the nearest route). Two fingers (or ctrl + wheel /
+ * a trackpad pinch on the website) zoom; `focus` (sheet fractions) scrolls that point to the middle.
  */
 export function Stage({
   drawing,
@@ -50,8 +51,11 @@ export function Stage({
   layer,
   show,
   selected,
+  marked,
   draft,
   zoom,
+  focus,
+  onZoom,
   onTap,
   onItem,
 }: {
@@ -62,12 +66,59 @@ export function Stage({
   layer: StageLayer;
   show: (d: Disc) => boolean;
   selected: string | null;
+  marked?: Set<string>;
   draft: Pt[] | null;
   zoom: number;
+  focus?: { x: number; y: number; n: number } | null;
+  onZoom?: (z: number) => void;
   onTap: (p: Pt) => void;
   onItem: (it: DItem) => void;
 }) {
   const [box, setBox] = useState(0);
+  const hs = useRef<ScrollView>(null), vs = useRef<ScrollView>(null), outer = useRef<View>(null);
+  const pinch = useRef<{ d: number; z: number } | null>(null);
+  const zoomRef = useRef(zoom);
+  useEffect(() => {
+    zoomRef.current = zoom;
+  }, [zoom]);
+  const vh = Math.min(((box * zoom * drawing.height) / drawing.width) || 300, 900);
+  // bring the found / chosen point to the middle of the view
+  useEffect(() => {
+    if (!focus || !box) return;
+    const w = box * zoom, h = (w * drawing.height) / drawing.width;
+    const t = setTimeout(() => {
+      hs.current?.scrollTo({ x: Math.max(0, focus.x * w - box / 2), animated: true });
+      vs.current?.scrollTo({ y: Math.max(0, focus.y * h - vh / 2), animated: true });
+    }, 60);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focus?.n, zoom, box]);
+  // website: ctrl + wheel and trackpad pinch
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !onZoom) return;
+    const el = outer.current as unknown as HTMLElement | null;
+    if (!el?.addEventListener) return;
+    const wheel = (e: WheelEvent) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      onZoom(Math.min(6, Math.max(1, Math.round(zoomRef.current * (e.deltaY < 0 ? 1.15 : 1 / 1.15) * 20) / 20)));
+    };
+    el.addEventListener('wheel', wheel, { passive: false });
+    return () => el.removeEventListener('wheel', wheel);
+  }, [onZoom]);
+  const touches = (e: GestureResponderEvent) => {
+    const t = e.nativeEvent.touches;
+    if (!onZoom || t.length !== 2) {
+      pinch.current = null;
+      return;
+    }
+    const d = Math.hypot(t[0].pageX - t[1].pageX, t[0].pageY - t[1].pageY);
+    if (!pinch.current) pinch.current = { d, z: zoomRef.current };
+    else if (d > 10) {
+      const z = Math.min(6, Math.max(1, Math.round(pinch.current.z * (d / pinch.current.d) * 20) / 20));
+      if (Math.abs(z - zoomRef.current) >= 0.05) onZoom(z);
+    }
+  };
   const W = box * zoom;
   const H = (W * drawing.height) / drawing.width;
   const VH = (1000 * drawing.height) / drawing.width;
@@ -81,9 +132,16 @@ export function Stage({
   };
   const order = [...routes].sort((a, b) => (isCont(a.kind) ? 0 : 1) - (isCont(b.kind) ? 0 : 1));
   return (
-    <View onLayout={(e) => setBox(e.nativeEvent.layout.width)} style={{ width: '100%', borderRadius: 10, borderWidth: 1, borderColor: colors.line, overflow: 'hidden', backgroundColor: '#fff' }}>
-      <ScrollView horizontal scrollEnabled={zoom > 1} style={{ maxHeight: Math.min(H || 300, 900) }}>
-        <ScrollView scrollEnabled nestedScrollEnabled>
+    <View
+      ref={outer}
+      onLayout={(e) => setBox(e.nativeEvent.layout.width)}
+      onTouchStart={touches}
+      onTouchMove={touches}
+      onTouchEnd={() => (pinch.current = null)}
+      style={{ width: '100%', borderRadius: 10, borderWidth: 1, borderColor: colors.line, overflow: 'hidden', backgroundColor: '#fff' }}
+    >
+      <ScrollView ref={hs} horizontal scrollEnabled={zoom > 1} style={{ maxHeight: vh }}>
+        <ScrollView ref={vs} scrollEnabled nestedScrollEnabled>
           <View style={{ width: W || '100%', height: H || 300 }}>
             {uri ? <Image source={{ uri }} style={{ position: 'absolute', left: 0, top: 0, width: W, height: H }} contentFit="fill" /> : null}
             <Pressable testID="drawing-stage" onPress={tap} style={{ position: 'absolute', left: 0, top: 0, width: W, height: H }} accessibilityLabel="Drawing" />
@@ -123,7 +181,7 @@ export function Stage({
                   const k = kindOf(it.kind);
                   if (!show(k.d)) return null;
                   const c = layer === 'services' ? DISC[k.d].c : (STATUS_COLOR[it.status] ?? '#9AA0A8');
-                  const sel = selected === it.id;
+                  const sel = selected === it.id || !!marked?.has(it.id);
                   const big = !!k.big;
                   const text = big ? (it.label ? it.label.split(' ')[0] : k.code) : k.code;
                   return (
