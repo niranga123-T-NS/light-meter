@@ -8539,6 +8539,53 @@ do $$ begin
   assert (select followed_up_at is not null from public.csi_surveys where id = current_setting('test.csi')::uuid), 'follow-up recorded';
 end $$;
 reset role;
+-- CSI: easy to work with, choose again, contact request (a sales lead)
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ declare sid uuid; begin
+  sid := public.csi_create(jsonb_build_object('organization_id', '00000000-0000-0000-0000-00000000a001', 'contact_name', 'Ms Silva', 'stages', '["inquiry"]'::jsonb));
+  perform set_config('test.csi2', sid::text, false);
+  perform set_config('test.csi2_token', (select token from public.csi_surveys where id = sid), false);
+end $$;
+reset role;
+set role anon;
+do $$ declare t text := current_setting('test.csi2_token'); p text := '"points":{"price":20,"quality":20,"speed":20,"support":20,"after_sales":20}'; begin
+  begin perform public.csi_submit(t, ('{"overall":90,"nps":10,"effort":7,' || p || '}')::jsonb); assert false, 'effort 1..5'; exception when raise_exception then null; end;
+  begin perform public.csi_submit(t, ('{"overall":90,"nps":10,"contact_topics":["free_lunch"],' || p || '}')::jsonb); assert false, 'known topics only'; exception when raise_exception then null; end;
+  perform public.csi_submit(t, ('{"overall":90,"nps":10,"effort":2,"repurchase":1,"contact_topics":["upgrade","maintenance"],' || p || '}')::jsonb);
+end $$;
+reset role;
+do $$ declare s public.csi_surveys; begin
+  select * into s from public.csi_surveys where id = current_setting('test.csi2')::uuid;
+  assert s.effort = 2 and s.repurchase = 1 and s.contact_topics @> array['maintenance', 'upgrade'] and cardinality(s.contact_topics) = 2, 'answers kept';
+  assert s.alert, 'hard to work with (effort 2) is a low result even with a high score';
+  assert exists (select 1 from public.notifications where entity_id = s.id and title = 'Customer asks to be contacted' and body like '%energy-saving LED upgrade%'), 'sales lead to the sales person';
+end $$;
+
+-- CSI by the SEE for his own execution project (execution stages); the project's sales person sees it too
+select set_config('test.csi_exec', (select id::text from public.exec_projects where see_id = (select id from u where role = 'senior_elec_engineer') order by created_at limit 1), false);
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare sid uuid; pid uuid := (select project_id from public.exec_projects where id = current_setting('test.csi_exec')::uuid); other uuid; begin
+  other := (select id from public.projects where id not in (select project_id from public.exec_projects where see_id = auth.uid()) limit 1);
+  begin perform public.csi_create(jsonb_build_object('project_id', other, 'contact_name', 'Mr Fernando', 'stages', '["installation"]'::jsonb)); assert false, 'not his project'; exception when raise_exception then null; end;
+  sid := public.csi_create(jsonb_build_object('project_id', pid, 'contact_name', 'Mr Fernando', 'contact_role', 'Resident Engineer', 'stages', '["installation","handover"]'::jsonb, 'channel', 'tablet'));
+  assert (select team = 'execution' and organization_id = (select organization_id from public.projects where id = pid) from public.csi_surveys where id = sid), 'execution survey for the project''s client';
+  perform set_config('test.csi_see', sid::text, false);
+end $$;
+reset role;
+do $$ declare owner uuid := (select p.owner_id from public.csi_surveys c join public.projects p on p.id = c.project_id where c.id = current_setting('test.csi_see')::uuid); begin
+  perform set_config('test.csi_owner', owner::text, false);
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('test.csi_owner'), false);
+set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.csi_surveys where id = current_setting('test.csi_see')::uuid), 'the project''s sales person sees the SEE''s survey';
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin
+  begin perform public.csi_create(jsonb_build_object('project_id', (select project_id from public.exec_projects limit 1), 'contact_name', 'Mr X', 'stages', '["installation"]'::jsonb)); assert false, 'AE cannot start a CSI'; exception when raise_exception then null; end;
+end $$;
+reset role;
 
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

@@ -283,6 +283,7 @@ function baseNav(role: Role): NavItem[] {
         EXEC_NAV.queries,
         approvals,
         EXEC_NAV.team,
+        { href: '/csi', label: 'CSI', icon: '☺' },
         { href: '/warranty', label: 'Warranty & defects', icon: '⛉' },
         { href: '/bonds', label: 'Bonds', icon: '⛨' },
         { href: '/projects', label: 'Projects', icon: '◆' },

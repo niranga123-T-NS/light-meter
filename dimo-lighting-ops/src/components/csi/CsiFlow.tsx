@@ -1,36 +1,39 @@
 import { useEffect, useState } from 'react';
 import { Animated, PanResponder, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
-import { CSI_AREAS, CSI_CARDS, CSI_STAGES, CSI_VS, moodFace, moodWord, STAGE_FACES, type CsiAnswers, type CsiArea, type CsiContext } from '@/lib/csi';
+import { cardsFor, CSI_AREAS, CSI_EFFORT, CSI_REPURCHASE, CSI_STAGES, CSI_TOPICS, CSI_VS, moodFace, moodWord, STAGE_FACES, type CsiAnswers, type CsiArea, type CsiContext } from '@/lib/csi';
 
 const C = { bg: '#0b1020', card: '#151b30', line: '#27304d', text: '#f8fafc', mut: '#94a3b8', glow: '#fbbf24', good: '#22c55e', bad: '#ef4444' };
-const STEPS = ['Welcome', 'Overall', 'Journey', 'Statements', 'What matters', 'Compared', 'Recommend', 'One wish', 'Thank you'];
+const STEPS = ['Welcome', 'Overall', 'Journey', 'Statements', 'Working with us', 'What matters', 'Compared', 'Recommend', 'What next', 'Thank you'];
+const LAST = 8; // the step that sends the answers
 
-/** "Light up DIMO" – the customer satisfaction survey in eight light-themed steps (tablet, link or with the sales person on a call) */
+/** "Light up DIMO" – the customer satisfaction survey: eight light-themed steps, under 2 minutes, only taps (tablet, link or with the sales person on a call) */
 export function CsiFlow({ ctx, onSubmit, byLine }: { ctx: CsiContext; onSubmit: (a: CsiAnswers) => Promise<void>; byLine?: string }) {
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [a, setA] = useState<CsiAnswers & { touched: boolean }>({ overall: 50, stage_scores: {}, cards: {}, points: { price: 20, quality: 20, speed: 20, support: 20, after_sales: 20 }, vs_others: null, nps: -1, reference_ok: false, quote_ok: false, wish: '', touched: false });
+  const [a, setA] = useState<CsiAnswers & { touched: boolean }>({ overall: 50, stage_scores: {}, cards: {}, points: { price: 20, quality: 20, speed: 20, support: 20, after_sales: 20 }, vs_others: null, effort: null, repurchase: null, contact_topics: [], nps: -1, reference_ok: false, quote_ok: false, wish: '', touched: false });
+  const cards = cardsFor(ctx.stages);
   const set = (p: Partial<typeof a>) => setA((s) => ({ ...s, ...p }));
   const total = Object.values(a.points).reduce((t, x) => t + x, 0);
   const missing = (s: number): string | null => {
     if (s === 1 && !a.touched) return 'Slide the dimmer to show how you feel';
     if (s === 2 && ctx.stages.some((x) => !a.stage_scores[x])) return 'Tap a face for every step';
-    if (s === 3 && CSI_CARDS.some((c) => a.cards[c.key] === undefined)) return 'Answer every card';
-    if (s === 4 && total !== 100) return `Share exactly 100 points (${total} now)`;
-    if (s === 6 && a.nps < 0) return 'Choose a number from 0 to 10';
+    if (s === 3 && cards.some((c) => a.cards[c.key] === undefined)) return 'Answer every card';
+    if (s === 4 && (a.effort === null || a.repurchase === null)) return 'Answer both questions';
+    if (s === 5 && total !== 100) return `Share exactly 100 points (${total} now)`;
+    if (s === 7 && a.nps < 0) return 'Choose a number from 0 to 10';
     return null;
   };
   const next = async () => {
     const m = missing(step);
     if (m) return setErr(m);
     setErr(null);
-    if (step === 7) {
+    if (step === LAST) {
       setBusy(true);
       try {
         const { touched: _t, ...answers } = a;
         await onSubmit(answers);
-        setStep(8);
+        setStep(LAST + 1);
       } catch (e) {
         setErr(e instanceof Error ? e.message : String(e));
       } finally {
@@ -46,11 +49,11 @@ export function CsiFlow({ ctx, onSubmit, byLine }: { ctx: CsiContext; onSubmit: 
       <ScrollView contentContainerStyle={{ padding: 20, gap: 16, maxWidth: 720, width: '100%', alignSelf: 'center' }} keyboardShouldPersistTaps="handled">
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <Text style={{ color: C.glow, fontWeight: '800', fontSize: 15, letterSpacing: 1 }}>LIGHT UP DIMO</Text>
-          {step > 0 && step < 8 ? <Text style={{ color: C.mut, fontSize: 12 }}>{`${step} / 7 · ${STEPS[step]}`}</Text> : null}
+          {step > 0 && step <= LAST ? <Text style={{ color: C.mut, fontSize: 12 }}>{`${step} / ${LAST} · ${STEPS[step]}`}</Text> : null}
         </View>
-        {step > 0 && step < 8 ? (
+        {step > 0 && step <= LAST ? (
           <View style={{ flexDirection: 'row', gap: 4 }}>
-            {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
               <View key={i} style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: i <= step ? C.glow : C.line }} />
             ))}
           </View>
@@ -59,18 +62,19 @@ export function CsiFlow({ ctx, onSubmit, byLine }: { ctx: CsiContext; onSubmit: 
         {step === 0 ? <Welcome ctx={ctx} byLine={byLine} /> : null}
         {step === 1 ? <Dimmer value={a.overall} onChange={(v) => set({ overall: v, touched: true })} customer={ctx.customer} /> : null}
         {step === 2 ? <Journey stages={ctx.stages} scores={a.stage_scores} onChange={(k, v) => set({ stage_scores: { ...a.stage_scores, [k]: v } })} /> : null}
-        {step === 3 ? <Cards answers={a.cards} onAnswer={(k, v) => set({ cards: { ...a.cards, [k]: v } })} /> : null}
-        {step === 4 ? <Points points={a.points} total={total} onChange={(p) => set({ points: p })} /> : null}
-        {step === 5 ? <Compare value={a.vs_others} onChange={(v) => set({ vs_others: v })} /> : null}
-        {step === 6 ? <Recommend a={a} set={set} /> : null}
-        {step === 7 ? <Wish value={a.wish} onChange={(w) => set({ wish: w })} /> : null}
-        {step === 8 ? <Thanks ctx={ctx} overall={a.overall} /> : null}
+        {step === 3 ? <Cards cards={cards} answers={a.cards} onAnswer={(k, v) => set({ cards: { ...a.cards, [k]: v } })} /> : null}
+        {step === 4 ? <Working a={a} set={set} /> : null}
+        {step === 5 ? <Points points={a.points} total={total} onChange={(p) => set({ points: p })} /> : null}
+        {step === 6 ? <Compare value={a.vs_others} onChange={(v) => set({ vs_others: v })} /> : null}
+        {step === 7 ? <Recommend a={a} set={set} /> : null}
+        {step === 8 ? <Next a={a} set={set} /> : null}
+        {step === 9 ? <Thanks ctx={ctx} /> : null}
 
         {err ? <Text style={{ color: '#fca5a5', textAlign: 'center' }}>{err}</Text> : null}
-        {step < 8 ? (
+        {step <= LAST ? (
           <View style={{ flexDirection: 'row', gap: 10, justifyContent: 'center', marginTop: 4 }}>
             {step > 0 ? <Btn title="◀ Back" ghost onPress={() => { setErr(null); setStep(step - 1); }} /> : null}
-            <Btn title={step === 0 ? 'Start ▶' : step === 7 ? (busy ? 'Sending…' : 'Send ✓') : step === 5 && a.vs_others === null ? 'Skip ▶' : 'Next ▶'} onPress={busy ? () => {} : next} />
+            <Btn title={step === 0 ? 'Start ▶' : step === LAST ? (busy ? 'Sending…' : 'Send ✓') : step === 6 && a.vs_others === null ? 'Skip ▶' : 'Next ▶'} onPress={busy ? () => {} : next} />
           </View>
         ) : null}
       </ScrollView>
@@ -109,7 +113,7 @@ function Welcome({ ctx, byLine }: { ctx: CsiContext; byLine?: string }) {
       <Lamp value={70} size={120} />
       <H>{`Hello ${ctx.contact}`}</H>
       <Sub>{`Help ${ctx.sales} and the DIMO lighting team see how brightly we shine for ${ctx.customer}${ctx.project ? ` on ${ctx.project}` : ''}.`}</Sub>
-      <Text style={{ color: C.text, textAlign: 'center', fontSize: 15 }}>7 quick steps · about 60 seconds · no typing needed</Text>
+      <Text style={{ color: C.text, textAlign: 'center', fontSize: 15 }}>8 quick steps · under 2 minutes · just tap</Text>
       {byLine ? <Text style={{ color: C.glow, textAlign: 'center', fontSize: 13 }}>{byLine}</Text> : null}
     </View>
   );
@@ -176,9 +180,9 @@ function Journey({ stages, scores, onChange }: { stages: string[]; scores: Recor
   );
 }
 
-function Cards({ answers, onAnswer }: { answers: Record<string, number>; onAnswer: (k: string, v: -1 | 0 | 1) => void }) {
-  const idx = CSI_CARDS.findIndex((c) => answers[c.key] === undefined);
-  const card = idx >= 0 ? CSI_CARDS[idx] : null;
+function Cards({ cards, answers, onAnswer }: { cards: ReturnType<typeof cardsFor>; answers: Record<string, number>; onAnswer: (k: string, v: -1 | 0 | 1) => void }) {
+  const idx = cards.findIndex((c) => answers[c.key] === undefined);
+  const card = idx >= 0 ? cards[idx] : null;
   const [pos] = useState(() => new Animated.ValueXY());
   // a swipe or a button throws the card; the effect flies it off and records the answer
   const [thrown, setThrown] = useState<-1 | 0 | 1 | null>(null);
@@ -205,7 +209,7 @@ function Cards({ answers, onAnswer }: { answers: Record<string, number>; onAnswe
     }),
   );
   const rotate = pos.x.interpolate({ inputRange: [-300, 0, 300], outputRange: ['-12deg', '0deg', '12deg'] });
-  const done = CSI_CARDS.filter((c) => answers[c.key] !== undefined);
+  const done = cards.filter((c) => answers[c.key] !== undefined);
   return (
     <View style={{ gap: 12 }}>
       <H>Do you agree?</H>
@@ -213,7 +217,7 @@ function Cards({ answers, onAnswer }: { answers: Record<string, number>; onAnswe
       <View style={{ height: 210, justifyContent: 'center' }}>
         {card ? (
           <Animated.View {...pan.panHandlers} style={{ transform: [{ translateX: pos.x }, { translateY: pos.y }, { rotate }], backgroundColor: '#fff', borderRadius: 18, padding: 24, minHeight: 170, justifyContent: 'center', borderWidth: 3, borderColor: C.glow }}>
-            <Text style={{ color: '#6b7280', fontSize: 12, marginBottom: 8 }}>{`Card ${idx + 1} of ${CSI_CARDS.length}`}</Text>
+            <Text style={{ color: '#6b7280', fontSize: 12, marginBottom: 8 }}>{`Card ${idx + 1} of ${cards.length}`}</Text>
             <Text style={{ color: '#111827', fontSize: 21, fontWeight: '800' }}>{card.text}</Text>
           </Animated.View>
         ) : (
@@ -332,32 +336,66 @@ function Toggle({ on, label, onPress }: { on: boolean; label: string; onPress: (
   );
 }
 
-function Wish({ value, onChange }: { value: string; onChange: (s: string) => void }) {
+function Working({ a, set }: { a: CsiAnswers; set: (p: Partial<CsiAnswers>) => void }) {
   return (
-    <View style={{ gap: 12 }}>
-      <H>If you could change one thing at DIMO…</H>
-      <Sub>What would it be? Type it – or tap the microphone on your keyboard and just say it.</Sub>
-      <TextInput
-        value={value}
-        onChangeText={onChange}
-        multiline
-        maxLength={1000}
-        placeholder="My one wish…"
-        placeholderTextColor={C.mut}
-        style={{ minHeight: 130, borderRadius: 14, borderWidth: 1, borderColor: C.line, backgroundColor: C.card, color: C.text, padding: 14, fontSize: 16, textAlignVertical: 'top' }}
-      />
-      <Sub>Optional – press Send when you are ready.</Sub>
+    <View style={{ gap: 14 }}>
+      <H>How easy is DIMO to work with?</H>
+      <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
+        {CSI_EFFORT.map((o) => (
+          <Pressable key={o.value} onPress={() => set({ effort: o.value })} style={{ width: 92, paddingVertical: 10, borderRadius: 16, alignItems: 'center', gap: 4, backgroundColor: a.effort === o.value ? C.glow : C.card, borderWidth: 1, borderColor: a.effort === o.value ? C.glow : C.line }}>
+            <Text style={{ fontSize: 28 }}>{o.face}</Text>
+            <Text style={{ color: a.effort === o.value ? '#111827' : C.text, fontWeight: '700', fontSize: 13 }}>{o.label}</Text>
+          </Pressable>
+        ))}
+      </View>
+      <H>Will you choose DIMO for your next lighting project?</H>
+      <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
+        {CSI_REPURCHASE.map((o, i) => (
+          <Pressable key={o.value} onPress={() => set({ repurchase: o.value })} style={{ width: 120, paddingVertical: 12, borderRadius: 16, alignItems: 'center', gap: 4, backgroundColor: a.repurchase === o.value ? C.glow : C.card, borderWidth: 1, borderColor: a.repurchase === o.value ? C.glow : C.line }}>
+            <Text style={{ fontSize: 22, opacity: 0.3 + 0.17 * i }}>💡</Text>
+            <Text style={{ color: a.repurchase === o.value ? '#111827' : C.text, fontWeight: '700' }}>{o.label}</Text>
+          </Pressable>
+        ))}
+      </View>
     </View>
   );
 }
 
-function Thanks({ ctx, overall }: { ctx: CsiContext; overall: number }) {
+function Next({ a, set }: { a: CsiAnswers; set: (p: Partial<CsiAnswers>) => void }) {
+  const on = (t: string) => a.contact_topics.includes(t);
+  return (
+    <View style={{ gap: 12 }}>
+      <H>Can we help you with anything next?</H>
+      <Sub>Tap any that interest you – we will contact you. Optional.</Sub>
+      <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+        {CSI_TOPICS.map((t) => (
+          <Pressable key={t.value} onPress={() => set({ contact_topics: on(t.value) ? a.contact_topics.filter((x) => x !== t.value) : [...a.contact_topics, t.value] })} style={{ paddingVertical: 10, paddingHorizontal: 14, borderRadius: 999, backgroundColor: on(t.value) ? C.glow : C.card, borderWidth: 1, borderColor: on(t.value) ? C.glow : C.line }}>
+            <Text style={{ color: on(t.value) ? '#111827' : C.text, fontWeight: '700' }}>{`${t.icon} ${t.label}`}</Text>
+          </Pressable>
+        ))}
+      </View>
+      <H>If you could change one thing at DIMO…</H>
+      <Sub>What would it be? Type it – or tap the microphone on your keyboard and just say it. Optional.</Sub>
+      <TextInput
+        value={a.wish}
+        onChangeText={(w) => set({ wish: w })}
+        multiline
+        maxLength={1000}
+        placeholder="My one wish…"
+        placeholderTextColor={C.mut}
+        style={{ minHeight: 100, borderRadius: 14, borderWidth: 1, borderColor: C.line, backgroundColor: C.card, color: C.text, padding: 14, fontSize: 16, textAlignVertical: 'top' }}
+      />
+    </View>
+  );
+}
+
+function Thanks({ ctx }: { ctx: CsiContext }) {
   const ini = ctx.sales.split(' ').map((x) => x[0]).join('').slice(0, 2).toUpperCase();
   return (
     <View style={{ gap: 14, alignItems: 'center' }}>
       <Lamp value={100} size={130} />
       <H>{`Thank you, ${ctx.contact}!`}</H>
-      <Sub>{overall >= 75 ? 'You lit us up – we will keep shining for you.' : 'Thank you for being honest – we will work on it and come back to you.'}</Sub>
+      <Sub>Your answers have been sent. They help us light up every project better.</Sub>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.card, borderRadius: 16, padding: 14 }}>
         <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#c8102e', alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ color: '#fff', fontWeight: '800', fontSize: 17 }}>{ini}</Text>
@@ -365,7 +403,7 @@ function Thanks({ ctx, overall }: { ctx: CsiContext; overall: number }) {
         <View>
           <Text style={{ color: C.text, fontWeight: '800' }}>{ctx.sales}</Text>
           <Text style={{ color: C.mut }}>{`DIMO Lighting${ctx.sales_phone ? ` · ${ctx.sales_phone}` : ''}`}</Text>
-          <Text style={{ color: C.mut, fontSize: 12 }}>Reads every answer personally</Text>
+          <Text style={{ color: C.mut, fontSize: 12 }}>Your DIMO contact</Text>
         </View>
       </View>
     </View>
