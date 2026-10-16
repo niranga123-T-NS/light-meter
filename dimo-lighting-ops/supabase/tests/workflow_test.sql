@@ -8592,7 +8592,7 @@ select pg_temp.act_as('sm_projects'); set role authenticated;
 do $$ declare d jsonb := public.exec_early_warning(); p jsonb; begin
   assert jsonb_array_length(d -> 'projects') > 0, 'SM Projects sees the live projects';
   for p in select * from jsonb_array_elements(d -> 'projects') loop
-    assert jsonb_array_length(p -> 'signals') = 11, 'eleven lights per project';
+    assert jsonb_array_length(p -> 'signals') = 12, 'twelve lights per project';
     assert p ->> 'overall' in ('red', 'amber', 'green'), 'overall status';
     assert not exists (select 1 from jsonb_array_elements(p -> 'signals') x where x ->> 'c' not in ('red', 'amber', 'green', 'na') or coalesce(x ->> 'why', '') = ''), 'every light has a colour and a reason';
   end loop;
@@ -8818,6 +8818,8 @@ reset role;
 -- Smart drawings rounds B & C: pins, DB schedule gate, circuits, floors & copy, risers, scenes, removing a drawing ----
 do $$ declare b uuid;
 begin
+  perform set_config('test.ins1', (select id::text from public.instruments where code = 'INS-T1'), false);
+  perform set_config('test.ins2', (select id::text from public.instruments where code = 'INS-T2'), false);
   insert into public.exec_boq_items (exec_project_id, seq, item_no, description, unit, qty, rate, amount) values (current_setting('test.ex')::uuid, 9002, '9.9.10', 'Sub-main 16 mm²', 'm', 30, 100, 3000) returning id into b;
   perform set_config('test.dwb2', b::text, false);
 end $$;
@@ -8873,17 +8875,21 @@ begin
   begin perform public.drawing_db_part_status(pt, 'tested', '{"settings": false}', null); assert false, 'checks first'; exception when raise_exception then null; end;
   perform public.drawing_db_part_status(pt, 'tested', '{"settings": true}', '{"ir": "200"}');
   select id into c from public.exec_drawing_circuits where item_id = db and ref = 'L1/1';
-  begin perform public.drawing_circuit_test(c, '{"ir": "0.5", "zs": "1.2", "polarity": true}', 'tested'); assert false, 'low IR';
+  begin perform public.drawing_circuit_test(c, '{"ir": "0.5", "zs": "1.2", "polarity": true}', 'tested', null, current_setting('test.ins2')::uuid); assert false, 'low IR';
   exception when raise_exception then assert sqlerrm like 'Insulation resistance below 1%', sqlerrm; end;
-  begin perform public.drawing_circuit_test(c, '{"ir": "200", "zs": "5", "polarity": true}', 'tested'); assert false, 'Zs too high';
+  begin perform public.drawing_circuit_test(c, '{"ir": "200", "zs": "5", "polarity": true}', 'tested', null, current_setting('test.ins2')::uuid); assert false, 'Zs too high';
   exception when raise_exception then assert sqlerrm like 'Zs above the maximum%', sqlerrm; end;
-  begin perform public.drawing_circuit_test(c, '{"ir": "200", "zs": "1.2", "polarity": false}', 'tested'); assert false, 'polarity';
+  begin perform public.drawing_circuit_test(c, '{"ir": "200", "zs": "1.2", "polarity": false}', 'tested', null, current_setting('test.ins2')::uuid); assert false, 'polarity';
   exception when raise_exception then null; end;
-  perform public.drawing_circuit_test(c, '{"ir": "200", "zs": "1.2", "polarity": true, "rcd_ms": "22"}', 'tested');
+  perform public.drawing_circuit_test(c, '{"ir": "200", "zs": "1.2", "polarity": true, "rcd_ms": "22"}', 'tested', null, current_setting('test.ins2')::uuid);
   select id into c from public.exec_drawing_circuits where item_id = db and ref = 'L1/2';
-  perform public.drawing_circuit_test(c, '{"ir": ">999", "zs": "0.8", "polarity": true}', 'failed', 'IR reads over range – retest with the right range');
+  perform public.drawing_circuit_test(c, '{"ir": ">999", "zs": "0.8", "polarity": true}', 'failed', 'IR reads over range – retest with the right range', current_setting('test.ins2')::uuid);
   begin perform public.drawing_item_status(db, 'tested'); assert false, 'one circuit left'; exception when raise_exception then null; end;
-  perform public.drawing_circuit_test(c, '{"ir": "999", "zs": "0.8", "polarity": true}', 'tested');
+  begin perform public.drawing_circuit_test(c, '{"ir": "999", "zs": "0.8", "polarity": true}', 'tested'); assert false, 'instrument needed';
+  exception when raise_exception then assert sqlerrm like 'Choose the test instrument%', sqlerrm; end;
+  begin perform public.drawing_circuit_test(c, '{"ir": "999", "zs": "0.8", "polarity": true}', 'tested', null, current_setting('test.ins1')::uuid); assert false, 'expired';
+  exception when raise_exception then assert sqlerrm like '%is not calibrated%', sqlerrm; end;
+  perform public.drawing_circuit_test(c, '{"ir": "999", "zs": "0.8", "polarity": true}', 'tested', null, current_setting('test.ins1')::uuid, true);
   perform public.drawing_item_status(db, 'tested');
   -- a component going back takes the DB back
   perform public.drawing_db_part_status(pt, 'failed', null, null, 'Trip unit faulty');
@@ -8931,6 +8937,40 @@ do $$ begin
   assert not exists (select 1 from public.drawing_pins(current_setting('test.dwg')::uuid)), 'outsiders see no pins';
   assert not exists (select 1 from public.exec_drawing_circuits), 'outsiders see no circuits';
 end $$;
+reset role;
+
+-- Smart drawings round D: who installed, reference figures per installer, DB tests to QA, the early-warning light ----
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare ex uuid := current_setting('test.ex')::uuid; d uuid := current_setting('test.dwg')::uuid; sub uuid; ids uuid[]; n int; tid uuid; ew jsonb;
+begin
+  select id into sub from public.exec_subcontractors where exec_project_id = ex order by name limit 1;
+  perform set_config('test.dwsub', sub::text, false);
+  ids := current_setting('test.dwids')::uuid[];
+  n := public.drawing_set_installer(ids[1:2], null, 'sub', sub);
+  assert n = 2, 'two tagged';
+  perform public.drawing_set_installer(ids[3:3], null, 'dimo');
+  begin perform public.drawing_set_installer(ids, null, 'sub', gen_random_uuid()); assert false, 'subcontractor of this project'; exception when raise_exception then null; end;
+  assert (select sum(total) from public.drawing_installer_figures(ex, 'sub', sub)) = 2, 'two for the subcontractor';
+  assert (select sum(total) from public.drawing_installer_figures(ex, 'dimo')) = 1, 'one for DIMO';
+  assert (select sum(total) from public.drawing_installer_figures(ex)) >= 3, 'all';
+  -- the DB's circuit tests to the QA test records (one circuit failed earlier is passed now)
+  tid := public.drawing_db_to_qa(current_setting('test.dwdb')::uuid, 'Consultant');
+  assert (select system = 'DB-GF1' and uncalibrated and result = 'pass' from public.test_records where id = tid), 'QA record, flagged uncalibrated';
+  assert (select count(*) from public.exec_drawing_circuits where test_record_id = tid) = 2, 'linked';
+  -- early warning: the drawings light
+  ew := app.ew_project(ex, app.ew_limits());
+  assert exists (select 1 from jsonb_array_elements(ew -> 'signals') x where x ->> 'k' = 'dwg' and x ->> 'c' in ('red', 'amber')), ew::text;
+end $$;
+reset role;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ begin
+  begin perform public.drawing_set_installer(current_setting('test.dwids')::uuid[], null, 'dimo'); assert false, 'engineers tag'; exception when raise_exception then null; end;
+  begin perform public.drawing_db_to_qa(current_setting('test.dwdb')::uuid); assert false, 'AE records tests'; exception when raise_exception then null; end;
+  assert exists (select 1 from public.drawing_instruments(current_setting('test.ex')::uuid) where code = 'INS-T2' and calibrated), 'supervisor can choose an instrument';
+end $$;
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin assert not exists (select 1 from public.drawing_installer_figures(current_setting('test.ex')::uuid)), 'outsiders see nothing'; end $$;
 reset role;
 
 -- Smart drawings switched off mid-project: SEE asks, SM Projects approves; then everything is read-only ----

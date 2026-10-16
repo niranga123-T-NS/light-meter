@@ -2,9 +2,11 @@ import { Text, View } from 'react-native';
 import { useDialog, type PromptField } from '@/components/dialog';
 import { Button, Chip, colors, Muted, Pill, Row } from '@/components/ui';
 import { PART_STEPS, PTYPES, ptypeOf, STATUS_COLOR, type DCircuit, type DItem, type DPart } from '@/lib/drawings';
-import { fmtDateTime } from '@/lib/format';
+import { fmtDate, fmtDateTime } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
+
+type Ins = { id: string; code: string; name: string; serial_no: string | null; calibrated: boolean; cal_expiry: string | null; here: boolean };
 
 const PART_COL: Record<string, string> = { planned: '#9AA0A8', fitted: STATUS_COLOR.second, tested: STATUS_COLOR.tested, failed: STATUS_COLOR.failed };
 const CIRC_COL: Record<string, string> = { planned: '#9AA0A8', tested: STATUS_COLOR.tested, failed: STATUS_COLOR.failed };
@@ -18,6 +20,7 @@ export function DbSchedule({
   items,
   canEdit,
   canUpdate,
+  canQa,
   people,
   onChange,
 }: {
@@ -25,6 +28,8 @@ export function DbSchedule({
   items: DItem[];
   canEdit: boolean;
   canUpdate: boolean;
+  /** the project's AE / the SEE send the tests to the QA test records */
+  canQa: boolean;
   people: Record<string, { full_name: string } | undefined>;
   onChange: () => Promise<void> | void;
 }) {
@@ -35,9 +40,10 @@ export function DbSchedule({
       supabase.from('exec_drawing_circuits').select('*').eq('item_id', db.id).order('seq'),
     ]);
     if (p.error) throw new Error(p.error.message);
-    return { parts: (p.data ?? []) as DPart[], circuits: (c.data ?? []) as DCircuit[] };
+    const ins = await rpc<Ins[]>('drawing_instruments', { p_exec: db.exec_project_id }).catch(() => [] as Ins[]);
+    return { parts: (p.data ?? []) as DPart[], circuits: (c.data ?? []) as DCircuit[], ins };
   }, [db.id]);
-  const parts = data?.parts ?? [], circuits = data?.circuits ?? [];
+  const parts = data?.parts ?? [], circuits = data?.circuits ?? [], ins = data?.ins ?? [];
   const run = (fn: () => Promise<unknown>, ok?: string) =>
     dialog.run(async () => {
       await fn();
@@ -153,10 +159,29 @@ export function DbSchedule({
         { key: 'pol', label: 'Polarity', type: 'select', required: true, initial: r.polarity === false ? 'no' : r.polarity ? 'yes' : '', options: [{ value: 'yes', label: 'Right' }, { value: 'no', label: 'Wrong' }] },
         { key: 'st', label: 'Result', type: 'select', required: true, initial: c.status === 'planned' ? 'tested' : c.status, options: [{ value: 'tested', label: 'Passed' }, { value: 'failed', label: 'Failed' }, { value: 'planned', label: 'Not tested yet' }] },
         { key: 'note', label: 'What failed?', type: 'multiline', required: true, when: { key: 'st', in: ['failed'] } },
+        {
+          key: 'ins',
+          label: 'Test instrument',
+          type: 'select',
+          searchable: true,
+          required: true,
+          initial: c.instrument_id ?? ins.find((x) => x.here)?.id ?? '',
+          options: ins.map((x) => ({ value: x.id, label: `${x.name} · ${x.code}${x.serial_no ? ` · ${x.serial_no}` : ''}${x.here ? ' · on this project' : ''}${x.calibrated ? '' : ' · NOT CALIBRATED'}` })),
+          when: { key: 'st', in: ['tested', 'failed'] },
+        },
       ],
     });
     if (!v) return;
-    await run(() => rpc('drawing_circuit_test', { p_id: c.id, p_readings: { r1r2: v.r1r2, ir: v.ir, zs: v.zs, rcd_ms: v.rcd_ms, polarity: v.pol === 'yes' }, p_status: v.st, p_note: v.st === 'failed' ? v.note : null }), v.st === 'tested' ? 'Circuit passed' : 'Saved');
+    const chosen = ins.find((x) => x.id === v.ins);
+    let accept = false;
+    if (v.st !== 'planned' && chosen && !chosen.calibrated) {
+      accept = await dialog.confirm(`${chosen.name} is not calibrated`, `${chosen.cal_expiry ? `Calibration expired ${fmtDate(chosen.cal_expiry)}. ` : ''}The test is flagged and the Senior Electrical Engineer and Operations are told – the readings may not be accepted. Record it anyway?`, { danger: true, confirmLabel: 'Record it' });
+      if (!accept) return;
+    }
+    await run(
+      () => rpc('drawing_circuit_test', { p_id: c.id, p_readings: { r1r2: v.r1r2, ir: v.ir, zs: v.zs, rcd_ms: v.rcd_ms, polarity: v.pol === 'yes' }, p_status: v.st, p_note: v.st === 'failed' ? v.note : null, p_instrument: v.st === 'planned' ? null : v.ins || null, p_accept_uncalibrated: accept }),
+      v.st === 'tested' ? 'Circuit passed' : 'Saved',
+    );
   };
 
   const pTested = parts.filter((p) => p.status === 'tested').length, cTested = circuits.filter((c) => c.status === 'tested').length;
@@ -227,7 +252,7 @@ export function DbSchedule({
         {circuits.length ? (
           circuits.map((c) => {
             const r = c.readings ?? {}, n = points(c.ref);
-            const read = c.status === 'planned' ? null : [r.ir ? `IR ${r.ir} MΩ` : null, r.zs ? `Zs ${r.zs} Ω` : null, r.rcd_ms ? `RCD ${r.rcd_ms} ms` : null].filter(Boolean).join(' · ');
+            const read = c.status === 'planned' ? null : [r.ir ? `IR ${r.ir} MΩ` : null, r.zs ? `Zs ${r.zs} Ω` : null, r.rcd_ms ? `RCD ${r.rcd_ms} ms` : null, c.instrument_id ? (ins.find((x) => x.id === c.instrument_id)?.name ?? 'instrument') : null, c.uncalibrated ? 'UNCALIBRATED instrument' : null].filter(Boolean).join(' · ');
             return (
               <View key={c.id} style={{ paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.line, gap: 3 }}>
                 <Row style={{ justifyContent: 'space-between' }} wrap>
@@ -258,6 +283,25 @@ export function DbSchedule({
           <Muted>{canEdit ? 'No circuits yet – add them from the DB schedule; items whose circuit matches a reference count as its points.' : 'No circuits listed yet.'}</Muted>
         )}
         <Muted>The board is Tested only when every component and every circuit has passed.</Muted>
+        {canQa && circuits.length ? (
+          circuits.some((c) => c.status === 'planned') ? (
+            <Muted>Once every circuit is tested, the results go to the QA test records in one step.</Muted>
+          ) : circuits.every((c) => c.test_record_id) ? (
+            <Muted>These results are in the QA test records.</Muted>
+          ) : (
+            <Row>
+              <Button
+                small
+                variant="secondary"
+                title="Send to the QA test records"
+                onPress={async () => {
+                  const v = await dialog.prompt({ title: 'Send to the QA test records', message: 'One test record with every circuit’s IR, Zs and RCD – verified by the Senior Electrical Engineer; a failure raises an NCR, as usual.', fields: [{ key: 'w', label: 'Witnessed by (client / consultant)' }] });
+                  if (v) await run(() => rpc('drawing_db_to_qa', { p_item: db.id, p_witness: v.w || null }), 'Test record created');
+                }}
+              />
+            </Row>
+          )
+        ) : null}
       </View>
     </View>
   );

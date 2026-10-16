@@ -72,6 +72,7 @@ type DData = {
   pins: DPin[];
   sheets: Sheet[];
   risers: Riser[];
+  subs: { id: string; name: string }[];
   project: Pick<ExecProject, 'id' | 'code' | 'name' | 'smart_drawings'> | null;
   uri: string | null;
   offline?: string | null;
@@ -111,10 +112,11 @@ async function fetchDrawing(id: string): Promise<DData> {
     signedImage(dw.image_path).catch(() => null),
     supabase.from('exec_drawing_photos').select('*').eq('drawing_id', id).order('taken_at', { ascending: false }),
   ]);
-  const [pins, sh, rs] = await Promise.all([
+  const [pins, sh, rs, sb] = await Promise.all([
     rpc<DPin[]>('drawing_pins', { p_drawing: id }).catch(() => [] as DPin[]),
     supabase.from('exec_drawings').select('id, title, sheet_no, floor, level_no, archived, width, height, revision').eq('exec_project_id', dw.exec_project_id).order('level_no').order('title'),
     supabase.from('exec_drawing_risers').select('*').eq('exec_project_id', dw.exec_project_id).order('name'),
+    supabase.from('exec_subcontractors').select('id, name').eq('exec_project_id', dw.exec_project_id).eq('active', true).order('name'),
   ]);
   if (it.error) throw new Error(it.error.message);
   return {
@@ -129,6 +131,7 @@ async function fetchDrawing(id: string): Promise<DData> {
     pins,
     sheets: (sh.data ?? []) as Sheet[],
     risers: (rs.data ?? []) as Riser[],
+    subs: (sb.data ?? []) as { id: string; name: string }[],
     project: pj.data as Pick<ExecProject, 'id' | 'code' | 'name' | 'smart_drawings'> | null,
     uri,
     offline: null,
@@ -427,6 +430,28 @@ export default function DrawingScreen() {
     ) : null;
   };
 
+  const installerName = (x: { installer?: string | null; installer_sub?: string | null }) =>
+    x.installer === 'dimo' ? 'DIMO' : x.installer === 'sub' ? (data.subs?.find((s2) => s2.id === x.installer_sub)?.name ?? 'Subcontractor') : 'Not recorded';
+  const setInstaller = async (itemIds: string[], routeIds: string[], cur?: { installer?: string | null; installer_sub?: string | null }) => {
+    const v = await dialog.prompt({
+      title: `Installed by${itemIds.length + routeIds.length > 1 ? ` – ${itemIds.length + routeIds.length} chosen` : ''}`,
+      message: 'For the reference figures beside each measurement sheet – the drawings never fill an IPA or IPC.',
+      fields: [
+        {
+          key: 'who',
+          label: 'Installed by',
+          type: 'select',
+          required: true,
+          initial: cur?.installer === 'dimo' ? 'dimo' : cur?.installer === 'sub' && cur.installer_sub ? cur.installer_sub : '',
+          options: [{ value: 'dimo', label: 'DIMO (own team)' }, ...(data.subs ?? []).map((x) => ({ value: x.id, label: x.name })), { value: 'none', label: '— not recorded' }],
+        },
+      ],
+    });
+    if (!v) return;
+    const inst = v.who === 'none' ? null : v.who === 'dimo' ? 'dimo' : 'sub';
+    await run(() => rpc('drawing_set_installer', { p_items: itemIds, p_routes: routeIds, p_installer: inst, p_sub: inst === 'sub' ? v.who : null }), 'Saved');
+  };
+
   const itemPanel = (it: DItem) => {
     const k = kindOf(it.kind);
     const [CK, RD] = checksFor(it.kind);
@@ -445,6 +470,7 @@ export default function DrawingScreen() {
           {it.serial ? <KeyValue label="Serial" value={it.serial} /> : null}
           <KeyValue label="BOQ line" value={boqName(boq.find((b) => b.id === it.boq_item_id))} />
           <KeyValue label="Activity" value={actName(acts.find((a) => a.id === it.activity_id))} />
+          <KeyValue label="Installed by" value={installerName(it)} />
           {it.note ? <KeyValue label="Note" value={it.note} /> : null}
         </View>
         {it.to_check ? (
@@ -568,6 +594,7 @@ export default function DrawingScreen() {
                 if (v) await run(() => rpc('drawing_item_save', { p: { id: it.id, ...(boq.length ? { boq_item_id: v.boq || null } : {}), activity_id: v.act || null } }), 'Linked');
               }}
             />
+            <Button small variant="secondary" title="Installed by" onPress={() => setInstaller([it.id], [], it)} />
             <Button small variant="secondary" title="Move" onPress={() => setMode('move')} />
             <Button
               small
@@ -595,7 +622,7 @@ export default function DrawingScreen() {
           </Row>
         ) : null}
         {mode === 'move' ? <Notice tone={colors.blue}>Tap the new position on the drawing.</Notice> : null}
-        {it.kind === 'db' ? <DbSchedule db={it} items={items} canEdit={canEdit} canUpdate={canUpdate && !offline} people={people} onChange={reload} /> : null}
+        {it.kind === 'db' ? <DbSchedule db={it} items={items} canEdit={canEdit} canUpdate={canUpdate && !offline} canQa={on && !offline && (me.role === 'senior_elec_engineer' || me.role === 'assistant_engineer')} people={people} onChange={reload} /> : null}
         {pins.filter((x) => x.item_id === it.id).length ? (
           <View style={{ gap: 2 }}>
             <Text style={{ fontWeight: '700', color: colors.ink }}>Issues on this item</Text>
@@ -658,6 +685,7 @@ export default function DrawingScreen() {
           )}
           <KeyValue label="BOQ line" value={boqName(boq.find((b) => b.id === r.boq_item_id))} />
           <KeyValue label="Activity" value={actName(acts.find((a) => a.id === r.activity_id))} />
+          <KeyValue label="Installed by" value={installerName(r)} />
         </View>
         {r.to_check ? (
           <Row wrap gap={8} style={{ padding: 8, borderRadius: 8, backgroundColor: '#FFF4E0' }}>
@@ -740,6 +768,7 @@ export default function DrawingScreen() {
                 if (v) await run(() => rpc('drawing_route_save', { p: { id: r.id, ...(boq.length ? { boq_item_id: v.boq || null } : {}), activity_id: v.act || null } }), 'Linked');
               }}
             />
+            <Button small variant="secondary" title="Installed by" onPress={() => setInstaller([], [r.id], r)} />
             <Button
               small
               variant="secondary"
@@ -1168,6 +1197,7 @@ export default function DrawingScreen() {
               <Button small title="Set the stage" disabled={!marked.length} onPress={bulkStage} />
               <Button small variant="secondary" title={`All shown (${visible.length})`} onPress={() => setMarked(visible.map((x) => x.id))} />
               <Button small variant="secondary" title="Clear" disabled={!marked.length} onPress={() => { setMarked([]); setDraft([]); }} />
+              {canEdit ? <Button small variant="secondary" title="Installed by" disabled={!marked.length || offline} onPress={() => setInstaller(marked, [])} /> : null}
               {canEdit && chosen.some((x) => x.to_check) ? (
                 <Button small variant="secondary" title="Confirm copies" onPress={() => run(() => rpc('drawing_mark_checked', { p_items: chosen.filter((x) => x.to_check).map((x) => x.id), p_routes: null }), 'Confirmed')} />
               ) : null}

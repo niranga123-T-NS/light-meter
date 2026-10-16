@@ -23,6 +23,7 @@ const COLS: { k: string; label: string }[] = [
   { k: 'rep', label: 'Daily reports' },
   { k: 'def', label: 'Defects & snags' },
   { k: 'ho', label: 'Handover' },
+  { k: 'dwg', label: 'Smart drawings' },
 ];
 const label = (k: string) => COLS.find((c) => c.k === k)?.label ?? k;
 const TONE: Record<Light, string> = { red: colors.red, amber: colors.amber, green: colors.green, na: colors.line };
@@ -43,6 +44,7 @@ const LIMITS: [string, string, string][] = [
   ['repRed', 'Daily reports – red when missing (last 7 days)', 'reports'],
   ['snagAmber', 'Defects – amber when open snags + defects exceed', ''], ['dlpRed', 'Defects – red when the liability period ends within', 'days'],
   ['hoRed', 'Handover – red below', '%'], ['hoAmber', 'Handover – amber below', '%'], ['hoWeeks', 'Handover – checked from', 'weeks before'],
+  ['dwgRed', 'Smart drawings – red above (failed items / circuits)', 'failed'],
   ['ambersForAmber', 'Project is amber when this many lights are amber', 'lights'],
 ];
 
@@ -60,7 +62,7 @@ function Spark({ v }: { v: number[] }) {
   );
 }
 
-/** Execution early warning: one row per live project with 11 lights, worst first; tap a light or a project for the reasons */
+/** Execution early warning: one row per live project with 12 lights, worst first; tap a light or a project for the reasons */
 export default function EarlyWarning() {
   const wide = useWide();
   const people = usePeople();
@@ -73,7 +75,7 @@ export default function EarlyWarning() {
 
   const all = data.projects;
   const list = filter === 'all' ? all : all.filter((p) => p.overall === filter);
-  const sig = (p: Project, k: string) => p.signals.find((s) => s.k === k) as Signal;
+  const sig = (p: Project, k: string) => (p.signals.find((s) => s.k === k) ?? { k, c: 'na', v: '—', why: '' }) as Signal;
   const count = (c: string) => all.filter((p) => p.overall === c).length;
   const billing = all.reduce((t, p) => t + (sig(p, 'bill').c !== 'green' ? sig(p, 'bill').value ?? 0 : 0), 0);
   const mats = all.reduce((t, p) => t + (sig(p, 'mat').risk ?? 0), 0);
@@ -151,7 +153,7 @@ export default function EarlyWarning() {
   return (
     <Screen maxWidth={1400}>
       <Stack.Screen options={{ title: 'Early warning' }} />
-      <Muted>{`Live execution projects, worst first – from what the app already records (${data.today}). Tap a light for the reason, or a project for all eleven.`}</Muted>
+      <Muted>{`Live execution projects, worst first – from what the app already records (${data.today}). Tap a light for the reason, or a project for all twelve.`}</Muted>
       <Grid min={170} max={6}>
         <Stat label="At risk" value={String(count('red'))} tone={count('red') ? 'red' : undefined} onPress={() => setFilter('red')} />
         <Stat label="To watch" value={String(count('amber'))} tone={count('amber') ? 'amber' : undefined} onPress={() => setFilter('amber')} />

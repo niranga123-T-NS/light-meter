@@ -138,6 +138,7 @@ export function DrawingsTab({ p }: { p: ExecProject }) {
             <Muted>The execution team adds the drawings.</Muted>
           )}
           <Button title="Risers" variant="secondary" onPress={() => router.push(`/execution/drawing/risers/${p.id}`)} />
+          {me.role !== 'sub_supervisor' || on ? <Button title="Materials take-off" variant="secondary" onPress={() => router.push(`/execution/drawing/takeoff/${p.id}`)} /> : null}
           <Toggle label="Show archived" value={old} onChange={setOld} />
         </Row>
         {Platform.OS !== 'web' && canEdit ? <Muted style={{ marginTop: 6 }}>On the phone, add an image of the drawing; PDF drawings are added from the website.</Muted> : null}

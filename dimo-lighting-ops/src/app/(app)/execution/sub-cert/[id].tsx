@@ -23,6 +23,7 @@ import { CERT_STATUS, certTitle, isJm, type SubCert } from "@/lib/execution";
 import { listAttachments, openAttachment } from "@/lib/files";
 import { fmtDate, fmtDateTime, fmtMoney, todayISO } from "@/lib/format";
 import { useLoad, usePeople } from "@/lib/hooks";
+import { InstallerFigures } from "@/components/drawing/InstallerFigures";
 import { rpc, supabase } from "@/lib/supabase";
 import { loadSubcontractors, subOptions } from "@/lib/subcontractors";
 import type { Attachment } from "@/lib/types";
@@ -396,6 +397,7 @@ export default function SubCertPage() {
           </Row>
         ) : null}
       </Card>
+      {c.status !== "cancelled" ? <InstallerFigures exec={c.exec_project_id} installer="sub" subName={c.subcontractor} /> : null}
 
       {c.status === "jm_requested" ? (
         <Notice tone={colors.amber}>

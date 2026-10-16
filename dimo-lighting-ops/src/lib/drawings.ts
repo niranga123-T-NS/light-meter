@@ -42,6 +42,9 @@ export type DItem = {
   updated_at: string;
   to_check?: boolean;
   riser_id?: string | null;
+  installer?: 'dimo' | 'sub' | null;
+  installer_sub?: string | null;
+  exec_project_id?: string;
 };
 export type Pt = [number, number];
 export type DRoute = {
@@ -57,6 +60,8 @@ export type DRoute = {
   boq_item_id: string | null;
   activity_id: string | null;
   to_check?: boolean;
+  installer?: 'dimo' | 'sub' | null;
+  installer_sub?: string | null;
 };
 export type DEvent = { id: number; item_id: string | null; route_id: string | null; what: string; from_status: string | null; to_status: string | null; note: string | null; by_id: string | null; at: string };
 
@@ -241,7 +246,7 @@ export const PTYPES: Record<string, { name: string; checks: Check[]; readings: R
 export const ptypeOf = (t: string) => PTYPES[t] ?? PTYPES.other;
 export const PART_STEPS: [string, string][] = [['planned', 'Planned'], ['fitted', 'Fitted'], ['tested', 'Tested'], ['failed', 'Failed']];
 export type DPart = { id: string; item_id: string; seq: number; ptype: string; ref: string | null; rating: string | null; poles: string | null; make: string | null; qty: number; status: string; checks: Record<string, boolean>; readings: Record<string, string>; note: string | null };
-export type DCircuit = { id: string; item_id: string; seq: number; ref: string; description: string | null; phase: string | null; device: string | null; cable: string | null; zs_max: number | null; status: string; readings: Record<string, string | boolean>; note: string | null; tested_by: string | null; tested_at: string | null };
+export type DCircuit = { id: string; item_id: string; seq: number; ref: string; instrument_id?: string | null; uncalibrated?: boolean; test_record_id?: string | null; description: string | null; phase: string | null; device: string | null; cable: string | null; zs_max: number | null; status: string; readings: Record<string, string | boolean>; note: string | null; tested_by: string | null; tested_at: string | null };
 export type DPin = { id: string; item_id: string | null; x: number; y: number; kind: string; title: string; ref_type: string | null; ref_id: string | null; ref_code: string | null; state: string; open: boolean; raised_by: string | null; raised_at: string; closed_at: string | null; close_note: string | null };
 export const PIN_KINDS: Record<string, { name: string; c: string; sign: string }> = {
   query: { name: 'Design query', c: '#2F6FD1', sign: '?' },
