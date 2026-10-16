@@ -8687,5 +8687,81 @@ do $$ begin
 end $$;
 reset role;
 
+-- Smart drawings: the team uploads and marks up; the supervisor updates stages; checks gate Tested; BOQ and activity figures ----
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare ex uuid := current_setting('test.ex')::uuid; d uuid; i uuid; r uuid; act uuid; boq uuid;
+begin
+  begin perform public.drawing_save(jsonb_build_object('exec_project_id', ex, 'title', 'E-101', 'image_path', gen_random_uuid() || '/x.png', 'width', 1000, 'height', 700));
+    assert false, 'file of another project'; exception when raise_exception then null; end;
+  d := public.drawing_save(jsonb_build_object('exec_project_id', ex, 'title', 'E-101 Ground floor', 'revision', 'B', 'image_path', ex || '/e101.png', 'width', 1000, 'height', 700, 'width_m', 50));
+  perform set_config('test.dwg', d::text, false);
+  select id into act from public.exec_activities where exec_project_id = ex order by code limit 1;
+  i := public.drawing_item_save(jsonb_build_object('drawing_id', d, 'kind', 'so', 'x', 0.1, 'y', 0.2, 'checks', '{"polar": false, "earth": false}'::jsonb, 'activity_id', act));
+  perform set_config('test.dwi', i::text, false); perform set_config('test.dwact', coalesce(act::text, ''), false);
+  begin perform public.drawing_item_save(jsonb_build_object('drawing_id', d, 'kind', 'so', 'x', 1.5, 'y', 0.2)); assert false, 'outside the sheet';
+  exception when others then null; end;
+  r := public.drawing_route_save(jsonb_build_object('drawing_id', d, 'kind', 'pw', 'pts', '[[0.1, 0.2], [0.5, 0.2]]'::jsonb, 'label', 'GF/S1 ring', 'area', 60, 'cores', 2));
+  perform set_config('test.dwr', r::text, false);
+  begin perform public.drawing_route_save(jsonb_build_object('drawing_id', d, 'kind', 'tray', 'pts', '[[0.1, 0.2]]'::jsonb)); assert false, 'two points';
+  exception when raise_exception then null; end;
+end $$;
+reset role;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare i uuid := current_setting('test.dwi')::uuid; r uuid := current_setting('test.dwr')::uuid;
+begin
+  assert exists (select 1 from public.exec_drawings where id = current_setting('test.dwg')::uuid), 'the project supervisor sees the drawing';
+  begin perform public.drawing_item_save(jsonb_build_object('id', i, 'x', 0.3)); assert false, 'supervisor cannot move items';
+  exception when raise_exception then null; end;
+  perform public.drawing_item_status(i, 'second');
+  begin perform public.drawing_item_status(i, 'tested'); assert false, 'checks first';
+  exception when raise_exception then assert sqlerrm like 'Tick every check%', sqlerrm; end;
+  perform public.drawing_item_checks(i, '{"polar": true, "earth": true}', '{"r12": "0.42"}');
+  perform public.drawing_item_status(i, 'tested');
+  begin perform public.drawing_item_status(i, 'failed'); assert false, 'say what failed'; exception when raise_exception then null; end;
+  perform public.drawing_route_progress(r, 'laid', 50);
+  begin perform public.drawing_route_progress(r, 'fixed'); assert false, 'cable stages only'; exception when raise_exception then null; end;
+end $$;
+reset role;
+do $$ declare i uuid := current_setting('test.dwi')::uuid;
+begin
+  assert (select status from public.exec_drawing_items where id = i) = 'tested', 'tested';
+  assert (select count(*) from public.exec_drawing_events where item_id = i and what = 'Stage') = 2, 'stage history kept';
+  assert (select laid from public.exec_drawing_routes where id = current_setting('test.dwr')::uuid) = 50, 'metres laid';
+  if current_setting('test.dwact') <> '' then
+    assert (select pct_drawing from public.exec_activities where id = current_setting('test.dwact')::uuid) = 90, 'activity figure from the drawing';
+  end if;
+end $$;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ begin
+  -- clearing a check takes the item back below Tested
+  perform public.drawing_item_checks(current_setting('test.dwi')::uuid, '{"polar": true, "earth": false}', null);
+end $$;
+reset role;
+do $$ begin assert (select status from public.exec_drawing_items where id = current_setting('test.dwi')::uuid) = 'second', 'back to 2nd fix'; end $$;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  assert not exists (select 1 from public.exec_drawings), 'sales do not see project drawings';
+  begin perform public.drawing_item_status(current_setting('test.dwi')::uuid, 'first'); assert false, 'sales cannot update';
+  exception when raise_exception then null; end;
+end $$;
+reset role;
+-- BOQ figures: a route of 0.4 of a 50 m sheet = 20 m × 2 cables = 40 m, half laid
+do $$ declare b uuid; ex uuid := current_setting('test.ex')::uuid;
+begin
+  insert into public.exec_boq_items (exec_project_id, seq, item_no, description, unit, qty, rate, amount) values (ex, 9001, '9.9.9', 'Cable 2.5 mm²', 'm', 100, 100, 10000) returning id into b;
+  update public.exec_drawing_routes set boq_item_id = b where id = current_setting('test.dwr')::uuid;
+  perform set_config('test.dwb', b::text, false);
+end $$;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare b uuid := current_setting('test.dwb')::uuid; ex uuid := current_setting('test.ex')::uuid;
+begin
+  assert (select round(qty) from public.drawing_boq(ex) where boq_item_id = b) = 40, 'metres from the scale';
+  assert (select round(done) from public.drawing_boq(ex) where boq_item_id = b) = 20, 'half laid';
+end $$;
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin assert not exists (select 1 from public.drawing_boq(current_setting('test.ex')::uuid)), 'nothing for outsiders'; end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

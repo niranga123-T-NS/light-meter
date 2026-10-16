@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Text } from 'react-native';
 import { BillingTab } from '@/components/exec/BillingTab';
 import { DocumentsTab } from '@/components/exec/DocumentsTab';
+import { DrawingsTab } from '@/components/exec/DrawingsTab';
 import { HandoverTab } from '@/components/exec/HandoverTab';
 import { HseTab } from '@/components/exec/HseTab';
 import { MaterialsTab } from '@/components/exec/MaterialsTab';
@@ -42,6 +43,7 @@ const TABS: Tab[] = [
   { key: 'workers', label: 'Workers', roles: ['senior_elec_engineer', 'sm_projects', 'assistant_engineer', 'sub_supervisor'] },
   { key: 'materials', label: 'Materials & services', roles: INTERNAL },
   { key: 'qa', label: 'QA', roles: TEAM },
+  { key: 'drawings', label: 'Drawings · testing', roles: [...INTERNAL, 'sub_supervisor'] },
   { key: 'documents', label: 'Documents' },
   { key: 'handover', label: 'Handover', roles: INTERNAL },
   { key: 'subcerts', label: 'Subcontractor IPC & invoices', roles: ['senior_elec_engineer', 'sm_projects', 'gm', 'operations_exec', 'assistant_engineer', 'sub_supervisor'] },
@@ -85,6 +87,7 @@ export default function ExecProjectScreen() {
       {t === 'workers' ? <WorkersTab p={p} /> : null}
       {t === 'materials' ? <MaterialsTab p={p} /> : null}
       {t === 'qa' ? <QaTab p={p} /> : null}
+      {t === 'drawings' ? <DrawingsTab p={p} /> : null}
       {t === 'documents' ? <DocumentsTab p={p} queries={TEAM.includes(me.role)} /> : null}
       {t === 'handover' ? <HandoverTab p={p} onChange={reload} /> : null}
       {t === 'subcerts' ? <SubCertsTab p={p} /> : null}
