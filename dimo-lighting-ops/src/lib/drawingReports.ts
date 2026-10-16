@@ -32,6 +32,8 @@ import {
   type DTest,
   type Riser,
   type RiserRun,
+  type Tpl,
+  loadTemplates,
 } from './drawings';
 import { esc, exportExcel, exportPdf, printHtml, reportHtml, type Column } from './export';
 import { fmtDate, fmtDateTime, fmtNumber } from './format';
@@ -53,6 +55,7 @@ export type Pack = {
   subs: { id: string; name: string }[];
   boq: { id: string; item_no: string | null; description: string }[];
   ins: Ins[];
+  tpl: Tpl;
 };
 
 /** Everything the reports need for one project (drawings not archived). */
@@ -73,10 +76,11 @@ export async function loadPack(exec: string): Promise<Pack> {
   if (pj.error) throw new Error(pj.error.message);
   const drawings = (dw.data ?? []) as Drawing[];
   const ids = new Set(drawings.map((d) => d.id));
-  const [uris, pins, ins] = await Promise.all([
+  const [uris, pins, ins, tpl] = await Promise.all([
     Promise.all(drawings.map(async (d) => [d.id, (await supabase.storage.from('drawings').createSignedUrl(d.image_path, 3600)).data?.signedUrl ?? null] as const)),
     Promise.all(drawings.map(async (d) => (await rpc<DPin[]>('drawing_pins', { p_drawing: d.id }).catch(() => [] as DPin[])).map((p) => ({ ...p, drawing_id: d.id })))),
     rpc<Ins[]>('drawing_instruments', { p_exec: exec }).catch(() => [] as Ins[]),
+    loadTemplates(exec).catch(() => ({}) as Tpl),
   ]);
   return {
     project: pj.data as Pack['project'],
@@ -93,6 +97,7 @@ export async function loadPack(exec: string): Promise<Pack> {
     subs: (sb.data ?? []) as Pack['subs'],
     boq: (bq.data ?? []) as Pack['boq'],
     ins,
+    tpl,
   };
 }
 
@@ -215,14 +220,14 @@ function dbHtml(p: Pack, db: DItem, people: Record<string, { full_name: string }
 ${tbl(['Way', 'Circuit', 'Phase', 'Protective device', 'Cable'], circ.map((c) => [c.ref, c.description, c.phase, c.device, c.cable]))}
 <h3>Components</h3>
 ${tbl(['Component', 'Ref', 'Rating', 'Poles', 'Make / model', 'Qty', 'Checks', 'Stage'], parts.map((x) => {
-    const t = ptypeOf(x.ptype);
+    const t = ptypeOf(x.ptype, p.tpl);
     return [t.name, x.ref, x.rating, x.poles, x.make, x.qty, `${t.checks.filter(([k]) => x.checks?.[k]).length} of ${t.checks.length}`, PART_STEPS.find((s) => s[0] === x.status)?.[1] ?? x.status];
   }), [5])}
 <h3 class="pb">Test certificate – circuits</h3>
 ${tbl(['Circuit', 'R1+R2 Ω', 'IR MΩ', 'Zs Ω', 'Max Zs Ω', 'RCD ms', 'Polarity', 'Result'], circ.map((c) => [
     c.ref + (c.description ? ` ${c.description}` : ''), r(c, 'r1r2'), r(c, 'ir'), r(c, 'zs'), c.zs_max ?? '', r(c, 'rcd_ms'),
     c.status === 'planned' ? '' : c.readings?.polarity === true ? 'Right' : c.readings?.polarity === false ? 'Wrong' : '',
-    (c.status === 'tested' ? 'Pass' : c.status === 'failed' ? `FAIL${c.note ? ` – ${c.note}` : ''}` : 'Not tested') + (c.uncalibrated ? ' (uncalibrated instrument)' : ''),
+    (c.status === 'tested' ? (c.confirmed === false ? 'Pass (awaiting AE confirmation)' : 'Pass') : c.status === 'failed' ? `FAIL${c.note ? ` – ${c.note}` : ''}` : 'Not tested') + (c.uncalibrated ? ' (uncalibrated instrument)' : ''),
   ]), [1, 2, 3, 4, 5])}
 <div class="kv"><div><b>Instrument(s):</b> ${esc(usedIns.map((i) => insName(p, i)).join('; ') || '—')}</div><div><b>Tested by:</b> ${esc(testers.join(', ') || '—')}${last ? ` · ${esc(fmtDateTime(last))}` : ''}</div></div>
 ${circ.some((c) => c.uncalibrated) ? '<p class="warn">Some readings were taken with an instrument that was not calibrated at the time.</p>' : ''}

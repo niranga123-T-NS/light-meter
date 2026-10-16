@@ -8742,7 +8742,18 @@ begin
   assert (select count(*) from public.exec_drawing_events where item_id = i and what = 'Stage') = 2, 'stage history kept';
   assert (select laid from public.exec_drawing_routes where id = current_setting('test.dwr')::uuid) = 50, 'metres laid';
   if current_setting('test.dwact') <> '' then
-    assert (select pct_drawing from public.exec_activities where id = current_setting('test.dwact')::uuid) = 90, 'activity figure from the drawing';
+    assert (select pct_drawing from public.exec_activities where id = current_setting('test.dwact')::uuid) = 75, 'a supervisor''s Tested counts as installed until confirmed';
+  end if;
+end $$;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.my_pending_approvals() where source = 'drawing_confirm'), 'waiting for the AE';
+  assert public.drawing_confirm(array[current_setting('test.dwi')::uuid], null, true) = 1, 'confirmed';
+end $$;
+reset role;
+do $$ begin
+  if current_setting('test.dwact') <> '' then
+    assert (select pct_drawing from public.exec_activities where id = current_setting('test.dwact')::uuid) = 90, 'counts once confirmed';
   end if;
 end $$;
 select pg_temp.act_as('sub_supervisor'); set role authenticated;
@@ -8871,7 +8882,7 @@ do $$ declare db uuid := current_setting('test.dwdb')::uuid; pt uuid := current_
 begin
   -- the DB cannot be Tested until its schedule is
   begin perform public.drawing_item_status(db, 'tested'); assert false, 'schedule first';
-  exception when raise_exception then assert sqlerrm like 'Test the DB schedule first – 1 component(s) and 2 circuit(s)%', sqlerrm; end;
+  exception when raise_exception then assert sqlerrm like 'Finish the DB schedule first – 1 component(s) and 2 circuit(s)%', sqlerrm; end;
   begin perform public.drawing_db_part_status(pt, 'tested', '{"settings": false}', null); assert false, 'checks first'; exception when raise_exception then null; end;
   perform public.drawing_db_part_status(pt, 'tested', '{"settings": true}', '{"ir": "200"}');
   select id into c from public.exec_drawing_circuits where item_id = db and ref = 'L1/1';
@@ -8890,7 +8901,21 @@ begin
   begin perform public.drawing_circuit_test(c, '{"ir": "999", "zs": "0.8", "polarity": true}', 'tested', null, current_setting('test.ins1')::uuid); assert false, 'expired';
   exception when raise_exception then assert sqlerrm like '%is not calibrated%', sqlerrm; end;
   perform public.drawing_circuit_test(c, '{"ir": "999", "zs": "0.8", "polarity": true}', 'tested', null, current_setting('test.ins1')::uuid, true);
+  begin perform public.drawing_item_status(db, 'tested'); assert false, 'circuits to confirm';
+  exception when raise_exception then assert sqlerrm like '%2 circuit(s) not passed or not confirmed%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare db uuid := current_setting('test.dwdb')::uuid;
+begin
+  assert public.drawing_confirm(null, (select array_agg(id) from public.exec_drawing_circuits where item_id = db), true) = 2, 'two circuits confirmed';
   perform public.drawing_item_status(db, 'tested');
+  assert (select confirmed from public.exec_drawing_items where id = db), 'the AE''s Tested counts at once';
+end $$;
+reset role;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare db uuid := current_setting('test.dwdb')::uuid; pt uuid := current_setting('test.dwpt')::uuid;
+begin
   -- a component going back takes the DB back
   perform public.drawing_db_part_status(pt, 'failed', null, null, 'Trip unit faulty');
   -- the supervisor can pin a note and close it, but not set up the schedule or copy floors
@@ -8972,6 +8997,56 @@ reset role;
 select pg_temp.act_as('asm_building'); set role authenticated;
 do $$ begin assert not exists (select 1 from public.drawing_installer_figures(current_setting('test.ex')::uuid)), 'outsiders see nothing'; end $$;
 reset role;
+
+-- Smart drawings round F: a new revision flags everything; returning a supervisor's Tested; check templates ----
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare ex uuid := current_setting('test.ex')::uuid; d uuid := current_setting('test.dwg')::uuid; it uuid; n int;
+begin
+  perform public.drawing_save(jsonb_build_object('id', d, 'image_path', ex || '/e101-c.png', 'revision', 'C', 'width', 1000, 'height', 700));
+  assert exists (select 1 from public.exec_drawing_revisions where drawing_id = d and image_path = ex || '/e101.png' and revision = 'B'), 'old sheet kept';
+  assert not exists (select 1 from public.exec_drawing_items where drawing_id = d and not to_check), 'everything to check';
+  assert (select check_why from public.exec_drawing_items where drawing_id = d limit 1) = 'revision C', 'why';
+  it := (current_setting('test.dwids')::uuid[])[2];
+  update public.exec_drawing_items set checks = '{}' where id = it;
+  begin perform public.drawing_item_status(it, 'tested'); assert false, 'check against the revision first';
+  exception when raise_exception then assert sqlerrm like 'Check the item against the new revision%', sqlerrm; end;
+  perform public.drawing_mark_checked(array[it], null);
+  perform public.drawing_item_status(it, 'tested');
+  -- check templates: company, then one project
+  n := public.drawing_template_save(null, 'dl', '[["model", "Make / model as approved"], ["fix", "Fixed level and secure"], ["lux", "Lux checked"]]'::jsonb, '[]'::jsonb, true);
+  assert n >= 1, 'items not tested brought in line';
+  assert (select checks ? 'lux' and not (checks ? 'term') from public.exec_drawing_items where kind = 'dl' and status not in ('tested', 'done') limit 1), 'checks follow the template';
+  perform public.drawing_template_save(ex, 'part:mcb', '[["rating", "Rating as the schedule"]]'::jsonb, '[]'::jsonb, false);
+  begin perform public.drawing_template_save(null, 'down', '[["a", ""]]'::jsonb, '[]'::jsonb); assert false, 'names'; exception when raise_exception then null; end;
+  perform public.drawing_template_delete(ex, 'part:mcb');
+  assert not exists (select 1 from public.exec_check_templates where exec_project_id = ex), 'project template removed';
+end $$;
+reset role;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare ids uuid[] := current_setting('test.dwids')::uuid[];
+begin
+  begin perform public.drawing_template_save(null, 'down', '[["x", "y"]]'::jsonb, '[]'::jsonb); assert false, 'SEE only'; exception when raise_exception then null; end;
+  begin perform public.drawing_confirm(ids, null, true); assert false, 'AE confirms'; exception when raise_exception then null; end;
+end $$;
+reset role;
+-- a supervisor's Tested returned by the AE goes back to 2nd fix
+do $$ begin update public.exec_drawing_items set to_check = false, checks = '{}', status = 'second', confirmed = true where id = (current_setting('test.dwids')::uuid[])[3]; end $$;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ begin perform public.drawing_item_status((current_setting('test.dwids')::uuid[])[3], 'tested'); end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare it uuid := (current_setting('test.dwids')::uuid[])[3];
+begin
+  assert not (select confirmed from public.exec_drawing_items where id = it), 'waiting';
+  begin perform public.drawing_confirm(array[it], null, false, ''); assert false, 'say why'; exception when raise_exception then null; end;
+  assert public.drawing_confirm(array[it], null, false, 'Lamp flickers – retest') = 1, 'returned';
+end $$;
+reset role;
+do $$ declare it uuid := (current_setting('test.dwids')::uuid[])[3];
+begin
+  assert (select status = 'second' and confirmed and note like 'Lamp flickers%' from public.exec_drawing_items where id = it), 'back to 2nd fix with the reason';
+  assert exists (select 1 from public.exec_drawing_events where item_id = it and what = 'Returned'), 'history';
+end $$;
 
 -- Smart drawings switched off mid-project: SEE asks, SM Projects approves; then everything is read-only ----
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;

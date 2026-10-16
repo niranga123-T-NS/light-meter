@@ -139,6 +139,7 @@ export function DrawingsTab({ p }: { p: ExecProject }) {
           )}
           <Button title="Risers" variant="secondary" onPress={() => router.push(`/execution/drawing/risers/${p.id}`)} />
           {me.role !== 'sub_supervisor' ? <Button title="Reports" variant="secondary" onPress={() => router.push(`/execution/drawing/reports/${p.id}`)} /> : null}
+          {me.role === 'senior_elec_engineer' ? <Button title="Check templates" variant="secondary" onPress={() => router.push({ pathname: '/execution/drawing/templates', params: { project: p.id } })} /> : null}
           {me.role !== 'sub_supervisor' || on ? <Button title="Materials take-off" variant="secondary" onPress={() => router.push(`/execution/drawing/takeoff/${p.id}`)} /> : null}
           <Toggle label="Show archived" value={old} onChange={setOld} />
         </Row>

@@ -45,6 +45,9 @@ export type DItem = {
   installer?: 'dimo' | 'sub' | null;
   installer_sub?: string | null;
   exec_project_id?: string;
+  confirmed?: boolean;
+  check_why?: string | null;
+  updated_by?: string | null;
 };
 export type Pt = [number, number];
 export type DRoute = {
@@ -62,6 +65,7 @@ export type DRoute = {
   to_check?: boolean;
   installer?: 'dimo' | 'sub' | null;
   installer_sub?: string | null;
+  check_why?: string | null;
 };
 export type DEvent = { id: number; item_id: string | null; route_id: string | null; what: string; from_status: string | null; to_status: string | null; note: string | null; by_id: string | null; at: string };
 
@@ -168,8 +172,10 @@ export const WEIGHT: Record<string, number> = { planned: 0, first: 0.4, wired: 0
 export const installed = (st: string) => (WEIGHT[st] ?? 0) >= 0.75;
 
 // checks and readings per item type
-type Check = [string, string];
-type Reading = [string, string, string];
+export type Check = [string, string];
+export type Reading = [string, string, string];
+/** check templates in force: item type or 'part:<component>' → its checks and readings (project over company over the built-in) */
+export type Tpl = Record<string, { checks: Check[]; readings: Reading[] }>;
 const HV: Check[] = [['iso', 'Isolator within sight, can be locked off'], ['cable', 'Supply cable and gland as the schedule'], ['earth', 'Earthed – refrigerant / duct bonding where needed'], ['ctrl', 'Control wiring (thermostat / BMS) terminated'], ['run', 'Run test with the mechanical contractor – current measured']];
 const LUM: Check[] = [['model', 'Make / model as approved'], ['fix', 'Fixed level and secure'], ['term', 'Terminated, earth connected'], ['works', 'Works from its switch / control']];
 export const CHECKS: Record<string, [Check[], Reading[]]> = {
@@ -243,10 +249,13 @@ export const PTYPES: Record<string, { name: string; checks: Check[]; readings: R
   encl: { name: 'Enclosure', checks: [['ip', 'IP rating and gland plate as the schedule'], ['earth', 'Door and enclosure bonded'], ['chart', 'DB chart and danger label fixed']], readings: [] },
   other: { name: 'Other component', checks: [['ok', 'Fitted and tested']], readings: [] },
 };
-export const ptypeOf = (t: string) => PTYPES[t] ?? PTYPES.other;
+export const ptypeOf = (t: string, tpl?: Tpl) => {
+  const b = PTYPES[t] ?? PTYPES.other, o = tpl?.[`part:${t}`];
+  return o ? { ...b, checks: o.checks, readings: o.readings } : b;
+};
 export const PART_STEPS: [string, string][] = [['planned', 'Planned'], ['fitted', 'Fitted'], ['tested', 'Tested'], ['failed', 'Failed']];
 export type DPart = { id: string; item_id: string; seq: number; ptype: string; ref: string | null; rating: string | null; poles: string | null; make: string | null; qty: number; status: string; checks: Record<string, boolean>; readings: Record<string, string>; note: string | null };
-export type DCircuit = { id: string; item_id: string; seq: number; ref: string; instrument_id?: string | null; uncalibrated?: boolean; test_record_id?: string | null; description: string | null; phase: string | null; device: string | null; cable: string | null; zs_max: number | null; status: string; readings: Record<string, string | boolean>; note: string | null; tested_by: string | null; tested_at: string | null };
+export type DCircuit = { id: string; item_id: string; seq: number; ref: string; confirmed?: boolean; instrument_id?: string | null; uncalibrated?: boolean; test_record_id?: string | null; description: string | null; phase: string | null; device: string | null; cable: string | null; zs_max: number | null; status: string; readings: Record<string, string | boolean>; note: string | null; tested_by: string | null; tested_at: string | null };
 export type DPin = { id: string; item_id: string | null; x: number; y: number; kind: string; title: string; ref_type: string | null; ref_id: string | null; ref_code: string | null; state: string; open: boolean; raised_by: string | null; raised_at: string; closed_at: string | null; close_note: string | null };
 export const PIN_KINDS: Record<string, { name: string; c: string; sign: string }> = {
   query: { name: 'Design query', c: '#2F6FD1', sign: '?' },
@@ -258,8 +267,18 @@ export const PIN_KINDS: Record<string, { name: string; c: string; sign: string }
 export type DTest = { id: string; exec_project_id: string; drawing_id: string | null; kind: 'scene' | 'cne'; seq: number; name: string; area: string | null; cause: string | null; effect: string | null; items: string[]; status: string; result_note: string | null; witness: string | null; tested_by: string | null; tested_at: string | null };
 export type Riser = { id: string; exec_project_id: string; name: string; floor_height_m: number; note: string | null };
 export type RiserRun = { id: string; riser_id: string; kind: string; label: string | null; from_level: number; to_level: number; status: string; laid: number; area: number | null; cores: number | null; boq_item_id: string | null; activity_id: string | null; note: string | null };
-export const checksFor = (kind: string) => CHECKS[kind] ?? [[], []];
-export const emptyChecks = (kind: string) => Object.fromEntries(checksFor(kind)[0].map(([k]) => [k, false]));
+export const checksFor = (kind: string, tpl?: Tpl): [Check[], Reading[]] => (tpl?.[kind] ? [tpl[kind].checks, tpl[kind].readings] : (CHECKS[kind] ?? [[], []]));
+export const emptyChecks = (kind: string, tpl?: Tpl) => Object.fromEntries(checksFor(kind, tpl)[0].map(([k]) => [k, false]));
+/** the templates for a project: the company ones, with the project's own on top */
+export async function loadTemplates(exec: string | null): Promise<Tpl> {
+  let q = supabase.from('exec_check_templates').select('exec_project_id, kind, checks, readings');
+  q = exec ? q.or(`exec_project_id.is.null,exec_project_id.eq.${exec}`) : q.is('exec_project_id', null);
+  const { data } = await q;
+  const rows = (data ?? []) as { exec_project_id: string | null; kind: string; checks: Check[]; readings: Reading[] }[];
+  const out: Tpl = {};
+  for (const r of [...rows.filter((x) => !x.exec_project_id), ...rows.filter((x) => x.exec_project_id)]) out[r.kind] = { checks: r.checks, readings: r.readings ?? [] };
+  return out;
+}
 
 // routes: containment and cables
 export type RouteKind = { d: Disc; name: string; w: number; cap?: number; limit?: number; area?: number; xs?: { w: number; h: number; type: 'ladder' | 'tray' | 'trunk' } | { d: number; type: 'tube' } };

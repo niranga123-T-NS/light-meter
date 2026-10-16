@@ -58,6 +58,7 @@ export function Stage({
   onZoom,
   pins,
   onPin,
+  under,
   onTap,
   onItem,
 }: {
@@ -75,6 +76,8 @@ export function Stage({
   onZoom?: (z: number) => void;
   pins?: DPin[];
   onPin?: (p: DPin) => void;
+  /** an older revision laid over the sheet for the compare */
+  under?: { uri: string; opacity: number } | null;
   onTap: (p: Pt) => void;
   onItem: (it: DItem) => void;
 }) {
@@ -148,6 +151,7 @@ export function Stage({
         <ScrollView ref={vs} scrollEnabled nestedScrollEnabled>
           <View style={{ width: W || '100%', height: H || 300 }}>
             {uri ? <Image source={{ uri }} style={{ position: 'absolute', left: 0, top: 0, width: W, height: H }} contentFit="fill" /> : null}
+            {under?.uri ? <Image source={{ uri: under.uri }} style={{ position: 'absolute', left: 0, top: 0, width: W, height: H, opacity: under.opacity }} contentFit="fill" /> : null}
             <Pressable testID="drawing-stage" onPress={tap} style={{ position: 'absolute', left: 0, top: 0, width: W, height: H }} accessibilityLabel="Drawing" />
             <View pointerEvents="none" style={{ position: 'absolute', left: 0, top: 0, width: W, height: H }}>
               {W ? (
@@ -204,9 +208,9 @@ export function Stage({
                         paddingVertical: big ? 3 : 1,
                         minWidth: 18,
                         alignItems: 'center',
-                        borderWidth: sel ? 3 : it.to_check ? 2 : 1.5,
-                        borderColor: sel ? colors.brand : it.to_check ? '#E8A317' : '#fff',
-                        borderStyle: it.to_check && !sel ? 'dashed' : 'solid',
+                        borderWidth: sel ? 3 : it.to_check || it.confirmed === false ? 2 : 1.5,
+                        borderColor: sel ? colors.brand : it.to_check ? '#E8A317' : it.confirmed === false ? '#0B5F63' : '#fff',
+                        borderStyle: it.to_check && !sel ? 'dashed' : it.confirmed === false && !sel ? 'dotted' : 'solid',
                       }}
                     >
                       <Text style={{ color: '#fff', fontSize: big ? 10 : 8.5, fontWeight: '800' }}>{text}</Text>

@@ -1,7 +1,7 @@
 import { Text, View } from 'react-native';
 import { useDialog, type PromptField } from '@/components/dialog';
 import { Button, Chip, colors, Muted, Pill, Row } from '@/components/ui';
-import { PART_STEPS, PTYPES, ptypeOf, STATUS_COLOR, type DCircuit, type DItem, type DPart } from '@/lib/drawings';
+import { PART_STEPS, PTYPES, ptypeOf, STATUS_COLOR, type DCircuit, type DItem, type DPart, type Tpl } from '@/lib/drawings';
 import { fmtDate, fmtDateTime } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
@@ -21,6 +21,8 @@ export function DbSchedule({
   canEdit,
   canUpdate,
   canQa,
+  canConfirm,
+  tpl,
   people,
   onChange,
 }: {
@@ -30,6 +32,9 @@ export function DbSchedule({
   canUpdate: boolean;
   /** the project's AE / the SEE send the tests to the QA test records */
   canQa: boolean;
+  /** the project's AE / the SEE confirm circuits passed by a supervisor */
+  canConfirm?: boolean;
+  tpl?: Tpl;
   people: Record<string, { full_name: string } | undefined>;
   onChange: () => Promise<void> | void;
 }) {
@@ -61,7 +66,7 @@ export function DbSchedule({
   ];
 
   const updatePart = async (p: DPart) => {
-    const t = ptypeOf(p.ptype);
+    const t = ptypeOf(p.ptype, tpl);
     const v = await dialog.prompt({
       title: `${t.name}${p.ref ? ` ${p.ref}` : ''}`,
       message: 'Tested needs every check ticked.',
@@ -209,7 +214,7 @@ export function DbSchedule({
         </Row>
         {parts.length ? (
           parts.map((p) => {
-            const t = ptypeOf(p.ptype), done = t.checks.filter(([k]) => p.checks?.[k]).length;
+            const t = ptypeOf(p.ptype, tpl), done = t.checks.filter(([k]) => p.checks?.[k]).length;
             return (
               <View key={p.id} style={{ paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.line, gap: 3 }}>
                 <Row style={{ justifyContent: 'space-between' }} wrap>
@@ -257,7 +262,7 @@ export function DbSchedule({
               <View key={c.id} style={{ paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.line, gap: 3 }}>
                 <Row style={{ justifyContent: 'space-between' }} wrap>
                   <Text style={{ color: colors.ink, fontWeight: '600', flexShrink: 1 }}>{`${c.ref}${c.description ? ` · ${c.description}` : ''}`}</Text>
-                  <Pill label={c.status === 'tested' ? 'Passed' : c.status === 'failed' ? 'Failed' : 'Not tested'} tone={CIRC_COL[c.status]} />
+                  <Pill label={c.status === 'tested' ? (c.confirmed === false ? 'Passed – to confirm' : 'Passed') : c.status === 'failed' ? 'Failed' : 'Not tested'} tone={c.status === 'tested' && c.confirmed === false ? colors.amber : CIRC_COL[c.status]} />
                 </Row>
                 <Muted>
                   {[c.phase, c.device, c.cable, c.zs_max ? `max Zs ${c.zs_max} Ω` : null, `${n} point(s) on the drawing`, read, c.tested_at ? `${people[c.tested_by ?? '']?.full_name ?? ''} ${fmtDateTime(c.tested_at)}` : null, c.status === 'failed' ? c.note : null]
@@ -266,6 +271,18 @@ export function DbSchedule({
                 </Muted>
                 <Row gap={6} wrap>
                   {canUpdate ? <Chip label="Record test" onPress={() => testCircuit(c)} /> : null}
+                  {canConfirm && c.status === 'tested' && c.confirmed === false ? (
+                    <>
+                      <Chip label="Confirm" onPress={() => run(() => rpc('drawing_confirm', { p_items: null, p_circuits: [c.id], p_ok: true, p_note: null }), 'Confirmed')} />
+                      <Chip
+                        label="Return"
+                        onPress={async () => {
+                          const v = await dialog.prompt({ title: `Return circuit ${c.ref}`, message: 'It goes back to Not tested with your reason.', fields: [{ key: 'n', label: 'Why', type: 'multiline', required: true }] });
+                          if (v) await run(() => rpc('drawing_confirm', { p_items: null, p_circuits: [c.id], p_ok: false, p_note: v.n }), 'Returned');
+                        }}
+                      />
+                    </>
+                  ) : null}
                   {canEdit ? <Chip label="Edit" onPress={() => editCircuit(c)} /> : null}
                   {canEdit ? (
                     <Chip
@@ -282,7 +299,17 @@ export function DbSchedule({
         ) : (
           <Muted>{canEdit ? 'No circuits yet – add them from the DB schedule; items whose circuit matches a reference count as its points.' : 'No circuits listed yet.'}</Muted>
         )}
-        <Muted>The board is Tested only when every component and every circuit has passed.</Muted>
+        <Muted>The board is Tested only when every component and every circuit has passed{canConfirm !== undefined ? ' – circuits passed by a supervisor once the AE confirms them' : ''}.</Muted>
+        {canConfirm && circuits.filter((c) => c.status === 'tested' && c.confirmed === false).length > 1 ? (
+          <Row>
+            <Button
+              small
+              variant="secondary"
+              title={`Confirm all ${circuits.filter((c) => c.status === 'tested' && c.confirmed === false).length} passed circuits`}
+              onPress={() => run(() => rpc('drawing_confirm', { p_items: null, p_circuits: circuits.filter((c) => c.status === 'tested' && c.confirmed === false).map((c) => c.id), p_ok: true, p_note: null }), 'Confirmed')}
+            />
+          </Row>
+        ) : null}
         {canQa && circuits.length ? (
           circuits.some((c) => c.status === 'planned') ? (
             <Muted>Once every circuit is tested, the results go to the QA test records in one step.</Muted>

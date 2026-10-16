@@ -1,3 +1,4 @@
+import { Image as ExpoImage } from 'expo-image';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
@@ -26,6 +27,7 @@ import {
   kindOf,
   LMS_SYSTEMS,
   lenU,
+  loadTemplates,
   PIN_KINDS,
   readingFlags,
   routeMetres,
@@ -48,6 +50,7 @@ import {
   type Pt,
   type Riser,
   type Scope,
+  type Tpl,
 } from '@/lib/drawings';
 import type { ExecProject } from '@/lib/execution';
 import { fmtDateTime, fmtNumber } from '@/lib/format';
@@ -56,6 +59,7 @@ import { rpc, supabase } from '@/lib/supabase';
 
 type Sel = { kind: 'item' | 'route' | 'pin'; id: string } | null;
 type Mode = null | 'item' | 'row' | 'grid' | 'copy' | 'route' | 'scale' | 'move' | 'select' | 'pin';
+type Rev = { id: string; revision: string | null; image_path: string; width: number; height: number; replaced_at: string };
 type Sheet = Pick<Drawing, 'id' | 'title' | 'sheet_no' | 'floor' | 'level_no' | 'archived' | 'width' | 'height' | 'revision'>;
 type Boq = { id: string; item_no: string | null; description: string; unit: string | null; qty: number | null };
 type Act = { id: string; code: string; name: string; pct: number; pct_drawing: number | null };
@@ -73,6 +77,8 @@ type DData = {
   sheets: Sheet[];
   risers: Riser[];
   subs: { id: string; name: string }[];
+  tpl: Tpl;
+  revisions: Rev[];
   project: Pick<ExecProject, 'id' | 'code' | 'name' | 'smart_drawings'> | null;
   uri: string | null;
   offline?: string | null;
@@ -112,11 +118,13 @@ async function fetchDrawing(id: string): Promise<DData> {
     signedImage(dw.image_path).catch(() => null),
     supabase.from('exec_drawing_photos').select('*').eq('drawing_id', id).order('taken_at', { ascending: false }),
   ]);
-  const [pins, sh, rs, sb] = await Promise.all([
+  const [pins, sh, rs, sb, tpl, rv] = await Promise.all([
     rpc<DPin[]>('drawing_pins', { p_drawing: id }).catch(() => [] as DPin[]),
     supabase.from('exec_drawings').select('id, title, sheet_no, floor, level_no, archived, width, height, revision').eq('exec_project_id', dw.exec_project_id).order('level_no').order('title'),
     supabase.from('exec_drawing_risers').select('*').eq('exec_project_id', dw.exec_project_id).order('name'),
     supabase.from('exec_subcontractors').select('id, name').eq('exec_project_id', dw.exec_project_id).eq('active', true).order('name'),
+    loadTemplates(dw.exec_project_id).catch(() => ({}) as Tpl),
+    supabase.from('exec_drawing_revisions').select('id, revision, image_path, width, height, replaced_at').eq('drawing_id', id).order('replaced_at', { ascending: false }),
   ]);
   if (it.error) throw new Error(it.error.message);
   return {
@@ -132,6 +140,8 @@ async function fetchDrawing(id: string): Promise<DData> {
     sheets: (sh.data ?? []) as Sheet[],
     risers: (rs.data ?? []) as Riser[],
     subs: (sb.data ?? []) as { id: string; name: string }[],
+    tpl,
+    revisions: (rv.data ?? []) as Rev[],
     project: pj.data as Pick<ExecProject, 'id' | 'code' | 'name' | 'smart_drawings'> | null,
     uri,
     offline: null,
@@ -158,6 +168,7 @@ export default function DrawingScreen() {
   const [focus, setFocus] = useState<{ x: number; y: number; n: number } | null>(null);
   const [copySrc, setCopySrc] = useState<DItem | null>(null);
   const [showPins, setShowPins] = useState(true);
+  const [compare, setCompare] = useState<{ rev: Rev; uri: string | null; opacity: number; side: boolean } | null>(null);
   const copies = useRef(0);
 
   const { data: loaded, error, reload } = useLoad(async (): Promise<DData> => {
@@ -203,6 +214,20 @@ export default function DrawingScreen() {
   const pins = data.pins ?? [];
   const selPin = sel?.kind === 'pin' ? pins.find((x) => x.id === sel.id) : undefined;
   const toCheck = { items: items.filter((x) => x.to_check), routes: routes.filter((x) => x.to_check) };
+  const tpl = data.tpl ?? {};
+  // the project's AE or the SEE confirm what supervisors and trainees mark Tested / Commissioned
+  const canConfirm = canEdit && (me.role === 'senior_elec_engineer' || me.role === 'assistant_engineer');
+  const awaiting = items.filter((x) => x.confirmed === false && (x.status === 'tested' || x.status === 'done'));
+  const whyCheck = (w?: string | null) => (w && w.startsWith('revision') ? `The drawing changed (${w}) – check it against the new sheet` : 'Copied from another floor – check it against this floor');
+  const confirmItems = async (ids: string[], ok: boolean) => {
+    let note: string | null = null;
+    if (!ok) {
+      const r = await dialog.prompt({ title: 'Return – not accepted', message: 'It goes back to 2nd fix with your reason.', fields: [{ key: 'n', label: 'Why', type: 'multiline', required: true }] });
+      if (!r) return;
+      note = r.n;
+    }
+    await run(() => rpc('drawing_confirm', { p_items: ids, p_circuits: null, p_ok: ok, p_note: note }), ok ? `${ids.length} confirmed` : 'Returned');
+  };
   const kindOptions = Object.entries(KINDS)
     .filter(([k]) => scope[scopeOf(k)])
     .map(([k, v]) => ({ value: k, label: `${DISC[v.d].name.split(' (')[0]} – ${v.name}` }));
@@ -229,7 +254,7 @@ export default function DrawingScreen() {
     });
   const visible = items.filter((x) => show(kindOf(x.kind).d));
   const addMany = (list: Record<string, unknown>[], ok: string) =>
-    run(() => rpc('drawing_items_add', { p_drawing: d.id, p_items: list.map((x) => ({ checks: emptyChecks(String(x.kind)), ...x })) }), ok);
+    run(() => rpc('drawing_items_add', { p_drawing: d.id, p_items: list.map((x) => ({ checks: emptyChecks(String(x.kind), data.tpl), ...x })) }), ok);
   const toggleMark = (iid: string) => setMarked((m) => (m.includes(iid) ? m.filter((x) => x !== iid) : [...m, iid]));
 
   // taps on the sheet
@@ -239,7 +264,7 @@ export default function DrawingScreen() {
       if (f[0] < 0 || f[0] > 1 || f[1] < 0 || f[1] > 1) return;
       let nid = '';
       await run(async () => {
-        nid = await rpc<string>('drawing_item_save', { p: { drawing_id: d.id, kind: addKind, x: f[0], y: f[1], checks: emptyChecks(addKind) } });
+        nid = await rpc<string>('drawing_item_save', { p: { drawing_id: d.id, kind: addKind, x: f[0], y: f[1], checks: emptyChecks(addKind, tpl) } });
       });
       if (nid) setSel({ kind: 'item', id: nid });
       return;
@@ -454,7 +479,9 @@ export default function DrawingScreen() {
 
   const itemPanel = (it: DItem) => {
     const k = kindOf(it.kind);
-    const [CK, RD] = checksFor(it.kind);
+    const [CK0, RD] = checksFor(it.kind, tpl);
+    // checks stored on the item that the template no longer lists still count until they are ticked
+    const CK = [...CK0, ...Object.keys(it.checks ?? {}).filter((k) => !CK0.some(([c]) => c === k)).map((k) => [k, k] as [string, string])];
     const steps = stepsFor(it.kind, d.lms);
     const done = CK.filter(([c]) => it.checks?.[c]).length;
     return (
@@ -475,8 +502,19 @@ export default function DrawingScreen() {
         </View>
         {it.to_check ? (
           <Row wrap gap={8} style={{ padding: 8, borderRadius: 8, backgroundColor: '#FFF4E0' }}>
-            <Text style={{ color: colors.ink, flexShrink: 1 }}>Copied from another floor – check it is where this floor needs it (move it, remove it, or confirm).</Text>
+            <Text style={{ color: colors.ink, flexShrink: 1 }}>{`${whyCheck(it.check_why)}: move it, remove it, or confirm. It cannot be marked Tested until then.`}</Text>
             {canEdit ? <Button small variant="secondary" title="Confirm" onPress={() => run(() => rpc('drawing_mark_checked', { p_items: [it.id], p_routes: null }), 'Confirmed')} /> : null}
+          </Row>
+        ) : null}
+        {it.confirmed === false && (it.status === 'tested' || it.status === 'done') ? (
+          <Row wrap gap={8} style={{ padding: 8, borderRadius: 8, backgroundColor: '#E6F4F4' }}>
+            <Text style={{ color: colors.ink, flexShrink: 1 }}>{`${stepLabel(it.kind, it.status, d.lms)} – awaiting confirmation by the Assistant Engineer. Until then it counts as installed only.`}</Text>
+            {canConfirm ? (
+              <>
+                <Button small title="Confirm" onPress={() => confirmItems([it.id], true)} />
+                <Button small variant="secondary" title="Return" onPress={() => confirmItems([it.id], false)} />
+              </>
+            ) : null}
           </Row>
         ) : null}
         {readingFlags(it).length ? <Notice tone={colors.red}>{readingFlags(it).join('\n')}</Notice> : null}
@@ -539,7 +577,7 @@ export default function DrawingScreen() {
                 value={!!it.checks?.[c]}
                 onChange={(v) => {
                   if (!canUpdate) return;
-                  void upd('drawing_item_checks', { p_id: it.id, p_checks: { ...emptyChecks(it.kind), ...it.checks, [c]: v }, p_readings: null });
+                  void upd('drawing_item_checks', { p_id: it.id, p_checks: { ...emptyChecks(it.kind, tpl), ...it.checks, [c]: v }, p_readings: null });
                 }}
               />
             ))}
@@ -622,7 +660,7 @@ export default function DrawingScreen() {
           </Row>
         ) : null}
         {mode === 'move' ? <Notice tone={colors.blue}>Tap the new position on the drawing.</Notice> : null}
-        {it.kind === 'db' ? <DbSchedule db={it} items={items} canEdit={canEdit} canUpdate={canUpdate && !offline} canQa={on && !offline && (me.role === 'senior_elec_engineer' || me.role === 'assistant_engineer')} people={people} onChange={reload} /> : null}
+        {it.kind === 'db' ? <DbSchedule db={it} items={items} canEdit={canEdit} canUpdate={canUpdate && !offline} canQa={on && !offline && (me.role === 'senior_elec_engineer' || me.role === 'assistant_engineer')} canConfirm={canConfirm && !offline} tpl={tpl} people={people} onChange={reload} /> : null}
         {pins.filter((x) => x.item_id === it.id).length ? (
           <View style={{ gap: 2 }}>
             <Text style={{ fontWeight: '700', color: colors.ink }}>Issues on this item</Text>
@@ -689,7 +727,7 @@ export default function DrawingScreen() {
         </View>
         {r.to_check ? (
           <Row wrap gap={8} style={{ padding: 8, borderRadius: 8, backgroundColor: '#FFF4E0' }}>
-            <Text style={{ color: colors.ink, flexShrink: 1 }}>Copied from another floor – check the route matches this floor.</Text>
+            <Text style={{ color: colors.ink, flexShrink: 1 }}>{`${whyCheck(r.check_why)}.`}</Text>
             {canEdit ? <Button small variant="secondary" title="Confirm" onPress={() => run(() => rpc('drawing_mark_checked', { p_items: null, p_routes: [r.id] }), 'Confirmed')} /> : null}
           </Row>
         ) : null}
@@ -927,19 +965,41 @@ export default function DrawingScreen() {
         ) : null}
         {toCheck.items.length + toCheck.routes.length ? (
           <Row wrap gap={8} style={{ padding: 8, borderRadius: 8, backgroundColor: '#FFF4E0' }}>
-            <Text style={{ color: colors.ink, flexShrink: 1 }}>{`${toCheck.items.length} item(s) and ${toCheck.routes.length} route(s) copied from another floor are still to check (dashed amber).`}</Text>
+            <Text style={{ color: colors.ink, flexShrink: 1 }}>{`${toCheck.items.length} item(s) and ${toCheck.routes.length} route(s) still to check (dashed amber) – ${[...toCheck.items, ...toCheck.routes].some((x) => x.check_why?.startsWith('revision')) ? 'the drawing has a new revision' : 'copied from another floor'}. They cannot be marked Tested until checked.`}</Text>
             {canEdit ? (
               <Button
                 small
                 variant="secondary"
                 title="Confirm all"
                 onPress={async () => {
-                  if (await dialog.confirm('Confirm every copied item and route?', 'Only when you have checked them all against this floor.', { confirmLabel: 'Confirm all' }))
+                  if (await dialog.confirm('Confirm every flagged item and route?', 'Only when you have checked them all against this sheet.', { confirmLabel: 'Confirm all' }))
                     await run(() => rpc('drawing_mark_checked', { p_items: toCheck.items.map((x) => x.id), p_routes: toCheck.routes.map((x) => x.id) }), 'Confirmed');
                 }}
               />
             ) : null}
           </Row>
+        ) : null}
+        {awaiting.length ? (
+          <View style={{ gap: 4, padding: 8, borderRadius: 8, backgroundColor: '#E6F4F4' }}>
+            <Text style={{ fontWeight: '700', color: colors.ink }}>{`Awaiting confirmation (${awaiting.length})`}</Text>
+            <Muted>Marked Tested / Commissioned by a supervisor or trainee – counted as installed until the Assistant Engineer confirms.</Muted>
+            {awaiting.slice(0, 8).map((x) => (
+              <Pressable key={x.id} onPress={() => setSel({ kind: 'item', id: x.id })}>
+                <Text style={{ color: colors.blue }}>{`${kindOf(x.kind).code}${x.label ? ` ${x.label}` : ''}${x.area ? ` · ${x.area}` : ''} · ${stepLabel(x.kind, x.status, d.lms)} · ${people[x.updated_by ?? '']?.full_name ?? ''}`}</Text>
+              </Pressable>
+            ))}
+            {canConfirm ? (
+              <Row wrap gap={8}>
+                <Button
+                  small
+                  title={`Confirm all ${awaiting.length}`}
+                  onPress={async () => {
+                    if (await dialog.confirm(`Confirm ${awaiting.length} item(s)?`, 'Only when you have seen them tested (or checked the records).', { confirmLabel: 'Confirm' })) await confirmItems(awaiting.map((x) => x.id), true);
+                  }}
+                />
+              </Row>
+            ) : null}
+          </View>
         ) : null}
         {pins.some((x) => x.open) ? (
           <View style={{ gap: 2 }}>
@@ -958,6 +1018,7 @@ export default function DrawingScreen() {
           {scope.lms || scope.bms || scope.outdoor ? <Button small variant="secondary" title="Points, scenes & tests" onPress={() => router.push(`/execution/drawing/points/${d.id}`)} /> : null}
           <Button small variant="secondary" title="Risers" onPress={() => router.push(`/execution/drawing/risers/${d.exec_project_id}`)} />
           {me.role !== 'sub_supervisor' ? <Button small variant="secondary" title="Reports" onPress={() => router.push(`/execution/drawing/reports/${d.exec_project_id}`)} /> : null}
+          {me.role === 'senior_elec_engineer' ? <Button small variant="secondary" title="Check templates" onPress={() => router.push({ pathname: '/execution/drawing/templates', params: { project: d.exec_project_id } })} /> : null}
         </Row>
         <View style={{ gap: 4 }}>
           <Text style={{ fontWeight: '700', color: colors.ink }}>Scale</Text>
@@ -1221,6 +1282,34 @@ export default function DrawingScreen() {
             </Row>
           </View>
         ) : null}
+        {data.revisions?.length ? (
+          <Row wrap gap={8} style={{ alignItems: 'center' }}>
+            {compare ? (
+              <>
+                <Muted>{`Old sheet rev ${compare.rev.revision ?? '?'} over the new one:`}</Muted>
+                {[0, 25, 50, 75, 100].map((o) => (
+                  <Chip key={o} label={`${o}%`} on={compare.opacity === o && !compare.side} onPress={() => setCompare({ ...compare, opacity: o, side: false })} />
+                ))}
+                <Chip label="Side by side" on={compare.side} onPress={() => setCompare({ ...compare, side: !compare.side })} />
+                <Button small variant="secondary" title="Stop comparing" onPress={() => setCompare(null)} />
+              </>
+            ) : (
+              data.revisions.slice(0, 3).map((rv) => (
+                <Button
+                  key={rv.id}
+                  small
+                  variant="secondary"
+                  title={`Compare with rev ${rv.revision ?? '?'}`}
+                  onPress={async () => {
+                    const uri = await signedImage(rv.image_path).catch(() => null);
+                    if (!uri) return dialog.toast('The old sheet could not be loaded', 'error');
+                    setCompare({ rev: rv, uri, opacity: 50, side: false });
+                  }}
+                />
+              ))
+            )}
+          </Row>
+        ) : null}
         {mode === 'pin' ? (
           <Row wrap gap={8}>
             <Notice tone={colors.blue}>Tap where the issue is – next to the item it is about. A design query, snag or HSE report is raised in its own module and pinned here.</Notice>
@@ -1258,6 +1347,7 @@ export default function DrawingScreen() {
             zoom={zoom}
             focus={focus}
             onZoom={setZoom}
+            under={compare && !compare.side && compare.opacity > 0 ? { uri: compare.uri ?? '', opacity: compare.opacity / 100 } : null}
             pins={showPins ? pins : undefined}
             onPin={(pn) => {
               if (mode) return;
@@ -1271,6 +1361,14 @@ export default function DrawingScreen() {
               setSel({ kind: 'item', id: it.id });
             }}
           />
+          {compare?.side && compare.uri ? (
+            <View style={{ gap: 4 }}>
+              <Muted>{`Rev ${compare.rev.revision ?? '?'} – the sheet before (replaced ${fmtDateTime(compare.rev.replaced_at)})`}</Muted>
+              <View style={{ width: '100%', aspectRatio: compare.rev.width / compare.rev.height, borderWidth: 1, borderColor: colors.line, borderRadius: 10, overflow: 'hidden', backgroundColor: '#fff' }}>
+                <ExpoImage source={{ uri: compare.uri }} style={{ width: '100%', height: '100%' }} contentFit="fill" />
+              </View>
+            </View>
+          ) : null}
           <Row wrap gap={10}>
             {(layer === 'progress' ? stepsFor('down') : discs.map((x) => [x, DISC[x].name] as [string, string])).map(([k, t]) => (
               <Row key={k} gap={4}>
