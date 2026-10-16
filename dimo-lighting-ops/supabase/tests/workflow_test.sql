@@ -8763,5 +8763,43 @@ select pg_temp.act_as('asm_building'); set role authenticated;
 do $$ begin assert not exists (select 1 from public.drawing_boq(current_setting('test.ex')::uuid)), 'nothing for outsiders'; end $$;
 reset role;
 
+-- Smart drawings round A: many items at once, one stage on many, photos by the site team ----
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare d uuid := current_setting('test.dwg')::uuid; n int; ids uuid[];
+begin
+  n := public.drawing_items_add(d, '[{"kind": "dl", "x": 0.2, "y": 0.5, "label": "L1"}, {"kind": "dl", "x": 0.3, "y": 0.5}, {"kind": "dl", "x": 0.4, "y": 0.5, "checks": {"lamp": false}}]'::jsonb);
+  assert n = 3, 'three placed';
+  begin perform public.drawing_items_add(d, '[{"kind": "dl", "x": 2, "y": 0.5}]'::jsonb); assert false, 'off the sheet'; exception when raise_exception then null; end;
+  begin perform public.drawing_items_add(d, '[]'::jsonb); assert false, 'empty'; exception when raise_exception then null; end;
+  select array_agg(id) into ids from public.exec_drawing_items where drawing_id = d and kind = 'dl';
+  perform set_config('test.dwids', ids::text, false);
+end $$;
+reset role;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare d uuid := current_setting('test.dwg')::uuid; ids uuid[] := current_setting('test.dwids')::uuid[]; res jsonb; ph uuid; ex uuid := current_setting('test.ex')::uuid;
+begin
+  begin perform public.drawing_items_add(d, '[{"kind": "dl", "x": 0.5, "y": 0.5}]'::jsonb); assert false, 'supervisor does not place'; exception when raise_exception then null; end;
+  res := public.drawing_items_status(ids, 'tested');
+  assert (res ->> 'updated')::int = 2 and (res ->> 'skipped')::int = 1, res::text;
+  begin perform public.drawing_items_status(ids, 'failed'); assert false, 'say what failed'; exception when raise_exception then null; end;
+  ph := public.drawing_photo_add(ids[1], null, ex || '/photos/a.jpg', 'Fixed');
+  begin perform public.drawing_photo_add(ids[1], null, ex || '/b.jpg', null); assert false, 'photos folder only'; exception when raise_exception then null; end;
+  begin perform public.drawing_photo_add(ids[1], current_setting('test.dwr')::uuid, ex || '/photos/c.jpg', null); assert false, 'one or the other'; exception when raise_exception then null; end;
+  perform public.drawing_photo_add(null, current_setting('test.dwr')::uuid, ex || '/photos/d.jpg', null);
+  assert (select count(*) from public.exec_drawing_photos where drawing_id = d) = 2, 'photos seen';
+  assert public.drawing_photo_delete(ph) = ex || '/photos/a.jpg', 'own photo removed';
+end $$;
+reset role;
+do $$ begin
+  assert (select count(*) from public.exec_drawing_events where drawing_id = current_setting('test.dwg')::uuid and what = 'Photo') = 2, 'photos in the history';
+  assert (select stage from public.exec_drawing_photos limit 1) = 'laid', 'stage kept with the photo';
+end $$;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  assert not exists (select 1 from public.exec_drawing_photos), 'outsiders see no photos';
+  begin perform public.drawing_items_status(current_setting('test.dwids')::uuid[], 'first'); assert false, 'outsiders cannot'; exception when raise_exception then null; end;
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
