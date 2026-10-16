@@ -40,12 +40,14 @@ export default function CsiHome() {
     <Screen maxWidth={1100}>
       <Stack.Screen options={{ title: 'CSI – customer satisfaction' }} />
       <Row wrap gap={8} style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-        <Muted>“Light up DIMO” – a 60-second survey the customer fills on your tablet, by link, or with you on a call.</Muted>
+        <Muted>“Light up DIMO” – an under-2-minute survey the customer fills on your tablet, by link, or with you on a call.</Muted>
         {sales ? <Button title="+ New CSI" onPress={() => router.push('/csi/new')} /> : null}
       </Row>
       <Grid min={180}>
         <Stat label="CSI (average overall)" value={csi == null ? '—' : `${moodFace(csi)} ${Math.round(csi)}`} tone={csi == null ? undefined : csi >= 75 ? 'green' : csi >= 60 ? 'amber' : 'red'} sub="0–100, the dimmer" />
         <Stat label="NPS" value={nps == null ? '—' : String(nps)} tone={nps == null ? undefined : nps >= 30 ? 'green' : nps >= 0 ? 'amber' : 'red'} sub="% promoters − % detractors" />
+        <Stat label="Easy to work with" value={(() => { const e = avg(done.map((s) => s.effort).filter((x): x is number => x != null)); return e == null ? '—' : `${e.toFixed(1)} / 5`; })()} sub="1 very hard … 5 very easy" />
+        <Stat label="Asked to be contacted" value={String(done.filter((s) => s.contact_topics?.length).length)} tone={done.some((s) => s.contact_topics?.length) ? 'amber' : undefined} sub="sales leads from the survey" />
         <Stat label="Answered" value={`${done.length} / ${data.filter((s) => s.status !== 'cancelled').length}`} sub="completed / sent" />
         <Stat label="Low scores to call back" value={String(alerts.length)} tone={alerts.length ? 'red' : 'green'} onPress={() => setTab('alerts')} sub="within 48 hours" />
       </Grid>

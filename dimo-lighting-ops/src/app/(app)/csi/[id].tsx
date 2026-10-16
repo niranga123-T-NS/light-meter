@@ -3,7 +3,7 @@ import { Linking, Platform, Share, Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { Button, Card, colors, ErrorBanner, KeyValue, Loading, Muted, Notice, Pill, Progress, Row, Screen, Section } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { CSI_AREAS, CSI_CARDS, CSI_STAGES, CSI_VS, csiLink, moodFace, moodWord, STAGE_FACES, type CsiSurvey } from '@/lib/csi';
+import { CSI_AREAS, CSI_CARDS, CSI_EFFORT, CSI_REPURCHASE, CSI_STAGES, CSI_VS, csiLink, topicLabel, moodFace, moodWord, STAGE_FACES, type CsiSurvey } from '@/lib/csi';
 import { fmtDate } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
@@ -96,12 +96,25 @@ export default function CsiDetail() {
                 </View>
               </Row>
               <Row wrap gap={6}>
+                {s.effort != null ? <Pill label={`Easy to work with: ${CSI_EFFORT.find((x) => x.value === s.effort)?.face} ${CSI_EFFORT.find((x) => x.value === s.effort)?.label}`} tone={s.effort >= 4 ? colors.green : s.effort <= 2 ? colors.red : colors.grey} /> : null}
+                {s.repurchase != null ? <Pill label={`Choose DIMO next time: ${CSI_REPURCHASE.find((x) => x.value === s.repurchase)?.label}`} tone={s.repurchase > 0 ? colors.green : s.repurchase < 0 ? colors.red : colors.grey} /> : null}
                 {s.vs_others != null ? <Pill label={`vs other suppliers: ${CSI_VS.find((x) => x.value === s.vs_others)?.label}`} tone={s.vs_others > 0 ? colors.green : s.vs_others < 0 ? colors.red : colors.grey} /> : null}
                 {s.reference_ok ? <Pill label="OK to use as a reference" tone={colors.green} /> : null}
                 {s.quote_ok ? <Pill label="OK to quote their words" tone={colors.green} /> : null}
               </Row>
             </Card>
           </Section>
+
+          {s.contact_topics?.length ? (
+            <Section title="Wants to hear from us about">
+              <Card style={{ gap: 6 }}>
+                <Row wrap gap={6}>
+                  {s.contact_topics.map((t) => <Pill key={t} label={topicLabel(t)} tone={colors.blue} solid />)}
+                </Row>
+                <Muted>A sales lead – contact the customer and record it in a visit.</Muted>
+              </Card>
+            </Section>
+          ) : null}
 
           <Section title="The journey">
             <Card style={{ gap: 6 }}>

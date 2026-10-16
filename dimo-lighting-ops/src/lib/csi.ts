@@ -11,17 +11,24 @@ export const CSI_STAGES: { value: CsiStage; label: string; icon: string }[] = [
 ];
 export const stageLabel = (s: string) => CSI_STAGES.find((x) => x.value === s)?.label ?? s;
 
-/** The swipe cards – each linked to an importance area for the importance / satisfaction view */
-export const CSI_CARDS: { key: string; text: string; area: CsiArea }[] = [
+/** The swipe cards – each linked to an importance area (for the importance / satisfaction view) and, when it is about one
+ *  step of the job, to that step: a card is asked only when the customer went through its step */
+export const CSI_CARDS: { key: string; text: string; area: CsiArea; stages?: CsiStage[] }[] = [
   { key: 'understood', text: 'The sales person understood what we really needed', area: 'support' },
-  { key: 'expert', text: 'DIMO gave us expert technical advice', area: 'support' },
   { key: 'on_time', text: 'Quotations and answers came on time', area: 'speed' },
-  { key: 'value', text: 'The price is fair for the quality we get', area: 'price' },
-  { key: 'quality', text: 'The products perform as promised', area: 'quality' },
-  { key: 'delivered', text: 'Deliveries arrived complete and on the date promised', area: 'speed' },
-  { key: 'site', text: 'The site team worked safely and cleanly', area: 'quality' },
-  { key: 'after', text: 'Problems after the sale are solved quickly', area: 'after_sales' },
+  { key: 'expert', text: 'DIMO gave us expert technical advice', area: 'support' },
+  { key: 'informed', text: 'DIMO kept us informed at every step', area: 'support' },
+  { key: 'design', text: 'The lighting design met our needs and the standards', area: 'quality', stages: ['design'] },
+  { key: 'value', text: 'The price is fair for the quality we get', area: 'price', stages: ['quotation', 'delivery', 'installation', 'after_sales'] },
+  { key: 'quality', text: 'The products perform as promised', area: 'quality', stages: ['delivery', 'installation', 'after_sales'] },
+  { key: 'delivered', text: 'Deliveries arrived complete and on the date promised', area: 'speed', stages: ['delivery'] },
+  { key: 'documents', text: 'Data sheets, drawings and test reports were complete and on time', area: 'support', stages: ['design', 'delivery', 'installation'] },
+  { key: 'site', text: 'The site team worked safely and cleanly', area: 'quality', stages: ['installation'] },
+  { key: 'handover', text: 'Commissioning, handover and training were done well', area: 'after_sales', stages: ['installation'] },
+  { key: 'after', text: 'Problems after the sale are solved quickly', area: 'after_sales', stages: ['after_sales', 'installation'] },
 ];
+/** The cards for the steps this customer went through */
+export const cardsFor = (stages: string[]) => CSI_CARDS.filter((c) => !c.stages || c.stages.some((s) => stages.includes(s)));
 
 export type CsiArea = 'price' | 'quality' | 'speed' | 'support' | 'after_sales';
 export const CSI_AREAS: { value: CsiArea; label: string; icon: string }[] = [
@@ -40,6 +47,33 @@ export const CSI_VS = [
   { value: 2, label: 'Much better' },
 ];
 
+/** How easy DIMO is to work with (1–5) */
+export const CSI_EFFORT = [
+  { value: 1, label: 'Very hard', face: '😫' },
+  { value: 2, label: 'Hard', face: '😕' },
+  { value: 3, label: 'OK', face: '😐' },
+  { value: 4, label: 'Easy', face: '🙂' },
+  { value: 5, label: 'Very easy', face: '😄' },
+];
+/** Will they choose DIMO for the next lighting project (−2…2) */
+export const CSI_REPURCHASE = [
+  { value: -2, label: 'Definitely not' },
+  { value: -1, label: 'Probably not' },
+  { value: 0, label: 'Not sure' },
+  { value: 1, label: 'Probably' },
+  { value: 2, label: 'Definitely' },
+];
+/** What the customer wants to be contacted about – a sales lead */
+export const CSI_TOPICS = [
+  { value: 'new_project', label: 'A new project coming up', icon: '🏗️' },
+  { value: 'maintenance', label: 'Maintenance & service', icon: '🛠️' },
+  { value: 'upgrade', label: 'Energy-saving LED upgrade', icon: '💡' },
+  { value: 'controls', label: 'Lighting controls / smart lighting', icon: '🎛️' },
+  { value: 'training', label: 'Training for our staff', icon: '🎓' },
+  { value: 'spares', label: 'Spare parts', icon: '📦' },
+];
+export const topicLabel = (t: string) => CSI_TOPICS.find((x) => x.value === t)?.label ?? t;
+
 export const STAGE_FACES = ['😢', '🙁', '😐', '🙂', '😄'];
 export const moodFace = (v: number) => (v >= 90 ? '😄' : v >= 75 ? '😊' : v >= 60 ? '🙂' : v >= 40 ? '😐' : v >= 20 ? '🙁' : '😢');
 export const moodWord = (v: number) => (v >= 90 ? 'Delighted' : v >= 75 ? 'Happy' : v >= 60 ? 'Fairly happy' : v >= 40 ? 'Not convinced' : v >= 20 ? 'Unhappy' : 'Very unhappy');
@@ -50,6 +84,9 @@ export type CsiAnswers = {
   cards: Record<string, -1 | 0 | 1>;
   points: Record<CsiArea, number>;
   vs_others: number | null;
+  effort: number | null;
+  repurchase: number | null;
+  contact_topics: string[];
   nps: number;
   reference_ok: boolean;
   quote_ok: boolean;
@@ -77,6 +114,9 @@ export type CsiSurvey = {
   cards: Record<string, number> | null;
   points: Record<string, number> | null;
   vs_others: number | null;
+  effort: number | null;
+  repurchase: number | null;
+  contact_topics: string[];
   nps: number | null;
   reference_ok: boolean | null;
   quote_ok: boolean | null;
