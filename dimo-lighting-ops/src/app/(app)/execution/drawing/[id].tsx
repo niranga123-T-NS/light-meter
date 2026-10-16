@@ -957,6 +957,7 @@ export default function DrawingScreen() {
         <Row wrap gap={6}>
           {scope.lms || scope.bms || scope.outdoor ? <Button small variant="secondary" title="Points, scenes & tests" onPress={() => router.push(`/execution/drawing/points/${d.id}`)} /> : null}
           <Button small variant="secondary" title="Risers" onPress={() => router.push(`/execution/drawing/risers/${d.exec_project_id}`)} />
+          {me.role !== 'sub_supervisor' ? <Button small variant="secondary" title="Reports" onPress={() => router.push(`/execution/drawing/reports/${d.exec_project_id}`)} /> : null}
         </Row>
         <View style={{ gap: 4 }}>
           <Text style={{ fontWeight: '700', color: colors.ink }}>Scale</Text>
