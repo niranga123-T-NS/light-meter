@@ -638,19 +638,24 @@ export function Segmented<T extends string>({
   value,
   options,
   onChange,
+  wrap,
 }: {
   value: T;
   options: { value: T; label: string; badge?: number }[];
   onChange: (v: T) => void;
+  /** Wrap onto more lines instead of scrolling sideways – every tab stays visible on a phone */
+  wrap?: boolean;
 }) {
+  const tabs = options.map((o) => (
+    <Pressable key={o.value} onPress={() => onChange(o.value)} style={[styles.seg, value === o.value && styles.segOn]}>
+      <Text style={[styles.segText, value === o.value && { color: '#fff' }]}>{o.label}</Text>
+      {o.badge ? <Badge count={o.badge} /> : null}
+    </Pressable>
+  ));
+  if (wrap) return <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingVertical: 4 }}>{tabs}</View>;
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingVertical: 4 }}>
-      {options.map((o) => (
-        <Pressable key={o.value} onPress={() => onChange(o.value)} style={[styles.seg, value === o.value && styles.segOn]}>
-          <Text style={[styles.segText, value === o.value && { color: '#fff' }]}>{o.label}</Text>
-          {o.badge ? <Badge count={o.badge} /> : null}
-        </Pressable>
-      ))}
+      {tabs}
     </ScrollView>
   );
 }
