@@ -9086,5 +9086,58 @@ begin
 end $$;
 reset role;
 
+-- Design Tools: GM / DGM, SM Projects and the design team only; revisions; check by the Design Manager, approval by SM Projects ----
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  assert not exists (select 1 from public.design_tool_engine), 'sales cannot open the engine';
+  begin perform public.design_tool_save(null, 'x', null, '{"tree":{}}'::jsonb); assert false, 'sales cannot save';
+  exception when raise_exception then assert sqlerrm like 'Design Tools are for%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('lighting_engineer'); set role authenticated;
+do $$ declare f uuid; r public.design_tool_files;
+begin
+  assert exists (select 1 from public.design_tool_engine where version = 'v12' and html like '%dtRecv%'), 'engine readable';
+  begin perform public.design_tool_save(null, ' ', null, '{"tree":{}}'::jsonb); assert false, 'title'; exception when raise_exception then null; end;
+  f := public.design_tool_save(null, 'Hotel – main LV', null, '{"tpl":"building","tree":{"id":"n1"}}'::jsonb, '{"kw":120}'::jsonb, 'first issue');
+  perform set_config('test.dtf', f::text, false);
+  perform public.design_tool_save(f, 'Hotel – main LV', null, '{"tpl":"building","tree":{"id":"n1"}}'::jsonb); -- same design: no new revision
+  select * into r from public.design_tool_files where id = f; assert r.revision = 1, 'unchanged keeps rev 1';
+  perform public.design_tool_save(f, 'Hotel – main LV', null, '{"tpl":"building","tree":{"id":"n1","kva":1000}}'::jsonb, '{"kw":130}'::jsonb, 'transformer 1000 kVA');
+  select * into r from public.design_tool_files where id = f; assert r.revision = 2 and r.status = 'draft', 'rev 2';
+  assert (select count(*) from public.design_tool_revisions where file_id = f) = 2, 'two revisions kept';
+  begin perform public.design_tool_decide(f, 'check'); assert false, 'send for check first'; exception when raise_exception then null; end;
+  perform public.design_tool_decide(f, 'submit');
+  begin perform public.design_tool_decide(f, 'check'); assert false, 'only the Design Manager checks'; exception when raise_exception then null; end;
+end $$;
+reset role;
+select pg_temp.act_as('design_manager'); set role authenticated;
+do $$ declare f uuid := current_setting('test.dtf')::uuid; begin
+  assert exists (select 1 from public.notifications n join u on u.id = n.recipient_id and u.role = 'design_manager' where n.entity_id = f), 'Design Manager told';
+  begin perform public.design_tool_decide(f, 'approve'); assert false, 'not checked yet'; exception when raise_exception then null; end;
+  perform public.design_tool_decide(f, 'check');
+  assert (select status from public.design_tool_files where id = f) = 'checked', 'checked';
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ declare f uuid := current_setting('test.dtf')::uuid; begin
+  perform public.design_tool_decide(f, 'approve');
+  assert (select status from public.design_tool_files where id = f) = 'approved', 'approved';
+  -- a change after approval goes back to draft as a new revision
+  perform public.design_tool_save(f, 'Hotel – main LV', null, '{"tpl":"building","tree":{"id":"n1","kva":1250}}'::jsonb);
+  assert (select status = 'draft' and revision = 3 and approved_by is null from public.design_tool_files where id = f), 'back to draft';
+  begin perform public.design_tool_decide(f, 'return', ''); assert false, 'already a draft'; exception when raise_exception then null; end;
+end $$;
+reset role;
+select pg_temp.act_as('lighting_designer'); set role authenticated;
+do $$ declare f uuid := current_setting('test.dtf')::uuid; begin
+  assert exists (select 1 from public.design_tool_files where id = f), 'the design team sees every design';
+  begin perform public.design_tool_archive(f, true); assert false, 'not the one who started it'; exception when raise_exception then null; end;
+end $$;
+reset role;
+select pg_temp.act_as('estimation_exec'); set role authenticated;
+do $$ begin assert not exists (select 1 from public.design_tool_files), 'estimation does not see designs'; end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

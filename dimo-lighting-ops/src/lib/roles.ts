@@ -83,7 +83,7 @@ export const EXEC_NAV = {
 
 /** Navigation per role (Section 2 visibility rule and Section 10.2 dashboards). Everyone gets Meetings: the sales,
  * estimation and design meetings in one place (invitations, attendance, leave, packs and actions). */
-export function navFor(role: Role): NavItem[] {
+export function navFor(role: Role, realRole?: Role | null): NavItem[] {
   // A person from outside has nothing of their own – only the high level view (GM / DGM menu) during the period
   if (role === 'guest') return [{ href: '/', label: 'Home', icon: '⌂' }];
   const items = baseNav(role);
@@ -109,6 +109,12 @@ export function navFor(role: Role): NavItem[] {
   if (['operations_exec', 'sm_estimation', 'sm_projects', 'gm', 'asm_building', 'asm_infra', 'senior_elec_engineer'].includes(role)) {
     const at = items.findIndex((i) => i.href === '/reports');
     items.splice(at < 0 ? items.length : at, 0, { href: '/orders', label: 'Foreign & local orders', icon: '✈', pilot: true });
+  }
+  // Design Tools (testing): GM / DGM, SM Projects and the design team only – never someone viewing as a high level user
+  if (['gm', 'sm_projects', 'design_manager', 'lighting_designer', 'lighting_engineer'].includes(realRole ?? role)) {
+    const t = items.findIndex((i) => i.href === '/tools'), r = items.findIndex((i) => i.href === '/reports');
+    const at = t >= 0 ? t + 1 : r >= 0 ? r : items.length;
+    items.splice(at, 0, { href: '/design-tools', label: 'Design Tools', icon: '⌁', pilot: true });
   }
   return [...items.slice(0, 1), meetings, ...items.slice(1)];
 }
