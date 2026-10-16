@@ -60,7 +60,9 @@ export default function PlanDetail() {
       .order('planned_date')
       .order('time_slot');
     const pva = await rpc<PvA[]>('plan_vs_actual', { p_sales_person: plan.sales_person_id, p_week_start: plan.week_start }).catch(() => []);
-    // Monday 08:30 – 12:00 is the sales meeting: an exception approved by SM Projects frees it for this sales person
+    // The week's sales meeting (Monday 08:30 – 12:00 unless SM Projects moved it with GM / DGM approval): an exception
+    // approved by SM Projects frees it for this sales person
+    const meet = await rpc<{ day: string; starts: string; ends: string; moved: boolean }>('sales_meeting_slot', { p_week: plan.week_start }).catch(() => null);
     const { data: ex } = await supabase
       .from('meeting_exceptions')
       .select('status, reason, decision_note')
@@ -89,12 +91,14 @@ export default function PlanDetail() {
       plan: plan as VisitPlan,
       lines: (lines ?? []) as PlanLine[],
       pva: pva[0] ?? null,
+      meet: meet ?? { day: plan.week_start as string, starts: '08:30', ends: '12:00', moved: false },
       exception: (ex ?? null) as { status: 'pending' | 'approved' | 'rejected'; reason: string; decision_note: string | null } | null,
     };
   }, [id]);
 
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const { plan, lines, pva, exception, followups, unplanned } = data;
+  const { plan, lines, pva, exception, followups, unplanned, meet } = data;
+  const meetWhen = `${new Date(`${meet.day}T00:00:00`).toLocaleDateString('en-GB', { weekday: 'long' })} ${fmtDate(meet.day)} ${meet.starts} – ${meet.ends}`;
   const mine = plan.sales_person_id === me.id;
   const editable = mine && ['draft', 'returned', 'approved'].includes(plan.status);
   const manager = me.role === 'sm_projects' || me.role === 'gm';
@@ -102,7 +106,7 @@ export default function PlanDetail() {
   const approver = me.role === 'sm_projects';
 
   const dayOptions = DAYS.map((d, i) => ({ value: addDaysISO(plan.week_start, i), label: `${d} ${fmtDate(addDaysISO(plan.week_start, i))}` }));
-  const timeHint = 'e.g. 13:30 (Monday 08:30 – 12:00 is the sales meeting)';
+  const timeHint = `e.g. 13:30 (${meetWhen} is the sales meeting)`;
   // Sales meeting follow-up: only the day and time are set by the sales person
   const setDayTime = async (l: PlanLine) => {
     const r = await dialog.prompt({
@@ -233,10 +237,10 @@ export default function PlanDetail() {
           <Row wrap gap={8} style={{ justifyContent: 'space-between', alignItems: 'center' }}>
             <Text style={{ flexShrink: 1, color: colors.ink }}>
               {exception?.status === 'approved'
-                ? `Monday ${fmtDate(plan.week_start)}: leave from the sales meeting approved – you may plan visits between 08:30 and 12:00.`
+                ? `${meetWhen}: leave from the sales meeting approved – you may plan visits in that time.`
                 : exception?.status === 'pending'
-                  ? `Monday ${fmtDate(plan.week_start)} 08:30 – 12:00 is the sales meeting. Leave requested – waiting for SM Projects.`
-                  : `Monday ${fmtDate(plan.week_start)} 08:30 – 12:00 is the sales meeting – plan Monday visits from 12:00.${exception?.status === 'rejected' ? ` Leave not approved${exception.decision_note ? `: ${exception.decision_note}` : ''}.` : ''}`}
+                  ? `${meetWhen} is the sales meeting${meet.moved ? ' (moved)' : ''}. Leave requested – waiting for SM Projects.`
+                  : `${meetWhen} is the sales meeting${meet.moved ? ' (moved)' : ''} – plan visits outside that time.${exception?.status === 'rejected' ? ` Leave not approved${exception.decision_note ? `: ${exception.decision_note}` : ''}.` : ''}`}
             </Text>
             {!exception || exception.status === 'rejected' ? (
               <Button
@@ -245,8 +249,8 @@ export default function PlanDetail() {
                 title="Apply for leave"
                 onPress={async () => {
                   const r = await dialog.prompt({
-                    title: `Visit during the sales meeting – Monday ${fmtDate(plan.week_start)}`,
-                    message: 'SM Projects must approve it before the meeting. Once approved you can plan visits between 08:30 and 12:00 that Monday.',
+                    title: `Visit during the sales meeting – ${meetWhen}`,
+                    message: 'SM Projects must approve it before the meeting. Once approved you can plan visits in the meeting time.',
                     fields: [{ key: 'r', label: 'Reason', type: 'multiline', required: true }],
                   });
                   if (r)
@@ -446,7 +450,7 @@ function AddLine({ planId, weekStart, onDone }: { planId: string; weekStart: str
         options={DAYS.map((d, i) => ({ value: addDaysISO(weekStart, i), label: `${d} ${fmtDate(addDaysISO(weekStart, i))}` }))}
         onChange={(v) => setF((s) => ({ ...s, planned_date: v }))}
       />
-      <Field label="Time slot" placeholder="e.g. 13:30 (Monday 08:30 – 12:00 is the sales meeting)" value={f.time_slot} onChangeText={(v) => setF((s) => ({ ...s, time_slot: v }))} />
+      <Field label="Time slot" placeholder="e.g. 13:30 (not in the sales meeting time)" value={f.time_slot} onChangeText={(v) => setF((s) => ({ ...s, time_slot: v }))} />
       <Segmented value={f.visit_type} onChange={(v) => setF((s) => ({ ...s, visit_type: v }))} options={[{ value: 'normal', label: 'Normal' }, { value: 'tender', label: 'Tender' }]} />
       {f.visit_type === 'tender' ? (
         <Select label="Tender activity" value={f.tender_activity} options={masters.values('tender_activity').map((v) => ({ value: v, label: v }))} onChange={(v) => setF((s) => ({ ...s, tender_activity: v }))} />

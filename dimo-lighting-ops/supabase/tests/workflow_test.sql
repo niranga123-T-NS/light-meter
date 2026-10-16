@@ -2475,17 +2475,17 @@ begin
     insert into public.visit_plan_lines (plan_id, planned_date, time_slot, organization_id, visit_category, planned_objective)
     values (plan, mon, '10:00', org, 'End-Client', 'Site visit');
     assert false, '10:00 Monday blocked';
-  exception when others then assert sqlerrm like 'Monday 08:30 – 12:00 is the sales meeting%', sqlerrm; end;
+  exception when others then assert sqlerrm like 'Mon % 08:30 – 12:00 is the sales meeting%', sqlerrm; end;
   begin
     insert into public.visit_plan_lines (plan_id, planned_date, time_slot, organization_id, visit_category, planned_objective)
     values (plan, mon, null, org, 'End-Client', 'Site visit');
     assert false, 'no time on Monday blocked';
-  exception when others then assert sqlerrm like 'Monday 08:30 – 12:00 is the sales meeting – enter the visit time%', sqlerrm; end;
+  exception when others then assert sqlerrm like 'Mon % 08:30 – 12:00 is the sales meeting – enter the visit time%', sqlerrm; end;
   begin
     insert into public.visit_plan_lines (plan_id, planned_date, time_slot, organization_id, visit_category, planned_objective)
     values (plan, mon, '7.30-9.00', org, 'End-Client', 'Site visit');
     assert false, 'overlapping range blocked';
-  exception when others then assert sqlerrm like 'Monday 08:30%', sqlerrm; end;
+  exception when others then assert sqlerrm like 'Mon % 08:30%', sqlerrm; end;
   insert into public.visit_plan_lines (plan_id, planned_date, time_slot, organization_id, visit_category, planned_objective)
   values (plan, mon, '2pm', org, 'End-Client', 'Afternoon visit'), (plan, mon + 1, '09:00', org, 'End-Client', 'Tuesday visit');
 end $$;
@@ -8621,6 +8621,71 @@ do $$ declare n int; begin
   n := public.exec_ew_tick('2026-10-20 03:00+00');
   assert not exists (select 1 from public.notifications where kind = 'exec_early_warning' and title like 'Project turned red%' group by entity_id, recipient_id having count(*) > 1), 'no repeat red alerts';
 end $$;
+
+-- Moving the sales meeting: SM Projects asks, GM / DGM approve; the day, the visit block, attendance and reminders follow -----
+do $$ begin perform set_config('test.mon3', (current_setting('test.mon')::date + 14)::text, false); end $$;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  begin perform public.request_meeting_reschedule(current_setting('test.mon3')::date, current_setting('test.mon3')::date + 2, '14:00', '16:00', 'Holiday');
+    assert false, 'only SM Projects asks'; exception when raise_exception then null; end;
+  assert (public.sales_meeting_slot(current_setting('test.mon3')::date + 3) ->> 'starts') = '08:30', 'default slot';
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ declare mon date := current_setting('test.mon3')::date; rid uuid;
+begin
+  begin perform public.request_meeting_reschedule(mon, mon + 6, '09:00', '11:00', 'Poya'); assert false, 'not Sunday'; exception when raise_exception then null; end;
+  begin perform public.request_meeting_reschedule(mon, mon + 2, '11:00', '10:00', 'x'); assert false, 'end after start'; exception when raise_exception then null; end;
+  begin perform public.request_meeting_reschedule(mon, mon + 2, '14:00', '16:00', ' '); assert false, 'reason needed'; exception when raise_exception then null; end;
+  rid := public.request_meeting_reschedule(mon, mon + 2, '13:00', '16:00', 'Monday is a public holiday');
+  rid := public.request_meeting_reschedule(mon, mon + 2, '14:00', '17:00', 'Monday is a public holiday');
+  assert (select count(*) from public.meeting_reschedules where week_of = mon and status = 'pending') = 1, 'one pending – the older is replaced';
+  perform set_config('test.rs', rid::text, false);
+  begin perform public.decide_meeting_reschedule(rid, true, null); assert false, 'SM Projects cannot approve'; exception when raise_exception then null; end;
+end $$;
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.my_pending_approvals() where source = 'meeting_reschedule'), 'in GM approvals';
+  begin perform public.decide_meeting_reschedule(current_setting('test.rs')::uuid, false, null); assert false, 'reason to reject'; exception when raise_exception then null; end;
+  perform public.decide_meeting_reschedule(current_setting('test.rs')::uuid, true, 'OK');
+end $$;
+reset role;
+do $$ declare mon date := current_setting('test.mon3')::date; m public.sales_meetings; plan uuid; org uuid := (select id from public.organizations limit 1);
+begin
+  select * into m from public.sales_meetings where team = 'sales' and meeting_date = mon;
+  assert m.held_on = mon + 2 and m.starts_at = '14:00' and m.ends_at = '17:00', 'meeting moved';
+  assert (public.sales_meeting_slot(mon) ->> 'day') = (mon + 2)::text, 'slot shows the new day';
+  assert exists (select 1 from public.notifications where kind = 'meeting_reschedule' and title like '%approved' and recipient_id = (select id from u where role = 'sm_projects')), 'SM Projects told';
+  assert exists (select 1 from public.notifications where title = 'Sales meeting moved' and recipient_id = (select id from u where role = 'asm_building')), 'sales team told';
+  -- the visit block moves with it: Monday morning free, Wednesday afternoon blocked
+  insert into public.visit_plans (sales_person_id, week_start) values ((select id from u where role = 'asm_building'), mon)
+  on conflict (sales_person_id, week_start) do update set status = public.visit_plans.status returning id into plan;
+  insert into public.visit_plan_lines (plan_id, planned_date, time_slot, organization_id, visit_category, planned_objective) values (plan, mon, '10:00', org, 'End-Client', 'Monday visit');
+  begin
+    insert into public.visit_plan_lines (plan_id, planned_date, time_slot, organization_id, visit_category, planned_objective) values (plan, mon + 2, '15:00', org, 'End-Client', 'Clash');
+    assert false, 'moved meeting time blocked';
+  exception when others then assert sqlerrm like 'Wed % 14:00 – 17:00 is the sales meeting%', sqlerrm; end;
+  insert into public.visit_plan_lines (plan_id, planned_date, time_slot, organization_id, visit_category, planned_objective) values (plan, mon + 2, '09:00', org, 'End-Client', 'Morning visit');
+  -- reminders and absent marking on the new day
+  assert public.sales_meeting_tick((mon + time '09:00') at time zone app.tz()) = 0, 'nothing on the Monday';
+  assert public.sales_meeting_tick(((mon + 2) + time '09:00') at time zone app.tz()) >= 1, 'reminder on the Wednesday';
+  assert exists (select 1 from public.notifications where title = 'Sales meeting today 14:00 – 17:00'), 'with the new time';
+end $$;
+-- invitations keep the moved time
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ declare mid uuid; begin
+  mid := public.invite_team_meeting('sales', current_setting('test.mon3')::date, null, null, array[(select id from u where role = 'asm_building')]);
+  assert (select starts_at from public.sales_meetings where id = mid) = '14:00', 'time kept on inviting';
+  assert (select meeting_date from public.my_week_meetings() where meeting_id = mid) is null
+      or (select meeting_date from public.my_week_meetings() where meeting_id = mid) = current_setting('test.mon3')::date + 2, 'listed on the day held';
+end $$;
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  assert (select meeting_date from public.my_meetings() where team = 'sales' and meeting_date > current_setting('test.mon3')::date) = current_setting('test.mon3')::date + 2, 'invitee sees the new day';
+end $$;
+reset role;
 
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

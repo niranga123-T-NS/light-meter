@@ -55,6 +55,7 @@ type Meeting = {
   starts_at: string;
   ends_at: string;
   meeting_date: string;
+  held_on: string | null;
   status: 'draft' | 'published';
   pack: Pack | null;
   notes: string | null;
@@ -155,7 +156,7 @@ export default function MeetingPack() {
   }, [id]);
   const [adding, setAdding] = useState<string | null>(null); // sales person id, 'general', or null
   // While a meeting is running today, attendance refreshes by itself (invitees mark present from their own phones)
-  const live = !!data?.m.started_at && data.m.status === 'draft' && data.m.meeting_date === todayISO();
+  const live = !!data?.m.started_at && data.m.status === 'draft' && (data.m.held_on ?? data.m.meeting_date) === todayISO();
   useEffect(() => {
     if (!live) return;
     const t = setInterval(() => reload(), 15000);
@@ -229,7 +230,9 @@ export default function MeetingPack() {
     setAdding(null);
   };
   const today = todayISO();
-  const isToday = m.meeting_date === today;
+  // a moved sales meeting is held on held_on; its Monday stays the key for the pack and invitations
+  const day = m.held_on ?? m.meeting_date;
+  const isToday = day === today;
   const startMeeting = async () => {
     const loc = await captureLocation();
     if (!loc) return dialog.toast('Allow location access – the meeting location is where you start it', 'error');
@@ -524,11 +527,11 @@ export default function MeetingPack() {
 
   return (
     <Screen maxWidth={1100}>
-      <Stack.Screen options={{ title: `${isProject ? 'Project meeting' : cfg.label} · ${fmtDate(m.meeting_date)}` }} />
+      <Stack.Screen options={{ title: `${isProject ? 'Project meeting' : cfg.label} · ${fmtDate(day)}` }} />
       <Card>
         <Row wrap style={{ justifyContent: 'space-between', alignItems: 'center' }}>
           <Text style={{ fontSize: 18, fontWeight: '700', color: colors.ink }}>
-            {`${label} · ${new Date(`${m.meeting_date}T00:00:00`).toLocaleDateString('en-GB', { weekday: 'long' })} ${fmtDate(m.meeting_date)} · ${hhmm(m.starts_at)} – ${hhmm(m.ends_at)}`}
+            {`${label} · ${new Date(`${day}T00:00:00`).toLocaleDateString('en-GB', { weekday: 'long' })} ${fmtDate(day)} · ${hhmm(m.starts_at)} – ${hhmm(m.ends_at)}${m.held_on ? ' (moved)' : ''}`}
           </Text>
           <Pill label={m.status === 'published' ? 'Published' : 'Draft'} tone={m.status === 'published' ? colors.green : colors.amber} solid />
         </Row>

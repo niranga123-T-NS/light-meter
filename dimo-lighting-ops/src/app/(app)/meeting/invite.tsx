@@ -51,7 +51,7 @@ export default function InviteToMeeting() {
         ? params.meeting
           ? supabase.from('sales_meetings').select('id, meeting_date, starts_at, ends_at, agenda').eq('id', params.meeting).maybeSingle()
           : Promise.resolve({ data: null })
-        : supabase.from('sales_meetings').select('id, meeting_date, starts_at, ends_at, agenda').eq('team', team).eq('meeting_date', params.date ?? '').maybeSingle(),
+        : supabase.from('sales_meetings').select('id, meeting_date, held_on, starts_at, ends_at, agenda').eq('team', team).eq('meeting_date', params.date ?? '').maybeSingle(),
       isProject ? supabase.from('exec_projects').select('id, code, name, wbs_no').eq('id', params.project ?? '').maybeSingle() : Promise.resolve({ data: null }),
       isProject ? supabase.from('exec_members').select('user_id').eq('exec_project_id', params.project ?? '').eq('active', true) : Promise.resolve({ data: [] }),
     ]);
@@ -66,6 +66,7 @@ export default function InviteToMeeting() {
       starts: m.data ? hhmm(m.data.starts_at) : cfg.starts,
       ends: m.data ? hhmm(m.data.ends_at) : cfg.ends,
       date: (m.data?.meeting_date as string | undefined) ?? null,
+      heldOn: ((m.data as { held_on?: string | null } | null)?.held_on ?? null) as string | null,
       agenda: (m.data?.agenda as string | null | undefined) ?? '',
       project: ep.data as { id: string; code: string | null; name: string; wbs_no: string | null } | null,
       members: ((mem.data ?? []) as { user_id: string }[]).map((x) => x.user_id),
@@ -110,7 +111,7 @@ export default function InviteToMeeting() {
       <Stack.Screen options={{ title: isProject ? (params.meeting ? 'Change project meeting' : 'Call a project meeting') : `Invite – ${cfg.label.toLowerCase()}` }} />
       <Card>
         {cfg.fixed ? (
-          <Text style={{ fontSize: 17, fontWeight: '700', color: colors.ink }}>{`${cfg.label} · Monday ${fmtDate(date)} · 08:30 – 12:00`}</Text>
+          <Text style={{ fontSize: 17, fontWeight: '700', color: colors.ink }}>{`${cfg.label} · ${new Date(`${data.heldOn ?? date}T00:00:00`).toLocaleDateString('en-GB', { weekday: 'long' })} ${fmtDate(data.heldOn ?? date)} · ${starts} – ${ends}${data.heldOn ? ' (moved)' : ''}`}</Text>
         ) : (
           <>
             <Text style={{ fontSize: 17, fontWeight: '700', color: colors.ink }}>{title}</Text>
