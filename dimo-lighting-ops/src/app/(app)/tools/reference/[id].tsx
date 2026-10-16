@@ -1,25 +1,25 @@
-import { Image } from 'expo-image';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Linking, Pressable, Text, TextInput, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
+import { RefPhoto } from '@/components/RefPhoto';
 import { Button, Card, Chip, colors, ErrorBanner, Field, H1, KeyValue, Loading, Muted, MultiSelect, Notice, NumberField, Pill, Row, Screen, Section, Segmented, Select, styles, Toggle } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { pickImage, uuid, type PickedFile } from '@/lib/files';
 import { fmtMoney } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
-import { applicationText, APPLICATIONS, keepsReferences, MAX_PHOTOS, OUTDOOR_TYPES, PARTIES, photoUrls, removePhotos, uploadPhoto, type ProjectReference } from '@/lib/references';
+import { applicationText, APPLICATIONS, driveFolderUrl, driveImage, driveView, isDrive, keepsReferences, MAX_PHOTOS, OUTDOOR_TYPES, parseDriveLinks, PARTIES, photoUrls, removePhotos, uploadPhoto, type ProjectReference } from '@/lib/references';
 import { projectTypeLabel, PROJECT_TYPES } from '@/lib/roles';
 import { TOOLS_ROLES } from '@/lib/standards';
 import { supabase } from '@/lib/supabase';
 import type { Currency } from '@/lib/types';
 
 type Photo = { path?: string; file?: PickedFile; uri: string };
-type Form = Pick<ProjectReference, 'title' | 'client' | 'architect' | 'interior_designer' | 'mep_consultant' | 'elec_consultant' | 'description' | 'year' | 'value' | 'currency' | 'location' | 'country' | 'category' | 'applications' | 'outdoor_types' | 'brands'>;
-const BLANK: Form = { title: '', client: null, architect: null, interior_designer: null, mep_consultant: null, elec_consultant: null, description: null, year: new Date().getFullYear(), value: null, currency: 'LKR', location: null, country: 'Sri Lanka', category: null, applications: [], outdoor_types: [], brands: [] };
+type Form = Pick<ProjectReference, 'title' | 'client' | 'architect' | 'interior_designer' | 'mep_consultant' | 'elec_consultant' | 'description' | 'year' | 'value' | 'currency' | 'location' | 'country' | 'category' | 'applications' | 'outdoor_types' | 'brands' | 'album_url'>;
+const BLANK: Form = { title: '', client: null, architect: null, interior_designer: null, mep_consultant: null, elec_consultant: null, description: null, year: new Date().getFullYear(), value: null, currency: 'LKR', location: null, country: 'Sri Lanka', category: null, applications: [], outdoor_types: [], brands: [], album_url: null };
 const COUNTRIES = ['Sri Lanka', 'Maldives', 'India', 'Bangladesh', 'United Arab Emirates', 'Qatar', 'Other'];
 
-/** A project reference: up to 4 photos, short description, year, value, location, country, category, applications and brands */
+/** A project reference: up to 12 photos (uploads or Google Drive links) and a Drive album, short description, year, value, location, country, category, applications and brands */
 export default function ReferencePage() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const me = useMe();
@@ -59,6 +59,22 @@ export default function ReferencePage() {
       dialog.toast(e instanceof Error ? e.message : String(e), 'error');
     }
   };
+  const addDrive = async () => {
+    const r = await dialog.prompt({
+      title: 'Photos from Google Drive',
+      message: 'In Drive: right-click the photo → Share → General access: "Anyone with the link" → Copy link. Paste one link per line. A folder link becomes the full album.',
+      fields: [{ key: 'links', label: 'Google Drive links', type: 'multiline', required: true, maxLength: 6000 }],
+      confirmLabel: 'Add',
+    });
+    if (!r) return;
+    const { photos: found, album, bad } = parseDriveLinks(r.links);
+    const fresh = found.filter((p) => !pics.some((x) => x.path === p));
+    const room = MAX_PHOTOS - pics.length;
+    if (fresh.length) setPhotos([...pics, ...fresh.slice(0, room).map((p) => ({ path: p, uri: driveImage(p.slice(7)) }))]);
+    if (album) set({ album_url: album });
+    const notes = [fresh.length ? `${Math.min(fresh.length, room)} photo${fresh.length === 1 ? '' : 's'} added` : null, album ? 'album link set' : null, fresh.length > room ? `${fresh.length - room} left out – up to ${MAX_PHOTOS} photos` : null, bad.length ? `${bad.length} line${bad.length === 1 ? '' : 's'} not a Drive link` : null].filter(Boolean);
+    dialog.toast(notes.join(' · ') || 'No Drive links found', fresh.length || album ? 'ok' : 'error');
+  };
   const movePhoto = (i: number, to: number) => {
     const next = [...pics];
     const [p] = next.splice(i, 1);
@@ -75,6 +91,8 @@ export default function ReferencePage() {
     dialog.run(async () => {
       if (!f.title.trim()) throw new Error('Give the project a name');
       if (!pics.length) throw new Error('Add at least one photo');
+      const album = f.album_url?.trim() ? driveFolderUrl(f.album_url) ?? (/^https:\/\//.test(f.album_url.trim()) ? f.album_url.trim() : null) : null;
+      if (f.album_url?.trim() && !album) throw new Error('The album link must be a Google Drive folder link (https://drive.google.com/…)');
       const refId = isNew ? newId : (id as string);
       const row = {
         title: f.title.trim(),
@@ -89,6 +107,7 @@ export default function ReferencePage() {
         applications: f.applications,
         outdoor_types: f.applications.includes('outdoor') ? f.outdoor_types : [],
         brands: f.brands,
+        album_url: album,
         updated_by: me.id,
         updated_at: new Date().toISOString(),
       };
@@ -126,7 +145,10 @@ export default function ReferencePage() {
           <Row gap={8} wrap>
             {pics.map((p, i) => (
               <View key={p.path ?? p.uri} style={{ width: 170, gap: 4 }}>
-                <Image source={{ uri: p.uri }} style={{ width: 170, height: 110, borderRadius: 8, backgroundColor: colors.soft }} contentFit="cover" />
+                <View>
+                  <RefPhoto uri={p.uri} drive={!!p.path && isDrive(p.path)} hint style={{ width: 170, height: 110, borderRadius: 8 }} />
+                  {p.path && isDrive(p.path) ? <View style={{ position: 'absolute', top: 6, left: 6 }}><Pill label="Drive" tone={colors.blue} solid /></View> : null}
+                </View>
                 <Row gap={4} style={{ justifyContent: 'space-between', alignItems: 'center', minHeight: 34 }}>
                   {i > 0 ? <Button small variant="ghost" title="Make cover" onPress={() => movePhoto(i, 0)} /> : <Pill label="Cover" tone={colors.brand} />}
                   <Button small variant="ghost" title="✕ Remove" onPress={() => setPhotos(pics.filter((_, k) => k !== i))} />
@@ -134,12 +156,14 @@ export default function ReferencePage() {
               </View>
             ))}
             {pics.length < MAX_PHOTOS ? (
-              <View style={{ width: 170, height: 110, borderRadius: 8, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.line, alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <View style={{ width: 170, minHeight: 110, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.line, alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                 <Button small variant="secondary" title="+ Choose photo" onPress={() => addPhoto(false)} />
                 <Button small variant="ghost" title="Take photo" onPress={() => addPhoto(true)} />
+                <Button small variant="ghost" title="+ From Google Drive" onPress={addDrive} />
               </View>
             ) : null}
           </Row>
+          <Field label="Full photo album – Google Drive folder link (optional)" value={f.album_url ?? ''} onChangeText={(v) => set({ album_url: v })} maxLength={500} placeholder="https://drive.google.com/drive/folders/…" hint='Share the folder as "Anyone with the link" so everyone in DIMO (and clients you send it to) can open it.' />
         </Section>
         <Card style={{ gap: 4 }}>
           <Field label="Project name" required value={f.title} onChangeText={(v) => set({ title: v })} maxLength={160} placeholder="e.g. Cinnamon Lakeside – Ballroom" />
@@ -205,7 +229,8 @@ export default function ReferencePage() {
   }
 
   const r = ref as ProjectReference;
-  const big = r.photos[Math.min(shown, r.photos.length - 1)];
+  const at = Math.min(shown, r.photos.length - 1);
+  const big = r.photos[at];
   return (
     <Screen maxWidth={1000}>
       <Stack.Screen options={{ title: 'Reference' }} />
@@ -223,13 +248,32 @@ export default function ReferencePage() {
       </Row>
       {big ? (
         <View style={{ gap: 8, marginTop: 10 }}>
-          <Image source={{ uri: data.urls[big] }} style={{ width: '100%', aspectRatio: 16 / 9, borderRadius: 12, backgroundColor: '#111' }} contentFit="contain" transition={150} />
-          <Row gap={8}>
+          <View>
+            <RefPhoto key={big} uri={data.urls[big]} drive={isDrive(big)} hint={canEdit} style={{ width: '100%', aspectRatio: 16 / 9, borderRadius: 12, backgroundColor: '#111' }} fit="contain" />
+            {r.photos.length > 1 ? (
+              <>
+                <Pressable onPress={() => setShown((at - 1 + r.photos.length) % r.photos.length)} style={{ position: 'absolute', left: 8, top: '45%', width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' }}>
+                  <Text style={{ color: '#fff', fontSize: 18 }}>◀</Text>
+                </Pressable>
+                <Pressable onPress={() => setShown((at + 1) % r.photos.length)} style={{ position: 'absolute', right: 8, top: '45%', width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' }}>
+                  <Text style={{ color: '#fff', fontSize: 18 }}>▶</Text>
+                </Pressable>
+                <View style={{ position: 'absolute', right: 10, bottom: 10, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 }}>
+                  <Text style={{ color: '#fff', fontSize: 12 }}>{`${at + 1} / ${r.photos.length}`}</Text>
+                </View>
+              </>
+            ) : null}
+          </View>
+          <Row gap={8} wrap>
             {r.photos.map((p, i) => (
-              <Pressable key={p} onPress={() => setShown(i)} style={{ flex: 1, maxWidth: 160, borderRadius: 8, overflow: 'hidden', borderWidth: 3, borderColor: i === shown ? colors.brand : 'transparent' }}>
-                <Image source={{ uri: data.urls[p] }} style={{ width: '100%', aspectRatio: 16 / 10 }} contentFit="cover" />
+              <Pressable key={p} onPress={() => setShown(i)} style={{ width: 120, borderRadius: 8, overflow: 'hidden', borderWidth: 3, borderColor: i === at ? colors.brand : 'transparent' }}>
+                <RefPhoto uri={data.urls[p]} drive={isDrive(p)} style={{ width: '100%', aspectRatio: 16 / 10 }} />
               </Pressable>
             ))}
+          </Row>
+          <Row gap={8} wrap>
+            {r.album_url ? <Button small title="📁 Open the full photo album" onPress={() => Linking.openURL(r.album_url as string)} /> : null}
+            {isDrive(big) ? <Button small variant="ghost" title="Open this photo in Google Drive" onPress={() => Linking.openURL(driveView(big))} /> : null}
           </Row>
         </View>
       ) : null}

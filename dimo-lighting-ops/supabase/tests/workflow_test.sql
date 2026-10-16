@@ -8375,7 +8375,7 @@ reset role;
 select pg_temp.act_as('lighting_designer'); set role authenticated;
 do $$ declare rid uuid; begin
   insert into public.project_references (title, description, year, value, location, country, category, applications, outdoor_types, brands, photos, architect, mep_consultant)
-  values ('Hotel ballroom', 'LED retrofit with DALI scenes', 2026, 12500000, 'Colombo 02', 'Sri Lanka', 'hospitality', array['indoor', 'outdoor', 'controls', 'lv'], array['roads', 'yards'], array['Philips'], array['ref/x/1.jpg'], 'DGFI', 'Mott MacDonald')
+  values ('Hotel ballroom', 'LED retrofit with DALI scenes', 2026, 12500000, 'Colombo 02', 'Sri Lanka', 'hospitality', array['indoor', 'outdoor', 'controls', 'lv'], array['roads', 'yards'], array['Philips'], array['ref/' || gen_random_uuid() || '/1.jpg', 'gdrive:1AbCdEfGhIjKlMnOpQrStUvWxYz012345'], 'DGFI', 'Mott MacDonald')
   returning id into rid;
   perform set_config('test.ref', rid::text, false);
   begin
@@ -8387,8 +8387,18 @@ do $$ declare rid uuid; begin
     assert false, 'outdoor kinds only with Outdoor Lighting';
   exception when check_violation then null; end;
   begin
-    insert into public.project_references (title, photos) values ('Too many', array['a', 'b', 'c', 'd', 'e']);
-    assert false, 'at most 4 photos';
+    insert into public.project_references (title, photos) values ('Too many', array(select 'gdrive:1AbCdEfGhIjKlMnOpQrStUvW' || g from generate_series(10, 22) g));
+    assert false, 'at most 12 photos';
+  exception when check_violation then null; end;
+  insert into public.project_references (title, photos, album_url) values ('Twelve from Drive', array(select 'gdrive:1AbCdEfGhIjKlMnOpQrStUvW' || g from generate_series(10, 21) g), 'https://drive.google.com/drive/folders/1AbCdEfGhIjKlMnOpQrStUvWx');
+  delete from public.project_references where title = 'Twelve from Drive';
+  begin
+    insert into public.project_references (title, photos) values ('Bad photo', array['https://example.com/x.jpg']);
+    assert false, 'a photo is an upload or a Drive file id';
+  exception when check_violation then null; end;
+  begin
+    insert into public.project_references (title, album_url) values ('Bad album', 'javascript:alert(1)');
+    assert false, 'album link must be https';
   exception when check_violation then null; end;
   update public.project_references set title = 'Hotel ballroom – Colombo' where id = rid;
   assert found, 'the Lighting Designer edits';
