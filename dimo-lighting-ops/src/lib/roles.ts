@@ -77,6 +77,7 @@ export const EXEC_NAV = {
   queries: { href: '/execution/queries', label: 'Design queries', icon: '?', testing: true } as NavItem,
   certs: { href: '/execution/certs', label: 'Subcontractor invoices', icon: '⧉', testing: true } as NavItem,
   scrap: { href: '/execution/scrap', label: 'Scrap disposal', icon: '♻' } as NavItem,
+  warning: { href: '/execution/early-warning', label: 'Early warning', icon: '◬' } as NavItem,
 };
 
 
@@ -162,6 +163,7 @@ function baseNav(role: Role): NavItem[] {
         { href: '/warranty', label: 'Warranty & defects', icon: '⛉' },
         { href: '/engineering', label: 'Engineering jobs', icon: '▣' },
         EXEC_NAV.portfolio,
+        EXEC_NAV.warning,
         EXEC_NAV.hse,
         EXEC_NAV.scrap,
         EXEC_NAV.access,
@@ -195,6 +197,7 @@ function baseNav(role: Role): NavItem[] {
         { href: '/warranty', label: 'Warranty & defects', icon: '⛉' },
         { href: '/engineering', label: 'Engineering jobs', icon: '▣' },
         EXEC_NAV.portfolio,
+        EXEC_NAV.warning,
         EXEC_NAV.scrap,
         EXEC_NAV.access,
         { href: '/samples', label: 'Samples', icon: '⬚' },
@@ -272,6 +275,7 @@ function baseNav(role: Role): NavItem[] {
       return [
         { href: '/', label: 'My Day', icon: '⌂' },
         EXEC_NAV.projects,
+        EXEC_NAV.warning,
         { href: '/engineering', label: 'Tasks & instructions', icon: '▣' },
         EXEC_NAV.plans,
         EXEC_NAV.reports,
@@ -292,6 +296,7 @@ function baseNav(role: Role): NavItem[] {
       return [
         { href: '/', label: 'My Day', icon: '⌂' },
         EXEC_NAV.mine,
+        EXEC_NAV.warning,
         { href: '/engineering', label: 'Tasks & instructions', icon: '▣' },
         EXEC_NAV.plans,
         EXEC_NAV.reports,

@@ -8587,5 +8587,40 @@ do $$ begin
 end $$;
 reset role;
 
+-- Execution early warning: 11 lights per live project, limits by SM Projects, daily tick
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ declare d jsonb := public.exec_early_warning(); p jsonb; begin
+  assert jsonb_array_length(d -> 'projects') > 0, 'SM Projects sees the live projects';
+  for p in select * from jsonb_array_elements(d -> 'projects') loop
+    assert jsonb_array_length(p -> 'signals') = 11, 'eleven lights per project';
+    assert p ->> 'overall' in ('red', 'amber', 'green'), 'overall status';
+    assert not exists (select 1 from jsonb_array_elements(p -> 'signals') x where x ->> 'c' not in ('red', 'amber', 'green', 'na') or coalesce(x ->> 'why', '') = ''), 'every light has a colour and a reason';
+  end loop;
+  perform public.exec_ew_set_limits('{"slipRed": 30, "planRed": 50}');
+  assert (public.exec_early_warning() -> 'limits' ->> 'slipRed') = '30', 'limits saved';
+  begin perform public.exec_ew_set_limits('{"bogus": 1}'); assert false, 'unknown limit refused'; exception when raise_exception then null; end;
+  begin perform public.exec_ew_set_limits('{"slipRed": -1}'); assert false, 'negative refused'; exception when raise_exception then null; end;
+  perform public.exec_ew_set_limits('{}');
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin
+  assert not exists (select 1 from jsonb_array_elements(public.exec_early_warning() -> 'projects') p
+                      join public.exec_projects e on e.id = (p ->> 'id')::uuid where e.see_id is distinct from auth.uid() and not app.is_exec_member(e.id)), 'the SEE sees only own projects';
+  begin perform public.exec_ew_set_limits('{"slipRed": 1}'); assert false, 'only SM Projects sets limits'; exception when raise_exception then null; end;
+end $$;
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  begin perform public.exec_early_warning(); assert false, 'sales do not see it'; exception when raise_exception then null; end;
+end $$;
+reset role;
+do $$ declare n int; begin
+  n := public.exec_ew_tick('2026-10-19 03:00+00');   -- a Monday
+  assert (select count(*) from public.exec_ew_state) > 0, 'state kept for the turned-red alert';
+  n := public.exec_ew_tick('2026-10-20 03:00+00');
+  assert not exists (select 1 from public.notifications where kind = 'exec_early_warning' and title like 'Project turned red%' group by entity_id, recipient_id having count(*) > 1), 'no repeat red alerts';
+end $$;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
