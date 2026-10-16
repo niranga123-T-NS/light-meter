@@ -52,7 +52,7 @@ export default function CsiDetail() {
           <KeyValue label="Customer" value={s.organizations?.name ?? '—'} />
           <KeyValue label="Project" value={s.projects?.name ?? '— (customer)'} />
           <KeyValue label="Answered by" value={`${s.contact_name}${s.contact_role ? ` · ${s.contact_role}` : ''}`} />
-          <KeyValue label="Sales person" value={people[s.sales_person_id]?.full_name ?? '—'} />
+          <KeyValue label={s.team === 'execution' ? 'Started by (SEE)' : 'Sales person'} value={people[s.sales_person_id]?.full_name ?? '—'} />
           <KeyValue label="Status" value={s.status === 'completed' ? `Completed ${fmtDate(s.completed_at)}${s.filled_by === 'sales' ? ' (on a call)' : ''}` : s.status === 'open' ? `Open · expires ${fmtDate(s.expires_at)}` : 'Cancelled'} />
         </Row>
       </Card>

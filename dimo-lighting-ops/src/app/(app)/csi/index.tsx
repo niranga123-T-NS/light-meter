@@ -15,7 +15,8 @@ const avg = (xs: number[]) => (xs.length ? xs.reduce((t, x) => t + x, 0) / xs.le
 export default function CsiHome() {
   const me = useMe();
   const people = usePeople();
-  const sales = isSales(me.role);
+  // sales people and the SEE start surveys and see their own; managers see everyone's
+  const sales = isSales(me.role) || me.role === 'senior_elec_engineer';
   const [tab, setTab] = useState<'all' | 'open' | 'alerts'>('all');
   const { data, error } = useLoad(async () => {
     const { data: rows, error: e } = await supabase.from('csi_surveys').select('*, organizations(name), projects(name)').order('created_at', { ascending: false });
@@ -87,7 +88,7 @@ export default function CsiHome() {
       ) : null}
 
       {byPerson.length ? (
-        <Section title="By sales person">
+        <Section title="By person (sales and SEE)">
           <Card style={{ padding: 0, overflow: 'hidden' }}>
             {byPerson.map((p) => (
               <ListRow key={p.pid} title={people[p.pid]?.full_name ?? '—'} subtitle={`${p.n} answered`} right={<Text>{p.csi == null ? '—' : `${moodFace(p.csi)} CSI ${Math.round(p.csi)} · NPS ${p.nps ?? '—'}`}</Text>} />
@@ -103,7 +104,7 @@ export default function CsiHome() {
               key={s.id}
               highlight={s.alert && !s.followed_up_at ? colors.red : undefined}
               title={`${s.overall != null ? `${moodFace(s.overall)} ` : ''}${s.organizations?.name ?? '—'} · ${s.contact_name}`}
-              subtitle={`${s.code} · ${s.projects?.name ?? 'customer'} · ${s.status === 'completed' ? `answered ${fmtDate(s.completed_at)}${s.filled_by === 'sales' ? ' (on a call)' : ''}` : s.status === 'open' ? `sent ${fmtDate(s.created_at)} · ${s.channel}` : 'cancelled'}${sales ? '' : ` · ${people[s.sales_person_id]?.full_name ?? ''}`}`}
+              subtitle={`${s.code}${s.team === 'execution' ? ' · execution' : ''} · ${s.projects?.name ?? 'customer'} · ${s.status === 'completed' ? `answered ${fmtDate(s.completed_at)}${s.filled_by === 'sales' ? ' (on a call)' : ''}` : s.status === 'open' ? `sent ${fmtDate(s.created_at)} · ${s.channel}` : 'cancelled'}${sales ? '' : ` · ${people[s.sales_person_id]?.full_name ?? ''}`}`}
               right={s.status === 'completed' ? <Pill label={`${s.overall} · NPS ${s.nps}`} tone={(s.overall ?? 0) >= 75 ? colors.green : (s.overall ?? 0) >= 60 ? colors.amber : colors.red} /> : <Pill label={s.status === 'open' ? 'Waiting' : 'Cancelled'} tone={s.status === 'open' ? colors.blue : colors.grey} />}
               wrapRight
               onPress={() => router.push(`/csi/${s.id}`)}

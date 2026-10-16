@@ -1,12 +1,13 @@
 import { ACADEMY_SITE } from '@/lib/academy';
 
-export type CsiStage = 'inquiry' | 'design' | 'quotation' | 'delivery' | 'installation' | 'after_sales';
+export type CsiStage = 'inquiry' | 'design' | 'quotation' | 'delivery' | 'installation' | 'handover' | 'after_sales';
 export const CSI_STAGES: { value: CsiStage; label: string; icon: string }[] = [
   { value: 'inquiry', label: 'Inquiry & first contact', icon: '💬' },
   { value: 'design', label: 'Lighting design', icon: '📐' },
   { value: 'quotation', label: 'Quotation', icon: '🧾' },
   { value: 'delivery', label: 'Delivery', icon: '🚚' },
-  { value: 'installation', label: 'Installation & commissioning', icon: '🔧' },
+  { value: 'installation', label: 'Site works & installation', icon: '🔧' },
+  { value: 'handover', label: 'Testing, commissioning & handover', icon: '✅' },
   { value: 'after_sales', label: 'After-sales & service', icon: '🤝' },
 ];
 export const stageLabel = (s: string) => CSI_STAGES.find((x) => x.value === s)?.label ?? s;
@@ -14,18 +15,25 @@ export const stageLabel = (s: string) => CSI_STAGES.find((x) => x.value === s)?.
 /** The swipe cards – each linked to an importance area (for the importance / satisfaction view) and, when it is about one
  *  step of the job, to that step: a card is asked only when the customer went through its step */
 export const CSI_CARDS: { key: string; text: string; area: CsiArea; stages?: CsiStage[] }[] = [
-  { key: 'understood', text: 'The sales person understood what we really needed', area: 'support' },
-  { key: 'on_time', text: 'Quotations and answers came on time', area: 'speed' },
+  { key: 'understood', text: 'DIMO understood what we really needed', area: 'support' },
+  { key: 'responsive', text: 'Our calls and questions were answered quickly', area: 'speed' },
   { key: 'expert', text: 'DIMO gave us expert technical advice', area: 'support' },
   { key: 'informed', text: 'DIMO kept us informed at every step', area: 'support' },
+  { key: 'on_time', text: 'Quotations and proposals came on time', area: 'speed', stages: ['inquiry', 'design', 'quotation'] },
   { key: 'design', text: 'The lighting design met our needs and the standards', area: 'quality', stages: ['design'] },
   { key: 'value', text: 'The price is fair for the quality we get', area: 'price', stages: ['quotation', 'delivery', 'installation', 'after_sales'] },
-  { key: 'quality', text: 'The products perform as promised', area: 'quality', stages: ['delivery', 'installation', 'after_sales'] },
+  { key: 'quality', text: 'The products perform as promised', area: 'quality', stages: ['delivery', 'installation', 'handover', 'after_sales'] },
   { key: 'delivered', text: 'Deliveries arrived complete and on the date promised', area: 'speed', stages: ['delivery'] },
-  { key: 'documents', text: 'Data sheets, drawings and test reports were complete and on time', area: 'support', stages: ['design', 'delivery', 'installation'] },
+  // project execution on site
+  { key: 'programme', text: 'The site work kept to the agreed programme', area: 'speed', stages: ['installation'] },
+  { key: 'workmanship', text: 'The installation work is neat and of high quality', area: 'quality', stages: ['installation'] },
   { key: 'site', text: 'The site team worked safely and cleanly', area: 'quality', stages: ['installation'] },
-  { key: 'handover', text: 'Commissioning, handover and training were done well', area: 'after_sales', stages: ['installation'] },
-  { key: 'after', text: 'Problems after the sale are solved quickly', area: 'after_sales', stages: ['after_sales', 'installation'] },
+  { key: 'coordination', text: 'DIMO’s site engineer coordinated well with the consultant and other contractors', area: 'support', stages: ['installation'] },
+  { key: 'variations', text: 'Changes and variations were handled clearly and fairly', area: 'price', stages: ['installation'] },
+  { key: 'documents', text: 'Data sheets, test reports and as-built drawings were complete and on time', area: 'support', stages: ['design', 'delivery', 'handover'] },
+  { key: 'handover', text: 'Testing, commissioning and training of our staff were done well', area: 'after_sales', stages: ['handover'] },
+  { key: 'snags', text: 'Snags and defects were closed quickly', area: 'after_sales', stages: ['handover', 'after_sales'] },
+  { key: 'after', text: 'Problems after the handover are solved quickly', area: 'after_sales', stages: ['after_sales'] },
 ];
 /** The cards for the steps this customer went through */
 export const cardsFor = (stages: string[]) => CSI_CARDS.filter((c) => !c.stages || c.stages.some((s) => stages.includes(s)));
@@ -106,6 +114,8 @@ export type CsiSurvey = {
   contact_role: string | null;
   stages: CsiStage[];
   channel: 'link' | 'tablet' | 'call';
+  /** sales: started by the sales person · execution: started by the project's SEE */
+  team: 'sales' | 'execution';
   status: 'open' | 'completed' | 'cancelled';
   expires_at: string;
   filled_by: 'customer' | 'sales' | null;
