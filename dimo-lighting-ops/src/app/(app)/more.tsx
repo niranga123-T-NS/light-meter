@@ -9,9 +9,10 @@ import { navFor, ROLE_SHORT } from '@/lib/roles';
 /** Phone navigation: everything that doesn't fit in the bottom bar. */
 export default function More() {
   const me = useMe();
+  const { realRole } = useAuth();
   const { signOut } = useAuth();
   const { counts } = useShellCounts();
-  const nav = navFor(me.role).slice(4);
+  const nav = navFor(me.role, realRole).slice(4);
   return (
     <Screen>
       <Stack.Screen options={{ title: 'More' }} />

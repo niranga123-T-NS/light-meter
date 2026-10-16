@@ -3,7 +3,7 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, u
 import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDialog } from '@/components/dialog';
-import { useMe } from '@/lib/auth';
+import { useAuth, useMe } from '@/lib/auth';
 import { showBrowserNotification } from '@/lib/push';
 import { TestingTag } from './Testing';
 import { navFor, NavItem, ROLE_SHORT } from '@/lib/roles';
@@ -83,7 +83,7 @@ export function Sidebar() {
   const me = useMe();
   const pathname = usePathname();
   const { counts } = useShellCounts();
-  const nav = navFor(me.role);
+  const nav = navFor(me.role, useAuth().realRole);
   return (
     <View style={{ width: 236, backgroundColor: '#15171C', paddingTop: 18 }}>
       <View style={{ paddingHorizontal: 18, marginBottom: 18 }}>
@@ -141,7 +141,7 @@ export function BottomBar() {
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const { counts } = useShellCounts();
-  const nav = navFor(me.role);
+  const nav = navFor(me.role, useAuth().realRole);
   const main = nav.slice(0, 4);
   const moreActive = !main.some((m) => isActive(pathname, m.href)) && pathname !== '/';
   return (
