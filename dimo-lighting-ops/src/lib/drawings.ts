@@ -2,8 +2,8 @@
 // Positions are fractions of the sheet (0–1); lengths need the sheet's real width in metres (width_m).
 import { supabase } from './supabase';
 
-export type Disc = 'light' | 'power' | 'elv' | 'net' | 'hvac' | 'lms' | 'bms' | 'cont' | 'fiber';
-export type Scope = { services?: boolean; lms?: boolean; bms?: boolean };
+export type Disc = 'light' | 'power' | 'elv' | 'net' | 'hvac' | 'lms' | 'bms' | 'cont' | 'fiber' | 'out';
+export type Scope = { services?: boolean; lms?: boolean; bms?: boolean; outdoor?: boolean };
 
 export type Drawing = {
   id: string;
@@ -19,6 +19,7 @@ export type Drawing = {
   width_m: number | null;
   scope: Scope;
   lms: string;
+  level_no: number | null;
   archived: boolean;
   uploaded_at: string;
 };
@@ -39,6 +40,8 @@ export type DItem = {
   boq_item_id: string | null;
   activity_id: string | null;
   updated_at: string;
+  to_check?: boolean;
+  riser_id?: string | null;
 };
 export type Pt = [number, number];
 export type DRoute = {
@@ -53,6 +56,7 @@ export type DRoute = {
   cores: number | null;
   boq_item_id: string | null;
   activity_id: string | null;
+  to_check?: boolean;
 };
 export type DEvent = { id: number; item_id: string | null; route_id: string | null; what: string; from_status: string | null; to_status: string | null; note: string | null; by_id: string | null; at: string };
 
@@ -66,6 +70,7 @@ export const DISC: Record<Disc, { name: string; c: string }> = {
   bms: { name: 'BMS', c: '#C0562A' },
   fiber: { name: 'Fibre', c: '#0F9D7A' },
   cont: { name: 'Containment', c: '#7D6B5D' },
+  out: { name: 'Outdoor – poles & masts', c: '#3D5A80' },
 };
 
 export type Kind = { d: Disc; name: string; code: string; big?: boolean };
@@ -115,9 +120,15 @@ export const KINDS: Record<string, Kind> = {
   bsen: { d: 'bms', name: 'Room sensor', code: 'TS' },
   bact: { d: 'bms', name: 'Valve / damper actuator', code: 'VA' },
   bvfd: { d: 'bms', name: 'Variable speed drive', code: 'VFD', big: true },
+  riser: { d: 'cont', name: 'Riser (through the floors)', code: 'R', big: true },
+  pole: { d: 'out', name: 'Street-light / area pole', code: 'P' },
+  mast: { d: 'out', name: 'High mast', code: 'HM', big: true },
+  fpil: { d: 'out', name: 'Feeder pillar', code: 'FP', big: true },
+  bol: { d: 'out', name: 'Bollard', code: 'BL' },
+  ept: { d: 'out', name: 'Earth pit', code: 'E' },
 };
 export const kindOf = (k: string): Kind => KINDS[k] ?? { d: 'power', name: k, code: '?' };
-export const scopeOf = (k: string): keyof Scope => (kindOf(k).d === 'lms' ? 'lms' : kindOf(k).d === 'bms' ? 'bms' : 'services');
+export const scopeOf = (k: string): keyof Scope => (kindOf(k).d === 'lms' ? 'lms' : kindOf(k).d === 'bms' ? 'bms' : kindOf(k).d === 'out' ? 'outdoor' : 'services');
 
 // stages – the key is stored; the words depend on the discipline
 export const STATUS_COLOR: Record<string, string> = {
@@ -134,8 +145,12 @@ export const LMS_SYSTEMS: Record<string, { addr: string; steps: [string, string,
   DMX: { addr: 'Universe · start channel', steps: ['Installed', 'DMX address set', 'Patched', 'Tested'], file: 'DMX patch sheet' },
   '0–10 V': { addr: 'Zone', steps: ['Installed', 'Wired', 'Zone set', 'Tested'], file: 'Zone & wiring schedule' },
 };
+const OUT_STEPS: [string, string][] = [['planned', 'Planned'], ['first', 'Foundation cast'], ['wired', 'Erected'], ['second', 'Wired & luminaires fitted'], ['tested', 'Tested & aimed'], ['done', 'Commissioned'], ['failed', 'Failed test']];
+const RISER_STEPS: [string, string][] = [['planned', 'Planned'], ['first', 'Opening & sleeves ready'], ['done', 'Fire-stopped & inspected']];
 export function stepsFor(kind: string, lms = 'KNX'): [string, string][] {
   const d = kindOf(kind).d;
+  if (kind === 'riser') return RISER_STEPS;
+  if (d === 'out') return OUT_STEPS;
   if (d === 'bms') return BMS_STEPS;
   if (d === 'lms') {
     const s = (LMS_SYSTEMS[lms] ?? LMS_SYSTEMS.KNX).steps;
@@ -179,7 +194,65 @@ export const CHECKS: Record<string, [Check[], Reading[]]> = {
   bsen: [[['fix', 'Fixed'], ['wired', 'Wired to its controller'], ['p2p', 'Reading seen on the BMS graphic']], []],
   bact: [[['fix', 'Fixed'], ['wired', 'Wired to its controller'], ['stroke', 'Strokes fully open / closed from the BMS']], []],
   bvfd: [[['fix', 'Fixed, supply connected'], ['ctrl', 'Control wired to the BMS'], ['run', 'Runs from the BMS, speed follows']], [['a', 'Running current', 'A']]],
+  pole: [
+    [['found', 'Foundation as the drawing – bolts set to template'], ['cube', 'Concrete cube test passed'], ['plumb', 'Pole plumb, base nuts torqued, grouted'], ['base', 'Cable, fuse and earth terminated in the base compartment'], ['earth', 'Earth resistance within the limit'], ['aim', 'Luminaire tilt / orientation as the design'], ['works', 'Lights from the feeder pillar / photocell']],
+    [['ch', 'Chainage', 'm'], ['ht', 'Pole height', 'm'], ['cube28', 'Cube strength (28 days)', 'N/mm²'], ['grade', 'Specified concrete grade', 'N/mm²'], ['earth', 'Earth resistance', 'Ω'], ['tilt', 'Luminaire tilt', '°']],
+  ],
+  mast: [
+    [['found', 'Foundation as the drawing – bolts set to template'], ['cube', 'Concrete cube test passed'], ['vert', 'Mast vertical within tolerance, base grouted'], ['lower', 'Lowering gear / winch tested up and down'], ['lp', 'Lightning finial and down-conductor fixed'], ['earth', 'Earth resistance within the limit'], ['aim', 'Every head aimed as the aiming schedule'], ['lux', 'Lux readings taken on the grid']],
+    [['ch', 'Chainage / grid', 'm'], ['ht', 'Mast height', 'm'], ['cube28', 'Cube strength (28 days)', 'N/mm²'], ['grade', 'Specified concrete grade', 'N/mm²'], ['vert', 'Out of vertical at the top', 'mm'], ['earth', 'Earth resistance', 'Ω'], ['aim', 'Aiming (head: tilt / bearing …)', ''], ['lux', 'Average lux on the grid', 'lx']],
+  ],
+  fpil: [[['found', 'Plinth cast, pillar fixed'], ['term', 'Incoming and outgoing cables terminated'], ['ir', 'IR and Zs tested'], ['timer', 'Photocell / timer set'], ['earth', 'Earth resistance within the limit'], ['label', 'Circuits labelled']], [['earth', 'Earth resistance', 'Ω']]],
+  bol: [[['found', 'Base cast, bollard fixed'], ['term', 'Terminated, IP gland sealed'], ['works', 'Lights from its circuit']], []],
+  ept: [[['rod', 'Rod driven, chamber cast'], ['conn', 'Connected and labelled'], ['test', 'Resistance measured']], [['earth', 'Earth resistance', 'Ω']]],
 };
+/** reading flags for poles, masts and pits (cube below grade, earth above 10 Ω) */
+export function readingFlags(it: Pick<DItem, 'kind' | 'readings'>): string[] {
+  const r = it.readings ?? {}, n = (k: string) => (r[k] != null && r[k] !== '' && !Number.isNaN(Number(r[k])) ? Number(r[k]) : null);
+  const out: string[] = [];
+  const cube = n('cube28'), grade = n('grade'), earth = n('earth');
+  if (cube != null && grade != null && cube < grade) out.push(`Cube ${cube} below grade ${grade} N/mm²`);
+  if (earth != null && earth > 10) out.push(`Earth ${earth} Ω – above 10 Ω`);
+  return out;
+}
+
+// DB components and their own checks
+export const PTYPES: Record<string, { name: string; checks: Check[]; readings: Reading[] }> = {
+  acb: { name: 'ACB', checks: [['rating', 'Frame / rating as the schedule'], ['settings', 'Protection settings (Ir, Isd, Ii) as the coordination study'], ['inj', 'Secondary-injection trip test passed'], ['mech', 'Racks in / out, closes and trips by hand'], ['inter', 'Interlocks and auxiliary contacts work'], ['torque', 'Busbar connections torqued']], readings: [['ir', 'Ir setting', 'A'], ['trip', 'Trip time on injection', 's']] },
+  mccb: { name: 'MCCB', checks: [['rating', 'Rating as the schedule'], ['settings', 'Thermal / magnetic settings as the schedule'], ['torque', 'Terminals torqued'], ['trip', 'Push-to-trip works'], ['label', 'Labelled']], readings: [['set', 'Setting', 'A']] },
+  mcb: { name: 'MCB', checks: [['rating', 'Rating and curve as the schedule'], ['torque', 'Terminals torqued'], ['label', 'Labelled']], readings: [] },
+  rcbo: { name: 'RCBO', checks: [['rating', 'Rating, curve and mA as the schedule'], ['torque', 'Terminals torqued'], ['trip', 'Trip test (×1 and ×5) passed'], ['btn', 'Test button works']], readings: [['t1', 'Trip time at ×1', 'ms'], ['t5', 'Trip time at ×5', 'ms']] },
+  rccb: { name: 'RCCB', checks: [['rating', 'Rating and mA as the schedule'], ['trip', 'Trip test (×1 and ×5) passed'], ['btn', 'Test button works']], readings: [['t1', 'Trip time at ×1', 'ms'], ['t5', 'Trip time at ×5', 'ms']] },
+  isol: { name: 'Isolator / switch-disconnector', checks: [['rating', 'Rating as the schedule'], ['lock', 'Can be padlocked off'], ['torque', 'Terminals torqued']], readings: [] },
+  fuse: { name: 'Fuse / switch-fuse', checks: [['rating', 'Fuse rating as the schedule'], ['spare', 'Spare fuses left in the board']], readings: [] },
+  meter: { name: 'Energy meter', checks: [['ratio', 'CT ratio programmed in the meter'], ['wiring', 'Voltage and CT wiring to the diagram'], ['phase', 'Phase sequence and power direction right'], ['read', 'Reading checked against a clamp meter'], ['comm', 'Communication to the BMS / EMS (if any)']], readings: [['kw', 'Load seen on the meter', 'kW']] },
+  ct: { name: 'Current transformer (CT)', checks: [['ratio', 'Ratio and class as the schedule'], ['pol', 'Polarity – P1 towards the supply'], ['short', 'Shorting link fitted'], ['earth', 'Secondary earthed at one point']], readings: [] },
+  vt: { name: 'Voltage transformer (VT)', checks: [['ratio', 'Ratio as the schedule'], ['fuse', 'Primary / secondary fuses fitted'], ['earth', 'Secondary earthed']], readings: [] },
+  relay: { name: 'Protection relay', checks: [['settings', 'Settings as the coordination study'], ['inj', 'Secondary-injection test passed'], ['trip', 'Trips its breaker'], ['print', 'Settings printout kept']], readings: [] },
+  spd: { name: 'Surge protection device (SPD)', checks: [['type', 'Type / class as the schedule'], ['back', 'Back-up fuse / MCB fitted'], ['earth', 'Earthed with the shortest lead'], ['ind', 'Status window shows healthy']], readings: [] },
+  cont: { name: 'Contactor', checks: [['coil', 'Coil voltage right'], ['ctrl', 'Switches from its control (timer, photocell, BMS)'], ['label', 'Labelled']], readings: [] },
+  timer: { name: 'Timer / photocell', checks: [['set', 'Times / lux set as agreed'], ['works', 'Switches its contactor']], readings: [] },
+  ctrl: { name: 'Control components (relays, indicators, selector)', checks: [['wiring', 'Wired to the control diagram'], ['func', 'Functions tested'], ['lamps', 'Indicator lamps work']], readings: [] },
+  apfc: { name: 'Power factor correction (APFC)', checks: [['steps', 'Capacitor steps and ratings as the schedule'], ['ct', 'CT in the right place and phase'], ['target', 'Target power factor set'], ['auto', 'Switches steps in auto'], ['vent', 'Ventilation / fans work']], readings: [['pf', 'Power factor achieved', '']] },
+  busbar: { name: 'Busbar', checks: [['torque', 'Joints torqued and marked'], ['ir', 'Insulation resistance tested'], ['shroud', 'Shrouds and barriers fitted']], readings: [['ir', 'Insulation resistance', 'MΩ']] },
+  encl: { name: 'Enclosure', checks: [['ip', 'IP rating and gland plate as the schedule'], ['earth', 'Door and enclosure bonded'], ['chart', 'DB chart and danger label fixed']], readings: [] },
+  other: { name: 'Other component', checks: [['ok', 'Fitted and tested']], readings: [] },
+};
+export const ptypeOf = (t: string) => PTYPES[t] ?? PTYPES.other;
+export const PART_STEPS: [string, string][] = [['planned', 'Planned'], ['fitted', 'Fitted'], ['tested', 'Tested'], ['failed', 'Failed']];
+export type DPart = { id: string; item_id: string; seq: number; ptype: string; ref: string | null; rating: string | null; poles: string | null; make: string | null; qty: number; status: string; checks: Record<string, boolean>; readings: Record<string, string>; note: string | null };
+export type DCircuit = { id: string; item_id: string; seq: number; ref: string; description: string | null; phase: string | null; device: string | null; cable: string | null; zs_max: number | null; status: string; readings: Record<string, string | boolean>; note: string | null; tested_by: string | null; tested_at: string | null };
+export type DPin = { id: string; item_id: string | null; x: number; y: number; kind: string; title: string; ref_type: string | null; ref_id: string | null; ref_code: string | null; state: string; open: boolean; raised_by: string | null; raised_at: string; closed_at: string | null; close_note: string | null };
+export const PIN_KINDS: Record<string, { name: string; c: string; sign: string }> = {
+  query: { name: 'Design query', c: '#2F6FD1', sign: '?' },
+  snag: { name: 'Snag', c: '#D9921A', sign: 'S' },
+  hse: { name: 'HSE', c: '#D33A2C', sign: '!' },
+  clash: { name: 'Clash', c: '#8E5EC9', sign: '×' },
+  note: { name: 'Note', c: '#646A72', sign: 'i' },
+};
+export type DTest = { id: string; exec_project_id: string; drawing_id: string | null; kind: 'scene' | 'cne'; seq: number; name: string; area: string | null; cause: string | null; effect: string | null; items: string[]; status: string; result_note: string | null; witness: string | null; tested_by: string | null; tested_at: string | null };
+export type Riser = { id: string; exec_project_id: string; name: string; floor_height_m: number; note: string | null };
+export type RiserRun = { id: string; riser_id: string; kind: string; label: string | null; from_level: number; to_level: number; status: string; laid: number; area: number | null; cores: number | null; boq_item_id: string | null; activity_id: string | null; note: string | null };
 export const checksFor = (kind: string) => CHECKS[kind] ?? [[], []];
 export const emptyChecks = (kind: string) => Object.fromEntries(checksFor(kind)[0].map(([k]) => [k, false]));
 
@@ -201,6 +274,7 @@ export const ROUTES: Record<string, RouteKind> = {
   fib: { d: 'fiber', name: 'Fibre cable', w: 2.2, area: 50 },
   lmsc: { d: 'lms', name: 'Lighting control cable (KNX / DALI / DMX)', w: 2.2, area: 25 },
   bmsc: { d: 'bms', name: 'BMS bus cable', w: 2.2, area: 30 },
+  ug: { d: 'out', name: 'Underground cable (armoured)', w: 2.6, area: 300 },
 };
 export const routeOf = (k: string): RouteKind => ROUTES[k] ?? { d: 'power', name: k, w: 2.2, area: 60 };
 export const isCont = (k: string) => routeOf(k).d === 'cont';
@@ -311,7 +385,7 @@ export function packIn(cs: { r: number; col: string; d: Disc }[], x0: number, x1
   }
   return placed;
 }
-const PER: Partial<Record<Disc, number>> = { power: 60, elv: 40, net: 30, fiber: 50, lms: 25, bms: 30 };
+const PER: Partial<Record<Disc, number>> = { power: 60, elv: 40, net: 30, fiber: 50, lms: 25, bms: 30, out: 300 };
 export function cableCircles(cs: DRoute[]) {
   const out: { r: number; col: string; d: Disc }[] = [];
   for (const c of cs) {
