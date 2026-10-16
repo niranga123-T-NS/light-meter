@@ -43,7 +43,7 @@ const TABS: Tab[] = [
   { key: 'workers', label: 'Workers', roles: ['senior_elec_engineer', 'sm_projects', 'assistant_engineer', 'sub_supervisor'] },
   { key: 'materials', label: 'Materials & services', roles: INTERNAL },
   { key: 'qa', label: 'QA', roles: TEAM },
-  { key: 'drawings', label: 'Drawings · testing', roles: [...INTERNAL, 'sub_supervisor'] },
+  { key: 'drawings', label: 'Smart drawings · testing', roles: [...INTERNAL, 'sub_supervisor'] },
   { key: 'documents', label: 'Documents' },
   { key: 'handover', label: 'Handover', roles: INTERNAL },
   { key: 'subcerts', label: 'Subcontractor IPC & invoices', roles: ['senior_elec_engineer', 'sm_projects', 'gm', 'operations_exec', 'assistant_engineer', 'sub_supervisor'] },
@@ -64,7 +64,8 @@ export default function ExecProjectScreen() {
   }, [id]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const { p, block } = data;
-  const tabs = TABS.filter((x) => !x.roles || x.roles.includes(me.role));
+  // the Drawings tab only once the SEE has chosen to use smart drawings (when stopped, what was recorded stays readable)
+  const tabs = TABS.filter((x) => (!x.roles || x.roles.includes(me.role)) && (x.key !== 'drawings' || p.smart_drawings != null));
   // A link to a tab this role does not see opens the Overview
   const t = tabs.some((x) => x.key === want) ? want : 'overview';
   return (

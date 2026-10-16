@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Platform, View } from 'react-native';
 import { useDialog, type PromptField } from '@/components/dialog';
 import { TestingBanner } from '@/components/Testing';
-import { Button, Card, colors, Empty, ListRow, Muted, Pill, Row, Section, Toggle } from '@/components/ui';
+import { Button, Card, colors, Empty, ListRow, Muted, Notice, Pill, Row, Section, Toggle } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { prepareDrawing } from '@/lib/drawingFile';
 import { LMS_SYSTEMS, WEIGHT, type Drawing } from '@/lib/drawings';
@@ -94,7 +94,8 @@ export function DrawingsTab({ p }: { p: ExecProject }) {
     if (d.error) throw new Error(d.error.message);
     return { drawings: (d.data ?? []) as Drawing[], items: (it.data ?? []) as { drawing_id: string; status: string }[] };
   }, [p.id]);
-  const canEdit = DRAWING_EDIT_ROLES.includes(me.role);
+  const on = p.smart_drawings === true;
+  const canEdit = DRAWING_EDIT_ROLES.includes(me.role) && on;
   const list = (data?.drawings ?? []).filter((d) => old || !d.archived);
   const pctOf = (ids: string[]) => {
     const its = (data?.items ?? []).filter((x) => ids.includes(x.drawing_id));
@@ -112,6 +113,9 @@ export function DrawingsTab({ p }: { p: ExecProject }) {
   return (
     <View style={{ gap: 12 }}>
       <TestingBanner what="Smart drawings" show />
+      {!on ? (
+        <Notice tone={colors.amber}>Smart drawings are not used on this project (stopped with SM Projects&apos; approval). What was recorded stays here to read; nothing can be added or changed. The Senior Electrical Engineer can switch them back on in the execution details.</Notice>
+      ) : null}
       <Card>
         <Muted>
           The project&apos;s drawings with every light, socket, data point, DB, fan / HVAC connection, lighting-control and BMS device, and the

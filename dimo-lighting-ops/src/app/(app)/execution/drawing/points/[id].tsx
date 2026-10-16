@@ -40,16 +40,17 @@ export default function PointsScreen() {
   const { data, error, reload } = useLoad(async () => {
     const { data: d, error: e } = await supabase.from('exec_drawings').select('*').eq('id', id).single();
     if (e) throw new Error(e.message);
-    const [it, ts] = await Promise.all([
+    const [it, ts, pj] = await Promise.all([
       supabase.from('exec_drawing_items').select('*').eq('drawing_id', id),
       supabase.from('exec_drawing_tests').select('*').eq('drawing_id', id).order('seq'),
+      supabase.from('exec_projects').select('smart_drawings').eq('id', (d as Drawing).exec_project_id).maybeSingle(),
     ]);
-    return { d: d as Drawing, items: (it.data ?? []) as DItem[], tests: (ts.data ?? []) as DTest[] };
+    return { d: d as Drawing, items: (it.data ?? []) as DItem[], tests: (ts.data ?? []) as DTest[], on: (pj.data as { smart_drawings: boolean | null } | null)?.smart_drawings === true };
   }, [id]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const { d, items, tests } = data;
-  const canEdit = DRAWING_EDIT_ROLES.includes(me.role) && !d.archived;
-  const canUpdate = UPDATE_ROLES.includes(me.role) && !d.archived;
+  const canEdit = DRAWING_EDIT_ROLES.includes(me.role) && !d.archived && data.on;
+  const canUpdate = UPDATE_ROLES.includes(me.role) && !d.archived && data.on;
   const scope = d.scope ?? {};
   const lmsSys = LMS_SYSTEMS[d.lms] ?? LMS_SYSTEMS.KNX;
   const tag = (x: DItem) => `${kindOf(x.kind).code}${x.label ? ` ${x.label}` : ''}`;

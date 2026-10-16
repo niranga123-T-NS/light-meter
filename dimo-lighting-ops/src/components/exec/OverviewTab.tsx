@@ -47,7 +47,7 @@ export function OverviewTab({ p, onTab, onChange }: { p: ExecProject; onTab: (t:
       {lead && p.status === 'active' && st ? (
         <Section title="Next steps">
           <Card>
-            {step(p.areas.length > 0, 'Project areas, site and dates set', me.role === 'senior_elec_engineer' || me.role === 'sm_projects' ? { title: 'Edit', onPress: () => router.push({ pathname: '/execution/start', params: { id: p.id } }) } : undefined)}
+            {step(p.areas.length > 0 && p.smart_drawings != null, p.smart_drawings == null && p.areas.length > 0 ? 'Choose whether the project uses smart drawings' : 'Project areas, site, dates and smart drawings set', me.role === 'senior_elec_engineer' || me.role === 'sm_projects' ? { title: 'Edit', onPress: () => router.push({ pathname: '/execution/start', params: { id: p.id } }) } : undefined)}
             {step(st.engineers > 0, st.engineers ? `${st.engineers} engineer(s) / trainee(s) on the project` : 'Add the Assistant Engineers (and trainees)', { title: '+ Add engineer / trainee', onPress: () => onTab('team') })}
             {step(st.supervisors > 0, st.supervisors ? `${st.supervisors} subcontractor supervisor(s)` : 'Nominate the subcontractor supervisor (if any) – SM Projects approves', { title: 'Nominate', onPress: () => onTab('team') })}
             {step(!fmtMissing.length, fmtMissing.length ? `Upload the subcontractor formats (below): ${fmtMissing.join(', ')}` : 'Subcontractor formats uploaded (Measurement · IPA)')}

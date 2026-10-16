@@ -34,6 +34,7 @@ export const stageLabel = (p: { stage: number; status: string }) => (p.status ==
 
 export type ExecProject = {
   id: string;
+  smart_drawings?: boolean | null;
   site_lat?: number | null;
   site_lng?: number | null;
   site_radius_m?: number | null;

@@ -8687,6 +8687,20 @@ do $$ begin
 end $$;
 reset role;
 
+-- Smart drawings on / off: the SEE chooses it in the execution details ----
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare ex uuid := current_setting('test.ex')::uuid; ar jsonb;
+begin
+  select to_jsonb(areas) into ar from public.exec_projects where id = ex;
+  begin perform public.drawing_save(jsonb_build_object('exec_project_id', ex, 'title', 'E-100', 'image_path', ex || '/x.png', 'width', 1000, 'height', 700));
+    assert false, 'not chosen yet – nothing can be added'; exception when raise_exception then null; end;
+  begin perform public.update_exec_project(ex, jsonb_build_object('areas', ar)); assert false, 'the choice is required';
+  exception when raise_exception then assert sqlerrm like 'Choose whether the project uses smart drawings%', sqlerrm; end;
+  perform public.update_exec_project(ex, jsonb_build_object('areas', ar, 'smart_drawings', true));
+  assert (select smart_drawings from public.exec_projects where id = ex), 'in use';
+end $$;
+reset role;
+
 -- Smart drawings: the team uploads and marks up; the supervisor updates stages; checks gate Tested; BOQ and activity figures ----
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
 do $$ declare ex uuid := current_setting('test.ex')::uuid; d uuid; i uuid; r uuid; act uuid; boq uuid;
@@ -8916,6 +8930,44 @@ select pg_temp.act_as('asm_building'); set role authenticated;
 do $$ begin
   assert not exists (select 1 from public.drawing_pins(current_setting('test.dwg')::uuid)), 'outsiders see no pins';
   assert not exists (select 1 from public.exec_drawing_circuits), 'outsiders see no circuits';
+end $$;
+reset role;
+
+-- Smart drawings switched off mid-project: SEE asks, SM Projects approves; then everything is read-only ----
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare ex uuid := current_setting('test.ex')::uuid; ar jsonb; r uuid;
+begin
+  select to_jsonb(areas) into ar from public.exec_projects where id = ex;
+  begin perform public.update_exec_project(ex, jsonb_build_object('areas', ar, 'smart_drawings', false)); assert false, 'needs approval';
+  exception when raise_exception then assert sqlerrm like 'Smart drawings are in use%', sqlerrm; end;
+  begin perform public.request_drawings_off(ex, ''); assert false, 'reason'; exception when raise_exception then null; end;
+  r := public.request_drawings_off(ex, 'Client issued no CAD drawings – progress kept on the BOQ');
+  perform set_config('test.dwoff', r::text, false);
+  begin perform public.request_drawings_off(ex, 'again'); assert false, 'one at a time'; exception when raise_exception then null; end;
+  assert app.drawings_on(ex), 'still on until approved';
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.my_pending_approvals() where source = 'drawings_off'), 'with SM Projects';
+  begin perform public.decide_drawings_off(current_setting('test.dwoff')::uuid, false, ''); assert false, 'say why it stays'; exception when raise_exception then null; end;
+  perform public.decide_drawings_off(current_setting('test.dwoff')::uuid, true, null);
+end $$;
+reset role;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.exec_drawings where id = current_setting('test.dwg')::uuid), 'still readable';
+  begin perform public.drawing_item_status(current_setting('test.dwi')::uuid, 'first'); assert false, 'off – read only';
+  exception when raise_exception then null; end;
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare ex uuid := current_setting('test.ex')::uuid; ar jsonb;
+begin
+  select to_jsonb(areas) into ar from public.exec_projects where id = ex;
+  assert not app.drawings_on(ex), 'off';
+  perform public.update_exec_project(ex, jsonb_build_object('areas', ar, 'smart_drawings', true));
+  assert app.drawings_on(ex), 'the SEE can switch it back on';
 end $$;
 reset role;
 

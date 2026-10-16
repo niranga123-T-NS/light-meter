@@ -24,7 +24,7 @@ export default function RisersScreen() {
   const dialog = useDialog();
   const { data, error, reload } = useLoad(async () => {
     const [pj, rs, rr, sh, pts, bq, ac] = await Promise.all([
-      supabase.from('exec_projects').select('id, code, name').eq('id', exec).maybeSingle(),
+      supabase.from('exec_projects').select('id, code, name, smart_drawings').eq('id', exec).maybeSingle(),
       supabase.from('exec_drawing_risers').select('*').eq('exec_project_id', exec).order('name'),
       supabase.from('exec_drawing_riser_runs').select('*').eq('exec_project_id', exec).order('from_level'),
       supabase.from('exec_drawings').select('id, title, floor, level_no').eq('exec_project_id', exec).eq('archived', false),
@@ -34,7 +34,7 @@ export default function RisersScreen() {
     ]);
     if (rs.error) throw new Error(rs.error.message);
     return {
-      project: pj.data as { code: string | null; name: string } | null,
+      project: pj.data as { code: string | null; name: string; smart_drawings: boolean | null } | null,
       risers: (rs.data ?? []) as Riser[],
       runs: (rr.data ?? []) as RiserRun[],
       sheets: (sh.data ?? []) as Sheet[],
@@ -45,8 +45,9 @@ export default function RisersScreen() {
   }, [exec]);
 
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const canEdit = DRAWING_EDIT_ROLES.includes(me.role);
-  const canUpdate = UPDATE_ROLES.includes(me.role);
+  const on = data.project?.smart_drawings === true;
+  const canEdit = DRAWING_EDIT_ROLES.includes(me.role) && on;
+  const canUpdate = UPDATE_ROLES.includes(me.role) && on;
   const levelName = (lv: number) => {
     const s = data.sheets.find((x) => x.level_no != null && Number(x.level_no) === Number(lv) && x.floor);
     return s?.floor ?? (Number(lv) === 0 ? 'Ground' : Number(lv) < 0 ? `Basement ${-lv}` : `Level ${lv}`);

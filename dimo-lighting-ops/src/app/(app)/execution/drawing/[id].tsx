@@ -72,7 +72,7 @@ type DData = {
   pins: DPin[];
   sheets: Sheet[];
   risers: Riser[];
-  project: Pick<ExecProject, 'id' | 'code' | 'name'> | null;
+  project: Pick<ExecProject, 'id' | 'code' | 'name' | 'smart_drawings'> | null;
   uri: string | null;
   offline?: string | null;
 };
@@ -107,7 +107,7 @@ async function fetchDrawing(id: string): Promise<DData> {
     supabase.from('exec_activities').select('id, code, name, pct, pct_drawing').eq('exec_project_id', dw.exec_project_id).order('code'),
     supabase.from('exec_boq_items').select('id, item_no, description, unit, qty').eq('exec_project_id', dw.exec_project_id).eq('heading', false).eq('removed', false).order('seq'),
     rpc<BoqFig[]>('drawing_boq', { p_exec: dw.exec_project_id }).catch(() => [] as BoqFig[]),
-    supabase.from('exec_projects').select('id, code, name').eq('id', dw.exec_project_id).maybeSingle(),
+    supabase.from('exec_projects').select('id, code, name, smart_drawings').eq('id', dw.exec_project_id).maybeSingle(),
     signedImage(dw.image_path).catch(() => null),
     supabase.from('exec_drawing_photos').select('*').eq('drawing_id', id).order('taken_at', { ascending: false }),
   ]);
@@ -129,7 +129,7 @@ async function fetchDrawing(id: string): Promise<DData> {
     pins,
     sheets: (sh.data ?? []) as Sheet[],
     risers: (rs.data ?? []) as Riser[],
-    project: pj.data as Pick<ExecProject, 'id' | 'code' | 'name'> | null,
+    project: pj.data as Pick<ExecProject, 'id' | 'code' | 'name' | 'smart_drawings'> | null,
     uri,
     offline: null,
   };
@@ -188,8 +188,10 @@ export default function DrawingScreen() {
   // what the site sees includes the updates still waiting on this phone
   const data = applyQueued(loaded, dq.queue.filter((c) => c.drawing === loaded.d.id));
   const { d, items, routes, events, acts, boq, figs } = data;
-  const canEdit = DRAWING_EDIT_ROLES.includes(me.role) && !d.archived;
-  const canUpdate = UPDATE_ROLES.includes(me.role) && !d.archived;
+  // stopped on the project: read-only
+  const on = data.project?.smart_drawings === true;
+  const canEdit = DRAWING_EDIT_ROLES.includes(me.role) && !d.archived && on;
+  const canUpdate = UPDATE_ROLES.includes(me.role) && !d.archived && on;
   const scope: Scope = d.scope ?? { services: true };
   const discs = (Object.keys(DISCS_OF) as (keyof Scope)[]).filter((k) => scope[k]).flatMap((k) => DISCS_OF[k]);
   const show = (x: Disc) => discs.includes(x) && !hidden.includes(x);
@@ -1075,6 +1077,7 @@ export default function DrawingScreen() {
     <Screen maxWidth={1500}>
       <Stack.Screen options={{ title: `${d.sheet_no ? `${d.sheet_no} · ` : ''}${d.title}` }} />
       <TestingBanner what="Smart drawings" show />
+      {!on ? <Notice tone={colors.amber}>Smart drawings are not used on this project any more – this drawing is read-only.</Notice> : null}
       <Card style={{ gap: 8 }}>
         <Muted>{`${data.project ? `${data.project.code ?? ''} ${data.project.name} · ` : ''}${d.floor ? `${d.floor} · ` : ''}${d.revision ? `rev ${d.revision}` : ''}${d.archived ? ' · archived' : ''}`}</Muted>
         {offline ? (
