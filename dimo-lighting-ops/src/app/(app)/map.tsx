@@ -1,6 +1,6 @@
 import { router, Stack } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Platform, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { LocationPicker } from '@/components/LocationPicker';
 import { mapEscape as esc, SalesMap } from '@/components/SalesMap';
 import type { MapLine, MapPoint } from '@/components/SalesMap.types';
@@ -248,12 +248,6 @@ export default function SalesMapScreen() {
     };
   }, [view, v, c, pl, today, byPerson, colourOf, show, heatProjects]);
 
-  if (Platform.OS !== 'web')
-    return (
-      <Screen>
-        <Notice>The map is available in the web app – open dimo-lighting-ops.vercel.app in a browser.</Notice>
-      </Screen>
-    );
   if (!allowed)
     return (
       <Screen>
