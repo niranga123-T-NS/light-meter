@@ -1,4 +1,3 @@
-import { Platform } from 'react-native';
 import type { ProjectType, Role } from './types';
 
 export const ROLE_LABELS: Record<Role, string> = {
@@ -88,8 +87,8 @@ export function navFor(role: Role): NavItem[] {
   if (role === 'guest') return [{ href: '/', label: 'Home', icon: '⌂' }];
   const items = baseNav(role);
   const meetings: NavItem = { href: '/meetings', label: 'Meetings', icon: '◴' };
-  // Sales map: web app only, for GM / DGM, SM Projects and sales – placed after Visits
-  if (Platform.OS === 'web' && (role === 'gm' || role === 'sm_projects' || isSales(role))) {
+  // Sales map: web and phone apps, for GM / DGM, SM Projects and sales – placed after Visits
+  if (role === 'gm' || role === 'sm_projects' || isSales(role)) {
     // after Visits – or after Tools when it follows Visits (sales: keeps Tools in the phone's bottom bar)
     const v = items.findIndex((i) => i.href === '/visits');
     const at = v >= 0 && items[v + 1]?.href === '/tools' ? v + 1 : v;
