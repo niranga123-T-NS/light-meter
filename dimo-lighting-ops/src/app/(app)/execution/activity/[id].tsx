@@ -245,6 +245,9 @@ export default function ActivityScreen() {
           {a.pct_auto != null ? (
             <Muted>{`From the site results: ${Math.round(Number(a.pct_auto))}%${a.qty ? ` (quantities)` : ' (working days done)'} – updated automatically; the engineer corrects it with Update progress.`}</Muted>
           ) : null}
+          {(a as Activity & { pct_drawing?: number | null }).pct_drawing != null ? (
+            <Muted>{`From the smart drawings (testing): ${Math.round(Number((a as Activity & { pct_drawing?: number | null }).pct_drawing))}% – from the stages of the items and routes linked to this activity.`}</Muted>
+          ) : null}
           {!pg.version ? <Muted>Progress is entered once SM Projects approves the programme.</Muted> : null}
         </Card>
       </Section>

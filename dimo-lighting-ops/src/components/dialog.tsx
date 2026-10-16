@@ -81,7 +81,8 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     },
   };
 
-  const shown = (f: PromptField) => !f.when || f.when.in.includes(values[f.when.key] ?? '');
+  // (a several-choice field counts when any of its choices is in the list)
+  const shown = (f: PromptField) => !f.when || f.when.in.includes(values[f.when.key] ?? '') || (values[f.when.key] ?? '').split(',').some((v) => !!v && f.when!.in.includes(v));
   const fields = (state?.fields ?? []).filter(shown);
   const missing = fields.some((f) => f.required && !values[f.key]?.trim());
   // hidden fields come back empty

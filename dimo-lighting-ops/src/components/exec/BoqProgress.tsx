@@ -27,6 +27,8 @@ export function BoqProgressView({ p, money }: { p: ExecProject; money: boolean }
   const dialog = useDialog();
   const [only, setOnly] = useState(false);
   const { data } = useLoad(() => rpc<BoqProgress>('boq_progress', { p_exec: p.id }), [p.id]);
+  // Smart drawings (testing): quantity marked on the drawings and the share done, beside the measured figures
+  const { data: dw } = useLoad(() => rpc<{ boq_item_id: string; qty: number; done: number }[]>('drawing_boq', { p_exec: p.id }).catch(() => []), [p.id]);
   if (!data) return <Muted>Loading…</Muted>;
   if (!data.items.length) return <Notice tone={colors.amber}>No approved contract BOQ yet – upload the priced BOQ; progress is then measured per item.</Notice>;
 
@@ -53,6 +55,19 @@ export function BoqProgressView({ p, money }: { p: ExecProject; money: boolean }
     { h: 'This period', w: 95, right: true, v: (i) => (period(i) ? n(period(i)) : ''), tone: (i) => (period(i) ? colors.blue : undefined) },
     { h: 'Certified', w: 85, right: true, v: (i) => n(i.cert), tone: (i) => (i.cert != null && i.to_date != null && Number(i.cert) !== Number(i.to_date) ? colors.amber : colors.green) },
     { h: '% done', w: 70, right: true, v: (i) => (pct(i) == null ? '' : `${pct(i)}%`) },
+    ...((dw ?? []).length
+      ? ([
+          {
+            h: 'Drawings',
+            w: 120,
+            right: true,
+            v: (i: Item) => {
+              const f = (dw ?? []).find((x) => x.boq_item_id === (i as Item & { id?: string }).id);
+              return f ? `${n(f.done)} of ${n(f.qty)}` : '';
+            },
+          },
+        ] as Column<Item>[])
+      : []),
     ...(money
       ? ([
           { h: 'Rate', w: 105, right: true, v: (i) => n(i.rate) },
