@@ -9,6 +9,7 @@ import { TestingBanner } from '@/components/Testing';
 import { Button, Card, colors, DateField, ErrorBanner, Field, Grid, Muted, NumberField, Pill, Row, Screen, Section, Segmented, Select, Toggle } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { MR_BILLING, MR_ROUTES, type ExecProject, type MrBilling, type MrRouteKind } from '@/lib/execution';
+import { fmtNumber } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import type { StockMatch } from '@/lib/returns';
 import { pickDocument, type PickedFile, uploadAttachment } from '@/lib/files';
@@ -52,7 +53,15 @@ export default function NewMaterialRequest() {
   const dialog = useDialog();
   const me = useMe();
   const sub = me.role === 'sub_supervisor';
-  const params = useLocalSearchParams<{ project?: string }>();
+  const params = useLocalSearchParams<{ project?: string; takeoff?: string; purpose?: string }>();
+  // the reference list from the smart drawings take-off (each item still goes through the stock checks below)
+  const takeoff = useMemo(() => {
+    try {
+      return params.takeoff ? (JSON.parse(params.takeoff) as { n: string; q: number; u: string }[]) : [];
+    } catch {
+      return [];
+    }
+  }, [params.takeoff]);
   const [error, setError] = useState<string | null>(null);
   const [project, setProject] = useState<string | null>(params.project ?? null);
   const [required, setRequired] = useState<string | null>(null);
@@ -65,7 +74,7 @@ export default function NewMaterialRequest() {
   const [scope, setScope] = useState<{ item: string; qty: string; unit: string; note: string }[]>([{ item: '', qty: '', unit: '', note: '' }]);
   const setScopeLine = (i: number, l: Partial<{ item: string; qty: string; unit: string; note: string }>) => setScope((s) => s.map((x, k) => (k === i ? { ...x, ...l } : x)));
   const [activity, setActivity] = useState<string | null>(null);
-  const [purpose, setPurpose] = useState('');
+  const [purpose, setPurpose] = useState(params.purpose ?? '');
   const [deliverTo, setDeliverTo] = useState('');
   const [contact, setContact] = useState('');
   const [lines, setLines] = useState<Line[]>([]);
@@ -217,6 +226,16 @@ export default function NewMaterialRequest() {
         </Card>
       </Section>
 
+      {takeoff.length && kind === 'material' ? (
+        <Section title="From the smart drawings take-off (reference)">
+          <Card style={{ gap: 4 }}>
+            <Muted>Add each of these below – check Project returns and SAP stock first, as usual. Quantities include 5 % on cable and containment.</Muted>
+            {takeoff.map((t) => (
+              <Text key={t.n} style={{ color: colors.ink }}>{`• ${t.n} – ${fmtNumber(t.q, 0)} ${t.u}`}</Text>
+            ))}
+          </Card>
+        </Section>
+      ) : null}
       {kind === 'service' ? (
         <Section title={`Scope of the service (${scope.filter((l) => l.item.trim()).length})`} right={<Button small variant="secondary" title="+ Scope line" onPress={() => setScope((s) => [...s, { item: '', qty: '', unit: '', note: '' }])} />}>
           {scope.map((l, i) => (

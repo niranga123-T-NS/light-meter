@@ -8592,7 +8592,7 @@ select pg_temp.act_as('sm_projects'); set role authenticated;
 do $$ declare d jsonb := public.exec_early_warning(); p jsonb; begin
   assert jsonb_array_length(d -> 'projects') > 0, 'SM Projects sees the live projects';
   for p in select * from jsonb_array_elements(d -> 'projects') loop
-    assert jsonb_array_length(p -> 'signals') = 11, 'eleven lights per project';
+    assert jsonb_array_length(p -> 'signals') = 12, 'twelve lights per project';
     assert p ->> 'overall' in ('red', 'amber', 'green'), 'overall status';
     assert not exists (select 1 from jsonb_array_elements(p -> 'signals') x where x ->> 'c' not in ('red', 'amber', 'green', 'na') or coalesce(x ->> 'why', '') = ''), 'every light has a colour and a reason';
   end loop;
@@ -8687,6 +8687,20 @@ do $$ begin
 end $$;
 reset role;
 
+-- Smart drawings on / off: the SEE chooses it in the execution details ----
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare ex uuid := current_setting('test.ex')::uuid; ar jsonb;
+begin
+  select to_jsonb(areas) into ar from public.exec_projects where id = ex;
+  begin perform public.drawing_save(jsonb_build_object('exec_project_id', ex, 'title', 'E-100', 'image_path', ex || '/x.png', 'width', 1000, 'height', 700));
+    assert false, 'not chosen yet – nothing can be added'; exception when raise_exception then null; end;
+  begin perform public.update_exec_project(ex, jsonb_build_object('areas', ar)); assert false, 'the choice is required';
+  exception when raise_exception then assert sqlerrm like 'Choose whether the project uses smart drawings%', sqlerrm; end;
+  perform public.update_exec_project(ex, jsonb_build_object('areas', ar, 'smart_drawings', true));
+  assert (select smart_drawings from public.exec_projects where id = ex), 'in use';
+end $$;
+reset role;
+
 -- Smart drawings: the team uploads and marks up; the supervisor updates stages; checks gate Tested; BOQ and activity figures ----
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
 do $$ declare ex uuid := current_setting('test.ex')::uuid; d uuid; i uuid; r uuid; act uuid; boq uuid;
@@ -8728,7 +8742,18 @@ begin
   assert (select count(*) from public.exec_drawing_events where item_id = i and what = 'Stage') = 2, 'stage history kept';
   assert (select laid from public.exec_drawing_routes where id = current_setting('test.dwr')::uuid) = 50, 'metres laid';
   if current_setting('test.dwact') <> '' then
-    assert (select pct_drawing from public.exec_activities where id = current_setting('test.dwact')::uuid) = 90, 'activity figure from the drawing';
+    assert (select pct_drawing from public.exec_activities where id = current_setting('test.dwact')::uuid) = 75, 'a supervisor''s Tested counts as installed until confirmed';
+  end if;
+end $$;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.my_pending_approvals() where source = 'drawing_confirm'), 'waiting for the AE';
+  assert public.drawing_confirm(array[current_setting('test.dwi')::uuid], null, true) = 1, 'confirmed';
+end $$;
+reset role;
+do $$ begin
+  if current_setting('test.dwact') <> '' then
+    assert (select pct_drawing from public.exec_activities where id = current_setting('test.dwact')::uuid) = 90, 'counts once confirmed';
   end if;
 end $$;
 select pg_temp.act_as('sub_supervisor'); set role authenticated;
@@ -8798,6 +8823,266 @@ select pg_temp.act_as('asm_building'); set role authenticated;
 do $$ begin
   assert not exists (select 1 from public.exec_drawing_photos), 'outsiders see no photos';
   begin perform public.drawing_items_status(current_setting('test.dwids')::uuid[], 'first'); assert false, 'outsiders cannot'; exception when raise_exception then null; end;
+end $$;
+reset role;
+
+-- Smart drawings rounds B & C: pins, DB schedule gate, circuits, floors & copy, risers, scenes, removing a drawing ----
+do $$ declare b uuid;
+begin
+  perform set_config('test.ins1', (select id::text from public.instruments where code = 'INS-T1'), false);
+  perform set_config('test.ins2', (select id::text from public.instruments where code = 'INS-T2'), false);
+  insert into public.exec_boq_items (exec_project_id, seq, item_no, description, unit, qty, rate, amount) values (current_setting('test.ex')::uuid, 9002, '9.9.10', 'Sub-main 16 mm²', 'm', 30, 100, 3000) returning id into b;
+  perform set_config('test.dwb2', b::text, false);
+end $$;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare ex uuid := current_setting('test.ex')::uuid; d uuid := current_setting('test.dwg')::uuid; d2 uuid; db uuid; pt uuid; c jsonb; pn uuid; res jsonb; rs uuid; rr uuid; b uuid;
+begin
+  -- a DB with one component and two circuits
+  db := public.drawing_item_save(jsonb_build_object('drawing_id', d, 'kind', 'db', 'x', 0.9, 'y', 0.5, 'label', 'DB-GF1', 'checks', '{"fix": true}'::jsonb));
+  perform set_config('test.dwdb', db::text, false);
+  pt := public.drawing_db_part_save(jsonb_build_object('item_id', db, 'ptype', 'mccb', 'ref', 'Q1', 'rating', '100 A', 'poles', 'TP'));
+  perform set_config('test.dwpt', pt::text, false);
+  begin perform public.drawing_db_part_save(jsonb_build_object('item_id', current_setting('test.dwi')::uuid, 'ptype', 'mcb')); assert false, 'only a DB';
+  exception when raise_exception then null; end;
+  assert public.drawing_circuits_save(db, '[{"ref": "L1/1", "description": "Lobby lights", "device": "MCB 10 A B", "zs_max": 4.37}, {"ref": "L1/2"}]'::jsonb) = 2, 'two circuits';
+  assert public.drawing_circuits_save(db, '[{"ref": "L1/2", "description": "Corridor"}]'::jsonb) = 1, 'same ref updates';
+  assert (select count(*) from public.exec_drawing_circuits where item_id = db) = 2, 'still two';
+  -- a note pin and a snag pin
+  pn := public.drawing_pin_add(jsonb_build_object('drawing_id', d, 'x', 0.5, 'y', 0.5, 'kind', 'clash', 'title', 'Duct clashes with the tray'));
+  perform set_config('test.dwpin', pn::text, false);
+  perform public.drawing_pin_add(jsonb_build_object('drawing_id', d, 'x', 0.4, 'y', 0.4, 'kind', 'snag', 'title', 'Ceiling tile cracked', 'responsible', 'Ceiling sub', 'item_id', db));
+  assert exists (select 1 from public.snags where exec_project_id = ex and description like 'Ceiling tile cracked%' and location like '%DB-GF1%'), 'snag raised through its module';
+  assert (select count(*) from public.drawing_pins(d)) = 2, 'pins listed';
+  assert (select open from public.drawing_pins(d) where kind = 'snag'), 'snag open';
+  -- floors: a second sheet copies the first, flagged to check
+  d2 := public.drawing_save(jsonb_build_object('exec_project_id', ex, 'title', 'E-102 Level 1', 'floor', 'Level 1', 'level_no', '1', 'image_path', ex || '/e102.png', 'width', 1000, 'height', 700));
+  perform set_config('test.dw2', d2::text, false);
+  begin perform public.drawing_save(jsonb_build_object('id', d2, 'level_no', 'first')); assert false, 'floor order is a number'; exception when raise_exception then null; end;
+  res := public.drawing_copy_from(d2, d, '{"replace_from": "GF", "replace_to": "L1"}');
+  assert (res ->> 'items')::int = (select count(*) from public.exec_drawing_items where drawing_id = d), res::text;
+  assert not exists (select 1 from public.exec_drawing_items where drawing_id = d2 and (not to_check or status <> 'planned')), 'all copies planned and to check';
+  assert exists (select 1 from public.exec_drawing_items where drawing_id = d2 and label = 'DB-L11'), 'tag renamed for the floor';
+  assert (select width_m from public.exec_drawings where id = d2) = 50, 'scale taken over for the same sheet size';
+  assert not exists (select 1 from public.exec_drawing_items where drawing_id = d2 and checks::text like '%true%'), 'checks start empty';
+  assert public.drawing_mark_checked((select array_agg(id) from public.exec_drawing_items where drawing_id = d2 and kind = 'db'), null) = 1, 'one confirmed';
+  -- risers: 3 floors × 4 m × 2 cables = 24 m on the BOQ line
+  rs := public.drawing_riser_save(jsonb_build_object('exec_project_id', ex, 'name', 'Riser R1', 'floor_height_m', 4));
+  perform set_config('test.dwrs', rs::text, false);
+  b := current_setting('test.dwb2')::uuid;
+  rr := public.drawing_riser_run_save(jsonb_build_object('riser_id', rs, 'kind', 'pw', 'label', 'Sub-main to DB-L3', 'from_level', 0, 'to_level', 3, 'cores', 2, 'boq_item_id', b));
+  perform set_config('test.dwrr', rr::text, false);
+  assert (select round(qty) from public.drawing_boq(ex) where boq_item_id = b) = 24, 'riser metres';
+  begin perform public.drawing_riser_run_save(jsonb_build_object('riser_id', rs, 'kind', 'pw', 'from_level', 1, 'to_level', 1)); assert false, 'two floors'; exception when raise_exception then null; end;
+  -- scenes
+  perform set_config('test.dwsc', public.drawing_test_save(jsonb_build_object('drawing_id', d, 'kind', 'scene', 'name', 'Lobby – evening', 'items', jsonb_build_array(db)))::text, false);
+end $$;
+reset role;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare db uuid := current_setting('test.dwdb')::uuid; pt uuid := current_setting('test.dwpt')::uuid; c uuid;
+begin
+  -- the DB cannot be Tested until its schedule is
+  begin perform public.drawing_item_status(db, 'tested'); assert false, 'schedule first';
+  exception when raise_exception then assert sqlerrm like 'Finish the DB schedule first – 1 component(s) and 2 circuit(s)%', sqlerrm; end;
+  begin perform public.drawing_db_part_status(pt, 'tested', '{"settings": false}', null); assert false, 'checks first'; exception when raise_exception then null; end;
+  perform public.drawing_db_part_status(pt, 'tested', '{"settings": true}', '{"ir": "200"}');
+  select id into c from public.exec_drawing_circuits where item_id = db and ref = 'L1/1';
+  begin perform public.drawing_circuit_test(c, '{"ir": "0.5", "zs": "1.2", "polarity": true}', 'tested', null, current_setting('test.ins2')::uuid); assert false, 'low IR';
+  exception when raise_exception then assert sqlerrm like 'Insulation resistance below 1%', sqlerrm; end;
+  begin perform public.drawing_circuit_test(c, '{"ir": "200", "zs": "5", "polarity": true}', 'tested', null, current_setting('test.ins2')::uuid); assert false, 'Zs too high';
+  exception when raise_exception then assert sqlerrm like 'Zs above the maximum%', sqlerrm; end;
+  begin perform public.drawing_circuit_test(c, '{"ir": "200", "zs": "1.2", "polarity": false}', 'tested', null, current_setting('test.ins2')::uuid); assert false, 'polarity';
+  exception when raise_exception then null; end;
+  perform public.drawing_circuit_test(c, '{"ir": "200", "zs": "1.2", "polarity": true, "rcd_ms": "22"}', 'tested', null, current_setting('test.ins2')::uuid);
+  select id into c from public.exec_drawing_circuits where item_id = db and ref = 'L1/2';
+  perform public.drawing_circuit_test(c, '{"ir": ">999", "zs": "0.8", "polarity": true}', 'failed', 'IR reads over range – retest with the right range', current_setting('test.ins2')::uuid);
+  begin perform public.drawing_item_status(db, 'tested'); assert false, 'one circuit left'; exception when raise_exception then null; end;
+  begin perform public.drawing_circuit_test(c, '{"ir": "999", "zs": "0.8", "polarity": true}', 'tested'); assert false, 'instrument needed';
+  exception when raise_exception then assert sqlerrm like 'Choose the test instrument%', sqlerrm; end;
+  begin perform public.drawing_circuit_test(c, '{"ir": "999", "zs": "0.8", "polarity": true}', 'tested', null, current_setting('test.ins1')::uuid); assert false, 'expired';
+  exception when raise_exception then assert sqlerrm like '%is not calibrated%', sqlerrm; end;
+  perform public.drawing_circuit_test(c, '{"ir": "999", "zs": "0.8", "polarity": true}', 'tested', null, current_setting('test.ins1')::uuid, true);
+  begin perform public.drawing_item_status(db, 'tested'); assert false, 'circuits to confirm';
+  exception when raise_exception then assert sqlerrm like '%2 circuit(s) not passed or not confirmed%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare db uuid := current_setting('test.dwdb')::uuid;
+begin
+  assert public.drawing_confirm(null, (select array_agg(id) from public.exec_drawing_circuits where item_id = db), true) = 2, 'two circuits confirmed';
+  perform public.drawing_item_status(db, 'tested');
+  assert (select confirmed from public.exec_drawing_items where id = db), 'the AE''s Tested counts at once';
+end $$;
+reset role;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare db uuid := current_setting('test.dwdb')::uuid; pt uuid := current_setting('test.dwpt')::uuid;
+begin
+  -- a component going back takes the DB back
+  perform public.drawing_db_part_status(pt, 'failed', null, null, 'Trip unit faulty');
+  -- the supervisor can pin a note and close it, but not set up the schedule or copy floors
+  perform public.drawing_pin_close(current_setting('test.dwpin')::uuid, 'Tray dropped 150 mm');
+  begin perform public.drawing_circuits_save(db, '[{"ref": "L2/1"}]'); assert false, 'set-up is for the engineers'; exception when raise_exception then null; end;
+  begin perform public.drawing_copy_from(current_setting('test.dw2')::uuid, current_setting('test.dwg')::uuid); assert false, 'engineers copy'; exception when raise_exception then null; end;
+  begin perform public.drawing_pin_add(jsonb_build_object('drawing_id', current_setting('test.dwg')::uuid, 'x', 0.1, 'y', 0.1, 'kind', 'snag', 'title', 'x', 'responsible', 'y'));
+    assert false, 'snags are raised by the engineers'; exception when raise_exception then null; end;
+  perform public.drawing_pin_add(jsonb_build_object('drawing_id', current_setting('test.dwg')::uuid, 'x', 0.2, 'y', 0.2, 'kind', 'hse', 'title', 'Open floor penetration near the riser', 'severity', 'high'));
+  perform public.drawing_riser_run_progress(current_setting('test.dwrr')::uuid, 'laid', 50);
+  perform public.drawing_test_result(current_setting('test.dwsc')::uuid, 'tested', null, 'Client engineer');
+  begin perform public.drawing_delete(current_setting('test.dw2')::uuid, 'x'); assert false, 'supervisor cannot remove'; exception when raise_exception then null; end;
+end $$;
+reset role;
+do $$ declare ex uuid := current_setting('test.ex')::uuid;
+begin
+  assert (select status from public.exec_drawing_items where id = current_setting('test.dwdb')::uuid) = 'second', 'DB back to 2nd fix';
+  assert (select state from public.drawing_pins(current_setting('test.dwg')::uuid) where kind = 'clash') = 'closed', 'clash closed';
+  assert exists (select 1 from public.hse_reports where exec_project_id = ex and description like 'Open floor penetration%'), 'HSE report raised from the pin';
+  assert (select status from public.exec_drawing_tests where id = current_setting('test.dwsc')::uuid) = 'tested', 'scene tested';
+  assert exists (select 1 from public.exec_drawing_events where riser_run_id = current_setting('test.dwrr')::uuid), 'riser history';
+end $$;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare ex uuid := current_setting('test.ex')::uuid; b uuid := current_setting('test.dwb2')::uuid; paths text[];
+begin
+  assert (select round(done) from public.drawing_boq(ex) where boq_item_id = b) = 12, 'half the riser laid';
+  -- removing: the copied floor has no work on it
+  paths := public.drawing_delete(current_setting('test.dw2')::uuid);
+  assert paths = array[ex || '/e102.png'], paths::text;
+  assert not exists (select 1 from public.exec_drawings where id = current_setting('test.dw2')::uuid), 'removed';
+  assert exists (select 1 from public.exec_drawing_deletions where title = 'E-102 Level 1' and items > 0), 'record kept';
+  begin perform public.drawing_riser_delete(current_setting('test.dwrs')::uuid); assert false, 'work in the riser'; exception when raise_exception then null; end;
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin
+  -- an AE cannot remove a drawing with work on it
+  begin perform public.drawing_delete(current_setting('test.dwg')::uuid, 'wrong sheet'); assert false, 'work recorded';
+  exception when raise_exception then assert sqlerrm like 'Work is already recorded%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  assert not exists (select 1 from public.drawing_pins(current_setting('test.dwg')::uuid)), 'outsiders see no pins';
+  assert not exists (select 1 from public.exec_drawing_circuits), 'outsiders see no circuits';
+end $$;
+reset role;
+
+-- Smart drawings round D: who installed, reference figures per installer, DB tests to QA, the early-warning light ----
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare ex uuid := current_setting('test.ex')::uuid; d uuid := current_setting('test.dwg')::uuid; sub uuid; ids uuid[]; n int; tid uuid; ew jsonb;
+begin
+  select id into sub from public.exec_subcontractors where exec_project_id = ex order by name limit 1;
+  perform set_config('test.dwsub', sub::text, false);
+  ids := current_setting('test.dwids')::uuid[];
+  n := public.drawing_set_installer(ids[1:2], null, 'sub', sub);
+  assert n = 2, 'two tagged';
+  perform public.drawing_set_installer(ids[3:3], null, 'dimo');
+  begin perform public.drawing_set_installer(ids, null, 'sub', gen_random_uuid()); assert false, 'subcontractor of this project'; exception when raise_exception then null; end;
+  assert (select sum(total) from public.drawing_installer_figures(ex, 'sub', sub)) = 2, 'two for the subcontractor';
+  assert (select sum(total) from public.drawing_installer_figures(ex, 'dimo')) = 1, 'one for DIMO';
+  assert (select sum(total) from public.drawing_installer_figures(ex)) >= 3, 'all';
+  -- the DB's circuit tests to the QA test records (one circuit failed earlier is passed now)
+  tid := public.drawing_db_to_qa(current_setting('test.dwdb')::uuid, 'Consultant');
+  assert (select system = 'DB-GF1' and uncalibrated and result = 'pass' from public.test_records where id = tid), 'QA record, flagged uncalibrated';
+  assert (select count(*) from public.exec_drawing_circuits where test_record_id = tid) = 2, 'linked';
+  -- early warning: the drawings light
+  ew := app.ew_project(ex, app.ew_limits());
+  assert exists (select 1 from jsonb_array_elements(ew -> 'signals') x where x ->> 'k' = 'dwg' and x ->> 'c' in ('red', 'amber')), ew::text;
+end $$;
+reset role;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ begin
+  begin perform public.drawing_set_installer(current_setting('test.dwids')::uuid[], null, 'dimo'); assert false, 'engineers tag'; exception when raise_exception then null; end;
+  begin perform public.drawing_db_to_qa(current_setting('test.dwdb')::uuid); assert false, 'AE records tests'; exception when raise_exception then null; end;
+  assert exists (select 1 from public.drawing_instruments(current_setting('test.ex')::uuid) where code = 'INS-T2' and calibrated), 'supervisor can choose an instrument';
+end $$;
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin assert not exists (select 1 from public.drawing_installer_figures(current_setting('test.ex')::uuid)), 'outsiders see nothing'; end $$;
+reset role;
+
+-- Smart drawings round F: a new revision flags everything; returning a supervisor's Tested; check templates ----
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare ex uuid := current_setting('test.ex')::uuid; d uuid := current_setting('test.dwg')::uuid; it uuid; n int;
+begin
+  perform public.drawing_save(jsonb_build_object('id', d, 'image_path', ex || '/e101-c.png', 'revision', 'C', 'width', 1000, 'height', 700));
+  assert exists (select 1 from public.exec_drawing_revisions where drawing_id = d and image_path = ex || '/e101.png' and revision = 'B'), 'old sheet kept';
+  assert not exists (select 1 from public.exec_drawing_items where drawing_id = d and not to_check), 'everything to check';
+  assert (select check_why from public.exec_drawing_items where drawing_id = d limit 1) = 'revision C', 'why';
+  it := (current_setting('test.dwids')::uuid[])[2];
+  update public.exec_drawing_items set checks = '{}' where id = it;
+  begin perform public.drawing_item_status(it, 'tested'); assert false, 'check against the revision first';
+  exception when raise_exception then assert sqlerrm like 'Check the item against the new revision%', sqlerrm; end;
+  perform public.drawing_mark_checked(array[it], null);
+  perform public.drawing_item_status(it, 'tested');
+  -- check templates: company, then one project
+  n := public.drawing_template_save(null, 'dl', '[["model", "Make / model as approved"], ["fix", "Fixed level and secure"], ["lux", "Lux checked"]]'::jsonb, '[]'::jsonb, true);
+  assert n >= 1, 'items not tested brought in line';
+  assert (select checks ? 'lux' and not (checks ? 'term') from public.exec_drawing_items where kind = 'dl' and status not in ('tested', 'done') limit 1), 'checks follow the template';
+  perform public.drawing_template_save(ex, 'part:mcb', '[["rating", "Rating as the schedule"]]'::jsonb, '[]'::jsonb, false);
+  begin perform public.drawing_template_save(null, 'down', '[["a", ""]]'::jsonb, '[]'::jsonb); assert false, 'names'; exception when raise_exception then null; end;
+  perform public.drawing_template_delete(ex, 'part:mcb');
+  assert not exists (select 1 from public.exec_check_templates where exec_project_id = ex), 'project template removed';
+end $$;
+reset role;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ declare ids uuid[] := current_setting('test.dwids')::uuid[];
+begin
+  begin perform public.drawing_template_save(null, 'down', '[["x", "y"]]'::jsonb, '[]'::jsonb); assert false, 'SEE only'; exception when raise_exception then null; end;
+  begin perform public.drawing_confirm(ids, null, true); assert false, 'AE confirms'; exception when raise_exception then null; end;
+end $$;
+reset role;
+-- a supervisor's Tested returned by the AE goes back to 2nd fix
+do $$ begin update public.exec_drawing_items set to_check = false, checks = '{}', status = 'second', confirmed = true where id = (current_setting('test.dwids')::uuid[])[3]; end $$;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ begin perform public.drawing_item_status((current_setting('test.dwids')::uuid[])[3], 'tested'); end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare it uuid := (current_setting('test.dwids')::uuid[])[3];
+begin
+  assert not (select confirmed from public.exec_drawing_items where id = it), 'waiting';
+  begin perform public.drawing_confirm(array[it], null, false, ''); assert false, 'say why'; exception when raise_exception then null; end;
+  assert public.drawing_confirm(array[it], null, false, 'Lamp flickers – retest') = 1, 'returned';
+end $$;
+reset role;
+do $$ declare it uuid := (current_setting('test.dwids')::uuid[])[3];
+begin
+  assert (select status = 'second' and confirmed and note like 'Lamp flickers%' from public.exec_drawing_items where id = it), 'back to 2nd fix with the reason';
+  assert exists (select 1 from public.exec_drawing_events where item_id = it and what = 'Returned'), 'history';
+end $$;
+
+-- Smart drawings switched off mid-project: SEE asks, SM Projects approves; then everything is read-only ----
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare ex uuid := current_setting('test.ex')::uuid; ar jsonb; r uuid;
+begin
+  select to_jsonb(areas) into ar from public.exec_projects where id = ex;
+  begin perform public.update_exec_project(ex, jsonb_build_object('areas', ar, 'smart_drawings', false)); assert false, 'needs approval';
+  exception when raise_exception then assert sqlerrm like 'Smart drawings are in use%', sqlerrm; end;
+  begin perform public.request_drawings_off(ex, ''); assert false, 'reason'; exception when raise_exception then null; end;
+  r := public.request_drawings_off(ex, 'Client issued no CAD drawings – progress kept on the BOQ');
+  perform set_config('test.dwoff', r::text, false);
+  begin perform public.request_drawings_off(ex, 'again'); assert false, 'one at a time'; exception when raise_exception then null; end;
+  assert app.drawings_on(ex), 'still on until approved';
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.my_pending_approvals() where source = 'drawings_off'), 'with SM Projects';
+  begin perform public.decide_drawings_off(current_setting('test.dwoff')::uuid, false, ''); assert false, 'say why it stays'; exception when raise_exception then null; end;
+  perform public.decide_drawings_off(current_setting('test.dwoff')::uuid, true, null);
+end $$;
+reset role;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.exec_drawings where id = current_setting('test.dwg')::uuid), 'still readable';
+  begin perform public.drawing_item_status(current_setting('test.dwi')::uuid, 'first'); assert false, 'off – read only';
+  exception when raise_exception then null; end;
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare ex uuid := current_setting('test.ex')::uuid; ar jsonb;
+begin
+  select to_jsonb(areas) into ar from public.exec_projects where id = ex;
+  assert not app.drawings_on(ex), 'off';
+  perform public.update_exec_project(ex, jsonb_build_object('areas', ar, 'smart_drawings', true));
+  assert app.drawings_on(ex), 'the SEE can switch it back on';
 end $$;
 reset role;
 

@@ -246,7 +246,30 @@ export default function ActivityScreen() {
             <Muted>{`From the site results: ${Math.round(Number(a.pct_auto))}%${a.qty ? ` (quantities)` : ' (working days done)'} – updated automatically; the engineer corrects it with Update progress.`}</Muted>
           ) : null}
           {(a as Activity & { pct_drawing?: number | null }).pct_drawing != null ? (
-            <Muted>{`From the smart drawings (testing): ${Math.round(Number((a as Activity & { pct_drawing?: number | null }).pct_drawing))}% – from the stages of the items and routes linked to this activity.`}</Muted>
+            <Row wrap gap={8} style={{ alignItems: 'center' }}>
+              <Muted style={{ flexShrink: 1 }}>{`From the smart drawings (testing): ${Math.round(Number((a as Activity & { pct_drawing?: number | null }).pct_drawing))}% – from the stages of the items and routes linked to this activity.`}</Muted>
+              {canProgress && !a.actual_finish && Math.round(Number((a as Activity & { pct_drawing?: number | null }).pct_drawing)) !== Math.round(Number(a.pct)) ? (
+                <Button
+                  small
+                  variant="secondary"
+                  title="Use the drawings' %"
+                  onPress={async () => {
+                    const pd = Math.round(Number((a as Activity & { pct_drawing?: number | null }).pct_drawing));
+                    const r = await dialog.prompt({
+                      title: `Set ${a.code} to ${Math.min(pd, 99)}%?`,
+                      message: `Now ${Math.round(Number(a.pct))}%. The forecast is worked out again; you can still correct it with Update progress.${pd >= 100 ? ' 100% needs the actual finish – enter it with Update progress.' : ''}`,
+                      fields: a.actual_start ? [] : [{ key: 's', label: 'Actual start', type: 'date', required: true }],
+                      confirmLabel: `Set ${Math.min(pd, 99)}%`,
+                    });
+                    if (!r) return;
+                    await dialog.run(async () => {
+                      await rpc('update_activity_progress', { p_id: a.id, p_pct: Math.min(pd, 99), p_start: a.actual_start ?? r.s ?? null, p_finish: null, p_note: `From the smart drawings (${pd}%)` });
+                      await reload();
+                    }, 'Progress taken from the drawings');
+                  }}
+                />
+              ) : null}
+            </Row>
           ) : null}
           {!pg.version ? <Muted>Progress is entered once SM Projects approves the programme.</Muted> : null}
         </Card>

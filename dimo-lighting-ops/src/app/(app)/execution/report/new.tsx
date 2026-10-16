@@ -1,6 +1,7 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Platform, Text, View } from 'react-native';
+import { DrawingsToday } from '@/components/drawing/DrawingsToday';
 import { useDialog } from '@/components/dialog';
 import { itemChanged, ReportItems, type ItemEdit } from '@/components/exec/ReportItems';
 import { TestingBanner } from '@/components/Testing';
@@ -272,6 +273,7 @@ export default function NewReport() {
       <Section title="B. Work on site">
         <Card>
           <Field label="Work done" required multiline value={f.work_done} onChangeText={(v) => set('work_done', v)} placeholder="Summary of the day's work" />
+          {proj ? <DrawingsToday exec={proj} date={f.date} mine={sup ? me.id : undefined} onAdd={(t) => set('work_done', f.work_done.trim() ? `${f.work_done.trim()}\n\n${t}` : t)} /> : null}
           {!sup ? <Field label="Inspections and tests" multiline value={f.inspections} onChangeText={(v) => set('inspections', v)} /> : null}
           <Field label="Delays and reasons" multiline value={f.delays} onChangeText={(v) => set('delays', v)} />
           <Field label="Issues / needs (materials, access, drawings)" multiline value={f.issues} onChangeText={(v) => set('issues', v)} />

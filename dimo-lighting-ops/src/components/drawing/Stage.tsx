@@ -3,14 +3,14 @@ import { useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, Text, View, type GestureResponderEvent } from 'react-native';
 import Svg, { Circle, G, Line, Polyline } from 'react-native-svg';
 import { colors } from '@/components/ui';
-import { DISC, isCont, kindOf, offsetLine, routeOf, STATUS_COLOR, toU, type DItem, type Disc, type Drawing, type DRoute, type Pt } from '@/lib/drawings';
+import { DISC, isCont, kindOf, offsetLine, PIN_KINDS, routeOf, STATUS_COLOR, toU, type DItem, type Disc, type DPin, type Drawing, type DRoute, type Pt } from '@/lib/drawings';
 
 export type StageLayer = 'progress' | 'services';
 
 const P = (pts: Pt[]) => pts.map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
 
 function Containment({ r, pts, col, sel }: { r: DRoute; pts: Pt[]; col: string; sel: boolean }) {
-  const k = routeOf(r.kind), w = k.w, hw = w / 2, dash = r.status === 'planned' ? '7 5' : undefined;
+  const k = routeOf(r.kind), w = k.w, hw = w / 2, dash = r.to_check ? '2 4' : r.status === 'planned' ? '7 5' : undefined;
   const line = P(pts);
   const out = [];
   if (sel) out.push(<Polyline key="s" points={line} fill="none" stroke={colors.brand} strokeOpacity={0.3} strokeWidth={w + 10} />);
@@ -56,6 +56,9 @@ export function Stage({
   zoom,
   focus,
   onZoom,
+  pins,
+  onPin,
+  under,
   onTap,
   onItem,
 }: {
@@ -71,6 +74,10 @@ export function Stage({
   zoom: number;
   focus?: { x: number; y: number; n: number } | null;
   onZoom?: (z: number) => void;
+  pins?: DPin[];
+  onPin?: (p: DPin) => void;
+  /** an older revision laid over the sheet for the compare */
+  under?: { uri: string; opacity: number } | null;
   onTap: (p: Pt) => void;
   onItem: (it: DItem) => void;
 }) {
@@ -144,6 +151,7 @@ export function Stage({
         <ScrollView ref={vs} scrollEnabled nestedScrollEnabled>
           <View style={{ width: W || '100%', height: H || 300 }}>
             {uri ? <Image source={{ uri }} style={{ position: 'absolute', left: 0, top: 0, width: W, height: H }} contentFit="fill" /> : null}
+            {under?.uri ? <Image source={{ uri: under.uri }} style={{ position: 'absolute', left: 0, top: 0, width: W, height: H, opacity: under.opacity }} contentFit="fill" /> : null}
             <Pressable testID="drawing-stage" onPress={tap} style={{ position: 'absolute', left: 0, top: 0, width: W, height: H }} accessibilityLabel="Drawing" />
             <View pointerEvents="none" style={{ position: 'absolute', left: 0, top: 0, width: W, height: H }}>
               {W ? (
@@ -200,11 +208,43 @@ export function Stage({
                         paddingVertical: big ? 3 : 1,
                         minWidth: 18,
                         alignItems: 'center',
-                        borderWidth: sel ? 3 : 1.5,
-                        borderColor: sel ? colors.brand : '#fff',
+                        borderWidth: sel ? 3 : it.to_check || it.confirmed === false ? 2 : 1.5,
+                        borderColor: sel ? colors.brand : it.to_check ? '#E8A317' : it.confirmed === false ? '#0B5F63' : '#fff',
+                        borderStyle: it.to_check && !sel ? 'dashed' : it.confirmed === false && !sel ? 'dotted' : 'solid',
                       }}
                     >
                       <Text style={{ color: '#fff', fontSize: big ? 10 : 8.5, fontWeight: '800' }}>{text}</Text>
+                    </Pressable>
+                  );
+                })
+              : null}
+            {W && pins
+              ? pins.map((pn) => {
+                  const pk = PIN_KINDS[pn.kind] ?? PIN_KINDS.note;
+                  const sel = selected === pn.id;
+                  return (
+                    <Pressable
+                      key={pn.id}
+                      onPress={() => onPin?.(pn)}
+                      accessibilityLabel={`${pk.name}: ${pn.title}`}
+                      style={{
+                        position: 'absolute',
+                        left: pn.x * W,
+                        top: pn.y * H,
+                        transform: [{ translateX: '-50%' }, { translateY: '-100%' }],
+                        width: 22,
+                        height: 22,
+                        borderRadius: 11,
+                        borderBottomRightRadius: 2,
+                        backgroundColor: pn.open ? pk.c : '#9AA0A8',
+                        borderWidth: sel ? 3 : 2,
+                        borderColor: sel ? colors.brand : '#fff',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        opacity: pn.open ? 1 : 0.75,
+                      }}
+                    >
+                      <Text style={{ color: '#fff', fontSize: 11, fontWeight: '900' }}>{pn.open ? pk.sign : '✓'}</Text>
                     </Pressable>
                   );
                 })

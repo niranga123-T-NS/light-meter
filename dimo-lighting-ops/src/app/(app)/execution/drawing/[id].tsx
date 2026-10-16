@@ -1,7 +1,9 @@
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Image as ExpoImage } from 'expo-image';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
+import { DbSchedule } from '@/components/drawing/DbSchedule';
 import { Photos, type DPhoto } from '@/components/drawing/Photos';
 import { Stage, type StageLayer } from '@/components/drawing/Stage';
 import { XSection } from '@/components/drawing/XSection';
@@ -25,6 +27,9 @@ import {
   kindOf,
   LMS_SYSTEMS,
   lenU,
+  loadTemplates,
+  PIN_KINDS,
+  readingFlags,
   routeMetres,
   routeOf,
   ROUTES,
@@ -39,18 +44,23 @@ import {
   type DEvent,
   type DItem,
   type Disc,
+  type DPin,
   type Drawing,
   type DRoute,
   type Pt,
+  type Riser,
   type Scope,
+  type Tpl,
 } from '@/lib/drawings';
 import type { ExecProject } from '@/lib/execution';
 import { fmtDateTime, fmtNumber } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 
-type Sel = { kind: 'item' | 'route'; id: string } | null;
-type Mode = null | 'item' | 'row' | 'grid' | 'copy' | 'route' | 'scale' | 'move' | 'select';
+type Sel = { kind: 'item' | 'route' | 'pin'; id: string } | null;
+type Mode = null | 'item' | 'row' | 'grid' | 'copy' | 'route' | 'scale' | 'move' | 'select' | 'pin';
+type Rev = { id: string; revision: string | null; image_path: string; width: number; height: number; replaced_at: string };
+type Sheet = Pick<Drawing, 'id' | 'title' | 'sheet_no' | 'floor' | 'level_no' | 'archived' | 'width' | 'height' | 'revision'>;
 type Boq = { id: string; item_no: string | null; description: string; unit: string | null; qty: number | null };
 type Act = { id: string; code: string; name: string; pct: number; pct_drawing: number | null };
 type BoqFig = { boq_item_id: string; qty: number; done: number; items: number };
@@ -63,13 +73,19 @@ type DData = {
   boq: Boq[];
   figs: BoqFig[];
   photos: DPhoto[];
-  project: Pick<ExecProject, 'id' | 'code' | 'name'> | null;
+  pins: DPin[];
+  sheets: Sheet[];
+  risers: Riser[];
+  subs: { id: string; name: string }[];
+  tpl: Tpl;
+  revisions: Rev[];
+  project: Pick<ExecProject, 'id' | 'code' | 'name' | 'smart_drawings'> | null;
   uri: string | null;
   offline?: string | null;
 };
 
 const UPDATE_ROLES = [...DRAWING_EDIT_ROLES, 'trainee', 'sub_supervisor'];
-const DISCS_OF: Record<keyof Scope, Disc[]> = { services: ['light', 'power', 'elv', 'net', 'hvac', 'fiber', 'cont'], lms: ['lms'], bms: ['bms'] };
+const DISCS_OF: Record<keyof Scope, Disc[]> = { services: ['light', 'power', 'elv', 'net', 'hvac', 'fiber', 'cont'], lms: ['lms'], bms: ['bms'], outdoor: ['out'] };
 
 /** L1 → L1, L2, L3 …; 'GF/S' → GF/S-1, GF/S-2 … */
 function nthLabel(start: string, i: number) {
@@ -98,9 +114,17 @@ async function fetchDrawing(id: string): Promise<DData> {
     supabase.from('exec_activities').select('id, code, name, pct, pct_drawing').eq('exec_project_id', dw.exec_project_id).order('code'),
     supabase.from('exec_boq_items').select('id, item_no, description, unit, qty').eq('exec_project_id', dw.exec_project_id).eq('heading', false).eq('removed', false).order('seq'),
     rpc<BoqFig[]>('drawing_boq', { p_exec: dw.exec_project_id }).catch(() => [] as BoqFig[]),
-    supabase.from('exec_projects').select('id, code, name').eq('id', dw.exec_project_id).maybeSingle(),
+    supabase.from('exec_projects').select('id, code, name, smart_drawings').eq('id', dw.exec_project_id).maybeSingle(),
     signedImage(dw.image_path).catch(() => null),
     supabase.from('exec_drawing_photos').select('*').eq('drawing_id', id).order('taken_at', { ascending: false }),
+  ]);
+  const [pins, sh, rs, sb, tpl, rv] = await Promise.all([
+    rpc<DPin[]>('drawing_pins', { p_drawing: id }).catch(() => [] as DPin[]),
+    supabase.from('exec_drawings').select('id, title, sheet_no, floor, level_no, archived, width, height, revision').eq('exec_project_id', dw.exec_project_id).order('level_no').order('title'),
+    supabase.from('exec_drawing_risers').select('*').eq('exec_project_id', dw.exec_project_id).order('name'),
+    supabase.from('exec_subcontractors').select('id, name').eq('exec_project_id', dw.exec_project_id).eq('active', true).order('name'),
+    loadTemplates(dw.exec_project_id).catch(() => ({}) as Tpl),
+    supabase.from('exec_drawing_revisions').select('id, revision, image_path, width, height, replaced_at').eq('drawing_id', id).order('replaced_at', { ascending: false }),
   ]);
   if (it.error) throw new Error(it.error.message);
   return {
@@ -112,21 +136,27 @@ async function fetchDrawing(id: string): Promise<DData> {
     boq: (bq.data ?? []) as Boq[],
     figs: fig,
     photos: (ph.data ?? []) as DPhoto[],
-    project: pj.data as Pick<ExecProject, 'id' | 'code' | 'name'> | null,
+    pins,
+    sheets: (sh.data ?? []) as Sheet[],
+    risers: (rs.data ?? []) as Riser[],
+    subs: (sb.data ?? []) as { id: string; name: string }[],
+    tpl,
+    revisions: (rv.data ?? []) as Rev[],
+    project: pj.data as Pick<ExecProject, 'id' | 'code' | 'name' | 'smart_drawings'> | null,
     uri,
     offline: null,
   };
 }
 /** One drawing: mark up items and routes, update stages, checks and readings, link to the BOQ and the programme. */
 export default function DrawingScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, item } = useLocalSearchParams<{ id: string; item?: string }>();
   const me = useMe();
   const dialog = useDialog();
   const people = usePeople();
   const wide = useWide();
   const [layer, setLayer] = useState<StageLayer>('progress');
   const [hidden, setHidden] = useState<Disc[]>([]);
-  const [sel, setSel] = useState<Sel>(null);
+  const [sel, setSel] = useState<Sel>(item ? { kind: 'item', id: item } : null);
   const [mode, setMode] = useState<Mode>(null);
   const [addKind, setAddKind] = useState('down');
   const [draft, setDraft] = useState<Pt[] | null>(null);
@@ -137,6 +167,8 @@ export default function DrawingScreen() {
   const [q, setQ] = useState('');
   const [focus, setFocus] = useState<{ x: number; y: number; n: number } | null>(null);
   const [copySrc, setCopySrc] = useState<DItem | null>(null);
+  const [showPins, setShowPins] = useState(true);
+  const [compare, setCompare] = useState<{ rev: Rev; uri: string | null; opacity: number; side: boolean } | null>(null);
   const copies = useRef(0);
 
   const { data: loaded, error, reload } = useLoad(async (): Promise<DData> => {
@@ -170,13 +202,32 @@ export default function DrawingScreen() {
   // what the site sees includes the updates still waiting on this phone
   const data = applyQueued(loaded, dq.queue.filter((c) => c.drawing === loaded.d.id));
   const { d, items, routes, events, acts, boq, figs } = data;
-  const canEdit = DRAWING_EDIT_ROLES.includes(me.role) && !d.archived;
-  const canUpdate = UPDATE_ROLES.includes(me.role) && !d.archived;
+  // stopped on the project: read-only
+  const on = data.project?.smart_drawings === true;
+  const canEdit = DRAWING_EDIT_ROLES.includes(me.role) && !d.archived && on;
+  const canUpdate = UPDATE_ROLES.includes(me.role) && !d.archived && on;
   const scope: Scope = d.scope ?? { services: true };
   const discs = (Object.keys(DISCS_OF) as (keyof Scope)[]).filter((k) => scope[k]).flatMap((k) => DISCS_OF[k]);
   const show = (x: Disc) => discs.includes(x) && !hidden.includes(x);
   const selItem = sel?.kind === 'item' ? items.find((x) => x.id === sel.id) : undefined;
   const selRoute = sel?.kind === 'route' ? routes.find((x) => x.id === sel.id) : undefined;
+  const pins = data.pins ?? [];
+  const selPin = sel?.kind === 'pin' ? pins.find((x) => x.id === sel.id) : undefined;
+  const toCheck = { items: items.filter((x) => x.to_check), routes: routes.filter((x) => x.to_check) };
+  const tpl = data.tpl ?? {};
+  // the project's AE or the SEE confirm what supervisors and trainees mark Tested / Commissioned
+  const canConfirm = canEdit && (me.role === 'senior_elec_engineer' || me.role === 'assistant_engineer');
+  const awaiting = items.filter((x) => x.confirmed === false && (x.status === 'tested' || x.status === 'done'));
+  const whyCheck = (w?: string | null) => (w && w.startsWith('revision') ? `The drawing changed (${w}) – check it against the new sheet` : 'Copied from another floor – check it against this floor');
+  const confirmItems = async (ids: string[], ok: boolean) => {
+    let note: string | null = null;
+    if (!ok) {
+      const r = await dialog.prompt({ title: 'Return – not accepted', message: 'It goes back to 2nd fix with your reason.', fields: [{ key: 'n', label: 'Why', type: 'multiline', required: true }] });
+      if (!r) return;
+      note = r.n;
+    }
+    await run(() => rpc('drawing_confirm', { p_items: ids, p_circuits: null, p_ok: ok, p_note: note }), ok ? `${ids.length} confirmed` : 'Returned');
+  };
   const kindOptions = Object.entries(KINDS)
     .filter(([k]) => scope[scopeOf(k)])
     .map(([k, v]) => ({ value: k, label: `${DISC[v.d].name.split(' (')[0]} – ${v.name}` }));
@@ -203,7 +254,7 @@ export default function DrawingScreen() {
     });
   const visible = items.filter((x) => show(kindOf(x.kind).d));
   const addMany = (list: Record<string, unknown>[], ok: string) =>
-    run(() => rpc('drawing_items_add', { p_drawing: d.id, p_items: list.map((x) => ({ checks: emptyChecks(String(x.kind)), ...x })) }), ok);
+    run(() => rpc('drawing_items_add', { p_drawing: d.id, p_items: list.map((x) => ({ checks: emptyChecks(String(x.kind), data.tpl), ...x })) }), ok);
   const toggleMark = (iid: string) => setMarked((m) => (m.includes(iid) ? m.filter((x) => x !== iid) : [...m, iid]));
 
   // taps on the sheet
@@ -213,7 +264,7 @@ export default function DrawingScreen() {
       if (f[0] < 0 || f[0] > 1 || f[1] < 0 || f[1] > 1) return;
       let nid = '';
       await run(async () => {
-        nid = await rpc<string>('drawing_item_save', { p: { drawing_id: d.id, kind: addKind, x: f[0], y: f[1], checks: emptyChecks(addKind) } });
+        nid = await rpc<string>('drawing_item_save', { p: { drawing_id: d.id, kind: addKind, x: f[0], y: f[1], checks: emptyChecks(addKind, tpl) } });
       });
       if (nid) setSel({ kind: 'item', id: nid });
       return;
@@ -262,6 +313,41 @@ export default function DrawingScreen() {
           list.push({ kind: addKind, x: Math.min(1, Math.max(0, f[0])), y: Math.min(1, Math.max(0, f[1])), label: nthLabel(r.label, list.length) || null, area: r.area || null, circuit: r.circuit || null });
         }
       await addMany(list, `${list.length} placed`);
+      return;
+    }
+    if (mode === 'pin') {
+      const f = fromU(d, p);
+      if (f[0] < 0 || f[0] > 1 || f[1] < 0 || f[1] > 1) return;
+      // the nearest item (within a short reach) is the one the issue is about
+      let near: DItem | null = null, best = 14;
+      for (const x of items) {
+        const u = toU(d, [x.x, x.y]);
+        const dist = Math.hypot(u[0] - p[0], u[1] - p[1]);
+        if (dist < best) [near, best] = [x, dist];
+      }
+      const kinds = Object.entries(PIN_KINDS).filter(([k]) => (k === 'query' ? me.role === 'senior_elec_engineer' || me.role === 'assistant_engineer' : k === 'snag' ? canEdit : true));
+      const r = await dialog.prompt({
+        title: 'Pin an issue here',
+        message: near ? `About: ${kindOf(near.kind).name}${near.label ? ` ${near.label}` : ''}` : undefined,
+        fields: [
+          { key: 'kind', label: 'What is it?', type: 'select', required: true, initial: 'clash', options: kinds.map(([value, v]) => ({ value, label: v.name + (value === 'query' ? ' (goes to the design team)' : value === 'snag' ? ' (snag list)' : value === 'hse' ? ' (HSE report)' : '') })) },
+          { key: 'title', label: 'The issue in one line', required: true },
+          { key: 'detail', label: 'More detail', type: 'multiline' },
+          { key: 'blocks', label: 'What it holds up', when: { key: 'kind', in: ['query'] } },
+          { key: 'responsible', label: 'Who puts it right', required: true, when: { key: 'kind', in: ['snag'] } },
+          { key: 'priority', label: 'Priority', type: 'select', initial: 'normal', options: [{ value: 'low', label: 'Low' }, { value: 'normal', label: 'Normal' }, { value: 'high', label: 'High' }], when: { key: 'kind', in: ['snag'] } },
+          { key: 'hse_kind', label: 'HSE type', type: 'select', initial: 'unsafe_condition', options: [{ value: 'unsafe_condition', label: 'Unsafe condition' }, { value: 'unsafe_act', label: 'Unsafe act' }, { value: 'near_miss', label: 'Near miss' }, { value: 'incident', label: 'Incident' }], when: { key: 'kind', in: ['hse'] } },
+          { key: 'severity', label: 'Severity', type: 'select', initial: 'medium', options: [{ value: 'low', label: 'Low' }, { value: 'medium', label: 'Medium' }, { value: 'high', label: 'High' }, { value: 'critical', label: 'Critical' }], when: { key: 'kind', in: ['hse'] } },
+          { key: 'immediate_action', label: 'Action taken now', when: { key: 'kind', in: ['hse'] } },
+        ],
+      });
+      if (!r) return;
+      setMode(null);
+      let pid = '';
+      await run(async () => {
+        pid = await rpc<string>('drawing_pin_add', { p: { drawing_id: d.id, x: f[0], y: f[1], item_id: near?.id ?? null, ...r } });
+      }, r.kind === 'query' ? 'Design query raised and pinned' : r.kind === 'snag' ? 'Snag raised and pinned' : r.kind === 'hse' ? 'HSE report raised and pinned' : 'Pinned');
+      if (pid) setSel({ kind: 'pin', id: pid });
       return;
     }
     if (mode === 'select') {
@@ -369,9 +455,33 @@ export default function DrawingScreen() {
     ) : null;
   };
 
+  const installerName = (x: { installer?: string | null; installer_sub?: string | null }) =>
+    x.installer === 'dimo' ? 'DIMO' : x.installer === 'sub' ? (data.subs?.find((s2) => s2.id === x.installer_sub)?.name ?? 'Subcontractor') : 'Not recorded';
+  const setInstaller = async (itemIds: string[], routeIds: string[], cur?: { installer?: string | null; installer_sub?: string | null }) => {
+    const v = await dialog.prompt({
+      title: `Installed by${itemIds.length + routeIds.length > 1 ? ` – ${itemIds.length + routeIds.length} chosen` : ''}`,
+      message: 'For the reference figures beside each measurement sheet – the drawings never fill an IPA or IPC.',
+      fields: [
+        {
+          key: 'who',
+          label: 'Installed by',
+          type: 'select',
+          required: true,
+          initial: cur?.installer === 'dimo' ? 'dimo' : cur?.installer === 'sub' && cur.installer_sub ? cur.installer_sub : '',
+          options: [{ value: 'dimo', label: 'DIMO (own team)' }, ...(data.subs ?? []).map((x) => ({ value: x.id, label: x.name })), { value: 'none', label: '— not recorded' }],
+        },
+      ],
+    });
+    if (!v) return;
+    const inst = v.who === 'none' ? null : v.who === 'dimo' ? 'dimo' : 'sub';
+    await run(() => rpc('drawing_set_installer', { p_items: itemIds, p_routes: routeIds, p_installer: inst, p_sub: inst === 'sub' ? v.who : null }), 'Saved');
+  };
+
   const itemPanel = (it: DItem) => {
     const k = kindOf(it.kind);
-    const [CK, RD] = checksFor(it.kind);
+    const [CK0, RD] = checksFor(it.kind, tpl);
+    // checks stored on the item that the template no longer lists still count until they are ticked
+    const CK = [...CK0, ...Object.keys(it.checks ?? {}).filter((k) => !CK0.some(([c]) => c === k)).map((k) => [k, k] as [string, string])];
     const steps = stepsFor(it.kind, d.lms);
     const done = CK.filter(([c]) => it.checks?.[c]).length;
     return (
@@ -387,8 +497,50 @@ export default function DrawingScreen() {
           {it.serial ? <KeyValue label="Serial" value={it.serial} /> : null}
           <KeyValue label="BOQ line" value={boqName(boq.find((b) => b.id === it.boq_item_id))} />
           <KeyValue label="Activity" value={actName(acts.find((a) => a.id === it.activity_id))} />
+          <KeyValue label="Installed by" value={installerName(it)} />
           {it.note ? <KeyValue label="Note" value={it.note} /> : null}
         </View>
+        {it.to_check ? (
+          <Row wrap gap={8} style={{ padding: 8, borderRadius: 8, backgroundColor: '#FFF4E0' }}>
+            <Text style={{ color: colors.ink, flexShrink: 1 }}>{`${whyCheck(it.check_why)}: move it, remove it, or confirm. It cannot be marked Tested until then.`}</Text>
+            {canEdit ? <Button small variant="secondary" title="Confirm" onPress={() => run(() => rpc('drawing_mark_checked', { p_items: [it.id], p_routes: null }), 'Confirmed')} /> : null}
+          </Row>
+        ) : null}
+        {it.confirmed === false && (it.status === 'tested' || it.status === 'done') ? (
+          <Row wrap gap={8} style={{ padding: 8, borderRadius: 8, backgroundColor: '#E6F4F4' }}>
+            <Text style={{ color: colors.ink, flexShrink: 1 }}>{`${stepLabel(it.kind, it.status, d.lms)} – awaiting confirmation by the Assistant Engineer. Until then it counts as installed only.`}</Text>
+            {canConfirm ? (
+              <>
+                <Button small title="Confirm" onPress={() => confirmItems([it.id], true)} />
+                <Button small variant="secondary" title="Return" onPress={() => confirmItems([it.id], false)} />
+              </>
+            ) : null}
+          </Row>
+        ) : null}
+        {readingFlags(it).length ? <Notice tone={colors.red}>{readingFlags(it).join('\n')}</Notice> : null}
+        {it.kind === 'riser' ? (
+          <View style={{ gap: 6 }}>
+            <KeyValue label="Riser" value={data.risers.find((x) => x.id === it.riser_id)?.name ?? 'Not linked yet'} />
+            <Row wrap gap={6}>
+              {canEdit ? (
+                <Button
+                  small
+                  variant="secondary"
+                  title="Link to a riser"
+                  onPress={async () => {
+                    const v = await dialog.prompt({
+                      title: 'Which riser is this?',
+                      message: 'The same riser on every floor it passes. New risers are added on the Risers page.',
+                      fields: [{ key: 'r', label: 'Riser', type: 'select', required: true, initial: it.riser_id ?? '', options: data.risers.map((x) => ({ value: x.id, label: x.name })) }],
+                    });
+                    if (v) await run(() => rpc('drawing_item_riser', { p_item: it.id, p_riser: v.r }), 'Linked');
+                  }}
+                />
+              ) : null}
+              <Button small variant="secondary" title="Risers" onPress={() => router.push(`/execution/drawing/risers/${d.exec_project_id}`)} />
+            </Row>
+          </View>
+        ) : null}
         <View style={{ gap: 6 }}>
           <Text style={{ fontWeight: '700', color: colors.ink }}>Stage</Text>
           <Row wrap gap={6}>
@@ -425,7 +577,7 @@ export default function DrawingScreen() {
                 value={!!it.checks?.[c]}
                 onChange={(v) => {
                   if (!canUpdate) return;
-                  void upd('drawing_item_checks', { p_id: it.id, p_checks: { ...emptyChecks(it.kind), ...it.checks, [c]: v }, p_readings: null });
+                  void upd('drawing_item_checks', { p_id: it.id, p_checks: { ...emptyChecks(it.kind, tpl), ...it.checks, [c]: v }, p_readings: null });
                 }}
               />
             ))}
@@ -480,6 +632,7 @@ export default function DrawingScreen() {
                 if (v) await run(() => rpc('drawing_item_save', { p: { id: it.id, ...(boq.length ? { boq_item_id: v.boq || null } : {}), activity_id: v.act || null } }), 'Linked');
               }}
             />
+            <Button small variant="secondary" title="Installed by" onPress={() => setInstaller([it.id], [], it)} />
             <Button small variant="secondary" title="Move" onPress={() => setMode('move')} />
             <Button
               small
@@ -507,6 +660,19 @@ export default function DrawingScreen() {
           </Row>
         ) : null}
         {mode === 'move' ? <Notice tone={colors.blue}>Tap the new position on the drawing.</Notice> : null}
+        {it.kind === 'db' ? <DbSchedule db={it} items={items} canEdit={canEdit} canUpdate={canUpdate && !offline} canQa={on && !offline && (me.role === 'senior_elec_engineer' || me.role === 'assistant_engineer')} canConfirm={canConfirm && !offline} tpl={tpl} people={people} onChange={reload} /> : null}
+        {pins.filter((x) => x.item_id === it.id).length ? (
+          <View style={{ gap: 2 }}>
+            <Text style={{ fontWeight: '700', color: colors.ink }}>Issues on this item</Text>
+            {pins
+              .filter((x) => x.item_id === it.id)
+              .map((x) => (
+                <Pressable key={x.id} onPress={() => setSel({ kind: 'pin', id: x.id })}>
+                  <Text style={{ color: x.open ? colors.blue : colors.faint }}>{`${PIN_KINDS[x.kind]?.name ?? x.kind}${x.ref_code ? ` ${x.ref_code}` : ''} · ${x.title} · ${x.open ? 'open' : 'closed'}`}</Text>
+                </Pressable>
+              ))}
+          </View>
+        ) : null}
         <Photos
           d={d}
           stageName={(s) => stepLabel(it.kind, s, d.lms)}
@@ -557,7 +723,14 @@ export default function DrawingScreen() {
           )}
           <KeyValue label="BOQ line" value={boqName(boq.find((b) => b.id === r.boq_item_id))} />
           <KeyValue label="Activity" value={actName(acts.find((a) => a.id === r.activity_id))} />
+          <KeyValue label="Installed by" value={installerName(r)} />
         </View>
+        {r.to_check ? (
+          <Row wrap gap={8} style={{ padding: 8, borderRadius: 8, backgroundColor: '#FFF4E0' }}>
+            <Text style={{ color: colors.ink, flexShrink: 1 }}>{`${whyCheck(r.check_why)}.`}</Text>
+            {canEdit ? <Button small variant="secondary" title="Confirm" onPress={() => run(() => rpc('drawing_mark_checked', { p_items: null, p_routes: [r.id] }), 'Confirmed')} /> : null}
+          </Row>
+        ) : null}
         {cont ? (
           <View style={{ gap: 4 }}>
             <Text style={{ fontWeight: '700', color: colors.ink }}>Cross-section – busiest point</Text>
@@ -633,6 +806,7 @@ export default function DrawingScreen() {
                 if (v) await run(() => rpc('drawing_route_save', { p: { id: r.id, ...(boq.length ? { boq_item_id: v.boq || null } : {}), activity_id: v.act || null } }), 'Linked');
               }}
             />
+            <Button small variant="secondary" title="Installed by" onPress={() => setInstaller([], [r.id], r)} />
             <Button
               small
               variant="secondary"
@@ -661,6 +835,101 @@ export default function DrawingScreen() {
         {history((e) => e.route_id === r.id)}
       </View>
     );
+  };
+
+  const pinPanel = (pn: DPin) => {
+    const pk = PIN_KINDS[pn.kind] ?? PIN_KINDS.note;
+    const link = pn.ref_type === 'design_query' ? `/execution/query/${pn.ref_id}` : pn.ref_type === 'hse_report' ? `/execution/hse/${pn.ref_id}` : pn.ref_type === 'snag' ? `/execution/${d.exec_project_id}?tab=handover` : null;
+    const about = items.find((x) => x.id === pn.item_id);
+    return (
+      <View style={{ gap: 10 }}>
+        <Row style={{ justifyContent: 'space-between' }}>
+          <Text style={{ fontSize: 17, fontWeight: '800', color: colors.ink, flexShrink: 1 }}>{`${pk.name}${pn.ref_code ? ` ${pn.ref_code}` : ''}`}</Text>
+          <Button small variant="secondary" title="Close" onPress={() => setSel(null)} />
+        </Row>
+        <View style={{ gap: 2 }}>
+          <KeyValue label="Issue" value={pn.title} />
+          <KeyValue label="State" value={`${pn.open ? 'Open' : 'Closed'}${pn.state && pn.state !== 'open' && pn.state !== 'closed' ? ` (${pn.state})` : ''}`} />
+          {about ? <KeyValue label="About" value={`${kindOf(about.kind).name}${about.label ? ` ${about.label}` : ''}`} /> : null}
+          <KeyValue label="Pinned" value={`${people[pn.raised_by ?? '']?.full_name ?? '—'} · ${fmtDateTime(pn.raised_at)}`} />
+          {pn.close_note ? <KeyValue label={pn.ref_type === 'design_query' ? 'Answer' : 'Resolved'} value={pn.close_note} /> : null}
+        </View>
+        <Row wrap gap={6}>
+          {link ? <Button small variant="secondary" title={pn.ref_type === 'snag' ? 'Open the snag list' : 'Open the record'} onPress={() => router.push(link as never)} /> : null}
+          {!pn.ref_type && canUpdate ? (
+            <Button
+              small
+              variant="secondary"
+              title={pn.open ? 'Mark resolved' : 'Reopen'}
+              onPress={async () => {
+                if (!pn.open) return run(() => rpc('drawing_pin_close', { p_id: pn.id, p_note: null, p_open: true }), 'Reopened');
+                const v = await dialog.prompt({ title: 'Resolved', fields: [{ key: 'n', label: 'How was it resolved?', type: 'multiline', required: true }] });
+                if (v) await run(() => rpc('drawing_pin_close', { p_id: pn.id, p_note: v.n, p_open: false }), 'Resolved');
+              }}
+            />
+          ) : null}
+          {canEdit || pn.raised_by === me.id ? (
+            <Button
+              small
+              variant="secondary"
+              title="Remove pin"
+              onPress={async () => {
+                if (await dialog.confirm('Remove the pin?', pn.ref_type ? 'The design query / snag / HSE report itself stays in its module.' : undefined, { danger: true, confirmLabel: 'Remove' }))
+                  await run(async () => {
+                    await rpc('drawing_pin_delete', { p_id: pn.id });
+                    setSel(null);
+                  }, 'Removed');
+              }}
+            />
+          ) : null}
+        </Row>
+        {pn.ref_type ? <Muted>It is followed up and closed in its own module; the pin shows its state.</Muted> : null}
+      </View>
+    );
+  };
+
+  const removeDrawing = async () => {
+    const worked = items.some((x) => x.status !== 'planned') || routes.some((x) => x.status !== 'planned') || data.photos.length > 0;
+    const v = await dialog.prompt({
+      title: 'Remove this drawing?',
+      message: worked
+        ? 'Work is recorded on it – its items, checks, photos and history are removed for good, and its figures leave the BOQ and the programme. Archive it instead if you only want it out of the way.'
+        : 'Its items, routes and history are removed for good.',
+      fields: [{ key: 'why', label: 'Why is it removed?', type: 'multiline', required: worked }],
+      danger: true,
+      confirmLabel: 'Remove',
+    });
+    if (!v) return;
+    let done = false;
+    await dialog.run(async () => {
+      const paths = await rpc<string[]>('drawing_delete', { p_id: d.id, p_reason: v.why || null });
+      if (paths?.length) await supabase.storage.from('drawings').remove(paths);
+      done = true;
+    }, 'Drawing removed');
+    if (done) router.replace(`/execution/${d.exec_project_id}?tab=drawings`);
+  };
+
+  const copyFloor = async () => {
+    const others = data.sheets.filter((x) => x.id !== d.id && !x.archived);
+    if (!others.length) return dialog.toast('There is no other drawing in this project to copy from', 'error');
+    const v = await dialog.prompt({
+      title: 'Copy from another floor',
+      message: 'Items and routes are placed at the same spots on this sheet and flagged “to check”. Move or remove the ones that differ here (partitions, rooms), then confirm them. Stages, checks and photos are not copied.',
+      fields: [
+        { key: 'src', label: 'Copy from', type: 'select', required: true, options: others.map((x) => ({ value: x.id, label: `${x.floor ? `${x.floor} · ` : ''}${x.sheet_no ? `${x.sheet_no} ` : ''}${x.title}` })) },
+        { key: 'what', label: 'Copy', type: 'multiselect', required: true, initial: 'items,routes,links', options: [{ value: 'items', label: 'Items' }, { value: 'routes', label: 'Containment and cable routes' }, { value: 'links', label: 'BOQ and programme links' }] },
+        { key: 'from', label: 'In tags and circuits, replace (e.g. L2)', initial: '' },
+        { key: 'to', label: '… with (e.g. L3)', initial: '' },
+      ],
+    });
+    if (!v) return;
+    const src = others.find((x) => x.id === v.src);
+    if (src && Math.abs(src.width / src.height - d.width / d.height) > 0.02 && !(await dialog.confirm('The sheets are different sizes', 'Positions are copied as a share of the sheet – they may land off. Copy anyway?', { confirmLabel: 'Copy' }))) return;
+    const w = v.what.split(',');
+    await run(async () => {
+      const r = await rpc<{ items: number; routes: number }>('drawing_copy_from', { p_target: d.id, p_source: v.src, p: { items: w.includes('items'), routes: w.includes('routes'), links: w.includes('links'), replace_from: v.from || null, replace_to: v.to } });
+      dialog.toast(`${r.items} items and ${r.routes} routes copied – check them against this floor`);
+    });
   };
 
   const summary = () => {
@@ -694,6 +963,63 @@ export default function DrawingScreen() {
               .join('\n')}
           </Notice>
         ) : null}
+        {toCheck.items.length + toCheck.routes.length ? (
+          <Row wrap gap={8} style={{ padding: 8, borderRadius: 8, backgroundColor: '#FFF4E0' }}>
+            <Text style={{ color: colors.ink, flexShrink: 1 }}>{`${toCheck.items.length} item(s) and ${toCheck.routes.length} route(s) still to check (dashed amber) – ${[...toCheck.items, ...toCheck.routes].some((x) => x.check_why?.startsWith('revision')) ? 'the drawing has a new revision' : 'copied from another floor'}. They cannot be marked Tested until checked.`}</Text>
+            {canEdit ? (
+              <Button
+                small
+                variant="secondary"
+                title="Confirm all"
+                onPress={async () => {
+                  if (await dialog.confirm('Confirm every flagged item and route?', 'Only when you have checked them all against this sheet.', { confirmLabel: 'Confirm all' }))
+                    await run(() => rpc('drawing_mark_checked', { p_items: toCheck.items.map((x) => x.id), p_routes: toCheck.routes.map((x) => x.id) }), 'Confirmed');
+                }}
+              />
+            ) : null}
+          </Row>
+        ) : null}
+        {awaiting.length ? (
+          <View style={{ gap: 4, padding: 8, borderRadius: 8, backgroundColor: '#E6F4F4' }}>
+            <Text style={{ fontWeight: '700', color: colors.ink }}>{`Awaiting confirmation (${awaiting.length})`}</Text>
+            <Muted>Marked Tested / Commissioned by a supervisor or trainee – counted as installed until the Assistant Engineer confirms.</Muted>
+            {awaiting.slice(0, 8).map((x) => (
+              <Pressable key={x.id} onPress={() => setSel({ kind: 'item', id: x.id })}>
+                <Text style={{ color: colors.blue }}>{`${kindOf(x.kind).code}${x.label ? ` ${x.label}` : ''}${x.area ? ` · ${x.area}` : ''} · ${stepLabel(x.kind, x.status, d.lms)} · ${people[x.updated_by ?? '']?.full_name ?? ''}`}</Text>
+              </Pressable>
+            ))}
+            {canConfirm ? (
+              <Row wrap gap={8}>
+                <Button
+                  small
+                  title={`Confirm all ${awaiting.length}`}
+                  onPress={async () => {
+                    if (await dialog.confirm(`Confirm ${awaiting.length} item(s)?`, 'Only when you have seen them tested (or checked the records).', { confirmLabel: 'Confirm' })) await confirmItems(awaiting.map((x) => x.id), true);
+                  }}
+                />
+              </Row>
+            ) : null}
+          </View>
+        ) : null}
+        {pins.some((x) => x.open) ? (
+          <View style={{ gap: 2 }}>
+            <Text style={{ fontWeight: '700', color: colors.ink }}>{`Open issues (${pins.filter((x) => x.open).length})`}</Text>
+            {pins
+              .filter((x) => x.open)
+              .slice(0, 8)
+              .map((x) => (
+                <Pressable key={x.id} onPress={() => setSel({ kind: 'pin', id: x.id })}>
+                  <Text style={{ color: PIN_KINDS[x.kind]?.c ?? colors.ink }}>{`${PIN_KINDS[x.kind]?.name ?? x.kind}${x.ref_code ? ` ${x.ref_code}` : ''} · ${x.title}`}</Text>
+                </Pressable>
+              ))}
+          </View>
+        ) : null}
+        <Row wrap gap={6}>
+          {scope.lms || scope.bms || scope.outdoor ? <Button small variant="secondary" title="Points, scenes & tests" onPress={() => router.push(`/execution/drawing/points/${d.id}`)} /> : null}
+          <Button small variant="secondary" title="Risers" onPress={() => router.push(`/execution/drawing/risers/${d.exec_project_id}`)} />
+          {me.role !== 'sub_supervisor' ? <Button small variant="secondary" title="Reports" onPress={() => router.push(`/execution/drawing/reports/${d.exec_project_id}`)} /> : null}
+          {me.role === 'senior_elec_engineer' ? <Button small variant="secondary" title="Check templates" onPress={() => router.push({ pathname: '/execution/drawing/templates', params: { project: d.exec_project_id } })} /> : null}
+        </Row>
         <View style={{ gap: 4 }}>
           <Text style={{ fontWeight: '700', color: colors.ink }}>Scale</Text>
           <Muted>{d.width_m ? `The sheet is ${fmtNumber(d.width_m, 1)} m wide – lengths are worked out from it.` : 'Not set – set it to get cable and containment lengths in metres.'}</Muted>
@@ -755,6 +1081,7 @@ export default function DrawingScreen() {
                     { key: 'title', label: 'Title', required: true, initial: d.title },
                     { key: 'sheet_no', label: 'Drawing number', initial: d.sheet_no ?? '' },
                     { key: 'floor', label: 'Floor / area', initial: d.floor ?? '' },
+                    { key: 'level', label: 'Floor order (−1 basement, 0 ground, 1, 2 …)', initial: d.level_no == null ? '' : String(d.level_no) },
                     { key: 'revision', label: 'Revision', initial: d.revision ?? '' },
                     {
                       key: 'scope',
@@ -766,6 +1093,7 @@ export default function DrawingScreen() {
                         { value: 'services', label: 'Building services' },
                         { value: 'lms', label: 'Lighting control' },
                         { value: 'bms', label: 'BMS' },
+                        { value: 'outdoor', label: 'Outdoor – poles, masts, feeder pillars' },
                       ],
                     },
                     { key: 'lms', label: 'Lighting control system', type: 'select', initial: d.lms, options: Object.keys(LMS_SYSTEMS).map((k) => ({ value: k, label: k })), when: { key: 'scope', in: ['lms'] } },
@@ -773,7 +1101,7 @@ export default function DrawingScreen() {
                 });
                 if (!v) return;
                 const sc = Object.fromEntries(v.scope.split(',').filter(Boolean).map((k) => [k, true]));
-                await run(() => rpc('drawing_save', { p: { id: d.id, title: v.title, sheet_no: v.sheet_no, floor: v.floor, revision: v.revision, scope: sc, lms: v.lms || d.lms } }), 'Saved');
+                await run(() => rpc('drawing_save', { p: { id: d.id, title: v.title, sheet_no: v.sheet_no, floor: v.floor, level_no: v.level.trim(), revision: v.revision, scope: sc, lms: v.lms || d.lms } }), 'Saved');
               }}
             />
             <Button
@@ -785,6 +1113,7 @@ export default function DrawingScreen() {
                 if (pj && (await uploadDrawing({ ...(pj as ExecProject) }, dialog, d))) await reload();
               }}
             />
+            <Button small variant="secondary" title="Copy from another floor" onPress={copyFloor} />
             <Button
               small
               variant="secondary"
@@ -794,6 +1123,7 @@ export default function DrawingScreen() {
                   await run(() => rpc('drawing_archive', { p_id: d.id, p_archived: true }), 'Archived');
               }}
             />
+            <Button small variant="secondary" title="Remove drawing" onPress={removeDrawing} />
           </Row>
         ) : null}
         {history(() => true)}
@@ -831,13 +1161,14 @@ export default function DrawingScreen() {
   };
 
   const panel = (
-    <Card style={{ gap: 10 }}>{selItem ? itemPanel(selItem) : selRoute ? routePanel(selRoute) : summary()}</Card>
+    <Card style={{ gap: 10 }}>{selItem ? itemPanel(selItem) : selRoute ? routePanel(selRoute) : selPin ? pinPanel(selPin) : summary()}</Card>
   );
 
   return (
     <Screen maxWidth={1500}>
       <Stack.Screen options={{ title: `${d.sheet_no ? `${d.sheet_no} · ` : ''}${d.title}` }} />
       <TestingBanner what="Smart drawings" show />
+      {!on ? <Notice tone={colors.amber}>Smart drawings are not used on this project any more – this drawing is read-only.</Notice> : null}
       <Card style={{ gap: 8 }}>
         <Muted>{`${data.project ? `${data.project.code ?? ''} ${data.project.name} · ` : ''}${d.floor ? `${d.floor} · ` : ''}${d.revision ? `rev ${d.revision}` : ''}${d.archived ? ' · archived' : ''}`}</Muted>
         {offline ? (
@@ -888,6 +1219,7 @@ export default function DrawingScreen() {
           {discs.map((x) => (
             <Chip key={x} label={DISC[x].name} on={!hidden.includes(x)} onPress={() => setHidden((h) => (h.includes(x) ? h.filter((y) => y !== x) : [...h, x]))} />
           ))}
+          <Chip label={`Issues (${pins.filter((x) => x.open).length} open)`} on={showPins} onPress={() => setShowPins((v) => !v)} />
         </Row>
         {canEdit ? (
           <Row wrap gap={8}>
@@ -899,11 +1231,13 @@ export default function DrawingScreen() {
             <Button small variant={mode === 'grid' ? 'primary' : 'secondary'} title="+ Grid" onPress={() => { setSel(null); setDraft(mode === 'grid' ? null : []); setMode(mode === 'grid' ? null : 'grid'); }} />
             <Button small variant={mode === 'route' ? 'primary' : 'secondary'} title="+ Route" onPress={() => { setSel(null); setDraft(mode === 'route' ? null : []); setMode(mode === 'route' ? null : 'route'); }} />
             <Button small variant={mode === 'select' ? 'primary' : 'secondary'} title="Choose many" onPress={() => { setSel(null); setDraft(mode === 'select' ? null : []); setMarked([]); setMode(mode === 'select' ? null : 'select'); }} />
+            <Button small variant={mode === 'pin' ? 'primary' : 'secondary'} title="+ Issue" disabled={offline} onPress={() => { setSel(null); setDraft(null); setMode(mode === 'pin' ? null : 'pin'); }} />
           </Row>
         ) : null}
         {canUpdate && !canEdit ? (
           <Row wrap gap={8}>
             <Button small variant={mode === 'select' ? 'primary' : 'secondary'} title="Choose many" onPress={() => { setSel(null); setDraft(mode === 'select' ? null : []); setMarked([]); setMode(mode === 'select' ? null : 'select'); }} />
+            <Button small variant={mode === 'pin' ? 'primary' : 'secondary'} title="+ Issue" disabled={offline} onPress={() => { setSel(null); setDraft(null); setMode(mode === 'pin' ? null : 'pin'); }} />
           </Row>
         ) : null}
         {mode === 'row' || mode === 'grid' ? (
@@ -925,6 +1259,10 @@ export default function DrawingScreen() {
               <Button small title="Set the stage" disabled={!marked.length} onPress={bulkStage} />
               <Button small variant="secondary" title={`All shown (${visible.length})`} onPress={() => setMarked(visible.map((x) => x.id))} />
               <Button small variant="secondary" title="Clear" disabled={!marked.length} onPress={() => { setMarked([]); setDraft([]); }} />
+              {canEdit ? <Button small variant="secondary" title="Installed by" disabled={!marked.length || offline} onPress={() => setInstaller(marked, [])} /> : null}
+              {canEdit && chosen.some((x) => x.to_check) ? (
+                <Button small variant="secondary" title="Confirm copies" onPress={() => run(() => rpc('drawing_mark_checked', { p_items: chosen.filter((x) => x.to_check).map((x) => x.id), p_routes: null }), 'Confirmed')} />
+              ) : null}
               {canEdit ? (
                 <Button
                   small
@@ -943,6 +1281,40 @@ export default function DrawingScreen() {
               <Button small variant="secondary" title="Done" onPress={() => { setMarked([]); setDraft(null); setMode(null); }} />
             </Row>
           </View>
+        ) : null}
+        {data.revisions?.length ? (
+          <Row wrap gap={8} style={{ alignItems: 'center' }}>
+            {compare ? (
+              <>
+                <Muted>{`Old sheet rev ${compare.rev.revision ?? '?'} over the new one:`}</Muted>
+                {[0, 25, 50, 75, 100].map((o) => (
+                  <Chip key={o} label={`${o}%`} on={compare.opacity === o && !compare.side} onPress={() => setCompare({ ...compare, opacity: o, side: false })} />
+                ))}
+                <Chip label="Side by side" on={compare.side} onPress={() => setCompare({ ...compare, side: !compare.side })} />
+                <Button small variant="secondary" title="Stop comparing" onPress={() => setCompare(null)} />
+              </>
+            ) : (
+              data.revisions.slice(0, 3).map((rv) => (
+                <Button
+                  key={rv.id}
+                  small
+                  variant="secondary"
+                  title={`Compare with rev ${rv.revision ?? '?'}`}
+                  onPress={async () => {
+                    const uri = await signedImage(rv.image_path).catch(() => null);
+                    if (!uri) return dialog.toast('The old sheet could not be loaded', 'error');
+                    setCompare({ rev: rv, uri, opacity: 50, side: false });
+                  }}
+                />
+              ))
+            )}
+          </Row>
+        ) : null}
+        {mode === 'pin' ? (
+          <Row wrap gap={8}>
+            <Notice tone={colors.blue}>Tap where the issue is – next to the item it is about. A design query, snag or HSE report is raised in its own module and pinned here.</Notice>
+            <Button small variant="secondary" title="Cancel" onPress={() => setMode(null)} />
+          </Row>
         ) : null}
         {mode === 'item' ? <Notice tone={colors.blue}>{`Tap the drawing to place: ${kindOf(addKind).name}. Keep tapping to place more; press “Done placing” to stop.`}</Notice> : null}
         {mode === 'scale' ? <Notice tone={colors.blue}>{`Tap two points whose distance you know (${(draft ?? []).length} of 2).`}</Notice> : null}
@@ -975,6 +1347,12 @@ export default function DrawingScreen() {
             zoom={zoom}
             focus={focus}
             onZoom={setZoom}
+            under={compare && !compare.side && compare.opacity > 0 ? { uri: compare.uri ?? '', opacity: compare.opacity / 100 } : null}
+            pins={showPins ? pins : undefined}
+            onPin={(pn) => {
+              if (mode) return;
+              setSel({ kind: 'pin', id: pn.id });
+            }}
             onTap={onTap}
             onItem={(it) => {
               if (mode === 'select') return toggleMark(it.id);
@@ -983,6 +1361,14 @@ export default function DrawingScreen() {
               setSel({ kind: 'item', id: it.id });
             }}
           />
+          {compare?.side && compare.uri ? (
+            <View style={{ gap: 4 }}>
+              <Muted>{`Rev ${compare.rev.revision ?? '?'} – the sheet before (replaced ${fmtDateTime(compare.rev.replaced_at)})`}</Muted>
+              <View style={{ width: '100%', aspectRatio: compare.rev.width / compare.rev.height, borderWidth: 1, borderColor: colors.line, borderRadius: 10, overflow: 'hidden', backgroundColor: '#fff' }}>
+                <ExpoImage source={{ uri: compare.uri }} style={{ width: '100%', height: '100%' }} contentFit="fill" />
+              </View>
+            </View>
+          ) : null}
           <Row wrap gap={10}>
             {(layer === 'progress' ? stepsFor('down') : discs.map((x) => [x, DISC[x].name] as [string, string])).map(([k, t]) => (
               <Row key={k} gap={4}>

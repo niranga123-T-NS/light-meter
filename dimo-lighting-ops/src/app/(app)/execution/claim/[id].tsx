@@ -37,11 +37,20 @@ export default function ClaimScreen() {
     if (!c) return null;
     const d = await rpc<IpcDetail>('ipc_detail', { p_ipc: id });
     const ep = (c as { exec_projects: { name: string; code: string; secured_id: string | null } | null }).exec_projects;
-    return { c: c as Ipc, ep, d };
+    // smart drawings (reference only): quantity done on the drawings per BOQ line – all installers, as the client is billed for all of it
+    const { data: sd } = await supabase.from('exec_projects').select('smart_drawings').eq('id', (c as Ipc).exec_project_id).maybeSingle();
+    const dwg = (sd as { smart_drawings: boolean | null } | null)?.smart_drawings
+      ? await rpc<{ boq_item_id: string; qty: number; done: number }[]>('drawing_boq', { p_exec: (c as Ipc).exec_project_id }).catch(() => [])
+      : [];
+    return { c: c as Ipc, ep, d, dwg: Object.fromEntries(dwg.map((x) => [x.boq_item_id, Number(x.done)])) as Record<string, number> };
   }, [id]);
   if (data === null) return <Screen><Notice>This claim has been certified – the amounts stay with the Senior Electrical Engineer.</Notice></Screen>;
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const { c, ep, d } = data;
+  const { c, ep, d, dwg } = data;
+  const hasDwg = Object.keys(dwg).length > 0;
+  // claimed clearly beyond what the drawings show installed (5 % or 1 unit of slack) – a warning, never a block
+  const over = (l: Line) => dwg[l.boq_item_id] != null && l.qty_to_date > dwg[l.boq_item_id] * 1.05 + 1;
+  const overLines = hasDwg ? d.lines.filter(over) : [];
   const v = d.values;
   const money = !!v;
 
@@ -136,6 +145,14 @@ export default function ClaimScreen() {
         </Card>
       ) : null}
 
+      {overLines.length ? (
+        <Notice tone={colors.amber}>
+          {`More is claimed than the smart drawings show installed on ${overLines.length} line(s): ${overLines
+            .slice(0, 4)
+            .map((l) => `${itemNo(l.item_no)} – ${fmtNumber(l.qty_to_date, 0)} claimed, ${fmtNumber(dwg[l.boq_item_id], 0)} on the drawings`)
+            .join('; ')}${overLines.length > 4 ? ' …' : ''}. Check the measurement – the drawings may not be fully marked up yet. This is only a warning.`}
+        </Notice>
+      ) : null}
       {d.lines.length ? (
         <Section title="Work measured (to date)">
           <DataTable
@@ -150,6 +167,9 @@ export default function ClaimScreen() {
               { h: 'Previous', w: 80, right: true, v: (l) => fmtNumber(l.prev_qty ?? 0, 2) },
               { h: 'To date', w: 80, right: true, v: (l) => fmtNumber(l.qty_to_date, 2), tone: (l) => (l.boq_qty != null && l.qty_to_date > l.boq_qty ? colors.amber : undefined) },
               { h: 'This month', w: 90, right: true, v: (l) => fmtNumber(l.qty_to_date - (l.prev_qty ?? 0), 2) },
+              ...(hasDwg
+                ? [{ h: 'Drawings', w: 90, right: true, tone: (l: Line) => (over(l) ? colors.red : colors.muted), v: (l: Line) => (dwg[l.boq_item_id] == null ? '—' : fmtNumber(dwg[l.boq_item_id], 2)) }]
+                : []),
               ...(cert || c.status === 'certified'
                 ? [
                     {

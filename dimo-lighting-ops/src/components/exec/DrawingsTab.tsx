@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Platform, View } from 'react-native';
 import { useDialog, type PromptField } from '@/components/dialog';
 import { TestingBanner } from '@/components/Testing';
-import { Button, Card, colors, Empty, ListRow, Muted, Pill, Row, Section, Toggle } from '@/components/ui';
+import { Button, Card, colors, Empty, ListRow, Muted, Notice, Pill, Row, Section, Toggle } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { prepareDrawing } from '@/lib/drawingFile';
 import { LMS_SYSTEMS, WEIGHT, type Drawing } from '@/lib/drawings';
@@ -19,6 +19,7 @@ const SCOPE_OPTIONS = [
   { value: 'services', label: 'Building services – lighting, power, ELV, data, fans & HVAC' },
   { value: 'lms', label: 'Lighting control (KNX, DALI, Casambi, Dynalite, DMX, 0–10 V)' },
   { value: 'bms', label: 'BMS' },
+  { value: 'outdoor', label: 'Outdoor – street / area lighting poles, high masts, feeder pillars' },
 ];
 
 /** Upload the project's drawings and open one to mark it up. The execution team uploads; everyone on the project sees them. */
@@ -42,6 +43,7 @@ export async function uploadDrawing(p: ExecProject, dialog: ReturnType<typeof us
       { key: 'title', label: 'Title', required: true, initial: existing?.title ?? f.name.replace(/\.[a-z0-9]+$/i, '') },
       { key: 'sheet_no', label: 'Drawing number', initial: existing?.sheet_no ?? '' },
       { key: 'floor', label: 'Floor / area', initial: existing?.floor ?? '' },
+      ...((existing ? [] : [{ key: 'level', label: 'Floor order (−1 basement, 0 ground, 1, 2 …)', initial: '', hint: 'Sorts the floors top to bottom; leave empty for site plans' }]) as PromptField[]),
       { key: 'revision', label: 'Revision', required: true, initial: '' },
       ...((existing
         ? []
@@ -68,6 +70,7 @@ export async function uploadDrawing(p: ExecProject, dialog: ReturnType<typeof us
         title: info.title,
         sheet_no: info.sheet_no,
         floor: info.floor,
+        ...(existing ? {} : { level_no: (info.level ?? '').trim() }),
         revision: info.revision,
         image_path: `${base}.${prep.ext}`,
         ...(prep.pdf ? { pdf_path: `${base}.pdf` } : {}),
@@ -85,18 +88,34 @@ export function DrawingsTab({ p }: { p: ExecProject }) {
   const [old, setOld] = useState(false);
   const { data, reload } = useLoad(async () => {
     const [d, it] = await Promise.all([
-      supabase.from('exec_drawings').select('*').eq('exec_project_id', p.id).order('floor').order('title'),
+      supabase.from('exec_drawings').select('*').eq('exec_project_id', p.id).order('level_no', { ascending: false, nullsFirst: false }).order('floor').order('title'),
       supabase.from('exec_drawing_items').select('drawing_id, status').eq('exec_project_id', p.id),
     ]);
     if (d.error) throw new Error(d.error.message);
     return { drawings: (d.data ?? []) as Drawing[], items: (it.data ?? []) as { drawing_id: string; status: string }[] };
   }, [p.id]);
-  const canEdit = DRAWING_EDIT_ROLES.includes(me.role);
+  const on = p.smart_drawings === true;
+  const canEdit = DRAWING_EDIT_ROLES.includes(me.role) && on;
   const list = (data?.drawings ?? []).filter((d) => old || !d.archived);
+  const pctOf = (ids: string[]) => {
+    const its = (data?.items ?? []).filter((x) => ids.includes(x.drawing_id));
+    return { n: its.length, pct: its.length ? Math.round((100 * its.reduce((t, x) => t + (WEIGHT[x.status] ?? 0), 0)) / its.length) : 0 };
+  };
+  // floors top to bottom (by the floor order), then the sheets without a floor
+  const floors: { key: string; name: string; sheets: Drawing[] }[] = [];
+  for (const d of list) {
+    const key = d.floor ? d.floor.trim().toLowerCase() : '—';
+    let f = floors.find((x) => x.key === key);
+    if (!f) floors.push((f = { key, name: d.floor ?? 'Other sheets (no floor)', sheets: [] }));
+    f.sheets.push(d);
+  }
 
   return (
     <View style={{ gap: 12 }}>
       <TestingBanner what="Smart drawings" show />
+      {!on ? (
+        <Notice tone={colors.amber}>Smart drawings are not used on this project (stopped with SM Projects&apos; approval). What was recorded stays here to read; nothing can be added or changed. The Senior Electrical Engineer can switch them back on in the execution details.</Notice>
+      ) : null}
       <Card>
         <Muted>
           The project&apos;s drawings with every light, socket, data point, DB, fan / HVAC connection, lighting-control and BMS device, and the
@@ -118,30 +137,46 @@ export function DrawingsTab({ p }: { p: ExecProject }) {
           ) : (
             <Muted>The execution team adds the drawings.</Muted>
           )}
+          <Button title="Risers" variant="secondary" onPress={() => router.push(`/execution/drawing/risers/${p.id}`)} />
+          {me.role !== 'sub_supervisor' ? <Button title="Reports" variant="secondary" onPress={() => router.push(`/execution/drawing/reports/${p.id}`)} /> : null}
+          {me.role === 'senior_elec_engineer' ? <Button title="Check templates" variant="secondary" onPress={() => router.push({ pathname: '/execution/drawing/templates', params: { project: p.id } })} /> : null}
+          {me.role !== 'sub_supervisor' || on ? <Button title="Materials take-off" variant="secondary" onPress={() => router.push(`/execution/drawing/takeoff/${p.id}`)} /> : null}
           <Toggle label="Show archived" value={old} onChange={setOld} />
         </Row>
         {Platform.OS !== 'web' && canEdit ? <Muted style={{ marginTop: 6 }}>On the phone, add an image of the drawing; PDF drawings are added from the website.</Muted> : null}
       </Card>
-      <Section title={`Drawings (${list.length})`}>
+      <Section title={`Drawings (${list.length})${floors.length > 1 ? ` · ${floors.length} floors / areas` : ''}`}>
         {list.length ? (
-          <Card style={{ padding: 0, overflow: 'hidden' }}>
-            {list.map((d) => {
-              const its = (data?.items ?? []).filter((x) => x.drawing_id === d.id);
-              const pct = its.length ? Math.round((100 * its.reduce((t, x) => t + (WEIGHT[x.status] ?? 0), 0)) / its.length) : 0;
-              return (
-                <ListRow
-                  key={d.id}
-                  title={`${d.sheet_no ? `${d.sheet_no} · ` : ''}${d.title}${d.revision ? ` rev ${d.revision}` : ''}`}
-                  subtitle={`${d.floor ? `${d.floor} · ` : ''}${its.length} items · ${pct}% installed · added ${fmtDate(d.uploaded_at)}`}
-                  wrapRight
-                  right={d.archived ? <Pill label="Archived" tone={colors.grey} /> : <Pill label={`${pct}% installed`} tone={pct >= 100 ? colors.green : pct ? colors.blue : colors.grey} />}
-                  onPress={() => router.push(`/execution/drawing/${d.id}`)}
-                />
-              );
-            })}
-          </Card>
+          floors.map((f) => {
+            const fp = pctOf(f.sheets.map((x) => x.id));
+            return (
+              <View key={f.key} style={{ gap: 6, marginBottom: 10 }}>
+                {floors.length > 1 ? (
+                  <Row style={{ justifyContent: 'space-between' }}>
+                    <Muted style={{ fontWeight: '800', color: colors.ink }}>{f.name}</Muted>
+                    <Muted>{`${f.sheets.length} sheet(s) · ${fp.n} items · ${fp.pct}% installed`}</Muted>
+                  </Row>
+                ) : null}
+                <Card style={{ padding: 0, overflow: 'hidden' }}>
+                  {f.sheets.map((d) => {
+                    const { n, pct } = pctOf([d.id]);
+                    return (
+                      <ListRow
+                        key={d.id}
+                        title={`${d.sheet_no ? `${d.sheet_no} · ` : ''}${d.title}${d.revision ? ` rev ${d.revision}` : ''}`}
+                        subtitle={`${d.floor ? `${d.floor} · ` : ''}${n} items · ${pct}% installed · added ${fmtDate(d.uploaded_at)}`}
+                        wrapRight
+                        right={d.archived ? <Pill label="Archived" tone={colors.grey} /> : <Pill label={`${pct}% installed`} tone={pct >= 100 ? colors.green : pct ? colors.blue : colors.grey} />}
+                        onPress={() => router.push(`/execution/drawing/${d.id}`)}
+                      />
+                    );
+                  })}
+                </Card>
+              </View>
+            );
+          })
         ) : (
-          <Empty title="No drawings yet" hint={canEdit ? 'Add the electrical layout drawings of this project (PDF or image).' : undefined} />
+          <Empty title="No drawings yet" hint={canEdit ? 'Add the electrical layout drawings of this project (PDF or image) – one per floor, with its floor order.' : undefined} />
         )}
       </Section>
     </View>
