@@ -8,6 +8,11 @@
 --    ring, ducts and dimensions; BS 8666:2020 bar schedule (shape codes, lengths, weights by size, kg/m³) on the drawing
 --    and the page, for columns and high masts
 --  * help pop-ups (i) beside the settings with what to enter and typical values
+--  * KNX: every circuit can go on KNX (sockets, AC, pumps, blinds – not life-safety circuits); each actuator output can be
+--    given a circuit by the designer (tap A1, A2 … or drop a circuit on it); outputs are checked against the circuit –
+--    blocked when the rating or function does not match (dimmer > 300 W, non-lighting on a dimmer / DALI, non-blind on a
+--    blinds actuator, circuit of another board), allowed with a note when a contactor / starter is needed (> 16 A, 3-phase,
+--    motors); circuits left without an output are flagged
 insert into public.design_tool_engine (version, html) values ('v17', $dtengine$<!doctype html>
 <html lang="en">
 <head>
@@ -80,7 +85,7 @@ select:focus-visible, input:focus-visible, button:focus-visible { outline: 2px s
 #kpalette .kdev { flex-direction: column; align-items: flex-start; gap: 1px; padding: 5px 7px; min-width: 0; }
 #kpalette .kdev b { font-weight: 600; font-size: 12.5px; line-height: 1.2; }
 #kpalette .kdev small, #kpalette .kpal small { color: var(--muted); font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-#kpalette .kpal.on { border-color: #2E9B48; } #kpalette .kpal .kdot { color: var(--muted); } #kpalette .kpal.on .kdot { color: #2E9B48; }
+#kpalette .kpal.on { border-color: #2E9B48; } #kpalette .kpal.koff { opacity: .55; cursor: not-allowed; } #kpalette .kpal .kdot { color: var(--muted); } #kpalette .kpal.on .kdot { color: #2E9B48; }
 #kpalette .kname { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #kpalette .kbar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
 #kpalette .note { margin: 6px 2px 0; font-size: 11.5px; }
@@ -624,9 +629,9 @@ function template(kind) {
 
 // ---------- lighting control: switching method and its programme ----------
 const CTRL = { none: 'Switch / MCB only', timer: 'Contactor + time switch', astro: 'Contactor + astronomical time switch', photocell: 'Contactor + photocell', 'photo+timer': 'Contactor + photocell + time switch (part-night)', bms: 'Contactor from BMS / LMS', knx: 'KNX actuator (Jung)' };
-const KNX = { on: false, dimming: 'switch', psu: 'auto', runM: 15, ovr: {}, manual: {}, extra: {}, devs: [], coupling: 'ip', lineOf: {} }; // manual: circuit → 'knx' / 'off' set on the control side; extra: actuators added by hand per board; devs: field devices placed
+const KNX = { on: false, dimming: 'switch', psu: 'auto', runM: 15, ovr: {}, manual: {}, extra: {}, devs: [], coupling: 'ip', lineOf: {}, chan: {} }; // chan: board → 'sa16#1' → output no. → circuit, set by the designer; // manual: circuit → 'knx' / 'off' set on the control side; extra: actuators added by hand per board; devs: field devices placed
 // KNX takes over indoor lighting that has no other control when the project uses KNX
-function effCtrl(n) { if (n.t !== 'load' || n.cat === 'motor') return n.ctrl; const mk = KNX.manual?.[n.id]; if (mk === 'knx' && KNX.on && !n.life) return 'knx'; if (mk === 'off') return n.ctrl === 'knx' ? 'none' : n.ctrl || 'none'; if (KNX.on && KNX.auto !== false && !n.life && (!n.ctrl || n.ctrl === 'none') && CAT[n.cat]?.lit && n.method !== 'D') return 'knx'; return n.ctrl || 'none'; } // emergency lighting (life) stays unswitched by KNX (BS 5266)
+function effCtrl(n) { if (n.t !== 'load') return n.ctrl; const mk = KNX.manual?.[n.id]; if (mk === 'knx' && KNX.on && !n.life && n.cat !== 'spare') return 'knx'; if (n.cat === 'motor') return n.ctrl; if (mk === 'off') return n.ctrl === 'knx' ? 'none' : n.ctrl || 'none'; if (KNX.on && KNX.auto !== false && !n.life && (!n.ctrl || n.ctrl === 'none') && CAT[n.cat]?.lit && n.method !== 'D') return 'knx'; return n.ctrl || 'none'; } // emergency lighting (life) stays unswitched by KNX (BS 5266)
 // suggested programme – street lights all night on a 35/18 lx photocell with an astronomical back-up; façades and floodlights part-night
 function progFor(n) {
   const c = effCtrl(n), p = n.prog ?? {};
@@ -2388,25 +2393,31 @@ function knxPlan() {
     if (k.t === 'board') return w(k);
     const r = out.get(k.id);
     if (r?.ctrl !== 'knx' && !(k.cat === 'hvac' && KNX.on && r.kw <= 20)) return; // FCU / split zones get room controllers; chillers stay on their own controls
-    const b = per.get(n.id) ?? { board: n, sw: 0, dimCh: 0, drivers: 0, hvac: 0, circuits: [] };
+    const b = per.get(n.id) ?? { board: n, sw: 0, dimCh: 0, drivers: 0, hvac: 0, bl: 0, cont: 0, circuits: [] };
     if (k.cat === 'hvac') b.hvac++;
-    else if (KNX.dimming === 'dali' && CAT[k.cat]?.lit && k.method !== 'D') { b.drivers += Math.max(1, Math.ceil((r.kw * 1000) / 36)); b.circuits.push(k); }
-    else if (KNX.dimming === 'dim' && CAT[k.cat]?.lit && r.I <= 4) { b.dimCh++; b.circuits.push(k); }
-    else { b.sw++; b.circuits.push(k); }
+    if (r?.ctrl === 'knx') {
+      const role = knxRole(k);
+      if (role.kind === 'dali') b.drivers += Math.max(1, Math.ceil((r.kw * 1000) / 36));
+      else if (role.kind === 'dim') b.dimCh++;
+      else if (knxBlind(k)) b.bl++;
+      else { b.sw++; if (role.via) b.cont++; }
+      b.circuits.push(k);
+    }
     per.set(n.id, b);
   }); })(tree);
   // boards with only hand-added actuators or placed field devices still belong on the bus
-  [...Object.keys(KNX.extra ?? {}).filter((id) => Object.values(KNX.extra[id]).some((n) => n > 0)), ...(KNX.devs ?? []).map((d) => d.board)].forEach((id) => { const bn = findNode(id)?.n; if (bn && bn.t === 'board' && !per.has(id)) per.set(id, { board: bn, sw: 0, dimCh: 0, drivers: 0, hvac: 0, circuits: [] }); });
+  [...Object.keys(KNX.extra ?? {}).filter((id) => Object.values(KNX.extra[id]).some((n) => n > 0)), ...(KNX.devs ?? []).map((d) => d.board)].forEach((id) => { const bn = findNode(id)?.n; if (bn && bn.t === 'board' && !per.has(id)) per.set(id, { board: bn, sw: 0, dimCh: 0, drivers: 0, hvac: 0, bl: 0, cont: 0, circuits: [] }); });
   if (!per.size) return { boards: [], field: [], lines: [], checks: [], ga: [], total: {}, empty: true };
   const q = (key, auto) => (KNX.ovr[key] != null ? KNX.ovr[key] : auto);
   const boardsOut = [...per.values()].map((b) => {
     const sw = Math.ceil(b.sw * 1.2); // 20 % spare channels
     const n16 = Math.floor(sw / 16), rem = sw - n16 * 16, n8 = rem > 4 ? Math.ceil(rem / 8) : 0, n4 = rem > 0 && rem <= 4 ? 1 : 0;
-    const dev = { sa16: n16, sa8: n8, sa4: n4, dim4: Math.ceil(b.dimCh / 4), dali: Math.ceil(b.drivers / 64), bin: b.sw + b.dimCh + b.drivers ? 1 : 0 };
+    let b8 = Math.floor(b.bl / 8), b4 = Math.ceil((b.bl - b8 * 8) / 4); if (b4 === 2) { b8++; b4 = 0; }
+    const dev = { sa16: n16, sa8: n8, sa4: n4, dim4: Math.ceil(b.dimCh / 4), dali: Math.ceil(b.drivers / 64), bin: b.sw + b.dimCh + b.drivers ? 1 : 0, bl4: b4, bl8: b8 };
     Object.entries(KNX.extra?.[b.board.id] ?? {}).forEach(([k, n]) => (dev[k] = (dev[k] || 0) + n));
     const field = {
-      pb: Math.ceil(b.circuits.filter((c) => !/corridor|toilet|wc|stair|lobby|emergency/i.test(c.name)).length / 2),
-      pd: b.circuits.filter((c) => /corridor|toilet|wc|stair|lobby/i.test(c.name)).length,
+      pb: Math.ceil(b.circuits.filter((c) => (CAT[c.cat]?.lit || knxBlind(c)) && !/corridor|toilet|wc|stair|lobby|emergency/i.test(c.name)).length / 2),
+      pd: b.circuits.filter((c) => CAT[c.cat]?.lit && /corridor|toilet|wc|stair|lobby/i.test(c.name)).length,
       rc: b.hvac,
     };
     return { ...b, dev, field };
@@ -2458,6 +2469,9 @@ function knxPlan() {
     ck(`Line 1.${L.no}: supply to furthest device`, L.far <= 350, `≈ ${L.far} m ≤ 350 m; device to device ≤ 700 m`, 'KNX');
   });
   ck('Topology', lines.length <= 15, `${KNX.coupling === 'tp' ? `main line 1.0 with ${lines.length} line coupler${lines.length > 1 ? 's' : ''} (2142 REG) and an IP interface for ETS` : `${lines.length} line${lines.length > 1 ? 's' : ''}, each with an IP router on the LAN backbone`}; ≤ 15 lines per area; tree / line / star only – no rings`, 'KNX');
+  const nCont = boardsOut.reduce((t, b) => t + b.cont, 0);
+  if (nCont) ck('Loads above the output rating', true, `${nCont} circuit${nCont > 1 ? 's' : ''} (over 16 A, 3-phase or motors) switched through a contactor / starter – the actuator output drives the coil; contactors are in the DB layout and BOM`, 'BS EN 60947-4-1');
+  boardsOut.forEach((b) => { const acts = knxActs({ boards: boardsOut }, b.board), on = new Set(acts.filter((a) => a.key !== 'bin').flatMap((a) => a.loads.filter(Boolean).map((c) => c.id))), miss = b.circuits.filter((c) => !on.has(c.id)); if (miss.length) ck(`${b.board.name}: outputs`, false, `not on an output: ${miss.map((c) => c.name).join(', ')} – add an actuator on the board or free an output`, 'KNX'); });
   ck('Bus cable', true, 'KNX/EIB J-Y(St)Y 2 × 2 × 0.8 mm (4-core: red + / black − bus, yellow / white spare), screened, green sheath, 4 kV tested; drain wire not earthed at devices', 'KNX / BS 7671');
   ck('Segregation from mains', true, 'KNX is SELV (Band I): run apart from LV cables or in a separate compartment; where it shares a box, keep 4 mm clearance from mains conductors (BS 7671 528.1, 528.2)', 'BS 7671');
   ck('Outdoor bus runs', true, outdoorKnx ? 'bus leaving the building gets KNX surge protection at both ends (BS 7671 443 / 534)' : 'none', 'BS 7671');
@@ -3433,20 +3447,60 @@ new MutationObserver(() => { helpify(); if (helpPop && !helpPop.hidden && !docum
 helpify();
 
 // =================== KNX control side: drag-and-drop diagram beside the power side ===================
-let VIEW = 'power', ksel = null, karmed = null, kdrag = null, kclear = 0;
+let VIEW = 'power', ksel = null, karmed = null, kdrag = null, kclear = 0, kmsg = null; // kmsg: result of the last assignment – blocked or with a warning
 const KFIELD = ['pb', 'pd', 'rc', 'tp', 'ws'], KACT = ['sa16', 'sa8', 'sa4', 'dim4', 'dali', 'bin', 'bl4', 'bl8'], KGW = ['gwDmx', 'gwBac', 'gwCbus', 'gwAc'], KIP = ['vis', 'ipv'];
 const KSHORT = { sa16: 'SA 16×', sa8: 'SA 8×', sa4: 'SA 4×', dim4: 'Dimmer 4×', dali: 'DALI gw', bin: 'Binary in 4×', bl4: 'Blinds 4×', bl8: 'Blinds 8×', pb: 'Push-button', pd: 'Presence', rc: 'Room ctrl', tp: 'Touch panel', ws: 'Weather stn', psu: 'PSU', psu160: 'PSU 160 mA', psu320: 'PSU 320 mA', psu640: 'PSU 640 mA', psu1280: 'PSU 1280 mA', ipr: 'IP router', lc: 'Line coupler', ips: 'IP interface', vis: 'Visu server', ipv: 'IP viewer', gwBac: 'KNX / BACnet', gwCbus: 'KNX / C-Bus', gwDmx: 'KNX / DMX', gwAc: 'KNX / AC' };
 const KORDER = [...KACT, ...KGW, ...KIP, 'ips', 'lc', 'ipr', 'psu160', 'psu320', 'psu640', 'psu1280', 'psu'];
-function knxKind(c) { const r = lastCalc.out.get(c.id); return KNX.dimming === 'dali' && CAT[c.cat]?.lit && c.method !== 'D' ? 'dali' : KNX.dimming === 'dim' && CAT[c.cat]?.lit && (r?.I ?? 0) <= 4 ? 'dim' : 'sw'; }
-function knxEligible() { const l = []; (function w(n) { n.kids.forEach((k) => { if (k.t === 'board') return w(k); if (CAT[k.cat]?.lit && !k.life) l.push({ k, b: n }); }); })(tree); return l; }
+// how a circuit is driven from KNX, and whether an output can take it
+const knxBlind = (c) => /blind|shutter|curtain|screen|awning|louvre/i.test(c.name) && (c.cat === 'motor' || c.cat === 'socket' || c.cat === 'spare' || (c.kw ?? 0) <= 1.5);
+function knxRole(c) {
+  const r = lastCalc.out.get(c.id) ?? {}, lit = CAT[c.cat]?.lit;
+  if (c.life) return { kind: 'off', why: CAT[c.cat]?.lit ? 'emergency (life-safety) lighting stays off KNX – BS 5266-1' : 'life-safety supply (fire pump, smoke extract …) – never switched by KNX (BS 7671 560, BS EN 12845)' };
+  if (c.cat === 'spare') return { kind: 'off', why: 'spare way – nothing to switch' };
+  if (lit && KNX.dimming === 'dali' && c.method !== 'D') return { kind: 'dali' };
+  if (lit && KNX.dimming === 'dim' && c.phases !== 3 && (r.kw ?? c.kw) <= 0.3) return { kind: 'dim' };
+  const big = (r.I ?? 0) * 1.2 > 16 || c.phases === 3 || c.cat === 'motor' || c.cat === 'hvac';
+  return { kind: 'sw', via: big ? (c.cat === 'motor' ? 'DOL starter' : 'contactor') : null, why: big ? `${r1(r.I ?? 0, 1)} A${c.phases === 3 ? ', 3-phase' : ''}${c.cat === 'motor' ? ', motor' : ''} – above a 16 A output, so the output drives a ${c.cat === 'motor' ? 'DOL starter' : 'contactor'} coil` : '' };
+}
+const KRATE = { sa16: '16 A AC1 · C-load 140 µF per output', sa8: '16 A C-load per output', sa4: '16 A C-load per output', dim4: '≈ 300 W LED per output (confirm on the 3904 REGHE datasheet)', dali: '64 DALI drivers in 32 groups', bin: '230 V status inputs (MCB / contactor feedback)', bl4: '230 V motor outputs, up / down, ≈ 6 A', bl8: '230 V motor outputs, up / down, ≈ 6 A' };
+function knxFit(key, c) {
+  const role = knxRole(c), lit = CAT[c.cat]?.lit, kw = lastCalc.out.get(c.id)?.kw ?? c.kw ?? 0;
+  if (role.kind === 'off') return { ok: false, why: role.why };
+  if (key === 'bin') return { ok: true, warn: 'status monitoring only – the circuit is not switched by this input' };
+  if (key === 'dali') return lit && c.method !== 'D' ? { ok: true } : { ok: false, why: `${c.name} is not DALI lighting – a DALI gateway only drives DALI lighting drivers` };
+  if (key === 'dim4') { if (!lit) return { ok: false, why: `a dimmer is for lighting only – ${c.name} is ${CAT[c.cat]?.name.toLowerCase()}` }; if (c.phases === 3) return { ok: false, why: 'a 3-phase circuit cannot go on one dimmer output' }; if (kw > 0.3) return { ok: false, why: `${r1(kw * 1000, 0)} W is more than ≈ 300 W per dimmer output – use a switch actuator or DALI` }; return { ok: true, warn: 'check the drivers are phase-cut dimmable' }; }
+  if (key === 'bl4' || key === 'bl8') return knxBlind(c) && c.phases !== 3 ? { ok: true } : { ok: false, why: `blinds actuator outputs (up / down) are for blind, shutter or curtain motors only – ${c.name} is ${CAT[c.cat]?.name.toLowerCase()}` };
+  if (key.startsWith('sa')) { if (knxBlind(c)) return { ok: false, why: 'a blind motor needs interlocked up / down outputs – use a blinds actuator' }; return role.via ? { ok: true, warn: role.why } : role.kind !== 'sw' ? { ok: true, warn: 'switched only on this output – no dimming' } : { ok: true }; }
+  return { ok: false, why: `${KSHORT[key] ?? key} has no load outputs` };
+}
+// every circuit of every board (emergency lighting and spares shown, but they cannot be put on KNX)
+function knxEligible() { const l = []; (function w(n) { n.kids.forEach((k) => { if (k.t === 'board') return w(k); if (k.t === 'load' && k.cat !== 'spare') l.push({ k, b: n }); }); })(tree); return l; }
 const pbShort = (d) => `${d.gang || 4}G${d.display ? ' + display' : ''}`;
-// modules of a board, each actuator with its channels filled by the board's KNX circuits
+// the designer puts output n of an actuator on a circuit; returns the check result
+function knxAssign(bid, act, ch, id) {
+  KNX.chan = KNX.chan ?? {}; const m = (KNX.chan[bid] = KNX.chan[bid] ?? {}), key = act.split('#')[0];
+  if (!id) { if (m[act]) delete m[act][ch]; return { ok: true }; }
+  const c = findNode(id)?.n, bn = findNode(bid)?.n;
+  if (!c || !bn?.kids.includes(c)) return { ok: false, why: `${c?.name ?? 'This circuit'} is fed from another board – pick an output on its own board` };
+  const fit = knxFit(key, c); if (!fit.ok) return fit;
+  if (key !== 'bin') Object.entries(m).forEach(([ak, o]) => { if (!ak.startsWith('bin')) Object.keys(o).forEach((k) => { if (o[k] === id) delete o[k]; }); }); // one switching output per circuit
+  (m[act] = m[act] ?? {})[ch] = id; KNX.manual[id] = 'knx'; KNX.on = true;
+  return fit;
+}
+// modules of a board: the designer's own output assignments first, the rest filled automatically
 function knxActs(K, b) {
   const kb = K?.boards?.find((x) => x.board.id === b.id); if (!kb) return [];
-  const acts = []; KORDER.forEach((k) => { for (let i = 0; i < (kb.dev[k] || 0); i++) { const D = KNX_DEV[k]; acts.push({ key: k, ch: k === 'dali' ? 64 : k === 'bin' ? 4 : D.ch || 0, loads: [], n: i + 1 }); } });
-  const fill = (key, list) => { const slots = acts.filter((a) => a.key === key || (key === 'sa' && a.key.startsWith('sa'))); let ai = 0; list.forEach((c) => { while (slots[ai] && slots[ai].loads.length >= (key === 'dali' ? 64 : slots[ai].ch)) ai++; if (slots[ai]) slots[ai].loads.push(c); }); };
-  fill('sa', kb.circuits.filter((c) => knxKind(c) === 'sw')); fill('dim4', kb.circuits.filter((c) => knxKind(c) === 'dim')); fill('dali', kb.circuits.filter((c) => knxKind(c) === 'dali'));
-  acts.filter((a) => a.key === 'bin').forEach((a) => (a.loads = kb.circuits.slice(0, 4)));
+  const acts = []; KORDER.forEach((k) => { for (let i = 0; i < (kb.dev[k] || 0); i++) { const D = KNX_DEV[k]; acts.push({ key: k, id: `${k}#${i + 1}`, ch: k === 'dali' ? 64 : k === 'bin' ? 4 : D.ch || 0, loads: [], man: [], n: i + 1 }); } });
+  const map = KNX.chan?.[b.id] ?? {}, placed = new Set();
+  acts.forEach((a) => Object.entries(map[a.id] ?? {}).forEach(([ch, id]) => { const c = (a.key === 'bin' ? b.kids : kb.circuits).find((x) => x.id === id); if (!c || +ch > a.ch || a.loads[+ch - 1] || !knxFit(a.key, c).ok) return; a.loads[+ch - 1] = c; a.man[+ch - 1] = true; if (a.key !== 'bin') placed.add(id); }));
+  const free = (a) => { for (let i = 0; i < a.ch; i++) if (!a.loads[i]) return i; return -1; };
+  const fill = (pred, list) => list.filter((c) => !placed.has(c.id)).forEach((c) => { const a = acts.find((x) => pred(x) && free(x) >= 0 && knxFit(x.key, c).ok); if (a) { a.loads[free(a)] = c; placed.add(c.id); } });
+  const role = (c) => knxRole(c).kind;
+  fill((a) => a.key === 'bl4' || a.key === 'bl8', kb.circuits.filter(knxBlind));
+  fill((a) => a.key === 'dali', kb.circuits.filter((c) => role(c) === 'dali'));
+  fill((a) => a.key === 'dim4', kb.circuits.filter((c) => role(c) === 'dim'));
+  fill((a) => a.key.startsWith('sa'), kb.circuits); // switched circuits, and anything left over is at least switched
+  acts.filter((a) => a.key === 'bin').forEach((a) => { const left = kb.circuits.filter((c) => !a.loads.includes(c)); for (let i = 0; i < a.ch; i++) if (!a.loads[i]) a.loads[i] = left.shift(); });
   return acts;
 }
 function drawKnxDiagram(svg) {
@@ -3477,9 +3531,10 @@ function drawKnxDiagram(svg) {
       g += `<g data-kact="${b.id}|${a.key}"><rect x="${ax}" y="${ay}" width="${aw}" height="${ah}" rx="3" fill="${sheet}" stroke="${col}" stroke-width="1.4"/><rect x="${ax}" y="${ay}" width="${aw}" height="16" rx="3" fill="${col}"/>` + t(ax + 6, ay + 12, `${KSHORT[a.key] ?? a.key} · ${D.art.length > 16 ? D.art.slice(0, 15) + '…' : D.art}`, 9, '#fff', 'start', 700);
       if (!nCh) g += t(ax + 6, ay + 30, (D.range.length > 26 ? D.range.slice(0, 25) + '…' : D.range), 8.5, muted);
       for (let c = 0; c < nCh; c++) {
-        const ld = a.loads[c], ry = ay + 30 + c * 13;
-        g += t(ax + 6, ry, a.key === 'dali' ? `${c + 1}` : `${String.fromCharCode(65 + (a.n - 1) % 26)}${c + 1}`, 8.5, muted, 'start', 600) + t(ax + 28, ry, ld ? (ld.name.length > 18 ? ld.name.slice(0, 17) + '…' : ld.name) : D.blind ? `blind / shutter ${c + 1}` : 'spare', 9, ld ? ink : muted);
-        if (ld && !pos.has(ld.id)) pos.set(ld.id, [ax + aw, ry - 3]); // links go to the switching channel, not the status input
+        const ld = a.loads[c], ry = ay + 30 + c * 13, selC = ksel?.type === 'ch' && ksel.board === b.id && ksel.act === a.id && ksel.ch === c + 1, via = ld && a.key.startsWith('sa') && knxRole(ld).via;
+        g += `<g data-kch="${b.id}|${a.id}|${c + 1}" style="cursor:pointer"><rect x="${ax + 2}" y="${ry - 10}" width="${aw - 4}" height="13" rx="2" fill="${selC ? css('--sel') : a.man[c] ? '#E6F4EA' : 'transparent'}" fill-opacity="${selC ? 0.25 : 1}"/>`;
+        g += t(ax + 6, ry, a.key === 'dali' ? `G${c + 1}` : `${String.fromCharCode(65 + (a.n - 1) % 26)}${c + 1}`, 8.5, muted, 'start', 600) + t(ax + 28, ry, ld ? (ld.name.length > (via ? 15 : 18) ? ld.name.slice(0, via ? 14 : 17) + '…' : ld.name) : D.blind ? `blind / shutter ${c + 1}` : 'spare', 9, ld ? ink : muted) + (via ? t(ax + aw - 5, ry, a.man[c] ? '+K ✎' : '+K', 8.5, '#C77A06', 'end', 700) : a.man[c] ? t(ax + aw - 5, ry, '✎', 8.5, bus, 'end', 700) : '') + `</g>`;
+        if (ld && !pos.has(ld.id) && a.key !== 'bin') pos.set(ld.id, [ax + aw, ry - 3]); // links go to the switching output, not the status input
       }
       g += `</g>`;
     });
@@ -3496,6 +3551,7 @@ function drawKnxDiagram(svg) {
       d.loads.forEach((id) => { const p = pos.get(id); if (p) g += `<path d="M${dx + 28} ${dy}C${dx + 28} ${dy - 30} ${p[0] + 30} ${p[1]} ${p[0]} ${p[1]}" fill="none" stroke="#C77A06" stroke-width="1.1" stroke-dasharray="4 3"/>`; });
     });
     if (sug.length) g += t(X + 14, Y + bh - 8, `suggested, not yet placed: ${sug.join(' · ')}`, 9, muted);
+    if (kb) { const on = new Set(acts.filter((a) => a.key !== 'bin').flatMap((a) => a.loads.filter(Boolean).map((c) => c.id))), miss = kb.circuits.filter((c) => !on.has(c.id)); if (miss.length) g += t(X + bw - 10, Y + 32, `⚠ no output: ${miss.map((c) => c.name).join(', ').slice(0, 60)}`, 9, css('--bad'), 'end', 700); }
     g += `</g>`;
     return { g, bw, bh };
   };
@@ -3522,7 +3578,7 @@ function drawKnxDiagram(svg) {
   // boards with lighting not yet on KNX – drop targets
   const rest = bAll.filter((b) => !onK.has(b.id));
   if (rest.length) {
-    s += t(20, y, lines.length ? 'Other boards with lighting – drop circuits or devices to bring them onto KNX' : 'Boards with lighting – drag a circuit or a KNX device onto a board to start the KNX design', 11, muted, 'start', 700);
+    s += t(20, y, lines.length ? 'Other boards – drop circuits or devices to bring them onto KNX' : 'Boards – drag a circuit or a KNX device onto a board to start the KNX design', 11, muted, 'start', 700);
     let x = 20; y += 14; let hmax = 0;
     rest.forEach((b) => { const r = rowFor(b, x, y); s += r.g; x += r.bw + 20; hmax = Math.max(hmax, r.bh); Wmax = Math.max(Wmax, x); });
     y += hmax + 30;
@@ -3559,8 +3615,8 @@ function renderKnxPalette() {
   el.innerHTML = `<div class="ksecs">
     <section class="ksec kwide"><h3>Power circuits</h3>
       <div class="kbar"><button class="btn" id="k_all">All indoor lighting on KNX</button><button class="btn" id="k_none" style="${kclear ? 'border-color:var(--bad);color:var(--bad)' : ''}">${kclear ? 'Tap again to clear' : 'Clear'}</button></div>
-      <div class="kgrid kcirc">${elig.map(({ k, b }) => { const on = lastCalc.out.get(k.id)?.ctrl === 'knx'; return `<div class="pal kpal${karmed?.load === k.id ? ' armed' : ''}${on ? ' on' : ''}" data-kload="${k.id}"><span class="kdot">${on ? '●' : '○'}</span><span class="kname">${esc(k.name)}</span><small>${esc(b.name)}</small></div>`; }).join('') || '<p class="note">No lighting circuits yet – add them on the power side.</p>'}</div>
-      <p class="note">Drag a circuit onto a board to switch it from KNX, or onto a push-button / sensor to control it from there. On a phone or tablet: tap an item, then tap the board or device. Emergency lighting stays off KNX (BS 5266).</p></section>
+      <div class="kgrid kcirc">${elig.map(({ k, b }) => { const on = lastCalc.out.get(k.id)?.ctrl === 'knx', off = knxRole(k).kind === 'off'; return `<div class="pal kpal${karmed?.load === k.id ? ' armed' : ''}${on ? ' on' : ''}${off ? ' koff' : ''}" data-kload="${k.id}" title="${off ? esc(knxRole(k).why) : ''}"><span class="kdot">${on ? '●' : off ? '⊘' : '○'}</span><span class="kname">${esc(k.name)}</span><small>${{ light: 'Light', flood: 'Flood', street: 'Street', socket: 'Socket', motor: 'Motor', hvac: 'AC' }[k.cat] ?? ''} · ${esc(b.name)}</small></div>`; }).join('') || '<p class="note">No circuits yet – add them on the power side.</p>'}</div>
+      <p class="note">Any circuit can go on KNX – lighting, sockets, AC, pumps, blinds. Drag it onto a board (an output is picked for it), straight onto an actuator output (A1, A2 …), or onto a push-button / sensor. On a tablet: tap the circuit, then tap the board, output or device. Tap an output to choose its circuit. Loads above 16 A, 3-phase or motors are switched through a contactor (+K on the output). Emergency lighting stays off KNX (BS 5266).</p></section>
     ${sec('Actuators (Jung)', KACT)}
     ${sec('Field devices', KFIELD, 'Push-buttons: choose 2, 3, 4, 6 or 8 gangs and a display after placing.')}
     ${sec('Gateways', KGW)}
@@ -3569,8 +3625,16 @@ function renderKnxPalette() {
 }
 function renderKnxInsp() {
   const el = $('#insp'), K = KNX.on ? knxPlan() : null;
-  let h = '';
-  if (ksel?.type === 'dev') {
+  let h = kmsg ? `<div class="ck ${kmsg.ok ? 'soft' : 'no'}" style="margin-bottom:8px"><b>${kmsg.ok ? '!' : '✗'}</b><span>${kmsg.ok ? 'Assigned with a note' : 'Not allowed'}<small>${esc(kmsg.ok ? kmsg.warn : kmsg.why)}</small></span></div>` : '';
+  if (ksel?.type === 'ch') {
+    const b = findNode(ksel.board)?.n, a = b && knxActs(K, b).find((x) => x.id === ksel.act);
+    if (!a) { ksel = null; return renderKnxInsp(); }
+    const cur = a.loads[ksel.ch - 1], lab = a.key === 'dali' ? `group G${ksel.ch}` : `output ${String.fromCharCode(65 + (a.n - 1) % 26)}${ksel.ch}`;
+    h += `<h3>${KSHORT[a.key]} ${a.n} – ${lab}</h3><dl class="kv"><dt>Device</dt><dd>${esc(KNX_DEV[a.key].art)} – ${esc(KNX_DEV[a.key].name)}</dd><dt>Board</dt><dd>${esc(b.name)}</dd><dt>Rating</dt><dd>${esc(KRATE[a.key] ?? '')}</dd><dt>Now</dt><dd>${cur ? `${esc(cur.name)} ${a.man[ksel.ch - 1] ? '(set by you)' : '(automatic)'}` : 'spare'}</dd></dl>
+      <h3>Connect ${lab} to</h3><div class="checks">${b.kids.filter((k) => k.t === 'load' && k.cat !== 'spare').map((k) => { const f = knxFit(a.key, k), r = lastCalc.out.get(k.id); return `<button class="btn kpick" data-kpick="${k.id}" ${f.ok ? '' : 'disabled'} style="text-align:left;display:grid;gap:2px;${cur?.id === k.id ? 'border-color:#2E9B48;' : ''}${f.ok ? '' : 'opacity:.6;'}"><span>${f.ok ? (f.warn ? '⚠' : '✓') : '✗'} ${esc(k.name)} <small style="color:var(--muted)">· ${r1(r?.kw ?? k.kw, 2)} kW · ${r1(r?.I ?? 0, 1)} A${k.phases === 3 ? ' · 3φ' : ''}</small></span>${f.ok ? (f.warn ? `<small style="color:var(--warn)">${esc(f.warn)}</small>` : '') : `<small style="color:var(--bad)">${esc(f.why)}</small>`}</button>`; }).join('')}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"><button class="btn" id="kc_spare">Leave as spare</button>${a.man[ksel.ch - 1] ? '<button class="btn" id="kc_auto">Back to automatic</button>' : ''}<button class="btn" id="kd_close">Close</button></div>
+      <p class="note">✓ fits the output · ⚠ allowed with a note (e.g. through a contactor) · ✗ blocked – the rating or the function does not match. Circuits of other boards are wired to their own board's actuators.</p>`;
+  } else if (ksel?.type === 'dev') {
     const d = (KNX.devs ?? []).find((x) => x.id === ksel.id), b = d && findNode(d.board)?.n;
     if (!d || !b) { ksel = null; return renderKnxInsp(); }
     const cands = b.kids.filter((k) => k.t === 'load' && lastCalc.out.get(k.id)?.ctrl === 'knx'), pb = d.key === 'pb';
@@ -3584,7 +3648,9 @@ function renderKnxInsp() {
     const b = findNode(ksel.id)?.n; if (!b) { ksel = null; return renderKnxInsp(); }
     const ex = KNX.extra?.[b.id] ?? {}, nl = K?.lines?.length ?? 0, cur = KNX.lineOf?.[b.id] || 'auto', now = K?.lines?.find((L) => L.bids.includes(b.id));
     const maxNo = Math.max(nl, ...(K?.lines ?? []).map((L) => L.no), +cur || 0);
-    h += `<h3>${esc(b.name)} – KNX</h3>${b.kids.filter((k) => k.t === 'load' && CAT[k.cat]?.lit && !k.life).map((k) => `<label class="f chk"><input type="checkbox" data-kon="${k.id}" ${lastCalc.out.get(k.id)?.ctrl === 'knx' ? 'checked' : ''}> ${esc(k.name)}</label>`).join('') || '<p class="note">No lighting circuits.</p>'}
+    const acts = knxActs(K, b), where = (id) => acts.filter((a) => a.key !== 'bin').map((a) => { const i = a.loads.findIndex((c) => c?.id === id); return i < 0 ? null : a.key === 'dali' ? `DALI G${i + 1}` : `${KSHORT[a.key]} ${String.fromCharCode(65 + (a.n - 1) % 26)}${i + 1}`; }).find(Boolean);
+    h += `<h3>${esc(b.name)} – circuits on KNX</h3>${b.kids.filter((k) => k.t === 'load' && k.cat !== 'spare').map((k) => { const rl = knxRole(k), on = lastCalc.out.get(k.id)?.ctrl === 'knx', w = on && where(k.id); return `<label class="f chk" style="${rl.kind === 'off' ? 'opacity:.6' : ''}"><input type="checkbox" data-kon="${k.id}" ${on ? 'checked' : ''} ${rl.kind === 'off' ? 'disabled' : ''}> ${esc(k.name)} <small style="color:var(--muted);text-transform:none;letter-spacing:0">${rl.kind === 'off' ? esc(rl.why) : on ? (w ? `→ ${w}${rl.via ? ` via ${rl.via}` : ''}` : '⚠ no output') : CAT[k.cat]?.name ?? ''}</small></label>`; }).join('') || '<p class="note">No circuits.</p>'}
+      <p class="note">Tap an output (A1, A2 …) in the diagram to put a particular circuit on it.</p>
       ${K && !K.empty && now ? `${selectF(KNX.coupling === 'tp' ? 'Line (branch off the main line)' : 'Line', 'kb_line', cur, [['auto', `Auto (now 1.${now.no})`], ...Array.from({ length: maxNo }, (_, i) => [i + 1, `Line 1.${i + 1}`]), [maxNo + 1, `New line 1.${maxNo + 1}`]])}` : ''}
       ${Object.entries(ex).filter(([, n]) => n).length ? `<h3>Added by hand</h3>${Object.entries(ex).filter(([, n]) => n).map(([k, n]) => `<div style="display:flex;justify-content:space-between;align-items:center"><span>${n} × ${KSHORT[k] ?? k} (${esc(KNX_DEV[k].art)})</span><button class="btn" data-kxr="${k}">− 1</button></div>`).join('')}` : ''}
       <button class="btn" id="kd_close">Close</button>`;
@@ -3595,7 +3661,11 @@ function renderKnxInsp() {
   }
   el.innerHTML = h;
   const redo = () => { update(false); }, dev = () => KNX.devs.find((x) => x.id === ksel.id);
+  kmsg = null; // shown once
   $('#kd_close')?.addEventListener('click', () => { ksel = null; redo(); });
+  el.querySelectorAll('[data-kpick]').forEach((bt) => bt.addEventListener('click', () => { const r = knxAssign(ksel.board, ksel.act, ksel.ch, bt.dataset.kpick); kmsg = !r.ok || r.warn ? r : null; redo(); }));
+  $('#kc_spare')?.addEventListener('click', () => { const a = knxActs(K, findNode(ksel.board).n).find((x) => x.id === ksel.act), cur = a?.loads[ksel.ch - 1]; knxAssign(ksel.board, ksel.act, ksel.ch, null); if (cur && a.key !== 'bin') { KNX.manual[cur.id] = 'off'; } redo(); });
+  $('#kc_auto')?.addEventListener('click', () => { knxAssign(ksel.board, ksel.act, ksel.ch, null); redo(); });
   $('#kd_name')?.addEventListener('change', (e) => { dev().name = e.target.value; redo(); });
   $('#kd_gang')?.addEventListener('change', (e) => { dev().gang = +e.target.value; redo(); });
   $('#kd_disp')?.addEventListener('change', (e) => { dev().display = e.target.checked; redo(); });
@@ -3608,8 +3678,12 @@ function renderKnxInsp() {
 // drop an item (device type or circuit) on a board / actuator / field device
 function knxDrop(item, target) {
   if (!target) return;
-  const kb = target.closest('[data-kb]')?.dataset.kb, kf = target.closest('[data-kf]')?.dataset.kf;
+  const kb = target.closest('[data-kb]')?.dataset.kb, kf = target.closest('[data-kf]')?.dataset.kf, kc = target.closest('[data-kch]')?.dataset.kch;
   if (item.load) {
+    const ld = findNode(item.load)?.n, rl = ld && knxRole(ld);
+    if (!ld || rl.kind === 'off') { kmsg = { ok: false, why: rl?.why ?? 'circuit not found' }; return true; }
+    if (kc) { const [bid, act, ch] = kc.split('|'); if (!KNX.on) { KNX.on = true; KNX.auto = false; } const r = knxAssign(bid, act, +ch, item.load); kmsg = !r.ok || r.warn ? r : null; if (r.ok) ksel = { type: 'ch', board: bid, act, ch: +ch }; return true; }
+    if (kb && !kf && !findNode(kb)?.n.kids.includes(ld)) { kmsg = { ok: false, why: `${ld.name} is fed from ${findNode(item.load).parent.name} – drop it on that board` }; return true; }
     if (!KNX.on) { KNX.on = true; KNX.auto = false; } // started from the diagram: only the circuits dragged in
     if (kf) { const d = KNX.devs.find((x) => x.id === kf); if (d && !d.loads.includes(item.load)) d.loads.push(item.load); KNX.manual[item.load] = 'knx'; return true; }
     if (kb) { KNX.manual[item.load] = 'knx'; return true; }
@@ -3621,7 +3695,7 @@ function knxDrop(item, target) {
   }
 }
 // Clear: no confirm() (blocked inside the app's frame) – tap twice within 5 s
-function knxClear() { KNX.on = false; KNX.auto = false; KNX.manual = {}; KNX.extra = {}; KNX.devs = []; KNX.lineOf = {}; ksel = null; karmed = null; }
+function knxClear() { KNX.on = false; KNX.auto = false; KNX.manual = {}; KNX.extra = {}; KNX.devs = []; KNX.lineOf = {}; KNX.chan = {}; ksel = null; karmed = null; }
 document.addEventListener('click', (e) => {
   if (e.target.id === 'k_all') { KNX.on = true; KNX.auto = true; Object.keys(KNX.manual).forEach((k) => { if (KNX.manual[k] === 'off') delete KNX.manual[k]; }); update(false); }
   if (e.target.id === 'k_none') { if (kclear && Date.now() - kclear <= 5000) { kclear = 0; knxClear(); } else { kclear = Date.now(); setTimeout(() => { if (kclear && Date.now() - kclear >= 5000) { kclear = 0; if (VIEW !== 'power') renderKnxPalette(); } }, 5100); } update(false); }
@@ -3644,8 +3718,11 @@ window.addEventListener('pointerup', (e) => {
 });
 $('#knxSvg').addEventListener('click', (e) => {
   if (karmed) { if (knxDrop(karmed, e.target)) { karmed = null; update(false); } return; }
-  const f = e.target.closest('[data-kf]'), b = e.target.closest('[data-kb]');
-  ksel = f ? { type: 'dev', id: f.dataset.kf } : b ? { type: 'board', id: b.dataset.kb } : null; update(false);
+  const f = e.target.closest('[data-kf]'), b = e.target.closest('[data-kb]'), ch = e.target.closest('[data-kch]');
+  kmsg = null;
+  if (ch) { const [bid, act, n] = ch.dataset.kch.split('|'); ksel = { type: 'ch', board: bid, act, ch: +n }; }
+  else ksel = f ? { type: 'dev', id: f.dataset.kf } : b ? { type: 'board', id: b.dataset.kb } : null;
+  update(false);
 });
 
 // =================== explanation ===================
@@ -3696,7 +3773,7 @@ $('#sheetPick').addEventListener('click', (e) => { const b = e.target.closest('[
 $('#tabs').addEventListener('click', (e) => { const b = e.target.closest('[data-tab]'); if (b) setTab(b.dataset.tab); });
 $('#brand').addEventListener('change', (e) => { brand = e.target.value; update(); if (!$('#tab-net').hidden) drawNet(); });
 $('#cols').addEventListener('change', () => { update(); if (!$('#tab-net').hidden) drawNet(); });
-$('#tpl').addEventListener('change', (e) => { if (DT_EMBED && !confirm('Start again from this template? The current design is replaced (the saved copy is kept until you save).')) { e.target.value = tplNow; return; } tplNow = e.target.value; tree = template(e.target.value); NETS = {}; net = null; sel = null; KNX.manual = {}; KNX.extra = {}; KNX.devs = []; KNX.lineOf = {}; ksel = null; nsel = null; recentre = true; update(); if (!$('#tab-net').hidden) drawNet(); });
+$('#tpl').addEventListener('change', (e) => { if (DT_EMBED && !confirm('Start again from this template? The current design is replaced (the saved copy is kept until you save).')) { e.target.value = tplNow; return; } tplNow = e.target.value; tree = template(e.target.value); NETS = {}; net = null; sel = null; KNX.manual = {}; KNX.extra = {}; KNX.devs = []; KNX.lineOf = {}; KNX.chan = {}; ksel = null; nsel = null; recentre = true; update(); if (!$('#tab-net').hidden) drawNet(); });
 matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => { update(); if (!$('#tab-net').hidden) drawNet(); });
 new MutationObserver(() => { update(); if (!$('#tab-net').hidden) drawNet(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 tree = template('building'); NETS = {}; net = null;
@@ -3736,12 +3813,12 @@ function dtLoad(s) {
     $('#tpl').value = tplNow = s.tpl || 'blank'; tree = s.tree; NETS = s.nets ?? (s.net?.link ? { [s.net.link]: s.net } : {}); net = null;
     brand = s.brand || brand; $('#brand').value = brand; if (s.cols) $('#cols').value = s.cols;
     Object.assign(SITE, s.SITE || {}); Object.assign(OVW, s.OVW || {});
-    if (s.KNX) Object.assign(KNX, s.KNX); KNX.manual = s.KNX?.manual ?? {}; KNX.extra = s.KNX?.extra ?? {}; KNX.devs = s.KNX?.devs ?? []; KNX.lineOf = s.KNX?.lineOf ?? {}; KNX.coupling = s.KNX?.coupling ?? 'ip'; KNX.psu = s.KNX?.coupling ? s.KNX.psu ?? 'auto' : 'auto'; // designs saved before v16 only had the 640 mA supply – size them automatically now
+    if (s.KNX) Object.assign(KNX, s.KNX); KNX.manual = s.KNX?.manual ?? {}; KNX.extra = s.KNX?.extra ?? {}; KNX.devs = s.KNX?.devs ?? []; KNX.lineOf = s.KNX?.lineOf ?? {}; KNX.chan = s.KNX?.chan ?? {}; KNX.coupling = s.KNX?.coupling ?? 'ip'; KNX.psu = s.KNX?.coupling ? s.KNX.psu ?? 'auto' : 'auto'; // designs saved before v16 only had the 640 mA supply – size them automatically now
     if (s.EL) Object.assign(EL, s.EL);
     if (s.ST) { const { col, mast, soil, ...rest } = s.ST; Object.assign(ST, rest); Object.assign(ST.col, col || {}); Object.assign(ST.mast, mast || {}); Object.assign(ST.soil, soil || {}); }
     const all = []; (function w(n) { all.push(n); (n.kids || []).forEach(w); })(tree);
     uid = dtMaxId(all, 'n') + 1; nuid = nuidNext();
-  } else { const k = (s && s.tpl) || 'blank'; $('#tpl').value = tplNow = k; tree = template(k); NETS = {}; net = null; KNX.manual = {}; KNX.extra = {}; KNX.devs = []; KNX.lineOf = {}; }
+  } else { const k = (s && s.tpl) || 'blank'; $('#tpl').value = tplNow = k; tree = template(k); NETS = {}; net = null; KNX.manual = {}; KNX.extra = {}; KNX.devs = []; KNX.lineOf = {}; KNX.chan = {}; }
   sel = null; nsel = null; recentre = true; update(); if (!$('#tab-net').hidden) drawNet();
   dtLast = JSON.stringify(dtState());
 }
