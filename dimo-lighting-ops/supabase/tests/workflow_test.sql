@@ -9092,13 +9092,21 @@ do $$ begin
   assert not exists (select 1 from public.design_tool_engine), 'sales cannot open the engine';
   begin perform public.design_tool_save(null, 'x', null, '{"tree":{}}'::jsonb); assert false, 'sales cannot save';
   exception when raise_exception then assert sqlerrm like 'Design Tools are for%', sqlerrm; end;
+  begin perform public.design_driver_save(gen_random_uuid(), '{"model":"x"}'::jsonb); assert false, 'sales cannot add drivers';
+  exception when raise_exception then assert sqlerrm like 'Design Tools are for%', sqlerrm; end;
+  assert not exists (select 1 from public.design_drivers), 'sales cannot read the driver library';
 end $$;
 reset role;
 select pg_temp.act_as('lighting_engineer'); set role authenticated;
 do $$ declare f uuid; r public.design_tool_files;
 begin
   assert exists (select 1 from public.design_tool_engine where version = 'v12' and html like '%dtRecv%'), 'engine readable';
-  assert (select version from public.design_tool_engine order by created_at desc, version desc limit 1) = 'v33', 'newest engine first';
+  assert (select version from public.design_tool_engine order by created_at desc, version desc limit 1) = 'v34', 'newest engine first';
+  perform public.design_driver_save('11111111-1111-4111-8111-111111111111', '{"make":"Tridonic","model":"XFL-1500","inrushA":95,"src":{"inrushA":"x"}}'::jsonb, 'drivers/11111111/a.pdf', 'a.pdf');
+  perform public.design_driver_save('11111111-1111-4111-8111-111111111111', '{"make":"Tridonic","model":"XFL-1500","inrushA":90}'::jsonb);
+  assert (select file_path = 'drivers/11111111/a.pdf' and (data->>'inrushA')::int = 90 and not data ? 'src' from public.design_drivers where id = '11111111-1111-4111-8111-111111111111'), 'driver updated, datasheet kept';
+  begin perform public.design_driver_save(gen_random_uuid(), '{"make":" "}'::jsonb); assert false, 'driver needs a name'; exception when raise_exception then null; end;
+  begin perform public.design_driver_save(gen_random_uuid(), '{"model":"y"}'::jsonb, 'files/x.pdf'); assert false, 'drivers/ only'; exception when raise_exception then null; end;
   begin perform public.design_tool_save(null, ' ', null, '{"tree":{}}'::jsonb); assert false, 'title'; exception when raise_exception then null; end;
   f := public.design_tool_save(null, 'Hotel – main LV', null, '{"tpl":"building","tree":{"id":"n1"}}'::jsonb, '{"kw":120}'::jsonb, 'first issue');
   perform set_config('test.dtf', f::text, false);

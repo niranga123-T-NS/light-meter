@@ -14,6 +14,9 @@ import {
   dtSummaryText,
   dtTemplateLabel,
   loadDesignEngine,
+  loadDrivers,
+  openDriverSheet,
+  saveDriver,
   type DtFile,
   type DtLog,
   type DtOut,
@@ -36,6 +39,15 @@ async function shareFile(name: string, mime: string, b64: string) {
   f.create({ overwrite: true });
   f.write(b64, { encoding: 'base64' });
   await Sharing.shareAsync(f.uri, { mimeType: mime, dialogTitle: name, UTI: mime === 'application/pdf' ? 'com.adobe.pdf' : undefined });
+}
+
+/** The driver library goes to the page with the design, and again after each driver saved from it */
+async function sendDrivers(h: EngineHandle | null, saved?: { id: string; file_path: string | null; file_name: string | null }, error?: string) {
+  try {
+    h?.send({ type: 'dt:drivers', list: await loadDrivers(), saved, error });
+  } catch (e) {
+    h?.send({ type: 'dt:drivers', list: [], error: (e as Error).message });
+  }
 }
 
 export default function DesignToolScreen() {
@@ -83,6 +95,7 @@ export default function DesignToolScreen() {
       sent.current = id;
       engine.current?.send({ type: 'dt:load', state: data.state, title: meta?.title });
       setDirty(isNew);
+      void sendDrivers(engine.current);
     }
   }, [ready, data, id, isNew, meta?.title]);
 
@@ -101,7 +114,16 @@ export default function DesignToolScreen() {
     if (m.type === 'dt:ready') setReady(true);
     else if (m.type === 'dt:dirty') setDirty(m.dirty);
     else if (m.type === 'dt:file' && Platform.OS !== 'web') void shareFile(m.name, m.mime, m.b64); // a sheet PDF from the page – the web view cannot download it itself
-  }, []);
+    else if (m.type === 'dt:drvSave')
+      void saveDriver(m.driver, m.file).then(
+        (saved) => {
+          dialog.toast('Driver saved to the library');
+          return sendDrivers(engine.current, saved);
+        },
+        (e: Error) => sendDrivers(engine.current, undefined, e.message),
+      );
+    else if (m.type === 'dt:drvOpen') void openDriverSheet(m.path, m.name).catch((e: Error) => dialog.toast(e.message, 'error'));
+  }, [dialog]);
 
   if (!allowed) return <Screen><Notice>Design Tools are for the GM / DGM, SM Projects and the design team.</Notice></Screen>;
   if (error) return <Screen><ErrorBanner message={error} /></Screen>;
