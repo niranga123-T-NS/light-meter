@@ -9098,7 +9098,7 @@ select pg_temp.act_as('lighting_engineer'); set role authenticated;
 do $$ declare f uuid; r public.design_tool_files;
 begin
   assert exists (select 1 from public.design_tool_engine where version = 'v12' and html like '%dtRecv%'), 'engine readable';
-  assert (select version from public.design_tool_engine order by created_at desc, version desc limit 1) = 'v24', 'newest engine first';
+  assert (select version from public.design_tool_engine order by created_at desc, version desc limit 1) = 'v25', 'newest engine first';
   begin perform public.design_tool_save(null, ' ', null, '{"tree":{}}'::jsonb); assert false, 'title'; exception when raise_exception then null; end;
   f := public.design_tool_save(null, 'Hotel – main LV', null, '{"tpl":"building","tree":{"id":"n1"}}'::jsonb, '{"kw":120}'::jsonb, 'first issue');
   perform set_config('test.dtf', f::text, false);
