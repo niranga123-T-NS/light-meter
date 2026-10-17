@@ -49,7 +49,7 @@ export default function DesignToolScreen() {
       loadDesignEngine(),
       supabase.from('inquiries').select('id, code, project_name').order('created_at', { ascending: false }).limit(400),
     ]);
-    if (isNew) return { eng, inqs: (inqs.data ?? []) as Inq[], file: null, state: { tpl: tpl || 'building' } as DtState, revs: [] as DtRevision[], log: [] as DtLog[] };
+    if (isNew) return { eng, inqs: (inqs.data ?? []) as Inq[], file: null, state: { tpl: tpl || 'blank' } as DtState, revs: [] as DtRevision[], log: [] as DtLog[] };
     const [f, revs, log] = await Promise.all([
       supabase.from('design_tool_files').select('*, inquiries(code, project_name, inquiry_name)').eq('id', id).single(),
       supabase.from('design_tool_revisions').select('id, revision, summary, note, saved_by, saved_at').eq('file_id', id).order('revision', { ascending: false }),
