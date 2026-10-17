@@ -13,10 +13,11 @@ export const DT_STATUS: Record<DtStatus, { label: string; tone: string }> = {
   approved: { label: 'Approved', tone: '#15803D' },
 };
 export const DT_TEMPLATES = [
-  { value: 'building', label: 'Building – office / hotel' },
-  { value: 'road', label: 'Road lighting – feeder pillar' },
-  { value: 'sports', label: 'Sports ground – high masts' },
-  { value: 'apron', label: 'Airport apron – high masts' },
+  { value: 'blank', label: 'Blank – transformer (LV side) and an empty MDB' },
+  { value: 'building', label: 'Example – building, office / hotel' },
+  { value: 'road', label: 'Example – road lighting, feeder pillar' },
+  { value: 'sports', label: 'Example – sports ground, high masts' },
+  { value: 'apron', label: 'Example – airport apron, high masts' },
 ];
 export const dtTemplateLabel = (t?: string | null) => DT_TEMPLATES.find((x) => x.value === t)?.label ?? t ?? '—';
 
@@ -65,7 +66,7 @@ export const dtSummaryText = (s?: DtSummary | null) =>
 let engine: { version: string; html: string } | null = null;
 export async function loadDesignEngine() {
   if (engine) return engine;
-  const { data, error } = await supabase.from('design_tool_engine').select('version, html').order('created_at', { ascending: false }).limit(1).maybeSingle();
+  const { data, error } = await supabase.from('design_tool_engine').select('version, html').order('created_at', { ascending: false }).order('version', { ascending: false }).limit(1).maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) throw new Error('Design Tools are for the GM / DGM, SM Projects and the design team.');
   engine = data as { version: string; html: string };

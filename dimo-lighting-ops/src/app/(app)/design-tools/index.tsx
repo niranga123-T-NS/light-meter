@@ -39,7 +39,7 @@ export default function DesignToolsList() {
       title: 'New design',
       fields: [
         { key: 'title', label: 'Title', required: true, maxLength: 200, hint: 'e.g. Hotel Galle – main LV, earthing and LPS' },
-        { key: 'tpl', label: 'Start from', type: 'select', options: DT_TEMPLATES, initial: 'building', required: true },
+        { key: 'tpl', label: 'Start from', type: 'select', options: DT_TEMPLATES, initial: 'blank', required: true, hint: 'Blank starts at the LV side of the transformer; add the MV level on the transformer if it is needed. The examples are filled-in sample designs.' },
       ],
       confirmLabel: 'Open',
     });
