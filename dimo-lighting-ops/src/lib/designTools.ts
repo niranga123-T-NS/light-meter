@@ -75,6 +75,6 @@ export async function loadDesignEngine() {
 
 /** Messages between the app and the calculation page */
 export type DtState = Record<string, unknown> & { tree?: unknown; tpl?: string };
-export type DtOut = { type: 'dt:ready' } | { type: 'dt:loaded' } | { type: 'dt:dirty'; dirty: boolean } | { type: 'dt:state'; id: number; state: DtState; summary: DtSummary };
+export type DtOut = { type: 'dt:ready' } | { type: 'dt:loaded' } | { type: 'dt:dirty'; dirty: boolean } | { type: 'dt:state'; id: number; state: DtState; summary: DtSummary } | { type: 'dt:file'; name: string; mime: string; b64: string };
 export type DtIn = { type: 'dt:load'; state: DtState | null; title?: string } | { type: 'dt:get'; id: number } | { type: 'dt:saved'; title?: string };
 export type EngineHandle = { send: (m: DtIn) => void };

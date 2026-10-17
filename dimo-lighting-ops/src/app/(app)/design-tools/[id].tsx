@@ -28,6 +28,16 @@ import { rpc, supabase } from '@/lib/supabase';
 type Inq = { id: string; code: string | null; project_name: string | null };
 
 /** One design: the calculation page with save, revisions, check and approval */
+/** Saves a file from the design page to the cache and opens Share (Save to Files, Mail, Print…) */
+async function shareFile(name: string, mime: string, b64: string) {
+  const { File: FsFile, Paths } = await import('expo-file-system');
+  const Sharing = await import('expo-sharing');
+  const f = new FsFile(Paths.cache, name.replace(/[\\/:*?"<>|]+/g, ''));
+  f.create({ overwrite: true });
+  f.write(b64, { encoding: 'base64' });
+  await Sharing.shareAsync(f.uri, { mimeType: mime, dialogTitle: name, UTI: mime === 'application/pdf' ? 'com.adobe.pdf' : undefined });
+}
+
 export default function DesignToolScreen() {
   const { id, title: newTitle, tpl } = useLocalSearchParams<{ id: string; title?: string; tpl?: string }>();
   const isNew = id === 'new';
@@ -90,6 +100,7 @@ export default function DesignToolScreen() {
   const onMessage = useCallback((m: DtOut) => {
     if (m.type === 'dt:ready') setReady(true);
     else if (m.type === 'dt:dirty') setDirty(m.dirty);
+    else if (m.type === 'dt:file' && Platform.OS !== 'web') void shareFile(m.name, m.mime, m.b64); // a sheet PDF from the page – the web view cannot download it itself
   }, []);
 
   if (!allowed) return <Screen><Notice>Design Tools are for the GM / DGM, SM Projects and the design team.</Notice></Screen>;
