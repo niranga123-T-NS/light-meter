@@ -64,10 +64,13 @@ export const dtSummaryText = (s?: DtSummary | null) =>
         .join(' · ')
     : '';
 
-// The calculation page is kept in the database (only these roles can read it); loaded once per session
+// The calculation page is kept in the database (only these roles can read it); kept in memory, but each opening checks the newest version name and reloads the page when a new engine was deployed
 let engine: { version: string; html: string } | null = null;
 export async function loadDesignEngine() {
-  if (engine) return engine;
+  if (engine) {
+    const { data: v } = await supabase.from('design_tool_engine').select('version').order('created_at', { ascending: false }).order('version', { ascending: false }).limit(1).maybeSingle();
+    if (!v || v.version === engine.version) return engine;
+  }
   const { data, error } = await supabase.from('design_tool_engine').select('version, html').order('created_at', { ascending: false }).order('version', { ascending: false }).limit(1).maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) throw new Error('Design Tools are for the GM / DGM, SM Projects and the design team.');
