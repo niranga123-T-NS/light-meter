@@ -62,7 +62,7 @@ table.spec{width:100%;border-collapse:collapse;font-size:13px}table.spec td{padd
 <!-- ============ HOME ============ -->
 <div id="home">
   <div class="card hero">
-    <div><h2>Dacademy – Lighting Academy</h2><div class="m">Twelve modules. Short lessons with live graphics, words to use with clients and a quick check.</div><div class="m" id="saveNote" style="font-size:12px;margin-top:4px"></div></div>
+    <div><h2>Dacademy – Lighting Academy</h2><div class="m">Thirteen modules. Short lessons with live graphics, words to use with clients and a quick check.</div><div class="m" id="saveNote" style="font-size:12px;margin-top:4px"></div></div>
     <div><div class="m" style="font-size:12px;margin-bottom:4px" id="progText">Your progress</div><div class="bar"><i id="progBar" style="width:0%"></i></div><div style="margin-top:8px" id="contBtn"></div></div>
   </div>
   <div class="mods" id="mods"></div>
@@ -461,6 +461,16 @@ table.spec{width:100%;border-collapse:collapse;font-size:13px}table.spec td{padd
     <div class="hero"><div><span class="pill" id="crPill">Live</span><h2 style="margin-top:6px">Corrosion in light fixtures</h2></div><span class="m" id="crSub"></span></div>
     <div class="row" style="margin-top:12px" id="crNav"></div>
     <div id="crBody"></div>
+  </div>
+</div>
+
+<!-- ============ LIVE: IN-GROUND LUMINAIRES ============ -->
+<div id="ingv" class="hidden">
+  <div class="crumb" onclick="back()">◀ All lessons · In-ground luminaires</div>
+  <div class="card">
+    <div class="hero"><div><span class="pill" id="igPill">Live</span><h2 style="margin-top:6px">In-ground luminaires</h2></div><span class="m" id="igSub"></span></div>
+    <div class="row" style="margin-top:12px" id="igNav"></div>
+    <div id="igBody"></div>
   </div>
 </div>
 
@@ -2926,7 +2936,7 @@ function renderHome() {
 const BG = ['#fef3c7', '#ffedd5', '#fce7f3', '#e0e7ff', '#e0f2fe', '#dcfce7', '#f1f5f9', '#ede9fe'];
 
 // ---- lessons and labs
-const VIEWS = ['home', 'lesson', 'tech', 'fix', 'chip', 'ctlv', 'lmsv', 'roadv', 'talqv', 'cmsv', 'sportv', 'thinkv', 'aglv', 'papiv', 'ccrv', 'twrv', 'vdgsv', 'servv', 'indv', 'corrv'];
+const VIEWS = ['home', 'lesson', 'tech', 'fix', 'chip', 'ctlv', 'lmsv', 'roadv', 'talqv', 'cmsv', 'sportv', 'thinkv', 'aglv', 'papiv', 'ccrv', 'twrv', 'vdgsv', 'servv', 'indv', 'corrv', 'ingv'];
 function showView(v) { VIEWS.forEach((x) => $(x).classList.toggle('hidden', x !== v)); window.scrollTo(0, 0); }
 function back() { location.hash = '#home'; }
 function parkWidgets() { document.querySelectorAll('[data-parked]').forEach((w) => { $('wstore').appendChild(w); w.removeAttribute('data-parked'); }); }
@@ -3438,6 +3448,391 @@ add('corr', 'Site work', 'cr_diag', '🔍', 'Diagnose the failure – 9 cases', 
 add('corr', 'Final challenge', 'cr_final', '🏆', 'Final challenge – seafront promenade', { type: 'lab', lab: 'corrv', preset: 'final', mins: 12, live: 1, quiz: [Q('The four ingredients of corrosion are anode, cathode, metal path and…', ['electrolyte', 'oxygen-free air', 'light'], 0), Q('Which pair is the worst on the coast?', ['A small aluminium rivet in a large stainless panel', 'A galvanised bolt in galvanised steel', 'An A4 screw with a nylon washer in aluminium'], 0), Q('Galle Face, 40 m from the surf, is about…', ['C5', 'C2', 'C1'], 0), Q('Filiform corrosion is mostly prevented by…', ['low-copper alloy and good pre-treatment', 'thicker glass', 'a bigger heat sink'], 0), Q('A fixture fogs inside every morning because…', ['it breathes humid air in as it cools', 'rain gets through the glass', 'the LEDs are too bright'], 0), Q('The best evidence of salt resistance is…', ['ISO 9227 on the complete luminaire with ISO 4628 assessment', '“marine grade” in the brochure', 'a 5-year warranty'], 0), Q('Where does a galvanised pole fail first?', ['At the ground line', 'At the luminaire', 'At the door number'], 0), Q('Over an indoor pool, avoid…', ['304 stainless or spring steel in load-bearing clips', 'polymer trims', 'sealed LEDs'], 0), Q('On a C5 site, rinse fittings with fresh water…', ['every 3–6 months', 'never', 'once at handover'], 0), Q('A copper earth lug on an aluminium pole needs…', ['a tinned or bimetallic lug with jointing compound', 'nothing', 'a bigger bolt'], 0)] });
 L.forEach((l) => { LESSONS[l.id] = l; });
 LAB_INIT.corrv = (p) => crOpen(p);
+
+// ================================================================ IN-GROUND LUMINAIRES – uplights, marker / step lights and underwater lights: anatomy, drainage, pumping & wicking, the right fitting, installation order, five years on, electrics, diagnosis, inspection, final challenge
+const IGN = [['anat', '1 · Inside the fitting'], ['drain', '2 · Drainage'], ['pump', '3 · Pumping & wicking'], ['place', '4 · Right place'], ['order', '5 · Installation order'], ['sim', '6 · Five years on'], ['elec', '7 · Electrics'], ['diag', '8 · Diagnose'], ['insp', '9 · Inspect'], ['final', 'Final challenge']];
+let igK = 'anat';
+function igOpen(p) {
+  igK = IGN.some(([k]) => k === p) ? p : 'anat';
+  $('igNav').innerHTML = IGN.map(([k, t]) => crB(k === igK, t, `openLesson('ig_${k}')`)).join('');
+  $('igPill').textContent = { anat: 'Live · 5 min', drain: 'Live · 7 min', pump: 'Live · 7 min', place: 'Live · 6 min', order: 'Game · 5 min', sim: 'Live · 8 min', elec: 'Live · 7 min', diag: 'Game · 8 min', insp: 'Live · 4 min', final: 'Challenge · 10 min' }[igK];
+  $('igSub').textContent = { anat: 'Uplights, marker / step lights and underwater lights – tap each part', drain: 'A monsoon storm around the fitting – where does the water go?', pump: 'A hot fitting cooled by rain sucks water in; a flooded joint sends water along the cable', place: 'Choose the location, then the fitting – load, glass temperature, slip, ring material, IP, voltage, glare', order: 'Put the installation steps in the right order', sim: 'Make the site decisions, then watch five years pass', elec: '230 V or SELV, voltage drop along a run, RCD, insulation test and pool zones', diag: 'Read the symptoms, find the root cause, choose the fix', insp: 'Handover and yearly inspection – tick what you see', final: 'Light a hotel garden, path, driveway and pool within budget – then three monsoons' }[igK];
+  ({ anat: igAnat, drain: igDrain, pump: igPump, place: igPlace, order: igOrder, sim: igSim, elec: igElec, diag: igDiag, insp: igInsp, final: igFinal })[igK]();
+}
+
+// ---------------- the section drawing: ground, sleeve, bed, fitting, cable, joint box, water and what goes wrong
+// o: type up|marker|pool · lev (mm above the surface; negative = below) · bed none|gravel|soak · surf lawn|mulch|paving · sleeve · collar · jb soil|pit|above · wl (m of water above the pit bottom) · fog · crack · rust · cover · dirt · tilt · roots · wick · hot
+function igSvg(o, hot = null, sel = null) {
+  const S = 1 / 3, gy = 92, typ = o.type || 'up', r = crRnd(5); let s = '<rect width="400" height="280" fill="#f8fafc"/>';
+  if (typ === 'pool') { // pool wall section: water on the left, deck on the right, niche in the wall, conduit to a deck box above the water
+    s += '<rect x="0" y="70" width="170" height="210" fill="#bfdbfe"/><rect x="170" y="70" width="40" height="210" fill="#d6d3d1" stroke="#a8a29e"/><rect x="210" y="70" width="190" height="210" fill="#e7e5e4"/><rect x="170" y="62" width="230" height="10" fill="#f5f5f4" stroke="#a8a29e"/><text x="80" y="86" font-size="10" text-anchor="middle" fill="#1e3a8a">water level</text><line x1="0" y1="70" x2="170" y2="70" stroke="#1d4ed8" stroke-width="2"/>';
+    s += `<rect x="150" y="160" width="46" height="50" rx="4" fill="#cbd5e1" stroke="#475569"/><rect x="146" y="166" width="8" height="38" fill="#fef3c7" stroke="#475569"/>${o.rust ? `<rect x="146" y="164" width="10" height="42" fill="none" stroke="#9a3412" stroke-width="${1 + 3 * o.rust}" stroke-dasharray="3 2"/>` : ''}`;
+    s += `<path d="M196 185 q 14 8 0 14 q -14 6 0 12" stroke="#111827" stroke-width="2" fill="none"/><path d="M200 196 L240 196 L240 40 L300 40" stroke="#6b7280" stroke-width="6" fill="none"/><path d="M200 196 L240 196 L240 40 L300 40" stroke="#111827" stroke-width="1.5" fill="none"/>`;
+    s += `<rect x="300" y="24" width="44" height="34" rx="4" fill="${o.jb === 'soil' ? '#93c5fd' : '#e5e7eb'}" stroke="#374151"/><text x="322" y="18" font-size="9" text-anchor="middle">deck box</text><rect x="352" y="30" width="34" height="24" fill="#fde68a" stroke="#92400e"/><text x="369" y="45" font-size="8" text-anchor="middle">12 V</text>`;
+    if (o.jb === 'soil') s += '<text x="322" y="70" font-size="9" text-anchor="middle" fill="#b91c1c">box below water level!</text>';
+    if (o.fog) s += `<rect x="146" y="166" width="8" height="38" fill="#e0f2fe" opacity="${0.8 * o.fog}"/>`;
+  } else {
+    const W = typ === 'marker' ? 26 : 70, Hb = typ === 'marker' ? 30 : 83, bedH = o.bed && o.bed !== 'none' ? 50 : 0, lev = (o.lev ?? 3) * S * 2, tilt = o.tilt || 0, cx = 200, top = gy - lev, pitB = gy + Hb + 8 + bedH + (o.bed === 'soak' ? 40 : 0);
+    s += `<rect x="0" y="${gy}" width="400" height="${280 - gy}" fill="${o.soil === 'clay' ? '#b45309' : o.soil === 'sand' ? '#fcd34d' : '#a16207'}" opacity=".35"/>`;
+    s += `<rect x="${cx - W / 2 - 22}" y="${gy}" width="${W + 44}" height="${pitB - gy}" fill="#d6d3d1" opacity=".7"/>`; // disturbed backfill
+    if (bedH) { for (let i = 0; i < 60; i++) s += `<circle cx="${cx - W / 2 - 20 + r() * (W + 40)}" cy="${gy + Hb + 10 + r() * (bedH - 4)}" r="${2 + r() * 2}" fill="#9ca3af" stroke="#6b7280" stroke-width=".5"/>`; }
+    if (o.bed === 'soak') { s += `<rect x="${cx - 20}" y="${gy + Hb + 8 + bedH}" width="40" height="40" fill="#9ca3af" opacity=".6"/><text x="${cx + 26}" y="${gy + Hb + 40 + bedH}" font-size="9">soakaway / drain</text>`; }
+    if (o.wl != null && o.wl > 0) { const wy = Math.max(gy - 6, pitB - o.wl * 1000 * S); s += `<rect x="${cx - W / 2 - 22}" y="${wy}" width="${W + 44}" height="${pitB - wy}" fill="#3b82f6" opacity=".35"/>`; if (wy <= gy) s += `<rect x="40" y="${gy - 5}" width="320" height="5" fill="#3b82f6" opacity=".45"/><text x="200" y="${gy - 9}" font-size="10" text-anchor="middle" fill="#1d4ed8">water ponding over the glass</text>`; }
+    if (o.collar) s += `<rect x="${cx - W / 2 - 20}" y="${gy}" width="14" height="${Math.min(60, Hb)}" fill="#a8a29e" stroke="#78716c"/><rect x="${cx + W / 2 + 6}" y="${gy}" width="14" height="${Math.min(60, Hb)}" fill="#a8a29e" stroke="#78716c"/>`;
+    s += `<g transform="rotate(${tilt} ${cx} ${top})">`;
+    if (o.sleeve) s += `<rect x="${cx - W / 2 - 5}" y="${top}" width="${W + 10}" height="${Hb + 6}" fill="none" stroke="#1f2937" stroke-width="2" stroke-dasharray="${typ === 'marker' ? '0' : '0'}"/>`;
+    s += `<rect x="${cx - W / 2}" y="${top + 3}" width="${W}" height="${Hb}" rx="3" fill="#94a3b8" stroke="#475569"/><rect x="${cx - W / 2 + 6}" y="${top + 14}" width="${W - 12}" height="${Math.min(30, Hb - 18)}" fill="#cbd5e1" stroke="#64748b"/><text x="${cx}" y="${top + 30}" font-size="8" text-anchor="middle">${typ === 'marker' ? '' : 'driver / LED'}</text>`;
+    s += `<rect x="${cx - W / 2 - 8}" y="${top - 3}" width="${W + 16}" height="6" rx="2" fill="${o.rust ? '#b45309' : '#d1d5db'}" stroke="#4b5563"/><rect x="${cx - W / 2 + 2}" y="${top - 2}" width="${W - 4}" height="4" fill="${o.hot ? '#f87171' : '#e0f2fe'}"/>`;
+    if (o.fog) for (let i = 0; i < Math.round(14 * o.fog); i++) s += `<circle cx="${cx - W / 2 + 4 + r() * (W - 8)}" cy="${top + 6 + r() * 6}" r="${0.8 + r() * 1.6}" fill="#7dd3fc"/>`;
+    if (o.inWater) s += `<rect x="${cx - W / 2 + 1}" y="${top + 3 + Hb * (1 - o.inWater)}" width="${W - 2}" height="${Hb * o.inWater}" fill="#2563eb" opacity=".5"/>`;
+    if (o.crack) s += `<path d="M${cx - 18} ${top - 3} l 10 6 l 8 -5 l 9 5 l 7 -4" stroke="#111827" stroke-width="1.5" fill="none"/>`;
+    s += `<rect x="${cx + W / 2 - 4}" y="${top + Hb - 10}" width="10" height="8" fill="#334155"/></g>`;
+    if (o.dirt) s += `<rect x="${cx - W / 2}" y="${top - 5}" width="${W}" height="3" fill="#78350f" opacity="${0.6 * o.dirt}"/>`;
+    if (o.cover) { const cw = (W + 30) * o.cover; s += o.surf === 'mulch' ? `<path d="M${cx - cw / 2} ${top - 2} q ${cw / 2} -${10 * o.cover} ${cw} 0 z" fill="#78350f" opacity=".85"/>` : Array.from({ length: Math.round(28 * o.cover) }, (_, i) => `<path d="M${cx - W / 2 - 10 + r() * (W + 20)} ${top + 1} l ${-3 + r() * 6} -${6 + r() * 8}" stroke="#15803d" stroke-width="1.6"/>`).join(''); }
+    // the surface
+    s += o.surf === 'paving' ? `<rect x="0" y="${gy - 6}" width="${cx - W / 2 - 8}" height="6" fill="#9ca3af" stroke="#6b7280"/><rect x="${cx + W / 2 + 8}" y="${gy - 6}" width="${400 - cx - W / 2 - 8}" height="6" fill="#9ca3af" stroke="#6b7280"/>` : o.surf === 'mulch' ? `<rect x="0" y="${gy - 6}" width="400" height="6" fill="#92400e" opacity=".55"/>` : Array.from({ length: 70 }, () => { const x = r() * 400; return Math.abs(x - cx) < W / 2 + 8 ? '' : `<path d="M${x} ${gy} l ${-2 + r() * 4} -${4 + r() * 5}" stroke="#16a34a" stroke-width="1.4"/>`; }).join('');
+    if (o.roots) s += `<path d="M330 ${gy + 10} q -60 30 -110 ${Hb}" stroke="#78350f" stroke-width="${2 + 3 * o.roots}" fill="none"/>`;
+    // cable to the joint box
+    const cy = gy + 150 * S * 3 / 3;
+    s += `<path d="M${cx + W / 2 + 4} ${top + Hb - 6} q 30 0 30 ${Math.max(10, cy - top - Hb + 6)} L 330 ${cy}" stroke="${o.wick ? '#2563eb' : '#111827'}" stroke-width="${o.wick ? 3 : 2}" fill="none"/>`;
+    if (o.jb === 'soil') s += `<rect x="330" y="${cy - 14}" width="38" height="26" rx="3" fill="${o.wick ? '#93c5fd' : '#e5e7eb'}" stroke="#374151"/><text x="349" y="${cy + 26}" font-size="9" text-anchor="middle">joint in soil</text>`;
+    else if (o.jb === 'pit') s += `<rect x="326" y="${cy - 22}" width="46" height="34" fill="none" stroke="#6b7280" stroke-dasharray="3 2"/><rect x="332" y="${cy - 14}" width="34" height="22" rx="3" fill="#e5e7eb" stroke="#374151"/><text x="349" y="${cy + 26}" font-size="9" text-anchor="middle">drained pit</text>`;
+    else if (o.jb === 'above') s += `<path d="M330 ${cy} L350 ${cy} L350 ${gy - 30}" stroke="#111827" stroke-width="2" fill="none"/><rect x="336" y="${gy - 58}" width="30" height="30" rx="3" fill="#e5e7eb" stroke="#374151"/><text x="351" y="${gy - 62}" font-size="9" text-anchor="middle">box above ground</text>`;
+    s += `<text x="8" y="${gy + 16}" font-size="9" fill="#57534e">${{ clay: 'clay', loam: 'loam', sand: 'sand' }[o.soil || 'loam']}</text>`;
+  }
+  if (hot) hot.forEach(([x, y], i) => (s += `<g style="cursor:pointer" onclick="iaSel=${i};iaDraw()"><circle cx="${x}" cy="${y}" r="10" fill="${sel === i ? '#2a6fdb' : '#c8102e'}" stroke="#fff" stroke-width="2"/><text x="${x}" y="${y + 4}" font-size="11" text-anchor="middle" fill="#fff" font-weight="700">${i + 1}</text></g>`));
+  return s;
+}
+
+// ---------------- 1 · inside the fitting
+const IGT = { up: 'In-ground uplight', marker: 'Marker / step / brick light', pool: 'Underwater pool / fountain light' };
+const IGA = {
+  up: [{ type: 'up', lev: 3, bed: 'gravel', surf: 'paving', sleeve: true, collar: true, jb: 'above' }, [[200, 72, 'Top ring & frame', 'Stainless steel ring that people walk on and that holds the glass down.', 'Stainless 316 (A4) at pools and on the coast; flush, rounded edges; tamper-proof screws.', '304 or painted aluminium – rusts or blisters in a year near salt or chlorine.'], [160, 98, 'Toughened glass', 'Carries the load and keeps water out; it is also what people stand on.', 'Toughened, rated for the drive-over load; textured / anti-slip where people walk; low surface temperature.', 'Plain glass with no load rating – cracks under a car.'], [242, 98, 'Gasket & glass screws', 'The glass is sealed by a silicone gasket compressed evenly by the screws.', 'Silicone gasket, screws tightened crosswise to the maker’s torque, IP67 / IP68 tested.', 'Uneven tightening – one side leaks; a foam gasket.'], [200, 130, 'Driver & LED', 'Electronics a few centimetres below the wet surface.', 'Potted or conformal-coated driver; or a remote driver in a box above ground (SELV).', 'Open PCB inside a fitting that will see water.'], [256, 170, 'Cable gland', 'Where the cable enters – the most common way in for water.', 'Gland sized for the cable, tightened to torque; or a factory-potted cable tail.', 'A cable too small for the gland, or a gland left loose.'], [140, 160, 'Installation sleeve', 'A plastic or metal box cast in the ground that holds the fitting and keeps soil and concrete off it.', 'Use the maker’s sleeve, set level to the finished surface; concrete only around it.', 'Fitting concreted in directly – cannot be removed or serviced.'], [200, 200, 'Gravel drainage bed', 'Lets water drain away from under the fitting.', '150 mm compacted gravel – plus a soakaway or drain in clay.', 'Fitting sitting on clay – a bathtub that fills in every storm.'], [349, 46, 'Joint & driver box', 'Where the supply cable is connected.', 'Above ground or in a drained pit; gel- or resin-filled connectors.', 'A taped joint buried in wet soil.']]],
+  marker: [{ type: 'marker', lev: 2, bed: 'gravel', surf: 'paving', sleeve: true, collar: true, jb: 'above' }, [[200, 74, 'Small glass & ring', 'Marker and step lights are small – a little water or dirt makes a big difference.', '316 ring, sealed or potted body, anti-slip glass in walkways.', 'Plastic body, loose glass.'], [200, 120, 'Potted body', 'Many marker lights are fully resin-filled – no air inside, so no breathing.', 'Fully potted IP68 body with a factory cable tail.', 'Unpotted body with a screw-on lens.'], [230, 130, 'Cable tail & connector', 'The factory tail is sealed – the weak point is the joint you make on site.', 'Gel or resin connector kit, or the maker’s IP68 plug and socket.', 'Twisted and taped joint.'], [200, 165, 'Bed & sleeve', 'Even small lights need drainage and a sleeve when set in paving or concrete.', 'Sleeve and gravel, set level with the finished surface.', 'Set straight into mortar.'], [349, 46, 'Driver box (SELV)', 'Marker lights usually run at 24 V DC or 12 V from a remote driver.', 'Driver above ground, close to the run, cable sized for voltage drop.', 'Driver buried or far away – the end lights are dim.']]],
+  pool: [{ type: 'pool', jb: 'above' }, [[150, 185, 'Luminaire in the niche', 'Sits permanently under water – the whole design is built for continuous immersion.', 'IP68 for the stated depth; 316 stainless or bronze ring; rated for pool chemistry.', 'An in-ground uplight used under water.'], [196, 196, 'Cable coil in the niche', 'Enough cable so the light can be lifted onto the deck for service without draining the pool.', 'Cable suitable for permanent immersion (e.g. H07RN8-F); a coil long enough to reach the deck.', 'Short cable – the pool must be drained to change a light.'], [240, 110, 'Conduit', 'Carries the cable from the niche up to the deck box.', 'Continuous conduit, rising to the box above water level.', 'Cable buried directly in the pool shell.'], [322, 40, 'Deck box above water level', 'The only place a connection may be made.', 'Above the maximum water level, resin-filled connections, outside the splash zone where possible.', 'A joint inside the niche or a box below the water line.'], [369, 42, 'Safety isolating transformer', 'Supplies the light at SELV – 12 V AC (or 30 V ripple-free DC) in zones 0 and 1.', 'Installed outside zones 0, 1 and 2; protected and labelled.', '230 V lights in the water, or the transformer next to the pool.'], [190, 66, 'Bonding', 'Metal niches, ladders and rails are bonded together.', 'Supplementary bonding as BS 7671 Section 702 requires.', 'Not bonded.']]] };
+let iaK = 'up', iaSel = 0;
+function igAnat() {
+  $('igBody').innerHTML = crP(1, 'In one line', 'An in-ground light lives in the <b>worst place in the whole installation</b>: in wet soil, under feet and wheels, with water standing on top after every storm. It survives only if <b>water drains away from it</b>, the <b>seals stay tight</b> and every <b>joint is made to stay dry</b>.')
+    + crP(2, 'Pick the type, tap a number', `<div class="row" id="iaBtns"></div><div class="two" style="margin-top:8px"><div class="stage" style="background:#fff;border:1px solid var(--line)"><svg id="iaSvg" viewBox="0 0 400 280"></svg></div><div class="info" id="iaInfo"></div></div><div class="plist" id="iaList"></div>`)
+    + crP(3, 'Say this', '<div class="say">“The fitting is only half of it – the sleeve, the gravel bed and a gel-filled joint above ground decide whether it still works after the monsoon.”</div>')
+    + crP(4, 'Watch out', '<div class="watch">IP67 means 1 m of water for 30 minutes in a test – not sitting in a flooded pit for days. Check the maker’s IP68 depth and duration for anything that may stay under water.</div>');
+  iaDraw();
+}
+function iaDraw() {
+  const [base, H] = IGA[iaK]; if (iaSel >= H.length) iaSel = 0; const h = H[iaSel];
+  $('iaBtns').innerHTML = Object.entries(IGT).map(([k, n]) => crB(k === iaK, n, `iaK='${k}';iaSel=0;iaDraw()`, false)).join('');
+  $('iaSvg').innerHTML = igSvg(base, H.map((x) => [x[0], x[1]]), iaSel);
+  $('iaInfo').innerHTML = `<h5>${iaSel + 1} · ${h[2]}</h5><div>${h[3]}</div><div class="k">Good looks like</div><div style="color:var(--good)">${h[4]}</div><div class="k">Cheap looks like</div><div style="color:#b91c1c">${h[5]}</div>`;
+  $('iaList').innerHTML = H.map((x, i) => crB(i === iaSel, `${i + 1} · ${x[2]}`, `iaSel=${i};iaDraw()`)).join('');
+}
+
+// ---------------- 2 · drainage – a storm around the fitting, 10-minute steps over 24 hours
+const IGSOIL = { clay: ['Clay', 0.002], loam: ['Loam / garden soil', 0.015], sand: ['Sand', 0.12] }, IGBED = { none: 'No bed – on the soil', gravel: '150 mm gravel bed', soak: 'Gravel + soakaway / drain' }, IGLEV = { '-10': '10 mm below the surface', '0': 'Flush', '3': '2–3 mm above (right)', '15': '15 mm above (trip hazard)' };
+const DR = { soil: 'clay', bed: 'none', lev: '0', surf: 'lawn', I: 50, dur: 3, gw: 2, irr: false, type: 'up' };
+function igDrainRun(o) {
+  const k = IGSOIL[o.soil][1], bedH = o.bed === 'none' ? 0 : 0.15, body = o.type === 'marker' ? 0.1 : 0.25, D = body + bedH, Ap = 0.2, por = 0.3;
+  const catchA = (o.surf === 'paving' ? 0.4 : 1) * { '-10': 2.5, 0: 1.2, 3: 0.9, 15: 0.7 }[o.lev], Aout = 0.4 + (bedH ? 0.2 : 0), soak = o.bed === 'soak' ? 0.06 : 0, hgw = Math.max(0, D - o.gw);
+  let V = hgw * Ap * por, h = hgw; const out = [];
+  for (let t = 0; t <= 24; t += 1 / 6) {
+    const rain = (t >= 1 && t < 1 + o.dur ? o.I / 1000 : 0) + (o.irr && t >= 20 && t < 20.5 ? 0.02 : 0);
+    const inflow = rain * catchA, outflow = h > hgw ? k * Aout + soak : 0;
+    V = Math.min((D + 0.03) * Ap * por, Math.max(hgw * Ap * por, V + (inflow - outflow) / 6)); // the excess runs off over the surface
+    h = V / (Ap * por); out.push({ t, h, rain });
+  }
+  const under = out.filter((p) => p.h > bedH + 0.02).length / 6, over = out.filter((p) => p.h >= D).length / 6, max = Math.max(...out.map((p) => p.h));
+  return { out, D, bedH, body, under, over, max, hgw };
+}
+function igDrain() {
+  $('igBody').innerHTML = crP(1, 'In one line', 'Digging a hole in clay and backfilling it makes a <b>bathtub</b>: the loose backfill fills with water in every storm, and the fitting sits in it for hours or days. A <b>gravel bed</b> helps in sand and loam; in <b>clay</b> the water needs a <b>soakaway or a drain</b> to go somewhere.')
+    + crP(2, 'Set the site and the storm', `<div class="m" style="font-size:12px">Fitting</div><div class="row" id="drT"></div><div class="m" style="font-size:12px;margin-top:6px">Soil</div><div class="row" id="drS"></div><div class="m" style="font-size:12px;margin-top:6px">Under the fitting</div><div class="row" id="drB"></div><div class="m" style="font-size:12px;margin-top:6px">Finished height</div><div class="row" id="drL"></div><div class="m" style="font-size:12px;margin-top:6px">Surface</div><div class="row" id="drU"></div>
+      <div class="ctl">${crSl('drI', 'Storm intensity', 10, 100, 5, DR.I, 'DR.I=+this.value;drDraw()')}${crSl('drD', 'Storm length', 0.5, 8, 0.5, DR.dur, 'DR.dur=+this.value;drDraw()')}${crSl('drG', 'Groundwater depth', 0.2, 3, 0.1, DR.gw, 'DR.gw=+this.value;drDraw()')}</div><div class="row" style="margin-top:6px" id="drX"></div>`)
+    + crP(3, 'See it – the water around the fitting over 24 hours', `<div class="two"><div class="stage" style="background:#fff;border:1px solid var(--line)"><svg id="drSvg" viewBox="0 0 400 280"></svg></div><div><div class="kpis" id="drKpi" style="margin-top:0"></div><div class="info" id="drTxt" style="min-height:0"></div></div></div><div class="ctl">${crSl('drH', 'Hour of the day', 0, 24, 0.5, 4, 'drDraw()')}</div><div class="chartbox"><svg id="drChart" viewBox="0 0 760 170" style="width:100%;height:auto;display:block"></svg></div>`)
+    + crP(4, 'Say this', '<div class="say">“This lawn is on clay – a gravel bed alone will fill like a bathtub. We add a soakaway, or we connect the beds to the storm drain.”</div>')
+    + crP(5, 'Watch out', '<div class="watch">A simple water balance (rain on the surface around the fitting, infiltration into the soil, storage in the backfill and gravel) – the times are indicative. High groundwater (paddy land, lagoons, near the sea) can keep the fitting under water whatever you do: then only an IP68 fitting rated for continuous immersion will last.</div>');
+  drDraw();
+}
+function drDraw() {
+  const g = (id, obj, key) => ($(id).innerHTML = Object.entries(obj).map(([k, v]) => crB(String(DR[key]) === String(k), Array.isArray(v) ? v[0] : v, `DR.${key}='${k}';drDraw()`)).join(''));
+  g('drT', { up: 'In-ground uplight', marker: 'Marker / step light' }, 'type'); g('drS', IGSOIL, 'soil'); g('drB', IGBED, 'bed'); g('drL', IGLEV, 'lev'); g('drU', { lawn: 'Lawn', mulch: 'Planting bed / mulch', paving: 'Paving falling away' }, 'surf');
+  $('drX').innerHTML = crB(DR.irr, (DR.irr ? '✓ ' : '') + 'Evening irrigation (20 mm at 8 pm)', 'DR.irr=!DR.irr;drDraw()');
+  $('drIV').textContent = `${DR.I} mm/h`; $('drDV').textContent = `${DR.dur} h`; $('drGV').textContent = `${crF(DR.gw, 1)} m`;
+  const R = igDrainRun(DR), hr = +$('drH').value, p = R.out[Math.min(R.out.length - 1, Math.round(hr * 6))]; $('drHV').textContent = `${String(Math.floor(hr)).padStart(2, '0')}:${hr % 1 ? '30' : '00'}`;
+  const inW = crC((p.h - R.bedH) / R.body);
+  $('drSvg').innerHTML = igSvg({ type: DR.type, lev: +DR.lev, bed: DR.bed, soil: DR.soil, surf: DR.surf, sleeve: true, collar: DR.surf === 'paving', jb: 'above', wl: p.h, inWater: 0 }) + (inW > 0 ? `<text x="200" y="272" font-size="11" text-anchor="middle" fill="#1d4ed8" font-weight="700">fitting ${Math.round(inW * 100)} % under water</text>` : '');
+  const bad = R.under > 0.5 || R.over > 0.2;
+  $('drKpi').innerHTML = `<div><b style="color:${bad ? '#b91c1c' : 'var(--good)'}">${crF(R.under, 1)} h</b>fitting standing in water</div><div><b>${crF(R.over, 1)} h</b>water over the glass</div><div><b>${Math.round(Math.min(R.max, R.D) / R.D * 100)} %</b>pit filled at worst</div>`;
+  $('drTxt').innerHTML = R.hgw > R.bedH ? '<b>Groundwater above the bottom of the fitting</b> – it stands in water permanently. Raise it, drain the area, or use an IP68 fitting rated for continuous immersion.' : bad ? `<b>Bathtub.</b> The pit fills ${DR.soil === 'clay' ? 'and the clay will not let it go' : 'faster than the soil drains'} – ${DR.bed === 'soak' ? 'a bigger soakaway or a pipe to the storm drain is needed' : DR.bed === 'gravel' ? 'add a soakaway or a drain to the storm system' : 'add a gravel bed and, in clay, a soakaway or drain'}. IP67 only covers 30 minutes at 1 m.` : '<b>Dry enough.</b> The water drains away faster than it arrives – the fitting is out of the water within minutes of the storm.';
+  const W = 760, X = (t) => 50 + (t / 24) * 690, Y = (v) => 140 - (v / (R.D + 0.03)) * 120; let s = `<rect width="${W}" height="170" fill="#fff"/>`;
+  s += `<rect x="50" y="${Y(R.D)}" width="690" height="${Y(R.bedH) - Y(R.D)}" fill="#e2e8f0"/><text x="56" y="${Y(R.D) + 12}" font-size="10">fitting body</text><line x1="50" y1="${Y(R.D)}" x2="740" y2="${Y(R.D)}" stroke="#16a34a" stroke-dasharray="4 3"/><text x="736" y="${Y(R.D) - 3}" font-size="10" text-anchor="end" fill="#16a34a">surface</text>`;
+  R.out.forEach((q) => { if (q.rain) s += `<rect x="${X(q.t)}" y="146" width="${690 / 144}" height="${Math.min(20, q.rain * 300)}" fill="#60a5fa"/>`; });
+  s += `<path d="${R.out.map((q, i) => `${i ? 'L' : 'M'}${X(q.t).toFixed(1)} ${Y(q.h).toFixed(1)}`).join('')}" fill="none" stroke="#1d4ed8" stroke-width="2.5"/><line x1="${X(hr)}" y1="10" x2="${X(hr)}" y2="142" stroke="#111827" stroke-dasharray="3 3"/>`;
+  [0, 6, 12, 18, 24].forEach((t) => (s += `<text x="${X(t)}" y="166" font-size="10" text-anchor="middle">${t}:00</text>`));
+  s += '<text x="56" y="12" font-size="11" font-weight="700">Water level in the pit (blue) · rain (bars)</text>';
+  $('drChart').innerHTML = s;
+}
+
+// ---------------- 3 · pumping and wicking
+const PW = { gland: 'ok', torque: 'cross', wet: 'drained', irr: 'day', rainN: 100, joint: 'tape', cable: 'rubber', jb: 'soil', dist: 6, Th: 55 };
+const PWO = { gland: ['Cable entry', [['ok', 'Gland sized for the cable, to torque', 0.02], ['loose', 'Cable too small for the gland / left loose', 0.5], ['potted', 'Factory-potted cable tail', 0.002]]], torque: ['Glass screws', [['cross', 'Crosswise to the maker’s torque', 1], ['uneven', 'Uneven – one side tight', 3]]], wet: ['Around the fitting at night', [['drained', 'Drained – damp gravel', 0.3], ['flood', 'Standing in water (bathtub)', 1]]], irr: ['Irrigation', [['none', 'None', 0], ['day', 'In the morning (lights off)', 0], ['night', 'At night while the lights are on', 365]]], joint: ['Joint', [['tape', 'Twisted & taped', 1], ['shrink', 'Heat-shrink, no gel', 0.35], ['gel', 'Gel / resin-filled kit or IP68 connector', 0]]], cable: ['Cable', [['pvc', 'PVC multicore with fillers', 0.15], ['rubber', 'Rubber H07RN-F / H07RN8-F', 0.02]]], jb: ['Joint location', [['soil', 'Buried in the soil', 1], ['pit', 'In a drained pit', 0.3], ['above', 'In a box above ground', 0]]] };
+function pwRun(o) {
+  const dP = (1013 * (o.Th - 26)) / (o.Th + 273), ev = o.rainN + (o.irr === 'night' ? 365 : 0), g = PWO.gland[1].find((x) => x[0] === o.gland)[2], tq = PWO.torque[1].find((x) => x[0] === o.torque)[2], wf = PWO.wet[1].find((x) => x[0] === o.wet)[2];
+  const perEv = (dP / 1000) * g * tq * wf, yr = perEv * ev, fail = yr > 0 ? Math.min(240, (5 / yr) * 12) : 240; // ml per cooling: under-pressure × a leak-path factor; ~5 ml of water is enough to fail a fitting
+  const jw = PWO.joint[1].find((x) => x[0] === o.joint)[2] * PWO.jb[1].find((x) => x[0] === o.jb)[2], rate = jw * PWO.cable[1].find((x) => x[0] === o.cable)[2], days = rate > 0 ? o.dist / rate : Infinity;
+  return { dP, ev, perEv, yr, fail, rate, days, rcd: jw > 0.3 };
+}
+let pwAnim = 0, pwTimer = null;
+function igPump() {
+  $('igBody').innerHTML = crP(1, 'In one line', 'A lit uplight runs at 50–60 °C inside. When cold rain or a sprinkler hits it, it cools in minutes and the pressure inside drops by <b>about 100 mbar</b> – the fitting <b>sucks</b> water through the gland and gasket. And a flooded joint lets water <b>travel inside the cable</b>, metres away, to the next fitting.')
+    + crP(2, 'Your choices', `<div class="inputs" id="pwOpt" style="grid-template-columns:repeat(auto-fill,minmax(210px,1fr))"></div><div class="ctl">${crSl('pwR', 'Rainy nights a year', 0, 200, 10, PW.rainN, 'PW.rainN=+this.value;pwDraw()')}${crSl('pwD', 'Distance to the next fitting', 2, 20, 1, PW.dist, 'PW.dist=+this.value;pwDraw()')}${crSl('pwT', 'Inside temperature when lit', 35, 75, 5, PW.Th, 'PW.Th=+this.value;pwDraw()')}</div>`)
+    + crP(3, 'See it', `<div class="two"><div class="stage" style="background:#fff;border:1px solid var(--line)"><svg id="pwSvg" viewBox="0 0 400 280"></svg></div><div><div class="kpis" id="pwKpi" style="margin-top:0"></div><div class="info" id="pwTxt" style="min-height:0"></div></div></div>`)
+    + crP(4, 'Say this', '<div class="say">“Water in an in-ground light almost never comes through the glass – it is sucked in through the gland when the fitting cools, or it arrives along the cable from a wet joint. That is why we use a potted tail and gel-filled joints above ground.”</div>')
+    + crP(5, 'Watch out', '<div class="watch">The pressure drop is real physics (gas law); the leak and wicking rates are indicative teaching values. Irrigation timed at night, while the lights are hot, is one of the most common causes of failures in hotel gardens.</div>');
+  $('pwOpt').innerHTML = Object.entries(PWO).map(([f, [lab, list]]) => `<label>${lab}<select style="width:100%;padding:6px;border:1px solid var(--line);border-radius:8px;font:inherit" onchange="PW.${f}=this.value;pwDraw()">${list.map(([v, t]) => `<option value="${v}"${PW[f] === v ? ' selected' : ''}>${t}</option>`).join('')}</select></label>`).join('');
+  pwDraw();
+}
+function pwDraw() {
+  clearTimeout(pwTimer); if (!$('pwSvg')) return;
+  $('pwRV').textContent = PW.rainN; $('pwDV').textContent = `${PW.dist} m`; $('pwTV').textContent = `${PW.Th} °C`;
+  const R = pwRun(PW); pwAnim = (pwAnim + 1) % 40; const ph = pwAnim / 40;
+  let s = igSvg({ type: 'up', lev: 3, bed: 'gravel', soil: 'loam', surf: 'lawn', sleeve: true, jb: PW.jb, wl: PW.wet === 'flood' ? 0.4 : 0.05, wick: R.rate > 0 && ph > 0.3, fog: R.fail < 24 ? 0.8 : 0 });
+  if (R.perEv > 0.001) s += `<circle cx="${262 + 6 * Math.sin(ph * 6.28)}" cy="${170 - ph * 20}" r="3" fill="#2563eb"/><text x="290" y="150" font-size="10" fill="#1d4ed8" font-weight="700">sucked in</text>`;
+  s += `<text x="200" y="22" font-size="11" text-anchor="middle" font-weight="700">rain on a hot fitting: −${Math.round(R.dP)} mbar inside</text>`;
+  if (R.rate > 0) s += `<circle cx="${330 - ph * 100}" cy="${142 + ph * 0}" r="3.5" fill="#1d4ed8"/><text x="290" y="248" font-size="10" fill="#1d4ed8" font-weight="700">water travelling inside the cable</text>`;
+  $('pwSvg').innerHTML = s;
+  $('pwKpi').innerHTML = `<div><b>${Math.round(R.dP)} mbar</b>under-pressure per cooling</div><div><b>${R.ev}</b>cooling events a year</div><div><b style="color:${R.yr > 1 ? '#b91c1c' : 'var(--good)'}">${crF(R.yr, R.yr < 1 ? 2 : 1)} ml</b>water sucked in a year</div><div><b style="color:${R.fail < 24 ? '#b91c1c' : 'var(--good)'}">${R.fail >= 240 ? '20 yr +' : R.fail < 12 ? Math.round(R.fail) + ' months' : crF(R.fail / 12, 1) + ' yr'}</b>until this fitting fails</div><div><b style="color:${R.days < 365 ? '#b91c1c' : 'var(--good)'}">${R.days === Infinity ? 'never' : R.days < 60 ? Math.round(R.days) + ' days' : crF(R.days / 365, 1) + ' yr'}</b>for water to reach the next fitting</div>`;
+  $('pwTxt').innerHTML = `${R.yr > 1 ? '<b>Pumping:</b> every cooling pulls water in; it never gets out again. ' : ''}${PW.irr === 'night' ? 'Move the irrigation to the morning, when the lights are off and cool. ' : ''}${R.rate > 0 ? `<b>Wicking:</b> the ${PW.joint === 'tape' ? 'taped' : 'heat-shrink'} joint ${PW.jb === 'soil' ? 'in wet soil' : 'in the pit'} lets water into the cable – it travels to the next fitting${R.rcd ? ' and the RCD trips on wet nights' : ''}. Use a gel / resin kit, and put the joint above ground.` : '<b>No wicking:</b> the joint is sealed or dry.'}`;
+  if (!$('ingv').classList.contains('hidden') && igK === 'pump') pwTimer = setTimeout(pwDraw, 120);
+}
+
+// ---------------- 4 · the right fitting for the place
+const PLC = { bed: ['Garden bed', 300, false, false, false, 'IP67', 'any'], lawn: ['Lawn (mower, people)', 1000, false, false, false, 'IP67', 'any'], path: ['Footpath', 1000, true, true, false, 'IP67', 'glare'], deck: ['Pool deck', 1000, true, true, true, 'IP67', 'glare'], drive: ['Driveway (cars)', 2000, false, false, false, 'IP67', 'any'], fire: ['Car park / fire lane (trucks)', 5000, false, false, false, 'IP67', 'any'], pool: ['Pool wall – under water', 0, false, false, true, 'IP68', 'pool'], fountain: ['Fountain basin – under water', 0, false, false, true, 'IP68', 'pool'] }; // [name, load kg, cool glass, anti-slip, 316 ring, IP, special]
+const PF = { type: 'up', load: 1000, temp: 'cool', glass: 'clear', ring: '304', ip: 'IP67', v: '230', optic: 'sym' };
+const PFO = { type: ['Type', [['up', 'In-ground uplight'], ['marker', 'Marker / step light'], ['pool', 'Underwater light']]], load: ['Load rating (maker)', [[300, '300 kg'], [1000, '1,000 kg'], [2000, '2,000 kg'], [5000, '5,000 kg'], [10000, '10,000 kg']]], temp: ['Glass temperature', [['cool', 'Low (≤ 40 °C)'], ['hot', 'High (60–80 °C)']]], glass: ['Glass finish', [['clear', 'Clear, smooth'], ['slip', 'Textured anti-slip']]], ring: ['Ring', [['al', 'Painted aluminium'], ['304', 'Stainless 304'], ['316', 'Stainless 316']]], ip: ['Protection', [['IP65', 'IP65'], ['IP67', 'IP67'], ['IP68', 'IP68 – continuous immersion, stated depth']]], v: ['Supply', [['230', '230 V'], ['24', '24 V DC (SELV)'], ['12', '12 V AC SELV, transformer outside the zones']]], optic: ['Optic', [['sym', 'Symmetric, straight up'], ['tilt', 'Tilted / asymmetric'], ['louvre', 'With anti-glare louvre']]] };
+let plK = 'path', plCoast = false;
+function plCheck() {
+  const p = PLC[plK], o = PF, sub = p[6] === 'pool', R = [];
+  if (sub) R.push(['Made for under water', o.type === 'pool', o.type === 'pool' ? 'Underwater luminaire' : 'Only an underwater luminaire belongs in a pool or basin']);
+  else R.push(['Type suits the place', o.type !== 'pool', o.type === 'pool' ? 'Underwater lights need water to cool them – they overheat in the ground' : 'OK']);
+  if (!sub) R.push(['Load rating', o.load >= p[1], `${o.load.toLocaleString('en-GB')} kg ${o.load >= p[1] ? '≥' : '<'} ${p[1].toLocaleString('en-GB')} kg needed`]);
+  if (p[2]) R.push(['Glass temperature for bare feet and hands', o.temp === 'cool', o.temp === 'cool' ? 'Low surface temperature' : 'Hot glass where people walk barefoot – burns']);
+  if (p[3]) R.push(['Anti-slip glass', o.glass === 'slip', o.glass === 'slip' ? 'Textured' : 'Wet smooth glass is slippery']);
+  const need316 = p[4] || plCoast; R.push(['Ring material', need316 ? o.ring === '316' : o.ring !== 'al', need316 ? (o.ring === '316' ? '316 for chlorine / salt' : 'Needs 316 – chlorine or salt') : o.ring === 'al' ? 'Painted aluminium is walked off in a year' : 'OK']);
+  R.push(['Protection', sub ? o.ip === 'IP68' : o.ip !== 'IP65', sub ? (o.ip === 'IP68' ? 'IP68 for the depth' : 'Under water needs IP68 rated for the depth') : o.ip === 'IP65' ? 'IP65 is not for ground that floods – IP67 minimum' : o.ip]);
+  R.push(['Supply voltage', sub ? o.v === '12' : true, sub ? (o.v === '12' ? 'SELV 12 V AC, source outside zones 0–2 (BS 7671 Section 702)' : 'Zones 0 and 1: only SELV ≤ 12 V AC / 30 V DC') : o.v === '230' ? '230 V with a 30 mA RCD' : 'SELV – watch the voltage drop on long runs']);
+  if (p[6] === 'glare') R.push(['Glare to people walking', o.optic !== 'sym' || o.type === 'marker', o.optic !== 'sym' || o.type === 'marker' ? 'Controlled' : 'A bright uplight straight up blinds people walking over it']);
+  return R;
+}
+function igPlace() {
+  $('igBody').innerHTML = crP(1, 'In one line', 'The place decides the fitting: <b>what drives over it, who walks on it barefoot, what is in the water, and how wet it gets</b>. A garden uplight in a driveway cracks; a hot uplight on a pool deck burns; a 230 V light in a fountain is illegal.')
+    + crP(2, 'The place', '<div class="row" id="plK"></div><div class="row" style="margin-top:6px" id="plC"></div>')
+    + crP(3, 'The fitting', '<div class="inputs" id="plO" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))"></div>')
+    + crP(4, 'The verdict', '<div class="two"><div class="stage" style="background:#fff;border:1px solid var(--line)"><svg id="plSvg" viewBox="0 0 400 280"></svg></div><div id="plRes"></div></div>')
+    + crP(5, 'Say this', '<div class="say">“For the driveway we need the 5,000 kg version – the garden one is rated for people, not cars. And on the pool deck the glass must stay cool for bare feet.”</div>')
+    + crP(6, 'Watch out', '<div class="watch">Load ratings and glass temperatures are the maker’s values tested to IEC / EN 60598-2-13 – read them on the datasheet. The kilogram figures here are typical choices, not a standard table. Pool and fountain zones follow BS 7671 Section 702.</div>');
+  plDraw();
+}
+function plDraw() {
+  $('plK').innerHTML = Object.entries(PLC).map(([k, p]) => crB(k === plK, p[0], `plK='${k}';plDraw()`, false)).join('');
+  $('plC').innerHTML = crB(plCoast, (plCoast ? '✓ ' : '') + 'Within 1 km of the sea', 'plCoast=!plCoast;plDraw()');
+  $('plO').innerHTML = Object.entries(PFO).map(([f, [lab, list]]) => `<label>${lab}<select style="width:100%;padding:6px;border:1px solid var(--line);border-radius:8px;font:inherit" onchange="PF.${f}=${f === 'load' ? '+this.value' : 'this.value'};plDraw()">${list.map(([v, t]) => `<option value="${v}"${String(PF[f]) === String(v) ? ' selected' : ''}>${t}</option>`).join('')}</select></label>`).join('');
+  const R = plCheck(), bad = R.filter((x) => !x[1]), sub = PLC[plK][6] === 'pool';
+  $('plSvg').innerHTML = igSvg(sub ? { type: 'pool', jb: PF.v === '12' ? 'above' : 'soil', rust: PF.ring !== '316' ? 0.7 : 0 } : { type: PF.type === 'marker' ? 'marker' : 'up', lev: 3, bed: 'gravel', surf: ['drive', 'fire', 'deck', 'path'].includes(plK) ? 'paving' : 'lawn', sleeve: true, collar: true, jb: 'above', crack: PF.load < PLC[plK][1], hot: PF.temp === 'hot' && PLC[plK][2], rust: (PLC[plK][4] || plCoast) && PF.ring !== '316' }) + (PF.load < PLC[plK][1] && !sub ? '<text x="200" y="40" font-size="12" text-anchor="middle" fill="#b91c1c" font-weight="700">cracked under the load</text>' : '') + (PF.temp === 'hot' && PLC[plK][2] ? '<text x="200" y="56" font-size="12" text-anchor="middle" fill="#b91c1c" font-weight="700">hot glass – burn risk</text>' : '');
+  $('plRes').innerHTML = `<div class="kpis" style="margin-top:0"><div><b style="color:${bad.length ? '#b91c1c' : 'var(--good)'}">${bad.length ? bad.length + ' problem' + (bad.length > 1 ? 's' : '') : 'Right fitting ✓'}</b>${PLC[plK][0]}</div></div>` + R.map(([n, ok, v]) => `<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--line);font-size:13px"><b style="color:${ok ? 'var(--good)' : '#b91c1c'}">${ok ? '✓' : '✕'}</b><span><b>${n}</b> – ${v}</span></div>`).join('');
+}
+
+// ---------------- 5 · installation order
+const ORD = {
+  up: ['Mark out and scan for buried services before digging', 'Excavate the pit and the cable trench to depth', 'Lay the cable in a duct with warning tape, at the specified depth', 'Place and compact the 150 mm gravel bed (and soakaway in clay)', 'Set the installation sleeve level, top 2–3 mm above the finished surface', 'Pull the cable into the sleeve through its gland, leaving a slack loop', 'Pour the concrete collar around the sleeve – never under it', 'Backfill and reinstate the surface, sloping away from the fitting', 'Make the joint with a gel / resin kit, or in a box above ground', 'Insulation-resistance test the circuit and record it', 'Fit the luminaire; tighten the gland and the glass screws crosswise to torque', 'Aim, commission, photograph and record the positions'],
+  pool: ['Confirm the zones and the SELV design: 12 V AC, transformer outside zones 0–2', 'Fix the niche and the conduit before the pool shell is concreted or tiled', 'Bond the niche and other metal parts (supplementary bonding)', 'Run the conduit up to a deck box above the maximum water level', 'Pull cable rated for permanent immersion (e.g. H07RN8-F) through the conduit', 'Leave a cable coil in the niche long enough to lift the light onto the deck', 'Make the connections only in the deck box – resin-filled', 'Insulation-resistance test and record', 'Fit the luminaire in the niche', 'Fill the pool before switching on (unless rated to run dry), then commission and label the transformer'] };
+const ORDWHY = { up: ['You may hit a live cable or a water main.', '', 'The duct protects the cable and lets you replace it later.', 'Without drainage the pit is a bathtub.', 'Below the surface it ponds and grows over; too high is a trip hazard.', 'Without slack you cannot lift the fitting out for service.', 'Concrete under the sleeve blocks the drainage.', 'Reinstating last keeps the levels right.', 'A taped joint in the soil wicks water into the cable.', 'Testing before fitting the luminaire finds damaged cable without blaming the fitting.', 'Uneven screws leave one side of the gasket open.', 'Positions are lost once the grass grows.'], pool: ['Zones decide the voltage – it cannot be changed later.', 'Afterwards means breaking tiles.', 'Bonding is required for metal parts in the pool zones.', 'A box below water level floods.', 'Ordinary cable is not made for continuous immersion.', 'A short cable means draining the pool to change a light.', 'A joint in the niche is permanently under water.', '', '', 'Many underwater lights overheat if run dry.'] };
+let orK = 'up', orL = null, orChk = false;
+function igOrder() {
+  $('igBody').innerHTML = crP(1, 'In one line', 'The order matters: <b>drainage before the sleeve, the sleeve before the concrete, the test before the luminaire</b> – and for pools, the niche and conduit before the shell is tiled.')
+    + crP(2, 'Put the steps in order – move a card with ↑ ↓, then check', '<div class="row" id="orK"></div><div id="orList" style="margin-top:8px"></div><div class="row" style="margin-top:8px"><span class="btn p" style="padding:4px 9px;font-size:12px" onclick="orChk=true;orDraw()">Check the order</span><span class="btn" style="padding:4px 9px;font-size:12px" onclick="orL=null;orChk=false;orDraw()">Shuffle again</span><span class="m" id="orRes" style="font-size:13px"></span></div>')
+    + crP(3, 'Say this', '<div class="say">“Before you call me for the fittings, I need to see the gravel bed and the sleeves level – with photos.”</div>')
+    + crP(4, 'Watch out', '<div class="watch">Cable depths and duct requirements are set by the project specification and BS 7671 / local rules – follow the drawing. The order here is the usual sequence for a new installation.</div>');
+  orDraw();
+}
+function orDraw() {
+  const steps = ORD[orK]; if (!orL || orL.length !== steps.length) { const r = crRnd(Date.now() % 9973); orL = steps.map((_, i) => [i, r()]).sort((a, b) => a[1] - b[1]).map(([i]) => i); orChk = false; }
+  $('orK').innerHTML = [['up', 'In-ground uplight / marker'], ['pool', 'Underwater pool light']].map(([k, n]) => crB(k === orK, n, `orK='${k}';orL=null;orDraw()`, false)).join('');
+  $('orList').innerHTML = orL.map((si, pos) => { const ok = si === pos; return `<div class="row" style="border:1px solid var(--line);border-radius:10px;padding:6px 10px;margin-top:5px;background:${orChk ? (ok ? '#f0fdf4' : '#fef2f2') : '#fff'}"><b style="width:22px">${pos + 1}</b><span style="flex:1">${steps[si]}${orChk && !ok ? `<br><small class="m">Belongs at step ${si + 1}. ${ORDWHY[orK][si]}</small>` : ''}</span>${crB(false, '↑', `if(${pos}>0){[orL[${pos - 1}],orL[${pos}]]=[orL[${pos}],orL[${pos - 1}]];orChk=false;orDraw()}`)}${crB(false, '↓', `if(${pos}<orL.length-1){[orL[${pos + 1}],orL[${pos}]]=[orL[${pos}],orL[${pos + 1}]];orChk=false;orDraw()}`)}</div>`; }).join('');
+  const right = orL.filter((si, pos) => si === pos).length;
+  $('orRes').innerHTML = orChk ? `<b style="color:${right === steps.length ? 'var(--good)' : '#b91c1c'}">${right} of ${steps.length} in the right place</b>${right === steps.length ? ' – perfect.' : ' – the red ones say why.'}` : '';
+}
+
+// ---------------- 6 · five years on
+const SM = { type: 'up', lev: '0', bed: 'none', soil: 'clay', surf: 'lawn', sleeve: false, collar: false, joint: 'tape', jb: 'soil', gland: 'loose', torque: 'uneven', irr: 'night', t: 0 };
+const SMO = { type: ['Fitting', [['up', 'In-ground uplight'], ['marker', 'Marker / step light']]], lev: ['Finished height', Object.entries(IGLEV)], bed: ['Under the fitting', Object.entries(IGBED)], soil: ['Soil', Object.entries(IGSOIL).map(([k, v]) => [k, v[0]])], surf: ['Surroundings', [['lawn', 'Lawn'], ['mulch', 'Planting bed / mulch'], ['paving', 'Paving']]], sleeve: ['Installation sleeve', [[false, 'None – set in concrete / soil'], [true, 'Maker’s sleeve']]], collar: ['Concrete collar', [[false, 'None'], [true, 'Collar around the sleeve']]], joint: ['Joint', PWO.joint[1]], jb: ['Joint location', PWO.jb[1]], gland: ['Cable entry', PWO.gland[1]], torque: ['Glass screws', PWO.torque[1]], irr: ['Irrigation', PWO.irr[1]] };
+const SMGOOD = { lev: '3', bed: 'soak', sleeve: true, collar: true, joint: 'gel', jb: 'above', gland: 'potted', torque: 'cross', irr: 'day' };
+function smRun(o, t) {
+  const dr = igDrainRun({ soil: o.soil, bed: o.bed, lev: o.lev, surf: o.surf, I: 50, dur: 3, gw: 2, irr: o.irr === 'night', type: o.type }), flood = dr.under > 0.5 ? 'flood' : 'drained';
+  const pw = pwRun({ ...PW, gland: o.gland, torque: o.torque, wet: flood, irr: o.irr, joint: o.joint, jb: o.jb, cable: 'rubber', rainN: 100, dist: 6, Th: o.type === 'marker' ? 40 : 55 }), Tfail = pw.fail / 12, Twick = pw.days / 365;
+  const lev = +o.lev, settle = !o.sleeve || !o.collar ? Math.min(1, t / 3) : 0, tilt = settle * (o.sleeve ? 4 : 9), sink = settle * (o.collar ? 0 : 8); // without a collar the fitting settles and tilts
+  const levNow = lev - sink, growF = o.surf === 'lawn' ? 0.35 : o.surf === 'mulch' ? 0.5 : 0, cover = crC(t * growF * (levNow <= 0 ? 1.4 : levNow >= 3 ? 0.35 : 0.8) / 2);
+  const pond = levNow < 0 ? crC(-levNow / 10) : 0, dirt = crC(t * (pond ? 0.25 : 0.08)), trip = lev >= 15, fog = t > Tfail * 0.6 ? crC((t - Tfail * 0.6) / (Tfail * 0.4 + 0.1)) : 0, dead = t >= Tfail || t >= Twick;
+  const light = dead ? 0 : Math.max(0, 1 - cover * 0.8 - dirt * 0.3 - fog * 0.4 - tilt * 0.01);
+  const ev = [['Fitting standing in water after storms', dr.under > 0.5 ? 0 : 99], ['Fitting settled and tilted (no collar / sleeve)', !o.sleeve || !o.collar ? 1.5 : 99], ['Water ponding over the glass', lev < 0 ? 0.2 : sink > 4 ? 2 : 99], ['Grass / mulch covering the light', growF ? 1 / (growF * (lev <= 0 ? 1.4 : lev >= 3 ? 0.35 : 0.8)) : 99], ['Trip hazard', trip ? 0 : 99], ['Fogged glass', Tfail * 0.6], ['Water inside – fitting fails', Tfail], ['Water along the cable – next fitting fails', Twick]];
+  return { dr, pw, sink, tilt, cover, pond, dirt, trip, fog, dead, light, ev, Tfail, Twick };
+}
+function igSim() {
+  $('igBody').innerHTML = crP(1, 'In one line', 'Most in-ground failures are <b>installation decisions</b>, not product faults: too low, no drainage, no collar, a taped joint in the soil, a loose gland, sprinklers at night. Make the decisions, then drag the years.')
+    + crP(2, 'The site decisions', `<div class="inputs" id="smO" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))"></div><div class="row" style="margin-top:8px">${crB(false, 'Load the right way', "Object.assign(SM,SMGOOD);igSim()")} ${crB(false, 'Load the usual mistakes', "Object.assign(SM,{lev:'0',bed:'none',sleeve:false,collar:false,joint:'tape',jb:'soil',gland:'loose',torque:'uneven',irr:'night'});igSim()")}</div>`)
+    + crP(3, 'Drag the years', `<div class="ctl">${crSl('smT', 'Years since handover', 0, 5, 0.25, SM.t, 'SM.t=+this.value;smDraw()')}</div><div class="two" style="margin-top:8px"><div class="stage" style="background:#fff;border:1px solid var(--line)"><svg id="smSvg" viewBox="0 0 400 280"></svg></div><div><div class="kpis" id="smKpi" style="margin-top:0"></div><div id="smEv"></div></div></div><div class="chartbox"><svg id="smChart" viewBox="0 0 760 160" style="width:100%;height:auto;display:block"></svg></div>`)
+    + crP(4, 'Say this', '<div class="say">“The fittings are fine – they were set flush in a lawn on clay with taped joints. We reset them 3 mm proud on gravel and a soakaway, with gel joints above ground.”</div>')
+    + crP(5, 'Watch out', '<div class="watch">The five-year story combines the drainage and pumping models above with typical settlement and growth rates – indicative, for comparing decisions.</div>');
+  $('smO').innerHTML = Object.entries(SMO).map(([f, [lab, list]]) => `<label>${lab}<select style="width:100%;padding:6px;border:1px solid var(--line);border-radius:8px;font:inherit" onchange="SM.${f}=${typeof list[0][0] === 'boolean' ? "this.value==='true'" : 'this.value'};smDraw()">${list.map(([v, t]) => `<option value="${v}"${String(SM[f]) === String(v) ? ' selected' : ''}>${t}</option>`).join('')}</select></label>`).join('');
+  smDraw();
+}
+function smDraw() {
+  $('smTV').textContent = `${crF(SM.t, 2)} yr`;
+  const R = smRun(SM, SM.t), yr = (v) => (v >= 20 ? '20 +' : crF(v, 1));
+  $('smSvg').innerHTML = igSvg({ type: SM.type, lev: +SM.lev - R.sink, bed: SM.bed, soil: SM.soil, surf: SM.surf, sleeve: SM.sleeve, collar: SM.collar, jb: SM.jb, wl: R.pond ? 0.4 : 0, tilt: R.tilt, cover: R.cover, dirt: R.dirt, fog: R.fog, wick: SM.t >= R.Twick, inWater: R.dead ? 0.3 : 0 }) + (R.dead ? '<text x="200" y="30" font-size="13" text-anchor="middle" fill="#b91c1c" font-weight="700">OUT – water inside</text>' : '');
+  const tf = Math.min(R.Tfail, R.Twick); $('smKpi').innerHTML = `<div><b style="color:${R.light < 0.5 ? '#b91c1c' : 'var(--good)'}">${Math.round(R.light * 100)} %</b>light reaching the target</div><div><b style="color:${tf < 3 ? '#b91c1c' : 'var(--good)'}">${tf < 1 ? Math.max(1, Math.round(tf * 12)) + ' months' : yr(tf) + ' yr'}</b>until it fails</div><div><b>${crF(R.dr.under, 1)} h</b>in water per storm</div>`;
+  $('smEv').innerHTML = R.ev.sort((a, b) => a[1] - b[1]).map(([n, y]) => `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--line);font-size:13px;color:${y <= SM.t ? '#b91c1c' : 'inherit'};font-weight:${y <= SM.t ? 700 : 400}"><span>${n}</span><span>${y >= 99 ? '–' : y < 1 ? (y < 0.04 ? 'from day one' : Math.max(1, Math.round(y * 12)) + ' months') : yr(y) + ' yr'}</span></div>`).join('');
+  const X = (t) => 50 + (t / 5) * 690, Y = (v) => 140 - v * 120; let s = '<rect width="760" height="160" fill="#fff"/>';
+  [0, 0.5, 1].forEach((v) => (s += `<line x1="50" y1="${Y(v)}" x2="740" y2="${Y(v)}" stroke="#eef0f4"/><text x="44" y="${Y(v) + 4}" font-size="10" text-anchor="end">${v * 100}%</text>`));
+  const cur = (o, col) => { let d = ''; for (let t = 0; t <= 5; t += 0.05) d += `${t ? 'L' : 'M'}${X(t).toFixed(1)} ${Y(smRun(o, t).light).toFixed(1)}`; return `<path d="${d}" fill="none" stroke="${col}" stroke-width="2.5"/>`; };
+  s += cur({ ...SM, ...SMGOOD }, '#15803d') + cur(SM, '#2a6fdb') + `<line x1="${X(SM.t)}" y1="12" x2="${X(SM.t)}" y2="142" stroke="#111827" stroke-dasharray="3 3"/>` + [0, 1, 2, 3, 4, 5].map((t) => `<text x="${X(t)}" y="156" font-size="10" text-anchor="middle">${t} yr</text>`).join('') + '<text x="56" y="12" font-size="11" font-weight="700">Light reaching the target – your installation (blue) and the right way (green)</text>';
+  $('smChart').innerHTML = s;
+}
+
+// ---------------- 7 · electrics: voltage drop along a run, SELV, RCD, insulation test, pool zones
+const EL2 = { sys: '24', n: 8, w: 6, sp: 5, feed: 10, mm: 2.5 };
+function elRun(o) { // a radial run: feed length to the first fitting, then equal spacing; two-wire copper
+  const V = +o.sys, rho = 0.0225, A = o.mm, I1 = o.w / (o.sys === '230' ? 230 * 0.9 : +o.sys), volts = []; let v = V;
+  for (let i = 0; i < o.n; i++) { const seg = i === 0 ? o.feed : o.sp, I = I1 * (o.n - i); v -= (2 * rho * seg * I) / A; volts.push(v); }
+  return { V, volts, drop: ((V - volts[volts.length - 1]) / V) * 100, I: I1 * o.n };
+}
+function igElec() {
+  $('igBody').innerHTML = crP(1, 'In one line', '<b>230 V</b> in-ground lights need cable rated for burial, a <b>30 mA RCD</b> and a proper insulation test. <b>24 V / 12 V (SELV)</b> is safer to touch but carries 10–20 times the current – on a long run the <b>last lights go dim</b> unless the cable is big enough or the driver is moved closer. In <b>pools and fountains (zones 0 and 1)</b> only SELV ≤ 12 V AC or 30 V ripple-free DC is allowed, from a source outside the zones.')
+    + crP(2, 'Voltage drop along a run', `<div class="row" id="elS"></div><div class="ctl">${crSl('elN', 'Number of fittings', 1, 20, 1, EL2.n, 'EL2.n=+this.value;elDraw()')}${crSl('elW', 'Watts per fitting', 1, 40, 1, EL2.w, 'EL2.w=+this.value;elDraw()')}${crSl('elP', 'Spacing between fittings', 1, 15, 0.5, EL2.sp, 'EL2.sp=+this.value;elDraw()')}${crSl('elF', 'Driver / board to the first fitting', 1, 60, 1, EL2.feed, 'EL2.feed=+this.value;elDraw()')}</div><div class="row" style="margin-top:6px" id="elM"></div><div class="kpis" id="elKpi"></div><div class="chartbox"><svg id="elSvg" viewBox="0 0 760 190" style="width:100%;height:auto;display:block"></svg></div><div class="info" id="elTxt" style="min-height:0"></div>`)
+    + crP(3, 'The rules on site', '<div class="phr">' + [['Cable', '230 V: armoured (SWA) or rubber H07RN-F in a duct; under water: rated for permanent immersion (e.g. H07RN8-F). SELV: still in a duct, sized for the volt drop.'], ['RCD', 'Outdoor lighting circuits on a 30 mA RCD (BS 7671 411.3.3, Section 714). Wet joints show up as RCD trips on rainy nights.'], ['Insulation test', '500 V DC, at least 1 MΩ on 230 V circuits; 250 V DC, at least 0.5 MΩ on SELV (BS 7671 Table 64). Test before fitting the luminaires, then again complete – record both.'], ['Driver', 'For SELV, the driver or transformer goes in a ventilated box above ground, as close to the run as possible. Never bury it.'], ['Class', 'Metal-ringed 230 V fittings are Class I – earth them. SELV fittings are Class III.'], ['Pools & fountains', 'Zone 0 (in the water) and zone 1: SELV only, ≤ 12 V AC / 30 V DC, source outside zones 0, 1 and 2; supplementary bonding; connections only above water (BS 7671 Section 702).']].map(([a, b]) => `<details open><summary><b>${a}</b></summary>${b}</details>`).join('') + '</div>')
+    + crP(4, 'Say this', '<div class="say">“On a 24 V run of twelve markers over 60 m, the last ones would be 15 % dimmer – we split it into two runs from a driver in the middle.”</div>')
+    + crP(5, 'Watch out', '<div class="watch">The calculation is a simple two-wire copper run at 20 °C with equal loads. Constant-voltage 24 V fittings typically tolerate about ± 5 %; check the datasheet – constant-current systems behave differently.</div>');
+  elDraw();
+}
+function elDraw() {
+  $('elS').innerHTML = [['230', '230 V AC'], ['24', '24 V DC (SELV)'], ['12', '12 V AC (SELV)']].map(([k, n]) => crB(EL2.sys === k, n, `EL2.sys='${k}';elDraw()`, false)).join('');
+  $('elM').innerHTML = [1.5, 2.5, 4, 6, 10].map((m) => crB(EL2.mm === m, `${m} mm²`, `EL2.mm=${m};elDraw()`)).join('');
+  $('elNV').textContent = EL2.n; $('elWV').textContent = `${EL2.w} W`; $('elPV').textContent = `${EL2.sp} m`; $('elFV').textContent = `${EL2.feed} m`;
+  const R = elRun(EL2), lim = EL2.sys === '230' ? 3 : 5, ok = R.drop <= lim;
+  $('elKpi').innerHTML = `<div><b>${crF(R.I, 2)} A</b>current at the start</div><div><b style="color:${ok ? 'var(--good)' : '#b91c1c'}">${crF(R.drop, 1)} %</b>drop at the last fitting (limit ${lim} %)</div><div><b>${crF(R.volts[R.volts.length - 1], 1)} V</b>at the last fitting</div><div><b>${EL2.feed + EL2.sp * (EL2.n - 1)} m</b>run length</div>`;
+  const X = (i) => 70 + (i / Math.max(1, EL2.n - 1)) * 640, lo = R.V * 0.8; let s = '<rect width="760" height="190" fill="#fff"/>';
+  const Y = (v) => 160 - ((v - lo) / (R.V - lo)) * 130;
+  s += `<line x1="50" y1="${Y(R.V * (1 - lim / 100))}" x2="740" y2="${Y(R.V * (1 - lim / 100))}" stroke="#b45309" stroke-dasharray="4 3"/><text x="736" y="${Y(R.V * (1 - lim / 100)) - 4}" font-size="10" text-anchor="end" fill="#b45309">−${lim} %</text>`;
+  R.volts.forEach((v, i) => { const okv = v >= R.V * (1 - lim / 100), br = crC(1 - ((R.V - v) / R.V) * 3); s += `<line x1="${X(i)}" y1="160" x2="${X(i)}" y2="${Y(v)}" stroke="${okv ? '#2a6fdb' : '#b91c1c'}" stroke-width="10"/><circle cx="${X(i)}" cy="176" r="7" fill="rgb(${Math.round(250 * br + 60 * (1 - br))},${Math.round(204 * br + 60 * (1 - br))},${Math.round(21 * br + 60 * (1 - br))})" stroke="#111827"/><text x="${X(i)}" y="${Y(v) - 5}" font-size="9" text-anchor="middle">${crF(v, 1)}</text>`; });
+  s += '<text x="56" y="14" font-size="11" font-weight="700">Voltage at each fitting (and how bright it looks)</text>';
+  $('elSvg').innerHTML = s;
+  $('elTxt').innerHTML = ok ? '<b>Within the limit</b> – every fitting gets enough voltage.' : `<b>The end of the run is starved.</b> Use a bigger cable, move the ${EL2.sys === '230' ? 'feed' : 'driver'} into the middle of the run, or split it into two runs.${EL2.sys !== '230' ? ' At 24 V the current is about ten times what it would be at 230 V, so cable size matters ten times more.' : ''}`;
+}
+
+// ---------------- 8 · diagnose
+const IGDX = [
+  [{ type: 'up', lev: 0, bed: 'none', soil: 'clay', surf: 'lawn', sleeve: true, jb: 'above', wl: 0.3, fog: 0.8 }, 'Hotel lawn on clay: uplights fogged inside after every storm; three dead in the first monsoon.', ['Bathtub – no drainage in clay, the fittings stand in water', 'Glass too thin', 'LEDs too powerful'], ['Lift them, add gravel and a soakaway or a drain to the storm system, replace the wet fittings', 'Seal the glass with silicone from outside', 'Switch them off when it rains']],
+  [{ type: 'up', lev: 3, bed: 'gravel', soil: 'loam', surf: 'lawn', sleeve: true, jb: 'soil', wick: true }, 'A whole run went dark after the first heavy rain; the first fitting is dry inside, the others are full of water.', ['A taped joint in the soil – water wicked along the cable', 'Lightning', 'Bad drivers from the factory'], ['Re-make the joints with gel / resin kits in a box above ground, replace the cable and the wet fittings', 'Replace only the drivers', 'Add more tape'], 0],
+  [{ type: 'up', lev: 3, bed: 'gravel', soil: 'loam', surf: 'lawn', sleeve: true, jb: 'above' }, 'The RCD trips on wet nights only; in the morning it resets and everything works.', ['Water at a joint or gland – the insulation drops when wet', 'The RCD is too sensitive', 'Too many fittings'], ['Insulation-test each section to find the wet joint, re-make it with a gel kit and check the glands', 'Change to a 300 mA RCD', 'Remove the RCD'], 0],
+  [{ type: 'up', lev: 3, bed: 'gravel', surf: 'paving', sleeve: true, collar: true, jb: 'above', crack: true }, 'Driveway uplights: glass cracked within weeks.', ['Load rating too low – garden fittings in a driveway', 'Hot weather', 'Cleaning'], ['Fit drive-over rated fittings (e.g. 2,000–5,000 kg) with the maker’s sleeve and a concrete collar', 'Thicker silicone on top', 'Paint a warning line'], 0],
+  [{ type: 'up', lev: 3, bed: 'gravel', surf: 'paving', sleeve: true, collar: true, jb: 'above', hot: true }, 'A child burnt a foot on an uplight on the pool deck.', ['Hot glass – a high-temperature fitting where people walk barefoot', 'Sunlight on the glass', 'Chlorine'], ['Replace with low glass-temperature fittings for walk-over use; until then switch them off or guard them', 'Put a sign up', 'Lower the brightness only'], 0],
+  [{ type: 'up', lev: 3, bed: 'gravel', surf: 'paving', sleeve: true, collar: true, jb: 'above', rust: true }, 'Seafront hotel: rust-brown rings around all the deck uplights after one year.', ['304 or painted rings – salt and chlorine need 316', 'Rust from the soil', 'Poor cleaning'], ['Replace the rings / fittings with 316 stainless and rinse with fresh water', 'Paint the rings', 'Polish them monthly'], 0],
+  [{ type: 'up', lev: -10, bed: 'gravel', soil: 'loam', surf: 'lawn', sleeve: true, jb: 'above', cover: 0.9, dirt: 0.8 }, 'Six months after handover the client says the garden is dark – the lights are working.', ['Set below the lawn – grass and soil cover the glass', 'Wrong colour temperature', 'Driver failure'], ['Reset the sleeves 2–3 mm above the finished lawn with a mowing strip around them', 'Increase the wattage', 'Cut the grass shorter'], 0],
+  [{ type: 'up', lev: 15, bed: 'gravel', surf: 'paving', sleeve: true, collar: true, jb: 'above' }, 'Hotel guest tripped over a path light at night.', ['Set 15 mm above the paving – a trip hazard', 'Too bright', 'Wet paving'], ['Reset flush to 2–3 mm above the paving; check every light with a straight edge', 'Paint it yellow', 'Remove the light'], 0],
+  [{ type: 'marker', lev: 2, bed: 'gravel', surf: 'paving', sleeve: true, jb: 'above' }, 'The last five step lights on a long 24 V run are visibly dimmer and slightly warmer in colour.', ['Voltage drop – cable too small for the run length', 'Different LED batches', 'Dirty glass'], ['Bigger cable, or feed the run from the middle / split it with a second driver', 'Replace the last five', 'Raise the driver to 30 V'], 0],
+  [{ type: 'pool', jb: 'soil' }, 'Pool light: the joint was made in a box below the water line; the RCD trips and the light fails repeatedly.', ['Connection below water level – the box floods', 'Bad bulb', 'Too much chlorine'], ['Move the connection to a deck box above maximum water level, immersion-rated cable, SELV 12 V', 'Fill the box with more tape', 'Lower the pool water'], 0],
+  [{ type: 'up', lev: 3, bed: 'gravel', soil: 'loam', surf: 'lawn', sleeve: false, collar: false, jb: 'above', tilt: 9 }, 'Tree uplights now point at the hotel windows instead of the trees.', ['No sleeve or collar – the fittings settled and tilted', 'Wind', 'Children'], ['Reinstall with the maker’s sleeve and a concrete collar, re-aim and lock', 'Turn them back every month', 'Add more soil'], 0],
+  [{ type: 'up', lev: 3, bed: 'gravel', soil: 'loam', surf: 'lawn', sleeve: true, jb: 'above', fog: 0.6 }, 'Fittings fog only on days after the sprinklers run – the drainage is good.', ['Irrigation at night cools hot fittings – they suck water in through a loose gland', 'Fertiliser', 'Insects'], ['Move irrigation to the morning; check gland size and torque; consider potted tails', 'Turn the sprinklers up', 'Add a drain hole in the fitting'], 0]];
+let gdI = 0, gdA = {};
+function igDiag() {
+  $('igBody').innerHTML = crP(1, 'In one line', 'In-ground failures repeat the same few causes: <b>no drainage, a wet joint, the wrong rating for the place, the wrong height</b>. Read the symptom, find the cause, choose the fix that removes it.')
+    + crP(2, 'The case', '<div class="row" id="gdNav"></div><div class="two" style="margin-top:8px"><div class="stage" style="background:#fff;border:1px solid var(--line)"><svg id="gdSvg" viewBox="0 0 400 280"></svg></div><div class="info" id="gdQ"></div></div><div class="kpis" id="gdKpi"></div>')
+    + crP(3, 'Say this', '<div class="say">“Before we replace anything, we find why the water got in – otherwise the new fittings fail the same way.”</div>')
+    + crP(4, 'Watch out', '<div class="watch">Photograph the fitting in place, the surroundings and the joint before you lift it; keep the failed parts for the manufacturer claim.</div>');
+  gdDraw();
+}
+function gdDraw() {
+  const c = IGDX[gdI], a = gdA[gdI] || {};
+  $('gdNav').innerHTML = IGDX.map((x, i) => { const q = gdA[i] || {}, done = q.c != null && q.f != null, ok = done && q.c === 0 && q.f === 0; return crB(i === gdI, `${done ? (ok ? '✓' : '✕') : ''} Case ${i + 1}`, `gdI=${i};gdDraw()`); }).join('');
+  $('gdSvg').innerHTML = igSvg(c[0]);
+  const ord = [0, 1, 2].sort((x, y) => ((x * 7 + gdI * 3) % 5) - ((y * 7 + gdI * 3) % 5)), opts = (list, key) => ord.map((j) => `<button class="opt ${a[key] != null ? (j === 0 ? 'ok' : j === a[key] ? 'no' : '') : ''}" onclick="if(gdA[${gdI}]?.${key}==null){gdA[${gdI}]={...(gdA[${gdI}]||{}),${key}:${j}};gdDraw()}">${list[j]}</button>`).join('');
+  $('gdQ').innerHTML = `<h5>Case ${gdI + 1}</h5><div>${c[1]}</div><div class="k">Root cause</div>${opts(c[2], 'c')}${a.c != null ? `<div class="k">The fix</div>${opts(c[3], 'f')}` : ''}${a.f != null && gdI < IGDX.length - 1 ? `<div style="margin-top:8px">${crB(false, 'Next case ▶', `gdI=${gdI + 1};gdDraw()`, false)}</div>` : ''}`;
+  const pts = IGDX.reduce((n, _, i) => n + ((gdA[i] || {}).c === 0 ? 1 : 0) + ((gdA[i] || {}).f === 0 ? 1 : 0), 0), done = IGDX.filter((_, i) => (gdA[i] || {}).f != null).length;
+  $('gdKpi').innerHTML = `<div><b>${pts} / ${IGDX.length * 2}</b>points</div><div><b>${done} / ${IGDX.length}</b>cases solved</div><div>${crB(false, 'Start again', 'gdA={};gdI=0;gdDraw()')}</div>`;
+}
+
+// ---------------- 9 · inspect
+const IGI = {
+  up: [['Top 2–3 mm above the finished surface, level, no trip edge', 1], ['Glass clean, uncracked, no fogging inside', 1], ['Ring tight, no rust; screws all present', 0], ['No water standing around the fitting a few hours after rain', 1], ['Grass / mulch cut back clear of the glass (mowing strip)', 0], ['Aim and tilt as commissioned', 0], ['Joint box above ground, lid sealed, gel connectors', 1], ['Insulation resistance recorded (≥ 1 MΩ at 500 V, or ≥ 0.5 MΩ at 250 V on SELV)', 1], ['Irrigation set to run when the lights are off', 0]],
+  marker: [['Flush to 2–3 mm above the paving, no trip edge', 1], ['Lens clean, no water inside', 1], ['All lights equally bright (no voltage-drop dimming at the end)', 0], ['Driver box above ground, ventilated, labelled', 1], ['Insulation resistance recorded', 1]],
+  pool: [['Light works under water; no water inside the lens', 1], ['Ring 316 / bronze, no corrosion', 0], ['Cable coil in the niche long enough to reach the deck', 1], ['Deck box above the maximum water level, sealed', 1], ['Transformer SELV 12 V, outside zones 0–2, labelled', 1], ['Bonding of niche and metal parts in place and tested', 1]] };
+let ipK = 'up', ipChk = {};
+function igInsp() {
+  $('igBody').innerHTML = crP(1, 'In one line', 'At handover and every year: <b>height, glass, water around it, the joint box, the insulation test and the irrigation timing</b>. Most failures are visible long before the fitting dies.')
+    + crP(2, 'Checklist – pick the type and tick what you see', '<div class="row" id="ipK"></div><div id="ipList" style="margin-top:8px"></div><div class="kpis" id="igInKpi"></div>')
+    + crP(3, 'Maintenance plan', `<table style="width:100%;border-collapse:collapse;font-size:13px">${[['Every month (hotels, resorts)', 'Clear grass, leaves and mulch off the glass; wipe the glass'], ['Every 6 months', 'Check for fogging, standing water after rain, loose rings; check irrigation timing'], ['Every year', 'Insulation test per circuit, RCD test, joint boxes opened and checked, re-aim'], ['After building works', 'Check levels and damage – contractors often bury or drive over fittings']].map(([a, b]) => `<tr><td style="padding:5px;border-bottom:1px solid var(--line)"><b>${a}</b></td><td style="padding:5px;border-bottom:1px solid var(--line)">${b}</td></tr>`).join('')}</table>`)
+    + crP(4, 'Say this', '<div class="say">“We include a six-monthly visit for the in-ground lights – it catches a wet joint before it takes a whole run with it.”</div>')
+    + crP(5, 'Watch out', '<div class="watch">Bold items are the ones that cause most failures and safety issues. Raise a defect for each one in the snag list and in Warranty & defects.</div>');
+  ipDraw();
+}
+function ipDraw() {
+  $('ipK').innerHTML = Object.entries(IGT).map(([k, n]) => crB(k === ipK, n, `ipK='${k}';ipDraw()`, false)).join('');
+  const L2 = IGI[ipK]; $('ipList').innerHTML = L2.map(([t, crit], i) => { const v = ipChk[ipK + i]; return `<div class="row" style="border:1px solid var(--line);border-radius:10px;padding:6px 10px;margin-top:6px;background:${v === 1 ? '#f0fdf4' : v === 0 ? '#fef2f2' : '#fff'}"><span style="flex:1;${crit ? 'font-weight:700' : ''}">${t}</span>${crB(v === 1, 'OK', `ipChk['${ipK}${i}']=1;ipDraw()`)}${crB(v === 0, 'Defect', `ipChk['${ipK}${i}']=0;ipDraw()`)}</div>`; }).join('');
+  const ok = L2.filter((_, i) => ipChk[ipK + i] === 1).length, bad = L2.filter((_, i) => ipChk[ipK + i] === 0).length, crit = L2.filter(([, c], i) => c && ipChk[ipK + i] === 0).length;
+  $('igInKpi').innerHTML = `<div><b>${ok}</b>OK</div><div><b style="color:#b91c1c">${bad}</b>defects</div><div><b style="color:${crit ? '#b91c1c' : 'var(--good)'}">${crit ? 'Raise now' : bad ? 'Plan repair' : ok === L2.length ? 'Pass' : '–'}</b>${crit ? `${crit} critical` : 'result'}</div>`;
+}
+
+// ---------------- final challenge – a hotel: tree uplights in a clay lawn, path markers, driveway, pool
+const FG = { lawnF: 'std', lawnI: 'basic', pathF: 'std', pathI: 'basic', driveF: 'std', poolF: 'ok', poolI: 'basic', irr: 'night', done: false };
+const FGA = [
+  ['lawnF', 'Lawn – 12 tree uplights (clay)', [['std', 'Standard IP67 uplight', 100], ['prem', 'IP68, potted tail, 316 ring', 140]]], ['lawnI', 'Lawn installation', [['basic', 'Flush, on soil, taped joints in the soil', 0], ['good', '3 mm proud, gravel + soakaway, collar, gel joints above ground', 45]]],
+  ['pathF', 'Path – 10 step / marker lights (24 V)', [['std', 'Markers on one 24 V run, 1.5 mm²', 50], ['prem', 'Markers, two runs, 4 mm², driver in the middle', 62]]], ['pathI', 'Path installation', [['basic', 'Set in mortar, no sleeve', 0], ['good', 'Sleeves, flush + 2 mm, gel joints', 20]]],
+  ['driveF', 'Driveway – 4 uplights', [['std', 'Garden uplight 1,000 kg', 100], ['drive', 'Drive-over 5,000 kg', 150]]],
+  ['poolF', 'Pool – 4 underwater lights', [['ok', 'IP68 underwater, 12 V SELV, 316 ring', 220], ['cheap', '230 V underwater lights (cheaper)', 160]]], ['poolI', 'Pool connections', [['basic', 'Joints in a box at deck level below the coping', 0], ['good', 'Deck box above max. water level, coil in the niche', 40]]],
+  ['irr', 'Garden irrigation', [['night', 'At 9 pm (lights on)', 0], ['day', 'At 6 am (lights off)', 0]]]];
+const FGBUD = 4500;
+function fgEval(f) {
+  const v = (k) => FGA.find((x) => x[0] === k)[2].find((x) => x[0] === f[k])[2];
+  const capex = 12 * (v('lawnF') + v('lawnI')) + 10 * (v('pathF') + v('pathI')) + 4 * v('driveF') + 4 * (v('poolF') + v('poolI'));
+  const lawn = smRun({ type: 'up', lev: f.lawnI === 'good' ? '3' : '0', bed: f.lawnI === 'good' ? 'soak' : 'none', soil: 'clay', surf: 'lawn', sleeve: f.lawnI === 'good', collar: f.lawnI === 'good', joint: f.lawnI === 'good' ? 'gel' : 'tape', jb: f.lawnI === 'good' ? 'above' : 'soil', gland: f.lawnF === 'prem' ? 'potted' : 'ok', torque: 'cross', irr: f.irr }, 3);
+  const lawnFail = Math.min(12, Math.round(12 * (lawn.Tfail < 3 || lawn.Twick < 3 ? (lawn.Twick < 3 ? 1 : 0.6) : 0) * (f.lawnF === 'prem' ? 0.5 : 1)) + (f.irr === 'night' && f.lawnF === 'std' ? 3 : 0)); // over three years a few glands always loosen – sprinklers on hot fittings find them
+  const path = elRun({ sys: '24', n: 10, w: 3, sp: 4, feed: 15, mm: f.pathF === 'prem' ? 4 : 1.5 }), pathDim = f.pathF === 'prem' ? 0 : path.drop > 5 ? 4 : 0, pathFail = f.pathI === 'basic' ? 3 : 0;
+  const driveFail = f.driveF === 'drive' ? 0 : 4, poolIllegal = f.poolF === 'cheap', poolFail = f.poolI === 'basic' ? 4 : 0;
+  const fails = lawnFail + pathFail + driveFail + poolFail, repl = lawnFail * 160 + pathFail * 90 + driveFail * 180 + poolFail * 300 + pathDim * 40;
+  return { capex, over: capex > FGBUD, lawnFail, pathFail, pathDim, driveFail, poolFail, poolIllegal, total: capex + repl, lawn };
+}
+function fgBest() { let b = null; const keys = FGA.map((x) => x[0]); const rec = (i, cur) => { if (i === keys.length) { const e = fgEval(cur); if (!e.over && !e.poolIllegal && (!b || e.total < b.total)) b = { ...e, cur: { ...cur } }; return; } FGA[i][2].forEach(([v]) => rec(i + 1, { ...cur, [keys[i]]: v })); }; rec(0, {}); return b; }
+function igFinal() {
+  $('igBody').innerHTML = crP(1, 'The brief', `A coastal hotel: <b>12 tree uplights</b> in a lawn on clay, <b>10 step lights</b> along a 50 m path, <b>4 uplights</b> in the driveway and <b>4 underwater lights</b> in the pool. Budget <b>${FGBUD.toLocaleString('en-GB')}</b> (cost index) up front. The client wants it to work after three monsoons – and it must be safe and legal.`)
+    + crP(2, 'Your choices', '<div id="fgOpt"></div><div class="kpis" id="fgKpi"></div><div class="row"><span class="btn p" onclick="FG.done=true;fgDraw()">Run three monsoons ▶</span></div>')
+    + crP(3, 'Three monsoons later', '<div class="info" id="fgOut" style="min-height:0"></div>')
+    + crP(4, 'Final test', '<div class="m">Ten questions across the whole module – 7 of 10 completes the In-ground luminaires module.</div>');
+  fgDraw();
+}
+function fgDraw() {
+  $('fgOpt').innerHTML = FGA.map(([k, lab, list]) => `<div class="m" style="font-size:12px;margin-top:8px">${lab}</div><div class="row">${list.map(([v, t, c]) => crB(FG[k] === v, `${t}${c ? ` (${c})` : ''}`, `FG.${k}='${v}';FG.done=false;fgDraw()`)).join('')}</div>`).join('');
+  const E = fgEval(FG);
+  $('fgKpi').innerHTML = `<div><b style="color:${E.over ? '#b91c1c' : 'inherit'}">${E.capex.toLocaleString('en-GB')}</b>up front (budget ${FGBUD.toLocaleString('en-GB')})</div>`;
+  if (!FG.done) { $('fgOut').innerHTML = 'Make your choices and run three monsoons.'; return; }
+  const B = fgBest(), stars = E.over || E.poolIllegal ? 0 : E.total <= B.total * 1.03 ? 3 : E.total <= B.total * 1.3 ? 2 : 1;
+  $('fgOut').innerHTML = `<h5>${E.poolIllegal ? '✕ Not allowed – 230 V lights in a pool (zone 0 needs SELV ≤ 12 V AC)' : E.over ? 'Over budget – the client rejects the offer' : ['', '★ It works, but it cost the client', '★★ Good', '★★★ Excellent – cheapest over three monsoons'][stars]}</h5>
+    <div>Three-year cost: <b>${Math.round(E.total).toLocaleString('en-GB')}</b> (best legal choice within budget ≈ ${Math.round(B.total).toLocaleString('en-GB')})</div>
+    <div class="k">What happened</div><div>Lawn: <b>${E.lawnFail} of 12</b> uplights failed${E.lawnFail ? ` (${E.lawn.dr.under > 0.5 ? 'standing in water in the clay' : 'water through joints and glands'}${FG.irr === 'night' ? ', sprinklers on hot fittings' : ''})` : ''}. Path: <b>${E.pathFail}</b> failed${E.pathDim ? `, <b>${E.pathDim}</b> visibly dim at the end of the run` : ''}. Driveway: <b>${E.driveFail ? 'all 4 cracked' : 'fine'}</b>. Pool: <b>${E.poolFail ? 'all 4 failed – the joint box flooded' : 'fine'}</b>.</div>
+    ${!E.over && !E.poolIllegal && stars < 3 ? `<div class="k">The best within budget</div><div>${FGA.map(([k, lab, list]) => `${lab.split(' – ')[0]}: ${list.find((x) => x[0] === B.cur[k])[1]}`).join(' · ')}</div>` : ''}`;
+}
+
+// ---------------- the lessons
+MODULES.push(['ing', 'In-ground luminaires', 'Uplights, step & marker lights, underwater lights – installation that lasts, and the failures to avoid']);
+add('ing', 'The fitting', 'ig_anat', '🔦', 'Inside an in-ground fitting', { type: 'lab', lab: 'ingv', preset: 'anat', mins: 5, live: 1, quiz: [Q('The installation sleeve is there to…', ['hold the fitting and keep concrete and soil off it, so it can be serviced', 'make the light brighter', 'replace the gravel bed'], 0), Q('Where may a pool light be connected?', ['Only in a box above the maximum water level', 'Inside the niche', 'Anywhere if taped'], 0), Q('Many marker lights are fully potted because…', ['with no air inside, they cannot breathe water in', 'it makes them lighter', 'it is cheaper to ship'], 0)] });
+add('ing', 'Water', 'ig_drain', '🌧️', 'Drainage – the bathtub effect', { type: 'lab', lab: 'ingv', preset: 'drain', mins: 7, live: 1, quiz: [Q('On clay soil, a gravel bed alone…', ['fills like a bathtub – it needs a soakaway or a drain', 'is always enough', 'is not needed'], 0), Q('IP67 tests…', ['1 m of water for 30 minutes', 'permanent immersion', 'jets of water only'], 0), Q('Setting the fitting below the surface…', ['collects water and dirt on the glass', 'protects it', 'improves the light'], 0)] });
+add('ing', 'Water', 'ig_pump', '🧲', 'Pumping & wicking', { type: 'lab', lab: 'ingv', preset: 'pump', mins: 7, live: 1, quiz: [Q('When does an uplight suck water in?', ['When it is hot and cold rain or a sprinkler cools it', 'When it is switched on in the dry', 'Never if it is IP67'], 0), Q('A taped joint buried in wet soil can…', ['send water along the cable into the next fitting', 'only affect that joint', 'improve the earth'], 0), Q('The best time for garden irrigation is…', ['when the lights are off and cool', 'at night while the lights are on', 'it makes no difference'], 0)] });
+add('ing', 'Selection', 'ig_place', '📍', 'Right fitting, right place', { type: 'lab', lab: 'ingv', preset: 'place', mins: 6, live: 1, quiz: [Q('A driveway needs…', ['a drive-over load rating from the maker', 'a brighter LED', 'a 304 ring'], 0), Q('On a pool deck the glass must be…', ['low temperature and anti-slip', 'clear and hot', 'painted'], 0), Q('In zone 0 of a pool only…', ['SELV ≤ 12 V AC (or 30 V DC) with the source outside the zones', '230 V with an RCD', 'any voltage if IP68'], 0)] });
+add('ing', 'Installation', 'ig_order', '🔢', 'Installation order', { type: 'lab', lab: 'ingv', preset: 'order', mins: 5, live: 1, quiz: [Q('The concrete collar goes…', ['around the sleeve, never under it', 'under the sleeve', 'over the glass'], 0), Q('The insulation test is done…', ['before fitting the luminaires, and again complete', 'never on SELV', 'only if something fails'], 0), Q('Why leave a cable coil in a pool niche?', ['So the light can be lifted onto the deck for service', 'For more light', 'To cool the cable'], 0)] });
+add('ing', 'Installation', 'ig_sim', '⏳', 'Five years on – installation simulator', { type: 'lab', lab: 'ingv', preset: 'sim', mins: 8, live: 1, quiz: [Q('The right finished height for an in-ground light is…', ['2–3 mm above the surrounding surface', '10 mm below', '15 mm above'], 0), Q('Without a sleeve and collar the fitting…', ['settles and tilts – the aim is lost', 'lasts longer', 'is easier to service'], 0), Q('In a lawn, the glass is soon covered unless…', ['it is slightly proud with a mowing strip', 'it is set flush', 'it is very bright'], 0)] });
+add('ing', 'Electrics', 'ig_elec', '⚡', 'Electrics – SELV, voltage drop, RCD, pools', { type: 'lab', lab: 'ingv', preset: 'elec', mins: 7, live: 1, quiz: [Q('Why do 24 V runs need bigger cable than 230 V?', ['The current is about ten times higher for the same power', 'Low voltage is more dangerous', 'They don’t'], 0), Q('Outdoor lighting circuits are protected by…', ['a 30 mA RCD', 'a 300 mA RCD only', 'no RCD on SELV or 230 V'], 0), Q('Where does a SELV driver belong?', ['In a ventilated box above ground near the run', 'Buried next to the fitting', 'Inside the pool niche'], 0)] });
+add('ing', 'Site work', 'ig_diag', '🔍', 'Diagnose the failure – 12 cases', { type: 'lab', lab: 'ingv', preset: 'diag', mins: 8, live: 1, quiz: [Q('A whole run fails after rain; the first fitting is dry. Most likely…', ['water wicked along the cable from a wet joint', 'a bad batch', 'lightning'], 0), Q('The RCD trips only on wet nights – look for…', ['a wet joint or gland', 'a faulty RCD', 'too many fittings'], 0), Q('Tree uplights now point at the windows – the cause is…', ['no sleeve / collar, so they settled and tilted', 'wind', 'hot weather'], 0)] });
+add('ing', 'Site work', 'ig_insp', '✅', 'Inspect & maintain', { type: 'lab', lab: 'ingv', preset: 'insp', mins: 4, live: 1, quiz: [Q('A few hours after rain, water around the fitting means…', ['the drainage does not work', 'normal', 'the glass is cracked'], 0), Q('The minimum insulation resistance on a 230 V circuit at 500 V is…', ['1 MΩ', '0.1 MΩ', '100 Ω'], 0), Q('After building works on site you should…', ['check levels and damage on every in-ground light', 'nothing', 'switch them off'], 0)] });
+add('ing', 'Final challenge', 'ig_final', '🏆', 'Final challenge – hotel garden & pool', { type: 'lab', lab: 'ingv', preset: 'final', mins: 10, live: 1, quiz: [Q('The “bathtub effect” happens when…', ['a backfilled pit in clay holds water around the fitting', 'the glass is too thick', 'the light is too bright'], 0), Q('A hot uplight cooled by rain…', ['sucks water in through the gland and gasket', 'pushes water out', 'is not affected'], 0), Q('Joints for in-ground lights belong…', ['in a box above ground or a drained pit, with gel / resin connectors', 'taped and buried next to the fitting', 'inside the fitting'], 0), Q('The finished top of an in-ground light should be…', ['2–3 mm above the surface', 'flush with the lawn', '20 mm above'], 0), Q('A garden uplight in a driveway will…', ['crack unless it is drive-over rated', 'be fine', 'get hotter'], 0), Q('For a pool deck choose…', ['low glass temperature, anti-slip glass and a 316 ring', 'hot glass and a painted ring', 'any IP65 fitting'], 0), Q('Zone 0 of a pool allows…', ['SELV ≤ 12 V AC with the source outside zones 0–2', '230 V with a 30 mA RCD', 'any IP68 fitting'], 0), Q('On a long 24 V run the end fittings are dim – fix it by…', ['a bigger cable or feeding from the middle', 'a 30 V driver', 'adding more fittings'], 0), Q('Irrigation should run…', ['when the lights are off', 'when the lights are on', 'during storms'], 0), Q('The insulation test on SELV is…', ['250 V DC, at least 0.5 MΩ', '1000 V DC', 'not needed'], 0)] });
+L.forEach((l) => { LESSONS[l.id] = l; });
+LAB_INIT.ingv = (p) => igOpen(p);
 
 const MODN = Object.fromEntries(MODULES.map(([k, n]) => [k, n]));
 function openLesson(id) { if (location.hash !== '#l/' + id) location.hash = '#l/' + id; else route(); }
