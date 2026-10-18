@@ -9101,7 +9101,7 @@ select pg_temp.act_as('lighting_engineer'); set role authenticated;
 do $$ declare f uuid; r public.design_tool_files;
 begin
   assert exists (select 1 from public.design_tool_engine where version = 'v12' and html like '%dtRecv%'), 'engine readable';
-  assert (select version from public.design_tool_engine order by created_at desc, version desc limit 1) = 'v54', 'newest engine first';
+  assert (select version from public.design_tool_engine order by created_at desc, version desc limit 1) = 'v55', 'newest engine first';
   perform public.design_driver_save('11111111-1111-4111-8111-111111111111', '{"make":"Tridonic","model":"XFL-1500","inrushA":95,"src":{"inrushA":"x"}}'::jsonb, 'drivers/11111111/a.pdf', 'a.pdf');
   perform public.design_driver_save('11111111-1111-4111-8111-111111111111', '{"make":"Tridonic","model":"XFL-1500","inrushA":90}'::jsonb);
   assert (select file_path = 'drivers/11111111/a.pdf' and (data->>'inrushA')::int = 90 and not data ? 'src' from public.design_drivers where id = '11111111-1111-4111-8111-111111111111'), 'driver updated, datasheet kept';
