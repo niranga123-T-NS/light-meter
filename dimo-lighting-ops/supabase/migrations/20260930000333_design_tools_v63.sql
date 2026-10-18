@@ -1,5 +1,5 @@
 -- Design Tools engine v63 – Lighting calc: option to include light reflected from the ground (Lambertian, reflectance rho with typical surfaces and guidance)
---  on the camera planes; the same rho for the glare rating; report wording follows the setting
+--  on the camera planes – in the results and, when ticked, in the automatic design and the optimiser too; the same rho for the glare rating
 insert into public.design_tool_engine (version, html) values ('v63', $dtengine$<!doctype html>
 <html lang="en">
 <head>
@@ -5900,6 +5900,18 @@ function lcGR(L, Q, obs, view, EhAv, rho = 0.2) {
   const Lve = (0.035 * rho * EhAv) / Math.PI; return Lvl > 0 && Lve > 0 ? 27 + 24 * Math.log10(Lvl / Lve ** 0.9) : 0;
 }
 
+// for the automatic design and the optimiser: reflected light at a point towards a camera ≈ k × Eh there (k from the ground's shape and the plane's direction,
+// for an evenly lit field), so each floodlight's reflected share is k × its own Eh – worked out once per ground / grid / cameras and kept
+const LCRF = new Map();
+function lcReflK(L, rcv, N, hc) { const rho = Math.max(0, Math.min(0.9, +L.rho || 0.2)), h = Math.max(0.05, hc), key = JSON.stringify([L.g, L.s, rho, h, L.plane, L.cams, rcv.length, rcv[0]?.x, rcv[0]?.y, rcv[rcv.length - 1]?.x]);
+  if (LCRF.has(key)) return LCRF.get(key); if (LCRF.size > 6) LCRF.clear();
+  const s = +L.s || 2.5, G = 5, R0 = 7.5, cells = new Map(); lcGrid(L.g, s).forEach((p) => { if (p.a === 'w') return; const k = Math.floor(p.x / G) + ':' + Math.floor(p.y / G); let c = cells.get(k); if (!c) cells.set(k, (c = { a: 0, x: 0, y: 0 })); c.a += s * s; c.x += p.x * s * s; c.y += p.y * s * s; });
+  const src = [...cells.values()].map((c) => ({ x: c.x / c.a, y: c.y / c.a, LA: (rho * c.a) / Math.PI })), NR = 16, NA = 32, ring = [], Lp = rho / Math.PI;
+  for (let a = 0; a < NR; a++) { const r = ((a + 0.5) * R0) / NR; for (let b = 0; b < NA; b++) { const t = ((b + 0.5) * 2 * Math.PI) / NA; ring.push([r * Math.cos(t), r * Math.sin(t), (r * R0 * 2 * Math.PI) / (NR * NA)]); } }
+  const out = rcv.map((p, i) => N[i].map((n) => { let e = 0; for (const [vx, vy, dA] of ring) { const d2 = vx * vx + vy * vy + h * h, d = Math.sqrt(d2), cr = (vx * n[0] + vy * n[1] - h * n[2]) / d; if (cr > 0) e += (Lp * dA * (h / d) * cr) / d2; }
+    for (const q of src) { const vx = q.x - p.x, vy = q.y - p.y, r2 = vx * vx + vy * vy; if (r2 < R0 * R0) continue; const d2 = r2 + h * h, d = Math.sqrt(d2), cr = (vx * n[0] + vy * n[1] - h * n[2]) / d; if (cr > 0) e += (q.LA * (h / d) * cr) / d2; } return e; }));
+  LCRF.set(key, out); return out; }
+
 // ---------------- automatic design: masts round the boundary, height and number of luminaires, aiming, optimising the aiming
 function lcDemoLums(L) { [[24, 'n'], [40, 'm'], [60, 'w']].forEach(([fw, k]) => { const id = 'demo-' + k; if (!L.lums[id]) L.lums[id] = lcDemo(fw); }); if (!L.lum || !L.lums[L.lum]) L.lum = 'demo-n'; }
 // ---------------- mast rules (cricket, LiDAC spec): outside the forbidden zone behind the wickets, outside the playing area, aiming within 70°, symmetrical, at least 6 masts
@@ -5975,7 +5987,7 @@ function lcScore(L, R, idx, nC) { const T = L.tg, Wt = { w: 2, i: 1.5, o: 1 }; l
   return s; }
 function lcContrib(L, q, pts, cams, hc, mf) { // one luminaire's contribution: Eh then Ecam per camera, per point
   const n = pts.length, nC = cams.length, out = new Float32Array(n * (1 + nC));
-  for (let i = 0; i < n; i++) { const p = pts[i], [k0, , , bz0] = lcOne(q, p.x, p.y, 0); if (bz0 > 0) out[i] = k0 * bz0 * mf; const [k1, bx, by, bz] = lcOne(q, p.x, p.y, hc); for (let c = 0; c < nC; c++) { const nv = p.n[c], cs = bx * nv[0] + by * nv[1] + bz * nv[2]; if (cs > 0) out[n * (1 + c) + i] = k1 * cs * mf; } }
+  for (let i = 0; i < n; i++) { const p = pts[i], [k0, , , bz0] = lcOne(q, p.x, p.y, 0); if (bz0 > 0) out[i] = k0 * bz0 * mf; const [k1, bx, by, bz] = lcOne(q, p.x, p.y, hc); for (let c = 0; c < nC; c++) { const nv = p.n[c], cs = bx * nv[0] + by * nv[1] + bz * nv[2]; if (cs > 0) out[n * (1 + c) + i] = k1 * cs * mf; if (p.rf) out[n * (1 + c) + i] += out[i] * p.rf[c]; } } // + its light reflected from the ground, when ticked
   return out; }
 function lcPrep(L, fine = false) { // the coarse grid the optimiser and the placement search score on – or (fine) exactly the results' grid
   const g = L.g, cams = L.cams.filter((c) => c.on !== false), nC = cams.length, hc = +L.hc || 0, mf = +L.mf || 0.8;
@@ -5983,6 +5995,7 @@ function lcPrep(L, fine = false) { // the coarse grid the optimiser and the plac
   if (!fine) for (let x = -g.wA + 1.25; x < g.wA; x += 2.5) for (let y = -g.wB + 1.25; y < g.wB; y += 2.5) if (lcArea(g, x, y) === 'w') pts.push({ x, y, a: 'w' });
   const nr = fine ? 0 : Math.round((Math.PI * (g.Rx + g.Ry)) / 5); for (let k = 0; k < nr; k++) { const t = (2 * Math.PI * k) / nr, x = Math.cos(t) * (g.Rx - 1.25), y = Math.sin(t) * (g.Ry - 1.25); if (lcArea(g, x, y) === 'o') pts.push({ x, y, a: 'o' }); } // the boundary edge, where the outer field is weakest
   pts.forEach((p) => (p.n = cams.map((c) => lcCam(L, c, p.x, p.y, hc))));
+  if (L.refl && nC) { const K = lcReflK(L, pts, pts.map((p) => p.n), hc); pts.forEach((p, i) => (p.rf = K[i])); } // ground reflection in the score too
   const n = pts.length, idx = { w: [], i: [], o: [] }; pts.forEach((p, i) => idx[p.a]?.push(i));
   return { g, cams, nC, hc, mf, pts, n, idx, view: (Tv) => ({ Eh: Tv.subarray(0, n), Ec: cams.map((_, c) => Tv.subarray(n * (1 + c), n * (2 + c))) }) }; }
 function lcQuickScore(L) { const P = lcPrep(L), T = new Float32Array(P.n * (1 + P.nC)); lcLums(L).forEach((q) => { const c = lcContrib(L, q, P.pts, P.cams, P.hc, P.mf); for (let j = 0; j < T.length; j++) T[j] += c[j]; }); return lcScore(L, P.view(T), P.idx, P.nC); }
@@ -6298,7 +6311,7 @@ $('#lcWrap')?.addEventListener('touchstart', (e) => { if (e.touches.length > 1) 
 function lcReflHtml(L, num) { const r = L.rho ?? 0.2;
   return `<div style="display:grid;gap:6px;margin-top:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px"><label class="f chk"><input type="checkbox" id="lc_refl" ${L.refl ? 'checked' : ''}> <b>Include light reflected from the ground</b></label>
     <div class="grid2">${num('Ground reflectance', 'lc_rho', r, 'min="0.02" max="0.6" step="0.01"')}<label class="f">Typical surface<select id="lc_rhop"><option value="">– pick to set ρ –</option>${LC_RHO.map(([v, n]) => `<option value="${v}"${+r === v ? ' selected' : ''}>${n} – ${v.toFixed(2)}</option>`).join('')}</select></label></div>
-    <p class="note" style="margin:0">The grass reflects part of the light back up: it raises the <b>vertical</b> illuminance towards the cameras (about ρ × Eh ÷ 2 on a vertical plane – with grass at 0.20 typically 10–15 % more Ecam) but adds nothing to the <b>horizontal</b> illuminance on the ground. Typical reflectance: natural grass 0.20 (the value CIE 112 uses for the glare rating, and the usual design value in EN 12193 and broadcast lighting guidance such as CIE 169); dense dark-green grass 0.15; dry or light grass 0.25; a rolled clay square 0.25–0.30; green artificial turf about 0.10. Use a measured value where the ground has been surveyed. Leave it off for a conservative design – sports-lighting specs usually ask for direct light only, or state the reflectance to use; tick it to match a DIALux / Relux calculation that includes it. The same ρ is used for the glare rating. The automatic design aims on direct light, so the reflected light is extra margin.</p></div>`; }
+    <p class="note" style="margin:0">The grass reflects part of the light back up: it raises the <b>vertical</b> illuminance towards the cameras (about ρ × Eh ÷ 2 on a vertical plane – with grass at 0.20 typically 10–15 % more Ecam) but adds nothing to the <b>horizontal</b> illuminance on the ground. Typical reflectance: natural grass 0.20 (the value CIE 112 uses for the glare rating, and the usual design value in EN 12193 and broadcast lighting guidance such as CIE 169); dense dark-green grass 0.15; dry or light grass 0.25; a rolled clay square 0.25–0.30; green artificial turf about 0.10. Use a measured value where the ground has been surveyed. Leave it off for a conservative design – sports-lighting specs usually ask for direct light only, or state the reflectance to use; tick it to match a DIALux / Relux calculation that includes it. The same ρ is used for the glare rating. When ticked, the automatic design and the optimiser count the reflected light too (so they may use fewer floodlights or lower masts); untick it to design on direct light only.</p></div>`; }
 // ---------------- the Lighting calc: masts follow the stadium layout, one-press complete design, PDF report and aiming schedule
 const lcLinked = () => !!(EL.stad?.on && EL.stad.lcLink !== false);
 const lcStadSig = () => { try { const o = stadOpt(); return JSON.stringify([o.sd.sport, o.R, stadMasts().map((m) => [Math.round(m.x * 10), Math.round(m.y * 10), m.H, m.heads])]); } catch (e) { return ''; } };
