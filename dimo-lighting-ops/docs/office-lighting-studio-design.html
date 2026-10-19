@@ -1,0 +1,392 @@
+<title>Office Lighting Studio</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a single reading column for the course plan, opening out to full width for the practice-screen mock-up and the session timeline */
+:root {
+  --bg: #f4f6f7; --paper: #ffffff; --ink: #17222b; --muted: #5a6872; --line: #d9e0e4;
+  --accent: #0b5d7a; --accent-soft: #e2eff4; --lux: #f2b705; --good: #1f7a4d; --good-soft: #e3f3ea; --warn: #a15c00; --warn-soft: #fbefdc; --bad: #b3261e; --bad-soft: #fbe5e3;
+  --plan-floor: #fbfcfc; --plan-wall: #2b3a44;
+  --f-display: 'Archivo', 'Helvetica Neue', Arial, sans-serif; --f-body: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; --f-mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f161b; --paper: #162129; --ink: #e6edf1; --muted: #9aabb6; --line: #2a3943; --accent: #5fb6d6; --accent-soft: #15303c; --lux: #f5c842;
+  --good: #5cc48d; --good-soft: #143326; --warn: #e6a64d; --warn-soft: #3a2a12; --bad: #f08a82; --bad-soft: #3d1a18; --plan-floor: #1b2830; --plan-wall: #c9d6de; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0f161b; --paper: #162129; --ink: #e6edf1; --muted: #9aabb6; --line: #2a3943; --accent: #5fb6d6; --accent-soft: #15303c; --lux: #f5c842;
+  --good: #5cc48d; --good-soft: #143326; --warn: #e6a64d; --warn-soft: #3a2a12; --bad: #f08a82; --bad-soft: #3d1a18; --plan-floor: #1b2830; --plan-wall: #c9d6de; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font: 16px/1.55 var(--f-body); }
+.wrap { max-width: 1080px; margin: 0 auto; padding-block: 40px 72px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 56px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.15; }
+h1 { font-size: clamp(2rem, 5vw, 3.1rem); font-weight: 800; letter-spacing: -0.02em; }
+h2 { font-size: 1.6rem; font-weight: 700; }
+h3 { font-size: 1.08rem; font-weight: 700; }
+p { margin: 0; max-width: 68ch; }
+.eyebrow { font: 600 0.74rem/1 var(--f-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+.lede { font-size: 1.15rem; color: var(--muted); max-width: 62ch; }
+section { display: grid; gap: 18px; }
+.head { display: grid; gap: 10px; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.draft { display: inline-flex; gap: 8px; align-items: center; font: 600 0.78rem var(--f-mono); color: var(--warn); background: var(--warn-soft); padding: 4px 10px; border-radius: 4px; width: fit-content; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.facts div { background: var(--paper); padding: 14px 16px; display: grid; gap: 4px; min-width: 0; }
+.facts b { font: 600 0.72rem var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+@media (max-width: 760px) { .two { grid-template-columns: 1fr; } }
+.planbox { background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 14px; overflow-x: auto; }
+.planbox svg { display: block; width: 100%; min-width: 520px; height: auto; }
+.brief { display: grid; gap: 10px; }
+.brief ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+table { border-collapse: collapse; width: 100%; font-size: 0.93rem; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 0.72rem var(--f-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+td.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tablewrap { overflow-x: auto; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; border-left: 2px solid var(--line); }
+.steps li { position: relative; padding: 0 0 26px 26px; display: grid; gap: 6px; }
+.steps li::before { content: attr(data-n); position: absolute; left: -15px; top: -2px; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--paper); font: 700 0.8rem/28px var(--f-mono); text-align: center; }
+.steps .do { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 4px 12px; font-size: 0.94rem; }
+.steps .do span:nth-child(odd) { font: 600 0.72rem/1.9 var(--f-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+@media (max-width: 520px) { .steps .do { grid-template-columns: 1fr; } }
+.chk { color: var(--good); }
+/* practice screen mock-up */
+.studio { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; display: grid; grid-template-columns: 190px minmax(0, 1fr) 270px; min-height: 480px; }
+@media (max-width: 980px) { .studio { grid-template-columns: 1fr; } }
+.rail { border-right: 1px solid var(--line); padding: 14px 0; display: grid; align-content: start; gap: 2px; font-size: 0.88rem; }
+.rail div { padding: 7px 16px; display: flex; gap: 10px; align-items: center; color: var(--muted); }
+.rail div i { font: 600 0.7rem var(--f-mono); width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--line); display: grid; place-items: center; font-style: normal; flex: none; }
+.rail .done i { background: var(--good-soft); border-color: var(--good); color: var(--good); }
+.rail .now { background: var(--accent-soft); color: var(--ink); font-weight: 600; }
+.rail .now i { background: var(--accent); border-color: var(--accent); color: var(--paper); }
+@media (max-width: 980px) { .rail { border-right: 0; border-bottom: 1px solid var(--line); grid-auto-flow: column; overflow-x: auto; } .rail div { white-space: nowrap; } }
+.canvas { padding: 16px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.canvas .task { font-size: 0.93rem; color: var(--muted); }
+.canvas .task b { color: var(--ink); }
+.canvas svg { width: 100%; height: auto; display: block; background: var(--plan-floor); border: 1px solid var(--line); border-radius: 4px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; font: 0.75rem var(--f-mono); color: var(--muted); }
+.legend .bar { width: 160px; height: 8px; border-radius: 2px; background: linear-gradient(90deg, #2b4c7e, #3a8fb7, #6cc3a0, #f2d14b, #f28c28, #d6452b); }
+.side { border-left: 1px solid var(--line); padding: 16px; display: grid; gap: 16px; align-content: start; }
+@media (max-width: 980px) { .side { border-left: 0; border-top: 1px solid var(--line); } }
+.ctl { display: grid; gap: 6px; }
+.ctl label { font: 600 0.72rem var(--f-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.ctl select { font: inherit; font-size: 0.9rem; padding: 7px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--paper); color: var(--ink); width: 100%; }
+.stepper { display: flex; align-items: center; gap: 8px; }
+.stepper button { font: 600 1rem var(--f-mono); width: 32px; height: 32px; border: 1px solid var(--line); border-radius: 4px; background: var(--paper); color: var(--ink); cursor: pointer; }
+.stepper button:hover { border-color: var(--accent); }
+.stepper button:focus-visible, .ctl select:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.stepper output { font: 600 1rem var(--f-mono); min-width: 2ch; text-align: center; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.results { display: grid; gap: 6px; }
+.res { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 4px; font-size: 0.86rem; }
+.res .v { font: 600 0.88rem var(--f-mono); font-variant-numeric: tabular-nums; }
+.res.ok { background: var(--good-soft); } .res.ok .v { color: var(--good); }
+.res.no { background: var(--bad-soft); } .res.no .v { color: var(--bad); }
+.res.hint { background: var(--warn-soft); } .res.hint .v { color: var(--warn); }
+.verdict { font-size: 0.86rem; padding: 10px 12px; border-radius: 4px; border: 1px solid var(--line); }
+.btn { font: 600 0.9rem var(--f-body); padding: 9px 14px; border-radius: 4px; border: 1px solid var(--accent); background: var(--accent); color: var(--paper); cursor: pointer; }
+.btn[disabled] { opacity: 0.45; cursor: not-allowed; }
+.note { font-size: 0.82rem; color: var(--muted); }
+/* agenda */
+.agenda { display: grid; gap: 0; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.agenda div { display: grid; grid-template-columns: 96px minmax(0, 1fr) 120px; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); align-items: baseline; }
+.agenda div:last-child { border-bottom: 0; }
+.agenda .t { font: 600 0.82rem var(--f-mono); color: var(--accent); }
+.agenda .k { font: 0.75rem var(--f-mono); color: var(--muted); text-align: right; }
+@media (max-width: 560px) { .agenda div { grid-template-columns: 1fr; gap: 2px; } .agenda .k { text-align: left; } }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.card { background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 16px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.card ul { margin: 0; padding-left: 18px; display: grid; gap: 3px; font-size: 0.94rem; }
+.rec { font: 600 0.7rem var(--f-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--good); }
+.flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 0.92rem; }
+.flow span { background: var(--paper); border: 1px solid var(--line); border-radius: 4px; padding: 6px 10px; }
+.flow em { font-style: normal; color: var(--muted); }
+.decide { display: grid; gap: 12px; counter-reset: q; }
+.decide div { background: var(--paper); border: 1px solid var(--line); border-left: 3px solid var(--warn); border-radius: 4px; padding: 12px 16px; display: grid; gap: 4px; }
+code { font: 0.86em var(--f-mono); background: var(--accent-soft); padding: 1px 5px; border-radius: 3px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+
+<header class="head">
+  <span class="eyebrow">Dacademy · new course · design for review</span>
+  <h1>Office Lighting Studio</h1>
+  <p class="lede">A hands-on training session where clients design a real office floor with TRILUX luminaires, step by step. They go from the brief to a finished lighting design and report, and every step checks itself against EN&nbsp;12464-1.</p>
+  <span class="draft">DRAFT v1: product names and figures are examples until we receive TRILUX data</span>
+</header>
+
+<section>
+  <div class="facts">
+    <div><b>Who</b>Clients: architects, MEP consultants, contractors, facility managers and developers</div>
+    <div><b>Format</b>Live session led by a DIMO lighting engineer (2 h), or self-paced in Dacademy</div>
+    <div><b>Practice</b>One office floor of 5 spaces in 9 steps, then a challenge room done unaided</div>
+    <div><b>Outcome</b>A finished design report and a Dacademy certificate</div>
+  </div>
+</section>
+
+<section>
+  <div class="head">
+    <span class="eyebrow">The practice project</span>
+    <h2>Client brief: Harbour View Offices, 3rd floor</h2>
+  </div>
+  <div class="two">
+    <div class="brief">
+      <p>Every participant works on the same brief, so the instructor can compare designs and talk them through live.</p>
+      <ul>
+        <li>Floor 20 × 12 m, clear ceiling height 2.80 m, 600 × 600 mm grid ceiling</li>
+        <li>Windows on the south and west façades</li>
+        <li>Open-plan office for 24 people, with screen work all day</li>
+        <li>Meeting room with a display screen and video calls</li>
+        <li>Manager's cabin, corridor and reception</li>
+        <li>Client asks: "Comfortable, no glare on screens, lowest energy bill, ready for smart controls"</li>
+      </ul>
+    </div>
+    <div class="planbox" aria-label="Floor plan of the practice project">
+      <svg viewBox="0 0 860 540" role="img">
+        <title>Floor plan: open office, meeting room, cabin, corridor and reception</title>
+        <g transform="translate(30,20)" font-family="Source Sans 3, sans-serif" font-size="14">
+          <rect x="0" y="0" width="800" height="480" fill="var(--plan-floor)" stroke="var(--plan-wall)" stroke-width="5"/>
+          <line x1="480" y1="0" x2="480" y2="480" stroke="var(--plan-wall)" stroke-width="3"/>
+          <line x1="480" y1="200" x2="800" y2="200" stroke="var(--plan-wall)" stroke-width="3"/>
+          <line x1="640" y1="200" x2="640" y2="480" stroke="var(--plan-wall)" stroke-width="3"/>
+          <line x1="640" y1="360" x2="800" y2="360" stroke="var(--plan-wall)" stroke-width="3"/>
+          <line x1="0" y1="480" x2="480" y2="480" stroke="var(--accent)" stroke-width="7" stroke-dasharray="60 14"/>
+          <line x1="0" y1="0" x2="0" y2="480" stroke="var(--accent)" stroke-width="7" stroke-dasharray="60 14"/>
+          <g fill="var(--line)">
+            <rect x="60" y="70" width="140" height="56" rx="3"/><rect x="60" y="190" width="140" height="56" rx="3"/><rect x="60" y="310" width="140" height="56" rx="3"/>
+            <rect x="270" y="70" width="140" height="56" rx="3"/><rect x="270" y="190" width="140" height="56" rx="3"/><rect x="270" y="310" width="140" height="56" rx="3"/>
+            <rect x="540" y="60" width="200" height="80" rx="40"/>
+            <rect x="670" y="250" width="100" height="44" rx="3"/>
+          </g>
+          <g fill="var(--ink)" font-weight="600">
+            <text x="240" y="440" text-anchor="middle">Open-plan office · 12 × 12 m · 144 m²</text>
+            <text x="640" y="180" text-anchor="middle">Meeting room · 8 × 5 m</text>
+            <text x="560" y="345" text-anchor="middle">Corridor</text>
+            <text x="720" y="335" text-anchor="middle">Cabin 4 × 4 m</text>
+            <text x="720" y="425" text-anchor="middle">Reception</text>
+          </g>
+          <g fill="var(--muted)" font-size="13">
+            <text x="240" y="508" text-anchor="middle">South façade (glazed)</text>
+            <text x="-10" y="240" text-anchor="middle" transform="rotate(-90 -10 240)">West façade (glazed)</text>
+          </g>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="head">
+    <span class="eyebrow">The design process they practise</span>
+    <h2>Nine steps, each one checked before moving on</h2>
+    <p>Each step is a short explanation, one hands-on task on the plan, and an automatic check. A wrong answer is never just marked wrong. The check says what is off and why, for example "UGR 22: this panel is too bright for screen work, try a microprismatic optic". Participants can retry until the step passes.</p>
+  </div>
+  <ol class="steps">
+    <li data-n="1"><h3>Read the brief and set the requirements</h3>
+      <div class="do"><span>Task</span><span>Drag the right EN 12464-1:2021 task onto each space: open office 500 lx, meeting room 500 lx, corridor 100 lx, reception 300 lx. Then set uniformity U<sub>o</sub>, glare limit UGR<sub>L</sub> and colour rendering R<sub>a</sub>.</span>
+      <span>Check</span><span class="chk">Every value matches the standard's table. The check explains that 500 lx is the minimum maintained value, not a target to beat by 50%.</span></div></li>
+    <li data-n="2"><h3>Room data and maintenance factor</h3>
+      <div class="do"><span>Task</span><span>Enter the reflectances (ceiling 0.7, walls 0.5, floor 0.2) and the 0.75 m working plane. Build the maintenance factor from LED life (L80 at 50,000 h), room cleanliness and the cleaning interval.</span>
+      <span>Check</span><span class="chk">MF within ±0.03 of the model answer (about 0.80), with a slider showing how MF changes the luminaire count</span></div></li>
+    <li data-n="3"><h3>Choose the luminaires</h3>
+      <div class="do"><span>Task</span><span>Pick from a deck of TRILUX office luminaire cards. Each card shows the photometry, efficacy (lm/W), UGR, CRI, mounting and optic. Choose a fitting for each space: recessed for the grid ceiling, suspended direct/indirect for open plan, downlights for the corridor.</span>
+      <span>Check</span><span class="chk">The mounting suits the ceiling, UGR meets the space's limit and the CRI is high enough. A wrong pick explains the reason, for example "an opal diffuser gives UGR &gt; 19".</span></div></li>
+    <li data-n="4"><h3>Estimate the count: lumen method</h3>
+      <div class="do"><span>Task</span><span>Work out the room index and read the utilisation factor from the luminaire's UF table. Then solve <span class="mono">N = E × A / (Φ × UF × MF)</span> for the open office.</span>
+      <span>Check</span><span class="chk">N within ±10% of the model answer. The working is shown line by line afterwards.</span></div></li>
+    <li data-n="5"><h3>Lay out on the plan</h3>
+      <div class="do"><span>Task</span><span>Place the luminaires in rows and columns, snapped to the ceiling grid and lined up with the desks. A live false-colour map shows E<sub>m</sub> and U<sub>o</sub> as they work. (Try the mock-up below.)</span>
+      <span>Check</span><span class="chk">E<sub>m</sub> ≥ 500 lx and U<sub>o</sub> ≥ 0.60 on the task area, spacing-to-height within the luminaire's limit, and no more than 15% over-lighting</span></div></li>
+    <li data-n="6"><h3>Glare, screens and comfort</h3>
+      <div class="do"><span>Task</span><span>Read UGR from the luminaire's UGR table for this room and viewing direction. Check the luminance limits above 65° for screens, then the walls, ceiling and cylindrical illuminance (E<sub>z</sub>) for faces in video calls.</span>
+      <span>Check</span><span class="chk">UGR ≤ 19, screen luminance limits met, wall, ceiling and E<sub>z</sub> minimums met</span></div></li>
+    <li data-n="7"><h3>Controls and human-centric lighting</h3>
+      <div class="do"><span>Task</span><span>Draw the daylight zones along the façades and place presence sensors. Set absence mode, corridor linking and meeting room scenes. Choose whether to use tunable white for the open office.</span>
+      <span>Check</span><span class="chk">Every window zone has daylight dimming, every room has presence or absence control, and the meeting room has at least 3 scenes</span></div></li>
+    <li data-n="8"><h3>Energy and cost</h3>
+      <div class="do"><span>Task</span><span>Compare the design with the client's old T8 fluorescent fit-out: W/m², the LENI (EN 15193-1) annual energy per m² before and after controls, cost per year and payback.</span>
+      <span>Check</span><span class="chk">Within ±10%. The result feeds the client-facing summary.</span></div></li>
+    <li data-n="9"><h3>Design report</h3>
+      <div class="do"><span>Task</span><span>Review the report the app generates from their own design: luminaire schedule, plan, results per room, controls narrative and energy figures. Then send it to themselves.</span>
+      <span>Check</span><span class="chk">All rooms pass. This unlocks the challenge room and the certificate.</span></div></li>
+  </ol>
+</section>
+
+<section>
+  <div class="head">
+    <span class="eyebrow">Mock-up · step 5 of the practice screen</span>
+    <h2>Lay out the open-plan office</h2>
+    <p>This mock-up works: change the rows, columns or luminaire and the plan, results and check update. The course itself will calculate from real TRILUX LDT photometry with our Light calc engine. This preview uses a simplified model.</p>
+  </div>
+  <div class="studio">
+    <nav class="rail" aria-label="Course steps">
+      <div class="done"><i>✓</i>Requirements</div>
+      <div class="done"><i>✓</i>Room data &amp; MF</div>
+      <div class="done"><i>✓</i>Luminaires</div>
+      <div class="done"><i>✓</i>Lumen method</div>
+      <div class="now"><i>5</i>Layout</div>
+      <div><i>6</i>Glare &amp; comfort</div>
+      <div><i>7</i>Controls</div>
+      <div><i>8</i>Energy</div>
+      <div><i>9</i>Report</div>
+    </nav>
+    <div class="canvas">
+      <p class="task"><b>Task:</b> light the 12 × 12 m open-plan office to at least 500 lx maintained with U<sub>o</sub> ≥ 0.60. Your lumen-method answer was 40 luminaires.</p>
+      <svg id="plan" viewBox="0 0 480 480" role="img" aria-label="Open-plan office with illuminance false-colour map"></svg>
+      <div class="legend"><span>lux</span><span class="mono" id="lgLo">0</span><span class="bar"></span><span class="mono" id="lgHi">0</span><span>· task area excludes a 0.5 m border</span></div>
+    </div>
+    <aside class="side">
+      <div class="ctl">
+        <label for="lum">Luminaire</label>
+        <select id="lum">
+          <option value="0">Recessed panel 600 · 3,600 lm · 27 W · UGR&lt;19</option>
+          <option value="1">Recessed panel 600 · 4,300 lm · 32 W · UGR&lt;19</option>
+          <option value="2">Opal panel 600 · 3,800 lm · 30 W · UGR 22</option>
+        </select>
+      </div>
+      <div class="grid2">
+        <div class="ctl"><label>Rows</label><div class="stepper"><button type="button" id="rM" aria-label="Fewer rows">−</button><output id="rows">5</output><button type="button" id="rP" aria-label="More rows">+</button></div></div>
+        <div class="ctl"><label>Columns</label><div class="stepper"><button type="button" id="cM" aria-label="Fewer columns">−</button><output id="cols">7</output><button type="button" id="cP" aria-label="More columns">+</button></div></div>
+      </div>
+      <div class="results" id="results"></div>
+      <div class="verdict" id="verdict"></div>
+      <button class="btn" id="next" type="button" disabled>Next: glare &amp; comfort</button>
+      <p class="note">Luminaire figures are examples until TRILUX data is loaded.</p>
+    </aside>
+  </div>
+</section>
+
+<section>
+  <div class="head">
+    <span class="eyebrow">Live session</span>
+    <h2>Two hours with a DIMO lighting engineer</h2>
+    <p>Participants join on their own laptop or tablet with a session code. The instructor runs the session from the DIMO app and sees each person's progress live.</p>
+  </div>
+  <div class="agenda">
+    <div><span class="t">0:00</span><span><b>Welcome</b>: DIMO and TRILUX, what good office light does for people, and today's brief</span><span class="k">10 min</span></div>
+    <div><span class="t">0:10</span><span><b>Fundamentals, shown live</b>: lux vs luminance, uniformity, glare (UGR), colour temperature, CRI, using interactive sliders</span><span class="k">15 min</span></div>
+    <div><span class="t">0:25</span><span><b>Guided practice, steps 1–5</b>: requirements to layout, with the instructor demonstrating and the class following</span><span class="k">40 min</span></div>
+    <div><span class="t">1:05</span><span><b>Guided practice, steps 6–9</b>: glare, controls, energy and the report</span><span class="k">25 min</span></div>
+    <div><span class="t">1:30</span><span><b>Challenge room</b>: a training room of 9 × 7 m, done unaided and scored, with the class leaderboard on screen</span><span class="k">15 min</span></div>
+    <div><span class="t">1:45</span><span><b>Review and Q&amp;A</b>: compare 3 designs from the class, then certificates</span><span class="k">15 min</span></div>
+  </div>
+</section>
+
+<section>
+  <div class="head">
+    <span class="eyebrow">Around the practice</span>
+    <h2>What else the course includes</h2>
+  </div>
+  <div class="cards">
+    <div class="card"><h3>Instructor console</h3><ul><li>Start a session and share its code or QR</li><li>Live grid of participants and their current step</li><li>See who is stuck and on which check</li><li>Pause everyone, push a hint, show one design on the big screen</li></ul></div>
+    <div class="card"><h3>Scoring and certificate</h3><ul><li>Points per step, with fewer when hints are used</li><li>Challenge room scored separately</li><li>Pass mark 70%</li><li>Certificate: "Office Lighting Design – Practice", DIMO Dacademy, with the TRILUX product range named</li></ul></div>
+    <div class="card"><h3>For DIMO sales</h3><ul><li>Each client participant is recorded against their company in Customers or Consultants</li><li>Their report shows which TRILUX luminaires they chose</li><li>A follow-up task goes to the account owner</li></ul></div>
+    <div class="card"><h3>Self-paced mode</h3><ul><li>The same 9 steps without an instructor</li><li>Short explainer before each step</li><li>Progress saved, so they can stop and continue later</li><li>Available afterwards as a refresher</li></ul></div>
+  </div>
+</section>
+
+<section>
+  <div class="head">
+    <span class="eyebrow">Access for clients</span>
+    <h2>Clients join without an app account</h2>
+    <p>Dacademy is open only to signed-in DIMO staff today. Clients need a lighter way in.</p>
+  </div>
+  <div class="flow"><span>Instructor starts a session</span><em>→</em><span>Code and QR on screen</span><em>→</em><span>Client enters name, company and email</span><em>→</em><span>Practice in the browser</span><em>→</em><span>Report and certificate by email</span></div>
+  <p class="note"><span class="rec">Recommended</span> A session code ends 7 days after the session. Clients can only see and save their own work, and the instructor sees the class.</p>
+</section>
+
+<section>
+  <div class="head">
+    <span class="eyebrow">How it is built</span>
+    <h2>Fits into what we already have</h2>
+  </div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Part</th><th>How</th></tr></thead>
+    <tbody>
+      <tr><td>Course page</td><td>A new Dacademy course next to KNX Studio, built the same way: a practice page with self-checking steps</td></tr>
+      <tr><td>Calculations</td><td>Our Light calc engine: real LDT photometry, point-by-point illuminance, U<sub>o</sub>, UGR tables, cylindrical illuminance</td></tr>
+      <tr><td>TRILUX data</td><td>Official LDT files and product data loaded as the luminaire card deck</td></tr>
+      <tr><td>Progress</td><td>Existing Dacademy progress for staff, plus a new guest record for client sessions</td></tr>
+      <tr><td>Instructor console</td><td>A new Dacademy screen in the DIMO app</td></tr>
+      <tr><td>Report</td><td>PDF generated in the page, with the same look as our design reports</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <div class="head">
+    <span class="eyebrow">Before building</span>
+    <h2>Decisions needed</h2>
+  </div>
+  <div class="decide">
+    <div><b>1. TRILUX product data and brand use</b><span>We need the official LDT files and data sheets for the luminaires in the deck, and TRILUX approval to use their name and logo in a client course. Which luminaire ranges should the deck include?</span></div>
+    <div><b>2. Client access</b><span>Session code with name, company and email (recommended), or full client accounts?</span></div>
+    <div><b>3. Live, self-paced or both</b><span>The recommendation is both. The live session also works as a sales event, and self-paced mode serves as the refresher.</span></div>
+    <div><b>4. Level</b><span>This design suits consultants and contractors. Should facility managers and developers get a lighter path that skips the lumen method and UGR tables?</span></div>
+  </div>
+</section>
+
+</div>
+
+<script>
+(() => {
+  const LUMS = [
+    { lm: 3600, W: 27, ugr: 18.6, n: 1.4, name: 'Recessed panel 600 · 3,600 lm' },
+    { lm: 4300, W: 32, ugr: 18.9, n: 1.4, name: 'Recessed panel 600 · 4,300 lm' },
+    { lm: 3800, W: 30, ugr: 22.1, n: 1.0, name: 'Opal panel 600 · 3,800 lm' },
+  ];
+  const S = 40, ROOM = 12, HM = 2.05, MF = 0.8, RHO = 0.06, K = 0.65;
+  let rows = 5, cols = 7, li = 0;
+  const $ = (id) => document.getElementById(id);
+  const ramp = ['#2b4c7e', '#3a8fb7', '#6cc3a0', '#f2d14b', '#f28c28', '#d6452b'];
+  const col = (t) => { t = Math.max(0, Math.min(0.9999, t)) * (ramp.length - 1); const i = Math.floor(t), f = t - i; const a = ramp[i], b = ramp[i + 1]; const h = (s, k) => parseInt(s.slice(1 + 2 * k, 3 + 2 * k), 16); return `rgb(${[0, 1, 2].map((k) => Math.round(h(a, k) + (h(b, k) - h(a, k)) * f)).join(',')})`; };
+  function calc() {
+    const L = LUMS[li], I0 = (K * L.lm * (L.n + 1)) / (2 * Math.PI), pos = [];
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) pos.push([(ROOM / cols) * (c + 0.5), (ROOM / rows) * (r + 0.5)]);
+    const indirect = (pos.length * L.lm * RHO) / (ROOM * ROOM);
+    const step = 0.5, pts = [];
+    for (let y = step / 2; y < ROOM; y += step) for (let x = step / 2; x < ROOM; x += step) {
+      let e = 0; for (const [px, py] of pos) { const d2 = (x - px) ** 2 + (y - py) ** 2 + HM * HM, ct = HM / Math.sqrt(d2); e += (I0 * ct ** L.n * ct) / d2; }
+      pts.push({ x, y, e: (e + indirect) * MF, task: x > 0.5 && x < ROOM - 0.5 && y > 0.5 && y < ROOM - 0.5 });
+    }
+    const t = pts.filter((p) => p.task), em = t.reduce((s, p) => s + p.e, 0) / t.length, emin = Math.min(...t.map((p) => p.e));
+    return { L, pos, pts, em, uo: emin / em, wm2: (pos.length * L.W) / (ROOM * ROOM), n: pos.length, sh: Math.max(ROOM / cols, ROOM / rows) / HM };
+  }
+  function draw() {
+    const R = calc(), lo = Math.min(...R.pts.map((p) => p.e)), hi = Math.max(...R.pts.map((p) => p.e));
+    let g = '';
+    for (const p of R.pts) g += `<rect x="${(p.x - 0.25) * S}" y="${(p.y - 0.25) * S}" width="${0.5 * S + 0.6}" height="${0.5 * S + 0.6}" fill="${col((p.e - lo) / (hi - lo || 1))}"/>`;
+    g += `<rect x="${0.5 * S}" y="${0.5 * S}" width="${(ROOM - 1) * S}" height="${(ROOM - 1) * S}" fill="none" stroke="#ffffff" stroke-opacity="0.7" stroke-dasharray="6 5" stroke-width="1.5"/>`;
+    for (const [x, y] of R.pos) g += `<rect x="${x * S - 12}" y="${y * S - 12}" width="24" height="24" fill="#ffffff" fill-opacity="0.92" stroke="#17222b" stroke-width="1.5"/><rect x="${x * S - 6}" y="${y * S - 6}" width="12" height="12" fill="#f2b705"/>`;
+    g += `<rect x="1" y="1" width="${ROOM * S - 2}" height="${ROOM * S - 2}" fill="none" stroke="#17222b" stroke-width="3"/>`;
+    $('plan').innerHTML = g;
+    $('lgLo').textContent = Math.round(lo); $('lgHi').textContent = Math.round(hi);
+    const okE = R.em >= 500, okU = R.uo >= 0.6, okG = R.L.ugr <= 19, over = R.em > 575, okS = R.sh <= 1.5;
+    const row = (cls, k, v) => `<div class="res ${cls}"><span>${k}</span><span class="v">${v}</span></div>`;
+    $('results').innerHTML =
+      row(okE ? (over ? 'hint' : 'ok') : 'no', 'E<sub>m</sub> maintained', `${Math.round(R.em)} lx`) +
+      row(okU ? 'ok' : 'no', 'U<sub>o</sub> (Emin / Em)', R.uo.toFixed(2)) +
+      row(okG ? 'ok' : 'no', 'UGR (table)', R.L.ugr.toFixed(1)) +
+      row(okS ? 'ok' : 'hint', 'Spacing / height', R.sh.toFixed(2)) +
+      row('ok', 'Luminaires · load', `${R.n} · ${R.wm2.toFixed(1)} W/m²`);
+    const msgs = [];
+    if (!okE) msgs.push(`Below 500 lx. Add a row or column, or choose the higher-output panel.`);
+    if (!okU) msgs.push(`Uniformity too low. The luminaires are too far apart for this optic; tighten the spacing.`);
+    if (!okG) msgs.push(`UGR ${R.L.ugr} is above the limit of 19 for screen work. An opal diffuser is too bright at low angles; choose a panel with a microprismatic optic.`);
+    if (okE && over) msgs.push(`Passes, but ${Math.round(R.em)} lx is ${Math.round((R.em / 500 - 1) * 100)}% over the requirement. Can you remove luminaires and save energy?`);
+    const pass = okE && okU && okG;
+    $('verdict').innerHTML = pass ? `<b style="color:var(--good)">Step passed.</b> ${msgs.join(' ')}` : `<b style="color:var(--bad)">Not yet.</b> ${msgs.join(' ')}`;
+    $('next').disabled = !pass;
+    $('rows').textContent = rows; $('cols').textContent = cols;
+  }
+  const clamp = (v) => Math.max(2, Math.min(10, v));
+  $('rM').onclick = () => { rows = clamp(rows - 1); draw(); };
+  $('rP').onclick = () => { rows = clamp(rows + 1); draw(); };
+  $('cM').onclick = () => { cols = clamp(cols - 1); draw(); };
+  $('cP').onclick = () => { cols = clamp(cols + 1); draw(); };
+  $('lum').onchange = (e) => { li = +e.target.value; draw(); };
+  draw();
+})();
+</script>
