@@ -29,7 +29,7 @@ import {
 type Tab = 'warranties' | 'claims' | 'reports' | 'brands' | 'rma' | 'mfr';
 
 /** Who works with project defects (the Operations Executive creates product warranty claims from product faults) */
-const DEFECT_ROLES = ['asm_building', 'asm_infra', 'sm_projects', 'gm', 'senior_elec_engineer', 'assistant_engineer', 'operations_exec'];
+const DEFECT_ROLES = ['asm_building', 'asm_infra', 'sm_projects', 'gm', 'senior_elec_engineer', 'assistant_engineer', 'operations_exec', 'trainee'];
 
 /** Warranty and defects: product warranty (warranties, claims, manufacturers) and project defects, as two sub-tabs. */
 export default function WarrantyAndDefects({ myDay }: { myDay?: boolean } = {}) {
@@ -57,11 +57,11 @@ function ProductWarranty({ myDay, header }: { myDay?: boolean; header?: ReactNod
   const people = usePeople();
   const dialog = useDialog();
   const params = useLocalSearchParams<{ tab?: Tab }>();
-  const [tab, setTab] = useState<Tab>(params.tab ?? 'warranties');
+  const [tab, setTab] = useState<Tab>(params.tab ?? (me.role === 'trainee' ? 'claims' : 'warranties'));
   const [customer, setCustomer] = useState('');
   const [source, setSource] = useState('');
   const [owner, setOwner] = useState('');
-  const [claimFilter, setClaimFilter] = useState<'open' | 'mine' | 'closed' | 'all'>(me.role === 'assistant_engineer' ? 'mine' : 'open');
+  const [claimFilter, setClaimFilter] = useState<'open' | 'mine' | 'closed' | 'all'>(me.role === 'assistant_engineer' || me.role === 'trainee' ? 'mine' : 'open');
   const { data, error, loading, reload } = useLoad(async () => {
     const [w, l, c, r, m, rm, ri] = await Promise.all([
       supabase.from('warranties').select('*').order('created_at', { ascending: false }).limit(3000),
@@ -260,7 +260,7 @@ function ProductWarranty({ myDay, header }: { myDay?: boolean; header?: ReactNod
             onChange={setClaimFilter}
             options={[
               { value: 'open', label: 'Open' },
-              { value: 'mine', label: me.role === 'assistant_engineer' ? 'Assigned to me' : 'Mine' },
+              { value: 'mine', label: me.role === 'assistant_engineer' || me.role === 'trainee' ? 'Assigned to me' : 'Mine' },
               { value: 'closed', label: 'Closed' },
               { value: 'all', label: 'All' },
             ]}

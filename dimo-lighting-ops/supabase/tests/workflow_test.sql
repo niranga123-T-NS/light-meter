@@ -9148,5 +9148,29 @@ select pg_temp.act_as('estimation_exec'); set role authenticated;
 do $$ begin assert not exists (select 1 from public.design_tool_files), 'estimation does not see designs'; end $$;
 reset role;
 
+-- Warranty claims can go to an approved trainee; the trainee sees the claim and its warranty, other roles still cannot be assigned
+reset role;
+insert into u values ('trainee2', gen_random_uuid());
+insert into auth.users (id, email) select id, 'trainee2@test.local' from u where role = 'trainee2';
+insert into public.profiles (id, full_name, role, phone) values ((select id from u where role = 'trainee2'), 'Nimal Trainee', 'trainee', '94771112223');
+do $$ begin perform set_config('test.tc', (select id::text from public.warranty_claims where status = 'open' order by created_at limit 1), false);
+  assert current_setting('test.tc') <> '', 'an open claim to re-assign'; end $$;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+select public.assign_warranty_claim(current_setting('test.tc')::uuid, (select id from u where role = 'trainee2'), 6.9271, 79.8612);
+do $$ begin
+  perform public.assign_warranty_claim(current_setting('test.tc')::uuid, (select id from u where role = 'estimation_exec'), 6.9271, 79.8612);
+  raise exception 'a non-engineer was assigned';
+exception when others then if sqlerrm not like '%approved Trainee%' then raise; end if;
+end $$;
+reset role;
+select pg_temp.act_as('trainee2'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.warranty_claims where id = current_setting('test.tc')::uuid), 'trainee sees the claim assigned to them';
+  assert exists (select 1 from public.warranties w join public.warranty_claims c on c.warranty_id = w.id where c.id = current_setting('test.tc')::uuid), 'trainee sees its warranty';
+  assert (select count(*) from public.warranty_claims where assignee_id is distinct from auth.uid() and reported_by is distinct from auth.uid()) = 0, 'trainee sees only their own claims';
+end $$;
+reset role;
+do $$ begin assert exists (select 1 from public.notifications where kind = 'warranty_claim_assigned' and recipient_id = (select id from u where role = 'trainee2')), 'trainee told'; end $$;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
