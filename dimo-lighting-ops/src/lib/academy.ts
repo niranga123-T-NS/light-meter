@@ -10,7 +10,7 @@ export const ACADEMY_COURSES: { value: AcademyCourse; label: string; path: strin
   { value: 'light', label: 'Lighting', path: ACADEMY_PATH, lessons: 131 },
   { value: 'net', label: 'Network & IT', path: '/academy/net.html', lessons: 20 },
   { value: 'knx', label: 'KNX – JUNG', path: '/academy/knx.html', lessons: 30 },
-  { value: 'knxlab', label: 'KNX Studio', path: '/academy/knxlab.html', lessons: 8 }, // ETS-style project trainer: 8 self-checking exercises
+  { value: 'knxlab', label: 'KNX Studio', path: '/academy/knxlab.html', lessons: 13 }, // ETS-style project trainer: 13 self-checking exercises (8 office + 5 hotel)
 ];
 export const ACADEMY_TOTAL = ACADEMY_COURSES.reduce((t, c) => t + c.lessons, 0);
 export const ACADEMY_SITE = 'https://dimo-lighting-ops.vercel.app';
