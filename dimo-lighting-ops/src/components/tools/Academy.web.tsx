@@ -3,15 +3,15 @@ import { View } from 'react-native';
 import { AcademyTeam } from '@/components/tools/AcademyTeam';
 import { Segmented } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { ACADEMY_PATH, ACADEMY_TEAM_VIEWERS, academyCfg } from '@/lib/academy';
+import { ACADEMY_COURSES, ACADEMY_TEAM_VIEWERS, ACADEMY_TOTAL, type AcademyCourse, academyCfg } from '@/lib/academy';
 
-export const ACADEMY_LESSONS = 131;
-
-/** Lighting Academy on the website: the lessons page in a frame; it saves progress with the person's sign-in, passed to it here */
+/** Dacademy on the website: the chosen course's lessons page in a frame; it saves progress with the person's sign-in, passed to it here */
 export function Academy() {
   const me = useMe();
   const [frame, setFrame] = useState<HTMLIFrameElement | null>(null);
   const [view, setView] = useState<'lessons' | 'team'>('lessons');
+  const [course, setCourse] = useState<AcademyCourse>('light');
+  const c = ACADEMY_COURSES.find((x) => x.value === course) ?? ACADEMY_COURSES[0];
   const team = ACADEMY_TEAM_VIEWERS.includes(me.role);
   useEffect(() => {
     const send = async () => {
@@ -36,14 +36,18 @@ export function Academy() {
     <View style={{ gap: 8 }}>
       {team ? <Segmented value={view} onChange={setView} options={[{ value: 'lessons', label: 'Lessons' }, { value: 'team', label: 'Team progress' }]} /> : null}
       {view === 'team' && team ? (
-        <AcademyTeam total={ACADEMY_LESSONS} />
+        <AcademyTeam total={ACADEMY_TOTAL} />
       ) : (
-        createElement('iframe', {
+        <>
+          <Segmented value={course} onChange={setCourse} options={ACADEMY_COURSES.map((x) => ({ value: x.value, label: x.label }))} />
+          {createElement('iframe', {
+          key: c.value,
           ref: setFrame,
-          src: ACADEMY_PATH,
-          title: 'Lighting Academy',
-          style: { width: '100%', height: 'calc(100vh - 170px)', minHeight: 560, border: '1px solid #e3e5ea', borderRadius: 12, background: '#f4f5f7' },
-        })
+          src: c.path,
+          title: `Dacademy – ${c.label}`,
+          style: { width: '100%', height: 'calc(100vh - 210px)', minHeight: 560, border: '1px solid #e3e5ea', borderRadius: 12, background: '#f4f5f7' },
+        })}
+        </>
       )}
     </View>
   );

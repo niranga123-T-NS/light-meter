@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DIMO Academy</title><meta name="robots" content="noindex">
+<style>
+:root{--red:#c8102e;--ink:#14161c;--mut:#5f6673;--line:#e3e5ea;--bg:#f4f5f7;--side:#1b1d24;--chip:#eef0f4;--s1:#2a6fdb;--s2:#c2410c;--good:#15803d;--warn:#b45309;--sel:#2a6fdb}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:var(--bg)}
+.app{display:flex;min-height:100vh}.side{width:220px;background:var(--side);color:#cfd3dc;padding:16px 12px;flex-shrink:0}
+.logo{background:#fff;color:#1d3c8f;font-weight:900;font-size:26px;border-radius:10px;padding:14px;text-align:center}
+.side .sub{font-size:12px;margin:8px 4px 16px}.side a{display:block;padding:7px 8px;border-radius:6px;color:#cfd3dc}.side a.on{background:#2c2f39;color:#fff;font-weight:600}
+.main{flex:1;min-width:0}.top{background:#fff;padding:16px 24px;font-weight:700;font-size:20px;border-bottom:1px solid var(--line)}
+.wrap{padding:16px 20px;max-width:1120px;margin:0 auto}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}.tab{padding:6px 14px;border-radius:999px;background:#fff;border:1px solid var(--line);font-weight:600;cursor:pointer}.tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.mods{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0 4px}
+.mod{background:#fff;border:2px solid var(--line);border-radius:12px;padding:12px;cursor:pointer}.mod.on{border-color:var(--red)}.mod b{display:block;font-size:15px}.mod .m{font-size:12px}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px}
+h2{margin:0 0 4px;font-size:20px}h3{margin:18px 0 8px;font-size:15px}.m{color:var(--mut)}
+.hero{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.bar{height:8px;background:var(--chip);border-radius:99px;overflow:hidden;width:220px}.bar i{display:block;height:100%;background:var(--red)}
+.sec{margin-top:18px;font-weight:700;font-size:12px;letter-spacing:.5px;text-transform:uppercase;color:var(--mut)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-top:8px}
+.topic{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;cursor:pointer;position:relative}
+.topic:hover{border-color:var(--red)}.topic .ic{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:8px}
+.topic b{display:block}.topic .t{font-size:12px;color:var(--mut)}.done{position:absolute;top:10px;right:10px;font-size:12px;font-weight:700;color:var(--good)}
+.live{position:absolute;top:10px;right:10px;font-size:11px;font-weight:700;color:#fff;background:var(--red);border-radius:99px;padding:1px 8px}
+.btn{display:inline-block;padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:#fff;font-weight:600;font-size:13px;cursor:pointer;font-family:inherit;color:var(--ink)}
+.btn.p{background:var(--red);color:#fff;border-color:var(--red)}.btn.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.part{display:flex;gap:10px;align-items:flex-start;margin-top:16px}.num{flex-shrink:0;width:26px;height:26px;border-radius:50%;background:var(--ink);color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center}
+.part .body{flex:1;min-width:0}.part h4{margin:2px 0 6px;font-size:15px}
+.say{background:#f0f6ff;border-left:4px solid var(--s1);padding:10px 12px;border-radius:6px}
+.watch{background:#fff7ed;border-left:4px solid var(--warn);padding:10px 12px;border-radius:6px}
+.scene{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}.scene svg{width:100%;height:auto;border-radius:10px;display:block}.scene .cap{text-align:center;font-size:12px;color:var(--mut);margin-top:4px}
+input[type=range]{width:100%;accent-color:var(--red)}
+.kelvin{display:flex;justify-content:space-between;font-size:12px;color:var(--mut)}
+.pill{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:700;background:var(--chip)}
+.q{margin-top:10px}.q p{margin:0 0 6px;font-weight:600}.opt{display:block;width:100%;text-align:left;margin:4px 0;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;cursor:pointer;font:inherit}
+.opt.ok{background:#dcfce7;border-color:var(--good)}.opt.no{background:#fee2e2;border-color:#dc2626}
+.links{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.inputs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.inputs label{font-size:12px;color:var(--mut)}.inputs input{width:100%;padding:7px 8px;border:1px solid var(--line);border-radius:8px;font:inherit}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:12px 0}.kpis div{background:var(--chip);border-radius:10px;padding:10px;text-align:center;font-size:12px;color:var(--mut)}.kpis b{display:block;font-size:20px;color:var(--ink)}
+.legend{display:flex;gap:16px;font-size:13px;margin-bottom:4px;flex-wrap:wrap}.legend span::before{content:'';display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle;background:var(--c)}
+.chartbox{position:relative}.tip{position:absolute;pointer-events:none;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:12px;box-shadow:0 4px 14px rgba(0,0,0,.08);display:none;white-space:nowrap;z-index:2}
+.hidden{display:none!important}.crumb{color:var(--mut);margin-bottom:8px;cursor:pointer}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ctl{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px 18px;margin-top:10px}
+.ctl label{font-size:12px;color:var(--mut);display:flex;justify-content:space-between}.ctl label b{color:var(--ink)}
+.stage{background:#0f1218;border-radius:12px;overflow:hidden}
+.stage svg{display:block;width:100%;height:auto}
+.two{display:grid;grid-template-columns:1.35fr 1fr;gap:14px}
+.info{border:1px solid var(--line);border-radius:10px;padding:12px;min-height:150px}
+.info h5{margin:0 0 4px;font-size:15px}.info .k{font-size:12px;color:var(--mut);margin-top:8px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.plist{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.plist .btn{padding:4px 9px;font-size:12px}
+[data-part]{cursor:pointer}
+table.spec{width:100%;border-collapse:collapse;font-size:13px}table.spec td{padding:5px 0;border-bottom:1px solid var(--line);vertical-align:top}table.spec td:first-child{color:var(--mut);width:38%}
+.three{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.five{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}.four{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.phr{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px}.phr details{border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;background:#fff}.phr summary{cursor:pointer;font-weight:700;font-size:14px}.phr details[open]{border-color:var(--s1);background:#f0f6ff}.phr details div{margin-top:6px}
+@media(max-width:900px){.three{grid-template-columns:1fr 1fr}.four{grid-template-columns:1fr 1fr}.scene,.two{grid-template-columns:1fr!important}.mods{grid-template-columns:1fr 1fr}.wrap{padding:12px 12px}.kpis{grid-template-columns:1fr 1fr!important}}
+@media(max-width:560px){.four,.three{grid-template-columns:1fr}}
+#ipKpi b{font-size:15px}
+
+</style><style>.opt.on{outline:2px solid var(--p,#1F6FEB);background:rgba(31,111,235,.08)} .tablewrap{overflow-x:auto} table.spec td:first-child{white-space:normal}</style></head><body>
+<div class="wrap">
+<div id="home">
+  <div class="card hero">
+    <div><h2 id="hTitle"></h2><div class="m" id="hSub"></div><div class="m" id="saveNote" style="font-size:12px;margin-top:4px"></div></div>
+    <div><div class="m" style="font-size:12px;margin-bottom:4px" id="progText">Your progress</div><div class="bar"><i id="progBar" style="width:0%"></i></div><div style="margin-top:8px" id="contBtn"></div></div>
+  </div>
+  <div class="mods" id="mods"></div>
+  <div id="modBody"></div>
+</div>
+<div id="lesson" class="hidden">
+  <div class="crumb" onclick="back()" id="lCrumb">◀ All lessons</div>
+  <div class="card">
+    <div class="hero"><div><span class="pill" id="lPill"></span><h2 style="margin-top:6px" id="lTitle"></h2></div><span class="m" id="lDone"></span></div>
+    <div class="part"><div class="num">1</div><div class="body"><h4>In one line</h4><div id="lLine"></div><div id="lBody" style="margin-top:8px"></div></div></div>
+    <div class="part" id="lSeeP"><div class="num">2</div><div class="body"><h4>Try it</h4><div id="lSee"></div></div></div>
+    <div class="part" id="lDoP"><div class="num">3</div><div class="body"><h4>On site</h4><div class="say" id="lDo"></div></div></div>
+    <div class="part" id="lWatchP"><div class="num">4</div><div class="body"><h4>Watch out</h4><div class="watch" id="lWatch"></div></div></div>
+    <div class="part"><div class="num">5</div><div class="body"><h4>Quick check</h4><div id="lQuiz"></div></div></div>
+  </div>
+</div>
+<div id="examv" class="hidden">
+  <div class="crumb" onclick="back()" id="xCrumb">◀ All lessons</div>
+  <div class="card">
+    <div class="hero"><div><span class="pill">Mock exam</span><h2 style="margin-top:6px" id="xTitle"></h2></div><span class="m" id="xDone"></span></div>
+    <div id="xIntro" style="margin:8px 0"></div><div id="xBody"></div>
+  </div>
+</div>
+</div>
+<script>
+// Course engine (Dacademy technical courses): home with modules, lessons (in one line · try it · on site · watch out · quick check),
+// live labs drawn into a lesson, timed mock exams, progress saved through the person's sign-in like the Lighting Academy
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const Q = (q, opts, c, why) => [q, opts, c, why];
+const L = [];
+const add = (mod, sec, id, icon, title, o) => L.push({ mod, sec, id: COURSE.prefix + id, icon, title, mins: 3, ...o });
+const LABS = {};
+const EXAMS = {};
+let LESSONS = {};
+const BG = ['#e0f2fe', '#dcfce7', '#fef3c7', '#ede9fe', '#fce7f3', '#ffedd5', '#e0e7ff', '#f1f5f9'];
+
+// ---- quiz (options shuffled the same way every time for a lesson)
+function seeded(str) { let h = 2166136261; for (const ch of str) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return ((h >>> 0) % 1000) / 1000; }; }
+function renderQuiz(el, les) {
+  const rnd = seeded(les.id); let right = 0, answered = 0;
+  el.innerHTML = les.quiz.map(([q, opts, c], qi) => { const order = opts.map((o, i) => [o, i, rnd()]).sort((a, b) => a[2] - b[2]); return `<div class="q" data-c="${c}" data-qi="${qi}"><p>${qi + 1}. ${q}</p>${order.map(([o, i]) => `<button class="opt" data-i="${i}">${o}</button>`).join('')}<div class="m why" style="font-size:12px;margin-top:4px"></div></div>`; }).join('') + `<div id="qRes_${les.id}" style="margin-top:8px"></div>`;
+  el.querySelectorAll('.q').forEach((qd) => qd.querySelectorAll('.opt').forEach((b) => b.onclick = () => {
+    if (qd.dataset.done) return; qd.dataset.done = 1; answered++; const ok = +b.dataset.i === +qd.dataset.c; if (ok) right++;
+    b.classList.add(ok ? 'ok' : 'no'); qd.querySelector(`.opt[data-i="${qd.dataset.c}"]`).classList.add('ok');
+    const why = les.quiz[+qd.dataset.qi][3]; if (why) qd.querySelector('.why').innerHTML = (ok ? '✓ ' : '✗ ') + why;
+    if (answered === les.quiz.length) finish(les, right, les.quiz.length, el);
+  }));
+}
+function finish(les, score, total, el) {
+  const pass = score * 3 >= total * 2, nx = nextLesson(les.id);
+  record(les.id, score, total);
+  el.querySelector(`#qRes_${les.id}`).innerHTML = `<b>${score} of ${total} right.</b> ${pass ? 'Lesson complete ✓' : 'Read it again and retry – 2 of 3 completes the lesson.'} <span class="btn" style="padding:4px 9px;font-size:12px" onclick="openLesson('${les.id}');route()">Retry</span>${nx ? ` <span class="btn p" style="padding:4px 9px;font-size:12px" onclick="openLesson('${nx.id}')">Next: ${esc(nx.title)} ▶</span>` : ''}`;
+}
+const nextLesson = (id) => { const i = L.findIndex((l) => l.id === id); return L[i + 1] && L[i + 1].mod === L[i].mod ? L[i + 1] : L.find((l, k) => k > i && !(prog[l.id] && prog[l.id].done)); };
+
+// ---- progress (Supabase through the app's sign-in, passed in by the app)
+let cfg = null, prog = {};
+function api(fn, body) { if (!cfg) return Promise.resolve(null); return fetch(`${cfg.sb}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: cfg.key, Authorization: `Bearer ${cfg.token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) }).then((r) => (r.ok ? r.json().catch(() => null) : Promise.reject(r))); }
+function record(id, score, total) {
+  const p = prog[id] || { best: 0, attempts: 0, done: false }; p.attempts++; p.best = Math.max(p.best, score); p.total = total; p.done = p.done || score * 3 >= total * 2; prog[id] = p;
+  if (window.parent !== window) window.parent.postMessage({ type: 'academy:progress', lesson: id, score, total }, '*');
+  api('academy_record', { p_lesson: id, p_score: score, p_total: total }).catch(() => { $('saveNote').textContent = 'Could not save your progress – open the course again from the app.'; });
+}
+function loadProgress() { return api('academy_mine').then((rows) => { if (rows) { prog = {}; rows.forEach((r) => { if (r.lesson.startsWith(COURSE.prefix)) prog[r.lesson] = { best: r.best, total: r.total, attempts: r.attempts, done: r.done }; }); } renderHome(); }).catch(() => { $('saveNote').textContent = 'Could not load your progress.'; }); }
+function setCfg(c) { cfg = c; $('saveNote').textContent = c ? `Signed in as ${c.name} – your progress is saved.` : 'Open from the DIMO app (Sales Tools → Dacademy) to save your progress.'; loadProgress(); }
+window.addEventListener('message', (e) => { if (e.data && e.data.type === 'academy:cfg') setCfg(e.data.cfg); });
+
+// ---- home
+let mod = null;
+function renderHome() {
+  if (!mod) mod = MODULES[0][0];
+  const doneN = L.filter((l) => prog[l.id] && prog[l.id].done).length;
+  $('progText').textContent = `Your progress · ${doneN} of ${L.length} lessons`; $('progBar').style.width = `${Math.round((100 * doneN) / L.length)}%`;
+  const nx = L.find((l) => !(prog[l.id] && prog[l.id].done)); $('contBtn').innerHTML = nx ? `<span class="btn p" onclick="openLesson('${nx.id}')">${doneN ? 'Continue' : 'Start'}: ${esc(nx.title)} ▶</span>` : '<b style="color:var(--good)">All lessons complete ✓</b>';
+  $('mods').innerHTML = MODULES.map(([k, n, sub]) => { const ls = L.filter((l) => l.mod === k), d = ls.filter((l) => prog[l.id] && prog[l.id].done).length; return `<div class="mod ${k === mod ? 'on' : ''}" onclick="mod='${k}';renderHome()"><b>${n}</b><span class="m">${sub}</span><span class="m" style="display:block;font-size:11px;margin-top:4px;color:var(--good)">${d} / ${ls.length} done</span></div>`; }).join('');
+  const secs = [...new Set(L.filter((l) => l.mod === mod).map((l) => l.sec))];
+  $('modBody').innerHTML = secs.map((sec) => `<div class="sec">${sec}</div><div class="grid">${L.filter((l) => l.mod === mod && l.sec === sec).map((l, i) => { const p = prog[l.id];
+    return `<div class="topic" onclick="openLesson('${l.id}')">${p && p.done ? `<span class="done">✓ ${p.best}/${p.total}</span>` : l.exam ? '<span class="live">● EXAM</span>' : l.lab ? '<span class="live">● LIVE</span>' : ''}<div class="ic" style="background:${BG[i % BG.length]}">${l.icon}</div><b>${esc(l.title)}</b><span class="m" style="font-size:12px">${l.exam ? `${EXAMS[l.exam].n} questions · ${EXAMS[l.exam].min} min` : `${l.mins} min`}</span></div>`; }).join('')}</div>`).join('');
+}
+
+// ---- lessons
+function showView(v) { ['home', 'lesson', 'examv'].forEach((x) => $(x).classList.toggle('hidden', x !== v)); window.scrollTo(0, 0); }
+function back() { location.hash = '#home'; }
+function openLesson(id) { if (location.hash !== '#l/' + id) location.hash = '#l/' + id; else route(); }
+const MODN = () => Object.fromEntries(MODULES.map(([k, n]) => [k, n]));
+function route() {
+  clearInterval(EXT);
+  const h = location.hash.replace(/^#/, ''); if (!h.startsWith('l/')) { showView('home'); renderHome(); return; }
+  const les = LESSONS[h.slice(2)]; if (!les) { showView('home'); renderHome(); return; }
+  mod = les.mod; const p = prog[les.id], doneTxt = p && p.done ? `✓ Completed · best ${p.best}/${p.total}` : '';
+  if (les.exam) { examStart(les, doneTxt); return; }
+  showView('lesson');
+  $('lCrumb').textContent = `◀ All lessons · ${MODN()[les.mod]}`; $('lPill').textContent = `${les.mins} min${les.lvl ? ' · ' + les.lvl : ''}`; $('lTitle').textContent = les.title; $('lDone').innerHTML = doneTxt ? `<b style="color:var(--good)">${doneTxt}</b>` : '';
+  $('lLine').innerHTML = les.line; $('lBody').innerHTML = les.body || ''; $('lDo').innerHTML = les.do || ''; $('lWatch').innerHTML = les.watch || '';
+  $('lDoP').classList.toggle('hidden', !les.do); $('lWatchP').classList.toggle('hidden', !les.watch);
+  $('lSee').innerHTML = ''; $('lSeeP').classList.toggle('hidden', !les.lab);
+  if (les.lab) { try { LABS[les.lab]($('lSee'), les.preset); } catch (e) { $('lSee').textContent = 'This lab could not start: ' + e.message; } }
+  renderQuiz($('lQuiz'), les);
+}
+window.addEventListener('hashchange', route);
+
+// ---- mock exams: questions drawn from a bank, a timer, a result out of 10 saved like a lesson (pass mark per exam), and a review
+let EXT = null;
+function examStart(les, doneTxt) {
+  const E = EXAMS[les.exam]; showView('examv');
+  $('xCrumb').textContent = `◀ All lessons · ${MODN()[les.mod]}`; $('xTitle').textContent = les.title; $('xDone').innerHTML = doneTxt ? `<b style="color:var(--good)">${doneTxt}</b>` : '';
+  $('xIntro').innerHTML = `${les.line}<p class="m" style="margin-top:6px">${E.n} questions drawn at random from ${E.bank.length} · ${E.min} minutes · pass mark ${E.pass} % · you can take it again as often as you like.</p><span class="btn p" id="xGo">Start the exam ▶</span>`;
+  $('xBody').innerHTML = ''; $('xGo').onclick = () => examRun(les);
+}
+function examRun(les) {
+  const E = EXAMS[les.exam], shuf = (a) => a.map((x) => [x, Math.random()]).sort((p, q) => p[1] - q[1]).map(([x]) => x), qs = shuf([...E.bank]).slice(0, E.n).map(([q, opts, c, why]) => { const ord = shuf(opts.map((o, i) => i)); return [q, ord.map((i) => opts[i]), ord.indexOf(c), why]; }), ans = new Array(qs.length).fill(null); let left = E.min * 60;
+  $('xIntro').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><b id="xClock"></b><span class="m" id="xCount"></span><span class="btn p" id="xEnd">Finish and mark</span></div>`;
+  $('xBody').innerHTML = qs.map(([q, opts], qi) => `<div class="q" data-qi="${qi}"><p>${qi + 1}. ${q}</p>${opts.map((o, i) => `<button class="opt" data-i="${i}">${o}</button>`).join('')}</div>`).join('');
+  const cnt = () => { $('xCount').textContent = `${ans.filter((a) => a !== null).length} of ${qs.length} answered`; }; cnt();
+  $('xBody').querySelectorAll('.q').forEach((qd) => qd.querySelectorAll('.opt').forEach((b) => b.onclick = () => { ans[+qd.dataset.qi] = +b.dataset.i; qd.querySelectorAll('.opt').forEach((x) => x.classList.toggle('on', x === b)); cnt(); }));
+  const tick = () => { left--; $('xClock').textContent = `⏱ ${Math.floor(Math.max(0, left) / 60)}:${String(Math.max(0, left) % 60).padStart(2, '0')}`; if (left <= 0) mark(); };
+  const mark = () => { clearInterval(EXT); const right = qs.filter((q, i) => ans[i] === q[2]).length, pct = Math.round((100 * right) / qs.length), ten = Math.round((10 * right) / qs.length), pass = pct >= E.pass;
+    record(les.id, Math.min(10, ten), 10); if (pass && prog[les.id]) prog[les.id].done = true;
+    $('xIntro').innerHTML = `<div class="kpis"><div><b>${right} / ${qs.length}</b>right</div><div><b style="color:var(--${pass ? 'good' : 'bad'})">${pct} %</b>${pass ? 'pass ✓' : `pass mark ${E.pass} %`}</div><div><b>${ten} / 10</b>saved to your progress</div></div><p class="m">${pass ? 'Well done – review the ones you missed below.' : 'Study the lessons for the questions you missed (below) and try again – new questions are drawn each time.'}</p><span class="btn p" id="xAgain">Take it again</span> <span class="btn" onclick="back()">Back to the lessons</span>`;
+    $('xAgain').onclick = () => examRun(les);
+    $('xBody').innerHTML = qs.map(([q, opts, c, why], i) => { const ok = ans[i] === c; return `<div class="q"><p>${ok ? '✓' : '✗'} ${i + 1}. ${q}</p>${opts.map((o, k) => `<button class="opt ${k === c ? 'ok' : k === ans[i] ? 'no' : ''}" disabled>${o}</button>`).join('')}${why ? `<div class="m" style="font-size:12px;margin-top:4px">${why}</div>` : ''}</div>`; }).join(''); window.scrollTo(0, 0); };
+  $('xEnd').onclick = () => { if (ans.some((a) => a === null) && !confirm('Some questions are not answered yet. Mark the exam now?')) return; mark(); };
+  tick(); EXT = setInterval(tick, 1000);
+}
+
+// ---- small helpers for labs
+const sl = (id, label, mi, ma, st, v, unit = '') => `<div><label>${label} <b id="${id}V"></b></label><input type="range" id="${id}" min="${mi}" max="${ma}" step="${st}" value="${v}" data-unit="${unit}"></div>`;
+const bind = (el, fn) => { el.querySelectorAll('input,select').forEach((i) => i.addEventListener('input', fn)); el.querySelectorAll('input[type=range]').forEach((i) => { const u = () => { const b = $(i.id + 'V'); if (b) b.textContent = i.value + (i.dataset.unit || ''); }; i.addEventListener('input', u); u(); }); fn(); };
+const kpi = (rows) => `<div class="kpis">${rows.map(([v, t, bad]) => `<div><b${bad === true ? ' style="color:var(--bad)"' : bad === false ? ' style="color:var(--good)"' : ''}>${v}</b>${t}</div>`).join('')}</div>`;
+const chip = (on, txt, js) => `<span class="btn ${on ? 'on' : ''}" style="padding:4px 9px;font-size:12px" onclick="${js}">${txt}</span>`;
+
+function start() {
+  LESSONS = Object.fromEntries(L.map((l) => [l.id, l]));
+  document.title = COURSE.title; $('hTitle').textContent = COURSE.title; $('hSub').textContent = COURSE.sub;
+  const m = location.hash.match(/cfg=([^&]+)/);
+  if (m) { try { const c = JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(m[1]))))); history.replaceState(null, '', location.pathname + '#home'); setCfg(c); } catch { setCfg(null); } }
+  else if (window.parent !== window) { $('saveNote').textContent = 'Connecting…'; window.parent.postMessage({ type: 'academy:ready' }, '*'); }
+  else setCfg(null);
+  route();
+}
+
+// KNX – interactive training to certificate (KNX Partner basic) and advanced level, on JUNG products: system, topology, power, cable,
+// telegrams, addressing, group objects and flags, DPTs, ETS, commissioning, diagnostics, KNX IP, Secure, couplers, bus load, logic, DALI, HVAC
+const COURSE = { prefix: 'knx_', title: 'KNX with JUNG – DIMO Academy', sub: 'From the first push-button to KNX IP and Secure – certificate level, JUNG products and advanced topics, with live labs and two mock exams. Article numbers change: always confirm in the current JUNG catalogue and the ETS product database.' };
+const MODULES = [['cert', 'KNX Certificate', 'System, topology, power, cable, telegrams, addresses, flags, DPTs, ETS'], ['jung', 'JUNG products', 'System devices, actuators, sensors, DALI, visualisation, design'], ['adv', 'KNX Advanced', 'KNX IP, Secure, couplers, bus load, logic, HVAC, diagnostics'], ['exam', 'Exams', 'Certificate and advanced mock exams']];
+
+// ================================================================ CERTIFICATE LEVEL
+add('cert', '1 · The KNX system', 'what', '🏠', 'What KNX is – and why we use it', { lvl: 'Certificate',
+  line: '<b>KNX</b> is the open worldwide standard (EN 50090, ISO/IEC 14543-3) for home and building control. Every device has its own small processor; there is <b>no central controller</b> – sensors send <b>telegrams</b> on a shared bus and actuators that listen to that address act.',
+  body: '<table class="spec"><tr><td>Open</td><td>Over 500 manufacturers; any certified device works with any other; one tool – <b>ETS</b> – for all</td></tr><tr><td>Decentralised</td><td>No single point of failure – a broken push-button does not stop the rest</td></tr><tr><td>Media</td><td><b>TP</b> (twisted pair, our standard), <b>IP</b> (Ethernet/Wi-Fi backbones), <b>RF</b> (868 MHz radio, retrofit)</td></tr><tr><td>Functions</td><td>Lighting (switch, dim, DALI, scenes), blinds, heating / cooling, presence, energy, security, visualisation</td></tr><tr><td>Sensors vs actuators</td><td>Sensors (push-buttons, presence, weather) send; actuators (switch, dimmer, blind) do the work in the distribution board</td></tr></table>',
+  do: 'In proposals explain KNX as “one cable for all control, any brand, any integrator, decades of support”. We use JUNG as our main range.',
+  watch: 'KNX is not a lighting-only system – once installed, the client will ask for blinds, AC and scenes. Plan spare actuator channels and bus capacity.',
+  quiz: [Q('In KNX, who decides when a light switches?', ['The devices themselves – there is no central controller', 'A central PLC', 'The internet'], 0), Q('Which tool programs devices of every KNX brand?', ['ETS', 'Excel', 'Each brand’s own app only'], 0), Q('KNX TP means…', ['Twisted pair bus cable', 'Total power', 'Touch panel'], 0)] });
+add('cert', '1 · The KNX system', 'tp', '〰️', 'KNX TP: how the bus works', { lvl: 'Certificate',
+  line: 'KNX TP runs on a 2-wire bus at <b>30 V DC (SELV)</b> that carries both power and data at <b>9600 bit/s</b>. A logical 0 is a short voltage dip; idle is logical 1. Devices work from about 21 V to 30 V.',
+  body: '<table class="spec"><tr><td>Voltage</td><td>PSU output ~30 V DC; devices need ≥ 21 V</td></tr><tr><td>Data</td><td>Superimposed on the DC; 9600 bit/s, ~104 µs per bit</td></tr><tr><td>Access</td><td>CSMA/CA – a device listens before sending; when two start together, the one sending a 0 wins (no lost telegrams)</td></tr><tr><td>Acknowledgement</td><td>Receivers answer ACK / NAK / BUSY; a sender repeats up to 3 times</td></tr><tr><td>Choke</td><td>The KNX power supply has a choke so the data is not shorted out by the supply</td></tr></table>',
+  do: 'Measure the bus voltage at the end of each line during commissioning: it must stay above 21 V with all devices connected.',
+  watch: 'Never use an ordinary 30 V lab supply on the bus – without the choke the data signal is shorted and nothing communicates.',
+  quiz: [Q('KNX TP transmission speed:', ['9600 bit/s', '1 Mbit/s', '100 Mbit/s'], 0), Q('Minimum voltage a TP device needs:', ['About 21 V', '230 V', '5 V'], 0), Q('Why must a KNX power supply have a choke?', ['So the supply does not short the data signal', 'To dim lights', 'For Wi-Fi'], 0)] });
+add('cert', '2 · Topology', 'topo', '🌳', 'Lines, areas and couplers', { lvl: 'Certificate', lab: 'topo',
+  line: 'Devices sit on a <b>line</b>. Lines join a <b>main line</b> through <b>line couplers</b> to form an <b>area</b>; areas join the <b>backbone</b> through <b>backbone (area) couplers</b>. Each line has its own power supply.',
+  body: '<table class="spec"><tr><td>Line segment</td><td>Up to 64 devices (with a 640 mA supply)</td></tr><tr><td>Line</td><td>Up to 4 segments with 3 line repeaters → 256 devices</td></tr><tr><td>Area</td><td>Up to 15 lines on a main line</td></tr><tr><td>System</td><td>Up to 15 areas on the backbone → over 57,000 devices</td></tr><tr><td>Couplers</td><td>Line coupler (address x.y.0), backbone coupler (x.0.0); today often <b>KNX IP routers</b> used as couplers</td></tr><tr><td>Why couplers</td><td>Galvanic separation, filtering (only needed telegrams pass), a fault stays in its line</td></tr></table>',
+  do: 'Plan one line per floor or per distribution board group, never fill a line beyond ~50 devices – keep room for changes.',
+  watch: 'A line with 64 devices and a 640 mA supply has no spare capacity for the extra presence detectors the client will want next year.',
+  quiz: [Q('Devices per line segment (640 mA supply):', ['64', '256', '15'], 0), Q('Lines per area:', ['15', '64', '255'], 0), Q('Address of a line coupler on line 1.3:', ['1.3.0', '1.3.1', '0.0.0'], 0, 'Couplers always take device number 0 of the line they connect.')] });
+add('cert', '2 · Topology', 'addr', '🔖', 'Individual (physical) addresses', { lvl: 'Certificate', lab: 'topo', preset: 'addr',
+  line: 'Every device has a unique <b>individual address</b> <b>Area.Line.Device</b> (e.g. 1.1.12). It says <b>where</b> the device is in the topology and is used to program and diagnose it – not to switch lights.',
+  body: '<table class="spec"><tr><td>Area</td><td>1–15 (0 = backbone)</td></tr><tr><td>Line</td><td>1–15 (0 = main line of the area)</td></tr><tr><td>Device</td><td>1–255 (0 reserved for the coupler)</td></tr><tr><td>Set by</td><td>ETS + the device’s <b>programming button</b> (red LED lights)</td></tr><tr><td>Default</td><td>New devices arrive as 15.15.255</td></tr></table>',
+  do: 'Write the individual address on the device label in the board after programming – it saves hours in service.',
+  watch: 'Two devices with the same individual address cause download failures and confusing diagnostics. ETS warns – read the warnings.',
+  quiz: [Q('The individual address says…', ['Where the device sits in the topology', 'Which lights it switches', 'Its colour'], 0), Q('Factory default individual address:', ['15.15.255', '0.0.0', '1.1.1'], 0), Q('How is the individual address written to a device?', ['ETS + pressing the programming button', 'DIP switches only', 'Over Bluetooth'], 0)] });
+add('cert', '3 · Power and cable', 'psu', '🔋', 'Bus power supplies', { lvl: 'Certificate', lab: 'cable', preset: 'psu',
+  line: 'Each line segment needs its own <b>KNX power supply</b> (with choke): typically <b>320 mA</b> (up to ~32 devices) or <b>640 mA</b> (up to 64 devices). Devices draw roughly 5–12 mA each – check the data sheets.',
+  body: '<table class="spec"><tr><td>Sizing</td><td>Sum of device currents (data sheets) + reserve ≤ supply rating</td></tr><tr><td>Position</td><td>Close to the load centre; every device within <b>350 m</b> of cable from a supply</td></tr><tr><td>Second supply</td><td>Max 2 supplies per segment, classically at least <b>200 m</b> of cable apart (check the maker’s rules)</td></tr><tr><td>Diagnostics</td><td>Supplies with a diagnostic function report current, voltage, overload</td></tr><tr><td>Auxiliary output</td><td>Some supplies have a second 30 V output (without choke) – e.g. for a second line through a separate choke, or for auxiliary devices</td></tr></table>',
+  do: 'Add up the current of every device on the line from the data sheets (ETS shows it) and keep 20 % reserve.',
+  watch: 'Do not connect the auxiliary (unchoked) output straight onto a bus line – it kills communication on that line.',
+  quiz: [Q('A 640 mA supply serves a segment of up to…', ['64 devices', '640 devices', '6 devices'], 0), Q('Maximum cable from a supply to a device:', ['350 m', '1000 m', '50 m'], 0), Q('Maximum number of supplies in one segment:', ['2', '10', 'Unlimited'], 0)] });
+add('cert', '3 · Power and cable', 'cable', '🧵', 'Bus cable and installation rules', { lvl: 'Certificate', lab: 'cable',
+  line: 'Use certified KNX cable (green sheath, e.g. <b>YCYM 2×2×0.8</b> or J-Y(St)Y 2×2×0.8): <b>red = +, black = −</b>; yellow/white spare. A segment may have up to <b>1000 m</b> of cable in total, devices at most <b>700 m</b> apart.',
+  body: '<table class="spec"><tr><td>Total cable per segment</td><td>≤ 1000 m</td></tr><tr><td>Supply → device</td><td>≤ 350 m</td></tr><tr><td>Device → device</td><td>≤ 700 m</td></tr><tr><td>Topology</td><td>Line, star, tree – but <b>no ring</b> on TP</td></tr><tr><td>Separation from mains</td><td>Keep the bus SELV: sheathed cable may share trunking with mains; unsheathed bus wires need ≥ 4 mm clearance from mains conductors (or an insulating sleeve)</td></tr><tr><td>Connection</td><td>KNX bus terminals (red/black); no termination resistor needed</td></tr><tr><td>Outdoors</td><td>Surge protection where the bus leaves the building</td></tr></table>',
+  do: 'Keep the bus cable sheath right up to the terminal in the board. Mark every bus cable with its line number at both ends.',
+  watch: 'Using the spare yellow/white pair for 230 V is forbidden – the bus must stay SELV.',
+  quiz: [Q('Bus cable colours: + and − are…', ['Red and black', 'Yellow and white', 'Blue and brown'], 0), Q('Total cable length allowed in one segment:', ['1000 m', '350 m', '5000 m'], 0), Q('Is a ring allowed on KNX TP?', ['No', 'Yes', 'Only with 2 supplies'], 0)] });
+add('cert', '4 · Telegrams', 'tele', '✉️', 'The KNX telegram', { lvl: 'Certificate', lab: 'tele',
+  line: 'A telegram carries: <b>control field</b> (priority, repeat), <b>source</b> (individual address), <b>destination</b> (group or individual), <b>routing counter</b>, <b>length</b>, the <b>command + data</b> (e.g. GroupValue_Write ON) and a <b>check byte</b>.',
+  body: '<table class="spec"><tr><td>Priorities</td><td>System, Alarm (urgent), High (normal), Low (auto) – most telegrams use Low</td></tr><tr><td>Routing counter</td><td>Starts at 6; each coupler lowers it by 1 – stops endless loops</td></tr><tr><td>Commands</td><td>GroupValue_Write, GroupValue_Read, GroupValue_Response; device management for ETS</td></tr><tr><td>Duration</td><td>A short telegram + ACK takes about 20–25 ms → ~40–50 telegrams per second on a line at most</td></tr><tr><td>Check</td><td>Parity per character + check byte; a bad telegram gets NAK and is repeated</td></tr></table>',
+  do: 'Use the lab to build a telegram and read it the way the ETS bus monitor shows it.',
+  watch: 'Repeated telegrams (marked “R” in the monitor) mean a receiver did not acknowledge – look for a missing or faulty device.',
+  quiz: [Q('Initial routing counter value:', ['6', '0', '15'], 0), Q('A short telegram with its ACK takes about…', ['20–25 ms', '1 s', '1 µs'], 0), Q('Which command asks for a value?', ['GroupValue_Read', 'GroupValue_Write', 'Restart'], 0)] });
+add('cert', '5 · Group communication', 'ga', '🗂️', 'Group addresses', { lvl: 'Certificate',
+  line: 'Functions are linked by <b>group addresses</b> – like a channel name: the push-button sends “ON” to 1/1/1 and every actuator listening on 1/1/1 switches. Most projects use the <b>3-level</b> form <b>Main/Middle/Sub</b>.',
+  body: '<table class="spec"><tr><td>3-level</td><td>Main 0–31 / Middle 0–7 / Sub 0–255 – e.g. 1 = Lighting, 1/1 = Ground floor, 1/1/1 = Lobby downlights switch</td></tr><tr><td>2-level</td><td>Main 0–31 / Sub 0–2047</td></tr><tr><td>Free</td><td>0–65535 – rarely used</td></tr><tr><td>Rule</td><td>One group address = one function (switch, dim, value, status) – separate addresses for command and status</td></tr><tr><td>Good structure</td><td>Main = trade (1 lighting, 2 blinds, 3 HVAC, 4 central/scenes); middle = floor; sub = function, with status next to its command</td></tr></table>',
+  do: 'Agree a group-address scheme for the company and use it on every project – any of us can then service any site.',
+  watch: 'Mixing switch and status on one group address makes feedback loops and LEDs that lie. Command and status are always separate addresses.',
+  quiz: [Q('In 3-level addressing, the main group range is…', ['0–31', '0–255', '1–15'], 0), Q('Command and status of the same light should use…', ['Separate group addresses', 'The same group address', 'Individual addresses'], 0), Q('A group address represents…', ['A function shared by the linked objects', 'A device’s location', 'A cable'], 0)] });
+add('cert', '5 · Group communication', 'flags', '🚩', 'Communication objects and flags', { lvl: 'Certificate', lab: 'flags',
+  line: 'Each device has <b>communication objects</b> (e.g. “Switching”, “Status”). An object can listen to many group addresses but <b>sends on only one</b> – the first (sending) address. <b>Flags</b> decide what an object may do.',
+  body: '<table class="spec"><tr><td>C – Communication</td><td>Object talks on the bus at all</td></tr><tr><td>R – Read</td><td>Answers read requests – set on only <b>one</b> object per group address</td></tr><tr><td>W – Write</td><td>Takes its value from received telegrams</td></tr><tr><td>T – Transmit</td><td>Sends a telegram when its value changes</td></tr><tr><td>U – Update</td><td>Takes values from read responses too</td></tr><tr><td>I – Read on init</td><td>Asks for the value after power-up</td></tr></table>',
+  do: 'Use the lab: break the flags one at a time and watch which part of the function stops – that is exactly how you diagnose it on site.',
+  watch: 'Two objects with R set on the same group address both answer a read – the bus monitor shows two responses and visualisations get confused.',
+  quiz: [Q('An object linked to three group addresses sends on…', ['Only the first (sending) address', 'All three', 'None'], 0), Q('Which flag lets an actuator’s switching object accept ON/OFF?', ['W', 'T', 'R'], 0), Q('Which flag makes a status object send when it changes?', ['T', 'W', 'U'], 0)] });
+add('cert', '5 · Group communication', 'dpt', '🔣', 'Datapoint types (DPTs)', { lvl: 'Certificate', lab: 'dpt',
+  line: 'A <b>DPT</b> says how a value is coded so that sender and receiver agree. Only objects of matching DPT size and meaning should be linked on one group address.',
+  body: '<table class="spec"><tr><td>1.001</td><td>Switch – 1 bit (0 off, 1 on)</td></tr><tr><td>3.007</td><td>Dimming control – 4 bit (brighter/darker + step)</td></tr><tr><td>5.001</td><td>Percentage 0–100 % – 1 byte (0–255)</td></tr><tr><td>9.001</td><td>Temperature °C – 2-byte float</td></tr><tr><td>9.004</td><td>Illuminance lux – 2-byte float</td></tr><tr><td>14.xxx</td><td>4-byte float (power, energy)</td></tr><tr><td>17 / 18</td><td>Scene number / scene control</td></tr><tr><td>20.102</td><td>HVAC mode (comfort, standby, night, frost)</td></tr></table>',
+  do: 'Name group addresses with their DPT in mind (e.g. “GF lobby DL – dim value %”) and set the DPT on the group address in ETS – the group monitor then shows real values.',
+  watch: 'A 1-byte value sent to a 1-bit object is ignored (or misread). ETS warns about mismatched sizes – fix them, do not ignore.',
+  quiz: [Q('DPT 1.001 is…', ['1-bit switch', '1-byte percent', 'Temperature'], 0), Q('50 % in DPT 5.001 is coded as about…', ['128', '50', '5'], 0, '0–100 % maps to 0–255; 50 % ≈ 127–128.'), Q('Room temperature uses…', ['DPT 9.001 (2-byte float)', 'DPT 1.001', 'DPT 3.007'], 0)] });
+add('cert', '6 · ETS and commissioning', 'ets', '🖥️', 'ETS: building the project', { lvl: 'Certificate', lab: 'ets',
+  line: '<b>ETS</b> (Engineering Tool Software) is the one tool for every KNX device. You build the building, the topology and the group addresses, set each device’s parameters, link objects and download.',
+  body: '<table class="spec"><tr><td>Licences</td><td>ETS Demo (5 devices), Lite (20), Professional (unlimited) – from the KNX Association (my.knx.org)</td></tr><tr><td>Catalogue</td><td>Product data from the online catalogue or the maker (JUNG product database)</td></tr><tr><td>Views</td><td>Buildings, Topology, Group addresses, Trades</td></tr><tr><td>Parameters</td><td>Each channel’s behaviour: switch/dim times, staircase timer, scenes, presence logic, status</td></tr><tr><td>Project file</td><td>.knxproj – back it up after every session; give the client a copy at handover</td></tr></table>',
+  do: 'Prepare the project in the office (rooms, devices, group addresses, parameters) so site time is only addressing, download and testing.',
+  watch: 'The ETS project is the system’s only true documentation. Lose it and every future change becomes a reverse-engineering job.',
+  quiz: [Q('Unlimited devices need ETS…', ['Professional', 'Demo', 'Lite'], 0), Q('ETS project files end in…', ['.knxproj', '.pdf', '.dwg'], 0), Q('Best place to set parameters and group addresses:', ['In the office before going to site', 'Only on site', 'Never'], 0)] });
+add('cert', '6 · ETS and commissioning', 'comm', '🔧', 'Commissioning step by step', { lvl: 'Certificate', lab: 'ets', preset: 'order',
+  line: 'On site: check the installation, connect ETS through an interface (USB or IP), program <b>couplers first</b>, then each device’s <b>individual address</b> (programming button), then the <b>application</b>, then test every function.',
+  body: '<table class="spec"><tr><td>1</td><td>Insulation / wiring checks, bus voltage ≥ 21 V at line ends</td></tr><tr><td>2</td><td>Connect ETS via USB or KNX IP interface; set the right connection</td></tr><tr><td>3</td><td>Couplers / IP routers first (filter tables!)</td></tr><tr><td>4</td><td>Individual addresses – press each programming button when ETS asks</td></tr><tr><td>5</td><td>Application programs – full download first time, then partial for changes</td></tr><tr><td>6</td><td>Function test with the group monitor; record results; back up the project</td></tr></table>',
+  do: 'Program line by line starting nearest to the coupler / interface, so a mistake never cuts you off from the rest.',
+  watch: 'Downloading devices behind a coupler whose filter table is not yet loaded: telegrams may be blocked and functions look broken. Couplers first.',
+  quiz: [Q('Which devices are programmed first?', ['Couplers / IP routers', 'Push-buttons', 'Presence detectors'], 0), Q('How does a device accept its individual address?', ['You press its programming button when ETS asks', 'Automatically by location', 'Through DALI'], 0), Q('After the first full download, small changes need…', ['A partial download', 'A full reset of the line', 'New cable'], 0)] });
+add('cert', '6 · ETS and commissioning', 'diag', '🩺', 'Diagnostics: group monitor and bus monitor', { lvl: 'Certificate',
+  line: 'ETS diagnostics: the <b>group monitor</b> shows group telegrams with decoded values; the <b>bus monitor</b> shows every telegram including repeats and ACKs; <b>device info</b> and <b>individual address check</b> find missing or duplicate devices.',
+  body: '<table class="spec"><tr><td>Group monitor</td><td>“Who sent what to which group address” – first stop for “the light does not switch”</td></tr><tr><td>Bus monitor</td><td>Raw traffic, repeats (R), priorities, routing counter – for line problems</td></tr><tr><td>Read value</td><td>Send a GroupValue_Read and see who answers</td></tr><tr><td>Device info</td><td>Manufacturer, application, programming state of one device</td></tr><tr><td>Line scan</td><td>Lists every individual address that answers on a line</td></tr></table>',
+  do: 'Fault-find from the group monitor: does the sensor send? On which address? Does the actuator react / send status? Then check flags and links.',
+  watch: 'Many repeated telegrams on a line = something is not acknowledging (dead device, bad terminal, wrong filter table, bus voltage too low).',
+  quiz: [Q('Best first tool when a light does not switch:', ['Group monitor', 'Line scan', 'Unload all devices'], 0), Q('Repeated telegrams in the bus monitor point to…', ['A receiver not acknowledging', 'A perfect line', 'Too much light'], 0), Q('Which function lists every device answering on a line?', ['Line scan / address check', 'Group monitor', 'Download'], 0)] });
+add('cert', '7 · Typical functions', 'light', '💡', 'Lighting: switch, dim, staircase, scenes', { lvl: 'Certificate',
+  line: 'Lighting is most of our KNX work: <b>switching</b> (1 bit), <b>relative dimming</b> (4-bit, long press), <b>absolute value</b> (1 byte), <b>staircase timers</b>, <b>scenes</b> (one telegram recalls many values) and <b>presence</b> control with daylight.',
+  body: '<table class="spec"><tr><td>Short / long press</td><td>Short = toggle on/off; long = dim up/down; release = stop</td></tr><tr><td>Status</td><td>Actuator sends status → push-button LED shows the true state</td></tr><tr><td>Scenes</td><td>DPT 17/18 – e.g. “Meeting”, “Presentation”, “Clean”; can be learned from the push-button</td></tr><tr><td>Central functions</td><td>All off per floor / building – an extra group address listened to by many channels</td></tr><tr><td>Presence + daylight</td><td>Constant light control holds the lux set-point and switches off when empty</td></tr></table>',
+  do: 'For every push-button rocker define: short, long, LED meaning, and which status address drives the LED.',
+  watch: 'Push-button LEDs driven by the sensor’s own toggle instead of actuator status drift out of step after a central OFF.',
+  quiz: [Q('Long press on a dimming rocker sends…', ['4-bit relative dimming (DPT 3.007)', '1-bit switch', 'A scene'], 0), Q('A scene telegram…', ['Recalls many stored values with one telegram', 'Switches one lamp', 'Restarts the line'], 0), Q('Push-button LEDs should follow…', ['The actuator status', 'Their own last press', 'The time'], 0)] });
+add('cert', '7 · Typical functions', 'blind', '🪟', 'Blinds, heating and presence', { lvl: 'Certificate',
+  line: '<b>Blinds</b>: long press moves, short press stops / steps the slats; position in %. <b>Heating</b>: a room controller sends a valve position (%) to a heating actuator. <b>Presence</b>: detectors switch lights and set comfort / standby mode.',
+  body: '<table class="spec"><tr><td>Blind objects</td><td>Up/Down (1 bit), Stop/Step (1 bit), Position % (1 byte), Slat %</td></tr><tr><td>Safety</td><td>Wind / rain alarm from the weather station overrides manual commands</td></tr><tr><td>Heating</td><td>Room controller (set-point, actual temp) → valve position or switching PWM → heating actuator → valve drive</td></tr><tr><td>HVAC modes</td><td>Comfort, standby, night, frost/heat protection (DPT 20.102)</td></tr><tr><td>Presence</td><td>Master/slave detectors for large rooms; hold time; daylight threshold</td></tr></table>',
+  do: 'Measure the real blind run time and set it in the actuator so positions in % are accurate.',
+  watch: 'A wind alarm must be cyclic (sent every few minutes) with a monitoring time in the actuator – if the weather station dies, the blinds go to the safe position.',
+  quiz: [Q('A short press on a blind button usually…', ['Stops or steps the slats', 'Moves fully down', 'Switches the light'], 0), Q('Wind alarm telegrams should be…', ['Sent cyclically and monitored', 'Sent once a year', 'Not needed'], 0), Q('A room controller sends to the heating actuator…', ['A valve position / control value', 'A scene number', 'An IP address'], 0)] });
+
+// ================================================================ JUNG PRODUCTS
+add('jung', 'System devices', 'jsys', '🧰', 'JUNG system devices', { lvl: 'Certificate',
+  line: 'Every JUNG KNX installation starts with system devices on the DIN rail: <b>power supply</b> (320 / 640 mA, versions with diagnostics), <b>interface</b> to ETS (USB or KNX IP interface) and <b>couplers</b> – today usually a <b>KNX IP router</b> (e.g. IPR 300 SREG) as line or backbone coupler.',
+  body: '<table class="spec"><tr><td>KNX power supply</td><td>320 mA or 640 mA, DIN rail; diagnostic versions show bus current/voltage</td></tr><tr><td>KNX USB data interface</td><td>Laptop → bus for ETS on small jobs</td></tr><tr><td>KNX IP interface (e.g. IPS 300 SREG)</td><td>ETS / visualisation access over the LAN (tunnelling)</td></tr><tr><td>KNX IP router (e.g. IPR 300 SREG)</td><td>Couples lines over Ethernet (routing) and gives tunnelling access</td></tr><tr><td>Line repeater / coupler</td><td>Extends a line or couples TP lines</td></tr></table><p class="m">Article numbers and Secure variants change between catalogue years – always pick from the current JUNG catalogue / ETS database.</p>',
+  do: 'Standard JUNG panel for one floor: power supply 640 mA, IP router as line coupler, actuators, and a spare DIN-rail row for growth.',
+  watch: 'Do not order a USB interface as the only ETS access for a large building – an IP interface/router lets you commission and support remotely.',
+  quiz: [Q('Which JUNG device couples lines over Ethernet?', ['KNX IP router', 'Push-button module', 'Presence detector'], 0), Q('ETS reaches the bus over the LAN through…', ['A KNX IP interface or router (tunnelling)', 'A DALI ballast', 'A dimmer'], 0), Q('Where do you confirm article numbers?', ['Current JUNG catalogue / ETS database', 'Old quotes', 'Memory'], 0)] });
+add('jung', 'Actuators', 'jact', '🎚️', 'JUNG actuators: switch, dim, blind, heating', { lvl: 'Certificate',
+  line: 'JUNG <b>actuators</b> sit in the distribution board and do the switching: switch actuators (4/8/16 channels, some with current detection), universal / LED <b>dimmer actuators</b>, <b>blind actuators</b> and <b>heating actuators</b> for valve drives.',
+  body: '<table class="spec"><tr><td>Switch actuator</td><td>C-load / high inrush rated relays for LED drivers; current detection for load monitoring and run-hours</td></tr><tr><td>Universal dimmer</td><td>Leading / trailing edge, LED mode; check the minimum and maximum load per channel</td></tr><tr><td>Blind / shutter actuator</td><td>230 V or 24 V DC motors; run-time, slat, safety (wind/rain)</td></tr><tr><td>Heating actuator</td><td>Drives 230 V / 24 V thermoelectric valves with PWM</td></tr><tr><td>Combined / room actuators</td><td>Hotel rooms: switch + dim + blind + heating in one device</td></tr></table>',
+  do: 'Size switch actuators by the <b>inrush</b> of LED drivers (number of drivers per channel from the actuator data), not only by the watts.',
+  watch: 'Twenty LED drivers on one 16 A relay channel can weld the contact on inrush. Spread drivers or use an actuator rated for capacitive loads.',
+  quiz: [Q('Switch actuators for LED drivers must be checked for…', ['Inrush current / number of drivers', 'Colour only', 'Bus voltage only'], 0), Q('Current detection on a switch actuator gives…', ['Load monitoring and run-hours', 'Wi-Fi', 'Dimming'], 0), Q('A heating actuator drives…', ['Thermoelectric valve drives', 'Blinds', 'DALI lamps'], 0)] });
+add('jung', 'Actuators', 'jdali', '🌈', 'JUNG KNX DALI gateway', { lvl: 'Advanced',
+  line: 'For professional lighting we use a <b>KNX DALI gateway</b>: KNX sends switch/dim/scene telegrams, the gateway drives up to 64 DALI drivers in up to 16 groups, with <b>tunable white (DT8)</b> on suitable models, emergency monitoring and fault feedback.',
+  body: '<table class="spec"><tr><td>DALI line</td><td>Up to 64 short addresses, 16 groups, 16 scenes per gateway output</td></tr><tr><td>Group vs individual</td><td>Control groups (fewer objects) or each driver (more flexibility, more objects)</td></tr><tr><td>DT8 Tunable White</td><td>Colour temperature as its own object (Kelvin, DPT 7.600)</td></tr><tr><td>Feedback</td><td>Lamp failure, driver failure, DALI short circuit – to the visualisation / BMS</td></tr><tr><td>Commissioning</td><td>Address the DALI drivers (gateway / ETS app), assign to groups, then link KNX objects</td></tr></table>',
+  do: 'Plan DALI groups with the lighting design: one group per zone that ever needs separate control (window row, corridor, presentation).',
+  watch: 'DALI is not KNX: its 64-device limit and its own wiring (2-wire, polarity-free, up to 300 m) apply on top of KNX rules.',
+  quiz: [Q('Devices per DALI line on a gateway output:', ['64', '256', '15'], 0), Q('Tunable white needs drivers of type…', ['DT8', 'DT1', 'Any'], 0), Q('DALI failures can be reported to…', ['KNX visualisation / BMS through the gateway', 'Nobody', 'Only the driver LED'], 0)] });
+add('jung', 'Sensors and room control', 'jsens', '🔘', 'JUNG push-buttons, room controllers, presence', { lvl: 'Certificate',
+  line: 'On the wall: JUNG <b>push-button sensors / modules</b> (1–4 gangs, RGB status LEDs, some with display and temperature sensor) in the client’s chosen design line, <b>room controllers</b> for HVAC, and <b>presence / motion detectors</b> on the ceiling.',
+  body: '<table class="spec"><tr><td>Push-button modules</td><td>KNX push-button modules (e.g. F 40 / F 50 families) on a bus coupler; rockers per function; status LEDs</td></tr><tr><td>Push-button with display</td><td>Room temperature control + functions in one device</td></tr><tr><td>Design lines</td><td>LS 990, LS ZERO, A 550, A FLOW, CD 500 … – one design through the building</td></tr><tr><td>Presence detectors</td><td>Ceiling-mounted; lighting channels with daylight measurement, HVAC channel, master/slave</td></tr><tr><td>Binary inputs</td><td>Bring in existing switches, window contacts, alarms</td></tr><tr><td>Weather station</td><td>Wind, rain, brightness, temperature for blinds and façade</td></tr></table>',
+  do: 'Confirm the design line and colour with the architect before ordering – push-button frames are the most visible part of the job.',
+  watch: 'Presence detectors in a meeting room set to “switch on automatically” annoy users during presentations – use “semi-automatic” (manual on, auto off) where people present.',
+  quiz: [Q('Which device holds a lux set-point and switches off when the room is empty?', ['Presence detector', 'Power supply', 'Line coupler'], 0), Q('Push-button status LEDs show…', ['The state reported by the actuator', 'Bus voltage', 'Time'], 0), Q('Window contacts are connected through…', ['A binary input', 'A dimmer', 'A DALI gateway'], 0)] });
+add('jung', 'Visualisation and design', 'jvis', '📱', 'JUNG visualisation and app control', { lvl: 'Advanced',
+  line: 'Users control and monitor through <b>visualisation</b>: JUNG servers and apps (e.g. JUNG Visu Pro, Smart Visu Server) and wall <b>touch panels</b> – all reading and writing group addresses through a KNX IP interface or router.',
+  body: '<table class="spec"><tr><td>Server</td><td>Connects to KNX over IP (tunnelling / routing); stores pages, timers, logic, alarms</td></tr><tr><td>Clients</td><td>PC, tablet, phone apps; touch panels on the wall</td></tr><tr><td>Remote</td><td>Through the maker’s secure remote service or the client’s VPN – never by port forwarding</td></tr><tr><td>Secure</td><td>With KNX Secure, the visualisation needs the project’s keyring to read encrypted group addresses</td></tr></table>',
+  do: 'Every visualisation object should use the <b>status</b> address for display and the <b>command</b> address for action.',
+  watch: 'Each tunnelling connection uses one tunnel of the IP interface/router. Visualisation + ETS + BMS may need more tunnels than one device offers – plan them.',
+  quiz: [Q('A visualisation shows a light as ON based on…', ['The actuator status address', 'The last button press', 'The time of day'], 0), Q('Remote access to a JUNG visualisation should be through…', ['A secure remote service or VPN', 'Port forwarding', 'An open Wi-Fi'], 0), Q('With KNX Secure the visualisation needs…', ['The project keyring', 'Nothing extra', 'A new cable'], 0)] });
+add('jung', 'Project planning', 'jplan', '📋', 'Planning a JUNG KNX project', { lvl: 'Advanced', lab: 'jung',
+  line: 'Turn the room schedule into a device list: per room the push-buttons, presence detectors and room controllers; per board the actuator <b>channels</b> (switch, dim, DALI, blind, heating), then system devices, power and spare capacity.',
+  body: '<table class="spec"><tr><td>Count channels</td><td>Lighting circuits, DALI groups, blinds, valves per room</td></tr><tr><td>Choose actuators</td><td>Channels ÷ channels per device, + 15–20 % spare</td></tr><tr><td>Bus devices per line</td><td>Add all sensors + actuators + system devices; keep ≤ ~50 per line</td></tr><tr><td>Power</td><td>Current per line from data sheets; 640 mA supply per line</td></tr><tr><td>IP backbone</td><td>IP routers as line couplers; LAN with IGMP snooping; interface for ETS / visualisation</td></tr></table>',
+  do: 'Use the lab to estimate a project, then build the real list in ETS with current JUNG products.',
+  watch: 'Quoting actuators without spare channels makes every later change a new DIN-rail device and a new cable to the board.',
+  quiz: [Q('Spare actuator channels to plan:', ['15–20 %', '0 %', '100 %'], 0), Q('Bus devices per line – comfortable maximum:', ['About 50', '255', '5'], 0), Q('Lines are usually coupled in new projects by…', ['KNX IP routers', 'Telephone cable', 'DALI'], 0)] });
+
+// ================================================================ ADVANCED
+add('adv', 'KNX IP', 'ip', '🌐', 'KNX IP: tunnelling and routing', { lvl: 'Advanced',
+  line: '<b>Tunnelling</b> = a point-to-point connection from a PC / visualisation to the bus (unicast, UDP 3671). <b>Routing</b> = KNX IP routers exchange telegrams by multicast (<b>224.0.23.12</b>, UDP 3671) – the IP network becomes the main line / backbone.',
+  body: '<table class="spec"><tr><td>Tunnelling</td><td>Each client uses one tunnel; IP interfaces/routers offer a limited number of tunnels, each with its own individual address</td></tr><tr><td>Routing</td><td>Multicast – switches need IGMP snooping + querier; routers must be in the same multicast domain (or use a multicast router)</td></tr><tr><td>Speed</td><td>IP is ~1000× faster than TP; a router buffers when the TP line is slower</td></tr><tr><td>Addresses</td><td>IP router as line coupler: 1.1.0; its tunnels get e.g. 1.1.250–1.1.254</td></tr></table>',
+  do: 'Give every KNX IP device a static IP from the project plan, keep KNX IP in its own VLAN, and never expose UDP 3671 to the internet.',
+  watch: 'Routing multicast blocked by the client’s IT (no IGMP querier, or multicast filtered between VLANs) makes lines go silent to each other.',
+  quiz: [Q('KNX IP routing uses…', ['Multicast 224.0.23.12, UDP 3671', 'Broadcast to everyone', 'TCP 80'], 0), Q('ETS connecting to one line over the LAN uses…', ['Tunnelling', 'Routing only', 'DALI'], 0), Q('Each tunnelling connection needs…', ['A free tunnel with its own individual address', 'A new cable', 'Nothing'], 0)] });
+add('adv', 'KNX Secure', 'secure', '🔐', 'KNX Secure: Data Secure and IP Secure', { lvl: 'Advanced',
+  line: '<b>KNX Data Secure</b> authenticates and encrypts group telegrams end-to-end (AES-128 CCM with sequence counters, stops replay). <b>KNX IP Secure</b> protects tunnelling and routing on IP. Secure devices are added with their <b>FDSK</b> (Factory Default Setup Key).',
+  body: '<table class="spec"><tr><td>FDSK</td><td>Printed / QR on the device and a card; ETS needs it to take over the device – keep it with the project</td></tr><tr><td>Project password</td><td>A secure project is encrypted – lose the password and the system cannot be changed</td></tr><tr><td>Keyring</td><td>Exported from ETS for visualisations / gateways that must read secure addresses</td></tr><tr><td>Mixing</td><td>Secure and plain devices can coexist; a group address is secure only if all its devices support it</td></tr><tr><td>When</td><td>Outdoor / accessible bus cables, hotels, offices, anything on a shared IP network</td></tr></table>',
+  do: 'Photograph and store every FDSK with the project, and keep the project password in the company password manager.',
+  watch: 'Resetting a secure device needs its FDSK. Without it the device may be unusable in another project.',
+  quiz: [Q('What is the FDSK?', ['Factory key needed to commission a secure device', 'A fuse', 'A DALI scene'], 0), Q('Data Secure protects…', ['Group telegrams end-to-end', 'Only Wi-Fi', 'Nothing on TP'], 0), Q('If the secure project password is lost…', ['Changes become impossible', 'Nothing happens', 'ETS resets it'], 0)] });
+add('adv', 'Couplers and bus load', 'filter', '🧱', 'Couplers and filter tables', { lvl: 'Advanced',
+  line: 'A coupler forwards a group telegram only if the address is in its <b>filter table</b> (built by ETS from the links that cross the coupler). Individual-address telegrams are routed by the area/line numbers. This keeps lines quiet.',
+  body: '<table class="spec"><tr><td>Filter</td><td>Only group addresses used on both sides pass</td></tr><tr><td>Main groups 14/15</td><td>Pass by default in most couplers – avoid using them for normal functions</td></tr><tr><td>Commissioning</td><td>“Pass all” helps during start-up – set back to “filter” afterwards</td></tr><tr><td>Update</td><td>After adding links across lines, download the coupler (filter table) too</td></tr></table>',
+  do: 'After every change that links devices on different lines, remember to download the couplers / IP routers.',
+  watch: '“It works on my line but not from the other floor” is almost always a coupler filter table that was not updated.',
+  quiz: [Q('A coupler forwards a group telegram when…', ['The address is in its filter table', 'Always', 'Never'], 0), Q('After linking devices across lines you must also…', ['Download the coupler', 'Replace the cable', 'Restart the supply'], 0), Q('“Pass all” mode should be used…', ['Only temporarily during commissioning', 'Permanently', 'Never'], 0)] });
+add('adv', 'Couplers and bus load', 'load', '📈', 'Bus load and good habits', { lvl: 'Advanced', lab: 'load',
+  line: 'A TP line carries roughly <b>40–50 telegrams per second</b> at most. Cyclic sending, “send on every small change” and many visualisation reads can fill it. Keep the average well below <b>~30–40 %</b>.',
+  body: '<table class="spec"><tr><td>Cyclic values</td><td>Temperatures every 10–15 min (or on change > 0.5 K), not every second</td></tr><tr><td>Presence</td><td>Send on change, not cyclically</td></tr><tr><td>Lux</td><td>Send on change > 10–20 %</td></tr><tr><td>Visualisation</td><td>Listen to status, do not poll with reads</td></tr><tr><td>Couplers</td><td>Filter so local traffic stays local</td></tr></table>',
+  do: 'After commissioning watch the bus monitor for 10 minutes with nobody touching anything – the line should be almost silent.',
+  watch: 'A line at 70 % load loses telegrams at peak times (central OFF + scenes) – users see lights that “sometimes” do not react.',
+  quiz: [Q('A TP line carries at most about…', ['40–50 telegrams/s', '5000 telegrams/s', '1 telegram/s'], 0), Q('A good cyclic time for room temperatures:', ['10–15 min (or on change)', 'Every 100 ms', 'Never'], 0), Q('A quiet line with nobody using it shows…', ['Almost no traffic', 'Constant 80 % load', 'Only repeats'], 0)] });
+add('adv', 'Logic and integration', 'logic', '🧠', 'Logic, scenes, timers and integration', { lvl: 'Advanced',
+  line: 'Beyond simple links: <b>logic gates</b> and <b>timers</b> inside actuators/push-buttons or a logic server, <b>scenes</b> across trades, and <b>integration</b> with BMS (BACnet/Modbus), DALI, AV and access control.',
+  body: '<table class="spec"><tr><td>Device logic</td><td>Many JUNG devices have AND/OR, gate, disable and threshold functions in parameters</td></tr><tr><td>Logic server / visualisation</td><td>Complex logic, astro timers, calendars, alarms, e-mails</td></tr><tr><td>Scenes</td><td>Lighting + blinds + HVAC in one press (DPT 17/18)</td></tr><tr><td>BMS</td><td>KNX ↔ BACnet / Modbus gateways; agree a points list</td></tr><tr><td>Energy</td><td>Meters and current detection to KNX; load shedding</td></tr></table>',
+  do: 'Put logic as close to the devices as possible (inside actuators/sensors) – the system still works when a server is down.',
+  watch: 'Logic hidden in a visualisation server that nobody documented becomes the reason “the building stops working” when the server is replaced.',
+  quiz: [Q('Where is the most robust place for simple logic?', ['Inside the KNX devices', 'In a cloud service', 'In a spreadsheet'], 0), Q('One press setting lights, blinds and HVAC uses…', ['A scene', 'A coupler', 'An FDSK'], 0), Q('KNX to BACnet integration is done by…', ['A gateway and an agreed points list', 'Changing the cable', 'DALI'], 0)] });
+add('adv', 'Troubleshooting and handover', 'fault', '🔍', 'Advanced troubleshooting', { lvl: 'Advanced',
+  line: 'Fault-find methodically: <b>power and voltage</b> → <b>device answers</b> (address check) → <b>telegram sent?</b> (group monitor) → <b>right address, flags, DPT?</b> → <b>coupler filter</b> → <b>bus load / repeats</b>.',
+  body: '<table class="spec"><tr><td>No device answers</td><td>Supply off, short circuit, polarity, bus voltage < 21 V</td></tr><tr><td>One device missing</td><td>Bus terminal, damaged device, address changed</td></tr><tr><td>Telegram but no action</td><td>Missing link, W flag, wrong DPT size, coupler filter</td></tr><tr><td>Wrong LED / visualisation</td><td>Status address missing, T flag, two R flags</td></tr><tr><td>Random misses</td><td>Bus load, repeats, low voltage at line end</td></tr></table>',
+  do: 'Keep a log of faults and fixes per project – the next technician starts from your notes.',
+  watch: 'Never “download all” on a running building to fix one device – one wrong parameter set can stop many rooms. Partial downloads, one device at a time.',
+  quiz: [Q('No device on a line answers. First check:', ['Power supply / bus voltage / short circuit', 'Scene numbers', 'Visualisation colours'], 0), Q('A telegram is seen but the actuator does not react. Check…', ['Link, W flag, DPT, coupler filter', 'Lux meter', 'Paint'], 0), Q('Fixing one device in a running building:', ['Partial download of that device', 'Download everything', 'Unload the whole line'], 0)] });
+add('adv', 'Troubleshooting and handover', 'hand', '📁', 'Documentation and handover', { lvl: 'Advanced',
+  line: 'Hand over a system anyone can maintain: the <b>ETS project</b> (and password / keyring for Secure), <b>FDSK list</b>, group-address list, device list with individual addresses and locations, panel drawings, test records and user guides.',
+  body: '<table class="spec"><tr><td>ETS</td><td>.knxproj + project password + keyring (Secure)</td></tr><tr><td>Lists</td><td>Group addresses with DPT and description; devices with individual address, room, board</td></tr><tr><td>Drawings</td><td>Topology, board layouts, bus routes</td></tr><tr><td>Records</td><td>Bus voltage per line, function tests signed by the client</td></tr><tr><td>Users</td><td>Short guide per room type; training session record</td></tr></table>',
+  do: 'Store a copy of everything in the project folder and give the client theirs on a USB stick and by secure transfer.',
+  watch: 'Without the ETS project, the next integrator must re-read every device – clients remember who caused that.',
+  quiz: [Q('What must be handed over for a Secure project?', ['ETS project, password, keyring and FDSKs', 'Only the invoice', 'Only photos'], 0), Q('Device list should include…', ['Individual address, room and board', 'Only prices', 'Nothing'], 0), Q('Function tests should be…', ['Recorded and signed by the client', 'Skipped', 'Verbal only'], 0)] });
+
+// ================================================================ EXAMS
+add('exam', 'Mock exams', 'exam_cert', '🎓', 'KNX Certificate – mock exam', { exam: 'cert', line: 'Certificate level: system, topology, power, cable, telegrams, addresses, flags, DPTs, ETS, commissioning and diagnostics.' });
+add('exam', 'Mock exams', 'exam_adv', '🏅', 'KNX Advanced – mock exam', { exam: 'adv', line: 'Advanced level: KNX IP, Secure, couplers and filter tables, bus load, logic, DALI gateway, visualisation, troubleshooting and JUNG project planning.' });
+EXAMS.cert = { n: 25, min: 30, pass: 70, bank: [
+  Q('KNX is standardised as…', ['EN 50090 / ISO/IEC 14543-3', 'EN 12464-1', 'IEC 60598', 'BS 7671'], 0),
+  Q('KNX TP bit rate:', ['9600 bit/s', '19200 bit/s', '1 Mbit/s', '100 kbit/s'], 0),
+  Q('Nominal KNX bus voltage:', ['30 V DC (SELV)', '230 V AC', '12 V AC', '48 V DC'], 0),
+  Q('Minimum operating voltage of a TP device:', ['21 V', '28 V', '12 V', '5 V'], 0),
+  Q('Bus access method on KNX TP:', ['CSMA/CA', 'Token ring', 'Polling by a master', 'Time slots'], 0),
+  Q('Maximum devices on one line segment (640 mA):', ['64', '128', '256', '15'], 0),
+  Q('Maximum devices on a line with line repeaters:', ['256', '64', '1000', '15'], 0),
+  Q('Maximum lines in an area:', ['15', '16', '64', '255'], 0),
+  Q('Maximum areas on the backbone:', ['15', '31', '64', '8'], 0),
+  Q('Individual address of a backbone coupler for area 2:', ['2.0.0', '2.1.0', '0.0.2', '2.0.1'], 0),
+  Q('Individual address of the line coupler for line 1.2:', ['1.2.0', '1.2.1', '1.0.2', '0.1.2'], 0),
+  Q('New devices arrive with individual address…', ['15.15.255', '0.0.0', '1.1.1', '15.15.0'], 0),
+  Q('Maximum total cable length in one segment:', ['1000 m', '700 m', '350 m', '2000 m'], 0),
+  Q('Maximum cable length power supply → device:', ['350 m', '700 m', '1000 m', '100 m'], 0),
+  Q('Maximum cable length device → device:', ['700 m', '350 m', '1000 m', '200 m'], 0),
+  Q('Maximum number of power supplies per segment:', ['2', '1', '4', 'Unlimited'], 0),
+  Q('Classic minimum distance between two supplies in one segment:', ['200 m of cable', '10 m', '1000 m', 'None'], 0),
+  Q('KNX bus cable cores used: + / −', ['Red / black', 'Yellow / white', 'Blue / brown', 'Green / yellow'], 0),
+  Q('Clearance of unsheathed bus wires from mains conductors:', ['At least 4 mm (or insulating sleeve)', '0 mm', '50 cm', 'Not regulated'], 0),
+  Q('Is a ring topology allowed on TP?', ['No', 'Yes', 'Only on the backbone', 'Only with repeaters'], 0),
+  Q('Does a KNX TP line need a termination resistor?', ['No', 'Yes, 120 Ω', 'Yes, at both ends', 'Only over 350 m'], 0),
+  Q('Initial routing counter in a telegram:', ['6', '7', '0', '15'], 0),
+  Q('Which priority do most normal telegrams use?', ['Low', 'System', 'Alarm', 'High'], 0),
+  Q('A sender repeats an unacknowledged telegram up to…', ['3 times', '1 time', '10 times', 'Forever'], 0),
+  Q('Approximate time of a short telegram with ACK:', ['20–25 ms', '2 ms', '200 ms', '2 s'], 0),
+  Q('3-level group address main group range:', ['0–31', '0–15', '0–255', '1–64'], 0),
+  Q('3-level group address middle group range:', ['0–7', '0–15', '0–31', '0–255'], 0),
+  Q('An object linked to several group addresses sends on…', ['The first (sending) one only', 'All of them', 'The last one', 'None'], 0),
+  Q('The R flag should be set on…', ['Only one object per group address', 'Every object', 'No object ever', 'Only push-buttons'], 0),
+  Q('Flag that lets an object change its value from received telegrams:', ['W', 'T', 'R', 'I'], 0),
+  Q('Flag that makes an object send when its value changes:', ['T', 'W', 'U', 'C'], 0),
+  Q('Flag that requests the value after power-up:', ['I (read on init)', 'T', 'W', 'C'], 0),
+  Q('DPT 1.001 is…', ['Switch, 1 bit', 'Percent, 1 byte', 'Temperature, 2 byte', 'Dimming, 4 bit'], 0),
+  Q('DPT 3.007 is…', ['Dimming control, 4 bit', 'Switch, 1 bit', 'Scene, 1 byte', 'Time, 3 byte'], 0),
+  Q('DPT 5.001 value 100 % is coded as…', ['255', '100', '1', '127'], 0),
+  Q('Temperature in °C uses DPT…', ['9.001', '5.001', '1.001', '17.001'], 0),
+  Q('Programming the individual address needs…', ['The device programming button', 'A DALI tool', 'A multimeter', 'Nothing'], 0),
+  Q('Which devices are downloaded first on site?', ['Couplers / IP routers', 'Push-buttons', 'Room controllers', 'Visualisation'], 0),
+  Q('Unlimited project size needs ETS…', ['Professional', 'Lite', 'Demo', 'Home Mobile'], 0),
+  Q('Tool to see decoded group telegrams with values:', ['Group monitor', 'Line scan', 'Unload', 'Topology view'], 0),
+  Q('Many repeated telegrams in the bus monitor indicate…', ['A receiver not acknowledging / line problem', 'Normal operation', 'Too few devices', 'Secure mode'], 0),
+  Q('Command and status of a light should use…', ['Separate group addresses', 'The same group address', 'Individual addresses', 'DALI addresses'], 0),
+  Q('A long press on a dimming push-button typically sends…', ['DPT 3.007 dimming', 'DPT 1.001 toggle', 'DPT 9.001', 'A scene'], 0),
+  Q('Wind alarm for blinds should be…', ['Cyclic and monitored by the actuator', 'Sent once', 'Manual only', 'Not used'], 0),
+  Q('A KNX supply’s auxiliary output (no choke) may be connected directly to a bus line?', ['No', 'Yes', 'Only with 2 supplies', 'Only outdoors'], 0),
+] };
+EXAMS.adv = { n: 20, min: 25, pass: 70, bank: [
+  Q('KNX IP routing multicast address:', ['224.0.23.12', '239.255.0.1', '255.255.255.255', '192.168.1.255'], 0),
+  Q('KNX IP UDP port:', ['3671', '5568', '502', '47808'], 0),
+  Q('A PC running ETS over the LAN to a line uses…', ['Tunnelling', 'Routing', 'DALI', 'Bluetooth'], 0),
+  Q('Each tunnelling client uses…', ['One tunnel with its own individual address', 'All tunnels', 'No address', 'A DALI address'], 0),
+  Q('KNX IP routing across switches needs…', ['IGMP snooping with a querier (multicast allowed)', 'PoE', 'A DALI gateway', 'Nothing'], 0),
+  Q('IP router used as line coupler for line 1.1 gets…', ['1.1.0', '1.0.0', '1.1.255', '0.0.1'], 0),
+  Q('KNX Data Secure uses…', ['AES-128 CCM with sequence counters', 'No encryption', 'DES', 'Only passwords'], 0),
+  Q('The FDSK is…', ['The factory key needed to commission a secure device', 'A fuse rating', 'A scene', 'A DALI type'], 0),
+  Q('A visualisation reading secure group addresses needs…', ['The ETS keyring', 'Nothing', 'A new cable', 'Pass-all couplers'], 0),
+  Q('A group address can be secure only if…', ['All its linked devices support Data Secure', 'One device supports it', 'It is in main group 31', 'Always'], 0),
+  Q('A coupler forwards a group telegram when…', ['The address is in its filter table', 'Always', 'Only at night', 'Never'], 0),
+  Q('After linking devices across lines you must…', ['Download the coupler / IP router too', 'Change the supply', 'Re-address all devices', 'Nothing'], 0),
+  Q('Main groups often passed by couplers without filtering:', ['14 and 15', '0 and 1', '7 and 8', 'None'], 0),
+  Q('Maximum practical telegram rate on a TP line:', ['About 40–50 per second', '5000 per second', '1 per second', '1000 per second'], 0),
+  Q('Recommended average bus load:', ['Well below ~30–40 %', '90 %', '100 %', 'No limit'], 0),
+  Q('Good sending rule for room temperature:', ['On change > 0.5 K or every 10–15 min', 'Every 100 ms', 'Never', 'Every second'], 0),
+  Q('DALI devices per gateway output:', ['64', '256', '15', '1000'], 0),
+  Q('DALI groups per output:', ['16', '64', '8', '255'], 0),
+  Q('Tunable white on DALI needs drivers of device type…', ['DT8', 'DT6 only', 'DT1', 'Any'], 0),
+  Q('Switch actuators for LED drivers are limited mainly by…', ['Inrush current / number of drivers', 'Colour', 'Bus voltage', 'IP address'], 0),
+  Q('Robust place for simple logic:', ['Inside KNX devices', 'Only in a cloud', 'In Excel', 'In the router'], 0),
+  Q('KNX ↔ BACnet integration needs…', ['A gateway and an agreed points list', 'A DALI cable', 'A coupler only', 'Nothing'], 0),
+  Q('“Works on my line, not from another floor” – first suspect:', ['Coupler filter table not updated', 'Lamp colour', 'Supply too big', 'Too few scenes'], 0),
+  Q('No device on a line answers – first check:', ['Supply, bus voltage, short circuit', 'Visualisation skin', 'Scene list', 'Coupler colour'], 0),
+  Q('Fixing one device in a running building:', ['Partial download of that device', 'Download all', 'Unload the line', 'Reset all couplers'], 0),
+  Q('Handover of a Secure project includes…', ['ETS project, password, keyring, FDSK list', 'Only drawings', 'Only invoices', 'Nothing'], 0),
+  Q('Spare actuator channels to plan in a JUNG project:', ['15–20 %', '0 %', '100 %', '1 %'], 0),
+  Q('Remote access to a KNX visualisation:', ['Secure remote service or VPN', 'Port forward 3671', 'Open Wi-Fi', 'Default passwords'], 0),
+  Q('Presence detector in a presentation room is best set to…', ['Semi-automatic (manual on, auto off)', 'Fully automatic on', 'Off', 'Cyclic every second'], 0),
+  Q('A bus line at 70 % load at peak shows…', ['Lost or late telegrams', 'Faster response', 'No effect', 'Better dimming'], 0),
+] };
+
+// ================================================================ LABS
+// topology: areas, lines, devices; addresses and limits
+LABS.topo = (el, preset) => {
+  el.innerHTML = `<div class="ctl" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr))">${sl('tpA', 'Areas', 1, 15, 1, 1)}${sl('tpL', 'Lines per area', 1, 15, 1, 3)}${sl('tpD', 'Devices per line', 1, 256, 1, 48)}${sl('tpR', 'Line repeaters per line', 0, 3, 1, 0)}</div><div id="tpOut"></div><div class="inputs" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-top:8px"><div><label>Find the address of: area</label><input type="number" id="tpQa" min="1" max="15" value="1"></div><div><label>line</label><input type="number" id="tpQl" min="0" max="15" value="2"></div><div><label>device no. on the line</label><input type="number" id="tpQd" min="0" max="255" value="${preset === 'addr' ? 0 : 7}"></div></div><div id="tpAddr"></div><div class="stage" style="margin-top:8px;background:#fff;border:1px solid var(--line)"><svg id="tpSvg" viewBox="0 0 720 220"></svg></div>`;
+  bind(el, () => { const A = +$('tpA').value, Lp = +$('tpL').value, D = +$('tpD').value, R = +$('tpR').value, segs = R + 1, cap = 64 * segs, ok = D <= cap, tot = A * Lp * D, comfy = D <= 50 * segs;
+    $('tpOut').innerHTML = kpi([[tot.toLocaleString('en-GB'), 'devices in the system'], [`${cap}`, `max per line with ${R} repeater${R === 1 ? '' : 's'}`], [ok ? (comfy ? 'OK ✓' : 'Full – little spare') : 'Too many ✗', `${D} devices per line`, !ok], [`${A * Lp + (A > 1 ? A : 0)}`, 'couplers / IP routers']]);
+    const a = +$('tpQa').value, l = +$('tpQl').value, d = +$('tpQd').value, role = d === 0 ? (l === 0 ? (a === 0 ? 'backbone' : 'backbone (area) coupler of area ' + a) : 'line coupler of line ' + a + '.' + l) : l === 0 ? 'device on the main line of area ' + a : 'device ' + d + ' on line ' + a + '.' + l;
+    $('tpAddr').innerHTML = `<p style="margin:6px 0"><b style="font-size:18px">${a}.${l}.${d}</b> – ${role}${a > 15 || l > 15 || d > 255 ? ' <b style="color:var(--bad)">out of range</b>' : ''}</p>`;
+    let s = '<line x1="20" y1="20" x2="700" y2="20" stroke="#7c3aed" stroke-width="3"/><text x="24" y="14" font-size="11" fill="#7c3aed">Backbone 0.0 (or IP)</text>'; const show = Math.min(A, 3);
+    for (let i = 0; i < show; i++) { const x = 30 + i * 230; s += `<rect x="${x + 70}" y="12" width="50" height="16" fill="#ede9fe" stroke="#7c3aed"/><text x="${x + 95}" y="24" font-size="9" text-anchor="middle">${i + 1}.0.0</text><line x1="${x + 95}" y1="28" x2="${x + 95}" y2="60" stroke="#7c3aed"/><line x1="${x}" y1="60" x2="${x + 200}" y2="60" stroke="#1F6FEB" stroke-width="2"/><text x="${x}" y="54" font-size="10" fill="#1F6FEB">Main line ${i + 1}.0</text>`;
+      for (let j = 0; j < Math.min(Lp, 4); j++) { const lx = x + 10 + j * 48; s += `<rect x="${lx}" y="66" width="40" height="14" fill="#e0f2fe" stroke="#1F6FEB"/><text x="${lx + 20}" y="77" font-size="8" text-anchor="middle">${i + 1}.${j + 1}.0</text><line x1="${lx + 20}" y1="80" x2="${lx + 20}" y2="200" stroke="${ok ? '#2E9B48' : '#c8102e'}" stroke-width="2"/>`; for (let k = 0; k < 5; k++) s += `<circle cx="${lx + 20}" cy="${96 + k * 21}" r="5" fill="#fff" stroke="#111827"/>`; s += `<text x="${lx + 20}" y="214" font-size="9" text-anchor="middle">${D} dev</text>`; }
+      if (Lp > 4) s += `<text x="${x + 200}" y="140" font-size="10">+${Lp - 4} lines</text>`; }
+    if (A > 3) s += `<text x="700" y="40" font-size="10" text-anchor="end">+${A - 3} areas</text>`;
+    $('tpSvg').innerHTML = s; });
+};
+// cable lengths in one segment
+LABS.cable = (el) => {
+  el.innerHTML = `<div class="ctl" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">${sl('cbT', 'Total cable in the segment', 50, 1500, 10, 640, ' m')}${sl('cbP', 'Longest supply → device', 10, 600, 5, 280, ' m')}${sl('cbD', 'Longest device → device', 10, 1000, 5, 520, ' m')}${sl('cbN', 'Devices', 1, 80, 1, 46)}${sl('cbI', 'Average current per device', 5, 15, 0.5, 10, ' mA')}${sl('cbS', 'Supplies in the segment', 1, 3, 1, 1)}${sl('cbSD', 'Cable between the two supplies', 0, 600, 10, 250, ' m')}</div><div class="row">${[320, 640].map((m) => chip(m === 640, `${m} mA supply`, `CBM=${m};LABS.cable.run()`)).join('')}</div><div id="cbOut"></div>`;
+  window.CBM = 640;
+  LABS.cable.run = () => { const T = +$('cbT').value, P = +$('cbP').value, Dd = +$('cbD').value, N = +$('cbN').value, I = +$('cbI').value, S = +$('cbS').value, SD = +$('cbSD').value, cap = CBM * S, need = N * I;
+    el.querySelectorAll('.row .btn').forEach((b, i) => b.classList.toggle('on', [320, 640][i] === CBM));
+    const rules = [[T <= 1000, `Total ${T} m ≤ 1000 m`], [P <= 350, `Supply → device ${P} m ≤ 350 m`], [Dd <= 700, `Device → device ${Dd} m ≤ 700 m`], [S <= 2, `${S} supplies ≤ 2`], [S < 2 || SD >= 200, S < 2 ? 'One supply' : `Supplies ${SD} m apart ≥ 200 m`], [N <= 64, `${N} devices ≤ 64 per segment`], [need <= cap * 0.8, `${need} mA ≤ 80 % of ${cap} mA supply`]];
+    $('cbOut').innerHTML = `<div class="tablewrap"><table class="spec">${rules.map(([ok, t]) => `<tr><td style="color:var(--${ok ? 'good' : 'bad'})">${ok ? '✓' : '✗'}</td><td>${t}</td></tr>`).join('')}</table></div><p class="m" style="font-size:13px">${rules.every(([ok]) => ok) ? 'This segment follows the rules.' : 'Fix the ✗ items: split the line with a coupler / repeater, move the supply nearer the load centre, or use a bigger supply.'}</p>`; };
+  bind(el, LABS.cable.run);
+};
+// telegram builder
+LABS.tele = (el) => {
+  el.innerHTML = `<div class="inputs" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))"><div><label>Source (individual)</label><input id="tgS" value="1.1.12"></div><div><label>Destination (group)</label><input id="tgD" value="1/1/1"></div><div><label>Type</label><select id="tgT"><option value="1">DPT 1.001 switch</option><option value="5">DPT 5.001 percent</option><option value="9">DPT 9.001 temperature</option></select></div><div><label>Value</label><input id="tgV" value="1"></div><div><label>Priority</label><select id="tgP"><option value="3">Low</option><option value="1">High (normal)</option><option value="2">Alarm</option><option value="0">System</option></select></div></div><div id="tgOut"></div>`;
+  bind(el, () => { const ia = $('tgS').value.split('.').map(Number), ga = $('tgD').value.split('/').map(Number), t = +$('tgT').value, v = parseFloat($('tgV').value) || 0, pr = +$('tgP').value;
+    if (ia.length !== 3 || ga.length !== 3 || ia.some(isNaN) || ga.some(isNaN)) { $('tgOut').innerHTML = '<p class="m" style="color:var(--bad)">Write the source like 1.1.12 and the group like 1/1/1</p>'; return; }
+    const ctrl = 0x80 | 0x20 | 0x10 | (pr << 2), s1 = (ia[0] << 4) | ia[1], s2 = ia[2], d1 = (ga[0] << 3) | ga[1], d2 = ga[2]; let apdu, data = [];
+    if (t === 1) apdu = [0x00, 0x80 | (v ? 1 : 0)]; else if (t === 5) { apdu = [0x00, 0x80]; data = [Math.max(0, Math.min(255, Math.round((v * 255) / 100)))]; } else { apdu = [0x00, 0x80]; data = dpt9(v); }
+    const b5 = 0x80 | (6 << 4) | (1 + data.length), bytes = [ctrl, s1, s2, d1, d2, b5, ...apdu, ...data], cs = 0xff ^ bytes.reduce((x, y) => x ^ y, 0), all = [...bytes, cs], bits = 50 + all.length * 13 + 15 + 13, ms = (bits * 104.17) / 1000;
+    const lab = ['Control', 'Source hi', 'Source lo', 'Dest hi', 'Dest lo', 'Addr type · routing · length', 'TPCI', 'APCI + data', ...data.map((_, i) => 'Data ' + (i + 1)), 'Check'];
+    $('tgOut').innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:4px;margin:8px 0">${all.map((b, i) => `<div style="border:1px solid var(--line);border-radius:6px;padding:4px 6px;text-align:center;min-width:64px"><b class="m" style="font-family:monospace;font-size:15px;color:var(--ink)">${b.toString(16).toUpperCase().padStart(2, '0')}</b><div style="font-size:10px;color:var(--muted)">${lab[i]}</div></div>`).join('')}</div>`
+      + kpi([[`${all.length} bytes`, 'telegram'], [`${ms.toFixed(1)} ms`, 'with idle time and ACK'], [`${Math.floor(1000 / ms)}`, 'such telegrams per second max'], ['6', 'routing counter (each coupler −1)']])
+      + `<p class="m" style="font-size:13px">Control ${ctrl.toString(16).toUpperCase()}: standard frame, not repeated, priority ${['system', 'high', 'alarm', 'low'][pr]}. Destination bit = group. Check byte = inverted XOR of all bytes.</p>`; });
+};
+function dpt9(v) { let m = Math.round(v * 100), e = 0; while (m > 2047 || m < -2048) { m = Math.round(m / 2); e++; } const mm = m & 0xfff, sign = m < 0 ? 1 : 0; return [(sign << 7) | (e << 3) | ((mm >> 8) & 0x07), mm & 0xff]; }
+// DPT converter
+LABS.dpt = (el) => {
+  el.innerHTML = `<div class="ctl" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">${sl('dpP', 'DPT 5.001 percentage', 0, 100, 1, 50, ' %')}${sl('dpT', 'DPT 9.001 temperature', -20, 60, 0.1, 21.5, ' °C')}${sl('dpL', 'DPT 9.004 illuminance', 0, 2000, 10, 500, ' lx')}</div><div class="row"><span class="m" style="font-size:12px;align-self:center">DPT 3.007 step:</span>${['stop', '100 %', '50 %', '25 %', '12.5 %', '6.25 %', '3.13 %', '1.56 %'].map((t, i) => chip(i === 1, t, `DPS=${i};LABS.dpt.run()`)).join('')}${chip(true, 'brighter', 'DPU=1;LABS.dpt.run()')}${chip(false, 'darker', 'DPU=0;LABS.dpt.run()')}</div><div id="dpOut"></div>`;
+  window.DPS = 1; window.DPU = 1;
+  LABS.dpt.run = () => { const p = +$('dpP').value, t = +$('dpT').value, lx = +$('dpL').value, b5 = Math.round((p * 255) / 100), t9 = dpt9(t), l9 = dpt9(lx), d3 = (DPU << 3) | DPS, hx = (a) => a.map((b) => b.toString(16).toUpperCase().padStart(2, '0')).join(' ');
+    el.querySelectorAll('.row .btn').forEach((b, i) => b.classList.toggle('on', i < 8 ? i === DPS : (i === 8) === (DPU === 1)));
+    $('dpOut').innerHTML = kpi([[hx([b5]), `${p} % → ${b5} of 255 (1 byte)`], [hx(t9), `${t} °C → 2-byte float`], [hx(l9), `${lx} lx → 2-byte float`], [d3.toString(2).padStart(4, '0'), `4-bit dimming: ${DPU ? 'brighter' : 'darker'} ${['stop', '100 %', '50 %', '25 %', '12.5 %', '6.25 %', '3.13 %', '1.56 %'][DPS]}`]]) + '<p class="m" style="font-size:13px">2-byte float: value = 0.01 × M × 2^E (M 12-bit signed, E 4-bit). 21 °C = 0C 1A – try it.</p>'; };
+  bind(el, LABS.dpt.run);
+};
+// flags simulator: push-button → actuator → status → LED
+LABS.flags = (el) => {
+  window.FL = { act: { C: 1, W: 1, T: 0, R: 0 }, st: { C: 1, W: 0, T: 1, R: 1 }, led: { C: 1, W: 1, T: 0, U: 1 } }; window.FS = { on: false, led: false, log: [] };
+  const box = (k, t, fl) => `<div style="border:1px solid var(--line);border-radius:8px;padding:6px 8px"><b>${t}</b><div class="row" style="margin-top:4px">${Object.keys(FL[k]).map((f) => chip(FL[k][f], f, `FL.${k}.${f}=1-FL.${k}.${f};LABS.flags.d()`)).join('')}</div><div class="m" style="font-size:11px">${fl}</div></div>`;
+  LABS.flags.d = () => { el.innerHTML = `<p class="m" style="font-size:13px">Push-button rocker sends ON/OFF to <b>1/1/1</b>. The actuator’s switching object listens on 1/1/1 and its status object sends on <b>1/1/2</b>. The push-button LED object listens on 1/1/2. Toggle the flags (on = highlighted) and press the button.</p><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px">${box('act', 'Actuator – Switching (1/1/1)', 'needs C + W to obey')}${box('st', 'Actuator – Status (1/1/2)', 'needs C + T to report; R answers reads')}${box('led', 'Push-button – LED status (1/1/2)', 'needs C + W (or U) to follow')}</div><div class="row" style="margin-top:8px"><span class="btn p" id="flPress">Press the button: ${FS.on ? 'OFF' : 'ON'}</span><span class="btn" id="flRead">Visualisation reads 1/1/2</span></div>
+      <div style="display:flex;gap:16px;align-items:center;margin:10px 0"><div style="text-align:center"><div style="width:46px;height:46px;border-radius:50%;background:${FS.on ? '#fde047' : '#e5e7eb'};border:2px solid #92400e;margin:auto"></div><span class="m" style="font-size:11px">Light</span></div><div style="text-align:center"><div style="width:18px;height:18px;border-radius:50%;background:${FS.led ? '#22c55e' : '#d1d5db'};margin:auto"></div><span class="m" style="font-size:11px">Button LED</span></div><div class="m" style="font-size:12px;flex:1">${FS.log.slice(-5).map((x) => `<div>${x}</div>`).join('') || 'Bus monitor is empty'}</div></div>`;
+    $('flPress').onclick = () => { const want = !FS.on; FS.log.push(`1.1.12 → 1/1/1 Write ${want ? 'ON' : 'OFF'}`); if (FL.act.C && FL.act.W) { FS.on = want; if (FL.st.C && FL.st.T) { FS.log.push(`1.1.3 → 1/1/2 Write ${want ? 'ON' : 'OFF'} (status)`); if (FL.led.C && FL.led.W) FS.led = want; } else FS.log.push('(no status sent – status object needs C + T)'); } else FS.log.push('(actuator ignores it – switching object needs C + W)'); LABS.flags.d(); };
+    $('flRead').onclick = () => { FS.log.push('visu → 1/1/2 Read'); if (FL.st.C && FL.st.R) { FS.log.push(`1.1.3 → 1/1/2 Response ${FS.on ? 'ON' : 'OFF'}`); if (FL.led.C && FL.led.U) FS.led = FS.on; } else FS.log.push('(no answer – status object needs C + R)'); LABS.flags.d(); }; };
+  LABS.flags.d();
+};
+// commissioning order game
+LABS.ets = (el) => {
+  const ST = ['Check wiring, insulation and bus voltage ≥ 21 V', 'Connect ETS through the USB / IP interface', 'Download the couplers / IP routers', 'Program individual addresses (programming buttons)', 'Download the application programs', 'Test every function with the group monitor', 'Back up the project and hand over'];
+  let pool = [...ST].map((s, i) => [s, i, Math.sin(i * 9.7)]).sort((a, b) => a[2] - b[2]).map(([s, i]) => i), seq = [];
+  const draw = () => { const done = seq.length === ST.length, right = seq.filter((x, i) => x === i).length;
+    el.innerHTML = `<p class="m" style="font-size:13px">Tap the commissioning steps in the right order.</p><div class="row">${pool.filter((i) => !seq.includes(i)).map((i) => `<span class="btn" data-i="${i}" style="padding:5px 9px;font-size:12px">${ST[i]}</span>`).join('')}</div><ol style="margin:8px 0 0 18px">${seq.map((i, k) => `<li style="color:var(--${i === k ? 'good' : 'bad'})">${ST[i]} ${i === k ? '✓' : '✗'}</li>`).join('')}</ol>${done ? kpi([[`${right} / ${ST.length}`, 'in the right place']]) + '<span class="btn" id="etsAgain">Try again</span>' : ''}`;
+    el.querySelectorAll('[data-i]').forEach((b) => b.onclick = () => { seq.push(+b.dataset.i); draw(); }); if (done) $('etsAgain').onclick = () => { seq = []; draw(); }; };
+  draw();
+};
+// bus load
+LABS.load = (el) => {
+  el.innerHTML = `<div class="ctl" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr))">${sl('ldT', 'Room controllers on the line', 0, 40, 1, 20)}${sl('ldTc', 'They send temperature every', 1, 900, 1, 10, ' s')}${sl('ldP', 'Presence detectors', 0, 30, 1, 10)}${sl('ldPc', 'Presence sends lux every', 1, 900, 1, 5, ' s')}${sl('ldV', 'Visualisation reads per second', 0, 30, 1, 4)}${sl('ldU', 'User actions per second (peak)', 0, 20, 1, 2)}</div><div id="ldOut"></div>`;
+  bind(el, () => { const r = +$('ldT').value / +$('ldTc').value + +$('ldP').value / +$('ldPc').value + 2 * +$('ldV').value + 2 * +$('ldU').value, pct = (100 * r) / 45;
+    $('ldOut').innerHTML = kpi([[`${r.toFixed(1)} /s`, 'telegrams per second'], [`${pct.toFixed(0)} %`, 'of ~45 telegrams/s', pct > 40], [pct > 70 ? 'Overloaded ✗' : pct > 40 ? 'Too busy' : 'Healthy ✓', pct > 40 ? 'send on change, slow the cycles, stop polling' : 'room for peaks (central off, scenes)', pct > 40]]) + '<p class="m" style="font-size:13px">Try 600 s for temperatures and 300 s for lux, and 0 visualisation reads (it should listen to status instead).</p>'; });
+};
+// JUNG project estimator
+LABS.jung = (el) => {
+  const R = [['Office (4 zones, DALI, blinds)', { sw: 1, dali: 4, bl: 2, ht: 1, pb: 2, pd: 2, rc: 1 }], ['Meeting room', { sw: 1, dali: 3, bl: 2, ht: 1, pb: 1, pd: 1, rc: 1 }], ['Hotel room', { sw: 4, dim: 2, bl: 1, ht: 1, pb: 3, pd: 1, rc: 1 }], ['Corridor', { sw: 1, dali: 1, pd: 2 }], ['Toilet block', { sw: 2, pd: 1 }]];
+  el.innerHTML = `<div class="inputs" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">${R.map(([n], i) => `<div><label>${n}</label><input type="number" min="0" id="jr${i}" value="${[12, 3, 0, 4, 2][i]}"></div>`).join('')}</div><div id="jrOut"></div>`;
+  bind(el, () => { const t = {}; R.forEach(([, c], i) => { const n = +$('jr' + i).value || 0; Object.entries(c).forEach(([k, v]) => (t[k] = (t[k] || 0) + n * v)); });
+    const sp = (x) => Math.ceil(x * 1.2), swA = Math.ceil(sp(t.sw || 0) / 8), dimA = Math.ceil(sp(t.dim || 0) / 4), daliG = Math.ceil(sp(t.dali || 0) / 16), blA = Math.ceil(sp(t.bl || 0) / 4), htA = Math.ceil(sp(t.ht || 0) / 6), sensors = (t.pb || 0) + (t.pd || 0) + (t.rc || 0), acts = swA + dimA + daliG + blA + htA, bus = sensors + acts, lines = Math.max(1, Math.ceil(bus / 50));
+    const rows = [['KNX switch actuators, 8-gang (C-load)', swA], ['KNX universal dimmer actuators, 4-gang', dimA], ['KNX DALI gateways (16 groups / 64 drivers each)', daliG], ['KNX blind actuators, 4-gang', blA], ['KNX heating actuators, 6-gang', htA], ['KNX push-button modules / sensors', t.pb || 0], ['KNX presence detectors', t.pd || 0], ['KNX room controllers', t.rc || 0], ['KNX power supplies 640 mA (one per line)', lines], ['KNX IP routers (line couplers)', lines], ['KNX IP interface (ETS / visualisation)', 1]].filter(([, n]) => n);
+    $('jrOut').innerHTML = `<div class="tablewrap"><table class="spec">${rows.map(([n, q]) => `<tr><td>${n}</td><td><b>${q}</b></td></tr>`).join('')}</table></div>` + kpi([[`${bus}`, 'bus devices'], [`${lines}`, 'lines (≤ 50 devices each)'], ['+20 %', 'spare channels included']]) + '<p class="m" style="font-size:13px">A first estimate – pick exact JUNG articles and channel counts from the current catalogue and confirm DALI groups with the lighting design.</p>'; });
+};
+
+start();
+</script>
+</body></html>

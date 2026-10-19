@@ -3,6 +3,15 @@ import type { Role } from './types';
 
 /** Lighting Academy (Sales Tools → Dacademy): the lessons are a static page; progress is saved through the person's own sign-in */
 export const ACADEMY_PATH = '/academy/index.html';
+
+/** The Dacademy courses: each is a static page of lessons; progress is kept per lesson in the same table (ids start net_ / knx_ for the newer courses) */
+export type AcademyCourse = 'light' | 'net' | 'knx';
+export const ACADEMY_COURSES: { value: AcademyCourse; label: string; path: string; lessons: number }[] = [
+  { value: 'light', label: 'Lighting', path: ACADEMY_PATH, lessons: 131 },
+  { value: 'net', label: 'Network & IT', path: '/academy/net.html', lessons: 20 },
+  { value: 'knx', label: 'KNX – JUNG', path: '/academy/knx.html', lessons: 30 },
+];
+export const ACADEMY_TOTAL = ACADEMY_COURSES.reduce((t, c) => t + c.lessons, 0);
 export const ACADEMY_SITE = 'https://dimo-lighting-ops.vercel.app';
 export const ACADEMY_TEAM_VIEWERS: Role[] = ['sm_projects', 'gm', 'sys_admin'];
 
@@ -18,9 +27,9 @@ export async function academyCfg(name: string): Promise<AcademyCfg | null> {
 }
 
 /** The link the phone app opens: the settings travel after the # so they never reach a server log */
-export function academyLink(cfg: AcademyCfg | null) {
-  if (!cfg) return `${ACADEMY_SITE}${ACADEMY_PATH}`;
+export function academyLink(cfg: AcademyCfg | null, path = ACADEMY_PATH) {
+  if (!cfg) return `${ACADEMY_SITE}${path}`;
   const json = JSON.stringify(cfg);
   const b64 = typeof btoa === 'function' ? btoa(unescape(encodeURIComponent(json))) : '';
-  return `${ACADEMY_SITE}${ACADEMY_PATH}#cfg=${encodeURIComponent(b64)}`;
+  return `${ACADEMY_SITE}${path}#cfg=${encodeURIComponent(b64)}`;
 }
