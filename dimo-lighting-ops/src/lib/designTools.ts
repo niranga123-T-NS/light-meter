@@ -88,7 +88,8 @@ export type DtOut =
   | { type: 'dt:state'; id: number; state: DtState; summary: DtSummary }
   | { type: 'dt:file'; name: string; mime: string; b64: string }
   | { type: 'dt:drvSave'; driver: Record<string, unknown> & { id: string }; file: { name: string; mime: string; b64: string } | null }
-  | { type: 'dt:drvOpen'; path: string; name: string };
+  | { type: 'dt:drvOpen'; path: string; name: string }
+  | { type: 'dt:fullscreen'; on: boolean };
 export type DtIn =
   | { type: 'dt:load'; state: DtState | null; title?: string }
   | { type: 'dt:get'; id: number }
