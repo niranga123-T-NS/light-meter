@@ -1,4 +1,4 @@
--- Design Tools engine v76 – piled high-mast foundations from the borehole (guided input of the soil report, ICTAD/DEV/15 pile capacities, 4/6/8-pile groups,
+-- Design Tools engine v76 – foundation type proposed from the borehole (pad or piles, with the reasons); piled high-mast foundations (guided input of the soil report, ICTAD/DEV/15 pile capacities, 4/6/8-pile groups,
 --  BS 8110 pile cap as the consultant's method, borehole log and capacity sheets, BS 8666 schedule); Buildings tab – panel rooms, operations rooms and stores
 --  from width / length / height / storeys with drag-and-drop doors, windows, louvres, glass facades, trenches and panels; BS 8110 frame and pads, architectural,
 --  structural and trench sheets, 3D with structure / architecture focus; trenches checked against the cables' diameters and bending radii
@@ -5003,7 +5003,7 @@ function pickBars(As, perM, d) { // area per m (perM) or total area (bars count)
   return { b: 32, n: Math.ceil(As / 804), a: Math.ceil(As / 804) * 804, txt: `${Math.ceil(As / 804)} H32` };
 }
 function stFound(A, BT, isMast) {
-  const s = ST.soil, b = A.base, Hk = b.V / 1000, Mk = (b.Mw + b.Md) / 1000, Nk = b.Nk / 1000, fck = s.fck, fyk = 500, cov = s.cover / 1000;
+  const s = ST.soil, b = A.base, LD = isMast ? pileLoads(A) : null, Hk = LD ? LD.Hs : b.V / 1000, Mk = LD ? LD.Ms : (b.Mw + b.Md) / 1000, Nk = LD ? LD.Ns : b.Nk / 1000, fck = s.fck, fyk = 500, cov = s.cover / 1000;
   const fctm = 0.3 * fck ** (2 / 3);
   if (ST.type === 'planted') {
     const B = ST.plantB, e = Mk / Hk, br = brReq(Hk, e, B), typ = (ROOT_TYP.find(([h]) => h >= ST.col.h) ?? ROOT_TYP[ROOT_TYP.length - 1])[1];
@@ -5024,11 +5024,10 @@ function stFound(A, BT, isMast) {
     const face = pickBars(AsF, false);
     return { kind: 'pier', ...best, Mmax, AsF, face, links: 'H10 links @ 150 (@ 75 in the top 300 mm round the bolts)', Hk, Mk, Nk };
   }
-  if (isMast && PL().mode === 'pile') { const PF = pileDesign(A, BT); if (PF) return PF; }
   // high mast: square pad + pedestal (EN 1997-1 EQU and bearing, EN 1992-1-1 bending and one-way shear)
   const bp = Math.max(0.8, Math.ceil((BT.size + 0.3) * 20) / 20);
   let best = null;
-  for (const Df of [1.5, 1.75, 2.0, 2.25, 2.5, 3.0]) for (let B = 2; B <= 12 + 1e-9; B += 0.25) {
+  for (const Df of [1.5, 1.75, 2.0, 2.25, 2.5, 3.0]) for (let B = 2; B <= Math.min(12, +PL().maxB || 12) + 1e-9; B += 0.25) {
     const L = (B - bp) / 2, tpad = Math.min(1.6, Math.max(0.5, Math.ceil((L / 1.6) * 20) / 20));
     if (tpad > Df - 0.3 || Df + 0.15 - cov < BT.hef + 0.1) continue;
     const Gc = 25 * (B * B * tpad + bp * bp * (Df - tpad + 0.15)), Gs = s.g * (B * B - bp * bp) * (Df - tpad), N = Gc + Gs + Nk;
@@ -5036,17 +5035,17 @@ function stFound(A, BT, isMast) {
     const e = MkF / N, q = (NN, ee) => (ee <= B / 6 ? (NN / (B * B)) * (1 + (6 * ee) / B) : ee < B / 2 ? (2 * NN) / (3 * B * (B / 2 - ee)) : Infinity);
     const qk = q(N, e), eu = (1.5 * MkF) / N, qu = q(N, eu);
     const d = tpad - cov - 0.02, k = Math.min(2, 1 + Math.sqrt(0.2 / d)), vmin = 0.035 * k ** 1.5 * Math.sqrt(fck), vEd = Math.max(0, (qu * (L - d)) / (d * 1000));
-    const ok = eq >= 1 && e <= B / 4 && qk <= s.qa && eu < B / 3 && vEd <= vmin;
+    const ok = eq >= 1 && e <= B / 4 && qk <= padQa(Df, B) && eu < B / 3 && vEd <= vmin;
     const vol = B * B * tpad + bp * bp * (Df - tpad + 0.15);
-    if (ok) { if (!best || vol < best.vol) best = { B, Df, tpad, bp, N, Gc, Gs, MkF, eq, e, qk, qu, eu, vEd, vmin, d, L, vol }; break; }
+    if (ok) { if (!best || vol < best.vol) best = { B, Df, tpad, bp, N, Gc, Gs, MkF, eq, e, qk, qu, eu, vEd, vmin, d, L, vol, qa: padQa(Df, B) }; break; }
   }
-  if (!best) { const PF = PL().mode !== 'pad' ? pileDesign(A, BT) : null; if (PF) return PF; return { kind: 'pad', fail: true, B: 12, Df: 3, tpad: 1.6, bp, vol: 0, Hk, Mk, Nk }; }
+  if (!best) return foundChoose({ kind: 'pad', fail: true, B: 12, Df: 3, tpad: 1.6, bp, vol: 0, Hk, Mk, Nk }, A, BT);
   const Med = (best.qu * best.L ** 2) / 2, As = Math.max((Med * 1e6) / (0.87 * fyk * 0.9 * best.d * 1000), Math.max((0.26 * fctm) / fyk, 0.0013) * 1000 * best.d * 1000);
   const bot = pickBars(As, true), Asmin = Math.max((0.26 * fctm) / fyk, 0.0013) * 1000 * best.d * 1000;
   const wTop = 1.35 * (s.g * (best.Df - best.tpad) + 25 * best.tpad), AsT = Math.max((((wTop * best.L ** 2) / 2) * 1e6) / (0.87 * fyk * 0.9 * best.d * 1000), Asmin * 0.5), topB = pickBars(AsT, true);
   const Mp = 1.5 * (Mk + Hk * (best.Df - best.tpad + 0.15)), AsP = Math.max((Mp * 1e6) / (0.87 * fyk * 0.8 * (best.bp - cov - 0.02) * 1000), (0.002 * best.bp * best.bp * 1e6) / 4);
   const ped = pickBars(AsP, false);
-  return { kind: 'pad', ...best, Hk, Mk, Nk, Med, As, bot, AsT, topB, Mp, AsP, ped, links: 'H12 links @ 150; H16 U-bars lapping the anchor cage' };
+  return foundChoose({ kind: 'pad', ...best, Hk, Mk, Nk, Med, As, bot, AsT, topB, Mp, AsP, ped, links: 'H12 links @ 150; H16 U-bars lapping the anchor cage' }, A, BT);
 }
 function structPlan() {
   const isMast = ST.type === 'mast', P = stPick(isMast), A = P.A, c = isMast ? ST.mast : ST.col;
@@ -5072,8 +5071,9 @@ function structPlan() {
     ck('Broms · EN 1997-1 §7.7', `Pier ${F.B} × ${F.B} × ${r1(F.D, 2)} m`, !F.fail, `lateral capacity ≥ 2.5 × Hk ${r1(F.Hk, 2)} kN at e = ${r1(F.Mk / F.Hk, 2)} m`);
     ck('EN 1992-1-1 §9.5', 'Pier reinforcement', true, `${F.face.txt} each face (As ${Math.round(F.AsF)} mm² for M ${r1(F.Mmax, 1)} kNm), ${F.links}`);
   } else if (F.kind === 'pile') { F.cks.forEach(([reg, t, ok, v, soft]) => ck(reg, t, ok, v, soft)); } else if (!F.fail) {
+    if (F.rec) ck('EN 1997-1 · BS 8004', 'Foundation type – pad recommended', true, F.rec.why, true);
     ck('EN 1997-1 §2.4.7.2 EQU', 'Overturning', F.eq >= 1, `0.9 G × B/2 ≥ 1.5 M: ratio ${r1(F.eq, 2)}`);
-    ck('EN 1997-1 §6.5.2 · BS 8004', 'Bearing pressure', F.qk <= ST.soil.qa, `qmax ${r1(F.qk, 0)} kPa ≤ ${ST.soil.qa} kPa allowable; e ${r1(F.e, 2)} m ≤ B/4 (≥ 75 % in contact)`);
+    ck('EN 1997-1 §6.5.2 · BS 8004', 'Bearing pressure', F.qk <= (F.qa ?? ST.soil.qa) + 1e-6, `qmax ${r1(F.qk, 0)} kPa ≤ ${r1(F.qa ?? ST.soil.qa, 0)} kPa allowable${F.qaSrc ? ` (${F.qaSrc})` : ''}; e ${r1(F.e, 2)} m ≤ B/4 (≥ 75 % in contact)`);
     ck('EN 1992-1-1 §6.2.2', 'One-way shear in the pad', F.vEd <= F.vmin, `vEd ${r1(F.vEd, 3)} ≤ vmin ${r1(F.vmin, 3)} MPa (d ${Math.round(F.d * 1000)} mm)`);
     ck('EN 1992-1-1 §9.3 / 9.8', 'Pad reinforcement', true, `bottom ${F.bot.txt} both ways (As ${Math.round(F.As)} mm²/m for ${r1(F.Med, 0)} kNm/m), top ${F.topB.txt} both ways; pedestal ${F.ped.txt} each face, ${F.links}`);
   } else ck('EN 1997-1', 'Pad foundation', false, 'no pad up to 12 m – consider piles');
@@ -7005,13 +7005,60 @@ function bldRb(el, ms) { bldRDraw(ms); const w = $('#bldRWrap'); if (!w) return;
 
 // =================== piled high-mast foundation from the borehole – bored cast-in-situ piles (capacities as ICTAD/DEV/15 and the geotechnical report, BS 8004), pile cap to BS 8110-1 ===================
 // the layers are typed from the soil report (Table 1 and the skin-friction table); the design tries pile sizes, numbers and spacings and keeps the least concrete that carries the mast
-const PILE_DEF = { mode: 'auto', step: 1, qb: 2, fuR: 200, fos: 2, sock: 1, D: 'auto', n: 'auto', s: 'auto', hc: 'auto', fcu: 30, fy: 500, cov: 50, pcov: 75, rho: 0.8, meth: 'strip', Ms: '', Mu: '', Ns: '', Nu: '', Hs: '', bh: null };
+const PILE_DEF = { mode: 'auto', step: 1, qb: 2, fuR: 200, fos: 2, sock: 1, D: 'auto', n: 'auto', s: 'auto', hc: 'auto', fcu: 30, fy: 500, cov: 50, pcov: 75, rho: 0.8, meth: 'strip', Ms: '', Mu: '', Ns: '', Nu: '', Hs: '', bh: null, useBh: true, maxB: '', why: {} };
 const BH_KINDS = { fill: 'Fill / surface layer', sand: 'Sand', csand: 'Clayey / silty sand', clay: 'Clay / sandy clay', cwr: 'Completely weathered rock', hwr: 'Highly weathered rock' };
 const BH_COL = { fill: '#B9A27C', sand: '#E8D29A', csand: '#D9B97A', clay: '#8E9AA6', cwr: '#B97A4A', hwr: '#8C5A3C', rock: '#5E5A57' };
 const BH_EX = () => ({ name: 'BH-HM-06', site: 'SSC ground, Colombo 07', gwl: 3.1, rock: 25.6, rockD: 'Moderately weathered, highly fractured biotite gneiss – RQD 0–36 %, UCS 14.95 N/mm²',
   L: [[0, 1, 'fill', 'Surface layer', '', ''], [1, 2, 'sand', 'Loose sand', 6, ''], [2, 6, 'sand', 'Medium dense sand', 22, ''], [6, 7.5, 'clay', 'Firm sandy clay', 6, ''], [7.5, 9, 'clay', 'Soft sandy clay', 4, ''], [9, 10.5, 'sand', 'Very dense sand', 50, ''], [10.5, 12, 'csand', 'Medium dense clayey sand', 16, ''], [12, 13.5, 'clay', 'Soft sandy clay', 5, ''], [13.5, 15, 'clay', 'Stiff sandy clay', 10, ''], [15, 17, 'clay', 'Firm clay', 9, ''], [17, 25.6, 'cwr', 'Completely weathered rock', 50, 65]]
     .map(([t, b, k, d, n, fu]) => ({ t, b, k, d, n, fu, qb: '' })) });
 const PL = () => (ST.pile = { ...PILE_DEF, ...(ST.pile ?? {}) });
+const bhOk = () => { const p = PL(); return !!p.bh && !bhIssues(p.bh).length; };
+// allowable bearing of one layer under a pad B wide founded at Df – SPT correlations for a first design (Terzaghi–Peck for sand, cu ≈ 4.5 N for clay, BS 8004)
+function layerQa(l, Df, B, gw) {
+  const N = l.n === '' || l.n == null ? null : +l.n;
+  if (l.k === 'rock') return { q: 1000, why: 'rock' };
+  if (l.k === 'cwr' || l.k === 'hwr') return { q: l.k === 'hwr' ? 600 : 400, why: 'weathered rock' };
+  if (l.k === 'fill') return { q: 50, why: 'fill – not a founding layer' };
+  if (l.k === 'clay') { const cu = 4.5 * (N ?? 4), q = Math.min(400, (5.14 * cu * 1.2 * (1 + 0.2 * Math.min(Df / B, 1))) / 3 + 18 * Df); return { q, why: `cu ≈ 4.5 N = ${Math.round(cu)} kPa` }; }
+  const Cw = 0.5 + 0.5 * Math.max(0, Math.min(1, (gw - Df) / B)), q = Math.min(400, 10 * (N ?? 10)) * Cw * (l.k === 'csand' ? 0.9 : 1); return { q, why: `≈ 10 N${Cw < 1 ? ` × ${r1(Cw, 2)} for the water table` : ''}` };
+}
+// the weakest layer in the pad's stress zone (founding level to 1.5 B below) governs
+function bhBearing(bh, Df, B) {
+  const z2 = Df + 1.5 * B, rk = bh.rock === '' || bh.rock == null ? null : +bh.rock, L = [...bh.L, ...(rk != null ? [{ t: rk, b: rk + 50, k: 'rock', d: 'Rock', n: '' }] : [])];
+  let worst = null; L.filter((l) => +l.b > Df && +l.t < z2).forEach((l) => { const r = layerQa(l, Df, B, +bh.gwl); if (!worst || r.q < worst.q) worst = { ...r, l }; });
+  if (!worst) { const l = L[L.length - 1]; worst = { ...layerQa(l, Df, B, +bh.gwl), l }; }
+  return { qa: Math.round(worst.q), l: worst.l, src: `${bh.name}: ${worst.l.d || BH_KINDS[worst.l.k] || 'layer'} at ${worst.l.t}–${worst.l.b} m${worst.l.n !== '' && worst.l.n != null ? `, N ${worst.l.n}` : ''} – ${worst.why}` };
+}
+function padQa(Df, B) { const p = PL(); return p.useBh !== false && bhOk() ? bhBearing(p.bh, Df, B).qa : ST.soil.qa; }
+// why piles (or a pad): found in the borehole, or ticked for the site
+const SITE_WHY = { rec: 'The soil report recommends piles', svc: 'Existing services, buildings or trenches beside the mast – no deep open excavation', scour: 'Flooding, scour, erosion or a slope at the mast', sett: 'Settlement must be kept very small (camera / scoreboard alignment)' };
+function foundReasons(padF, PF, p) {
+  const bh = p.bh, rs = [], add = (k, t, on, must) => rs.push({ k, t, on: !!on, must });
+  const Df = padF.fail ? 1.5 : padF.Df, B = padF.fail ? 6 : padF.B, z2 = Df + 1.5 * B;
+  add('nopad', padF.fail ? `No pad fits${+p.maxB ? ` within the ${p.maxB} m the site allows` : ' up to 12 m'} on the bearing of this ground` : `A pad ${r1(padF.B, 2)} m square at ${padF.Df} m fits (${r1(padF.qk, 0)} ≤ ${r1(padF.qa ?? ST.soil.qa, 0)} kPa)`, padF.fail, true);
+  const soft = bh.L.filter((l) => +l.b > Df && +l.t < z2 && ((l.k === 'clay' && l.n !== '' && +l.n <= 4) || ((l.k === 'sand' || l.k === 'csand') && l.n !== '' && +l.n < 5)));
+  add('soft', soft.length ? `Soft / very loose layer in the pad's stress zone (to ${r1(z2, 1)} m): ${soft.map((l) => `${l.d || BH_KINDS[l.k]} ${l.t}–${l.b} m, N ${l.n}`).join('; ')} – long-term settlement and tilt of the mast` : `No soft or very loose layer within ${r1(z2, 1)} m`, soft.length, true);
+  const fill = bh.L.filter((l) => l.k === 'fill' && +l.b > Df);
+  add('fill', fill.length ? `Fill / made ground below the founding level (to ${Math.max(...fill.map((l) => +l.b))} m)` : 'Founding below the fill', fill.length, true);
+  add('gwl', +bh.gwl < Df ? `Water table at ${bh.gwl} m – above the pad's founding level ${Df} m: dewatering and a wet excavation` : `Water table at ${bh.gwl} m – below the founding level`, +bh.gwl < Df, false);
+  const liq = bh.L.filter((l) => (l.k === 'sand' || l.k === 'csand') && l.n !== '' && +l.n < 10 && +l.b > +bh.gwl && +l.t < 15);
+  add('liq', liq.length ? `Loose saturated sand (N < 10) below the water table: ${liq.map((l) => `${l.t}–${l.b} m`).join(', ')} – piles carry through it` : 'No loose saturated sand', liq.length, false);
+  Object.entries(SITE_WHY).forEach(([k, t]) => add(k, t, p.why?.[k], true));
+  const padCost = padF.fail ? Infinity : padF.vol + 0.012 * rebarSched(padF, null, true).total, pileCost = !PF || PF.fail ? Infinity : PF.opts.find((o) => o.D === PF.D && o.n === PF.n && o.s === PF.s)?.cost ?? PF.sch.vol + 0.012 * PF.sch.total;
+  add('cost', Number.isFinite(padCost) && Number.isFinite(pileCost) ? `Cost index – pad ${r1(padCost, 1)}, piles ${r1(pileCost, 1)} (concrete m³ + rock coring + steel)` : 'Cost – only one type is possible', pileCost < padCost, false);
+  return { rs, padCost, pileCost };
+}
+function foundChoose(padF, A, BT) {
+  const p = PL(); if (!bhOk()) { if (p.mode === 'pile') padF.need = 'borehole'; return padF; }
+  if (!padF.fail && p.useBh !== false) padF.qaSrc = bhBearing(p.bh, padF.Df, padF.B).src;
+  const PF = pileDesign(A, BT); if (!PF) return padF;
+  const R = foundReasons(padF, PF, p), must = R.rs.filter((r) => r.on && r.must), fav = R.rs.filter((r) => r.on && !r.must && r.k !== 'cost');
+  const rec = PF.fail ? 'pad' : must.length || padF.fail ? 'pile' : R.pileCost < R.padCost ? 'pile' : 'pad', pick = p.mode === 'pad' ? 'pad' : p.mode === 'pile' ? 'pile' : rec;
+  const why = rec === 'pile' ? `Piles: ${(must.length ? must : R.rs.filter((r) => r.k === 'cost')).map((r) => r.t).join(' · ')}${fav.length ? ` · also ${fav.map((r) => r.t).join(' · ')}` : ''}` : `Pad: ${R.rs.find((r) => r.k === 'nopad').t}, no reason in the list calls for piles${R.rs.find((r) => r.k === 'cost').on ? '' : ', and it costs less'}${fav.length ? ` (note: ${fav.map((r) => r.t).join(' · ')})` : ''}`;
+  const out = pick === 'pile' ? PF : padF; out.rec = { rec, pick, why, rs: R.rs, pad: padF, pile: PF, padCost: R.padCost, pileCost: R.pileCost };
+  if (pick === 'pile' && out.cks) out.cks.unshift(['EN 1997-1 · BS 8004', `Foundation type – ${rec === 'pile' ? 'piles recommended' : 'piles chosen (the recommendation is a pad)'}`, true, why, true]);
+  return out;
+}
 const ceilTo = (v, s) => Math.round(Math.ceil(v / s - 1e-9) * s * 1000) / 1000;
 // what is wrong with the borehole as typed – the design waits until it is clean
 function bhIssues(bh) {
@@ -7211,9 +7258,24 @@ function drawPileBand(F, BT, x0, y0, ink, muted, reb) {
 function pileInsp(S) {
   const p = PL(), F = S.F, isPile = F.kind === 'pile', bh = p.bh, iss = bhIssues(bh), L = pileLoads(S.A), stp = p.step;
   const n = (l, id, v, a = '') => field(l, id, v, 'number', a);
-  let h = `<h3>Foundation</h3><div class="seg" id="pl_mode">${[['auto', 'Auto'], ['pad', 'Pad'], ['pile', 'Piles – borehole']].map(([k, t]) => `<button data-plm="${k}" aria-pressed="${p.mode === k}">${t}</button>`).join('')}</div>
-    <p class="note" style="margin:4px 0">${p.mode === 'auto' ? 'A pad when it fits; piles from the borehole when the pad gets too big.' : p.mode === 'pad' ? 'Spread pad on the allowable bearing below.' : 'Bored cast-in-situ piles designed from the borehole log and the geotechnical recommendations.'}</p>`;
-  if (p.mode === 'pad') return h;
+  let h = `<h3>Foundation</h3><div class="seg" id="pl_mode">${[['auto', 'Recommend'], ['pad', 'Pad'], ['pile', 'Piles']].map(([k, t]) => `<button data-plm="${k}" aria-pressed="${p.mode === k}">${t}</button>`).join('')}</div>
+    <p class="note" style="margin:4px 0">${p.mode === 'auto' ? 'Both a pad and piles are designed from the borehole; piles are proposed only when a reason below calls for them, or when they cost less.' : p.mode === 'pad' ? 'Pad chosen – the recommendation is still shown below.' : 'Piles chosen – the recommendation is still shown below.'}</p>`;
+  const rc = F.rec;
+  if (!bhOk()) h += `<p class="note" style="margin:4px 0;padding:6px 8px;border-left:3px solid var(--warn);background:var(--grid)">${F.fail ? '<b>No pad fits on the bearing typed below.</b> ' : ''}Type the borehole (step 1) – the design then checks the soil and proposes a pad or piles with the reasons.</p>`;
+  else if (rc) {
+    const pd = rc.pad, pf = rc.pile, rel = (c) => (Number.isFinite(c) ? r1(c / Math.min(rc.padCost, rc.pileCost), 2) : '–');
+    h += `<div style="border:1px solid var(--line);border-radius:8px;padding:8px;margin:6px 0;display:grid;gap:6px"><b style="font-size:13.5px;color:var(${rc.rec === 'pile' ? '--warn' : '--ok'})">Recommended: ${rc.rec === 'pile' ? 'piles' : 'a pad'}${rc.pick !== rc.rec ? ` – you chose ${rc.pick === 'pile' ? 'piles' : 'a pad'}` : ''}</b>
+      <div class="tablewrap"><table class="sch"><thead><tr><th></th><th>Pad</th><th>Piles</th></tr></thead><tbody>
+        <tr><td>Size</td><td>${pd.fail ? '–' : `${r1(pd.B, 2)} m sq. × ${pd.tpad} at ${pd.Df} m`}</td><td>${pf.fail ? '–' : `${pf.n} × Ø${Math.round(pf.D * 1000)} to ${r1(pf.z, 1)} m, cap ${r1(pf.B, 2)} m`}</td></tr>
+        <tr><td>Bearing</td><td>${pd.fail ? '–' : `${r1(pd.qa ?? ST.soil.qa, 0)} kPa`}</td><td>${pf.fail ? '–' : `${r1(pf.q.Q, 0)} kN / pile`}</td></tr>
+        <tr><td>Concrete</td><td>${pd.fail ? '–' : `${r1(pd.vol, 1)} m³`}</td><td>${pf.fail ? '–' : `${r1(pf.sch.vol, 1)} m³`}</td></tr>
+        <tr><td>Cost index</td><td>${rel(rc.padCost)}</td><td>${rel(rc.pileCost)}</td></tr></tbody></table></div>
+      <div class="checks">${rc.rs.map((r) => `<div class="ck ${r.on ? (r.must ? 'no' : 'soft') : 'ok'}"><b>${r.on ? (r.must ? '●' : '◐') : '○'}</b><span>${esc(r.t)} <small>${r.must ? 'decides piles' : 'favours piles'}</small></span></div>`).join('')}</div>
+      <p class="note" style="margin:0">● calls for piles · ◐ favours piles · ○ does not apply.${!pd.fail && pd.qaSrc ? ` Pad bearing from ${esc(pd.qaSrc)}.` : ''}</p>
+      <b style="font-size:12.5px">Site conditions – tick what applies</b>${Object.entries(SITE_WHY).map(([k, t]) => `<label class="f chk"><input type="checkbox" data-plwhy="${k}" ${p.why?.[k] ? 'checked' : ''}> ${t}</label>`).join('')}
+      <div class="grid2">${field('Largest pad the site allows m (blank = any)', 'pl_maxB', p.maxB, 'number', 'min="2" max="12" step="0.25"')}<label class="f chk" style="align-self:end"><input type="checkbox" id="pl_useBh" ${p.useBh !== false ? 'checked' : ''}> Pad bearing from the borehole</label></div></div>`;
+  }
+  if (p.mode === 'pad' && !bhOk()) return h;
   const steps = ['Borehole', 'Report', 'Loads', 'Pile & cap', 'Result'];
   h += `<div class="seg" id="pl_steps" style="flex-wrap:wrap">${steps.map((t, i) => `<button data-pls="${i + 1}" aria-pressed="${stp === i + 1}">${i + 1} · ${t}</button>`).join('')}</div>`;
   const hint = (t) => `<p class="note" style="margin:6px 0;padding:6px 8px;border-left:3px solid var(--sel);background:var(--grid)">${t}</p>`;
@@ -7247,11 +7309,11 @@ function pileInsp(S) {
       <div class="grid2">${n('Cap cover mm', 'pl_cov', p.cov, 'min="40" max="100" step="5"')}${n('Pile cover mm', 'pl_pcov', p.pcov, 'min="50" max="100" step="5"')}</div>
       <div class="grid2">${n('Pile steel % of area', 'pl_rho', p.rho, 'min="0.4" max="4" step="0.1"')}${selectF('Cap bending', 'pl_meth', p.meth, [['strip', '1 m strip, whole moment (consultant)'], ['face', 'Full width at the face (BS 8110 3.11.4.1)']])}</div>`;
   } else {
-    if (!isPile) h += hint(iss.length ? 'Finish the borehole (step 1) first.' : 'The pad fits – choose “Piles – borehole” above to pile it anyway.');
-    else if (F.fail) h += `<div class="ck no"><b>✗</b><span>${esc(F.cks[0][3])}</span></div>`;
-    else {
-      h += `<p class="note" style="margin:4px 0"><b>${esc(pileTxt(F))}</b></p><p class="note" style="margin:4px 0">Cheapest options first – cost index = concrete m³ + 2.5 × rock coring m³ + steel (1 t ≈ 12 m³). Tap one to fix it:</p><div class="tablewrap"><table class="sch"><thead><tr><th>Piles</th><th>Ø</th><th>c/c</th><th>Toe</th><th>Cap</th><th>m³</th><th>Steel</th><th>Index</th></tr></thead><tbody>
-        ${F.opts.map((o, i) => `<tr data-plo="${i}" style="cursor:pointer${o.D === F.D && o.n === F.n && o.s === F.s ? ';background:var(--grid);font-weight:700' : ''}"><td>${o.n}</td><td>${Math.round(o.D * 1000)}</td><td>${r1(o.s, 1)}</td><td>${r1(o.z, 1)} m</td><td>${r1(o.B, 2)} × ${r1(o.hc, 1)}</td><td>${r1(o.vol, 1)}</td><td>${r1((o.kg ?? 0) / 1000, 1)} t</td><td>${o.cost ? r1(o.cost / F.opts[0].cost, 2) : '–'}</td></tr>`).join('')}</tbody></table></div><p class="note" style="margin:4px 0">${['D', 'n', 's'].some((k) => p[k] !== 'auto') ? '<button class="btn" id="pl_auto">Back to Auto</button>' : ''}</p>`;
+    const PV = isPile ? F : F.rec?.pile; if (!PV) h += hint(iss.length ? 'Finish the borehole (step 1) first.' : 'Type the borehole to design the piles.'); else if (!isPile) h += hint('A pad is recommended – the pile design is here for comparison; tap an option (or choose “Piles” above) to pile it anyway.');
+    if (PV?.fail) h += `<div class="ck no"><b>✗</b><span>${esc(PV.cks[0][3])}</span></div>`;
+    else if (PV) {
+      h += `<p class="note" style="margin:4px 0"><b>${esc(pileTxt(PV))}</b></p><p class="note" style="margin:4px 0">Cheapest options first – cost index = concrete m³ + 2.5 × rock coring m³ + steel (1 t ≈ 12 m³). Tap one to fix it:</p><div class="tablewrap"><table class="sch"><thead><tr><th>Piles</th><th>Ø</th><th>c/c</th><th>Toe</th><th>Cap</th><th>m³</th><th>Steel</th><th>Index</th></tr></thead><tbody>
+        ${PV.opts.map((o, i) => `<tr data-plo="${i}" style="cursor:pointer${o.D === PV.D && o.n === PV.n && o.s === PV.s ? ';background:var(--grid);font-weight:700' : ''}"><td>${o.n}</td><td>${Math.round(o.D * 1000)}</td><td>${r1(o.s, 1)}</td><td>${r1(o.z, 1)} m</td><td>${r1(o.B, 2)} × ${r1(o.hc, 1)}</td><td>${r1(o.vol, 1)}</td><td>${r1((o.kg ?? 0) / 1000, 1)} t</td><td>${o.cost ? r1(o.cost / PV.opts[0].cost, 2) : '–'}</td></tr>`).join('')}</tbody></table></div><p class="note" style="margin:4px 0">${['D', 'n', 's'].some((k) => p[k] !== 'auto') ? '<button class="btn" id="pl_auto">Back to Auto</button>' : ''}</p>`;
     }
   }
   h += `<div style="display:flex;gap:6px;justify-content:space-between;margin-top:8px"><button class="btn" id="pl_prev" ${stp === 1 ? 'disabled' : ''}>‹ Back</button><button class="btn" id="pl_next" style="background:var(--ink);color:var(--bg)" ${stp === 5 ? 'disabled' : ''}>Next ›</button></div>`;
@@ -7259,10 +7321,12 @@ function pileInsp(S) {
 }
 function pileBind(rerender) {
   const p = PL(), go = () => rerender(), bh = () => p.bh;
+  document.querySelectorAll('[data-plwhy]').forEach((x) => x.addEventListener('change', () => { p.why = { ...(p.why ?? {}), [x.dataset.plwhy]: x.checked }; go(); }));
+  $('#pl_maxB')?.addEventListener('change', (e) => { p.maxB = e.target.value === '' ? '' : Math.max(2, +e.target.value); go(); }); $('#pl_useBh')?.addEventListener('change', (e) => { p.useBh = e.target.checked; go(); });
   $('#pl_mode')?.addEventListener('click', (e) => { const b = e.target.closest('[data-plm]'); if (b) { p.mode = b.dataset.plm; if (p.mode === 'pile' && !p.bh) p.step = 1; go(); } });
   $('#pl_steps')?.addEventListener('click', (e) => { const b = e.target.closest('[data-pls]'); if (b) { p.step = +b.dataset.pls; go(); } });
   $('#pl_prev')?.addEventListener('click', () => { p.step = Math.max(1, p.step - 1); go(); }); $('#pl_next')?.addEventListener('click', () => { p.step = Math.min(5, p.step + 1); go(); });
-  $('#pl_ex')?.addEventListener('click', () => { p.bh = BH_EX(); Object.assign(p, { qb: 2, fuR: 200, fos: 2, sock: 1, Ms: 4720, Mu: 5900, Ns: 182.4, Nu: 228, Hs: '', mode: 'pile' }); go(); });
+  $('#pl_ex')?.addEventListener('click', () => { p.bh = BH_EX(); Object.assign(p, { qb: 2, fuR: 200, fos: 2, sock: 1, Ms: 4720, Mu: 5900, Ns: 182.4, Nu: 228, Hs: '', mode: 'auto' }); go(); });
   $('#pl_new')?.addEventListener('click', () => { p.bh = { name: 'BH-1', site: '', gwl: 2, rock: '', rockD: '', L: [{ t: 0, b: 1, k: 'fill', d: 'Surface layer', n: '', fu: '', qb: '' }] }; go(); });
   $('#pl_clr')?.addEventListener('click', () => { p.bh = { name: 'BH-1', site: '', gwl: 2, rock: '', rockD: '', L: [{ t: 0, b: 1, k: 'fill', d: 'Surface layer', n: '', fu: '', qb: '' }] }; go(); });
   $('#pl_add')?.addEventListener('click', () => { const L = bh().L, t = L.length ? +L[L.length - 1].b : 0; L.push({ t, b: Math.round((t + 1.5) * 100) / 100, k: 'sand', d: '', n: '', fu: '', qb: '' }); go(); });
@@ -7277,7 +7341,7 @@ function pileBind(rerender) {
   f('pl_D', (v) => (p.D = v === 'auto' ? 'auto' : +v)); f('pl_n', (v) => (p.n = v === 'auto' ? 'auto' : +v)); f('pl_s', (v) => (p.s = v === '' ? 'auto' : Math.max(1, +v))); f('pl_hc', (v) => (p.hc = v === '' ? 'auto' : Math.max(0.6, +v)));
   f('pl_fcu', (v) => (p.fcu = +v)); f('pl_fy', (v) => (p.fy = +v)); f('pl_cov', (v) => (p.cov = +v)); f('pl_pcov', (v) => (p.pcov = +v)); f('pl_rho', (v) => (p.rho = +v)); f('pl_meth', (v) => (p.meth = v));
   $('#pl_auto')?.addEventListener('click', () => { p.D = 'auto'; p.n = 'auto'; p.s = 'auto'; go(); });
-  document.querySelectorAll('[data-plo]').forEach((x) => x.addEventListener('click', () => { const o = mastStruct()?.F?.opts?.[+x.dataset.plo]; if (o) { p.D = o.D; p.n = o.n; p.s = o.s; go(); } }));
+  document.querySelectorAll('[data-plo]').forEach((x) => x.addEventListener('click', () => { const F0 = mastStruct()?.F, o = (F0?.kind === 'pile' ? F0 : F0?.rec?.pile)?.opts?.[+x.dataset.plo]; if (o) { p.D = o.D; p.n = o.n; p.s = o.s; if (F0?.kind !== 'pile') p.mode = 'pile'; go(); } }));
 }
 
 // =================== buildings – panel rooms, operations rooms and small structures: the requirement → architectural and structural drawing set, 3D, and cable trenches checked against the cable makers' data ===================
