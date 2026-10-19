@@ -4,12 +4,13 @@ import type { Role } from './types';
 /** Lighting Academy (Sales Tools → Dacademy): the lessons are a static page; progress is saved through the person's own sign-in */
 export const ACADEMY_PATH = '/academy/index.html';
 
-/** The Dacademy courses: each is a static page of lessons; progress is kept per lesson in the same table (ids start net_ / knx_ for the newer courses) */
-export type AcademyCourse = 'light' | 'net' | 'knx';
+/** The Dacademy courses: each is a static page of lessons; progress is kept per lesson in the same table (ids start net_ / knx_ / knxlab_ for the newer courses) */
+export type AcademyCourse = 'light' | 'net' | 'knx' | 'knxlab';
 export const ACADEMY_COURSES: { value: AcademyCourse; label: string; path: string; lessons: number }[] = [
   { value: 'light', label: 'Lighting', path: ACADEMY_PATH, lessons: 131 },
   { value: 'net', label: 'Network & IT', path: '/academy/net.html', lessons: 20 },
   { value: 'knx', label: 'KNX – JUNG', path: '/academy/knx.html', lessons: 30 },
+  { value: 'knxlab', label: 'KNX Studio', path: '/academy/knxlab.html', lessons: 8 }, // ETS-style project trainer: 8 self-checking exercises
 ];
 export const ACADEMY_TOTAL = ACADEMY_COURSES.reduce((t, c) => t + c.lessons, 0);
 export const ACADEMY_SITE = 'https://dimo-lighting-ops.vercel.app';
