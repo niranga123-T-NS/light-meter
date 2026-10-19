@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DIMO Academy</title><meta name="robots" content="noindex">
+<style>
+:root{--red:#c8102e;--ink:#14161c;--mut:#5f6673;--line:#e3e5ea;--bg:#f4f5f7;--side:#1b1d24;--chip:#eef0f4;--s1:#2a6fdb;--s2:#c2410c;--good:#15803d;--warn:#b45309;--sel:#2a6fdb}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:var(--bg)}
+.app{display:flex;min-height:100vh}.side{width:220px;background:var(--side);color:#cfd3dc;padding:16px 12px;flex-shrink:0}
+.logo{background:#fff;color:#1d3c8f;font-weight:900;font-size:26px;border-radius:10px;padding:14px;text-align:center}
+.side .sub{font-size:12px;margin:8px 4px 16px}.side a{display:block;padding:7px 8px;border-radius:6px;color:#cfd3dc}.side a.on{background:#2c2f39;color:#fff;font-weight:600}
+.main{flex:1;min-width:0}.top{background:#fff;padding:16px 24px;font-weight:700;font-size:20px;border-bottom:1px solid var(--line)}
+.wrap{padding:16px 20px;max-width:1120px;margin:0 auto}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}.tab{padding:6px 14px;border-radius:999px;background:#fff;border:1px solid var(--line);font-weight:600;cursor:pointer}.tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.mods{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0 4px}
+.mod{background:#fff;border:2px solid var(--line);border-radius:12px;padding:12px;cursor:pointer}.mod.on{border-color:var(--red)}.mod b{display:block;font-size:15px}.mod .m{font-size:12px}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px}
+h2{margin:0 0 4px;font-size:20px}h3{margin:18px 0 8px;font-size:15px}.m{color:var(--mut)}
+.hero{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.bar{height:8px;background:var(--chip);border-radius:99px;overflow:hidden;width:220px}.bar i{display:block;height:100%;background:var(--red)}
+.sec{margin-top:18px;font-weight:700;font-size:12px;letter-spacing:.5px;text-transform:uppercase;color:var(--mut)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-top:8px}
+.topic{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;cursor:pointer;position:relative}
+.topic:hover{border-color:var(--red)}.topic .ic{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:8px}
+.topic b{display:block}.topic .t{font-size:12px;color:var(--mut)}.done{position:absolute;top:10px;right:10px;font-size:12px;font-weight:700;color:var(--good)}
+.live{position:absolute;top:10px;right:10px;font-size:11px;font-weight:700;color:#fff;background:var(--red);border-radius:99px;padding:1px 8px}
+.btn{display:inline-block;padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:#fff;font-weight:600;font-size:13px;cursor:pointer;font-family:inherit;color:var(--ink)}
+.btn.p{background:var(--red);color:#fff;border-color:var(--red)}.btn.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.part{display:flex;gap:10px;align-items:flex-start;margin-top:16px}.num{flex-shrink:0;width:26px;height:26px;border-radius:50%;background:var(--ink);color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center}
+.part .body{flex:1;min-width:0}.part h4{margin:2px 0 6px;font-size:15px}
+.say{background:#f0f6ff;border-left:4px solid var(--s1);padding:10px 12px;border-radius:6px}
+.watch{background:#fff7ed;border-left:4px solid var(--warn);padding:10px 12px;border-radius:6px}
+.scene{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}.scene svg{width:100%;height:auto;border-radius:10px;display:block}.scene .cap{text-align:center;font-size:12px;color:var(--mut);margin-top:4px}
+input[type=range]{width:100%;accent-color:var(--red)}
+.kelvin{display:flex;justify-content:space-between;font-size:12px;color:var(--mut)}
+.pill{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:700;background:var(--chip)}
+.q{margin-top:10px}.q p{margin:0 0 6px;font-weight:600}.opt{display:block;width:100%;text-align:left;margin:4px 0;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;cursor:pointer;font:inherit}
+.opt.ok{background:#dcfce7;border-color:var(--good)}.opt.no{background:#fee2e2;border-color:#dc2626}
+.links{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.inputs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.inputs label{font-size:12px;color:var(--mut)}.inputs input{width:100%;padding:7px 8px;border:1px solid var(--line);border-radius:8px;font:inherit}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:12px 0}.kpis div{background:var(--chip);border-radius:10px;padding:10px;text-align:center;font-size:12px;color:var(--mut)}.kpis b{display:block;font-size:20px;color:var(--ink)}
+.legend{display:flex;gap:16px;font-size:13px;margin-bottom:4px;flex-wrap:wrap}.legend span::before{content:'';display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle;background:var(--c)}
+.chartbox{position:relative}.tip{position:absolute;pointer-events:none;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:12px;box-shadow:0 4px 14px rgba(0,0,0,.08);display:none;white-space:nowrap;z-index:2}
+.hidden{display:none!important}.crumb{color:var(--mut);margin-bottom:8px;cursor:pointer}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ctl{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px 18px;margin-top:10px}
+.ctl label{font-size:12px;color:var(--mut);display:flex;justify-content:space-between}.ctl label b{color:var(--ink)}
+.stage{background:#0f1218;border-radius:12px;overflow:hidden}
+.stage svg{display:block;width:100%;height:auto}
+.two{display:grid;grid-template-columns:1.35fr 1fr;gap:14px}
+.info{border:1px solid var(--line);border-radius:10px;padding:12px;min-height:150px}
+.info h5{margin:0 0 4px;font-size:15px}.info .k{font-size:12px;color:var(--mut);margin-top:8px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.plist{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.plist .btn{padding:4px 9px;font-size:12px}
+[data-part]{cursor:pointer}
+table.spec{width:100%;border-collapse:collapse;font-size:13px}table.spec td{padding:5px 0;border-bottom:1px solid var(--line);vertical-align:top}table.spec td:first-child{color:var(--mut);width:38%}
+.three{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.five{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}.four{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.phr{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px}.phr details{border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;background:#fff}.phr summary{cursor:pointer;font-weight:700;font-size:14px}.phr details[open]{border-color:var(--s1);background:#f0f6ff}.phr details div{margin-top:6px}
+@media(max-width:900px){.three{grid-template-columns:1fr 1fr}.four{grid-template-columns:1fr 1fr}.scene,.two{grid-template-columns:1fr!important}.mods{grid-template-columns:1fr 1fr}.wrap{padding:12px 12px}.kpis{grid-template-columns:1fr 1fr!important}}
+@media(max-width:560px){.four,.three{grid-template-columns:1fr}}
+#ipKpi b{font-size:15px}
+
+</style><style>.opt.on{outline:2px solid var(--p,#1F6FEB);background:rgba(31,111,235,.08)} .tablewrap{overflow-x:auto} table.spec td:first-child{white-space:normal}</style></head><body>
+<div class="wrap">
+<div id="home">
+  <div class="card hero">
+    <div><h2 id="hTitle"></h2><div class="m" id="hSub"></div><div class="m" id="saveNote" style="font-size:12px;margin-top:4px"></div></div>
+    <div><div class="m" style="font-size:12px;margin-bottom:4px" id="progText">Your progress</div><div class="bar"><i id="progBar" style="width:0%"></i></div><div style="margin-top:8px" id="contBtn"></div></div>
+  </div>
+  <div class="mods" id="mods"></div>
+  <div id="modBody"></div>
+</div>
+<div id="lesson" class="hidden">
+  <div class="crumb" onclick="back()" id="lCrumb">◀ All lessons</div>
+  <div class="card">
+    <div class="hero"><div><span class="pill" id="lPill"></span><h2 style="margin-top:6px" id="lTitle"></h2></div><span class="m" id="lDone"></span></div>
+    <div class="part"><div class="num">1</div><div class="body"><h4>In one line</h4><div id="lLine"></div><div id="lBody" style="margin-top:8px"></div></div></div>
+    <div class="part" id="lSeeP"><div class="num">2</div><div class="body"><h4>Try it</h4><div id="lSee"></div></div></div>
+    <div class="part" id="lDoP"><div class="num">3</div><div class="body"><h4>On site</h4><div class="say" id="lDo"></div></div></div>
+    <div class="part" id="lWatchP"><div class="num">4</div><div class="body"><h4>Watch out</h4><div class="watch" id="lWatch"></div></div></div>
+    <div class="part"><div class="num">5</div><div class="body"><h4>Quick check</h4><div id="lQuiz"></div></div></div>
+  </div>
+</div>
+<div id="examv" class="hidden">
+  <div class="crumb" onclick="back()" id="xCrumb">◀ All lessons</div>
+  <div class="card">
+    <div class="hero"><div><span class="pill">Mock exam</span><h2 style="margin-top:6px" id="xTitle"></h2></div><span class="m" id="xDone"></span></div>
+    <div id="xIntro" style="margin:8px 0"></div><div id="xBody"></div>
+  </div>
+</div>
+</div>
+<script>
+// Course engine (Dacademy technical courses): home with modules, lessons (in one line · try it · on site · watch out · quick check),
+// live labs drawn into a lesson, timed mock exams, progress saved through the person's sign-in like the Lighting Academy
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const Q = (q, opts, c, why) => [q, opts, c, why];
+const L = [];
+const add = (mod, sec, id, icon, title, o) => L.push({ mod, sec, id: COURSE.prefix + id, icon, title, mins: 3, ...o });
+const LABS = {};
+const EXAMS = {};
+let LESSONS = {};
+const BG = ['#e0f2fe', '#dcfce7', '#fef3c7', '#ede9fe', '#fce7f3', '#ffedd5', '#e0e7ff', '#f1f5f9'];
+
+// ---- quiz (options shuffled the same way every time for a lesson)
+function seeded(str) { let h = 2166136261; for (const ch of str) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return ((h >>> 0) % 1000) / 1000; }; }
+function renderQuiz(el, les) {
+  const rnd = seeded(les.id); let right = 0, answered = 0;
+  el.innerHTML = les.quiz.map(([q, opts, c], qi) => { const order = opts.map((o, i) => [o, i, rnd()]).sort((a, b) => a[2] - b[2]); return `<div class="q" data-c="${c}" data-qi="${qi}"><p>${qi + 1}. ${q}</p>${order.map(([o, i]) => `<button class="opt" data-i="${i}">${o}</button>`).join('')}<div class="m why" style="font-size:12px;margin-top:4px"></div></div>`; }).join('') + `<div id="qRes_${les.id}" style="margin-top:8px"></div>`;
+  el.querySelectorAll('.q').forEach((qd) => qd.querySelectorAll('.opt').forEach((b) => b.onclick = () => {
+    if (qd.dataset.done) return; qd.dataset.done = 1; answered++; const ok = +b.dataset.i === +qd.dataset.c; if (ok) right++;
+    b.classList.add(ok ? 'ok' : 'no'); qd.querySelector(`.opt[data-i="${qd.dataset.c}"]`).classList.add('ok');
+    const why = les.quiz[+qd.dataset.qi][3]; if (why) qd.querySelector('.why').innerHTML = (ok ? '✓ ' : '✗ ') + why;
+    if (answered === les.quiz.length) finish(les, right, les.quiz.length, el);
+  }));
+}
+function finish(les, score, total, el) {
+  const pass = score * 3 >= total * 2, nx = nextLesson(les.id);
+  record(les.id, score, total);
+  el.querySelector(`#qRes_${les.id}`).innerHTML = `<b>${score} of ${total} right.</b> ${pass ? 'Lesson complete ✓' : 'Read it again and retry – 2 of 3 completes the lesson.'} <span class="btn" style="padding:4px 9px;font-size:12px" onclick="openLesson('${les.id}');route()">Retry</span>${nx ? ` <span class="btn p" style="padding:4px 9px;font-size:12px" onclick="openLesson('${nx.id}')">Next: ${esc(nx.title)} ▶</span>` : ''}`;
+}
+const nextLesson = (id) => { const i = L.findIndex((l) => l.id === id); return L[i + 1] && L[i + 1].mod === L[i].mod ? L[i + 1] : L.find((l, k) => k > i && !(prog[l.id] && prog[l.id].done)); };
+
+// ---- progress (Supabase through the app's sign-in, passed in by the app)
+let cfg = null, prog = {};
+function api(fn, body) { if (!cfg) return Promise.resolve(null); return fetch(`${cfg.sb}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: cfg.key, Authorization: `Bearer ${cfg.token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) }).then((r) => (r.ok ? r.json().catch(() => null) : Promise.reject(r))); }
+function record(id, score, total) {
+  const p = prog[id] || { best: 0, attempts: 0, done: false }; p.attempts++; p.best = Math.max(p.best, score); p.total = total; p.done = p.done || score * 3 >= total * 2; prog[id] = p;
+  if (window.parent !== window) window.parent.postMessage({ type: 'academy:progress', lesson: id, score, total }, '*');
+  api('academy_record', { p_lesson: id, p_score: score, p_total: total }).catch(() => { $('saveNote').textContent = 'Could not save your progress – open the course again from the app.'; });
+}
+function loadProgress() { return api('academy_mine').then((rows) => { if (rows) { prog = {}; rows.forEach((r) => { if (r.lesson.startsWith(COURSE.prefix)) prog[r.lesson] = { best: r.best, total: r.total, attempts: r.attempts, done: r.done }; }); } renderHome(); }).catch(() => { $('saveNote').textContent = 'Could not load your progress.'; }); }
+function setCfg(c) { cfg = c; $('saveNote').textContent = c ? `Signed in as ${c.name} – your progress is saved.` : 'Open from the DIMO app (Sales Tools → Dacademy) to save your progress.'; loadProgress(); }
+window.addEventListener('message', (e) => { if (e.data && e.data.type === 'academy:cfg') setCfg(e.data.cfg); });
+
+// ---- home
+let mod = null;
+function renderHome() {
+  if (!mod) mod = MODULES[0][0];
+  const doneN = L.filter((l) => prog[l.id] && prog[l.id].done).length;
+  $('progText').textContent = `Your progress · ${doneN} of ${L.length} lessons`; $('progBar').style.width = `${Math.round((100 * doneN) / L.length)}%`;
+  const nx = L.find((l) => !(prog[l.id] && prog[l.id].done)); $('contBtn').innerHTML = nx ? `<span class="btn p" onclick="openLesson('${nx.id}')">${doneN ? 'Continue' : 'Start'}: ${esc(nx.title)} ▶</span>` : '<b style="color:var(--good)">All lessons complete ✓</b>';
+  $('mods').innerHTML = MODULES.map(([k, n, sub]) => { const ls = L.filter((l) => l.mod === k), d = ls.filter((l) => prog[l.id] && prog[l.id].done).length; return `<div class="mod ${k === mod ? 'on' : ''}" onclick="mod='${k}';renderHome()"><b>${n}</b><span class="m">${sub}</span><span class="m" style="display:block;font-size:11px;margin-top:4px;color:var(--good)">${d} / ${ls.length} done</span></div>`; }).join('');
+  const secs = [...new Set(L.filter((l) => l.mod === mod).map((l) => l.sec))];
+  $('modBody').innerHTML = secs.map((sec) => `<div class="sec">${sec}</div><div class="grid">${L.filter((l) => l.mod === mod && l.sec === sec).map((l, i) => { const p = prog[l.id];
+    return `<div class="topic" onclick="openLesson('${l.id}')">${p && p.done ? `<span class="done">✓ ${p.best}/${p.total}</span>` : l.exam ? '<span class="live">● EXAM</span>' : l.lab ? '<span class="live">● LIVE</span>' : ''}<div class="ic" style="background:${BG[i % BG.length]}">${l.icon}</div><b>${esc(l.title)}</b><span class="m" style="font-size:12px">${l.exam ? `${EXAMS[l.exam].n} questions · ${EXAMS[l.exam].min} min` : `${l.mins} min`}</span></div>`; }).join('')}</div>`).join('');
+}
+
+// ---- lessons
+function showView(v) { ['home', 'lesson', 'examv'].forEach((x) => $(x).classList.toggle('hidden', x !== v)); window.scrollTo(0, 0); }
+function back() { location.hash = '#home'; }
+function openLesson(id) { if (location.hash !== '#l/' + id) location.hash = '#l/' + id; else route(); }
+const MODN = () => Object.fromEntries(MODULES.map(([k, n]) => [k, n]));
+function route() {
+  clearInterval(EXT);
+  const h = location.hash.replace(/^#/, ''); if (!h.startsWith('l/')) { showView('home'); renderHome(); return; }
+  const les = LESSONS[h.slice(2)]; if (!les) { showView('home'); renderHome(); return; }
+  mod = les.mod; const p = prog[les.id], doneTxt = p && p.done ? `✓ Completed · best ${p.best}/${p.total}` : '';
+  if (les.exam) { examStart(les, doneTxt); return; }
+  showView('lesson');
+  $('lCrumb').textContent = `◀ All lessons · ${MODN()[les.mod]}`; $('lPill').textContent = `${les.mins} min${les.lvl ? ' · ' + les.lvl : ''}`; $('lTitle').textContent = les.title; $('lDone').innerHTML = doneTxt ? `<b style="color:var(--good)">${doneTxt}</b>` : '';
+  $('lLine').innerHTML = les.line; $('lBody').innerHTML = les.body || ''; $('lDo').innerHTML = les.do || ''; $('lWatch').innerHTML = les.watch || '';
+  $('lDoP').classList.toggle('hidden', !les.do); $('lWatchP').classList.toggle('hidden', !les.watch);
+  $('lSee').innerHTML = ''; $('lSeeP').classList.toggle('hidden', !les.lab);
+  if (les.lab) { try { LABS[les.lab]($('lSee'), les.preset); } catch (e) { $('lSee').textContent = 'This lab could not start: ' + e.message; } }
+  renderQuiz($('lQuiz'), les);
+}
+window.addEventListener('hashchange', route);
+
+// ---- mock exams: questions drawn from a bank, a timer, a result out of 10 saved like a lesson (pass mark per exam), and a review
+let EXT = null;
+function examStart(les, doneTxt) {
+  const E = EXAMS[les.exam]; showView('examv');
+  $('xCrumb').textContent = `◀ All lessons · ${MODN()[les.mod]}`; $('xTitle').textContent = les.title; $('xDone').innerHTML = doneTxt ? `<b style="color:var(--good)">${doneTxt}</b>` : '';
+  $('xIntro').innerHTML = `${les.line}<p class="m" style="margin-top:6px">${E.n} questions drawn at random from ${E.bank.length} · ${E.min} minutes · pass mark ${E.pass} % · you can take it again as often as you like.</p><span class="btn p" id="xGo">Start the exam ▶</span>`;
+  $('xBody').innerHTML = ''; $('xGo').onclick = () => examRun(les);
+}
+function examRun(les) {
+  const E = EXAMS[les.exam], shuf = (a) => a.map((x) => [x, Math.random()]).sort((p, q) => p[1] - q[1]).map(([x]) => x), qs = shuf([...E.bank]).slice(0, E.n).map(([q, opts, c, why]) => { const ord = shuf(opts.map((o, i) => i)); return [q, ord.map((i) => opts[i]), ord.indexOf(c), why]; }), ans = new Array(qs.length).fill(null); let left = E.min * 60;
+  $('xIntro').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><b id="xClock"></b><span class="m" id="xCount"></span><span class="btn p" id="xEnd">Finish and mark</span></div>`;
+  $('xBody').innerHTML = qs.map(([q, opts], qi) => `<div class="q" data-qi="${qi}"><p>${qi + 1}. ${q}</p>${opts.map((o, i) => `<button class="opt" data-i="${i}">${o}</button>`).join('')}</div>`).join('');
+  const cnt = () => { $('xCount').textContent = `${ans.filter((a) => a !== null).length} of ${qs.length} answered`; }; cnt();
+  $('xBody').querySelectorAll('.q').forEach((qd) => qd.querySelectorAll('.opt').forEach((b) => b.onclick = () => { ans[+qd.dataset.qi] = +b.dataset.i; qd.querySelectorAll('.opt').forEach((x) => x.classList.toggle('on', x === b)); cnt(); }));
+  const tick = () => { left--; $('xClock').textContent = `⏱ ${Math.floor(Math.max(0, left) / 60)}:${String(Math.max(0, left) % 60).padStart(2, '0')}`; if (left <= 0) mark(); };
+  const mark = () => { clearInterval(EXT); const right = qs.filter((q, i) => ans[i] === q[2]).length, pct = Math.round((100 * right) / qs.length), ten = Math.round((10 * right) / qs.length), pass = pct >= E.pass;
+    record(les.id, Math.min(10, ten), 10); if (pass && prog[les.id]) prog[les.id].done = true;
+    $('xIntro').innerHTML = `<div class="kpis"><div><b>${right} / ${qs.length}</b>right</div><div><b style="color:var(--${pass ? 'good' : 'bad'})">${pct} %</b>${pass ? 'pass ✓' : `pass mark ${E.pass} %`}</div><div><b>${ten} / 10</b>saved to your progress</div></div><p class="m">${pass ? 'Well done – review the ones you missed below.' : 'Study the lessons for the questions you missed (below) and try again – new questions are drawn each time.'}</p><span class="btn p" id="xAgain">Take it again</span> <span class="btn" onclick="back()">Back to the lessons</span>`;
+    $('xAgain').onclick = () => examRun(les);
+    $('xBody').innerHTML = qs.map(([q, opts, c, why], i) => { const ok = ans[i] === c; return `<div class="q"><p>${ok ? '✓' : '✗'} ${i + 1}. ${q}</p>${opts.map((o, k) => `<button class="opt ${k === c ? 'ok' : k === ans[i] ? 'no' : ''}" disabled>${o}</button>`).join('')}${why ? `<div class="m" style="font-size:12px;margin-top:4px">${why}</div>` : ''}</div>`; }).join(''); window.scrollTo(0, 0); };
+  $('xEnd').onclick = () => { if (ans.some((a) => a === null) && !confirm('Some questions are not answered yet. Mark the exam now?')) return; mark(); };
+  tick(); EXT = setInterval(tick, 1000);
+}
+
+// ---- small helpers for labs
+const sl = (id, label, mi, ma, st, v, unit = '') => `<div><label>${label} <b id="${id}V"></b></label><input type="range" id="${id}" min="${mi}" max="${ma}" step="${st}" value="${v}" data-unit="${unit}"></div>`;
+const bind = (el, fn) => { el.querySelectorAll('input,select').forEach((i) => i.addEventListener('input', fn)); el.querySelectorAll('input[type=range]').forEach((i) => { const u = () => { const b = $(i.id + 'V'); if (b) b.textContent = i.value + (i.dataset.unit || ''); }; i.addEventListener('input', u); u(); }); fn(); };
+const kpi = (rows) => `<div class="kpis">${rows.map(([v, t, bad]) => `<div><b${bad === true ? ' style="color:var(--bad)"' : bad === false ? ' style="color:var(--good)"' : ''}>${v}</b>${t}</div>`).join('')}</div>`;
+const chip = (on, txt, js) => `<span class="btn ${on ? 'on' : ''}" style="padding:4px 9px;font-size:12px" onclick="${js}">${txt}</span>`;
+
+function start() {
+  LESSONS = Object.fromEntries(L.map((l) => [l.id, l]));
+  document.title = COURSE.title; $('hTitle').textContent = COURSE.title; $('hSub').textContent = COURSE.sub;
+  const m = location.hash.match(/cfg=([^&]+)/);
+  if (m) { try { const c = JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(m[1]))))); history.replaceState(null, '', location.pathname + '#home'); setCfg(c); } catch { setCfg(null); } }
+  else if (window.parent !== window) { $('saveNote').textContent = 'Connecting…'; window.parent.postMessage({ type: 'academy:ready' }, '*'); }
+  else setCfg(null);
+  route();
+}
+
+// Network & IT for lighting projects – basics and advanced: cabling, fibre, IP, switches, PoE, VLANs, multicast, lighting protocols over IP,
+// redundancy, BMS integration, remote access and security, troubleshooting and handover – with live labs and a mock exam
+const COURSE = { prefix: 'net_', title: 'Network & IT – DIMO Academy', sub: 'Cabling, IP, switches, VLANs, lighting protocols over IP, security and troubleshooting – for our lighting control, stadium and CMS projects. Basics first, then advanced, then the exam.' };
+const MODULES = [['basic', 'Basics', 'Cables, fibre, IP, switches, PoE, racks'], ['adv', 'Advanced', 'VLANs, multicast, Art-Net / sACN, redundancy, BMS, security'], ['site', 'On site', 'Testing, troubleshooting, handover'], ['exam', 'Exam', 'Mock exam – basic and advanced']];
+
+// ================================================================ BASICS
+add('basic', 'Why networks matter in our projects', 'why', '🌐', 'Where networks appear in lighting', { lvl: 'Basic',
+  line: 'Almost every modern lighting project we build carries <b>data</b> as well as power: stadium DMX over Ethernet, KNX IP routers, DALI gateways, street-lighting CMS gateways, BMS links, cameras for broadcast and remote support.',
+  body: '<table class="spec"><tr><td>Stadium</td><td>Lighting console → Art-Net / sACN over Ethernet → DMX nodes in each panel room → drivers / fixtures; fibre between rooms</td></tr><tr><td>Buildings</td><td>KNX TP lines joined by KNX IP routers on the building LAN; DALI gateways; visualisation server</td></tr><tr><td>Street lighting</td><td>Nodes on each pole (LoRaWAN / NB-IoT / mesh) → gateway → CMS in the cloud; TALQ to the city platform</td></tr><tr><td>Integration</td><td>BACnet/IP, Modbus TCP or KNX IP to the client’s BMS</td></tr><tr><td>Service</td><td>Remote access (VPN) for support, monitoring and firmware updates</td></tr></table>',
+  do: 'At the start of every job ask: who owns the network (us, the client’s IT, the BMS contractor)? Which IP range, VLAN and internet access do we get? Write it into the method statement.',
+  watch: 'Most commissioning delays on control projects are network issues – no IP range, a blocked port, a switch without IGMP snooping – not the lighting itself. Agree the network early.',
+  quiz: [Q('In a stadium, Art-Net / sACN carries…', ['DMX lighting data over Ethernet', 'Mains power', 'Video only'], 0), Q('Who should you agree the IP range and VLAN with?', ['The network owner / client IT', 'Nobody – pick any', 'The cable supplier'], 0, 'Using addresses nobody agreed causes conflicts on the client’s LAN.'), Q('Most control-system commissioning delays come from…', ['Network issues agreed too late', 'Lamp colour', 'Paint finish'], 0)] });
+add('basic', 'Cables and fibre', 'copper', '🔌', 'Copper: Cat 6, Cat 6A and the 100 m rule', { lvl: 'Basic', lab: 'link', preset: 'copper',
+  line: 'Ethernet on twisted-pair copper reaches <b>100 m per channel</b>: up to 90 m of fixed cable (permanent link) + up to 10 m of patch cords. Cat 6 runs 1 Gbit/s; Cat 6A runs 10 Gbit/s over the full 100 m.',
+  body: '<table class="spec"><tr><td>Cat 5e</td><td>1 Gbit/s, 100 MHz – old installations</td></tr><tr><td>Cat 6</td><td>1 Gbit/s (10G only to ~55 m), 250 MHz – our default indoors</td></tr><tr><td>Cat 6A</td><td>10 Gbit/s to 100 m, 500 MHz – uplinks, Wi-Fi 6 access points, PoE++</td></tr><tr><td>U/UTP vs S/FTP</td><td>Unshielded inside buildings; shielded (S/FTP) next to power cables, outdoors and in stadium trenches – shield earthed at the panel</td></tr><tr><td>Outdoor</td><td>UV-resistant PE sheath, gel-filled / water-blocked for ducts; armoured where buried</td></tr><tr><td>Wiring</td><td>T568B (or T568A) – the same standard at both ends of every link</td></tr></table>',
+  do: 'Keep data cables in their own tray compartment, at least 200 mm from power cables or with a metal divider; cross power at 90°. Never pull past the cable’s bend radius (about 4 × diameter) or its pulling tension (~110 N for 4-pair).',
+  watch: 'Over 100 m the link may come up but drop packets randomly – the worst fault to find. For longer runs use fibre or an extra switch.',
+  quiz: [Q('Maximum Ethernet channel length on copper is…', ['100 m', '300 m', '1 km'], 0), Q('Which cable runs 10 Gbit/s over the full 100 m?', ['Cat 6A', 'Cat 5e', 'Cat 6'], 0), Q('Next to power cables in a stadium trench you should use…', ['Shielded S/FTP, shield earthed at the panel', 'The cheapest U/UTP', 'Telephone cable'], 0)] });
+add('basic', 'Cables and fibre', 'fibre', '💡', 'Fibre: OM3, OM4, OS2 and SFPs', { lvl: 'Basic', lab: 'link', preset: 'fibre',
+  line: 'Fibre carries light instead of electricity: no interference, no earth loops, no lightning path between buildings, and long distances. <b>Multimode</b> (OM3/OM4, 850 nm) for a few hundred metres; <b>single-mode</b> (OS2, 1310/1550 nm) for kilometres.',
+  body: '<table class="spec"><tr><td>OM3 (aqua)</td><td>10 Gbit/s to ~300 m, 1 Gbit/s to ~550 m (850 nm)</td></tr><tr><td>OM4 (aqua / violet)</td><td>10 Gbit/s to ~400 m</td></tr><tr><td>OS2 (yellow)</td><td>1–10 Gbit/s to 10 km and more (1310 nm), longer at 1550 nm</td></tr><tr><td>Connectors</td><td>LC (small, on SFPs) and SC; APC (green) vs UPC (blue) – never mix them</td></tr><tr><td>SFP modules</td><td>Must match the fibre (MM/SM), wavelength, speed and connector – and be supported by the switch brand</td></tr><tr><td>Termination</td><td>Fusion-spliced pigtails in a fibre patch panel (ODF); typical loss 0.1 dB per splice, 0.5 dB per connector pair</td></tr></table>',
+  do: 'Between panel rooms of a stadium use fibre (OS2 if any run is over ~300 m or you want future 10G headroom). Order at least 2 spare cores per link and label every core both ends.',
+  watch: 'Never look into a fibre or an SFP – the laser is invisible and can damage the eye. Keep dust caps on; a dirty connector is the most common fibre fault.',
+  quiz: [Q('Which fibre is used for kilometre distances?', ['OS2 single-mode', 'OM3 multimode', 'Cat 6A'], 0), Q('A 1310 nm single-mode SFP on OM3 fibre will…', ['Not work reliably – mismatch', 'Work better', 'Work only at night'], 0), Q('Typical loss of a mated connector pair is about…', ['0.5 dB', '5 dB', '0.001 dB'], 0)] });
+add('basic', 'IP addressing', 'ip', '🔢', 'IP addresses, masks and gateways', { lvl: 'Basic', lab: 'ip',
+  line: 'Every device on an IP network needs an <b>IP address</b>, a <b>subnet mask</b> (or prefix, e.g. /24) and usually a <b>gateway</b>. Two devices talk directly only when they are in the <b>same subnet</b>.',
+  body: '<table class="spec"><tr><td>IPv4 address</td><td>4 numbers 0–255, e.g. 192.168.10.21</td></tr><tr><td>Mask / prefix</td><td>255.255.255.0 = /24 → first three numbers are the network, the last is the host (254 usable addresses)</td></tr><tr><td>Gateway</td><td>The router that leads to other subnets / the internet – must be in the same subnet as the device</td></tr><tr><td>Private ranges</td><td>10.0.0.0/8 · 172.16.0.0/12 · 192.168.0.0/16 – use these inside projects; never invent public addresses</td></tr><tr><td>DHCP vs static</td><td>Laptops: DHCP. Controllers, gateways, nodes, servers: <b>static</b> (or DHCP reservation) so the address never changes</td></tr><tr><td>Art-Net</td><td>Traditionally 2.x.x.x or 10.x.x.x /8 – follow the console maker’s plan</td></tr></table>',
+  do: 'Keep an <b>IP register</b> for every project: device, location, IP, mask, gateway, VLAN, MAC, firmware, login owner. It is part of the handover.',
+  watch: 'Two devices with the same IP (duplicate address) both work “sometimes” – a classic intermittent fault. Check the register before you set any static address.',
+  quiz: [Q('192.168.10.21/24 and 192.168.11.5/24 are…', ['In different subnets – they need a router', 'In the same subnet', 'The same device'], 0, '/24 compares the first three numbers: 10 ≠ 11.'), Q('A DMX node in a panel room should get…', ['A static (or reserved) address', 'Whatever DHCP gives each day', 'A public internet address'], 0), Q('How many usable host addresses has a /24?', ['254', '256', '24'], 0, '256 minus the network and broadcast addresses.')] });
+add('basic', 'Switches and power', 'switch', '🔀', 'Switches: unmanaged vs managed', { lvl: 'Basic',
+  line: 'A <b>switch</b> connects devices on one network and forwards each frame only to the port where the destination is. <b>Unmanaged</b> switches have no settings; <b>managed</b> switches add VLANs, IGMP snooping, redundancy, monitoring and security.',
+  body: '<table class="spec"><tr><td>Unmanaged</td><td>Small isolated networks (a few devices, no multicast). Cheap, nothing to configure – and nothing to diagnose</td></tr><tr><td>Managed (L2)</td><td>VLANs, IGMP snooping, RSTP / ring, port mirroring, SNMP – our default for stadiums and KNX IP backbones</td></tr><tr><td>L3 switch / router</td><td>Routes between subnets / VLANs</td></tr><tr><td>Industrial</td><td>DIN rail, −40…+75 °C, 24 V DC dual input, surge protection, fibre ports – for panel rooms and outdoor cabinets</td></tr><tr><td>Uplinks</td><td>SFP slots for fibre between rooms; copper ports for local devices</td></tr></table>',
+  do: 'Specify industrial managed switches with SFP uplinks for panel rooms that reach 45–55 °C. Write down the admin password and the configuration backup.',
+  watch: 'A loop of cables between two unmanaged switches makes a broadcast storm that stops the whole network in seconds. Managed switches with RSTP block such loops.',
+  quiz: [Q('Which switch supports VLANs and IGMP snooping?', ['Managed', 'Unmanaged', 'Both'], 0), Q('A hot panel room needs a switch that is…', ['Industrial rated (temperature, DIN rail)', 'Office desktop', 'Wireless only'], 0), Q('Cabling a loop between two unmanaged switches causes…', ['A broadcast storm', 'Faster speed', 'Nothing'], 0)] });
+add('basic', 'Switches and power', 'poe', '⚡', 'Power over Ethernet (PoE)', { lvl: 'Basic', lab: 'poe',
+  line: '<b>PoE</b> sends power on the data cable – one cable for cameras, access points, small gateways and some luminaires/sensors. The switch has a total <b>PoE budget</b>; every device draws from it.',
+  body: '<table class="spec"><tr><td>802.3af (PoE)</td><td>15.4 W at the switch, ~12.9 W at the device</td></tr><tr><td>802.3at (PoE+)</td><td>30 W at the switch, ~25.5 W at the device</td></tr><tr><td>802.3bt Type 3 (PoE++)</td><td>60 W at the switch, ~51 W at the device</td></tr><tr><td>802.3bt Type 4</td><td>90 W at the switch, ~71 W at the device</td></tr><tr><td>Distance</td><td>100 m like normal Ethernet; Cat 6A runs cooler in bundles at high power</td></tr></table>',
+  do: 'Add up the device power (use the PoE class, not the typical figure) and keep 20–25 % margin on the switch budget. Put PoE switches on a UPS if the devices must survive a mains dip.',
+  watch: 'A switch with 24 PoE ports does not give full power to all 24 – read the total budget (e.g. 370 W). Over budget, the lowest-priority ports shut down.',
+  quiz: [Q('802.3at (PoE+) gives at the switch port up to…', ['30 W', '90 W', '5 W'], 0), Q('What limits how many PoE devices a switch can feed?', ['The total PoE budget', 'Port colour', 'The cable colour'], 0), Q('Recommended margin on the PoE budget:', ['20–25 %', '0 %', '200 %'], 0)] });
+add('basic', 'Switches and power', 'rack', '🗄️', 'Racks, UPS and panel rooms', { lvl: 'Basic',
+  line: 'Network gear lives in a <b>19-inch rack</b> or a wall cabinet: patch panels, switches, fibre panel (ODF), power strip, UPS – laid out so cables are short, labelled and cool.',
+  body: '<table class="spec"><tr><td>Height</td><td>Measured in U (44.45 mm); plan 30 % spare U</td></tr><tr><td>Layout</td><td>Fibre panel top, copper patch panels, switches between them with 1U cable managers, UPS at the bottom (heavy)</td></tr><tr><td>Power</td><td>Dedicated circuit with RCD; UPS sized for the switches + gateways for 15–30 min; network card on the UPS for alarms</td></tr><tr><td>Heat</td><td>Ventilation or air-conditioning; keep below the switch’s rating (industrial up to ~60–75 °C)</td></tr><tr><td>Earthing</td><td>Rack bonded to the panel earth bar; shielded cables earthed at the patch panel</td></tr></table>',
+  do: 'Label both ends of every cable with the same ID (e.g. PR1-SW1-P07 ↔ HM3-NODE-P1) and record it in the port map.',
+  watch: 'A rack without cable management becomes un-serviceable within a year – nobody can trace a cable without unplugging others.',
+  quiz: [Q('1U in a rack is…', ['44.45 mm', '1 inch', '10 cm'], 0), Q('Where does the UPS go in a rack?', ['At the bottom – it is heavy', 'At the top', 'Outside the building'], 0), Q('Cable labels should be…', ['The same ID at both ends, in the port map', 'Only at one end', 'Not needed'], 0)] });
+add('basic', 'Wireless and remote sites', 'wifi', '📶', 'Wi-Fi, 4G / LTE and LPWAN', { lvl: 'Basic',
+  line: 'Use cables where you can, wireless where you must. <b>Wi-Fi</b> for commissioning tablets and local access, <b>4G/LTE routers</b> for remote sites, <b>LPWAN</b> (LoRaWAN, NB-IoT) for street-lighting nodes that send small data far.',
+  body: '<table class="spec"><tr><td>Wi-Fi 2.4 GHz</td><td>Longer range, crowded, slower</td></tr><tr><td>Wi-Fi 5 GHz</td><td>Faster, shorter range, fewer walls</td></tr><tr><td>4G / LTE router</td><td>Internet at sites without a line; needs a data plan, ideally a private APN / static IP for remote access</td></tr><tr><td>LoRaWAN</td><td>Km range, very low data – gateways on high points, nodes on poles</td></tr><tr><td>NB-IoT / LTE-M</td><td>Operator network, no own gateways, SIM per node</td></tr><tr><td>Point-to-point radio</td><td>Bridge two buildings with a licensed/unlicensed link when fibre is impossible</td></tr></table>',
+  do: 'For a street-lighting CMS survey the signal (RSSI / SNR) at the far poles before you promise coverage.',
+  watch: 'Never control stadium DMX over Wi-Fi – latency and dropouts show as flicker. Wireless is for monitoring and commissioning, not for real-time show data.',
+  quiz: [Q('Which suits km range with very little data?', ['LoRaWAN', 'Wi-Fi 5 GHz', 'Cat 6'], 0), Q('Real-time stadium DMX should run on…', ['Wired Ethernet / fibre', 'Wi-Fi', 'Bluetooth'], 0), Q('For remote access through a 4G router it helps to have…', ['A static IP or private APN', 'A bigger antenna only', 'Nothing'], 0)] });
+
+// ================================================================ ADVANCED
+add('adv', 'Designing the IP plan', 'subnet', '🧮', 'Subnetting and the project IP plan', { lvl: 'Advanced', lab: 'ip', preset: 'plan',
+  line: 'A good IP plan gives each system its own <b>subnet</b> sized for growth, so lighting, cameras, BMS and IT never fight over addresses, and routing / firewall rules stay simple.',
+  body: '<table class="spec"><tr><td>/24</td><td>254 hosts – one system on one floor / one stadium side</td></tr><tr><td>/23</td><td>510 hosts</td></tr><tr><td>/22</td><td>1022 hosts</td></tr><tr><td>/26</td><td>62 hosts – small systems</td></tr><tr><td>/30</td><td>2 hosts – point-to-point links between routers</td></tr></table><p class="m">Example stadium plan: 10.20.10.0/24 lighting control (Art-Net/sACN), 10.20.20.0/24 KNX IP & DALI gateways, 10.20.30.0/24 monitoring (UPS, switches, PDUs), 10.20.40.0/24 BMS interface, 10.20.99.0/24 management.</p>',
+  do: 'Reserve blocks inside each subnet: .1 gateway, .2–.19 network gear, .20–.199 devices, .200–.254 laptops / spare. Put the plan in the method statement before ordering.',
+  watch: 'Never re-use the client’s office range for lighting – a later VPN between the two sites will clash.',
+  quiz: [Q('Which prefix gives 62 usable hosts?', ['/26', '/24', '/30'], 0), Q('Why give lighting its own subnet / VLAN?', ['Isolation, simpler rules, no address clashes', 'It is faster light', 'Required by DMX'], 0), Q('A /30 is typically used for…', ['Point-to-point router links', 'A whole stadium', 'Wi-Fi guests'], 0)] });
+add('adv', 'Designing the IP plan', 'vlan', '🏷️', 'VLANs and trunks (802.1Q)', { lvl: 'Advanced', lab: 'vlan',
+  line: 'A <b>VLAN</b> splits one physical switch network into separate logical networks. Devices in different VLANs cannot talk unless a router / firewall allows it. <b>Trunk</b> ports carry several VLANs (tagged) between switches.',
+  body: '<table class="spec"><tr><td>Access port</td><td>One VLAN, untagged – for an end device (node, gateway, camera)</td></tr><tr><td>Trunk port</td><td>Several VLANs, tagged (802.1Q) – between switches / to the router</td></tr><tr><td>Native VLAN</td><td>The untagged VLAN on a trunk – keep it unused for security</td></tr><tr><td>Inter-VLAN routing</td><td>On an L3 switch or firewall, with rules (e.g. BMS may read KNX IP, nothing else)</td></tr></table>',
+  do: 'Make a VLAN table: ID, name, subnet, gateway, which ports. Configure the trunk with exactly the VLANs needed (not “all”).',
+  watch: 'Most “the node does not answer” faults after a switch swap are a port left in the wrong VLAN or a trunk missing a VLAN.',
+  quiz: [Q('Two devices in VLAN 10 and VLAN 20 can talk…', ['Only through a router / firewall', 'Always directly', 'Never at all, not even via a router'], 0), Q('A port to a DMX node is usually…', ['An access port, untagged', 'A trunk with all VLANs', 'Disabled'], 0), Q('802.1Q is the standard for…', ['VLAN tagging', 'PoE', 'Fibre colours'], 0)] });
+add('adv', 'Lighting data over IP', 'artnet', '🎛️', 'Art-Net and sACN (E1.31)', { lvl: 'Advanced', lab: 'bw',
+  line: 'A DMX512 universe is 512 channels sent up to ~44 times a second. <b>Art-Net</b> (UDP port 6454) and <b>sACN / E1.31</b> (UDP 5568, multicast 239.255.x.y – one group per universe) carry many universes over Ethernet to nodes that turn them back into DMX or drive fixtures directly.',
+  body: '<table class="spec"><tr><td>Art-Net</td><td>Unicast to each node (Art-Net 3/4) or broadcast (old consoles – avoid on shared networks); 32,768 universes (Art-Net 4)</td></tr><tr><td>sACN</td><td>Multicast per universe → switches must do <b>IGMP snooping</b> with a querier; priority per source (merging, backup consoles)</td></tr><tr><td>Bandwidth</td><td>~ 638 bytes per universe frame × 44 /s ≈ 0.22 Mbit/s per universe – small, but broadcast/multicast without control floods every port</td></tr><tr><td>RDM</td><td>Remote Device Management over DMX / Art-Net – address and check fixtures remotely</td></tr></table>',
+  do: 'Put show data in its own VLAN, use unicast Art-Net or sACN with IGMP snooping, and give the console, backup and nodes static addresses from the plan.',
+  watch: 'Broadcast Art-Net on the client’s LAN can flood every device, including CCTV and office PCs. Keep it isolated.',
+  quiz: [Q('sACN (E1.31) uses…', ['Multicast, one group per universe', 'Only Wi-Fi', 'Serial RS-232'], 0), Q('Art-Net uses UDP port…', ['6454', '80', '3671'], 0), Q('Without IGMP snooping, multicast sACN traffic…', ['Floods every port in the VLAN', 'Is dropped', 'Is encrypted'], 0)] });
+add('adv', 'Lighting data over IP', 'mcast', '📡', 'Multicast and IGMP snooping', { lvl: 'Advanced', lab: 'bw', preset: 'mc',
+  line: '<b>Multicast</b> sends one stream to everyone who joins a group (sACN universes, KNX IP routing 224.0.23.12). <b>IGMP snooping</b> on the switches delivers it only to ports that asked; an <b>IGMP querier</b> (one per VLAN) keeps the membership alive.',
+  body: '<table class="spec"><tr><td>IGMP join</td><td>A device asks for group 239.255.0.1 (sACN universe 1)</td></tr><tr><td>Snooping</td><td>The switch remembers which ports joined and forwards only there</td></tr><tr><td>Querier</td><td>One switch / router asks “who still wants it?” every ~125 s – without it snooping times out and traffic stops or floods</td></tr><tr><td>KNX IP routing</td><td>Multicast 224.0.23.12, UDP 3671 – KNX IP routers exchange telegrams this way</td></tr></table>',
+  do: 'Enable IGMP snooping on every switch in the lighting VLAN and the querier on one core switch (with a backup). Test by unplugging a node: its port should stop receiving the stream.',
+  watch: 'Snooping without a querier: everything works for a few minutes after power-up, then universes freeze – a typical “random” stadium fault.',
+  quiz: [Q('What keeps IGMP memberships alive?', ['An IGMP querier in the VLAN', 'PoE', 'The fibre colour'], 0), Q('KNX IP routing uses multicast address…', ['224.0.23.12', '192.168.1.1', '239.255.0.1'], 0), Q('Universes freeze some minutes after start-up. First suspect:', ['Snooping without a querier', 'Lamp failure', 'Wrong fixture colour'], 0)] });
+add('adv', 'Reliability', 'ring', '♻️', 'Redundancy: rings, RSTP, ERPS / MRP', { lvl: 'Advanced',
+  line: 'A <b>ring</b> of switches survives one cable or switch failure: one link is kept blocked and opens within milliseconds to a few seconds when another breaks. <b>RSTP</b> is standard; <b>ERPS (G.8032)</b> and <b>MRP</b> recover faster (≤50 ms / ≤200 ms).',
+  body: '<table class="spec"><tr><td>Star</td><td>Simple; a core failure stops everything</td></tr><tr><td>Ring (RSTP)</td><td>Recovers in ~1–3 s – fine for KNX IP and monitoring</td></tr><tr><td>Ring (ERPS / MRP)</td><td>Recovers in tens of ms – for live show data in stadiums</td></tr><tr><td>Dual homing</td><td>Critical devices (console, primary/backup) on two switches</td></tr><tr><td>Fibre route</td><td>Run the two ring directions in different trenches – one excavator should not cut both</td></tr></table>',
+  do: 'In a stadium, link the panel rooms round the ground as a fibre ring; test by pulling one fibre during a lighting scene and noting the recovery.',
+  watch: 'A ring without a ring protocol is a loop – an instant broadcast storm. Configure the protocol before closing the last link.',
+  quiz: [Q('Which recovers fastest?', ['ERPS / MRP', 'Plain RSTP', 'A star with no backup'], 0), Q('Closing a ring of switches without a ring protocol causes…', ['A broadcast storm', 'Faster speed', 'Nothing'], 0), Q('The two directions of a fibre ring should run…', ['In different routes / trenches', 'In the same duct', 'Over Wi-Fi'], 0)] });
+add('adv', 'Integration', 'bms', '🏢', 'BMS integration: BACnet, Modbus, KNX IP, MQTT', { lvl: 'Advanced',
+  line: 'Lighting rarely stands alone: the <b>BMS</b> wants status, energy and alarms; sometimes it switches scenes. Agree the protocol, the points list and who maps what.',
+  body: '<table class="spec"><tr><td>BACnet/IP</td><td>UDP 47808; objects (Binary Value, Analog Value, Multi-state…); BBMD across subnets</td></tr><tr><td>Modbus TCP</td><td>TCP 502; registers (coils, holding, input) – agree the register map and scaling</td></tr><tr><td>KNX IP</td><td>UDP 3671; group addresses read/written by the BMS through a KNX IP interface (tunnelling) – mind the tunnel count</td></tr><tr><td>OPC UA / MQTT / REST</td><td>Modern platforms, cloud CMS, dashboards</td></tr><tr><td>TALQ</td><td>Street-lighting CMS ↔ city platform</td></tr></table>',
+  do: 'Send the BMS contractor a <b>points list</b> (name, address/object, type, read/write, unit, scaling, alarm) and test it point by point with them – sign the list.',
+  watch: 'Polling hundreds of points every second can overload a gateway or the KNX line. Agree poll rates (e.g. status every 60 s, alarms on change).',
+  quiz: [Q('BACnet/IP uses UDP port…', ['47808', '502', '6454'], 0), Q('Modbus TCP uses TCP port…', ['502', '3671', '443'], 0), Q('What do you exchange with the BMS contractor?', ['A signed points list', 'Only a drawing', 'Nothing'], 0)] });
+add('adv', 'Security and remote access', 'sec', '🔐', 'Cybersecurity basics for control systems', { lvl: 'Advanced',
+  line: 'A lighting or KNX system on a network is a door into the building. Basic hygiene – <b>segmentation, strong passwords, no open ports, updates, backups</b> – stops almost all real attacks.',
+  body: '<table class="spec"><tr><td>Segment</td><td>Control systems in their own VLAN behind a firewall; only needed flows allowed</td></tr><tr><td>Passwords</td><td>Change every default; unique per site; stored in the company password manager, handed over formally</td></tr><tr><td>No port forwarding</td><td>Never expose KNX IP (3671), web servers or consoles to the internet</td></tr><tr><td>Updates</td><td>Firmware on switches, gateways, servers; record versions</td></tr><tr><td>Secure protocols</td><td>KNX Secure, HTTPS, SSH, SNMPv3; turn off unused services</td></tr><tr><td>Standards</td><td>IEC 62443 for industrial / building control systems</td></tr></table>',
+  do: 'Before handover run a short checklist: defaults changed, unused ports disabled, firmware recorded, configs backed up, remote access documented.',
+  watch: 'Search engines index thousands of building controllers opened to the internet with default passwords. Do not let one of ours be among them.',
+  quiz: [Q('How should a technician reach a site remotely?', ['Through a VPN', 'By port-forwarding KNX IP 3671', 'With the default password'], 0), Q('Default passwords on switches and gateways should be…', ['Changed and stored securely', 'Kept – easier service', 'Printed on the panel door'], 0), Q('Which standard covers industrial / building control security?', ['IEC 62443', 'IEC 60598', 'EN 12464'], 0)] });
+add('adv', 'Security and remote access', 'vpn', '🛰️', 'Remote access, time and monitoring', { lvl: 'Advanced',
+  line: 'Remote support saves site visits: a <b>VPN</b> into the control VLAN, <b>NTP</b> so every log has the right time, and <b>monitoring</b> (SNMP / ping) that warns before the client calls.',
+  body: '<table class="spec"><tr><td>VPN</td><td>Site-to-site or client VPN (IPsec, OpenVPN, WireGuard) on the firewall / 4G router; named accounts, 2FA</td></tr><tr><td>NTP</td><td>One time source for switches, controllers, CMS and cameras – without it, event logs cannot be lined up</td></tr><tr><td>SNMP</td><td>Read switch ports, errors, temperature, UPS state; v3 with authentication</td></tr><tr><td>Syslog</td><td>Central log of switch and firewall events</td></tr></table>',
+  do: 'Agree with the client who may connect, when, and how access is logged; disable accounts when people leave.',
+  watch: 'A shared VPN account used by five technicians gives no audit trail. One person, one account.',
+  quiz: [Q('Why set NTP on every device?', ['So logs have the same correct time', 'For faster Wi-Fi', 'For PoE'], 0), Q('SNMP is used to…', ['Monitor devices (ports, errors, UPS)', 'Carry DMX', 'Program KNX'], 0), Q('Good VPN practice:', ['One named account per person, 2FA', 'One shared password', 'No passwords'], 0)] });
+
+// ================================================================ ON SITE
+add('site', 'Testing', 'test', '🧪', 'Testing and certification', { lvl: 'Basic',
+  line: 'Before handover every link is <b>tested and documented</b>: copper with a certifier (pass/fail to Cat 6/6A), fibre with a light-source/power-meter and, for long or critical links, an <b>OTDR</b>.',
+  body: '<table class="spec"><tr><td>Copper</td><td>Wire map, length, insertion loss, NEXT, return loss – certifier report per link (permanent link test)</td></tr><tr><td>Fibre tier 1</td><td>Loss per core vs the calculated budget, both wavelengths</td></tr><tr><td>Fibre tier 2 (OTDR)</td><td>Trace shows each splice / connector / bend and its distance</td></tr><tr><td>Network</td><td>Ping every device in the IP register, throughput test on uplinks, ring failover test</td></tr></table>',
+  do: 'Name the test results with the cable ID from the port map. Missing or renamed reports delay the final payment more than any fault.',
+  watch: 'A cheap “continuity tester” only shows the wires are connected – it does not prove the link will run 1 Gbit/s.',
+  quiz: [Q('Which test shows the distance to a bad splice?', ['OTDR', 'Continuity beeper', 'Ping'], 0), Q('A copper link is certified with…', ['A cable certifier against Cat 6/6A limits', 'A multimeter', 'A lux meter'], 0), Q('Fibre loss results are compared with…', ['The calculated loss budget', 'The cable colour', 'Nothing'], 0)] });
+add('site', 'Troubleshooting', 'trouble', '🩺', 'Troubleshooting: bottom-up', { lvl: 'Basic', lab: 'trouble',
+  line: 'Work <b>from the cable up</b>: link light → speed / errors → IP settings → reachability (ping) → VLAN / multicast → application. Most faults are in the first three steps.',
+  body: '<table class="spec"><tr><td>1 Physical</td><td>Link LED? Correct port? Cable tested? SFP matches fibre?</td></tr><tr><td>2 Link</td><td>Speed / duplex, error counters, port shut by loop protection</td></tr><tr><td>3 IP</td><td>Address, mask, gateway, duplicate IP (arp -a)</td></tr><tr><td>4 Reach</td><td>ping, tracert / traceroute</td></tr><tr><td>5 VLAN / multicast</td><td>Port VLAN, trunk VLAN list, IGMP snooping + querier</td></tr><tr><td>6 Application</td><td>Universe / patch, KNX tunnel count, firewall rule, licence</td></tr></table>',
+  do: 'Carry a small kit: laptop with a USB Ethernet adapter, a short patch cord, an SFP of each type, a fibre cleaning pen, a cable tester and the IP register.',
+  watch: 'Changing three settings at once may fix the fault – and you will not know which one. Change one thing, test, write it down.',
+  quiz: [Q('First thing to check when a node is “offline”:', ['The link light / cable', 'The console licence', 'The fixture colour'], 0), Q('Which command lists IP-to-MAC entries to spot duplicates?', ['arp -a', 'dir', 'format'], 0), Q('Good troubleshooting practice:', ['One change at a time, then test', 'Change everything at once', 'Restart everything daily'], 0)] });
+add('site', 'Handover', 'handover', '📁', 'Handover documentation', { lvl: 'Basic',
+  line: 'The network handover pack lets anyone maintain the system without us: <b>as-built drawing, IP register, VLAN table, port map, test reports, configuration backups, passwords</b> (handed over securely) and the O&M contacts.',
+  body: '<table class="spec"><tr><td>Drawings</td><td>Logical diagram (switches, links, VLANs) and physical routes (trenches, rooms, racks)</td></tr><tr><td>Registers</td><td>IP register, VLAN table, port map, fibre core schedule</td></tr><tr><td>Evidence</td><td>Copper certifier and fibre test reports, failover test record</td></tr><tr><td>Backups</td><td>Switch / router / gateway configurations, ETS / console show files</td></tr><tr><td>Access</td><td>Accounts, passwords and VPN details – sealed or through the client’s password manager</td></tr></table>',
+  do: 'Hand over a copy on the client’s server and keep ours in the project folder; note the firmware versions.',
+  watch: 'Passwords sent in a plain e-mail or written on the rack door undo all the security work.',
+  quiz: [Q('Which is part of the network handover?', ['IP register, VLAN table, port map, test reports, config backups', 'Only the invoice', 'Nothing'], 0), Q('Passwords should be handed over…', ['Securely (sealed or password manager)', 'On the rack door', 'In a group chat'], 0), Q('Why keep configuration backups?', ['To restore a failed switch quickly', 'For decoration', 'Not needed'], 0)] });
+
+// ================================================================ EXAM
+add('exam', 'Mock exam', 'exam', '🎓', 'Network & IT – mock exam', { exam: 'net', line: 'Questions across the whole course – cabling, fibre, IP, switches, PoE, VLANs, multicast, Art-Net / sACN, redundancy, BMS, security, testing and handover.' });
+EXAMS.net = { n: 20, min: 25, pass: 70, bank: [
+  Q('Maximum copper Ethernet channel length:', ['100 m', '150 m', '500 m', '1000 m'], 0),
+  Q('Permanent link + patch cords limit is…', ['90 m + 10 m', '100 m + 100 m', '50 m + 50 m', '80 m + 40 m'], 0),
+  Q('Cat 6A is needed for 10 Gbit/s over…', ['the full 100 m', '5 m only', 'fibre only', 'Wi-Fi'], 0),
+  Q('OS2 fibre is…', ['Single-mode for long distances', 'Multimode for short links', 'A copper category', 'A PoE class'], 0),
+  Q('OM3 multimode at 850 nm reaches 10 Gbit/s to about…', ['300 m', '30 km', '10 m', '3 m'], 0),
+  Q('An SFP must match…', ['Fibre type, wavelength, speed and connector', 'Only the colour', 'Only the switch height', 'Nothing'], 0),
+  Q('Typical fusion-splice loss:', ['0.1 dB', '3 dB', '10 dB', '0 dB exactly'], 0),
+  Q('APC connectors (green) may be mated with UPC (blue)?', ['No – never mix them', 'Yes, always', 'Only outdoors', 'Only at night'], 0),
+  Q('192.168.5.10/24 and 192.168.5.200/24 are…', ['In the same subnet', 'In different subnets', 'Invalid addresses', 'Public addresses'], 0),
+  Q('10.20.10.0/24 has how many usable hosts?', ['254', '256', '24', '1024'], 0),
+  Q('A /26 subnet has how many usable hosts?', ['62', '64', '126', '30'], 0),
+  Q('Which is a private IPv4 range?', ['172.16.0.0/12', '8.8.8.0/24', '1.1.1.0/24', '100.100.0.0/8 public'], 0),
+  Q('Controllers and gateways should use…', ['Static or reserved addresses', 'Random DHCP each boot', 'Public addresses', 'No address'], 0),
+  Q('The default gateway must be…', ['In the same subnet as the device', 'In another country', 'The DNS server always', 'Any address'], 0),
+  Q('A managed switch adds…', ['VLANs, IGMP snooping, RSTP, monitoring', 'Only more ports', 'Only PoE', 'Nothing'], 0),
+  Q('802.3bt Type 4 delivers at the switch up to…', ['90 W', '15.4 W', '30 W', '200 W'], 0),
+  Q('802.3af delivers at the switch up to…', ['15.4 W', '90 W', '60 W', '5 W'], 0),
+  Q('VLAN tagging standard:', ['802.1Q', '802.3af', '802.11ac', 'E1.31'], 0),
+  Q('A trunk port carries…', ['Several tagged VLANs', 'One untagged VLAN only', 'Power only', 'DMX'], 0),
+  Q('sACN uses UDP port…', ['5568', '6454', '502', '47808'], 0),
+  Q('Art-Net uses UDP port…', ['6454', '5568', '80', '3671'], 0),
+  Q('sACN universe data is sent to…', ['A multicast group per universe', 'A single broadcast for all', 'Serial ports', 'Bluetooth'], 0),
+  Q('IGMP snooping needs, in each VLAN…', ['An IGMP querier', 'A PoE injector', 'A DNS server', 'A Wi-Fi router'], 0),
+  Q('KNX IP routing multicast address:', ['224.0.23.12', '239.255.0.1', '192.168.0.1', '10.0.0.1'], 0),
+  Q('KNX IP uses UDP port…', ['3671', '502', '6454', '47808'], 0),
+  Q('Fastest ring recovery:', ['ERPS / MRP', 'RSTP', 'STP (802.1D)', 'No protocol'], 0),
+  Q('A cabled loop with no loop protection causes…', ['A broadcast storm', 'Better throughput', 'PoE overload only', 'Nothing'], 0),
+  Q('BACnet/IP port:', ['47808', '502', '5568', '3671'], 0),
+  Q('Modbus TCP port:', ['502', '47808', '443', '6454'], 0),
+  Q('Remote access to a site should be through…', ['A VPN with named accounts', 'Port forwarding', 'Default passwords', 'Public Wi-Fi'], 0),
+  Q('IEC 62443 is about…', ['Security of industrial / building control systems', 'Lux levels', 'Cable colours', 'Fire ratings'], 0),
+  Q('Which test locates a fault along a fibre?', ['OTDR', 'Ping', 'Continuity beeper', 'Lux meter'], 0),
+  Q('First step of bottom-up troubleshooting:', ['Physical layer – link / cable', 'Re-install the software', 'Replace the console', 'Call the client'], 0),
+  Q('Universes freeze a few minutes after power-up. Likely cause:', ['IGMP snooping without a querier', 'Lamp end of life', 'Fixture IP rating', 'PoE class'], 0),
+  Q('Why NTP on all devices?', ['Consistent time in logs and events', 'More bandwidth', 'Power saving', 'VLAN tagging'], 0),
+  Q('DMX real-time show data should not run over…', ['Wi-Fi', 'Fibre', 'Cat 6A', 'Managed switches'], 0),
+  Q('LoRaWAN suits…', ['Long range, very low data (street-lighting nodes)', 'Video streaming', 'Stadium DMX', 'Gigabit backbones'], 0),
+  Q('Spare fibre cores per link – good practice:', ['At least 2 spare cores', 'None', 'Exactly 0.5', 'Only on copper'], 0),
+  Q('Data cable separation from power in a shared tray:', ['About 200 mm or a metal divider', 'Touching is fine', '1 mm', 'Only in walls'], 0),
+  Q('Network handover must include…', ['IP register, VLAN table, port map, tests, backups', 'Only invoices', 'Only photos', 'Nothing'], 0),
+] };
+
+// ================================================================ LABS
+// subnet calculator – two devices, same subnet or not; in 'plan' mode a stadium plan builder
+LABS.ip = (el, preset) => {
+  el.innerHTML = `<div class="inputs" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))"><div><label>Device A IP</label><input id="ipA" value="10.20.10.21"></div><div><label>Device B IP</label><input id="ipB" value="10.20.11.5"></div><div><label>Prefix (mask)</label><select id="ipP">${Array.from({ length: 23 }, (_, i) => i + 8).map((p) => `<option ${p === 24 ? 'selected' : ''}>${p}</option>`).join('')}</select></div><div><label>Gateway of A</label><input id="ipG" value="10.20.10.1"></div></div><div id="ipOut"></div>${preset === 'plan' ? '<div id="ipPlan" style="margin-top:10px"></div>' : ''}`;
+  const toI = (s) => { const p = String(s).trim().split('.').map(Number); return p.length === 4 && p.every((x) => Number.isInteger(x) && x >= 0 && x <= 255) ? ((p[0] << 24) >>> 0) + (p[1] << 16) + (p[2] << 8) + p[3] : null; };
+  const toS = (n) => [n >>> 24, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join('.');
+  const run = () => { const a = toI($('ipA').value), b = toI($('ipB').value), g = toI($('ipG').value), p = +$('ipP').value, mask = p === 0 ? 0 : (0xffffffff << (32 - p)) >>> 0;
+    if (a == null || b == null || g == null) { $('ipOut').innerHTML = '<p class="m" style="color:var(--bad)">Type addresses like 10.20.10.21</p>'; return; }
+    const net = (a & mask) >>> 0, bc = (net | (~mask >>> 0)) >>> 0, hosts = p >= 31 ? (p === 31 ? 2 : 1) : 2 ** (32 - p) - 2, same = ((a & mask) >>> 0) === ((b & mask) >>> 0), gOk = ((g & mask) >>> 0) === net && g !== net && g !== bc;
+    const priv = (x) => (x >>> 24) === 10 || ((x >>> 24) === 172 && ((x >>> 16) & 255) >= 16 && ((x >>> 16) & 255) <= 31) || ((x >>> 24) === 192 && ((x >>> 16) & 255) === 168);
+    $('ipOut').innerHTML = kpi([[`${toS(net)}/${p}`, 'network of A'], [toS(mask), 'subnet mask'], [toS(bc), 'broadcast'], [hosts.toLocaleString('en-GB'), 'usable hosts'], [same ? 'Same subnet ✓' : 'Different subnets', same ? 'A ↔ B talk directly' : 'A ↔ B need a router', !same], [gOk ? 'Gateway OK ✓' : 'Gateway wrong', gOk ? 'inside A’s subnet' : 'must be inside A’s subnet, not network/broadcast', !gOk]])
+      + `<p class="m" style="font-size:13px">${priv(a) ? 'A is a private address – fine inside a project.' : '<b style="color:var(--bad)">A is not in a private range</b> – use 10.x, 172.16–31.x or 192.168.x inside projects.'} Try changing the prefix to /23 or /16 and watch A and B join the same subnet.</p>`;
+    if (preset === 'plan') { const sys = [['Lighting control (Art-Net / sACN)', 10], ['KNX IP & DALI gateways', 20], ['Monitoring (UPS, switches)', 30], ['BMS interface', 40], ['Management', 99]], base = (a >>> 16) << 16;
+      $('ipPlan').innerHTML = `<b>Suggested stadium plan from ${toS(base)}/16</b><div class="tablewrap"><table class="spec">${sys.map(([n, v]) => `<tr><td>VLAN ${v} · ${n}</td><td>${toS((base | (v << 8)) >>> 0)}/24 · gateway ${toS((base | (v << 8) | 1) >>> 0)} · devices .20–.199</td></tr>`).join('')}</table></div>`; } };
+  bind(el, run);
+};
+// copper / fibre link checker – length, connectors, splices, budget
+LABS.link = (el, preset) => {
+  el.innerHTML = `<div class="row">${['copper', 'om3', 'om4', 'os2'].map((k) => chip(k === (preset === 'fibre' ? 'os2' : 'copper'), { copper: 'Copper Cat 6A', om3: 'Fibre OM3', om4: 'Fibre OM4', os2: 'Fibre OS2' }[k], `LKM='${k}';LABS.link.run()`)).join('')}</div><div class="ctl" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-top:8px">${sl('lkL', 'Length', 5, 2000, 5, preset === 'fibre' ? 420 : 85, ' m')}${sl('lkC', 'Connector pairs', 0, 6, 1, 2)}${sl('lkS', 'Splices', 0, 10, 1, 2)}${sl('lkG', 'Speed (Gbit/s)', 1, 10, 9, 10)}</div><div id="lkOut"></div>`;
+  window.LKM = preset === 'fibre' ? 'os2' : 'copper';
+  LABS.link.run = () => { const m = window.LKM, L = +$('lkL').value, c = +$('lkC').value, s = +$('lkS').value, g = +$('lkG').value;
+    el.querySelectorAll('.row .btn').forEach((b, i) => b.classList.toggle('on', ['copper', 'om3', 'om4', 'os2'][i] === m));
+    if (m === 'copper') { const ok = L <= 100; $('lkOut').innerHTML = kpi([[`${L} m`, 'channel length'], [ok ? 'Within 100 m ✓' : 'Over 100 m ✗', 'Ethernet copper limit', !ok], [g === 10 ? 'Cat 6A' : 'Cat 6 is enough', `for ${g} Gbit/s`]]) + `<p class="m" style="font-size:13px">${ok ? 'Up to 90 m fixed cable + 10 m patch cords.' : 'Use fibre (or add a switch) – an over-length copper link may link up but drop packets.'}</p>`; return; }
+    const att = { om3: 3.0, om4: 3.0, os2: 0.4 }[m], reach = { om3: g === 10 ? 300 : 550, om4: g === 10 ? 400 : 550, os2: 10000 }[m], budget = { om3: 2.6, om4: 2.9, os2: 6.2 }[m] + (g === 1 ? 2 : 0), loss = (att * L) / 1000 + 0.5 * c + 0.1 * s, okL = L <= reach, okB = loss <= budget;
+    $('lkOut').innerHTML = kpi([[`${loss.toFixed(2)} dB`, `loss: ${att} dB/km × ${L} m + ${c} × 0.5 + ${s} × 0.1`], [`${budget.toFixed(1)} dB`, 'typical optics budget'], [okB ? 'Budget OK ✓' : 'Over budget ✗', `margin ${(budget - loss).toFixed(2)} dB`, !okB], [okL ? 'Reach OK ✓' : 'Too long ✗', `${m.toUpperCase()} at ${g}G reaches ~${reach >= 10000 ? '10 km' : reach + ' m'}`, !okL]]) + `<p class="m" style="font-size:13px">${!okL ? 'Change to OS2 single-mode for this distance.' : !okB ? 'Fewer connectors/splices, or a longer-reach SFP.' : 'Keep at least 1–3 dB margin for ageing and repairs.'}</p>`; };
+  bind(el, LABS.link.run);
+};
+// Art-Net / sACN bandwidth and multicast flooding
+LABS.bw = (el, preset) => {
+  el.innerHTML = `<div class="ctl" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">${sl('bwU', 'Universes', 1, 512, 1, 64)}${sl('bwR', 'Refresh rate', 10, 44, 1, 44, ' /s')}${sl('bwP', 'Switch ports in the VLAN', 4, 96, 1, 24)}${sl('bwN', 'Ports that need the data', 1, 96, 1, 6)}</div><div class="row">${chip(preset !== 'mc', 'sACN with IGMP snooping + querier', "BWM='snoop';LABS.bw.run()")}${chip(false, 'Multicast without snooping', "BWM='flood';LABS.bw.run()")}${chip(false, 'Broadcast Art-Net', "BWM='bcast';LABS.bw.run()")}</div><div id="bwOut"></div>`;
+  window.BWM = preset === 'mc' ? 'flood' : 'snoop';
+  LABS.bw.run = () => { const U = +$('bwU').value, R = +$('bwR').value, P = +$('bwP').value, N = Math.min(+$('bwN').value, P), m = window.BWM, per = (638 * 8 * R) / 1e6, tot = per * U, ports = m === 'snoop' ? N : P - 1, wasted = m === 'snoop' ? 0 : (P - 1 - N) * tot;
+    el.querySelectorAll('.row .btn').forEach((b, i) => b.classList.toggle('on', ['snoop', 'flood', 'bcast'][i] === m));
+    $('bwOut').innerHTML = kpi([[`${tot.toFixed(1)} Mbit/s`, `${U} universes × ${R}/s`], [`${ports} ports`, 'receive the stream'], [`${wasted.toFixed(0)} Mbit/s`, 'sent to ports that did not ask', wasted > 0], [tot > 800 ? '10G uplinks' : tot > 80 ? '1G uplinks' : '100M is enough', 'backbone needed']])
+      + `<p class="m" style="font-size:13px">${m === 'snoop' ? 'Each node receives only its own universes – clean.' : m === 'flood' ? 'Every port in the VLAN gets every universe – cameras, PCs and Wi-Fi access points struggle. Enable IGMP snooping and a querier.' : 'Broadcast reaches every device in the subnet – keep show data in its own VLAN or use unicast Art-Net.'}</p>`; };
+  bind(el, LABS.bw.run);
+};
+// PoE budget
+LABS.poe = (el) => {
+  const D = [['IP camera', 13], ['Wi-Fi 6 access point', 25.5], ['DMX / DALI gateway', 6], ['PTZ camera', 51], ['Touch panel', 12.9]];
+  el.innerHTML = `<div class="inputs" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">${D.map(([n, w], i) => `<div><label>${n} (${w} W)</label><input type="number" min="0" id="po${i}" value="${[6, 2, 4, 0, 1][i]}"></div>`).join('')}<div><label>Switch PoE budget (W)</label><input type="number" id="poB" value="370"></div></div><div id="poOut"></div>`;
+  bind(el, () => { const used = D.reduce((t, [, w], i) => t + w * (+$('po' + i).value || 0), 0), B = +$('poB').value || 0, need = used * 1.25;
+    $('poOut').innerHTML = kpi([[`${used.toFixed(0)} W`, 'devices draw'], [`${need.toFixed(0)} W`, 'with 25 % margin'], [`${B} W`, 'switch budget'], [need <= B ? 'OK ✓' : 'Over budget ✗', need <= B ? `${(B - need).toFixed(0)} W spare` : 'bigger switch or a second one', need > B]]); });
+};
+// VLAN lab: assign ports, see who can talk
+LABS.vlan = (el) => {
+  const DEV = [['Console', 10], ['Backup console', 10], ['DMX node PR1', 10], ['DMX node PR2', 20], ['KNX IP router', 20], ['CCTV camera', 30], ['BMS server', 40]];
+  window.VL = DEV.map(([, v]) => v);
+  el.innerHTML = `<p class="m" style="font-size:13px">Set the VLAN of each switch port. Devices in the same VLAN talk directly; others need the firewall rule below.</p><div class="inputs" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">${DEV.map(([n], i) => `<div><label>${n}</label><select id="vl${i}">${[10, 20, 30, 40].map((v) => `<option value="${v}" ${v === VL[i] ? 'selected' : ''}>VLAN ${v} – ${{ 10: 'lighting', 20: 'KNX / DALI', 30: 'CCTV', 40: 'BMS' }[v]}</option>`).join('')}</select></div>`).join('')}</div><label class="m"><input type="checkbox" id="vlFw" checked> Firewall allows BMS (VLAN 40) → KNX IP router (VLAN 20), UDP 3671</label><div id="vlOut"></div>`;
+  bind(el, () => { const v = DEV.map((_, i) => +$('vl' + i).value), fw = $('vlFw').checked, can = (a, b) => v[a] === v[b] || (fw && ((v[a] === 40 && b === 4) || (v[b] === 40 && a === 4)));
+    const checks = [['Console → DMX node PR1', 0, 2], ['Console → DMX node PR2', 0, 3], ['Backup console → nodes', 1, 2], ['BMS server → KNX IP router', 6, 4], ['CCTV camera → Console (should NOT)', 5, 0]];
+    $('vlOut').innerHTML = `<div class="tablewrap"><table class="spec">${checks.map(([t, a, b]) => { const ok = can(a, b), want = !/NOT/.test(t); return `<tr><td>${t}</td><td style="color:var(--${ok === want ? 'good' : 'bad'})">${ok ? 'can talk' : 'blocked'} ${ok === want ? '✓' : '✗'}</td></tr>`; }).join('')}</table></div><p class="m" style="font-size:13px">Goal: all ✓. Hint: the console must reach both DMX nodes – put PR2’s node in the lighting VLAN.</p>`; });
+};
+// troubleshooting game
+LABS.trouble = (el) => {
+  const S = [['A DMX node shows no link light on its switch port.', ['Check / swap the patch cord and port, test the cable', 'Change the console universe', 'Update the BMS'], 0, 'No link = physical layer. Start with the cable and port.'],
+    ['Node has link but ping fails; its IP is 10.20.10.50/24, laptop is 10.20.11.9/24.', ['Different subnets – fix the address or mask', 'Replace the fibre', 'Change the PoE class'], 0, 'Different subnets need a router; on a show network keep all in one /24.'],
+    ['Ping works sometimes and fails sometimes; two devices show the same IP in arp -a.', ['Duplicate IP – re-address one from the register', 'Faulty fixture', 'Wrong lux'], 0, 'Intermittent ping with two MACs for one IP = duplicate address.'],
+    ['sACN works for 4 minutes after start-up, then universes freeze.', ['IGMP snooping without a querier', 'Lamp life', 'Wrong VLAN on the console'], 0, 'Membership times out without a querier.'],
+    ['Whole network froze after an extra patch cord was connected between two switches.', ['Loop – remove it, enable RSTP / loop protection', 'Add more PoE', 'Re-certify all cables'], 0, 'A loop without a protocol = broadcast storm.'],
+    ['Fibre link between two panel rooms is down; SFPs are 1310 nm single-mode, cable is OM3.', ['Mismatch – use multimode SFPs or OS2 fibre', 'Clean the console', 'Restart the BMS'], 0, 'SFP and fibre must match.']];
+  let i = 0, score = 0;
+  const draw = () => { if (i >= S.length) { el.innerHTML = kpi([[`${score} / ${S.length}`, 'faults found first time']]) + '<span class="btn" id="trAgain">Play again</span>'; $('trAgain').onclick = () => { i = 0; score = 0; draw(); }; return; }
+    const [s, o, c, why] = S[i], rnd = seeded('tr' + i), ord = o.map((x, k) => [k, rnd()]).sort((a, b) => a[1] - b[1]).map(([k]) => k);
+    el.innerHTML = `<p><b>Fault ${i + 1} of ${S.length}:</b> ${s}</p>${ord.map((k) => `<button class="opt" data-k="${k}">${o[k]}</button>`).join('')}<div class="m" id="trWhy" style="margin-top:6px;font-size:13px"></div>`;
+    let done = false; el.querySelectorAll('.opt').forEach((b) => b.onclick = () => { if (done) return; done = true; const ok = +b.dataset.k === c; if (ok) score++; b.classList.add(ok ? 'ok' : 'no'); el.querySelector(`.opt[data-k="${c}"]`).classList.add('ok');
+      $('trWhy').innerHTML = `${ok ? '✓' : '✗'} ${why} <span class="btn" style="padding:3px 8px;font-size:12px" id="trNext">Next ▶</span>`; $('trNext').onclick = () => { i++; draw(); }; }); };
+  draw();
+};
+
+start();
+</script>
+</body></html>
