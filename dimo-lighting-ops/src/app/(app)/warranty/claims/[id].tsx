@@ -32,7 +32,7 @@ export default function ClaimDetail() {
       supabase.from('warranties').select('*').eq('id', claim.warranty_id).maybeSingle(),
       claim.line_id ? supabase.from('warranty_lines').select('*').eq('id', claim.line_id).maybeSingle() : Promise.resolve({ data: null }),
       supabase.from('warranty_log').select('*').eq('claim_id', id).order('at', { ascending: false }),
-      supabase.from('profiles').select('id, full_name, role').in('role', ['assistant_engineer', 'senior_elec_engineer']).eq('active', true).order('full_name'),
+      supabase.from('profiles').select('id, full_name, role').in('role', ['assistant_engineer', 'senior_elec_engineer', 'trainee']).eq('active', true).order('full_name'),
     ]);
     const rmaIds = (((await supabase.from('manufacturer_claim_items').select('rma_id').eq('claim_id', id)).data ?? []) as { rma_id: string }[]).map((x) => x.rma_id);
     const proj = (w as Warranty | null)?.project_id
@@ -72,7 +72,7 @@ export default function ClaimDetail() {
       await rpc(fn, args);
       await reload();
     }, ok);
-  const engineerOptions = data.engineers.map((e) => ({ value: e.id, label: e.full_name, hint: e.role === 'senior_elec_engineer' ? 'Senior Electrical Engineer' : 'Assistant Engineer' }));
+  const engineerOptions = data.engineers.map((e) => ({ value: e.id, label: e.full_name, hint: e.role === 'senior_elec_engineer' ? 'Senior Electrical Engineer' : e.role === 'trainee' ? 'Trainee' : 'Assistant Engineer' }));
 
   return (
     <Screen maxWidth={860}>

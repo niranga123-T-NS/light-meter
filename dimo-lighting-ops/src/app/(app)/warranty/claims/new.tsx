@@ -239,7 +239,7 @@ export default function ClaimNew() {
           <NumberField label="Quantity" value={quantity} onChange={(v) => setQty(v)} />
           <Field label="Location on site" value={location} onChangeText={setLoc} />
           {see ? (
-            <PersonPicker label="Assign to engineer (site inspection)" roles={['assistant_engineer', 'senior_elec_engineer']} value={engineer} onChange={(v) => setAssignee(v || null)} />
+            <PersonPicker label="Assign to engineer (site inspection)" roles={['assistant_engineer', 'senior_elec_engineer', 'trainee']} value={engineer} onChange={(v) => setAssignee(v || null)} />
           ) : (
             <Muted>
               {desk

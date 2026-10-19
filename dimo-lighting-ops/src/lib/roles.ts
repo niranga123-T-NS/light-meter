@@ -314,7 +314,7 @@ function baseNav(role: Role): NavItem[] {
         { href: '/warranty', label: 'Warranty & defects', icon: '⛉' },
       ];
     case 'trainee':
-      return [{ href: '/', label: 'My Day', icon: '⌂' }, EXEC_NAV.mine, { href: '/engineering', label: 'Tasks & instructions', icon: '▣' }, EXEC_NAV.hse];
+      return [{ href: '/', label: 'My Day', icon: '⌂' }, EXEC_NAV.mine, { href: '/engineering', label: 'Tasks & instructions', icon: '▣' }, EXEC_NAV.hse, { href: '/warranty', label: 'Warranty & defects', icon: '⛉' }];
     case 'sub_supervisor':
       return [{ href: '/', label: 'My Day', icon: '⌂' }, EXEC_NAV.myWork, { href: '/execution/sub-plan', label: 'My plan', icon: '▦', testing: true } as NavItem, EXEC_NAV.report, EXEC_NAV.materials, EXEC_NAV.hse];
     case 'sys_admin':

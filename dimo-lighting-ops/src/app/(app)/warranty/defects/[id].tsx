@@ -49,9 +49,9 @@ export default function DefectScreen() {
   const canClaim = d.status === 'assigned' && d.cause === 'product' && (me.role === 'senior_elec_engineer' || me.role === 'operations_exec');
   const late = d.status === 'assigned' && !!d.due_date && d.due_date < todayISO();
   const pn = (u: string | null) => (u ? (people[u]?.full_name ?? '') : '');
-  // Engineers to assign: the project's AEs first, then every AE and SEE
+  // Engineers to assign: the project's AEs first, then every AE, approved trainee and SEE
   const engineers = Object.values(people)
-    .filter((p) => p.active !== false && (p.role === 'assistant_engineer' || p.role === 'senior_elec_engineer'))
+    .filter((p) => p.active !== false && (p.role === 'assistant_engineer' || p.role === 'senior_elec_engineer' || p.role === 'trainee'))
     .sort((a, b) => Number(members.some((m) => m.user_id === b.id)) - Number(members.some((m) => m.user_id === a.id)) || a.full_name.localeCompare(b.full_name));
 
   const verify = async (ok: boolean) => {
