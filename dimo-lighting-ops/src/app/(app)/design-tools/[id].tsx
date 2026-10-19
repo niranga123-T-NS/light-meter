@@ -38,7 +38,7 @@ async function shareFile(name: string, mime: string, b64: string) {
   const f = new FsFile(Paths.cache, name.replace(/[\\/:*?"<>|]+/g, ''));
   f.create({ overwrite: true });
   f.write(b64, { encoding: 'base64' });
-  await Sharing.shareAsync(f.uri, { mimeType: mime, dialogTitle: name, UTI: mime === 'application/pdf' ? 'com.adobe.pdf' : undefined });
+  await Sharing.shareAsync(f.uri, { mimeType: mime, dialogTitle: name, UTI: mime === 'application/pdf' ? 'com.adobe.pdf' : mime === 'application/zip' ? 'public.zip-archive' : undefined });
 }
 
 /** The driver library goes to the page with the design, and again after each driver saved from it */
