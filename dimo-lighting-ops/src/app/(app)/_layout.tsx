@@ -5,20 +5,22 @@ import { HighLevelBanner } from '@/components/HighLevelBanner';
 import { UpdateBanner } from '@/components/UpdateBanner';
 import { colors, useWide } from '@/components/ui';
 import { useMe } from '@/lib/auth';
+import { useImmersive } from '@/lib/immersive';
 import { usePushRegistration } from '@/lib/push';
 
 export default function AppLayout() {
   const me = useMe();
   const wide = useWide();
+  const full = useImmersive();
   usePushRegistration(me.id);
 
   return (
     <CountsProvider>
       <View style={{ flex: 1, flexDirection: wide ? 'row' : 'column', backgroundColor: colors.bg }}>
-        {wide ? <Sidebar /> : null}
+        {wide && !full ? <Sidebar /> : null}
         <View style={{ flex: 1 }}>
-          <UpdateBanner />
-          <HighLevelBanner />
+          {full ? null : <UpdateBanner />}
+          {full ? null : <HighLevelBanner />}
           <Stack
             screenOptions={{
               headerRight: () => <HeaderActions />,
@@ -30,7 +32,7 @@ export default function AppLayout() {
             }}
           />
         </View>
-        {wide ? null : <BottomBar />}
+        {wide || full ? null : <BottomBar />}
       </View>
     </CountsProvider>
   );
