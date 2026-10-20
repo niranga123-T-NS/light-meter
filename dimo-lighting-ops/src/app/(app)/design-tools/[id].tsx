@@ -25,6 +25,7 @@ import {
   type EngineHandle,
 } from '@/lib/designTools';
 import { fmtDateTime } from '@/lib/format';
+import { setImmersive } from '@/lib/immersive';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 
@@ -63,6 +64,7 @@ export default function DesignToolScreen() {
   const [dirty, setDirty] = useState(false);
   const [meta, setMeta] = useState<{ title: string; inquiry: string | null } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [full, setFull] = useState(false);
   const allowed = canUseDesignTools(realRole);
 
   const { data, error, reload } = useLoad(async () => {
@@ -110,8 +112,15 @@ export default function DesignToolScreen() {
     return () => window.removeEventListener('beforeunload', on);
   }, [dirty]);
 
+  // full screen on the page: the app's sidebar, header, banners and the cards around the page step aside
+  useEffect(() => {
+    setImmersive(full);
+  }, [full]);
+  useEffect(() => () => setImmersive(false), []);
+
   const onMessage = useCallback((m: DtOut) => {
     if (m.type === 'dt:ready') setReady(true);
+    else if (m.type === 'dt:fullscreen') setFull(m.on);
     else if (m.type === 'dt:dirty') setDirty(m.dirty);
     else if (m.type === 'dt:file' && Platform.OS !== 'web') void shareFile(m.name, m.mime, m.b64); // a sheet PDF from the page – the web view cannot download it itself
     else if (m.type === 'dt:drvSave')
@@ -199,9 +208,10 @@ export default function DesignToolScreen() {
   const canArchive = !!f && (f.created_by === me.id || role === 'design_manager' || role === 'sm_projects' || role === 'gm');
 
   return (
-    <Screen maxWidth={1800}>
-      <Stack.Screen options={{ title: meta.title }} />
-      <TestingBanner what="Design Tools" show />
+    <Screen maxWidth={1800} flush={full}>
+      <Stack.Screen options={{ title: meta.title, headerShown: !full }} />
+      {full ? null : <TestingBanner what="Design Tools" show />}
+      {full ? null : (
       <Card>
         <Row wrap gap={8} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
           <View style={{ flex: 1, minWidth: 240, gap: 4 }}>
@@ -231,9 +241,10 @@ export default function DesignToolScreen() {
         </Row>
         {unsaved && f && status !== 'draft' ? <Muted>Saving a change makes a new revision and takes the design back to draft for checking again.</Muted> : null}
       </Card>
+      )}
       {!ready ? <Loading label="Opening the calculation page…" /> : null}
-      <DesignEngine ref={engine} html={data.eng.html} onMessage={onMessage} height={Math.max(640, height - 190)} />
-      {f ? (
+      <DesignEngine ref={engine} html={data.eng.html} onMessage={onMessage} height={Math.max(640, height - 190)} full={full} />
+      {f && !full ? (
         <Row wrap gap={12} style={{ alignItems: 'flex-start' }}>
           <View style={{ flex: 1, minWidth: 300 }}>
             <Section title="Revisions">

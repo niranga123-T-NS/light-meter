@@ -54,19 +54,23 @@ export function Screen({
   onRefresh,
   scroll = true,
   maxWidth = 1200,
+  flush,
 }: {
   children: ReactNode;
   refreshing?: boolean;
   onRefresh?: () => void;
   scroll?: boolean;
   maxWidth?: number;
+  /** edge to edge with no scrolling – a full-screen page; the tree stays the same so nothing inside is remounted */
+  flush?: boolean;
 }) {
-  const inner = <View style={[styles.screenInner, { maxWidth }]}>{children}</View>;
+  const inner = <View style={[styles.screenInner, flush ? { maxWidth: undefined, padding: 0 } : { maxWidth }]}>{children}</View>;
   if (!scroll) return <View style={styles.screen}>{inner}</View>;
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={{ paddingBottom: 48 }}
+      contentContainerStyle={{ paddingBottom: flush ? 0 : 48 }}
+      scrollEnabled={!flush}
       keyboardShouldPersistTaps="handled"
       refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} /> : undefined}
     >

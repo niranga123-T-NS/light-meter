@@ -3,7 +3,7 @@ import type { DtIn, DtOut, EngineHandle } from '@/lib/designTools';
 import { routeMessage } from './engineBridge';
 
 /** The calculation page in a frame (web portal). The page is passed in as text, so it is never at a public address. */
-export const DesignEngine = forwardRef<EngineHandle, { html: string; onMessage: (m: DtOut) => void; height: number }>(function DesignEngine({ html, onMessage, height }, ref) {
+export const DesignEngine = forwardRef<EngineHandle, { html: string; onMessage: (m: DtOut) => void; height: number; full?: boolean }>(function DesignEngine({ html, onMessage, height }, ref) {
   const [frame, setFrame] = useState<HTMLIFrameElement | null>(null);
   const [full, setFull] = useState(false);
   useImperativeHandle(ref, () => ({ send: (m: DtIn) => frame?.contentWindow?.postMessage(m, '*') }), [frame]);
