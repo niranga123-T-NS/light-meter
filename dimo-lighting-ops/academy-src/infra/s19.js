@@ -2,8 +2,9 @@
 const NAS_IQN = 'iqn.2026-10.lk.dimo:nas01';
 /** Module 3 lab with VMs and the NAS (10.10.30.20: 1.8 TB for NFS on /srv/vmstore, a 500 GB disk sdc for iSCSI) */
 function storLab(o = {}) {
-  return vmLab({ ...o, vms: true, nas: true, post: (L) => { const N = L.devs.NAS; lxInit(L, N); N.disks.push({ name: 'sdb', size: 1800, parts: [{ name: 'sdb1', size: 1800, mount: '/srv/vmstore', fs: 'ext4' }] }, { name: 'sdc', size: 500, parts: [] }); N.nasGb = 1800; lxRun(lxSession(L, N, 'root'), 'mkdir -p /srv/vmstore'); if (o.done) storDone(L); if (o.post) o.post(L); } });
+  return vmLab({ ...o, vms: true, nas: true, post: (L) => { nasPrep(L); if (o.done) storDone(L); if (o.post) o.post(L); } });
 }
+function nasPrep(L) { const N = L.devs.NAS; lxInit(L, N); N.disks.push({ name: 'sdb', size: 1800, parts: [{ name: 'sdb1', size: 1800, mount: '/srv/vmstore', fs: 'ext4' }] }, { name: 'sdc', size: 500, parts: [] }); N.nasGb = 1800; lxRun(lxSession(L, N, 'root'), 'mkdir -p /srv/vmstore'); }
 /** Session 19 finished: storage VLAN on pve1, NFS store nas-nfs (images, backup), iSCSI san + shared LVM san-lvm */
 function storDone(L, hosts = ['PVE1']) {
   const sw = L.devs.SW.ports; ['Gi1/0/1', 'Gi1/0/3'].forEach((pn) => { if (sw[pn].mode === 'trunk') sw[pn].allowed = '10,20,30,99'; });

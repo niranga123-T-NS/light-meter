@@ -51,4 +51,11 @@ module.exports = {
     ['PVE1', 'shell', 'qm snapshot 101 pre-update --description "before apt upgrade"'], ['VM101', 'term', 'sudo apt upgrade -y'], ['PVE1', 'shell', 'qm rollback 101 pre-update'], ['PVE1', 'shell', 'qm start 101'], ['PVE1', 'shell', 'qm delsnapshot 101 pre-update'],
     ['PVE1', 'shell', 'pvesh create /cluster/backup --schedule 21:00 --storage nas-nfs --all 1 --mode snapshot --prune-backups keep-last=7'], ['PVE1', 'js', 'pveJobRun(L, L.pve.jobs[0])'], ['PVE1', 'shell', 'pvesm list nas-nfs'],
     ['PVE1', 'js', "const b = L.pve.backups.find((x) => x.vmid === 101); L.__f = b.file"], ['PVE1', 'js', "qmRestore(L, d, L.__f, 901, { storage: 'local-lvm', unique: true }); vmStart(L, vmById(L, 901))"], ['PVE1', 'shell', 'qm list']],
+  s21: [['PVE1', 'shell', 'pvecm create dimo-cl'], ['PVE2', 'shell', 'pvecm add 10.10.99.11'], ['PVE2', 'shell', 'Dimo@Lab2026'], ['PVE1', 'shell', 'pvecm status'],
+    ['NAS', 'term', 'sudo apt install -y corosync-qnetd'], ['PVE1', 'shell', 'pvecm qdevice setup 10.10.30.20'],
+    ['PVE1', 'shell', 'qm disk move 101 scsi0 nas-nfs --delete 1'], ['PVE1', 'shell', 'qm migrate 101 pve2 --online'],
+    ['PVE1', 'shell', 'ha-manager groupadd prod --nodes pve1,pve2'], ['PVE1', 'shell', 'ha-manager add vm:101 --state started --group prod'], ['PVE1', 'js', "hvPower(L, 'PVE2', false)"], ['PVE1', 'shell', 'ha-manager status'], ['PVE1', 'js', "hvPower(L, 'PVE2', true)"],
+    ['PVE1', 'shell', 'ha-manager crm-command node-maintenance enable pve1'], ['PVE1', 'shell', 'ha-manager status'], ['PVE1', 'shell', 'ha-manager crm-command node-maintenance disable pve1'], ['PVE2', 'shell', 'ha-manager status']],
+  s22: [['PVE1', 'shell', 'top'], ['PVE1', 'shell', 'qm set 105 --cores 4 --memory 6144 --balloon 6144'], ['PVE1', 'shell', 'qm shutdown 105'], ['PVE1', 'shell', 'qm start 105'], ['PVE1', 'shell', 'qm set 104 --balloon 8192'], ['PVE1', 'shell', 'qm disk move 104 scsi0 local-lvm --delete 1'], ['PVE1', 'js', "L.pve.jobs[0].schedule = '21:00'"], ['PVE1', 'shell', 'free'], ['VM104', 'term', 'top'],
+    ['VM101', 'term', 'sudo apt install -y docker.io'], ['VM101', 'term', 'sudo docker run -d --name intranet -p 8080:80 --restart unless-stopped nginx'], ['VM101', 'term', 'sudo docker ps'], ['PC', 'cmd', 'curl http://10.10.20.100:8080']],
 };

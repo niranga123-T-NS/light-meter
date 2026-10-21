@@ -80,4 +80,13 @@ module.exports = {
   's20.t2': [['PVE1', 'shell', 'qm config 102 | grep lock'], ['PVE1', 'shell', 'qm unlock 102'], ['PVE1', 'js', 'pveJobRun(L, L.pve.jobs[0])']],
   's20.t3': [['PVE1', 'shell', 'cat /etc/pve/storage.cfg'], ['PVE1', 'shell', 'pvesm set nas-nfs --content images,backup,iso'], ['PVE1', 'js', 'pveJobRun(L, L.pve.jobs[0])']],
   's20.t4': [['PVE1', 'shell', 'pvesm list nas-nfs | wc -l'], ['PVE1', 'js', 'L.pve.jobs[0].keep = 7'], ['PVE1', 'shell', 'pvesm prune-backups nas-nfs --keep-last 7'], ['PVE1', 'js', 'pveJobRun(L, L.pve.jobs[0])']],
+  's21.t1': [['PVE1', 'shell', 'qm migrate 103 pve2 --online'], ['PVE1', 'shell', 'qm config 103'], ['PVE1', 'shell', 'qm set 103 --ide0 none'], ['PVE1', 'shell', 'ha-manager migrate vm:103 pve2']],
+  's21.t2': [['PVE1', 'shell', 'qm config 102'], ['PVE1', 'shell', 'qm shutdown 102'], ['PVE1', 'shell', 'qm start 102'], ['PVE1', 'shell', 'qm migrate 102 pve2 --online']],
+  's21.t3': [['PVE2', 'shell', 'ha-manager status'], ['PVE2', 'shell', 'ha-manager crm-command node-maintenance disable pve2'], ['PVE2', 'shell', 'ha-manager status']],
+  's21.t4': [['PVE1', 'shell', 'pvecm status'], ['PVE1', 'shell', 'pvecm expected 1'], ['PVE1', 'shell', 'qm start 102']],
+  's22.f1': [['PVE1', 'shell', 'top'], ['PVE1', 'shell', 'qm config 105'], ['PVE1', 'shell', 'qm set 105 --cores 4'], ['PVE1', 'shell', 'qm shutdown 105'], ['PVE1', 'shell', 'qm start 105']],
+  's22.f2': [['PVE1', 'shell', 'free'], ['PVE1', 'shell', 'qm config 104'], ['PVE1', 'shell', 'qm set 104 --balloon 8192'], ['PVE1', 'shell', 'qm set 105 --memory 6144 --balloon 6144'], ['PVE1', 'shell', 'qm shutdown 105'], ['PVE1', 'shell', 'qm start 105'], ['PVE1', 'shell', 'free']],
+  's22.f3': [['PVE1', 'shell', 'top'], ['PVE1', 'shell', 'pvesh get /cluster/backup'], ['PVE1', 'shell', 'qm disk move 104 scsi0 local-lvm --delete 1'], ['PVE1', 'js', "L.pve.jobs[0].schedule = '21:00'"]],
+  's22.f4': [['PVE1', 'shell', 'qm config 106'], ['PVE1', 'shell', 'qm shutdown 106'], ['PVE1', 'shell', 'qm set 106 --delete ide0'], ['PVE1', 'shell', 'qm set 106 --scsi0 local-lvm:vm-106-disk-0'], ['PVE1', 'shell', 'qm set 106 --net0 virtio,bridge=vmbr0,tag=20'], ['PVE1', 'shell', 'qm start 106']],
+  's22.f5': [['VM101', 'term', 'sudo docker ps -a'], ['VM101', 'term', 'sudo docker update --restart unless-stopped intranet'], ['VM101', 'term', 'sudo docker start intranet']],
 };
