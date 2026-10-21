@@ -58,4 +58,6 @@ module.exports = {
     ['PVE1', 'shell', 'ha-manager crm-command node-maintenance enable pve1'], ['PVE1', 'shell', 'ha-manager status'], ['PVE1', 'shell', 'ha-manager crm-command node-maintenance disable pve1'], ['PVE2', 'shell', 'ha-manager status']],
   s22: [['PVE1', 'shell', 'top'], ['PVE1', 'shell', 'qm set 105 --cores 4 --memory 6144 --balloon 6144'], ['PVE1', 'shell', 'qm shutdown 105'], ['PVE1', 'shell', 'qm start 105'], ['PVE1', 'shell', 'qm set 104 --balloon 8192'], ['PVE1', 'shell', 'qm disk move 104 scsi0 local-lvm --delete 1'], ['PVE1', 'js', "L.pve.jobs[0].schedule = '21:00'"], ['PVE1', 'shell', 'free'], ['VM104', 'term', 'top'],
     ['VM101', 'term', 'sudo apt install -y docker.io'], ['VM101', 'term', 'sudo docker run -d --name intranet -p 8080:80 --restart unless-stopped nginx'], ['VM101', 'term', 'sudo docker ps'], ['PC', 'cmd', 'curl http://10.10.20.100:8080']],
+  s23: [['SW', 'js', 'runFix(L, [...BR_SW, ...BR_FW, ...BR_REST])'], ['PC1', 'cmd', 'ipconfig /all'], ['PC1', 'cmd', 'nslookup dc1.corp.dimo.lk'], ['FGT-KDY', 'cli', 'get vpn ipsec tunnel summary']],
+  s24: [['PVE-KDY', 'js', 'tick(L, 2e6); pveJobRun(L, L.pve.jobs[0])']],
 };
