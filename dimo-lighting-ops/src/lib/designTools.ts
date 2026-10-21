@@ -4,7 +4,7 @@ import { rpc, supabase } from './supabase';
 import type { Role } from './types';
 
 /** Design Tools: GM / DGM, SM Projects and the design team only (a high level user from outside does not get them) */
-export const DESIGN_TOOLS_ROLES: Role[] = ['gm', 'sm_projects', 'design_manager', 'lighting_designer', 'lighting_engineer'];
+export const DESIGN_TOOLS_ROLES: Role[] = ['gm', 'sm_projects', 'design_manager', 'lighting_designer', 'lighting_engineer', 'senior_elec_engineer', 'assistant_engineer'];
 export const canUseDesignTools = (role?: Role | null) => !!role && DESIGN_TOOLS_ROLES.includes(role);
 
 export type DtStatus = 'draft' | 'for_check' | 'checked' | 'approved';
@@ -73,7 +73,7 @@ export async function loadDesignEngine() {
   }
   const { data, error } = await supabase.from('design_tool_engine').select('version, html').order('created_at', { ascending: false }).order('version', { ascending: false }).limit(1).maybeSingle();
   if (error) throw new Error(error.message);
-  if (!data) throw new Error('Design Tools are for the GM / DGM, SM Projects and the design team.');
+  if (!data) throw new Error('Design Tools are for the GM / DGM, SM Projects, the design team and the project engineers.');
   engine = data as { version: string; html: string };
   return engine;
 }

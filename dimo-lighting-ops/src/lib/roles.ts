@@ -110,8 +110,8 @@ export function navFor(role: Role, realRole?: Role | null): NavItem[] {
     const at = items.findIndex((i) => i.href === '/reports');
     items.splice(at < 0 ? items.length : at, 0, { href: '/orders', label: 'Foreign & local orders', icon: '✈', pilot: true });
   }
-  // Design Tools (testing): GM / DGM, SM Projects and the design team only – never someone viewing as a high level user
-  if (['gm', 'sm_projects', 'design_manager', 'lighting_designer', 'lighting_engineer'].includes(realRole ?? role)) {
+  // Design Tools (testing): GM / DGM, SM Projects, the design team, the SEE and the Assistant Engineers – never someone viewing as a high level user
+  if (['gm', 'sm_projects', 'design_manager', 'lighting_designer', 'lighting_engineer', 'senior_elec_engineer', 'assistant_engineer'].includes(realRole ?? role)) {
     const t = items.findIndex((i) => i.href === '/tools'), r = items.findIndex((i) => i.href === '/reports');
     const at = t >= 0 ? t + 1 : r >= 0 ? r : items.length;
     items.splice(at, 0, { href: '/design-tools', label: 'Design Tools', icon: '⌁', pilot: true });
