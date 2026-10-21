@@ -1,4 +1,4 @@
--- Design Tools v107: multi-sport facilities (sports and measurement areas, each with its own standard; place, mark, move and turn) and mast boundaries
+-- Design Tools v107: multi-sport facilities (sports and measurement areas, each with its own standard; overlapping areas each checked; place, mark, move and turn) and mast boundaries
 insert into public.design_tool_engine (version, html, created_at) values ('v107', $dtengine$<!doctype html>
 <html lang="en">
 <head>
@@ -6474,7 +6474,7 @@ window.addEventListener('pointerup', () => {
   if (d.k === 'm') { const m = L.masts[d.i]; if (m.lock === 'auto') lcAimInit(L, m); LCSEL = { t: 'm', i: d.i }; const iss = lcMastIssues(L, m).filter((i) => i.hard); LCMSG = `${m.name} moved to ${m.x} / ${m.y} m – ${m.lock === 'field' ? 'aim points kept on the field' : m.lock === 'mast' ? 'aiming moved with the mast' : 're-aimed'}.${d.bad ? ` Stopped at the last allowed place – beyond it: ${d.bad.t}.` : ''}${iss.length ? ` ⚠ Warning: ${iss.map((i) => i.t).join('; ')}.` : ''}`; }
   if (d.k === 'a' && d.bad) LCMSG = 'Stopped at the last aim within 70° of vertical – steeper aiming causes glare (choose “Allow it, with a warning” under Mast rules to go further).';
   if (d.k === 'a') LCSEL = { t: 'm', i: d.i, k: d.j }; if (d.k === 'c') LCSEL = { t: 'c', i: d.i };
-  if (d.k === 'z') { const G = lcZGroups(L).find((q) => q.gid === d.g); lcAreasSync(L); lcMkBounds(L.g); LCMSG = `${G.name} moved – centre ${G.x} / ${G.y} m.`; }
+  if (d.k === 'z') { const G = lcZGroups(L).find((q) => q.gid === d.g); const rc = lcZCentre(L); lcAreasSync(L); lcMkBounds(L.g); LCMSG = `${G.name} moved${rc ? ' – the plan is re-centred on the whole facility (masts, boundaries and the drawing moved with it)' : ''}.`; }
   if (d.k !== 'u') lcInvalidate(); renderLc();
 });
 $('#lcWrap')?.addEventListener('touchstart', (e) => { if (e.touches.length > 1) LCPAN = null; }, { passive: true });
@@ -8474,9 +8474,11 @@ const lcMkPath = (sh, sx, sy) => { if (sh.t === 'circ') { const [cx, cy] = sh.c,
 const lcMkClip = (g, sx, sy) => LC_AREAS.map(([k]) => (lcMkA(g, k) ? `<path d="${lcMkPath(lcMkA(g, k), sx, sy)}"/>` : '')).join('');
 const LC_MKCOL = { w: '#b45309', i: '#1d4ed8', o: '#111827' };
 function lcMkSvg(L, T) {
-  const g = L.g, { sx, sy } = T; let s = '';
-  LC_AREAS.forEach(([k, n], i) => { const sh = lcMkA(g, k); if (!sh) return; if (sh.ro) n += ` – standard ${sh.ro} m round the pitch`; const c = LC_MKCOL[k] ?? '#111827', top = Math.max(...lcMkPts(sh).map((p) => p[1])), xs = lcMkPts(sh).map((p) => p[0]), xm = (Math.min(...xs) + Math.max(...xs)) / 2;
-    s += `<path d="${lcMkPath(sh, sx, sy)}" fill="none" stroke="${c}" stroke-width="${i === LC_AREAS.length - 1 ? 2 : 1.5}"${k === 'i' ? ' stroke-dasharray="6 4"' : sh.ro ? ' stroke-dasharray="3 3"' : ''}/><text x="${sx(xm)}" y="${sy(top) - 5}" font-size="11" text-anchor="middle" font-weight="700" fill="${c}" stroke="#fff" stroke-width="3" paint-order="stroke">${esc(n)}</text>`; });
+  const g = L.g, { sx, sy } = T, used = []; let s = '';
+  LC_AREAS.forEach(([k, n], i) => { const sh = lcMkA(g, k); if (!sh) return; if (sh.ro) n += ` – standard ${sh.ro} m round the pitch`; const c = LC_MKCOL[k] ?? '#111827', P = lcMkPts(sh), ys = P.map((p) => p[1]), xs = P.map((p) => p[0]), xm = (Math.min(...xs) + Math.max(...xs)) / 2;
+    const w = n.length * 6.8, x0 = sx(Math.min(...xs)), x1 = sx(Math.max(...xs)), yt = sy(Math.max(...ys)), yb = sy(Math.min(...ys)), hit = (x, y) => used.some((u) => Math.abs(u[0] - x) < (u[2] + w) / 2 + 4 && Math.abs(u[1] - y) < 13); // overlapping areas: the label moves to a free place along the outline
+    const at = [[sx(xm), yt - 5], [sx(xm), yt + 15], [x0 + w / 2 + 6, yt + 15], [x1 - w / 2 - 6, yt + 15], [sx(xm), yb - 6], [sx(xm), yb + 15], [x0 + w / 2 + 6, yb - 6], [x1 - w / 2 - 6, yb - 6]].find(([x, y]) => !hit(x, y)) ?? [sx(xm), yt - 5]; used.push([...at, w]);
+    s += `<path d="${lcMkPath(sh, sx, sy)}" fill="none" stroke="${c}" stroke-width="${i === LC_AREAS.length - 1 ? 2 : 1.5}"${k === 'i' ? ' stroke-dasharray="6 4"' : sh.ro ? ' stroke-dasharray="3 3"' : ''}/><text x="${at[0]}" y="${at[1]}" font-size="11" text-anchor="middle" font-weight="700" fill="${c}" stroke="#fff" stroke-width="3" paint-order="stroke">${esc(n)}</text>`; });
   if (g.mk.gnd) s = `<path d="${lcMkPath(g.mk.gnd, sx, sy)}" fill="none" stroke="#6b7280" stroke-width="1.2" stroke-dasharray="8 5"/>` + s;
   if (g.fzc && g.fz > 0 && (lcShape(g) === 'oval' || !lcNoZone(g))) [1, -1].forEach((sg) => { s += `<path d="${lcFzWedge(g, sx, sy, sg)}" fill="#c8102e" opacity=".08" stroke="#c8102e" stroke-dasharray="4 4" stroke-width="1"/>`; });
   if (L.osm) s += `<text x="4" y="${T.H - 4}" font-size="10" fill="#374151" stroke="#fff" stroke-width="3" paint-order="stroke">Map data ${OSM_CR}</text>`;
@@ -9676,10 +9678,16 @@ function lcZAdd(L, sp) {
   const half = lcZBox({ g: { mk: lcZShapes(G) } }, Object.keys(lcZShapes(G))); if (all) G.x = Math.round(all.x1 + (half.x1 - half.x0) / 2 + 12);
   Gs.push(G); lcZRoles(sp).forEach((r, i) => lcZones(L).push({ id: `Z${n}${'abc'[i]}${Date.now().toString(36).slice(-3)}`, gid, role: r, name: sp === 'extra' ? nm : `${nm} – ${LC_ZROLE[r][1]}`, col: LC_ZCOL[(n - 1) % LC_ZCOL.length], tg: {} }));
   const Z = lcZones(L).filter((z) => z.gid === gid), rid = (r) => Z.find((z) => z.role === r)?.id; Z.forEach((z) => { z.excl = z.role === 'run' ? [rid('main')] : z.role === 'track' ? [rid('infield')] : z.role === 'inner' ? [rid('w')] : z.role === 'outer' ? [rid('inner'), rid('w')] : []; });
-  lcZStd(L, G); lcZPut(L, G); if (!L.under) lcZCentre(L); lcAreasSync(L); if (L.g.mk) lcMkBounds(L.g); return G;
+  lcZStd(L, G); lcZPut(L, G); lcZCentre(L); lcAreasSync(L); if (L.g.mk) lcMkBounds(L.g); return G;
 }
-// the whole facility kept round 0 / 0 (the masts are laid out round it) – not when a drawing is under the plan
-function lcZCentre(L) { const b = lcZBox(L, lcZones(L).map((z) => z.id)); if (!b) return; const cx = Math.round((b.x0 + b.x1) / 2), cy = Math.round((b.y0 + b.y1) / 2); if (!cx && !cy) return; lcZGroups(L).forEach((G) => lcZShift(L, G.gid, -cx, -cy)); }
+// the whole facility kept round 0 / 0 – the ground, the mast layout and the 70° heights are all measured from there; masts, cameras, boundaries, structures and the drawing under the plan move with it
+function lcZCentre(L) { const b = lcZBox(L, lcZones(L).map((z) => z.id)); if (!b) return false; const cx = Math.round((b.x0 + b.x1) / 2), cy = Math.round((b.y0 + b.y1) / 2); if (!cx && !cy) return false;
+  const r2 = (v) => Math.round(v * 100) / 100, mv = (sh) => (sh.t === 'circ' ? { ...sh, c: [r2(sh.c[0] - cx), r2(sh.c[1] - cy)] } : { ...sh, p: sh.p.map(([x, y]) => [r2(x - cx), r2(y - cy)]) });
+  lcZGroups(L).forEach((G) => lcZShift(L, G.gid, -cx, -cy));
+  L.masts.forEach((m) => { m.x = r2(m.x - cx); m.y = r2(m.y - cy); m.lights.forEach((l) => { l.ax = r2(l.ax - cx); l.ay = r2(l.ay - cy); }); });
+  L.cams.forEach((c) => { c.x = r2(c.x - cx); c.y = r2(c.y - cy); });
+  ['mz', 'nb'].forEach((k) => L[k] && (L[k] = L[k].map(mv))); (L.st ?? []).forEach((s) => (s.p = mv({ t: 'poly', p: s.p }).p));
+  if (L.under) { L.under.x = r2((+L.under.x || 0) - cx); L.under.y = r2((+L.under.y || 0) - cy); } L.bestFound = null; return true; }
 function lcZShift(L, gid, dx, dy, from) { const G = lcZGroups(L).find((x) => x.gid === gid); if (!G) return; lcZones(L).filter((z) => z.gid === gid).forEach((z) => { const sh = from?.[z.id] ?? L.g.mk?.[z.id]; if (!sh) return; L.g.mk[z.id] = sh.t === 'circ' ? { ...sh, c: [sh.c[0] + dx, sh.c[1] + dy] } : { t: 'poly', p: sh.p.map(([x, y]) => [Math.round((x + dx) * 100) / 100, Math.round((y + dy) * 100) / 100]) }; }); G.x = Math.round(((from?.__x ?? G.x) + dx) * 100) / 100; G.y = Math.round(((from?.__y ?? G.y) + dy) * 100) / 100; }
 function lcZTurn(L, gid, rot) { const G = lcZGroups(L).find((x) => x.gid === gid); if (!G) return; const d = ((rot - G.rot) * Math.PI) / 180, c = Math.cos(d), s = Math.sin(d); lcZones(L).filter((z) => z.gid === gid).forEach((z) => { const sh = L.g.mk?.[z.id]; if (!sh) return; L.g.mk[z.id] = sh.t === 'circ' ? { ...sh, c: [G.x + (sh.c[0] - G.x) * c - (sh.c[1] - G.y) * s, G.y + (sh.c[0] - G.x) * s + (sh.c[1] - G.y) * c] } : { t: 'poly', p: sh.p.map(([x, y]) => [Math.round((G.x + (x - G.x) * c - (y - G.y) * s) * 100) / 100, Math.round((G.y + (x - G.x) * s + (y - G.y) * c) * 100) / 100]) }; }); G.rot = rot; }
 function lcZDel(L, gid) { const ids = lcZones(L).filter((z) => z.gid === gid).map((z) => z.id); ids.forEach((id) => delete L.g.mk?.[id]); L.zones = lcZones(L).filter((z) => z.gid !== gid); L.zgrp = lcZGroups(L).filter((G) => G.gid !== gid); }
@@ -9728,7 +9736,7 @@ function lcZHtml(L) {
     <p class="note" style="margin:0">Areas may overlap – each is calculated and checked against its own standard. Masts are laid out round the whole facility; mark a mast boundary (under Mark on the drawing) to keep them beyond it.</p></div></details>`;
 }
 function lcZBind(L) {
-  const re = (calc = true) => { lcAreasSync(L); if (L.g.mk) lcMkBounds(L.g); if (calc) lcInvalidate(); renderLc(); }, G = (gid) => lcZGroups(L).find((x) => x.gid === gid), on = (sel, ev, fn) => document.querySelectorAll(sel).forEach((el) => el.addEventListener(ev, () => fn(el)));
+  const re = (calc = true) => { lcZCentre(L); lcAreasSync(L); if (L.g.mk) lcMkBounds(L.g); if (calc) lcInvalidate(); renderLc(); }, G = (gid) => lcZGroups(L).find((x) => x.gid === gid), on = (sel, ev, fn) => document.querySelectorAll(sel).forEach((el) => el.addEventListener(ev, () => fn(el)));
   document.getElementById('lc_zdet')?.addEventListener('toggle', (e) => (LCZOPEN = e.target.open));
   document.getElementById('lc_zadd')?.addEventListener('click', () => { const sp = document.getElementById('lc_zsp').value; lcSnap(L, `adding ${LC_SPORTS[sp]?.name ?? sp}`); const g0 = lcZAdd(L, sp); if (!L.cams.length && Object.values(L.tg).some((t) => t.Ec)) L.cams = lcCamsFor(L); LCMSG = `${g0.name} added with ${LC_STD[g0.std]?.name ?? 'custom values'} – move it on the plan or mark its real outline on your drawing.`; re(); });
   document.getElementById('lc_zx')?.addEventListener('click', () => { lcSnap(L, 'adding a measurement area'); const g0 = lcZAdd(L, 'extra'); LCMSG = `${g0.name} added – choose its standard (or none), then move it or mark its outline.`; re(); });
@@ -9743,6 +9751,8 @@ function lcZBind(L) {
   on('[data-zt]', 'change', (el) => { const z = lcZones(L).find((q) => q.id === el.dataset.zt); lcSnap(L, 'a target'); z.tg ??= {}; if (el.value === '') delete z.tg[el.dataset.k]; else z.tg[el.dataset.k] = +el.value; re(); });
   document.querySelectorAll('[data-nbdel]').forEach((b) => b.addEventListener('click', () => { lcSnap(L, 'removing a mast boundary'); L.nb.splice(+b.dataset.nbdel, 1); renderLc(); }));
 }
+const lcMkDone0 = lcMkDone;
+lcMkDone = function (L) { const z = L.sport === 'multi' && lcZones(L).some((q) => q.id === LCMK.a); lcMkDone0(L); if (z && lcZCentre(L)) { lcAreasSync(L); lcMkBounds(L.g); lcInvalidate(); renderLc(); } };
 const lcInspHtml0 = lcInspHtml;
 lcInspHtml = function (L) { const h = lcInspHtml0(L), z = lcZHtml(L); if (!z) return h; const i = h.indexOf('<details'); return i < 0 ? h + z : h.slice(0, i) + z + h.slice(i); };
 const lcBind0 = lcBind;
