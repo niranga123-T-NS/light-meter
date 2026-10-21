@@ -5,18 +5,22 @@ import type { Role } from './types';
 export const ACADEMY_PATH = '/academy/index.html';
 
 /** The Dacademy courses: each is a static page of lessons; progress is kept per lesson in the same table (ids start net_ / knx_ / knxlab_ for the newer courses) */
-export type AcademyCourse = 'light' | 'net' | 'knx' | 'knxlab';
+export type AcademyCourse = 'light' | 'net' | 'knx' | 'knxlab' | 'infra';
 export const ACADEMY_COURSES: { value: AcademyCourse; label: string; path: string; lessons: number }[] = [
   { value: 'light', label: 'Lighting', path: ACADEMY_PATH, lessons: 131 },
   { value: 'net', label: 'Network & IT', path: '/academy/net.html', lessons: 20 },
   { value: 'knx', label: 'KNX – JUNG', path: '/academy/knx.html', lessons: 30 },
   { value: 'knxlab', label: 'KNX Studio', path: '/academy/knxlab.html', lessons: 14 }, // ETS-style project trainer: 14 self-checking exercises (8 office + hotel brief + 5 hotel)
+  { value: 'infra', label: 'Infrastructure', path: '/academy/infra.html', lessons: 24 }, // 24 sessions with a virtual lab: Cisco-style switches and routers, FortiGate, Windows Server, Ubuntu, Proxmox
 ];
 export const ACADEMY_TOTAL = ACADEMY_COURSES.reduce((t, c) => t + c.lessons, 0);
 export const ACADEMY_SITE = 'https://dimo-lighting-ops.vercel.app';
 export const ACADEMY_TEAM_VIEWERS: Role[] = ['sm_projects', 'gm', 'sys_admin'];
+/** The engineers have Dacademy (the Infrastructure course first) but not the rest of Sales Tools */
+export const ACADEMY_ENGINEERS: Role[] = ['senior_elec_engineer', 'assistant_engineer', 'trainee'];
 
 export type AcademyCfg = { sb: string; key: string; token: string; name: string };
+export type AcademyWriteup = { id: string; user_id: string; full_name: string; role: string; lesson: string; kind: 'ticket' | 'weekly' | 'test' | 'script' | 'notes'; body: Record<string, unknown>; mark: number | null; feedback: string | null; marked_by_name: string | null; marked_at: string | null; updated_at: string };
 export type AcademyMember = { user_id: string; full_name: string; role: string; lessons_done: number; attempts: number; avg_best: number | null; last_at: string | null };
 
 /** What the Academy page needs to save progress: the database address, the public key and the person's current sign-in */

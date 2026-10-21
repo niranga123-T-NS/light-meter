@@ -8464,8 +8464,48 @@ do $$ begin
 end $$;
 reset role;
 select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare w uuid; begin
+  -- engineers have Dacademy (the Infrastructure course) but not the rest of Sales Tools
+  perform public.academy_record('infra_s01', 8, 10);
+  assert (select done from public.academy_mine() where lesson = 'infra_s01'), 'an engineer records an infra session';
+  begin perform public.academy_record('infra_s02', 11, 10); assert false, 'score above total refused'; exception when raise_exception then null; end;
+  w := public.academy_writeup_save('infra_s01_t1', 'ticket', '{"symptom":"No internet","cause":"Wrong VLAN","fix":"Access VLAN 10","prevention":"Port labels"}');
+  perform public.academy_writeup_save('infra_s01_t1', 'ticket', '{"symptom":"No internet","cause":"Port in VLAN 1","fix":"VLAN 10","prevention":"Label ports"}');
+  assert (select count(*) from public.academy_writeups_list('infra')) = 1, 'saving again replaces the write-up';
+  assert (select body->>'cause' from public.academy_writeups_list('infra')) = 'Port in VLAN 1', 'the newest text is kept';
+  begin perform public.academy_writeup_save('infra_s01_t1', 'gossip', '{}'); assert false, 'unknown kind refused'; exception when raise_exception then null; end;
+  begin perform public.academy_writeup_save('infra_s01_t1', 'ticket', '[1]'); assert false, 'body must be an object'; exception when raise_exception then null; end;
+  begin perform public.academy_writeup_mark(w, 90, 'mine'); assert false, 'an engineer cannot mark'; exception when raise_exception then null; end;
+  begin insert into public.academy_writeups (user_id, lesson, kind, body) values (auth.uid(), 'infra_x', 'ticket', '{}'); assert false, 'no direct insert'; exception when insufficient_privilege then null; end;
+  perform set_config('test.wu', w::text, false);
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
 do $$ begin
-  begin perform public.academy_record('cct', 3, 3); assert false, 'no Sales Tools – no academy'; exception when raise_exception then null; end;
+  perform public.academy_writeup_save('infra_s16_script', 'script', '{"task":"Weekly log clean-up","script":"#!/bin/bash"}');
+  assert (select count(*) from public.academy_writeups_list('infra')) = 1, 'an engineer sees only their own write-ups';
+  assert (select count(*) from public.academy_writeups) = 1, 'and cannot read others directly';
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert (select count(*) from public.academy_writeups_list('infra')) = 2, 'the trainer sees every write-up';
+  perform public.academy_writeup_mark(current_setting('test.wu')::uuid, 85, 'Good root cause; add how you proved it.');
+  assert (select mark from public.academy_writeups where id = current_setting('test.wu')::uuid) = 85, 'marked';
+  begin perform public.academy_writeup_mark(current_setting('test.wu')::uuid, 120, ''); assert false, 'mark over 100 refused'; exception when raise_exception then null; end;
+  assert exists (select 1 from public.academy_team() where role = 'assistant_engineer' and lessons_done = 1), 'team progress lists the engineers';
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin
+  assert (select feedback from public.academy_writeups_list('infra') limit 1) like 'Good root cause%', 'the engineer reads the feedback';
+  perform public.academy_writeup_save('infra_s01_t1', 'ticket', '{"symptom":"x","cause":"y","fix":"z","prevention":"w"}');
+  assert (select mark from public.academy_writeups_list('infra') limit 1) is null, 'a new version clears the old mark';
+end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ begin
+  begin perform public.academy_record('infra_s01', 8, 10); assert false, 'no Dacademy for Operations'; exception when raise_exception then null; end;
 end $$;
 reset role;
 

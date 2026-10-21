@@ -1,0 +1,23 @@
+const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+(async () => {
+  const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1400, height: 1000 } }); const errs = [];
+  p.on('pageerror', (e) => errs.push(e.message)); p.on('console', (m) => m.type() === 'error' && errs.push(m.text()));
+  await p.goto('file://' + __dirname + '/../infra.html'); await p.waitForTimeout(500);
+  await p.click('.ses[data-s="s01"]'); await p.waitForTimeout(300);
+  await p.screenshot({ path: __dirname + '/../shot_concept.png' });
+  await p.click('.tab[data-t="lab"]'); await p.waitForTimeout(500);
+  const term = async (cmd) => { await p.fill('.term input', cmd); await p.press('.term input', 'Enter'); await p.waitForTimeout(150); };
+  for (const c of ['ipconfig /all', 'ping 10.10.10.1', 'ping intranet.dimo.lk', 'tracert 8.8.8.8', 'arp -a', 'nslookup intranet.dimo.lk']) await term(c);
+  await p.fill('[data-a="gw"]', '10.10.10.1'); await p.click('[data-ac="gw"]'); await p.waitForTimeout(200);
+  await p.screenshot({ path: __dirname + '/../shot_lab.png' });
+  console.log(await p.evaluate(() => document.querySelector('#tcount').textContent));
+  console.log((await p.evaluate(() => document.querySelector('.term .out').textContent)).slice(-900));
+  await p.click('.dv[data-d="SW2"]'); await p.waitForTimeout(200);
+  for (const c of ['en', 'show mac address-table', 'sh int status']) await term(c);
+  console.log((await p.evaluate(() => document.querySelector('.term .out').textContent)).slice(-1500));
+  await p.click('.tab[data-t="fix"]'); await p.waitForTimeout(200); await p.click('.tl[data-t="t1"]'); await p.waitForTimeout(400);
+  await term('ipconfig'); await term('netsh interface ip set address "Ethernet" static 10.10.10.34 255.255.255.0 10.10.10.1');
+  console.log(await p.evaluate(() => document.querySelector('#tchecks').textContent));
+  await p.screenshot({ path: __dirname + '/../shot_ticket.png' });
+  console.log('errors', errs); await b.close();
+})();
