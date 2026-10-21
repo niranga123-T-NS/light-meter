@@ -155,7 +155,7 @@ export default function NewEngJob() {
       <Section title="Engineer and deadline">
         <Card>
           {!editing ? (
-            <PersonPicker label="Engineer" required roles={['assistant_engineer', 'senior_elec_engineer']} value={f.assignee_id} onChange={(v) => set('assignee_id', v)} />
+            <PersonPicker label="Engineer" required roles={['assistant_engineer', 'senior_elec_engineer', 'trainee']} hint="Temporary staff (temporary Assistant Engineers and Trainees) can take jobs too" value={f.assignee_id} onChange={(v) => set('assignee_id', v)} />
           ) : (
             <Muted>To change the engineer or the deadline, use Reassign / Revise deadline on the job.</Muted>
           )}

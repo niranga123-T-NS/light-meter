@@ -3450,6 +3450,7 @@ insert into public.profiles (id, full_name, role, phone) values
   ((select id from u where role = 'sub_supervisor'), 'Sunil Sup', 'sub_supervisor', '94712223334'),
   ((select id from u where role = 'sub_other'), 'Other Sub', 'sub_supervisor', '94700000000');
 select public.complete_access_provision(current_setting('test.tr')::uuid, (select id from u where role = 'trainee'));
+do $$ begin assert 'trainee' = any (app.action_members('execution')) and 'assistant_engineer' = any (app.action_members('execution')), 'temporary staff in the execution team for meeting tasks'; end $$;
 select public.complete_access_provision(current_setting('test.sr')::uuid, (select id from u where role = 'sub_supervisor'));
 do $$ begin
   assert (select count(*) from public.exec_members where exec_project_id = current_setting('test.ex')::uuid and active) = 3, 'AE, trainee, supervisor on the project';

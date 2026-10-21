@@ -94,6 +94,9 @@ export function MeetingActions() {
 
   const appoint = async (a: MyAction) => {
     const team = await rpc<{ id: string; full_name: string; role: Role }[]>('meeting_action_team', { p_id: a.id }).catch(() => []);
+    const { data: tmp } = team.length ? await supabase.from('profiles').select('id, access_until').in('id', team.map((t) => t.id)).or('is_temporary.eq.true,role.eq.trainee') : { data: [] };
+    const temp = new Map((tmp ?? []).map((t) => [t.id, t.access_until as string | null]));
+    const tempLabel = (id: string) => (temp.has(id) ? ` · temporary${temp.get(id) ? ` until ${fmtDate(temp.get(id) as string)}` : ''}` : '');
     const r = await dialog.prompt({
       title: a.assignee ? 'Reassign' : `Appoint – ${kindLabel(a.kind).toLowerCase()}`,
       message: a.action,
@@ -103,7 +106,7 @@ export function MeetingActions() {
           label: 'Person',
           type: 'select',
           required: true,
-          options: team.map((t) => ({ value: t.id, label: `${t.full_name} · ${ROLE_SHORT[t.role] ?? t.role}` })),
+          options: team.map((t) => ({ value: t.id, label: `${t.full_name} · ${ROLE_SHORT[t.role] ?? t.role}${tempLabel(t.id)}` })),
           initial: a.assignee_id ?? undefined,
         },
         { key: 'n', label: 'Instructions', type: 'multiline' },

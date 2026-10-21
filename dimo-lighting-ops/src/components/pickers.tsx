@@ -237,6 +237,13 @@ export function CustomerPicker({
   );
 }
 
+/** The role under a person's name; temporary staff (a temporary Assistant Engineer or a Trainee) are marked, with the date their access ends. */
+export function personHint(p: { role: Role; is_temporary?: boolean | null; access_until?: string | null }) {
+  const temp = p.is_temporary || p.role === 'trainee';
+  const until = temp && p.access_until ? ` until ${new Date(p.access_until).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : '';
+  return `${p.role.replace(/_/g, ' ')}${temp ? ` · temporary${until}` : ''}`;
+}
+
 export function PersonPicker({
   label,
   roles,
@@ -252,11 +259,11 @@ export function PersonPicker({
   required?: boolean;
   hint?: string;
 }) {
-  const [people, setPeople] = useState<{ id: string; full_name: string; role: Role }[]>([]);
+  const [people, setPeople] = useState<{ id: string; full_name: string; role: Role; is_temporary: boolean | null; access_until: string | null }[]>([]);
   useEffect(() => {
     supabase
       .from('profiles')
-      .select('id, full_name, role')
+      .select('id, full_name, role, is_temporary, access_until')
       .in('role', roles)
       .eq('active', true)
       .order('full_name')
@@ -269,7 +276,7 @@ export function PersonPicker({
       required={required}
       hint={hint}
       value={value}
-      options={people.map((p) => ({ value: p.id, label: p.full_name, hint: p.role.replace(/_/g, ' ') }))}
+      options={people.map((p) => ({ value: p.id, label: p.full_name, hint: personHint(p) }))}
       onChange={onChange}
     />
   );

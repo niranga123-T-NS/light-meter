@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Linking, Platform, Text } from 'react-native';
 import { Attachments } from '@/components/Attachments';
 import { useDialog } from '@/components/dialog';
+import { personHint } from '@/components/pickers';
 import { Button, Card, colors, ErrorBanner, Field, KeyValue, ListRow, Loading, Muted, Notice, NumberField, Pill, Progress, Row, Screen, Section, Segmented, Select } from '@/components/ui';
 import { captureLocation } from '@/components/VisitBits';
 import { useMe } from '@/lib/auth';
@@ -135,11 +136,11 @@ export default function EngJobScreen() {
   };
 
   const reassign = async () => {
-    const { data: eng } = await supabase.from('profiles').select('id, full_name, role').in('role', ['assistant_engineer', 'senior_elec_engineer']).eq('active', true).order('full_name');
+    const { data: eng } = await supabase.from('profiles').select('id, full_name, role, is_temporary, access_until').in('role', ['assistant_engineer', 'senior_elec_engineer', 'trainee']).eq('active', true).order('full_name');
     const r = await dialog.prompt({
       title: 'Reassign the job',
       fields: [
-        { key: 'p', label: 'Engineer', type: 'select', required: true, options: (eng ?? []).filter((x) => x.id !== j.assignee_id).map((x) => ({ value: x.id, label: x.full_name })) },
+        { key: 'p', label: 'Engineer', type: 'select', required: true, options: (eng ?? []).filter((x) => x.id !== j.assignee_id).map((x) => ({ value: x.id, label: `${x.full_name} · ${personHint(x as never)}` })) },
         { key: 'r', label: 'Reason', type: 'multiline', required: true },
       ],
     });
