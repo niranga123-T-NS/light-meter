@@ -1,0 +1,8 @@
+const fs = require('fs'), vm = require('vm'), path = require('path'); const dir = path.join(__dirname, '..');
+const files = ['net.js','forti.js','ios.js','ps.js','win.js','ad.js','linux.js','linux2.js','linux3.js','ui.js','tools.js','lib.js', ...fs.readdirSync(dir).filter((f) => /^s\d\d.*\.js$/.test(f)).sort()];
+const ctx = { console, Math, JSON, Date }; vm.createContext(ctx); vm.runInContext(files.map((f) => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n;\n') + '\n;globalThis.__=(s)=>eval(s);', ctx); const E = ctx.__;
+const S = E("SESSIONS.find(s=>s.id==='s03')"); const sp = S.lab.build(); const L = E('labNew')(sp); sp.post(L); E('settle')(L);
+const c = (x) => ['SW-ACC', 'con', x], k = (x) => ['SW-CORE', 'con', x];
+const out = E('runFix')(L, [c('en'), c('conf t'), c('vlan 10'), c('name STAFF'), c('vlan 20'), c('name GUEST'), c('vlan 30'), c('name CCTV'), c('vlan 40'), c('name VOICE'), c('int te1/1/1'), c('switchport mode trunk'), c('switchport trunk allowed vlan 10,20,30,40'), c('int range g1/0/1 - 2'), c('switchport mode access'), c('switchport access vlan 10'), c('int g1/0/9'), c('switchport access vlan 20'), c('int g1/0/15'), c('switchport access vlan 30'), c('int g1/0/3'), c('switchport access vlan 10'), c('switchport voice vlan 40'), c('end'), k('en'), k('conf t'), k('int te1/1/1'), k('sw mode trunk'), k('sw trunk allowed vlan 10,20,30,40'), k('end'), ['PC1','cmd','ipconfig /renew'], ['PC2','cmd','ipconfig /renew'], ['PC3','cmd','ipconfig /renew'], ['LT-G','cmd','ipconfig /renew'], c('sh power inline'), k('sh mac address-table'), c('sh int trunk')]);
+console.log(out.slice(-2600));
+S.lab.tasks.forEach((t) => console.log(t.id, t.ans ? JSON.stringify(t.ans(L)) : !!t.check(L)));
