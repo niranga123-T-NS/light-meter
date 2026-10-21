@@ -250,7 +250,15 @@ function renderReview(body, S) {
   const w = p.wu || {}; const el = $('#wwu');
   el.innerHTML = `${['ticket', 'symptom', 'cause', 'fix', 'prevention'].map((k) => `<label class="f" style="display:block;margin:6px 0"><b style="font-size:12.5px;text-transform:capitalize">${k === 'ticket' ? 'Ticket (number / short title)' : k}</b><textarea data-w="${k}" style="width:100%;min-height:${k === 'ticket' ? 34 : 52}px;padding:6px;border:1px solid var(--line);border-radius:6px">${esc(w[k] || '')}</textarea></label>`).join('')}<button class="btn p" id="wwSave">Save for my trainer</button> ${p.wu?.at ? `<span class="m">Saved ${new Date(p.wu.at).toLocaleDateString()}</span>` : ''}`;
   $('#wwSave').onclick = () => { const v = {}; $$('[data-w]', el).forEach((t) => (v[t.dataset.w] = t.value.trim())); if (Object.values(v).some((x) => x.length < 6)) return toast('Fill in every box.'); p.wu = { ...v, at: Date.now() }; saveProg(S.id); api('academy_writeup_save', { p_lesson: `infra_${S.id}_week`, p_kind: 'weekly', p_body: v }).catch(() => void 0); toast('Saved for your trainer.'); renderReview(body, S); };
+  if (S.submit) renderSubmit(body, S, p);
 }
+/** A graded hand-in (session 16: one script for a real team task) – saved as a write-up of kind 'script' for the trainer to mark */
+function renderSubmit(body, S, p) {
+  const X = S.submit; const v = p.sub || {}; const card = document.createElement('div'); card.className = 'card'; body.insertBefore(card, body.children[1] || null);
+  card.innerHTML = `<h3>${esc(X.title)} ${v.at ? '<span class="pill g">Handed in</span>' : '<span class="pill y">To do</span>'}</h3><p class="hint">${esc(X.intro)}</p>${X.fields.map(([k, label, h]) => `<label class="f" style="display:block;margin:6px 0"><b style="font-size:12.5px">${esc(label)}</b><textarea data-s="${k}" spellcheck="false" style="width:100%;min-height:${h}px;padding:6px;border:1px solid var(--line);border-radius:6px;${k === 'script' ? 'font-family:var(--mono);font-size:12px;white-space:pre' : ''}">${esc(v[k] || '')}</textarea></label>`).join('')}<button class="btn p" id="subSave">${v.at ? 'Hand in again' : 'Hand in to my trainer'}</button> ${v.at ? `<span class="m">Handed in ${new Date(v.at).toLocaleDateString()}</span>` : ''}`;
+  $('#subSave', card).onclick = () => { const o = {}; $$('[data-s]', card).forEach((t) => (o[t.dataset.s] = t.value.replace(/\s+$/, ''))); if (Object.values(o).some((x) => x.trim().length < 6) || (o.script || '').split('\n').length < 5) return toast('Fill in every box – the script needs at least a few lines.'); if (/(password|passwd|secret)\s*[=:]\s*['"]?[^\s'"$]{4,}/i.test(o.script) || /BEGIN [A-Z ]*PRIVATE KEY/.test(o.script)) return toast('Take the password or key out of the script first.'); p.sub = { ...o, at: Date.now() }; saveProg(S.id); api('academy_writeup_save', { p_lesson: `infra_${S.id}_script`, p_kind: 'script', p_body: o }).catch(() => void 0); toast('Handed in.'); renderSubmit2(card, body, S, p); };
+}
+const renderSubmit2 = (card, body, S, p) => { card.remove(); renderSubmit(body, S, p); };
 
 // ---------------------------------------------------------------- start
 function boot() {
