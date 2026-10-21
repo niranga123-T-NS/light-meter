@@ -102,6 +102,31 @@ export default function NewVisit() {
 
   const networking = masters.list('visit_objective').find((o) => o.value === v.primary_objective)?.tags.includes('networking');
 
+  // the location at check-in: read again on request; a save without it asks to try again (up to 3 tries) before saving without GPS
+  const [tries, setTries] = useState(0);
+  const retryGps = async () => {
+    setGpsState('busy');
+    const pos = await captureLocation().catch(() => null);
+    setGps(pos);
+    setGpsState(pos ? 'idle' : 'denied');
+    setTries((t) => t + 1);
+    return pos;
+  };
+  const ensureGps = async (): Promise<{ lat: number; lng: number } | null | false> => {
+    if (gps) return gps;
+    for (let n = tries; n < 3; n++) {
+      const again = await dialog.confirm('No GPS', `Your location could not be read. Do you want to try again? (try ${n + 1} of 3 – check that location is on for the app)`, { confirmLabel: 'Try again', cancelLabel: 'Back to the form' });
+      if (!again) return false;
+      const pos = await retryGps();
+      if (pos) {
+        dialog.toast('📍 Location captured');
+        return pos;
+      }
+    }
+    const ok = await dialog.confirm('Still no GPS', 'The location could not be read after 3 tries. Save the visit without GPS? It is flagged for review and does not show on the sales map.', { confirmLabel: 'Save without GPS', cancelLabel: 'Back to the form' });
+    return ok ? null : false;
+  };
+
   const submit = async (close: boolean) => {
     setError(null);
     if (!v.organization_id) return setError('Select the organization');
@@ -110,6 +135,8 @@ export default function NewVisit() {
     if (!v.project_id && !networking) return setError('Select a project – or, for a visit to the customer only, choose a customer objective such as New Customer Introduction, Existing Customer Relationship, New Lead Identification or Unplanned / Courtesy');
     if (close && v.summary.trim().length < 30) return setError('Discussion summary must be at least 30 characters');
     if (close && !v.outcome) return setError('Select the outcome');
+    const loc = await ensureGps();
+    if (loc === false) return;
     const payload = {
       id,
       sales_person_id: me.id,
@@ -120,16 +147,19 @@ export default function NewVisit() {
       next_action: v.next_action || null,
       summary: v.summary || null,
       checkin_at: checkinAt,
-      checkin_lat: gps?.lat ?? null,
-      checkin_lng: gps?.lng ?? null,
+      checkin_lat: loc?.lat ?? null,
+      checkin_lng: loc?.lng ?? null,
       checkout_at: close ? new Date().toISOString() : null,
-      checkout_lat: close ? gps?.lat ?? null : null,
-      checkout_lng: close ? gps?.lng ?? null : null,
+      checkout_lat: close ? loc?.lat ?? null : null,
+      checkout_lng: close ? loc?.lng ?? null : null,
       status: close ? 'closed' : 'open',
     };
     try {
       const res = await saveVisit(payload);
-      dialog.toast(res === 'queued' ? 'No signal – visit saved on this device and will sync automatically' : close ? 'Visit saved' : 'Checked in');
+      await dialog.alert(
+        res === 'queued' ? 'Saved on this device' : close ? 'Visit saved successfully' : 'Checked in successfully',
+        `${res === 'queued' ? 'No signal – the visit syncs automatically when you are back online. ' : ''}${loc ? '📍 With your GPS location – it shows on the sales map.' : 'Saved without GPS – flagged for review.'}`,
+      );
       router.replace(res === 'queued' ? '/visits' : `/visits/${id}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -142,7 +172,16 @@ export default function NewVisit() {
     <Screen maxWidth={760}>
       <Stack.Screen options={{ title: 'Check in' }} />
       {gpsState === 'busy' ? <Notice>Getting your location…</Notice> : null}
-      {gpsState === 'denied' ? <Notice tone={colors.amber}>Location unavailable – the visit will be saved without GPS and flagged for review.</Notice> : null}
+      {gpsState === 'denied' ? (
+        <Notice tone={colors.amber}>
+          No GPS – your location could not be read. Turn on location for the app and try again{tries < 3 ? '' : ' (3 tries used – the visit can be saved without GPS, flagged for review)'}.
+        </Notice>
+      ) : null}
+      {gpsState === 'denied' && tries < 3 ? (
+        <Row>
+          <Button small variant="secondary" title={`Try location again (${3 - tries} left)`} onPress={retryGps} />
+        </Row>
+      ) : null}
       {gps ? <Muted>📍 Location captured at check-in</Muted> : null}
       <ErrorBanner message={error} />
 
