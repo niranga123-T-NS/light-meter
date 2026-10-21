@@ -28,7 +28,7 @@ export default function DesignToolsList() {
     if (e) throw new Error(e.message);
     return (rows ?? []) as unknown as DtFile[];
   }, [allowed]);
-  if (!allowed) return <Screen><Notice>Design Tools are for the GM / DGM, SM Projects and the design team.</Notice></Screen>;
+  if (!allowed) return <Screen><Notice>Design Tools are for the GM / DGM, SM Projects, the design team and the project engineers.</Notice></Screen>;
 
   const rows = (data ?? []).filter((f) => (filter === 'archived' ? f.archived : !f.archived && (filter === 'all' || f.status === filter)));
   const count = (s: DtStatus) => (data ?? []).filter((f) => !f.archived && f.status === s).length;

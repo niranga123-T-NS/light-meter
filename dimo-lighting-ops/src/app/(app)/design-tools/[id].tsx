@@ -134,7 +134,7 @@ export default function DesignToolScreen() {
     else if (m.type === 'dt:drvOpen') void openDriverSheet(m.path, m.name).catch((e: Error) => dialog.toast(e.message, 'error'));
   }, [dialog]);
 
-  if (!allowed) return <Screen><Notice>Design Tools are for the GM / DGM, SM Projects and the design team.</Notice></Screen>;
+  if (!allowed) return <Screen><Notice>Design Tools are for the GM / DGM, SM Projects, the design team and the project engineers.</Notice></Screen>;
   if (error) return <Screen><ErrorBanner message={error} /></Screen>;
   if (!data || !meta) return <Screen><Loading label="Opening Design Tools…" /></Screen>;
 

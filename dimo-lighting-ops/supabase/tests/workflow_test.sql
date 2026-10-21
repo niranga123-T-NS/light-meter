@@ -9110,6 +9110,12 @@ do $$ begin
   assert not exists (select 1 from public.design_drivers), 'sales cannot read the driver library';
 end $$;
 reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin assert exists (select 1 from public.design_tool_engine), 'an Assistant Engineer opens Design Tools'; end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin assert app.design_tools_user(), 'the SEE uses Design Tools'; end $$;
+reset role;
 select pg_temp.act_as('lighting_engineer'); set role authenticated;
 do $$ declare f uuid; r public.design_tool_files;
 begin
