@@ -4,7 +4,7 @@ import { Linking, Platform } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { LocationPicker } from '@/components/LocationPicker';
 import { PersonPicker, ProjectPicker } from '@/components/pickers';
-import { Button, Card, DateField, ErrorBanner, Field, Muted, Notice, Row, Screen, Section, Select } from '@/components/ui';
+import { Button, Card, colors, DateField, ErrorBanner, Field, Muted, Notice, Row, Screen, Section, Select } from '@/components/ui';
 import { captureLocation } from '@/components/VisitBits';
 import { ENG_TYPES, mapsLink, type EngJob, type EngType } from '@/lib/engJobs';
 import { geocodeAddress } from '@/lib/geocode';
@@ -22,6 +22,8 @@ type Draft = {
   lat: number | null;
   lng: number | null;
   pinFrom: string;
+  /** the Senior Electrical Engineer has checked (or set) the site for this job – the project location from Sales is only a starting point */
+  checked: boolean;
 };
 
 const EMPTY: Draft = {
@@ -36,6 +38,7 @@ const EMPTY: Draft = {
   lat: null,
   lng: null,
   pinFrom: '',
+  checked: false,
 };
 
 /** Assign an engineering job (Senior Electrical Engineer): job type, engineer, deadline and the site location (address + pin). */
@@ -46,12 +49,14 @@ export default function NewEngJob() {
   const [f, setF] = useState<Draft>(EMPTY);
   const [error, setError] = useState<string | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
+  const [sales, setSales] = useState<{ address: string; lat: number | null; lng: number | null } | null>(null);
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setF((s) => ({ ...s, [k]: v }));
 
   const pickProject = async (id: string | null) => {
     if (!id) return set('project_id', null);
     const { data: p } = await supabase.from('projects').select('id, organization_id, location, city, lat, lng').eq('id', id).maybeSingle();
     if (!p) return;
+    setSales({ address: [p.location, p.city].filter(Boolean).join(', '), lat: p.lat, lng: p.lng });
     setF((s) => ({
       ...s,
       project_id: p.id,
@@ -59,7 +64,8 @@ export default function NewEngJob() {
       site_address: s.site_address || [p.location, p.city].filter(Boolean).join(', '),
       lat: s.lat ?? p.lat,
       lng: s.lng ?? p.lng,
-      pinFrom: s.lat != null ? s.pinFrom : p.lat != null ? 'project location' : s.pinFrom,
+      pinFrom: s.lat != null ? s.pinFrom : p.lat != null ? 'the project location set by Sales' : s.pinFrom,
+      checked: s.lat != null ? s.checked : false,
     }));
   };
 
@@ -82,6 +88,7 @@ export default function NewEngJob() {
             lat: j.lat,
             lng: j.lng,
             pinFrom: j.lat != null ? 'saved location' : '',
+            checked: true,
           });
         return;
       }
@@ -103,14 +110,14 @@ export default function NewEngJob() {
     dialog.run(async () => {
       const hit = await geocodeAddress(f.site_address);
       if (!hit) throw new Error('The address could not be placed exactly on the map. Pin it on the map, or use your location at the site.');
-      setF((s) => ({ ...s, lat: hit.lat, lng: hit.lng, pinFrom: `address: ${hit.label}` }));
+      setF((s) => ({ ...s, lat: hit.lat, lng: hit.lng, pinFrom: `address: ${hit.label}`, checked: true }));
     }, 'Location found from the address');
 
   const fromHere = () =>
     dialog.run(async () => {
       const pos = await captureLocation();
       if (!pos) throw new Error('Allow location access to use your current location');
-      setF((s) => ({ ...s, lat: pos.lat, lng: pos.lng, pinFrom: 'my current location' }));
+      setF((s) => ({ ...s, lat: pos.lat, lng: pos.lng, pinFrom: 'my current location', checked: true }));
     }, 'Location set to where you are');
 
   const save = async () => {
@@ -121,7 +128,9 @@ export default function NewEngJob() {
     if (!f.due_date) return setError('Set the deadline');
     if (!f.site_address.trim()) return setError('Enter the site address');
     if (f.lat == null || f.lng == null) return setError('Set the site location on the map – site visits are GPS-checked against it');
-    const p = { ...f, lat: f.lat, lng: f.lng, meeting_action_id: params.action ?? '' };
+    if (!f.checked) return setError('Check the site location for this job – confirm it is where the engineer must work, or adjust it (it may be a different part of the project)');
+    const { checked: _c, pinFrom: _p, ...rest } = f;
+    const p = { ...rest, lat: f.lat, lng: f.lng, meeting_action_id: params.action ?? '' };
     await dialog.run(async () => {
       if (editing) {
         await rpc('update_eng_job', { p_id: params.id, p });
@@ -155,7 +164,7 @@ export default function NewEngJob() {
       <Section title="Engineer and deadline">
         <Card>
           {!editing ? (
-            <PersonPicker label="Engineer" required roles={['assistant_engineer', 'senior_elec_engineer']} value={f.assignee_id} onChange={(v) => set('assignee_id', v)} />
+            <PersonPicker label="Engineer" required roles={['assistant_engineer', 'senior_elec_engineer', 'trainee']} hint="Temporary staff (temporary Assistant Engineers and Trainees) can take jobs too" value={f.assignee_id} onChange={(v) => set('assignee_id', v)} />
           ) : (
             <Muted>To change the engineer or the deadline, use Reassign / Revise deadline on the job.</Muted>
           )}
@@ -164,18 +173,31 @@ export default function NewEngJob() {
       </Section>
       <Section title="Site location">
         <Card>
+          {!f.checked && f.lat != null ? (
+            <Notice tone={colors.amber}>
+              This is the project / customer location set by Sales. The work may be at a different part of the project – check it is where the engineer must go, and adjust it if needed (find from the address, pin it on the map or use your location at the site). The change is for this job only; the project location set by Sales stays as it is.
+            </Notice>
+          ) : null}
           <Field label="Site address" required value={f.site_address} onChangeText={(v) => set('site_address', v)} multiline />
           <Row wrap gap={6}>
             <Button small variant="secondary" title="Find from the address" onPress={fromAddress} />
             {Platform.OS === 'web' ? <Button small variant="secondary" title="Pin on the map" onPress={() => setMapOpen(true)} /> : null}
             <Button small variant="secondary" title="Use my current location" onPress={fromHere} />
             {f.lat != null && f.lng != null ? <Button small variant="ghost" title="Open in Maps" onPress={() => Linking.openURL(mapsLink(f.lat as number, f.lng as number))} /> : null}
+            {!f.checked && f.lat != null ? <Button small title="This location is correct" onPress={() => set('checked', true)} /> : null}
           </Row>
           <Muted>
             {f.lat != null && f.lng != null
               ? `Pinned at ${f.lat.toFixed(5)}, ${f.lng.toFixed(5)}${f.pinFrom ? ` – ${f.pinFrom}` : ''}. The engineer's site visits are GPS-checked against this point.`
               : 'Not pinned yet – the engineer marks site visits by GPS against this point.'}
+            {f.checked && f.lat != null && !editing ? ' Checked for this job.' : ''}
           </Muted>
+          {sales && (sales.lat !== f.lat || sales.lng !== f.lng) ? (
+            <Muted>
+              Project location set by Sales (unchanged): {sales.address || '–'}
+              {sales.lat != null && sales.lng != null ? ` · ${sales.lat.toFixed(5)}, ${sales.lng.toFixed(5)}` : ''}
+            </Muted>
+          ) : null}
         </Card>
       </Section>
       <Row gap={8} style={{ justifyContent: 'flex-end', marginTop: 8 }}>
@@ -187,7 +209,7 @@ export default function NewEngJob() {
         title="Site location"
         query={f.site_address}
         initial={f.lat != null && f.lng != null ? { lat: f.lat, lng: f.lng } : null}
-        onSave={async (p) => setF((s) => ({ ...s, lat: p.lat, lng: p.lng, pinFrom: 'pinned on the map' }))}
+        onSave={async (p) => setF((s) => ({ ...s, lat: p.lat, lng: p.lng, pinFrom: 'pinned on the map', checked: true }))}
         onClose={() => setMapOpen(false)}
       />
     </Screen>
