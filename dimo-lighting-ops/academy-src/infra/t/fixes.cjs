@@ -33,4 +33,11 @@ module.exports = {
   's08.f4': [['FGT-HQ', 'cli', 'config firewall policy'], ['FGT-HQ', 'cli', 'edit 4'], ['FGT-HQ', 'cli', 'set service HTTP'], ['FGT-HQ', 'cli', 'next'], ['FGT-HQ', 'cli', 'end']],
   's08.f5': [['SW', 'con', 'en'], ['SW', 'con', 'conf t'], ['SW', 'con', 'int g1/0/1'], ['SW', 'con', 'switchport trunk allowed vlan add 10'], ['SW', 'con', 'end'], ['LT1', 'cmd', 'ipconfig /renew']],
   's08.f6': [['SW-ACC', 'con', 'en'], ['SW-ACC', 'con', 'show ip dhcp snooping'], ['SW-ACC', 'con', 'conf t'], ['SW-ACC', 'con', 'interface range te1/1/1 - 2'], ['SW-ACC', 'con', 'ip dhcp snooping trust'], ['SW-ACC', 'con', 'end'], ['PC1', 'cmd', 'ipconfig /renew']],
+  's09.t1': [['APP', 'ps', 'Get-WinEvent -LogName System -MaxEvents 5'], ['APP', 'cmd', 'sc config DimoBackup obj= .\\svc_backup password= B@ckup#2026'], ['APP', 'ps', 'Start-Service DimoBackup']],
+  's09.t2': [['APP', 'ps', 'Start-Service W3SVC'], ['APP', 'ps', 'Set-Service WAS -StartupType Manual'], ['APP', 'ps', 'Start-Service W3SVC']],
+  's09.t3': [['APP', 'ps', 'Get-EventLog -LogName Application -Newest 3'], ['APP', 'ps', 'Stop-Service VendorTestWeb -Force'], ['APP', 'ps', 'Set-Service VendorTestWeb -StartupType Disabled'], ['APP', 'ps', 'Start-Service DimoAPI']],
+  's10.t1': [['DC1', 'ps', 'Search-ADAccount -LockedOut'], ['DC1', 'ps', 'Unlock-ADAccount nimal']],
+  's10.t2': [['PC2', 'cmd', 'w32tm /query /status'], ['PC2', 'cmd', 'w32tm /resync']],
+  's10.t3': [['DC2', 'cmd', 'repadmin /replsummary'], ['DC2', 'ps', 'Set-DnsClientServerAddress -InterfaceAlias Ethernet -ServerAddresses 10.10.20.10,127.0.0.1'], ['DC2', 'cmd', 'repadmin /syncall /AdeP']],
+  's10.t4': [['DC1', 'ps', 'Get-ADUser sachini -Properties LogonWorkstations'], ['DC1', 'ps', "Set-ADUser sachini -LogonWorkstations 'HR-PC01,FIN-PC01'"]],
 };

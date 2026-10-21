@@ -11,6 +11,8 @@ TOOLS.pc = [
   { id: 'fct', label: 'FortiClient VPN', when: (d) => !!d.fct, gui: guiFortiClient },
   { id: 'wifi', label: 'Wi-Fi', when: (d) => d.wprof !== undefined, gui: guiWifi },
   { id: 'shark', label: 'Wireshark', when: (d) => !!d.shark, gui: guiShark },
+  { id: 'svcs', label: 'Services', when: isWin, gui: guiServices },
+  { id: 'evt', label: 'Event Viewer', when: isWin, gui: guiEventViewer },
 ];
 TOOLS.ap = [{ id: 'wlc', label: 'Wireless controller', gui: guiWlc }];
 TOOLS.laptop = TOOLS.pc;
@@ -20,6 +22,13 @@ TOOLS.srv = [
   { id: 'term', label: 'Terminal', when: (d) => d.os === 'linux', term: (L, d) => lxShell(L, d) },
   { id: 'net', label: 'Network settings', when: isWin, gui: guiNetSettings },
   { id: 'nms', label: 'LibreNMS', when: (d) => !!d.nms, gui: guiNms },
+  { id: 'srvmgr', label: 'Server Manager', when: (d) => isServerGui(d), gui: guiServerManager },
+  { id: 'svcs', label: 'Services', when: (d) => isWin(d) && !d.core, gui: guiServices },
+  { id: 'evt', label: 'Event Viewer', when: (d) => isWin(d) && !d.core, gui: guiEventViewer },
+  { id: 'aduc', label: 'AD Users and Computers', when: (d, L) => isServerGui(d) && !!L.ad && (d.dc || d.features?.includes('RSAT-ADDS')), gui: guiADUC },
+  { id: 'gpmc', label: 'Group Policy Management', when: (d, L) => isServerGui(d) && !!L.ad && (d.dc || d.features?.includes('GPMC')), gui: guiGPMC },
+  { id: 'dnsmgr', label: 'DNS', when: (d) => isServerGui(d) && (d.features?.includes('DNS') || d.features?.includes('RSAT-DNS-Server')), gui: guiDnsMgr },
+  { id: 'dhcpmgr', label: 'DHCP', when: (d) => isServerGui(d) && !!d.dhcpd, gui: guiDhcpMgr },
   { id: 'shark', label: 'Wireshark', when: (d) => !!d.shark, gui: guiShark },
 ];
 TOOLS.vm = TOOLS.srv;
