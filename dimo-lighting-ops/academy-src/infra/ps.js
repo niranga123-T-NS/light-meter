@@ -50,7 +50,7 @@ function psLex(src) {
     if (c === '=' && src[i + 1] === '=') { push('op', '-eq'); i += 2; continue; }
     if (c === '!' && src[i + 1] === '=') { push('op', '-ne'); i += 2; continue; }
     const m = src.slice(i).match(/^[^\s|;(){}\[\],'"=]+/);
-    if (m) { let w = m[0]; const prev = T[T.length - 1]; if (w.includes('.') && /^[A-Za-z]/.test(w) && prev && prev.t !== 'nl' && prev.t !== '|' && prev.t !== '{' && !(T.length && psIsCmdCtx(T))) { w = w.split('.')[0]; } push('word', w); i += w.length; continue; }
+    if (m) { let w = m[0]; const prev = T[T.length - 1]; if (w.includes('.') && /^[A-Za-z]/.test(w) && prev && prev.t !== 'nl' && prev.t !== '|' && prev.t !== '{' && prev.t !== 'call' && prev.t !== 'dot' && !(T.length && psIsCmdCtx(T))) { w = w.split('.')[0]; } push('word', w); i += w.length; continue; }
     push('word', c); i++;
   }
   push('nl', '\n'); return T;

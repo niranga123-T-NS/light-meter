@@ -55,4 +55,7 @@ module.exports = {
   's14.t1': [['WEB', 'term', 'df -h /'], ['WEB', 'term', 'sudo du -sh /var/log/nginx/*'], ['WEB', 'term', 'sudo rm /var/log/nginx/access.log.1'], ['WEB', 'term', 'sudo systemctl start nginx']],
   's14.t2': [['WEB', 'term', 'sudo ufw status numbered'], ['WEB', 'term', 'sudo ufw allow 443/tcp'], ['WEB', 'term', 'sudo ufw allow 80/tcp']],
   's14.t3': [['WEB', 'term', 'openssl x509 -in /etc/ssl/certs/intranet.corp.dimo.lk.crt -noout -enddate'], ['WEB', 'term', 'sudo dimo-ca-sign intranet.corp.dimo.lk'], ['WEB', 'term', 'sudo systemctl reload nginx']],
+  's15.t1': [['DC1', 'ps', '& C:\\Scripts\\New-Starters2.ps1'], ['DC1', 'ps', "(Get-Content C:\\Scripts\\New-Starters2.ps1) -replace 'SamAcountName','SamAccountName' | Set-Content C:\\Scripts\\New-Starters2.ps1"], ['DC1', 'ps', '& C:\\Scripts\\New-Starters2.ps1']],
+  's15.t2': [['FS1', 'ps', "Get-ScheduledTaskInfo 'Disk Report'"], ['FS1', 'ps', 'Get-ChildItem C:\\Scripts -Recurse'], ['FS1', 'ps', 'Move-Item C:\\Scripts\\Reports\\Disk-Report.ps1 C:\\Scripts\\Disk-Report.ps1'], ['FS1', 'ps', "Start-ScheduledTask 'Disk Report'"]],
+  's15.t3': [['FS1', 'ps', '& C:\\Scripts\\Disk-Report.ps1'], ['FS1', 'ps', "(Get-Content C:\\Scripts\\Disk-Report.ps1) -replace 'smtp.dimo.lk','mail01.corp.dimo.lk' | Set-Content C:\\Scripts\\Disk-Report.ps1"], ['FS1', 'ps', "Start-ScheduledTask 'Disk Report'"]],
 };
