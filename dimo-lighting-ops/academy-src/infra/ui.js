@@ -135,7 +135,7 @@ function openDevice(id, tool, quiet) {
   if (!APP.open.includes(key)) APP.open.push(key);
   APP.active = { dev: id, tool: t }; if (!quiet) { renderDevicePanel(); drawTopo(); }
 }
-function toolsFor(d) { if (d.setup) return [{ id: 'setup', label: 'Console (Windows Setup)', gui: guiWinSetup }]; return (TOOLS[d.kind] || []).concat(TOOLS['*'] || []).filter((t) => !t.when || t.when(d, APP.L)); }
+function toolsFor(d) { if (d.setup) return [{ id: 'setup', label: 'Console (Windows Setup)', gui: guiWinSetup }]; if (d.lxsetup) return [{ id: 'setup', label: 'Console (installer)', gui: guiLxSetup }]; return (TOOLS[d.kind] || []).concat(TOOLS['*'] || []).filter((t) => !t.when || t.when(d, APP.L)); }
 function renderDevicePanel() {
   const el = $('#dpanel'); if (!el) return; const L = APP.L;
   if (!APP.active) { el.innerHTML = '<div class="gui m">Click a device in the drawing to open its console.</div>'; return; }

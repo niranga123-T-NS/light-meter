@@ -48,4 +48,11 @@ module.exports = {
   's12.t2': [['DC1', 'ps', 'Get-ADPrincipalGroupMembership dilini'], ['DC1', 'ps', 'Add-ADGroupMember GG_HR -Members dilini']],
   's12.t3': [['FS1', 'ps', 'Get-SmbShareAccess Finance'], ['FS1', 'ps', "Grant-SmbShareAccess -Name Finance -AccountName 'Authenticated Users' -AccessRight Change -Force"], ['FS1', 'ps', 'Revoke-SmbShareAccess -Name Finance -AccountName Everyone -Force']],
   's12.t4': [['PC2', 'cmd', 'gpresult /r /scope computer'], ['DC1', 'ps', "Move-ADObject -Identity 'CN=HR-PC01,CN=Computers,DC=corp,DC=dimo,DC=lk' -TargetPath 'OU=Workstations,OU=DIMO,DC=corp,DC=dimo,DC=lk'"], ['PC2', 'cmd', 'gpupdate /force']],
+  's13.t1': [['WEB', 'term', 'systemctl status nginx'], ['WEB', 'term', 'sudo nginx -t'], ['WEB', 'term', "echo '}' | sudo tee -a /etc/nginx/sites-enabled/default"], ['WEB', 'term', 'sudo nginx -t'], ['WEB', 'term', 'sudo systemctl restart nginx']],
+  's13.t2': [['WEB', 'term', 'ls -ld /var/www/html'], ['WEB', 'term', 'sudo chown -R deploy:www-data /var/www/html'], ['WEB', 'term', 'sudo chmod -R 2775 /var/www/html']],
+  's13.t3': [['DB', 'term', 'sudo journalctl -u sshd -n 5'], ['DB', 'term', 'sudo chmod 700 /home/nimal/.ssh'], ['DB', 'term', 'sudo chmod 600 /home/nimal/.ssh/authorized_keys']],
+  's13.t4': [['DB', 'term', 'sudo journalctl -u mariadb -n 5'], ['DB', 'term', 'sudo chown -R mysql:mysql /var/lib/mysql'], ['DB', 'term', 'sudo systemctl start mariadb']],
+  's14.t1': [['WEB', 'term', 'df -h /'], ['WEB', 'term', 'sudo du -sh /var/log/nginx/*'], ['WEB', 'term', 'sudo rm /var/log/nginx/access.log.1'], ['WEB', 'term', 'sudo systemctl start nginx']],
+  's14.t2': [['WEB', 'term', 'sudo ufw status numbered'], ['WEB', 'term', 'sudo ufw allow 443/tcp'], ['WEB', 'term', 'sudo ufw allow 80/tcp']],
+  's14.t3': [['WEB', 'term', 'openssl x509 -in /etc/ssl/certs/intranet.corp.dimo.lk.crt -noout -enddate'], ['WEB', 'term', 'sudo dimo-ca-sign intranet.corp.dimo.lk'], ['WEB', 'term', 'sudo systemctl reload nginx']],
 };

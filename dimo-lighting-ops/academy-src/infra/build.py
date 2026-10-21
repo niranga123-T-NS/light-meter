@@ -3,7 +3,7 @@
 import glob, os, sys
 D = os.path.dirname(os.path.abspath(__file__))
 ENGINE = ['net.js', 'forti.js', 'ios.js', 'ps.js', 'win.js', 'ad.js', 'linux.js', 'linux2.js', 'linux3.js']
-EXTRA = [f for f in ['wifi.js', 'mon.js', 'hv.js', 'auto.js', 'gui_win.js', 'gui_fg.js'] if os.path.exists(os.path.join(D, f))]
+EXTRA = [f for f in ['wifi.js', 'mon.js', 'hv.js', 'auto.js', 'gui_win.js', 'gui_fg.js', 'gui_lx.js'] if os.path.exists(os.path.join(D, f))]
 UI = ['ui.js', 'tools.js', 'lib.js']
 SESS = sorted(glob.glob(os.path.join(D, 's[0-9][0-9]*.js')))
 parts = [open(os.path.join(D, f)).read() for f in ENGINE + EXTRA + UI] + [open(f).read() for f in SESS] + ['boot();']
