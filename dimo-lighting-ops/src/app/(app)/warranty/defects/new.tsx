@@ -1,6 +1,7 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useDialog } from '@/components/dialog';
+import { ReportedLocationField, saveReportedLocation, type RepLoc } from '@/components/ReportedLocation';
 import { Button, Card, ErrorBanner, Field, Loading, Muted, Notice, Row, Screen, Section, Select, colors } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { DEFECT_CATEGORY, DEFECT_LOGGERS, DEFECT_SOURCE, PHASE, SEVERITY, type DefectProject } from '@/lib/defects';
@@ -31,6 +32,7 @@ export default function NewDefect() {
     clientRef: '',
   });
   const set = (p: Partial<typeof f>) => setF({ ...f, ...p });
+  const [rep, setRep] = useState<RepLoc>(null);
   const { data, error } = useLoad(() => rpc<DefectProject[]>('defect_projects'));
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const key = (p: DefectProject) => p.exec_project_id ?? p.project_id ?? '';
@@ -54,6 +56,7 @@ export default function NewDefect() {
           client_ref: f.clientRef || null,
         },
       });
+      await saveReportedLocation('project_defect', id, rep);
       router.replace(`/warranty/defects/${id}`);
     }, sales ? 'Reported – add photos if you have them' : 'Logged – add photos');
 
@@ -88,6 +91,7 @@ export default function NewDefect() {
             <Muted>{[chosen.customer, chosen.site, PHASE[chosen.phase]].filter(Boolean).join(' · ')}</Muted>
           ) : null}
           <Field label="Where on the site" value={f.location} onChangeText={(v) => set({ location: v })} placeholder="e.g. Car park poles 4–7, mast M3, lobby DB" />
+          <ReportedLocationField value={rep} onChange={setRep} query={[chosen?.name ?? f.projectName, chosen?.site ?? f.site].filter(Boolean).join(' ')} projectId={chosen?.project_id ?? null} />
         </Card>
       </Section>
       <Section title="The defect">

@@ -11,6 +11,14 @@ export type Defect = {
   customer: string | null;
   site: string | null;
   location: string | null;
+  /** the site location shared by the reporter, and the point the SEE / SM Projects checked for the engineer */
+  rep_lat?: number | null;
+  rep_lng?: number | null;
+  rep_from?: string | null;
+  site_lat?: number | null;
+  site_lng?: number | null;
+  site_checked_by?: string | null;
+  site_checked_at?: string | null;
   title: string;
   description: string;
   category: string;

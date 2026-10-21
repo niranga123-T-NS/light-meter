@@ -1477,6 +1477,11 @@ begin
   rid := public.report_warranty_issue(jsonb_build_object('customer', 'Lakeside Hotels PLC', 'project_name', 'Lakeside Lobby',
     'description', 'About 15 downlights flickering in the lobby', 'quantity', '15', 'location', 'Lobby ceiling'));
   assert (select code from public.warranty_reports where id = rid) like 'WIR-%', 'report code';
+  -- the sales person shares the site location (GPS at the site)
+  begin perform public.set_reported_location('warranty_report', rid, 0, 0, 'gps'); assert false, 'zero point';
+  exception when others then assert sqlerrm = 'The location is not valid', sqlerrm; end;
+  perform public.set_reported_location('warranty_report', rid, 6.9271, 79.8612, 'gps');
+  assert (select rep_lat = 6.9271 and rep_lng = 79.8612 and rep_from = 'gps' from public.warranty_reports where id = rid), 'location shared with the report';
 end $$;
 reset role;
 do $$ begin
@@ -1526,6 +1531,7 @@ begin
   assert (select in_warranty and reported_via = 'sales_visit' and reported_by = (select id from u where role = 'asm_building')
           from public.warranty_claims where id = cid), 'claim from the visit report, in warranty';
   assert (select status from public.warranty_reports) = 'converted', 'report converted';
+  assert (select rep_lat = 6.9271 and rep_lng = 79.8612 and rep_from = 'gps' from public.warranty_claims where id = cid), 'the claim starts from the location the sales person shared';
 end $$;
 reset role;
 do $$ begin
@@ -6631,6 +6637,10 @@ begin
          'description', 'Customer says four car park lights flicker every evening', 'category', 'lighting', 'severity', 'major', 'client_ref', 'Email 10 Oct'));
   perform set_config('test.def1', d::text, false);
   assert (select status = 'reported' and source = 'sales' and code like 'DEF-%' from public.project_defects where id = d), 'reported by sales, to verify';
+  perform public.set_reported_location('project_defect', d, 6.9, 79.85, 'map');
+  assert (select rep_lat = 6.9 and rep_from = 'map' from public.project_defects where id = d), 'reporter shares the defect location';
+  begin perform public.set_defect_site(d, 6.9, 79.85); assert false, 'sales cannot check the site';
+  exception when others then assert sqlerrm = 'The SEE or SM Projects checks the site location', sqlerrm; end;
 end $$;
 reset role;
 select pg_temp.act_as('operations_exec'); set role authenticated;
@@ -6668,6 +6678,8 @@ begin
   exception when others then assert sqlerrm = 'Give the reason', sqlerrm; end;
   perform public.verify_defect(d1, true);
   assert (select status from public.project_defects where id = d1) = 'open', 'verified';
+  perform public.set_defect_site(d1, 6.9012, 79.8523);
+  assert (select site_lat = 6.9012 and site_checked_by = auth.uid() and rep_lat = 6.9 from public.project_defects where id = d1), 'SEE adjusted the site for the engineer; the shared point stays';
   begin perform public.assign_defect(d2, jsonb_build_object('assignee_id', ae)); assert false, 'responsible';
   exception when others then assert sqlerrm like 'Who is responsible%', sqlerrm; end;
   begin perform public.assign_defect(d2, jsonb_build_object('assignee_id', ae, 'responsible', 'subcontractor')); assert false, 'company';

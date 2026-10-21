@@ -4,6 +4,7 @@ import { Platform, Text } from 'react-native';
 import { Attachments } from '@/components/Attachments';
 import { ClaimSiteCard } from '@/components/ClaimSiteCard';
 import { LocationPicker } from '@/components/LocationPicker';
+import { ReportedLocationRow } from '@/components/ReportedLocation';
 import { useDialog } from '@/components/dialog';
 import { C_TONE } from '@/components/warrantyTones';
 import { Button, Card, colors, ErrorBanner, KeyValue, Loading, Muted, Notice, Pill, Row, Screen, Section } from '@/components/ui';
@@ -99,6 +100,7 @@ export default function ClaimDetail() {
           <KeyValue label="Item" value={line ? `${line.product_group}${line.brand ? ` – ${line.brand}` : ''} · ends ${fmtDate(line.end_date)}` : 'Not specified'} />
           {c.quantity != null ? <KeyValue label="Quantity" value={String(c.quantity)} /> : null}
           {c.location ? <KeyValue label="Location" value={c.location} /> : null}
+          <ReportedLocationRow lat={c.rep_lat ?? null} lng={c.rep_lng ?? null} from={c.rep_from} label={c.report_id ? 'Location shared by the sales person' : c.defect_id ? 'Location from the defect' : 'Location shared'} />
           <KeyValue label="Reported via" value={`${viaLabel(c.reported_via)}${c.reported_by ? ` · ${people[c.reported_by]?.full_name ?? ''}` : ''}`} />
           <KeyValue label="Logged" value={`${fmtDateTime(c.logged_at)} · ${people[c.logged_by ?? '']?.full_name ?? '—'}`} />
           <KeyValue label={open ? 'Open for' : 'Closed'} value={open ? `${claimDaysOpen(c, today)} days` : `${fmtDate(c.closed_on)}${c.close_note ? ` · ${c.close_note}` : ''}`} />
@@ -417,9 +419,9 @@ export default function ClaimDetail() {
       <ClaimSiteCard c={c} query={[w?.site, w?.project_name].filter(Boolean).join(' ')} onChange={reload} />
       <LocationPicker
         visible={!!pending}
-        title="Site of the inspection – pick the point the engineer checks in at"
+        title={c.site_lat == null && c.rep_lat != null ? 'Check the location shared by the reporter – adjust it if the work is elsewhere, then save: the engineer checks in there' : 'Site of the inspection – pick the point the engineer checks in at'}
         query={[w?.site, w?.project_name].filter(Boolean).join(' ')}
-        initial={c.site_lat != null && c.site_lng != null ? { lat: c.site_lat, lng: c.site_lng } : data.proj?.lat != null && data.proj?.lng != null ? { lat: data.proj.lat, lng: data.proj.lng } : null}
+        initial={c.site_lat != null && c.site_lng != null ? { lat: c.site_lat, lng: c.site_lng } : c.rep_lat != null && c.rep_lng != null ? { lat: c.rep_lat, lng: c.rep_lng } : data.proj?.lat != null && data.proj?.lng != null ? { lat: data.proj.lat, lng: data.proj.lng } : null}
         onClose={() => setPending(null)}
         onSave={async (pt) => {
           if (!pending) return;

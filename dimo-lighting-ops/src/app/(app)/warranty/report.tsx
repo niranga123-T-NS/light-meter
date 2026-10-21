@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Attachments } from '@/components/Attachments';
 import { useDialog } from '@/components/dialog';
 import { ProjectPicker } from '@/components/pickers';
+import { ReportedLocationField, saveReportedLocation, type RepLoc } from '@/components/ReportedLocation';
 import { Button, Card, colors, ErrorBanner, Field, Loading, Muted, Notice, NumberField, Row, Screen, Section } from '@/components/ui';
 import { useLoad } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
@@ -18,6 +19,7 @@ export default function ReportIssue() {
   const [quantity, setQuantity] = useState<number | null>(null);
   const [location, setLocation] = useState('');
   const [contact, setContact] = useState('');
+  const [rep, setRep] = useState<RepLoc>(null);
   const [saved, setSaved] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const v = useLoad(async () => {
@@ -46,6 +48,7 @@ export default function ReportIssue() {
           site_contact: contact,
         },
       });
+      await saveReportedLocation('warranty_report', id, rep);
       setSaved(id);
     }, 'Reported – Operations and the Senior Electrical Engineer are notified');
   };
@@ -87,6 +90,7 @@ export default function ReportIssue() {
           ) : null}
           <Field label="Location on site" value={location} onChangeText={setLocation} hint="e.g. Lobby ceiling, car park poles" />
           <Field label="Customer contact on site" value={contact} onChangeText={setContact} hint="Name and phone" />
+          <ReportedLocationField value={rep} onChange={setRep} query={[projectName || fromVisit?.projects?.name, cust].filter(Boolean).join(' ')} projectId={projectId ?? fromVisit?.project_id ?? null} />
         </Card>
       </Section>
       <Section title="What you saw">

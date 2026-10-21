@@ -1,7 +1,11 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { Text } from 'react-native';
+import { useState } from 'react';
+import { Platform, Text } from 'react-native';
 import { Attachments } from '@/components/Attachments';
 import { useDialog } from '@/components/dialog';
+import { LocationPicker } from '@/components/LocationPicker';
+import { ReportedLocationRow, repText } from '@/components/ReportedLocation';
+import { captureLocation } from '@/components/VisitBits';
 import { Button, Card, colors, ErrorBanner, KeyValue, ListRow, Loading, Notice, Pill, Row, Screen, Section } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import {
@@ -31,6 +35,7 @@ export default function DefectScreen() {
   const me = useMe();
   const dialog = useDialog();
   const people = usePeople();
+  const [mapOpen, setMapOpen] = useState(false);
   const { data, error, reload } = useLoad(async () => {
     const { data: d, error: e } = await supabase.from('project_defects').select('*').eq('id', id).single();
     if (e) throw new Error(e.message);
@@ -64,7 +69,37 @@ export default function DefectScreen() {
         await reload();
       }, ok ? 'Verified' : 'Not accepted');
   };
+  // the site the engineer goes to: the location the reporter shared, checked (or adjusted) by the SEE / SM Projects
+  const site = d.site_lat != null && d.site_lng != null ? { lat: d.site_lat, lng: d.site_lng } : null;
+  const shared = d.rep_lat != null && d.rep_lng != null ? { lat: d.rep_lat, lng: d.rep_lng } : null;
+  const siteOpen = ['reported', 'open', 'assigned'].includes(d.status);
+  const setSite = (lat: number, lng: number, msg: string) =>
+    dialog.run(async () => {
+      await rpc('set_defect_site', { p_id: d.id, p_lat: lat, p_lng: lng });
+      await reload();
+    }, msg);
+  const siteHere = () =>
+    dialog.run(async () => {
+      const pos = await captureLocation();
+      if (!pos) throw new Error('Allow location access to use where you are');
+      await rpc('set_defect_site', { p_id: d.id, p_lat: pos.lat, p_lng: pos.lng });
+      await reload();
+    }, 'Site location set to where you are');
   const assign = async () => {
+    if (!site) {
+      if (shared) {
+        const ok = await dialog.confirm(
+          'Check the site location',
+          `${pn(d.reported_by) || 'The reporter'} shared ${repText(shared.lat, shared.lng, d.rep_from)}. Is it where the engineer must go? If not, cancel and adjust it under Site location.`,
+          { confirmLabel: 'Yes – use it' },
+        );
+        if (!ok) return;
+        await rpc('set_defect_site', { p_id: d.id, p_lat: shared.lat, p_lng: shared.lng }).catch(() => null);
+      } else {
+        const ok = await dialog.confirm('No site location', 'No location was shared for this defect – the engineer has only the address. Set it under Site location first, or assign anyway.', { confirmLabel: 'Assign anyway' });
+        if (!ok) return;
+      }
+    }
     const r = await dialog.prompt({
       title: d.assignee_id ? 'Reassign' : 'Assign the defect',
       fields: [
@@ -168,6 +203,35 @@ export default function DefectScreen() {
         {d.rectification ? <KeyValue label="Rectification" value={`${d.rectification} · ${pn(d.rectified_by)} · ${fmtDateTime(d.rectified_at)}`} /> : null}
         {d.closed_at ? <KeyValue label="Closed" value={`${pn(d.closed_by)} · ${fmtDateTime(d.closed_at)}${d.close_note ? ` · ${d.close_note}` : ''}`} /> : null}
       </Card>
+
+      <Section title="Site location">
+        <Card>
+          <ReportedLocationRow lat={d.rep_lat ?? null} lng={d.rep_lng ?? null} from={d.rep_from} by={pn(d.reported_by)} label="Shared by the reporter" />
+          {site ? (
+            <ReportedLocationRow lat={site.lat} lng={site.lng} by={`${pn(d.site_checked_by ?? null)} · ${fmtDateTime(d.site_checked_at ?? null)}`} label="Checked for the engineer" />
+          ) : manager && siteOpen ? (
+            <Notice tone={colors.amber}>Check the location before assigning – the work may be at another part of the site. The engineer gets the checked point; what the reporter shared stays as it is.</Notice>
+          ) : null}
+          {manager && siteOpen ? (
+            <Row wrap gap={6}>
+              {shared && !site ? <Button small title="The shared location is correct" onPress={() => setSite(shared.lat, shared.lng, 'Location checked – the engineer gets it')} /> : null}
+              {Platform.OS === 'web' ? <Button small variant="secondary" title={site || shared ? 'Adjust on the map' : 'Pin on the map'} onPress={() => setMapOpen(true)} /> : null}
+              <Button small variant="secondary" title="Use my location (at the site)" onPress={siteHere} />
+            </Row>
+          ) : null}
+        </Card>
+      </Section>
+      <LocationPicker
+        visible={mapOpen}
+        title="Defect site – the point the engineer goes to"
+        query={[d.site, d.project_name].filter(Boolean).join(' ')}
+        initial={site ?? shared}
+        onSave={async (p) => {
+          await setSite(p.lat, p.lng, 'Site location set – the engineer gets it');
+          setMapOpen(false);
+        }}
+        onClose={() => setMapOpen(false)}
+      />
 
       <Attachments
         entityType="project_defect"
