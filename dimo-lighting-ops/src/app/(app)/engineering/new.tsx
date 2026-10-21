@@ -209,7 +209,10 @@ export default function NewEngJob() {
         title="Site location"
         query={f.site_address}
         initial={f.lat != null && f.lng != null ? { lat: f.lat, lng: f.lng } : null}
-        onSave={async (p) => setF((s) => ({ ...s, lat: p.lat, lng: p.lng, pinFrom: 'pinned on the map', checked: true }))}
+        onSave={async (p) => {
+          setF((s) => ({ ...s, lat: p.lat, lng: p.lng, pinFrom: 'pinned on the map', checked: true }));
+          setMapOpen(false);
+        }}
         onClose={() => setMapOpen(false)}
       />
     </Screen>
