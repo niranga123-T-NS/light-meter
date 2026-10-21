@@ -5450,7 +5450,7 @@ function renderReview(body, S) {
 function renderSubmit(body, S, p) {
   const X = S.submit; const v = p.sub || {}; const card = document.createElement('div'); card.className = 'card'; body.insertBefore(card, body.children[1] || null);
   card.innerHTML = `<h3>${esc(X.title)} ${v.at ? '<span class="pill g">Handed in</span>' : '<span class="pill y">To do</span>'}</h3><p class="hint">${esc(X.intro)}</p>${X.fields.map(([k, label, h]) => `<label class="f" style="display:block;margin:6px 0"><b style="font-size:12.5px">${esc(label)}</b><textarea data-s="${k}" spellcheck="false" style="width:100%;min-height:${h}px;padding:6px;border:1px solid var(--line);border-radius:6px;${k === 'script' ? 'font-family:var(--mono);font-size:12px;white-space:pre' : ''}">${esc(v[k] || '')}</textarea></label>`).join('')}<button class="btn p" id="subSave">${v.at ? 'Hand in again' : 'Hand in to my trainer'}</button> ${v.at ? `<span class="m">Handed in ${new Date(v.at).toLocaleDateString()}</span>` : ''}`;
-  $('#subSave', card).onclick = () => { const o = {}; $$('[data-s]', card).forEach((t) => (o[t.dataset.s] = t.value.replace(/\s+$/, ''))); if (Object.values(o).some((x) => x.trim().length < 6) || (o.script || '').split('\n').length < 5) return toast('Fill in every box – the script needs at least a few lines.'); if (/(password|passwd|secret)\s*[=:]\s*['"]?[^\s'"$]{4,}/i.test(o.script) || /BEGIN [A-Z ]*PRIVATE KEY/.test(o.script)) return toast('Take the password or key out of the script first.'); p.sub = { ...o, at: Date.now() }; saveProg(S.id); api('academy_writeup_save', { p_lesson: `infra_${S.id}_script`, p_kind: 'script', p_body: o }).catch(() => void 0); toast('Handed in.'); renderSubmit2(card, body, S, p); };
+  $('#subSave', card).onclick = () => { const o = {}; $$('[data-s]', card).forEach((t) => (o[t.dataset.s] = t.value.replace(/\s+$/, ''))); if (Object.values(o).some((x) => x.trim().length < 6) || (o.script || '').split('\n').length < 5) return toast('Fill in every box – the script needs at least a few lines.'); if (/(password|passwd|secret)\s*[=:]\s*['"]?[^\s'"$]{4,}/i.test(o.script) || /BEGIN [A-Z ]*PRIVATE KEY/.test(o.script)) return toast('Take the password or key out of the script first.'); p.sub = { ...o, at: Date.now() }; saveProg(S.id); api('academy_writeup_save', { p_lesson: `infra_${S.id}_${X.kind || 'script'}`, p_kind: X.kind || 'script', p_body: o }).catch(() => void 0); toast('Handed in.'); renderSubmit2(card, body, S, p); };
 }
 const renderSubmit2 = (card, body, S, p) => { card.remove(); renderSubmit(body, S, p); };
 
@@ -7579,6 +7579,7 @@ SESSIONS.push({
     { id: 't2', no: 6704, title: 'kdy-app01 can\'t download updates', who: 'IT – Kandy', text: '<p>"apt update on kdy-app01 fails with <i>Temporary failure resolving</i> / time-outs. The PCs browse fine." A policy was "cleaned up" on FGT-KANDY yesterday.</p>', build: () => brLab({ done: true }), open: ['FGT-KDY', 'VM201'], fault: (L) => { L.devs['FGT-KDY'].cfg['firewall policy'][1].srcintf = ['STAFF']; settle(L); }, hint: 'Which interfaces may go to wan1? Look at policy 1.', checks: [{ t: 'kdy-app01 reaches the Internet', f: (L) => send(L, brApp(L).id, { dst: '8.8.8.8' }).res === 'ok' }, { t: 'PCs still reach the Internet', f: (L) => C.ping(L, 'PC1', '8.8.8.8') }] },
   ],
   submit: {
+    kind: 'notes',
     title: 'As-built document for Kandy',
     intro: 'Write what you built so the next engineer can support it without you: the IP plan and VLANs, switch ports, firewall interfaces and policies, the VPN parameters (not the key itself – where it is stored), the server and VM, backups. Your trainer marks it with the build.',
     fields: [['ip', 'IP plan and VLANs', 90], ['net', 'Switch ports and firewall (interfaces, DHCP, policies, VPN)', 140], ['srv', 'Proxmox host, VMs, backups', 100], ['test', 'How you tested it, and what is still open', 70]],
@@ -7627,6 +7628,7 @@ SESSIONS.push({
     ],
   },
   submit: {
+    kind: 'notes',
     title: 'Graded: capstone presentation notes',
     intro: 'Your notes for the 10-minute presentation to your trainer: for each of the eight faults the symptom, the proof, the root cause, the fix and the prevention. Then what you would monitor at the branch, and what you learned in the programme.',
     fields: [['faults', 'The eight faults: symptom → proof → root cause → fix → prevention', 260], ['monitor', 'What you would monitor at the Kandy branch, and how', 90], ['learned', 'Your three most important lessons from the programme', 90]],

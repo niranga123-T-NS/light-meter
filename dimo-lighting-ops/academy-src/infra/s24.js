@@ -33,6 +33,7 @@ SESSIONS.push({
     ],
   },
   submit: {
+    kind: 'notes',
     title: 'Graded: capstone presentation notes',
     intro: 'Your notes for the 10-minute presentation to your trainer: for each of the eight faults the symptom, the proof, the root cause, the fix and the prevention. Then what you would monitor at the branch, and what you learned in the programme.',
     fields: [['faults', 'The eight faults: symptom → proof → root cause → fix → prevention', 260], ['monitor', 'What you would monitor at the Kandy branch, and how', 90], ['learned', 'Your three most important lessons from the programme', 90]],

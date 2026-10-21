@@ -70,6 +70,7 @@ SESSIONS.push({
     { id: 't2', no: 6704, title: 'kdy-app01 can\'t download updates', who: 'IT – Kandy', text: '<p>"apt update on kdy-app01 fails with <i>Temporary failure resolving</i> / time-outs. The PCs browse fine." A policy was "cleaned up" on FGT-KANDY yesterday.</p>', build: () => brLab({ done: true }), open: ['FGT-KDY', 'VM201'], fault: (L) => { L.devs['FGT-KDY'].cfg['firewall policy'][1].srcintf = ['STAFF']; settle(L); }, hint: 'Which interfaces may go to wan1? Look at policy 1.', checks: [{ t: 'kdy-app01 reaches the Internet', f: (L) => send(L, brApp(L).id, { dst: '8.8.8.8' }).res === 'ok' }, { t: 'PCs still reach the Internet', f: (L) => C.ping(L, 'PC1', '8.8.8.8') }] },
   ],
   submit: {
+    kind: 'notes',
     title: 'As-built document for Kandy',
     intro: 'Write what you built so the next engineer can support it without you: the IP plan and VLANs, switch ports, firewall interfaces and policies, the VPN parameters (not the key itself – where it is stored), the server and VM, backups. Your trainer marks it with the build.',
     fields: [['ip', 'IP plan and VLANs', 90], ['net', 'Switch ports and firewall (interfaces, DHCP, policies, VPN)', 140], ['srv', 'Proxmox host, VMs, backups', 100], ['test', 'How you tested it, and what is still open', 70]],

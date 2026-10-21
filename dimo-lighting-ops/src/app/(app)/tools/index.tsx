@@ -8,6 +8,7 @@ import { QuickCalcList } from '@/components/tools/QuickCalcList';
 import { References } from '@/components/tools/References';
 import { Standards } from '@/components/tools/Standards';
 import { Field, Notice, Screen, Segmented } from '@/components/ui';
+import { ACADEMY_ENGINEERS } from '@/lib/academy';
 import { useMe } from '@/lib/auth';
 import { TOOLS_ROLES } from '@/lib/standards';
 
@@ -19,6 +20,15 @@ export default function SalesTools() {
   const params = useLocalSearchParams<{ tab?: Tab }>();
   const [tab, setTab] = useState<Tab>(params.tab ?? 'standards');
   const [search, setSearch] = useState('');
+  // the engineers have Dacademy only (the Infrastructure course), not the rest of Sales Tools
+  if (ACADEMY_ENGINEERS.includes(me.role)) {
+    return (
+      <Screen maxWidth={1100}>
+        <Stack.Screen options={{ title: 'Dacademy' }} />
+        <Academy />
+      </Screen>
+    );
+  }
   if (!TOOLS_ROLES.includes(me.role)) return <Screen><Notice>Sales Tools are for the sales, SM Projects, GM / DGM and Design teams.</Notice></Screen>;
   const android = Platform.OS === 'android';
   return (

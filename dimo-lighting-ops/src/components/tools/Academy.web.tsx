@@ -1,16 +1,17 @@
 import { createElement, useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { AcademyTeam } from '@/components/tools/AcademyTeam';
+import { AcademyWriteups } from '@/components/tools/AcademyWriteups';
 import { Segmented } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { ACADEMY_COURSES, ACADEMY_TEAM_VIEWERS, ACADEMY_TOTAL, type AcademyCourse, academyCfg } from '@/lib/academy';
+import { ACADEMY_COURSES, ACADEMY_ENGINEERS, ACADEMY_TEAM_VIEWERS, ACADEMY_TOTAL, type AcademyCourse, academyCfg } from '@/lib/academy';
 
 /** Dacademy on the website: the chosen course's lessons page in a frame; it saves progress with the person's sign-in, passed to it here */
 export function Academy() {
   const me = useMe();
   const [frame, setFrame] = useState<HTMLIFrameElement | null>(null);
-  const [view, setView] = useState<'lessons' | 'team'>('lessons');
-  const [course, setCourse] = useState<AcademyCourse>('light');
+  const [view, setView] = useState<'lessons' | 'team' | 'writeups'>('lessons');
+  const [course, setCourse] = useState<AcademyCourse>(ACADEMY_ENGINEERS.includes(me.role) ? 'infra' : 'light');
   const c = ACADEMY_COURSES.find((x) => x.value === course) ?? ACADEMY_COURSES[0];
   const team = ACADEMY_TEAM_VIEWERS.includes(me.role);
   useEffect(() => {
@@ -34,9 +35,11 @@ export function Academy() {
   }, [me.full_name, frame]);
   return (
     <View style={{ gap: 8 }}>
-      {team ? <Segmented value={view} onChange={setView} options={[{ value: 'lessons', label: 'Lessons' }, { value: 'team', label: 'Team progress' }]} /> : null}
+      <Segmented value={view} onChange={setView} options={[{ value: 'lessons', label: 'Lessons' }, ...(team ? [{ value: 'team' as const, label: 'Team progress' }] : []), { value: 'writeups', label: team ? 'Write-ups to mark' : 'My write-ups' }]} />
       {view === 'team' && team ? (
         <AcademyTeam total={ACADEMY_TOTAL} />
+      ) : view === 'writeups' ? (
+        <AcademyWriteups trainer={team} />
       ) : (
         <>
           <Segmented value={course} onChange={setCourse} options={ACADEMY_COURSES.map((x) => ({ value: x.value, label: x.label }))} />
