@@ -18,10 +18,12 @@ export type PromptField = When &
     | { key: string; label: string; type: 'files'; required?: boolean; initial?: string; hint?: string }
   );
 
-type PromptOptions = { title: string; message?: string; fields?: PromptField[]; confirmLabel?: string; danger?: boolean };
+type PromptOptions = { title: string; message?: string; fields?: PromptField[]; confirmLabel?: string; cancelLabel?: string | null; danger?: boolean };
 
 type DialogApi = {
-  confirm: (title: string, message?: string, opts?: { confirmLabel?: string; danger?: boolean }) => Promise<boolean>;
+  confirm: (title: string, message?: string, opts?: { confirmLabel?: string; cancelLabel?: string; danger?: boolean }) => Promise<boolean>;
+  /** A message with one OK button */
+  alert: (title: string, message?: string) => Promise<void>;
   prompt: (opts: PromptOptions) => Promise<Record<string, string> | null>;
   toast: (message: string, tone?: 'ok' | 'error') => void;
   /** Runs an action and shows its error (or a success message) as a toast. */
@@ -67,6 +69,9 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   const api: DialogApi = {
     confirm: async (title, message, opts) => (await open({ title, message, ...opts }, 'confirm')) !== null,
     prompt: (opts) => open(opts, 'prompt'),
+    alert: async (title, message) => {
+      await open({ title, message, confirmLabel: 'OK', cancelLabel: null }, 'confirm');
+    },
     toast,
     files: (key) => lastFiles.current[key] ?? [],
     run: async (action, success) => {
@@ -155,7 +160,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
               )}
             </ScrollView>
             <Row style={{ justifyContent: 'flex-end', marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.line }}>
-              <Button title="Cancel" variant="secondary" onPress={() => close(null)} />
+              {state?.cancelLabel === null ? null : <Button title={state?.cancelLabel ?? 'Cancel'} variant="secondary" onPress={() => close(null)} />}
               <Button
                 title={state?.confirmLabel ?? (state?.mode === 'confirm' ? 'Confirm' : 'Save')}
                 variant={state?.danger ? 'danger' : 'primary'}
