@@ -2,6 +2,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useDialog } from '@/components/dialog';
 import { PersonPicker, ProjectPicker } from '@/components/pickers';
+import { ReportedLocationField, ReportedLocationRow, saveReportedLocation, type RepLoc } from '@/components/ReportedLocation';
 import { Button, Card, colors, DateField, ErrorBanner, Field, Loading, Muted, Notice, NumberField, Row, Screen, Section, Segmented, Select } from '@/components/ui';
 import { fmtDate, fmtDateTime, todayISO } from '@/lib/format';
 import { PROJECT_TYPES } from '@/lib/roles';
@@ -37,6 +38,7 @@ export default function ClaimNew() {
   // Older project with no warranty record: details entered by hand create the record with the claim
   const [mode, setMode] = useState<'list' | 'manual' | null>(null);
   const [inSystem, setInSystem] = useState<'system' | 'outside'>('system');
+  const [rep, setRep] = useState<RepLoc>(null);
   const [man, setMan] = useState({ project_id: '', project_label: '', project_name: '', customer: '', category: '', invoice_no: '', contract_no: '', start_basis: 'handover', start_date: null as string | null, months: '', product_group: '', brand: '' });
   const setM = (patch: Partial<typeof man>) => setMan({ ...man, ...patch });
   const { data, error: loadErr } = useLoad(async () => {
@@ -67,6 +69,13 @@ export default function ClaimNew() {
   const description = desc ?? report?.description ?? (defect ? `${defect.title} – ${defect.inspection ?? ''}` : '');
   const quantity = qty === undefined ? (report?.quantity ?? null) : qty;
   const location = loc ?? report?.location ?? (defect ? [defect.site, defect.location].filter(Boolean).join(' · ') : '');
+  // the location shared with the sales report or the defect goes with the claim (copied when it is logged)
+  const shared =
+    report?.rep_lat != null && report.rep_lng != null
+      ? { lat: report.rep_lat, lng: report.rep_lng, from: report.rep_from }
+      : defect && (defect.site_lat ?? defect.rep_lat) != null && (defect.site_lng ?? defect.rep_lng) != null
+        ? { lat: (defect.site_lat ?? defect.rep_lat) as number, lng: (defect.site_lng ?? defect.rep_lng) as number, from: defect.site_lat != null ? 'map' : defect.rep_from }
+        : null;
   // From a defect the SEE keeps the engineer who inspected it
   const engineer = assignee ?? (see ? (defect?.assignee_id ?? null) : null);
 
@@ -114,6 +123,7 @@ export default function ClaimNew() {
           assignee_id: engineer ?? '',
         },
       });
+      if (!shared) await saveReportedLocation('warranty_claim', cid, rep);
       router.replace(`/warranty/claims/${cid}`);
     }, 'Claim logged');
   };
@@ -238,6 +248,11 @@ export default function ClaimNew() {
           <Field label="What failed" required multiline value={description} onChangeText={setDesc} />
           <NumberField label="Quantity" value={quantity} onChange={(v) => setQty(v)} />
           <Field label="Location on site" value={location} onChangeText={setLoc} />
+          {shared ? (
+            <ReportedLocationRow lat={shared.lat} lng={shared.lng} from={shared.from} label={report ? 'Location shared by the sales person' : 'Location from the defect'} />
+          ) : (
+            <ReportedLocationField value={rep} onChange={setRep} query={location} projectId={inSystem === 'system' ? man.project_id || null : null} />
+          )}
           {see ? (
             <PersonPicker label="Assign to engineer (site inspection)" roles={['assistant_engineer', 'senior_elec_engineer', 'trainee']} value={engineer} onChange={(v) => setAssignee(v || null)} />
           ) : (

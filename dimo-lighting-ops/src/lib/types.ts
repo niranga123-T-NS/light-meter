@@ -643,6 +643,10 @@ export type WarrantyClaim = {
   /** Created from a project defect inspected as a product fault */
   defect_id?: string | null;
   site_lat?: number | null;
+  /** the location shared by whoever raised it (or the sales report / defect it came from) */
+  rep_lat?: number | null;
+  rep_lng?: number | null;
+  rep_from?: string | null;
   site_lng?: number | null;
   site_radius_m?: number | null;
   visit_on?: string | null;
@@ -695,6 +699,10 @@ export type WarrantyClaim = {
 
 export type WarrantyReport = {
   id: string;
+  /** the site location the sales person shared */
+  rep_lat?: number | null;
+  rep_lng?: number | null;
+  rep_from?: string | null;
   code: string;
   sales_person_id: string;
   visit_id: string | null;
