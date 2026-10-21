@@ -403,9 +403,9 @@ function iosShow(L, d, p, a) {
       if (!sw) return '% Invalid input\n';
       let E = Object.entries(L.mac[d.id] || {}).map(([k, port]) => { const [v, mac] = k.split('|'); return { v, mac, port }; });
       Object.entries(P).forEach(([pn, q]) => (q.ps?.sticky || q.ps?.static) && (q.ps.macs || []).forEach((m) => { if (!E.some((e) => e.mac === m)) E.push({ v: q.vlan, mac: m, port: pn, st: true }); }));
-      if (a[0] && p.includes('interface')) E = E.filter((e) => e.port === ifNorm(a[0]));
-      if (a[0] && p.includes('vlan')) E = E.filter((e) => +e.v === +a[0]);
-      if (a[0] && p.includes('address')) E = E.filter((e) => macCisco(e.mac) === a[0].toLowerCase() || e.mac === a[0].toLowerCase());
+      if (a[0] && p.endsWith('interface <if>')) E = E.filter((e) => e.port === ifNorm(a[0]));
+      if (a[0] && p.endsWith('vlan <n>')) E = E.filter((e) => +e.v === +a[0]);
+      if (a[0] && p.endsWith('address <w>')) E = E.filter((e) => macCisco(e.mac) === a[0].toLowerCase() || e.mac === a[0].toLowerCase());
       if (L._storm && [...L._storm].some((k) => k.startsWith(`${d.id}|`))) { const v = [...L._storm].find((k) => k.startsWith(`${d.id}|`)).split('|')[1]; return `          Mac Address Table\n-------------------------------------------\n\nVlan    Mac Address       Type        Ports\n----    -----------       --------    -----\n${E.filter((e) => e.v === v).map((e, i) => `${lpad(e.v, 4)}    ${macCisco(e.mac)}    DYNAMIC     ${Object.keys(P)[(i + L.clock / 7) % Object.keys(P).length | 0]}`).join('\n')}\n(the table keeps changing – the same MAC addresses jump between ports)\nTotal Mac Addresses for this criterion: ${E.length}\n`; }
       return `          Mac Address Table\n-------------------------------------------\n\nVlan    Mac Address       Type        Ports\n----    -----------       --------    -----\n${E.sort((x, y) => x.v - y.v || (x.port < y.port ? -1 : 1)).map((e) => `${lpad(e.v, 4)}    ${macCisco(e.mac)}    ${e.st ? 'STATIC ' : 'DYNAMIC'}     ${e.port.startsWith('Gi') && P[e.port]?.cg && L._po?.[`${d.id}|${P[e.port].cg}`]?.ok ? `Po${P[e.port].cg}` : e.port}`).join('\n')}\nTotal Mac Addresses for this criterion: ${E.length}\n`;
     }

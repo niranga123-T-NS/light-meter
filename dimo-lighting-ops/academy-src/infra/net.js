@@ -607,7 +607,7 @@ function dhcpServe(L, S, sEp, relay, mac) {
   const s = sc.find((x) => x.net && inNet(at, x.net, x.mask) && (x.kind !== 'fg' || relay || x.iface === sEp.ifn)); if (!s) return null;
   if (s.kind === 'win' && s.auth === false) { logOnce(L, S.id, 'Event 1046: The DHCP service is not authorized in Active Directory – it will not lease addresses.'); return null; }
   const taken = new Set(Object.values(s.used)); const excl = (ip) => s.excl.some(([a, b]) => ip2n(ip) >= ip2n(a) && ip2n(ip) <= ip2n(b));
-  const mine = (x) => x && inNet(x, s.net, s.mask) ? x : null; let ip = mine(s.used[mac]) || mine(s.res[mac]) || null;
+  const mine = (x) => x && inNet(x, s.net, s.mask) ? x : null; let ip = mine(s.res[mac]) || mine(s.used[mac]) || null;
   if (!ip) { const a = ip2n(s.start), b = ip2n(s.end); const busy = s.cap != null ? s.cap : 0; let free = 0; for (let n = a; n <= b; n++) { const x = n2ip(n); if (taken.has(x) || excl(x) || x === s.gw) continue; free++; if (free > busy) { ip = x; break; } } }
   if (!ip) { logOnce(L, S.id, s.kind === 'win' ? `Event 1020: Scope ${s.net} is 100 percent full with only 0 IP addresses remaining.` : `%DHCPD-4-PING_CONFLICT / no free addresses in pool ${s.name}`); return { err: 'full' }; }
   return { ip, mask: s.mask, gw: s.gw, dns: s.dns, dom: s.dom, time: 86400, commit: () => (s.used[mac] = ip) };

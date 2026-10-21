@@ -663,7 +663,7 @@ function dhcpServe(L, S, sEp, relay, mac) {
   const s = sc.find((x) => x.net && inNet(at, x.net, x.mask) && (x.kind !== 'fg' || relay || x.iface === sEp.ifn)); if (!s) return null;
   if (s.kind === 'win' && s.auth === false) { logOnce(L, S.id, 'Event 1046: The DHCP service is not authorized in Active Directory – it will not lease addresses.'); return null; }
   const taken = new Set(Object.values(s.used)); const excl = (ip) => s.excl.some(([a, b]) => ip2n(ip) >= ip2n(a) && ip2n(ip) <= ip2n(b));
-  const mine = (x) => x && inNet(x, s.net, s.mask) ? x : null; let ip = mine(s.used[mac]) || mine(s.res[mac]) || null;
+  const mine = (x) => x && inNet(x, s.net, s.mask) ? x : null; let ip = mine(s.res[mac]) || mine(s.used[mac]) || null;
   if (!ip) { const a = ip2n(s.start), b = ip2n(s.end); const busy = s.cap != null ? s.cap : 0; let free = 0; for (let n = a; n <= b; n++) { const x = n2ip(n); if (taken.has(x) || excl(x) || x === s.gw) continue; free++; if (free > busy) { ip = x; break; } } }
   if (!ip) { logOnce(L, S.id, s.kind === 'win' ? `Event 1020: Scope ${s.net} is 100 percent full with only 0 IP addresses remaining.` : `%DHCPD-4-PING_CONFLICT / no free addresses in pool ${s.name}`); return { err: 'full' }; }
   return { ip, mask: s.mask, gw: s.gw, dns: s.dns, dom: s.dom, time: 86400, commit: () => (s.used[mac] = ip) };
@@ -1403,9 +1403,9 @@ function iosShow(L, d, p, a) {
       if (!sw) return '% Invalid input\n';
       let E = Object.entries(L.mac[d.id] || {}).map(([k, port]) => { const [v, mac] = k.split('|'); return { v, mac, port }; });
       Object.entries(P).forEach(([pn, q]) => (q.ps?.sticky || q.ps?.static) && (q.ps.macs || []).forEach((m) => { if (!E.some((e) => e.mac === m)) E.push({ v: q.vlan, mac: m, port: pn, st: true }); }));
-      if (a[0] && p.includes('interface')) E = E.filter((e) => e.port === ifNorm(a[0]));
-      if (a[0] && p.includes('vlan')) E = E.filter((e) => +e.v === +a[0]);
-      if (a[0] && p.includes('address')) E = E.filter((e) => macCisco(e.mac) === a[0].toLowerCase() || e.mac === a[0].toLowerCase());
+      if (a[0] && p.endsWith('interface <if>')) E = E.filter((e) => e.port === ifNorm(a[0]));
+      if (a[0] && p.endsWith('vlan <n>')) E = E.filter((e) => +e.v === +a[0]);
+      if (a[0] && p.endsWith('address <w>')) E = E.filter((e) => macCisco(e.mac) === a[0].toLowerCase() || e.mac === a[0].toLowerCase());
       if (L._storm && [...L._storm].some((k) => k.startsWith(`${d.id}|`))) { const v = [...L._storm].find((k) => k.startsWith(`${d.id}|`)).split('|')[1]; return `          Mac Address Table\n-------------------------------------------\n\nVlan    Mac Address       Type        Ports\n----    -----------       --------    -----\n${E.filter((e) => e.v === v).map((e, i) => `${lpad(e.v, 4)}    ${macCisco(e.mac)}    DYNAMIC     ${Object.keys(P)[(i + L.clock / 7) % Object.keys(P).length | 0]}`).join('\n')}\n(the table keeps changing – the same MAC addresses jump between ports)\nTotal Mac Addresses for this criterion: ${E.length}\n`; }
       return `          Mac Address Table\n-------------------------------------------\n\nVlan    Mac Address       Type        Ports\n----    -----------       --------    -----\n${E.sort((x, y) => x.v - y.v || (x.port < y.port ? -1 : 1)).map((e) => `${lpad(e.v, 4)}    ${macCisco(e.mac)}    ${e.st ? 'STATIC ' : 'DYNAMIC'}     ${e.port.startsWith('Gi') && P[e.port]?.cg && L._po?.[`${d.id}|${P[e.port].cg}`]?.ok ? `Po${P[e.port].cg}` : e.port}`).join('\n')}\nTotal Mac Addresses for this criterion: ${E.length}\n`;
     }
@@ -4167,7 +4167,7 @@ function guiDnsMgr(el, L, d, done) {
   if (st.z === '__fwd') pane = `<b>Forwarders</b><p class="m">Queries this server cannot answer from its own zones are sent to:</p><table><tr><th>IP address</th><th>Server FQDN</th></tr>${fwd.map((ip) => `<tr><td class="mono">${esc(ip)}</td><td>${esc(L.inet.hosts[ip]?.name || devByIp?.(L, ip)?.hostname || '<Unable to resolve>')}</td></tr>`).join('') || '<tr><td colspan="2" class="m">(none – root hints are used)</td></tr>'}</table><div class="fm"><label>Forwarders (comma separated)</label><input id="fF" value="${esc(fwd.join(', '))}"></div><button class="btn sm p" id="fOk">Apply</button>`;
   else if (z) pane = `<b>${esc(z.name)}</b> <span class="m">${esc(z.type || 'Primary')}${z.ad || L.ad?.zones?.includes(z) ? ' · Active Directory-Integrated' : ''}</span><div style="max-height:220px;overflow:auto"><table><tr><th>Name</th><th>Type</th><th>Data</th><th>Timestamp</th></tr><tr><td>(same as parent folder)</td><td>Start of Authority (SOA)</td><td>[${z.serial || 12}], ${esc((d.hostname || '').toLowerCase())}.${esc(z.name)}.</td><td>static</td></tr>${(z.recs || []).filter((r) => !L.ad || adVisible(L, r, d.id)).map((r, i) => `<tr data-r="${i}" class="${st.sel === i ? 'sel' : ''}"><td>${esc(r.name === '@' ? '(same as parent folder)' : r.name)}</td><td>${esc({ A: 'Host (A)', CNAME: 'Alias (CNAME)', SRV: 'Service Location (SRV)', NS: 'Name Server (NS)', MX: 'Mail Exchanger (MX)', PTR: 'Pointer (PTR)' }[r.type] || r.type)}</td><td class="mono">${esc(r.data)}</td><td>${r.static !== false ? 'static' : esc(r.ts || '10/14/2026 9:00:00 AM')}</td></tr>`).join('')}</table></div>${st.form === 'a' ? `<div class="fm"><label>Name (blank = parent)</label><input id="aN"><label>IP address</label><input id="aI"><label></label><label><input type="checkbox" id="aP"> Create associated pointer (PTR) record</label></div><button class="btn sm p" id="aOk">Add Host</button>` : st.form === 'c' ? `<div class="fm"><label>Alias name</label><input id="cN"><label>FQDN of target host</label><input id="cT"></div><button class="btn sm p" id="cOk">OK</button>` : ''}`;
   else if (st.z === '__new') pane = `<b>New Zone Wizard</b><div class="fm"><label>Zone type</label><select id="nT"><option value="p">Primary zone</option><option value="cf">Conditional forwarder</option></select><label>Zone name</label><input id="nN" placeholder="dimo.local"><label>Master servers (conditional forwarder)</label><input id="nM" placeholder="10.20.10.10"></div><button class="btn sm p" id="nOk">Finish</button>`;
-  else pane = `<p class="m">Select a zone.</p><p>Scavenging: ${d.dns?.scavenge ? `on (${d.dns.scavenge} days)` : 'off'} <button class="btn sm" id="sOn">${d.dns?.scavenge ? 'Turn off' : 'Turn on (7 days)'}</button></p>`;
+  else pane = `<p class="m">Select a zone.</p><p>Scavenging: ${d.dns?.scav ? 'on (7 days)' : 'off'} <button class="btn sm" id="sOn">${d.dns?.scav ? 'Turn off' : 'Turn on (7 days)'}</button></p>`;
   el.innerHTML = `<div class="gui" style="padding:0"><div class="mmc"><div class="mh"><b>DNS Manager ▸ ${esc(d.hostname)}</b><span style="flex:1"></span>${z ? '<button class="btn sm" data-f="a">New Host (A)…</button><button class="btn sm" data-f="c">New Alias (CNAME)…</button>' : ''}${z && st.sel != null ? '<button class="btn sm" id="rDel">Delete record</button>' : ''}<button class="btn sm" id="cClr">Clear Cache</button></div><div class="mb"><div class="tree"><a class="m">🖧 ${esc(d.hostname)}</a><a class="m" style="padding-left:18px">📁 Forward Lookup Zones</a>${Z.map((x) => `<a data-z="${esc(x.name)}" class="${st.z === x.name ? 'on' : ''}" style="padding-left:30px">🗂 ${esc(x.name)}</a>`).join('')}<a data-z="__new" style="padding-left:30px" class="${st.z === '__new' ? 'on' : ''}">＋ New Zone…</a><a data-z="__fwd" style="padding-left:18px" class="${st.z === '__fwd' ? 'on' : ''}">➜ Forwarders</a></div><div class="pane">${mmcRes(st.res)}${pane}</div></div></div></div>`;
   $$('[data-z]', el).forEach((a) => (a.onclick = () => { st.z = a.dataset.z; st.sel = null; st.form = null; redraw(); }));
   $$('[data-r]', el).forEach((r) => (r.onclick = () => { st.sel = +r.dataset.r; redraw(); }));
@@ -4180,7 +4180,7 @@ function guiDnsMgr(el, L, d, done) {
   g('#fOk', () => run(`Set-DnsServerForwarder -IPAddress ${v('#fF').split(/[\s,]+/).filter(Boolean).map(psq).join(',') || "''"}`));
   g('#nOk', () => { const t = v('#nT'); run(t === 'p' ? `Add-DnsServerPrimaryZone -Name ${psq(v('#nN'))} -ZoneFile ${psq(v('#nN') + '.dns')}` : `Add-DnsServerConditionalForwarderZone -Name ${psq(v('#nN'))} -MasterServers ${psq(v('#nM'))}`); });
   g('#cClr', () => run('Clear-DnsServerCache -Force'));
-  g('#sOn', () => run(d.dns?.scavenge ? 'Set-DnsServerScavenging -ScavengingState $false' : 'Set-DnsServerScavenging -ScavengingState $true -ScavengingInterval 7.00:00:00'));
+  g('#sOn', () => run(d.dns?.scav ? 'Set-DnsServerScavenging -ScavengingState $false' : 'Set-DnsServerScavenging -ScavengingState $true -ScavengingInterval 7.00:00:00'));
 }
 // ---------------------------------------------------------------- DHCP console
 function guiDhcpMgr(el, L, d, done) {
@@ -4838,6 +4838,19 @@ function adQuick(L, dcId, o = {}) {
   ps(dc, `New-ADOrganizationalUnit -Name DIMO -Path '${base}'`);
   (o.users || []).forEach(([sam, name, pw]) => ps(dc, `New-ADUser -Name '${name}' -SamAccountName ${sam} -Path 'OU=DIMO,${base}' -AccountPassword (ConvertTo-SecureString '${pw}' -AsPlainText -Force) -Enabled $true`));
   (o.join || []).forEach((id) => { const d = L.devs[id]; winInit(L, d); const r = adJoin(L, d, dom, 'Administrator', L.devs[dcId].adminPass || 'Passw0rd!'); if (!r.ok && !o.quiet) console.warn('adQuick join', id, r.msg); d.domain = dom; delete d.pendingJoin; if (d.svc?.Netlogon) d.svc.Netlogon.status = 'Running'; });
+  settle(L, 'nodhcp');
+}
+/** Two domain controllers for corp.dimo.lk (forest on the first), each using the other for DNS first, forwarding to 8.8.8.8 */
+function adPair(L, a, b, o = {}) {
+  const ps = (id, c) => winPs(L, L.devs[id], c); const pw = L.devs[a].adminPass || 'Dimo@Lab2026';
+  const cred = `(New-Object System.Management.Automation.PSCredential('DIMO\\Administrator', (ConvertTo-SecureString '${pw}' -AsPlainText -Force)))`;
+  const ip = (id) => Object.values(L.devs[id].nics)[0].ip;
+  ps(a, 'Install-WindowsFeature AD-Domain-Services -IncludeManagementTools'); ps(a, "Install-ADDSForest -DomainName corp.dimo.lk -DomainNetbiosName DIMO -InstallDns -SafeModeAdministratorPassword (ConvertTo-SecureString 'Dsrm!2026x' -AsPlainText -Force) -Force"); settle(L, 'nodhcp');
+  if (b) { L.devs[b].nics[Object.keys(L.devs[b].nics)[0]].dns = [ip(a), '127.0.0.1']; ps(b, 'Install-WindowsFeature AD-Domain-Services -IncludeManagementTools'); ps(b, `Install-ADDSDomainController -DomainName corp.dimo.lk -InstallDns -Credential ${cred} -SafeModeAdministratorPassword (ConvertTo-SecureString 'Dsrm!2026x' -AsPlainText -Force) -Force`); L.devs[a].nics[Object.keys(L.devs[a].nics)[0]].dns = [ip(b), '127.0.0.1']; }
+  [a, b].filter(Boolean).forEach((id) => ps(id, 'Set-DnsServerForwarder -IPAddress 8.8.8.8'));
+  ps(a, "New-ADOrganizationalUnit -Name DIMO -Path 'DC=corp,DC=dimo,DC=lk'"); (o.ous || []).forEach((x) => ps(a, `New-ADOrganizationalUnit -Name ${x} -Path 'OU=DIMO,DC=corp,DC=dimo,DC=lk'`));
+  (o.users || []).forEach(([sam, name, ou, pass]) => ps(a, `New-ADUser -Name '${name}' -SamAccountName ${sam} -Path '${ou ? `OU=${ou},` : ''}OU=DIMO,DC=corp,DC=dimo,DC=lk' -AccountPassword (ConvertTo-SecureString '${pass || 'Welcome@123'}' -AsPlainText -Force) -Enabled $true`));
+  (o.join || []).forEach((id) => { const d = L.devs[id]; const n = d.nics[Object.keys(d.nics)[0]]; if (!n.dhcp) n.dns = [ip(a), ...(b ? [ip(b)] : [])]; ps(id, `Add-Computer -DomainName corp.dimo.lk${o.joinOu ? ` -OUPath 'OU=${o.joinOu},OU=DIMO,DC=corp,DC=dimo,DC=lk'` : ''} -Credential ${cred} -Restart`); });
   settle(L, 'nodhcp');
 }
 
@@ -5769,6 +5782,183 @@ SESSIONS.push({
     { q: 'AGDLP: users go into…', a: ['Domain local groups directly', 'Global groups by role, which go into domain local groups that get permissions', 'Universal groups only', 'Local Administrators'], c: 1, why: 'Accounts → Global → Domain Local → Permission.' },
   ],
 });
+
+;
+// =================== Session 11 – DNS & DHCP on Windows: zones, records, forwarders, scavenging; scopes, options, reservations, relay, failover
+function dhcpLab(o = {}) {
+  const srv = (id, x, y, ip) => ({ id, kind: 'srv', x, y, hostname: id, os: 'win', server: true, ver: 'Microsoft Windows Server 2022 Standard', adminPass: 'Dimo@Lab2026', nics: { Ethernet: { cidr: `${ip}/24`, gw: '10.10.50.1', dns: ['127.0.0.1'] } } });
+  const spec = {
+    devs: [
+      B.isp(330, 20, { a: { cidr: '203.115.21.5/30' } }),
+      { id: 'FGT', kind: 'fw', x: 330, y: 85, hostname: 'FGT-HQ', ifs: { port1: { cidr: '203.115.21.6/30', access: 'ping', role: 'wan' }, port2: { cidr: '10.10.50.254/24', access: 'ping https ssh', role: 'lan' } }, cfg: { 'router static': { 1: { gateway: ['203.115.21.5'], device: ['port1'] }, 2: { dst: ['10.10.0.0', '255.255.0.0'], gateway: ['10.10.50.1'], device: ['port2'] } }, 'firewall policy': { 1: { name: ['LAN-Internet'], srcintf: ['port2'], dstintf: ['port1'], srcaddr: ['all'], dstaddr: ['all'], service: ['ALL'], action: ['accept'], schedule: ['always'], nat: ['enable'] } } } },
+      B.sw('SW', 330, 165, 24, { hn: 'SW-CORE-L3', x: { vlans: { 1: 'default', 10: 'STAFF', 30: 'DEVICES', 50: 'SERVERS' } } }),
+      srv('DC1', 150, 240, '10.10.50.10'), srv('DC2', 280, 250, '10.10.50.11'), B.lx('WEB', 520, 240, '10.10.50.80/24', { gw: '10.10.50.1', dns: ['10.10.50.10'], hn: 'intranet' }),
+      B.pc('PC1', 120, 340, 'dhcp', { hn: 'FIN-PC01' }), B.pc('PC2', 230, 345, 'dhcp', { hn: 'FIN-PC02' }), B.pc('PC3', 340, 350, 'dhcp', { hn: 'NEW-PC07' }),
+      { id: 'PRN', kind: 'printer', x: 470, y: 340, hostname: 'PRN-FIN', nics: { eth0: { dhcp: true } }, svc: { ipp: { tcp: [631, 9100] } } },
+    ],
+    links: [['ISP:a', 'FGT:port1'], ['FGT:port2', 'SW:Gi1/0/24'], ['DC1:Ethernet', 'SW:Gi1/0/1'], ['DC2:Ethernet', 'SW:Gi1/0/2'], ['WEB:ens18', 'SW:Gi1/0/3'], ['PC1:Ethernet', 'SW:Gi1/0/5'], ['PC2:Ethernet', 'SW:Gi1/0/6'], ['PC3:Ethernet', 'SW:Gi1/0/7'], ['PRN:eth0', 'SW:Gi1/0/10']],
+    post: (L) => {
+      const s = L.devs.SW; s.iprouting = true; s.svis = { 10: { ip: '10.10.10.1', mask: '255.255.255.0', helper: ['10.10.50.10'] }, 30: { ip: '10.10.30.1', mask: '255.255.255.0', helper: ['10.10.50.10'] }, 50: { ip: '10.10.50.1', mask: '255.255.255.0' } }; s.routes = [{ net: '0.0.0.0', mask: '0.0.0.0', via: '10.10.50.254' }];
+      ['Gi1/0/1', 'Gi1/0/2', 'Gi1/0/3', 'Gi1/0/24'].forEach((p) => (s.ports[p].vlan = 50)); ['Gi1/0/5', 'Gi1/0/6', 'Gi1/0/7'].forEach((p) => (s.ports[p].vlan = 10)); s.ports['Gi1/0/10'].vlan = 30;
+      lxWeb(L, 'WEB', '<h1>DIMO Intranet</h1>');
+      adPair(L, 'DC1', 'DC2', { ous: ['Finance', 'Workstations'] });
+      if (o.done) dhcpDone(L); if (o.post) o.post(L); settle(L);
+    },
+  };
+  return spec;
+}
+const PRN_IP = '10.10.30.20';
+function dhcpDone(L) {
+  const ps = (id, c) => winPs(L, L.devs[id], c); const mac = L.devs.PRN.nics.eth0.mac.replace(/:/g, '-');
+  ['DC1', 'DC2'].forEach((d) => { ps(d, 'Install-WindowsFeature DHCP -IncludeManagementTools'); ps(d, `Add-DhcpServerInDC -DnsName ${d}.corp.dimo.lk`); });
+  ps('DC1', 'Add-DhcpServerv4Scope -Name Staff -StartRange 10.10.10.100 -EndRange 10.10.10.199 -SubnetMask 255.255.255.0 -State Active'); ps('DC1', "Set-DhcpServerv4OptionValue -ScopeId 10.10.10.0 -Router 10.10.10.1 -DnsServer 10.10.50.10,10.10.50.11 -DnsDomain 'corp.dimo.lk'");
+  ps('DC1', 'Add-DhcpServerv4Scope -Name Devices -StartRange 10.10.30.100 -EndRange 10.10.30.150 -SubnetMask 255.255.255.0 -State Active'); ps('DC1', "Set-DhcpServerv4OptionValue -ScopeId 10.10.30.0 -Router 10.10.30.1 -DnsServer 10.10.50.10,10.10.50.11 -DnsDomain 'corp.dimo.lk'");
+  ps('DC1', `Add-DhcpServerv4Reservation -ScopeId 10.10.30.0 -IPAddress ${PRN_IP} -ClientId '${mac}' -Name PRN-FIN`);
+  ps('DC1', "Add-DhcpServerv4Failover -Name DC1-DC2 -PartnerServer DC2.corp.dimo.lk -ScopeId 10.10.10.0,10.10.30.0 -LoadBalancePercent 50 -SharedSecret 'Fail0ver!' -Force");
+  const s = L.devs.SW; s.svis[10].helper = ['10.10.50.10', '10.10.50.11']; s.svis[30].helper = ['10.10.50.10', '10.10.50.11'];
+  ps('DC1', "Add-DnsServerResourceRecordA -ZoneName 'corp.dimo.lk' -Name intranet -IPv4Address 10.10.50.80"); ps('DC1', "Add-DnsServerResourceRecordCName -ZoneName 'corp.dimo.lk' -Name www -HostNameAlias 'intranet.corp.dimo.lk'");
+  ps('DC1', "Add-DnsServerPrimaryZone -NetworkId '10.10.50.0/24' -ReplicationScope Domain"); ps('DC1', 'Set-DnsServerScavenging -ScavengingState $true -ScavengingInterval 7.00:00:00');
+  ['PC1', 'PC2', 'PC3', 'PRN'].forEach((x) => Object.values(L.devs[x].nics).forEach((c) => Object.assign(c, { ip: null, tried: false, apipa: null })));
+  settle(L); settle(L, 'nodhcp');
+}
+const scopeOn = (L, dc, net) => (L.devs[dc].dhcpd?.scopes || []).find((s) => s.net === net && s.active !== false);
+SESSIONS.push({
+  id: 's11', n: 11, mod: 2, title: 'DNS & DHCP on Windows', focus: 'Zones, records, forwarders, scavenging; DHCP scopes, reservations, failover', milestone: 'Every VLAN gets addresses and names',
+  concept: [
+    { h: 'DNS on the domain controllers', html: `<p>The DCs host the <b>AD-integrated zone</b> corp.dimo.lk – it replicates with AD and accepts <b>secure dynamic updates</b>, so PCs register their own A records. You add records for servers and services by hand:</p><ul><li><b>A</b> – name → IPv4 (intranet → 10.10.50.80). <b>CNAME</b> – alias → name (www → intranet). <b>PTR</b> – IP → name, in a <b>reverse zone</b> (50.10.10.in-addr.arpa).</li><li><b>Forwarders</b> – where the DCs send internet names (8.8.8.8, or the ISP). <b>Conditional forwarders</b> – a specific domain to a specific server (a partner's DNS).</li><li><b>Scavenging</b> deletes stale <i>dynamic</i> records. Static records you typed are never scavenged – unless someone made them dynamic.</li></ul>`, check: [
+      { q: 'Internal names resolve but google.com does not – from every PC. First place to look?', a: ['Each PC\'s hosts file', 'The DNS server forwarders', 'DHCP', 'The reverse zone'], c: 1, why: 'The DCs cannot reach their upstream.' },
+      { q: 'Which record maps an alias to another name?', a: ['A', 'CNAME', 'PTR', 'MX'], c: 1, why: 'Canonical name.' },
+    ] },
+    { h: 'DHCP: scopes, options, reservations', html: `<p>A <b>scope</b> is a range per subnet (VLAN) plus <b>options</b>: 003 Router, 006 DNS servers, 015 DNS domain name. Exclude the static addresses, keep the lease short for guests (hours) and longer for staff (8 days).</p><p><b>Reservations</b> tie a MAC address to a fixed IP – for printers, phones and APs – so the address never changes but is still managed centrally.</p><p>The DCs are on VLAN 50, clients on VLAN 10 and 30: the core switch needs <code>ip helper-address</code> on each client VLAN pointing to <b>both</b> DHCP servers. In AD, a Windows DHCP server must be <b>authorized</b> or it leases nothing.</p>`, w: 'dora', check: [
+      { q: 'Printers in VLAN 30 get no address, PCs in VLAN 10 are fine. Both scopes exist and are active. Most likely?', a: ['The printer is broken', 'No ip helper-address on the VLAN 30 SVI', 'DNS', 'The lease time'], c: 1, why: 'The relay is per VLAN.' },
+    ] },
+    { h: 'DHCP failover and exhaustion', html: `<p><b>DHCP failover</b> (Windows Server 2012+) shares a scope between two servers: <b>load balance</b> (50/50, both active) or <b>hot standby</b>. If DC1 is down, DC2 keeps leasing. The relay must point to both.</p><p><b>Scope exhausted</b>: every address leased → new clients get 169.254.x.x. The DHCP log shows event 1020 ("scope is 100 percent full"). Fix: extend the range (if the subnet allows), shorten the lease, remove stale leases – or make the subnet bigger.</p>`, check: [
+      { q: 'A new PC gets 169.254.x.x; the scope shows 100% in use. The subnet is /24 and the range is .100–.110. Best fix?', a: ['Reboot the DC', 'Extend the range (e.g. to .199)', 'Static IP for the PC', 'Turn off DHCP'], c: 1, why: 'There is room in the subnet.' },
+    ] },
+  ],
+  lab: {
+    title: 'Lab: DNS and DHCP for every VLAN',
+    intro: '<p>The domain corp.dimo.lk is running on DC1 (10.10.50.10) and DC2 (10.10.50.11). The core switch routes VLAN 10 (staff 10.10.10.0/24), VLAN 30 (devices 10.10.30.0/24) and VLAN 50 (servers). Its SVIs relay DHCP to DC1 only. The PCs and the Finance printer are waiting for addresses. The intranet web server is 10.10.50.80.</p>',
+    build: () => dhcpLab(), open: ['DC1'],
+    tasks: [
+      { id: 'scope', t: 'DHCP on DC1 (authorized): scope <b>Staff</b> 10.10.10.100–199 and <b>Devices</b> 10.10.30.100–150, each with router (.1), DNS servers 10.10.50.10 + 10.10.50.11 and domain corp.dimo.lk.', check: (L) => { const D = L.devs.DC1.dhcpd; const a = scopeOn(L, 'DC1', '10.10.10.0'), b = scopeOn(L, 'DC1', '10.10.30.0'); return !!D && D.auth !== false && !!a && !!b && a.gw === '10.10.10.1' && b.gw === '10.10.30.1' && [a, b].every((s) => (s.dns || []).includes('10.10.50.10') && (s.dns || []).includes('10.10.50.11') && s.dom === 'corp.dimo.lk'); }, hint: 'Server Manager → Add Roles → DHCP Server → "Complete DHCP configuration" (authorize). Then the DHCP console → New Scope.' },
+      { id: 'res', t: `Reserve <b>${PRN_IP}</b> for the Finance printer PRN-FIN (find its MAC address).`, check: (L) => L.devs.PRN.nics.eth0.ip === PRN_IP, hint: 'The printer\'s MAC: it appears in Address Leases once it has any lease, or ask the switch: <code>show mac address-table interface g1/0/10</code>.' },
+      { id: 'cli', t: 'FIN-PC01, FIN-PC02 and NEW-PC07 have 10.10.10.x addresses with the right DNS servers.', check: (L) => ['PC1', 'PC2', 'PC3'].every((x) => inSub(L, x, '10.10.10.0', 24) && (L.devs[x].nics.Ethernet.dns || []).includes('10.10.50.10')) },
+      { id: 'fo', t: 'Resilience: DHCP failover DC1 ⇄ DC2 (load balance) for both scopes, and the core switch relays to <b>both</b> DCs on VLAN 10 and 30.', check: (L) => !!L.devs.DC1.dhcpd?.failover && ['10.10.10.0', '10.10.30.0'].every((n) => (L.devs.DC2.dhcpd?.scopes || []).some((s) => s.net === n)) && [10, 30].every((v) => ['10.10.50.10', '10.10.50.11'].every((h) => (L.devs.SW.svis[v]?.helper || []).includes(h))), hint: 'DC2 needs the DHCP role (authorized) first. Then on DC1: DHCP → IPv4 → Configure Failover, or <code>Add-DhcpServerv4Failover</code>. Switch: <code>ip helper-address 10.10.50.11</code> on each client SVI.' },
+      { id: 'dns', t: 'Records: <b>intranet</b> A 10.10.50.80 and <b>www</b> CNAME → intranet.corp.dimo.lk; a reverse zone for 10.10.50.0/24. FIN-PC01 opens http://www.corp.dimo.lk.', check: (L) => C.web(L, 'PC1', 'http://www.corp.dimo.lk') && dnsZones(L, L.devs.DC1).some((z) => z.name === '50.10.10.in-addr.arpa') },
+      { id: 'inet', t: 'FIN-PC01 resolves www.google.com (the DCs forward to 8.8.8.8), and scavenging is on (7 days) on DC1.', check: (L) => C.resolves(L, 'PC1', 'www.google.com') && !!L.devs.DC1.dns?.scav },
+      { id: 'opt', t: 'Which DHCP option number carries the DNS servers?', ans: () => ['6', '006'] },
+    ],
+  },
+  tickets: [
+    { id: 't1', no: 5102, title: 'Intranet "can\'t be reached" for everyone', who: 'All staff', prio: 'High', text: '<p>"http://intranet.corp.dimo.lk says <i>DNS_PROBE_FINISHED_NXDOMAIN</i> since Monday. http://10.10.50.80 works." (Someone enabled scavenging aggressively last week, and the intranet record had been registered dynamically by a former admin.)</p>', build: () => dhcpLab({ done: true }), open: ['PC1', 'DC1'], fault: (L) => { L.ad.zones.forEach((z) => (z.recs = z.recs.filter((r) => !(r.name === 'intranet' || r.name === 'www')))); }, hint: '<code>nslookup intranet.corp.dimo.lk</code>. Look in DNS Manager. Add the records back as static.', checks: [{ t: 'FIN-PC01 opens http://intranet.corp.dimo.lk', f: (L) => C.web(L, 'PC1', 'http://intranet.corp.dimo.lk') }, { t: 'www.corp.dimo.lk works too', f: (L) => C.web(L, 'PC1', 'http://www.corp.dimo.lk') }] },
+    { id: 't2', no: 5108, title: 'New starters get "No network"', who: 'HR – 3 new starters today', text: '<p>"The new PCs on the staff floor show 169.254 addresses. Existing PCs are fine." (Last month the Staff scope was "tidied" to .100–.110 to "save addresses".)</p>', build: () => dhcpLab({ done: true }), open: ['PC3', 'DC1'], fault: (L) => { ['DC1', 'DC2'].forEach((d) => { const s = L.devs[d].dhcpd.scopes.find((x) => x.net === '10.10.10.0'); s.end = '10.10.10.110'; const ls = L.devs[d].dhcpd.leases; Object.keys(ls).filter((m) => inNet(ls[m], '10.10.10.0', '255.255.255.0')).forEach((m) => delete ls[m]); ['PC1', 'PC2'].forEach((x, i) => (ls[L.devs[x].nics.Ethernet.mac] = `10.10.10.${100 + i}`)); for (let i = 2; i < 11; i++) ls[`00:50:56:aa:00:${(16 + i).toString(16)}`] = `10.10.10.${100 + i}`; }); ['PC1', 'PC2'].forEach((x, i) => (L.devs[x].nics.Ethernet.ip = `10.10.10.${100 + i}`)); Object.assign(L.devs.PC3.nics.Ethernet, { ip: null, tried: false, apipa: null }); settle(L); }, hint: 'DHCP console → Scope → Address Leases and Scope statistics (or <code>Get-DhcpServerv4ScopeStatistics</code>). The subnet is a /24.', checks: [{ t: 'NEW-PC07 has a 10.10.10.x address', f: (L) => inSub(L, 'PC3', '10.10.10.0', 24) }, { t: 'The scope has room again (at least 50 addresses)', f: (L) => { const s = L.devs.DC1.dhcpd.scopes.find((x) => x.net === '10.10.10.0'); return ip2n(s.end) - ip2n(s.start) + 1 >= 50 && inNet(s.end, s.net, s.mask); } }] },
+    { id: 't3', no: 5115, title: 'Internet sites don\'t open, internal ones do', who: 'Helpdesk', prio: 'High', text: '<p>"Since the ISP change on Saturday nobody can open google.com or any website by name. Teams and the intranet work." (The old ISP\'s DNS 203.115.0.1 was configured somewhere.)</p>', build: () => dhcpLab({ done: true }), open: ['DC1', 'PC1'], fault: (L) => { ['DC1', 'DC2'].forEach((d) => (L.devs[d].dns.fwd = ['203.115.0.1'])); }, hint: 'Where do the DCs send names they do not know? DNS Manager → server → Forwarders. Clear the DNS cache after the change.', checks: [{ t: 'FIN-PC01 resolves www.google.com', f: (L) => C.resolves(L, 'PC1', 'www.google.com') }, { t: 'Both DCs forward correctly', f: (L) => ['DC1', 'DC2'].every((d) => (L.devs[d].dns.fwd || []).includes('8.8.8.8') && !(L.devs[d].dns.fwd || []).includes('203.115.0.1')) }] },
+    { id: 't4', no: 5121, title: 'Finance printer "offline" again', who: 'Finance', text: `<p>"The printer works for a day then everybody's print jobs fail. The print server is set to ${PRN_IP}." (The reservation was re-created by a new admin from a sticker on the printer.)</p>`, build: () => dhcpLab({ done: true }), open: ['DC1'], fault: (L) => { ['DC1', 'DC2'].forEach((d) => { const s = L.devs[d].dhcpd.scopes.find((x) => x.net === '10.10.30.0'); const mac = L.devs.PRN.nics.eth0.mac; delete s.res[mac]; s.res['00:1b:a9:7f:20:20'] = PRN_IP; delete L.devs[d].dhcpd.leases[mac]; }); Object.assign(L.devs.PRN.nics.eth0, { ip: null, tried: false }); settle(L); }, hint: 'Which address does the printer have now? Compare its real MAC (switch MAC table, DHCP leases) with the reservation.', checks: [{ t: `PRN-FIN has ${PRN_IP}`, f: (L) => L.devs.PRN.nics.eth0.ip === PRN_IP }] },
+  ],
+  quiz: [
+    { q: 'What does an ip helper-address do for Windows DHCP?', a: ['Authorizes the server', 'Relays clients\' DHCP broadcasts across VLANs to the DHCP server(s)', 'Sets option 6', 'Creates a reservation'], c: 1, why: 'Without it, only the server\'s own VLAN gets leases.' },
+    { q: 'A Windows DHCP server in a domain leases nothing; event 1046 is logged. Fix?', a: ['Restart it', 'Authorize it in AD', 'Add a reservation', 'Enable scavenging'], c: 1, why: 'Unauthorized servers stay silent.' },
+    { q: 'Which records does scavenging remove?', a: ['All records', 'Stale dynamic records older than the no-refresh + refresh intervals', 'Static records', 'SRV records only'], c: 1, why: 'Static records have no timestamp.' },
+    { q: 'Why use a reservation for a printer instead of a static IP on it?', a: ['Faster printing', 'The address is fixed but managed centrally (and options like DNS still come from DHCP)', 'Printers cannot take static IPs', 'Security'], c: 1, why: 'One place to see and change it.' },
+    { q: 'DHCP failover in load-balance mode means…', a: ['Only one server answers', 'Both servers lease from the same scope and take over if the other fails', 'Two separate scopes', 'Clients get two addresses'], c: 1, why: 'Shared scope, shared state.' },
+    { q: 'A reverse lookup zone holds…', a: ['A records', 'PTR records (IP → name)', 'MX records', 'Forwarders'], c: 1, why: 'Used by nslookup, logs, some apps.' },
+    { q: 'A conditional forwarder is used to…', a: ['Send all queries to Google', 'Send queries for one specific domain to that domain\'s DNS servers', 'Block a domain', 'Replicate a zone'], c: 1, why: 'e.g. a partner company\'s internal domain.' },
+  ],
+});
+WIDGETS.dora = (el) => {
+  const steps = [['Discover', 'PC → broadcast 255.255.255.255', 'The PC has no address yet: "any DHCP server out there?" The switch SVI (ip helper-address) turns it into a unicast to DC1 and DC2, adding its own address (giaddr 10.10.10.1) so the server knows which scope to use.'], ['Offer', 'DC1 → PC', '"You can have 10.10.10.123, router 10.10.10.1, DNS 10.10.50.10 / .11, lease 8 days."'], ['Request', 'PC → broadcast', '"I take 10.10.10.123 from DC1" – broadcast so DC2 knows its offer was not chosen.'], ['ACK', 'DC1 → PC', '"Confirmed." The PC configures the address, then checks nobody else uses it (gratuitous ARP).']];
+  let i = 0; const draw = () => { el.innerHTML = `<div class="wt">DHCP in four packets (DORA)</div><div class="tb">${steps.map((s, k) => `<button class="btn sm ${k === i ? 'p' : ''}" data-k="${k}">${k + 1}. ${s[0]}</button>`).join('')}</div><p class="mono" style="margin:6px 0">${esc(steps[i][1])}</p><p>${esc(steps[i][2])}</p>`; $$('[data-k]', el).forEach((b) => (b.onclick = () => { i = +b.dataset.k; draw(); })); };
+  draw();
+};
+
+;
+// =================== Session 12 – Group Policy & file services: GPO design, drive maps, printers, security baselines; shares, NTFS vs share permissions, AGDLP, DFS basics
+const BASE12 = 'DC=corp,DC=dimo,DC=lk';
+function gpoLab(o = {}) {
+  const srv = (id, x, y, ip) => ({ id, kind: 'srv', x, y, hostname: id, os: 'win', server: true, ver: 'Microsoft Windows Server 2022 Standard', adminPass: 'Dimo@Lab2026', nics: { Ethernet: { cidr: `${ip}/24`, gw: '10.10.20.1', dns: ['10.10.20.10'] } } });
+  const spec = {
+    devs: [
+      B.isp(330, 30, { a: { cidr: '203.115.21.5/30' } }),
+      { id: 'FGT', kind: 'fw', x: 330, y: 100, hostname: 'FGT-HQ', ifs: { port1: { cidr: '203.115.21.6/30', access: 'ping', role: 'wan' }, port2: { cidr: '10.10.20.1/24', access: 'ping https ssh', role: 'lan' } }, cfg: { 'router static': { 1: { gateway: ['203.115.21.5'], device: ['port1'] } }, 'firewall policy': { 1: { name: ['LAN-Internet'], srcintf: ['port2'], dstintf: ['port1'], srcaddr: ['all'], dstaddr: ['all'], service: ['ALL'], action: ['accept'], schedule: ['always'], nat: ['enable'] } } } },
+      B.sw('SW', 330, 180, 8, { hn: 'SW-HQ' }),
+      srv('DC1', 180, 260, '10.10.20.10'), srv('FS1', 480, 260, '10.10.20.20'),
+      B.pc('PC1', 250, 350, '10.10.20.51/24', { gw: '10.10.20.1', dns: ['10.10.20.10'], hn: 'FIN-PC01' }), B.pc('PC2', 410, 350, '10.10.20.52/24', { gw: '10.10.20.1', dns: ['10.10.20.10'], hn: 'HR-PC01' }),
+    ],
+    links: [['ISP:a', 'FGT:port1'], ['FGT:port2', 'SW:Gi1/0/8'], ['DC1:Ethernet', 'SW:Gi1/0/1'], ['FS1:Ethernet', 'SW:Gi1/0/2'], ['PC1:Ethernet', 'SW:Gi1/0/3'], ['PC2:Ethernet', 'SW:Gi1/0/4']],
+    post: (L) => {
+      ['DC1', 'FS1'].forEach((k) => { winInit(L, L.devs[k]); L.devs[k].localPass = { Administrator: 'Dimo@Lab2026' }; });
+      adPair(L, 'DC1', null, { ous: ['Finance', 'HR', 'Workstations', 'Servers'], users: [['nimal', 'Nimal Perera', 'Finance'], ['kamal', 'Kamal Silva', 'Finance'], ['sachini', 'Sachini Fernando', 'HR']], join: ['PC1', 'PC2'], joinOu: 'Workstations' });
+      const ps = (c) => winPs(L, L.devs.DC1, c);
+      [`New-ADGroup -Name GG_Finance -GroupScope Global -Path 'OU=Finance,OU=DIMO,${BASE12}'`, `New-ADGroup -Name GG_HR -GroupScope Global -Path 'OU=HR,OU=DIMO,${BASE12}'`, 'Add-ADGroupMember GG_Finance -Members nimal,kamal', 'Add-ADGroupMember GG_HR -Members sachini'].forEach(ps);
+      winPs(L, L.devs.FS1, `Add-Computer -DomainName corp.dimo.lk -OUPath 'OU=Servers,OU=DIMO,${BASE12}' -Credential (New-Object System.Management.Automation.PSCredential('DIMO\\Administrator', (ConvertTo-SecureString 'Dimo@Lab2026' -AsPlainText -Force))) -Restart`);
+      ['C:\\Shares', 'C:\\Shares\\Finance', 'C:\\Shares\\HR'].forEach((p) => winPs(L, L.devs.FS1, `New-Item -ItemType Directory -Path '${p}' -Force | Out-Null`));
+      if (o.done) gpoDone(L); if (o.post) o.post(L); settle(L);
+    },
+  };
+  return spec;
+}
+function gpoDone(L) {
+  const dc = (c) => winPs(L, L.devs.DC1, c), fs = (c) => winPs(L, L.devs.FS1, c);
+  [`New-ADGroup -Name DL_Finance_Modify -GroupScope DomainLocal -Path 'OU=Finance,OU=DIMO,${BASE12}'`, `New-ADGroup -Name DL_HR_Modify -GroupScope DomainLocal -Path 'OU=HR,OU=DIMO,${BASE12}'`, 'Add-ADGroupMember DL_Finance_Modify -Members GG_Finance', 'Add-ADGroupMember DL_HR_Modify -Members GG_HR'].forEach(dc);
+  ['Finance', 'HR'].forEach((x) => { fs(`New-SmbShare -Name ${x} -Path 'C:\\Shares\\${x}' -ChangeAccess 'Authenticated Users'`); fs(`icacls C:\\Shares\\${x} /inheritance:r /grant "DIMO\\DL_${x}_Modify:(OI)(CI)M" /grant "Administrators:(OI)(CI)F" /grant "SYSTEM:(OI)(CI)F"`); });
+  dc(`New-GPO -Name 'Finance Drives' | New-GPLink -Target 'OU=Finance,OU=DIMO,${BASE12}'`); const g = L.ad.gpos['Finance Drives']; g.user.drives = [{ letter: 'S', path: '\\\\FS1\\Finance' }];
+  dc(`New-GPO -Name 'HR Drives' | New-GPLink -Target 'OU=HR,OU=DIMO,${BASE12}'`); L.ad.gpos['HR Drives'].user.drives = [{ letter: 'H', path: '\\\\FS1\\HR' }];
+  dc(`New-GPO -Name 'Workstation Baseline' | New-GPLink -Target 'OU=Workstations,OU=DIMO,${BASE12}'`); const b = L.ad.gpos['Workstation Baseline']; b.comp.fw = true; b.comp.usbDeny = true; b.comp.banner = 'Authorised DIMO users only. Activity is logged.';
+  dc(`Set-ADDefaultDomainPasswordPolicy -Identity corp.dimo.lk -MinPasswordLength 12`);
+  ['PC1', 'PC2'].forEach((p) => gpoApply(L, L.devs[p])); adLogon(L, L.devs.PC1, 'nimal', 'Welcome@123'); adLogon(L, L.devs.PC2, 'sachini', 'Welcome@123');
+  settle(L, 'nodhcp');
+}
+/** Effective access of a user to a UNC path from a PC: 0 none, 1 read, 1.5 write, 2 modify, 3 full */
+const accessOf = (L, pc, user, unc) => { try { return smbOpen({ L, d: L.devs[pc], user }, unc).eff; } catch (e) { return -1; } };
+const gpoLinkedTo = (L, ou) => Object.entries(L.ad?.gpos || {}).filter(([, g]) => (g.links || []).some((l) => l.ou === ou && l.on)).map(([n]) => n);
+SESSIONS.push({
+  id: 's12', n: 12, mod: 2, title: 'Group Policy & file services', focus: 'GPO design, drive mappings, printers, security baselines; file shares, NTFS vs share permissions, DFS basics', milestone: 'Policies applied to users',
+  concept: [
+    { h: 'Group Policy: where it applies', html: `<p>A GPO has two halves: <b>Computer Configuration</b> (applies to computer objects in the OU, at startup) and <b>User Configuration</b> (applies to user objects in the OU, at logon). The most common mistake: a GPO with <i>user</i> settings (drive maps) linked to an OU that only holds <i>computers</i> – nothing happens.</p><p>Processing order is <b>L-S-D-OU</b>: local, site, domain, then OUs from the top down – the last one wins. <b>Enforced</b> links win over everything below; <b>Block Inheritance</b> stops parent GPOs (except enforced ones). <b>Security filtering</b> limits a GPO to certain groups (they need Read + Apply).</p><p>Troubleshoot with <code>gpresult /r</code> (what applied, what was filtered out and why) and <code>gpupdate /force</code>.</p>`, check: [
+      { q: 'A drive-map GPO is linked to the Workstations OU (computers only). Users get no drive. Why?', a: ['The GPO is disabled', 'Drive maps are user settings – the users are not in that OU', 'The share is down', 'DNS'], c: 1, why: 'Link user policies where the users are (or use loopback).' },
+      { q: 'Which command shows the GPOs applied to the current user and computer?', a: ['gpupdate', 'gpresult /r', 'ipconfig /all', 'netdom'], c: 1, why: 'Look for "Applied" and "filtered out".' },
+    ] },
+    { h: 'Share permissions vs NTFS permissions', html: `<p>Over the network both apply and the <b>most restrictive</b> wins. Common practice: share permission <b>Authenticated Users – Change</b> (or Full), and do the real work in <b>NTFS</b>.</p><p>NTFS on the folder: remove inheritance from the drive root, give <b>Administrators/SYSTEM Full</b> and the department's <b>domain local group Modify</b>. AGDLP: users → <b>GG_Finance</b> (global, by role) → <b>DL_Finance_Modify</b> (domain local, per resource) → NTFS Modify. New starter? Add them to GG_Finance – no folder changes. Deny entries are rarely needed and override allows.</p><p><b>DFS Namespaces</b> give one path (<code>\\\\corp.dimo.lk\\Shares\\Finance</code>) that points to the real servers, so you can move data without changing every drive map.</p>`, w: 'effperm', check: [
+      { q: 'Share: Everyone Read. NTFS: GG_Finance Modify. What can Finance users do over the network?', a: ['Modify', 'Read only – the most restrictive wins', 'Nothing', 'Full control'], c: 1, why: 'Share Read caps it.' },
+    ] },
+    { h: 'Security baselines', html: `<p>A <b>baseline GPO</b> on the workstation OU sets the company minimum: firewall on, USB storage blocked, logon banner, automatic updates, local admin renamed. Password and lockout policy for domain accounts must be in a GPO linked at the <b>domain</b> level (the Default Domain Policy), not at an OU.</p>` },
+  ],
+  lab: {
+    title: 'Lab: department shares with correct access, drive maps and a workstation baseline',
+    intro: '<p>corp.dimo.lk is running on DC1. FS1 (10.10.20.20) is a member file server with empty folders C:\\Shares\\Finance and C:\\Shares\\HR. Users: nimal and kamal (Finance, GG_Finance), sachini (HR, GG_HR); all passwords Welcome@123. FIN-PC01 and HR-PC01 are in OU DIMO › Workstations.</p>',
+    build: () => gpoLab(), open: ['DC1', 'FS1'],
+    tasks: [
+      { id: 'dl', t: 'AGDLP: domain local groups <b>DL_Finance_Modify</b> and <b>DL_HR_Modify</b>, with GG_Finance / GG_HR as their members.', check: (L) => L.ad?.groups.DL_Finance_Modify?.scope === 'DomainLocal' && L.ad.groups.DL_HR_Modify?.scope === 'DomainLocal' && L.ad.groups.DL_Finance_Modify.members.includes('GG_Finance') && L.ad.groups.DL_HR_Modify.members.includes('GG_HR') },
+      { id: 'fin', t: 'Share <b>\\\\FS1\\Finance</b>: Finance users can create and change files; HR cannot even open it.', check: (L) => accessOf(L, 'PC1', 'nimal', '\\\\FS1\\Finance') >= 2 && accessOf(L, 'PC2', 'sachini', '\\\\FS1\\Finance') < 1, hint: '<code>New-SmbShare -Name Finance -Path C:\\Shares\\Finance -ChangeAccess "Authenticated Users"</code>, then NTFS: <code>icacls C:\\Shares\\Finance /inheritance:r /grant "DIMO\\DL_Finance_Modify:(OI)(CI)M" /grant "Administrators:(OI)(CI)F" /grant "SYSTEM:(OI)(CI)F"</code>.' },
+      { id: 'hr', t: 'Share <b>\\\\FS1\\HR</b> the same way for HR; Finance cannot open it.', check: (L) => accessOf(L, 'PC2', 'sachini', '\\\\FS1\\HR') >= 2 && accessOf(L, 'PC1', 'nimal', '\\\\FS1\\HR') < 1 },
+      { id: 'map', t: 'GPO <b>Finance Drives</b> maps <b>S:</b> to \\\\FS1\\Finance for Finance users; GPO <b>HR Drives</b> maps <b>H:</b> to \\\\FS1\\HR for HR. Sign in as nimal on FIN-PC01 and sachini on HR-PC01 to test.', check: (L) => L.devs.PC1.drives?.S?.toLowerCase() === '\\\\fs1\\finance' && L.devs.PC2.drives?.H?.toLowerCase() === '\\\\fs1\\hr', hint: 'Link the GPOs to the Finance and HR OUs (where the users are). Group Policy Management → Edit → Drive map.' },
+      { id: 'base', t: 'GPO <b>Workstation Baseline</b> on OU Workstations: firewall enforced, removable storage denied, logon banner. Both PCs have it applied (<code>gpupdate /force</code>).', check: (L) => ['PC1', 'PC2'].every((p) => L.devs[p].policy?.usbDeny && L.devs[p].policy?.fw && !!L.devs[p].policy?.banner) },
+      { id: 'pwd', t: 'Domain password policy: minimum length 12.', check: (L) => (L.ad?.gpos['Default Domain Policy']?.comp.pwdLen || 0) >= 12 },
+      { id: 'who', t: 'On FIN-PC01 signed in as nimal: <code>gpresult /r</code> – which GPO gives the S: drive?', ans: () => ['Finance Drives'] },
+    ],
+  },
+  tickets: [
+    { id: 't1', no: 5203, title: 'S: drive missing for Finance', who: 'Nimal, Finance', text: '<p>"Since the IT clean-up my S: drive is gone. I can still open \\\\FS1\\Finance if I type it." (An admin "moved the drive-map GPO to the workstations OU to keep things tidy".)</p>', build: () => gpoLab({ done: true }), open: ['PC1', 'DC1'], fault: (L) => { const g = L.ad.gpos['Finance Drives']; g.links = [{ ou: 'DIMO/Workstations', on: true, enforced: false }]; delete L.devs.PC1.drives.S; adLogon(L, L.devs.PC1, 'nimal', 'Welcome@123'); }, hint: '<code>gpresult /r</code> under USER SETTINGS. Where is the GPO linked, and where are the users?', checks: [{ t: 'nimal gets S: at logon on FIN-PC01', f: (L) => adLogon(L, L.devs.PC1, 'nimal', 'Welcome@123').ok && L.devs.PC1.drives?.S?.toLowerCase() === '\\\\fs1\\finance' }] },
+    { id: 't2', no: 5209, title: 'New HR officer: "Access is denied"', who: 'HR manager', text: '<p>"Dilini started today. Her account works but the HR folder says <i>Access is denied</i>." (dilini / Welcome@2026! was created in the HR OU this morning – the new 12-character policy applies.)</p>', build: () => gpoLab({ done: true, post: (L) => winPs(L, L.devs.DC1, `New-ADUser -Name 'Dilini Silva' -SamAccountName dilini -Path 'OU=HR,OU=DIMO,${BASE12}' -AccountPassword (ConvertTo-SecureString 'Welcome@2026!' -AsPlainText -Force) -Enabled $true`) }), open: ['DC1', 'FS1'], hint: 'Compare dilini\'s groups with sachini\'s. Who has NTFS rights on C:\\Shares\\HR? Fix it the AGDLP way – not by adding her to the folder.', checks: [{ t: 'dilini can change files in \\\\FS1\\HR', f: (L) => accessOf(L, 'PC2', 'dilini', '\\\\FS1\\HR') >= 2 }, { t: 'Done through the group (no user entry on the folder)', f: (L) => !(L.devs.FS1.acl?.['C:\\Shares\\HR']?.aces || []).some((a) => /dilini/i.test(a.who)) }] },
+    { id: 't3', no: 5214, title: 'Finance can open files but not save', who: 'Kamal, Finance', prio: 'High', text: '<p>"Excel says the file is read-only on S:. Yesterday it was fine." (The file server was rebuilt from documentation last night.)</p>', build: () => gpoLab({ done: true }), open: ['FS1'], fault: (L) => { const s = L.devs.FS1.shares.Finance; s.perms = [{ who: 'Everyone', right: 'Read', type: 'allow' }]; }, hint: 'Effective access over the network = share ∩ NTFS. <code>Get-SmbShareAccess Finance</code> and <code>icacls C:\\Shares\\Finance</code>.', checks: [{ t: 'kamal can save on \\\\FS1\\Finance', f: (L) => accessOf(L, 'PC1', 'kamal', '\\\\FS1\\Finance') >= 2 }, { t: 'HR still cannot open it', f: (L) => accessOf(L, 'PC2', 'sachini', '\\\\FS1\\Finance') < 1 }] },
+    { id: 't4', no: 5221, title: 'USB sticks still work on HR-PC01', who: 'IT security', text: '<p>"Our audit found that HR-PC01 accepts USB storage and has no logon banner. All other PCs are fine." (HR-PC01 was re-joined to the domain last month.)</p>', build: () => gpoLab({ done: true }), open: ['DC1', 'PC2'], fault: (L) => { L.ad.computers['HR-PC01'].ou = 'Computers'; gpoApply(L, L.devs.PC2); L.devs.PC2.policy = {}; }, hint: '<code>gpresult /r /scope computer</code> on HR-PC01 – which OU is it in?', checks: [{ t: 'HR-PC01 has the Workstation Baseline applied', f: (L) => !!L.devs.PC2.policy?.usbDeny && !!L.devs.PC2.policy?.banner }, { t: 'HR-PC01 is in OU DIMO › Workstations', f: (L) => L.ad.computers['HR-PC01'].ou === 'DIMO/Workstations' }] },
+  ],
+  quiz: [
+    { q: 'In which order are GPOs processed?', a: ['OU, domain, site, local', 'Local, site, domain, OU (last wins)', 'Alphabetical', 'Random'], c: 1, why: 'LSDOU.' },
+    { q: 'What does Enforced on a GPO link do?', a: ['Applies it faster', 'Its settings win over lower GPOs and it ignores Block Inheritance', 'Applies it to every domain', 'Forces a reboot'], c: 1, why: 'Use rarely.' },
+    { q: 'Where must the domain password policy be set?', a: ['On the Users OU', 'In a GPO linked at the domain (Default Domain Policy)', 'On each PC', 'On the DC OU'], c: 1, why: 'Domain accounts read it only from the domain level.' },
+    { q: 'A new Finance user needs the share. The AGDLP way is…', a: ['Add the user to the folder\'s NTFS', 'Add the user to GG_Finance', 'Make the user an admin', 'Share the folder again'], c: 1, why: 'Groups carry the rights.' },
+    { q: 'Over the network, effective permission is…', a: ['The share permission', 'The NTFS permission', 'The more restrictive of the two', 'The more generous of the two'], c: 2, why: 'Both gates must allow it.' },
+    { q: 'What does DFS Namespaces give users?', a: ['Faster disks', 'One stable path that points to shares on any server', 'Encryption', 'Backups'], c: 1, why: 'Move data without changing paths.' },
+    { q: 'gpresult shows a GPO under "filtered out: Denied (Security)". Meaning?', a: ['It is disabled', 'Security filtering excludes this user/computer', 'It is not linked', 'WMI filter'], c: 1, why: 'They lack Read + Apply group policy.' },
+  ],
+});
+WIDGETS.effperm = (el) => {
+  const R = ['None', 'Read', 'Change', 'Full']; const N = ['None', 'Read', 'Modify', 'Full']; const st = { s: 2, n: 2 };
+  const draw = () => { const eff = Math.min(st.s, st.n); el.innerHTML = `<div class="wt">Effective access over the network</div><div class="grid2"><label class="f">Share permission<select id="eS">${R.map((x, i) => `<option value="${i}" ${i === st.s ? 'selected' : ''}>${x}</option>`).join('')}</select></label><label class="f">NTFS permission<select id="eN">${N.map((x, i) => `<option value="${i}" ${i === st.n ? 'selected' : ''}>${x}</option>`).join('')}</select></label></div><p style="font-size:18px">Effective: <b>${['No access', 'Read only', 'Read, write, delete (Modify)', 'Full control'][eff]}</b></p><p class="hint">Sitting at the server's own keyboard only NTFS applies.</p>`; $('#eS', el).onchange = (e) => { st.s = +e.target.value; draw(); }; $('#eN', el).onchange = (e) => { st.n = +e.target.value; draw(); }; };
+  draw();
+};
 
 ;
 boot();

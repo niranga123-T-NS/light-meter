@@ -40,3 +40,16 @@ function adQuick(L, dcId, o = {}) {
   (o.join || []).forEach((id) => { const d = L.devs[id]; winInit(L, d); const r = adJoin(L, d, dom, 'Administrator', L.devs[dcId].adminPass || 'Passw0rd!'); if (!r.ok && !o.quiet) console.warn('adQuick join', id, r.msg); d.domain = dom; delete d.pendingJoin; if (d.svc?.Netlogon) d.svc.Netlogon.status = 'Running'; });
   settle(L, 'nodhcp');
 }
+/** Two domain controllers for corp.dimo.lk (forest on the first), each using the other for DNS first, forwarding to 8.8.8.8 */
+function adPair(L, a, b, o = {}) {
+  const ps = (id, c) => winPs(L, L.devs[id], c); const pw = L.devs[a].adminPass || 'Dimo@Lab2026';
+  const cred = `(New-Object System.Management.Automation.PSCredential('DIMO\\Administrator', (ConvertTo-SecureString '${pw}' -AsPlainText -Force)))`;
+  const ip = (id) => Object.values(L.devs[id].nics)[0].ip;
+  ps(a, 'Install-WindowsFeature AD-Domain-Services -IncludeManagementTools'); ps(a, "Install-ADDSForest -DomainName corp.dimo.lk -DomainNetbiosName DIMO -InstallDns -SafeModeAdministratorPassword (ConvertTo-SecureString 'Dsrm!2026x' -AsPlainText -Force) -Force"); settle(L, 'nodhcp');
+  if (b) { L.devs[b].nics[Object.keys(L.devs[b].nics)[0]].dns = [ip(a), '127.0.0.1']; ps(b, 'Install-WindowsFeature AD-Domain-Services -IncludeManagementTools'); ps(b, `Install-ADDSDomainController -DomainName corp.dimo.lk -InstallDns -Credential ${cred} -SafeModeAdministratorPassword (ConvertTo-SecureString 'Dsrm!2026x' -AsPlainText -Force) -Force`); L.devs[a].nics[Object.keys(L.devs[a].nics)[0]].dns = [ip(b), '127.0.0.1']; }
+  [a, b].filter(Boolean).forEach((id) => ps(id, 'Set-DnsServerForwarder -IPAddress 8.8.8.8'));
+  ps(a, "New-ADOrganizationalUnit -Name DIMO -Path 'DC=corp,DC=dimo,DC=lk'"); (o.ous || []).forEach((x) => ps(a, `New-ADOrganizationalUnit -Name ${x} -Path 'OU=DIMO,DC=corp,DC=dimo,DC=lk'`));
+  (o.users || []).forEach(([sam, name, ou, pass]) => ps(a, `New-ADUser -Name '${name}' -SamAccountName ${sam} -Path '${ou ? `OU=${ou},` : ''}OU=DIMO,DC=corp,DC=dimo,DC=lk' -AccountPassword (ConvertTo-SecureString '${pass || 'Welcome@123'}' -AsPlainText -Force) -Enabled $true`));
+  (o.join || []).forEach((id) => { const d = L.devs[id]; const n = d.nics[Object.keys(d.nics)[0]]; if (!n.dhcp) n.dns = [ip(a), ...(b ? [ip(b)] : [])]; ps(id, `Add-Computer -DomainName corp.dimo.lk${o.joinOu ? ` -OUPath 'OU=${o.joinOu},OU=DIMO,DC=corp,DC=dimo,DC=lk'` : ''} -Credential ${cred} -Restart`); });
+  settle(L, 'nodhcp');
+}
