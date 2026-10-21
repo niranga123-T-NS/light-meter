@@ -64,4 +64,8 @@ module.exports = {
   's16.f4': [['MGMT', 'term', 'cd ~/ops-scripts'], ['MGMT', 'term', 'cat hosts'], ['MGMT', 'term', "sed -i 's/ansible_host=10.10.20.23/ansible_host=10.10.20.32/' hosts"], ['MGMT', 'term', 'ansible -i hosts all -m ping'], ['MGMT', 'term', 'ansible-playbook -i hosts patch.yml']],
   's16.f5': [['MGMT', 'term', 'cd ~/ops-scripts'], ['MGMT', 'term', 'git push'], ['MGMT', 'term', 'git pull'], ['MGMT', 'term', 'git log --oneline'], ['MGMT', 'term', 'git push']],
   's16.f6': [['MGMT', 'term', 'ssh admin@web01 hostname'], ['WEB', 'term', 'sudo tail -3 /var/log/auth.log'], ['WEB', 'term', 'sudo chmod 750 /home/admin'], ['MGMT', 'term', 'cd ~/ops-scripts && ansible-playbook -i hosts patch.yml']],
+  's17.t1': [['PVE1', 'shell', 'ip -br a'], ['PVE1', 'shell', 'ip link'], ['PVE1', 'shell', "sed -i 's/bridge-ports eno2/bridge-ports eno1/' /etc/network/interfaces"], ['PVE1', 'shell', 'ifreload -a'], ['PVE1', 'shell', 'ping -c 2 10.10.99.1']],
+  's17.t2': [['PVE1', 'shell', 'ping -c 2 10.10.99.1'], ['SW', 'con', 'enable'], ['SW', 'con', 'show interfaces status'], ['SW', 'con', 'conf t'], ['SW', 'con', 'int g1/0/1'], ['SW', 'con', 'switchport access vlan 99'], ['SW', 'con', 'end']],
+  's17.t3': [['PVE1', 'shell', 'ip r'], ['PVE1', 'shell', "sed -i 's/gateway 10.10.99.254/gateway 10.10.99.1/' /etc/network/interfaces"], ['PVE1', 'shell', 'ifreload -a'], ['PVE1', 'shell', 'ping -c 2 8.8.8.8'], ['PVE1', 'shell', 'apt update']],
+  's17.t4': [['PVE1', 'shell', 'systemctl status pveproxy'], ['PVE1', 'shell', 'systemctl restart pveproxy']],
 };

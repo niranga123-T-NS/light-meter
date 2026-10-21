@@ -15,6 +15,7 @@ TOOLS.pc = [
   { id: 'evt', label: 'Event Viewer', when: isWin, gui: guiEventViewer },
 ];
 TOOLS.ap = [{ id: 'wlc', label: 'Wireless controller', gui: guiWlc }];
+TOOLS.hv = [{ id: 'shell', label: 'Shell (console)', term: (L, d) => Object.assign(pveShell(L, d), { banner: `Linux ${d.hostname} ${d.pve?.kernel || ''} #1 SMP PREEMPT_DYNAMIC PMX x86_64\n\nThe programs included with the Debian GNU/Linux system are free software.\n\n` }) }, { id: 'gui', label: 'Web UI (:8006)', gui: guiPve }];
 TOOLS.laptop = TOOLS.pc;
 TOOLS.srv = [
   { id: 'ps', label: 'PowerShell', when: isWin, term: (L, d) => Object.assign(winShell(L, d, { ps: true, user: 'Administrator' }), { banner: 'Windows PowerShell\nCopyright (C) Microsoft Corporation. All rights reserved.\n\n' }) },
@@ -59,20 +60,22 @@ function guiNetSettings(el, L, d, done) {
 function guiBrowser(el, L, d, done) {
   const st = (APP.browser ??= {})[d.id] ??= { url: d.home || 'http://www.dimo.lk' };
   el.innerHTML = `<div class="gui"><div class="tb"><input id="bUrl" style="flex:1;min-width:200px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font-family:var(--mono)" value="${esc(st.url)}"><button class="btn p" id="bGo">Go</button></div><div id="bPage" style="border:1px solid var(--line);border-radius:8px;min-height:240px;padding:14px;background:#fff"></div></div>`;
+  const show = () => { $('#bPage', el).innerHTML = st.html || ''; if (st.pve && L.devs[st.pve]) guiPve($('#bPve', el), L, L.devs[st.pve], done); };
   const go = () => {
     const url = $('#bUrl', el).value.trim(); st.url = url; const m = url.match(/^(https?):\/\/([^/:]+)(:(\d+))?/) || [null, 'http', url.replace(/\/.*/, '')]; const host = m[2], port = +(m[4] || (m[1] === 'https' ? 443 : 80));
-    const err = (code, t, s) => ($('#bPage', el).innerHTML = `<div style="max-width:520px"><div style="font-size:40px">😟</div><h3>${t}</h3><p class="m">${s}</p><p class="mono m">${code}</p></div>`);
+    const err = (code, t, s) => (st.pve = null, st.html = `<div style="max-width:520px"><div style="font-size:40px">😟</div><h3>${t}</h3><p class="m">${s}</p><p class="mono m">${code}</p></div>`);
     const r = isIp(host) ? { ip: host } : d.os === 'linux' ? lxResolve(lxSession(L, d), host) : winResolve({ L, d }, host);
     L.cmdlog.push({ dev: d.id, kind: 'browser', line: url, t: L.clock });
     if (!r.ip) return err('DNS_PROBE_FINISHED_NXDOMAIN', 'Hmm… can\'t reach this page', `Check if there is a typo in ${esc(host)}. If spelling is correct, try running Windows Network Diagnostics.`), done();
     const t = send(L, d.id, { dst: r.ip, proto: 'tcp', dport: port });
     if (t.res === 'refused') return err('ERR_CONNECTION_REFUSED', 'Hmm… can\'t reach this page', `${esc(host)} refused to connect.`), done();
     if (t.res !== 'ok') return err('ERR_CONNECTION_TIMED_OUT', 'Hmm… can\'t reach this page', `${esc(host)} took too long to respond.`), done();
+    if (L.devs[t.at]?.kind === 'hv' && port === 8006) { if (m[1] !== 'https') return err('ERR_EMPTY_RESPONSE', 'This page isn\'t working', `${esc(host)} didn't send any data. (Proxmox answers on https://${esc(host)}:8006 only.)`), done(); st.html = '<div class="m mono" style="font-size:11.5px;margin-bottom:6px">⚠ Not secure (self-signed certificate) ' + esc(url) + '</div><div id="bPve"></div>'; st.pve = t.at; show(); done(); return; }
     const pg = httpServe(L, L.devs[t.at], m[1], host, port);
     if (pg?.err) { const exp = /expired/.test(pg.err); return err(exp ? 'NET::ERR_CERT_DATE_INVALID' : /self-signed/.test(pg.err) ? 'NET::ERR_CERT_AUTHORITY_INVALID' : /alternative/.test(pg.err) ? 'NET::ERR_CERT_COMMON_NAME_INVALID' : 'ERR_SSL_PROTOCOL_ERROR', 'Your connection isn\'t private', exp ? `Attackers might be trying to steal your information from ${esc(host)}. The certificate of this site has expired.` : `Attackers might be trying to steal your information from ${esc(host)}. The certificate is not trusted.`), done(); }
-    $('#bPage', el).innerHTML = `<div class="m mono" style="font-size:11.5px;margin-bottom:8px">${m[1] === 'https' ? '🔒' : 'ⓘ Not secure'} ${esc(url)}</div>${(pg?.body || '<h1>It works!</h1>').replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<(\/?)(html|head|body|title)[^>]*>/gi, '').replace(/ on\w+=/gi, ' data-x=')}`; done();
+    st.pve = null; st.html = `<div class="m mono" style="font-size:11.5px;margin-bottom:8px">${m[1] === 'https' ? '🔒' : 'ⓘ Not secure'} ${esc(url)}</div>${(pg?.body || '<h1>It works!</h1>').replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<(\/?)(html|head|body|title)[^>]*>/gi, '').replace(/ on\w+=/gi, ' data-x=')}`; done();
   };
-  $('#bGo', el).onclick = go; $('#bUrl', el).onkeydown = (e) => { if (e.key === 'Enter') go(); };
+  show(); $('#bGo', el).onclick = go; $('#bUrl', el).onkeydown = (e) => { if (e.key === 'Enter') go(); };
 }
 // ---------------------------------------------------------------- domain sign-in
 function guiSignIn(el, L, d, done) {
