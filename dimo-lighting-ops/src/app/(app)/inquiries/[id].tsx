@@ -16,12 +16,20 @@ import { openAttachment } from '@/lib/files';
 import { daysBetween, endOfWorkDay, fmtDate, fmtDateISO, fmtDateTime, fmtMoney, human, INQUIRY_STATUS_LABEL, todayISO, inquiryTitle, fmtDateDash } from '@/lib/format';
 import { editInquiryWin, OPEN_INQUIRY } from '@/lib/inquiryWin';
 import { useLoad, useMasters, usePeople } from '@/lib/hooks';
-import { isDesigner, isEstimator, isSales, projectTypeLabel } from '@/lib/roles';
+import { colourSide, inquiryColour, isDesigner, isEstimator, isSales, projectTypeLabel } from '@/lib/roles';
 import { rpc, supabase } from '@/lib/supabase';
 import type { Attachment, DesignJob, EstimationJob, Inquiry, Quotation, SlaClock } from '@/lib/types';
 
 type Offer = { id: string; our_price: number | null; tender_bids: { id: string; bid_price: number | null; won: boolean; competitor_id: number; competitors: { name: string } | null }[] };
 type Approval = { id: string; kind: string; title: string; reason: string | null; status: string; current_step: number; requested_at: string };
+
+type LateStage = { label: string; side: 'design' | 'estimation' | 'other'; owner: string | null; owner_id: string | null; team: string | null; due_at: string; delay_reason: string | null };
+const SIDE_NAME = { design: 'Design side', estimation: 'Estimation side', other: 'Sales / management' } as const;
+// How late a stage is, in hours under a day, else days
+const lateBy = (due: string) => {
+  const h = (Date.now() - Date.parse(due)) / 36e5;
+  return `overdue by ${h < 24 ? `${Math.max(1, Math.round(h))} h` : `${Math.round(h / 24)} d`}`;
+};
 
 export default function InquiryDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -34,13 +42,15 @@ export default function InquiryDetail() {
   const { data, error, reload } = useLoad(async () => {
     const { data: inq, error: e } = await supabase.from('inquiries').select('*').eq('id', id).single();
     if (e) throw new Error(e.message);
-    const [dj, ej, q, clocks, approvals, files] = await Promise.all([
+    const [dj, ej, q, clocks, approvals, files, lateStages] = await Promise.all([
       supabase.from('design_jobs').select('*').eq('inquiry_id', id).order('created_at'),
       supabase.from('estimation_jobs').select('*').eq('inquiry_id', id).order('created_at'),
       supabase.from('quotations').select('*').eq('inquiry_id', id).order('released_at', { ascending: false }),
       supabase.from('sla_clocks').select('*').eq('inquiry_id', id).is('stopped_at', null).order('due_at'),
       supabase.from('approvals').select('*').eq('inquiry_id', id).order('requested_at', { ascending: false }),
       rpc<Attachment[]>('inquiry_files', { p_inquiry: id }).catch(() => []),
+      // The overdue stages of every side, named even where the viewer cannot read that side's timer
+      rpc<LateStage[]>('inquiry_late_stages', { p_inquiry: id }).catch(() => [] as LateStage[]),
     ]);
     // Competition record of this quotation (Offers & competition) – only its readers get a row back
     const offer = ((await supabase.from('tenders').select('id, our_price, tender_bids(id, bid_price, won, competitor_id, competitors(name))').eq('inquiry_id', id).maybeSingle()).data ?? null) as Offer | null;
@@ -66,6 +76,7 @@ export default function InquiryDetail() {
       }),
       approvals: (approvals.data ?? []) as Approval[],
       files,
+      late: (lateStages ?? []).map((st) => ({ ...st, timing: lateBy(st.due_at) })),
     };
   }, [id, tick]);
 
@@ -82,12 +93,13 @@ export default function InquiryDetail() {
   }, [id, refresh]);
 
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const { inquiry: i, designJobs, estimationJobs, quotations, clocks, approvals, files, group, groupQuotes, offer } = data;
+  const { inquiry: i, designJobs, estimationJobs, quotations, clocks, approvals, files, group, groupQuotes, offer, late } = data;
   const offerEditor = i.sales_person_id === me.id || ['sm_projects', 'sm_estimation', 'am_estimation'].includes(me.role);
   const offerReader = offerEditor || me.role === 'gm';
   const openOthers = group.filter((g) => g.id !== i.id && !['won', 'lost', 'cancelled', 'rejected'].includes(g.status));
   const mineAsSales = i.sales_person_id === me.id || me.role === 'sm_projects' || me.role === 'gm';
-  const colour = i.status === 'on_hold' ? 'grey' : i.sla_colour;
+  const side = colourSide(me.role), colour = inquiryColour(i, side);
+  const ownLate = late.filter((st) => side === 'all' || st.side === side), otherLate = side === 'all' ? [] : late.filter((st) => st.side !== side);
   // The countdown runs only while the team still works towards the deadline; after the quotation it shows when it went
   const dn = deadlineNote(i);
   const counting = deadlineCounting(i.status);
@@ -549,18 +561,31 @@ export default function InquiryDetail() {
           {i.design_required_by ? <KeyValue label="Design required by" value={fmtDate(i.design_required_by)} /> : null}
           {i.quotation_required_by ? <KeyValue label="Quotation required by" value={fmtDate(i.quotation_required_by)} /> : null}
         </Row>
-        {i.sla_colour === 'red' ? (
+        {colour === 'red' ? (
           <Notice tone={colors.red}>
             {[
-              // Which stage is late, whose it is and by how much – then the reason the owner gave (or that none was given)
-              ...clocks
-                .filter((c) => c.colour === 'red')
-                .map((c) => `Delayed: ${c.label} – ${people[c.owner_id ?? '']?.full_name ?? human(c.owner_team)}, due ${fmtDateTime(c.revised_due_at ?? c.due_at)}, ${c.timing}`),
-              ...(clocks.some((c) => c.colour === 'red') ? [] : ['Delayed']),
-              i.delay_reason ? `Reason: ${i.delay_reason}` : 'No delay reason given yet – the owner enters it on the stage timer below.',
-              i.revised_due_at ? `Revised date ${fmtDateTime(i.revised_due_at)}` : null,
+              // Which stage is late, on which side, whose it is and by how much – then the reason the owner gave (or that none was given)
+              ...ownLate.map((st) => `Delayed: ${st.label}${side === 'all' ? ` · ${SIDE_NAME[st.side]}` : ''} · ${st.owner ?? human(st.team ?? '')} · due ${fmtDateTime(st.due_at)} · ${st.timing}`),
+              ...(ownLate.length ? [] : ['Delayed']),
+              ...ownLate.map((st) => (st.delay_reason ? `Reason: ${st.delay_reason}` : null)),
+              ownLate.some((st) => !st.delay_reason)
+                ? side === 'all' ? 'No delay reason given yet – the owner enters it on their stage timer.' : 'No delay reason given yet – the owner enters it on the stage timer below.'
+                : null,
+              side === 'all' && ownLate.length && ownLate.every((st) => st.side === 'estimation') && i.design_sla_colour && i.design_sla_colour !== 'red' && i.current_due_at
+                ? `Design side on time – due ${fmtDateTime(i.current_due_at)}`
+                : null,
+              side === 'all' && ownLate.length && ownLate.every((st) => st.side === 'design') && i.estimation_sla_colour && i.estimation_sla_colour !== 'red' && i.estimation_due_at
+                ? `Estimation side on time – due ${fmtDateTime(i.estimation_due_at)}`
+                : null,
             ]
               .filter(Boolean)
+              .join('\n')}
+          </Notice>
+        ) : null}
+        {otherLate.length ? (
+          <Notice tone={colors.grey}>
+            {otherLate
+              .map((st) => `${SIDE_NAME[st.side]} overdue – ${st.label} · ${st.owner ?? human(st.team ?? '')} · due ${fmtDateTime(st.due_at)} · ${st.timing}. Not a ${side} delay.`)
               .join('\n')}
           </Notice>
         ) : null}

@@ -9,7 +9,7 @@ import { useMe } from '@/lib/auth';
 import { fmtDate, fmtDateTime, fmtMoney } from '@/lib/format';
 import { geocodeAddress } from '@/lib/geocode';
 import { useLoad, useMasters, usePeople } from '@/lib/hooks';
-import { projectTypeLabel } from '@/lib/roles';
+import { colourSide, inquiryColour, projectTypeLabel } from '@/lib/roles';
 import { rpc, supabase } from '@/lib/supabase';
 import type { Contact, Inquiry, Organization, OrgUnit, Project, Visit } from '@/lib/types';
 
@@ -59,8 +59,9 @@ export default function CustomerDetail() {
   };
   const pendingDesign = inquiries.filter((i) => ['submitted', 'accepted', 'in_design', 'design_review', 'design_approved'].includes(i.status) && i.route !== 'B');
   const pendingEst = inquiries.filter((i) => ['in_estimation', 'estimation_review'].includes(i.status) || (i.route === 'B' && ['submitted', 'accepted'].includes(i.status)));
-  const overdue = [...pendingDesign, ...pendingEst].filter((i) => i.sla_colour === 'red');
-  const sortRed = (a: Inquiry, b: Inquiry) => Number(b.sla_colour === 'red') - Number(a.sla_colour === 'red');
+  const red = (i: Inquiry) => inquiryColour(i, colourSide(me.role)) === 'red';
+  const overdue = [...pendingDesign, ...pendingEst].filter(red);
+  const sortRed = (a: Inquiry, b: Inquiry) => Number(red(b)) - Number(red(a));
   const decided = inquiries.filter((i) => ['won', 'lost'].includes(i.status));
   const won = inquiries.filter((i) => i.status === 'won');
 

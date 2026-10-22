@@ -247,6 +247,8 @@ export type Inquiry = {
   current_due_at: string | null;
   progress_pct: number;
   sla_colour: SlaColour;
+  design_sla_colour?: SlaColour | null;
+  estimation_sla_colour?: SlaColour | null;
   delay_reason: string | null;
   revised_due_at: string | null;
   early_design_release_at: string | null;
