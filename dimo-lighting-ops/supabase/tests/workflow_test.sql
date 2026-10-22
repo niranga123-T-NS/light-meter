@@ -670,6 +670,76 @@ reset role;
 select pg_temp.act_as('asm_building'); set role authenticated;
 rollback to savepoint quote_rev;
 select pg_temp.act_as('asm_building'); set role authenticated;
+-- Revision kinds: revised quotation with a deadline → SM Estimation; revised design (and quotation) → Design Manager,
+-- designers the usual way, then the released design goes to SM Estimation for the quotation
+savepoint rev_kinds;
+do $$ begin
+  begin perform public.request_revision('00000000-0000-0000-0000-00000000d001', 'design', 'Move downlights', null); assert false, 'deadline needed';
+  exception when others then assert sqlerrm = 'Set the deadline for the revision', sqlerrm; end;
+  begin perform public.request_revision('00000000-0000-0000-0000-00000000d001', 'design', 'Move downlights', current_date - 1); assert false, 'past deadline';
+  exception when others then assert sqlerrm = 'The deadline cannot be in the past', sqlerrm; end;
+  begin perform public.request_revision('00000000-0000-0000-0000-00000000d001', 'other', 'x', current_date + 9); assert false, 'kind needed';
+  exception when others then assert sqlerrm = 'Choose what the client wants revised', sqlerrm; end;
+end $$;
+savepoint rev_quote;
+select public.request_revision('00000000-0000-0000-0000-00000000d001', 'quotation', 'Local brand option', current_date + 9);
+reset role;
+do $$ begin
+  assert (select status from public.inquiries where id = '00000000-0000-0000-0000-00000000d001') = 'in_estimation', 'quotation revision with SM Estimation';
+  assert (select revision_kind from public.inquiries where id = '00000000-0000-0000-0000-00000000d001') = 'quotation', 'kind kept';
+  assert (select customer_deadline from public.inquiries where id = '00000000-0000-0000-0000-00000000d001') = current_date + 9, 'new deadline';
+  assert exists (select 1 from public.deadline_extensions where inquiry_id = '00000000-0000-0000-0000-00000000d001' and reason = 'Revised quotation R1'), 'deadline change recorded';
+  assert exists (select 1 from public.estimation_jobs where revision = 1 and status = 'accepted' and revision_request = 'Local brand option'), 'waits for SM Estimation to assign';
+end $$;
+select pg_temp.act_as('asm_building'); set role authenticated;
+rollback to savepoint rev_quote;
+select public.request_revision('00000000-0000-0000-0000-00000000d001', 'both', 'Add the car park and use a local brand', current_date + 12);
+do $$ begin
+  begin perform public.request_revision('00000000-0000-0000-0000-00000000d001', 'quotation', 'again', current_date + 12); assert false, 'second revision';
+  exception when others then assert sqlerrm like 'A revision can be requested only after%', sqlerrm; end;
+end $$;
+reset role;
+do $$ begin
+  assert (select status from public.inquiries where id = '00000000-0000-0000-0000-00000000d001') = 'accepted', 'back with the Design Manager';
+  assert (select revision from public.inquiries where id = '00000000-0000-0000-0000-00000000d001') = 1, 'R1';
+  assert (select revision_request from public.inquiries where id = '00000000-0000-0000-0000-00000000d001') = 'Revised design and quotation: Add the car park and use a local brand', 'request kept';
+  assert (select customer_deadline from public.inquiries where id = '00000000-0000-0000-0000-00000000d001') = current_date + 12, 'new deadline';
+  assert (select design_due_at from public.inquiries where id = '00000000-0000-0000-0000-00000000d001') < (current_date + 12)::timestamptz, 'design date split from the new deadline';
+  assert exists (select 1 from public.notifications where kind = 'design_revision' and title like 'Revised design and quotation requested: %-R1'
+                 and recipient_id = (select id from u where role = 'design_manager')), 'Design Manager told';
+  assert exists (select 1 from public.notifications where kind = 'design_revision' and recipient_id = (select id from u where role = 'sm_estimation')), 'SM Estimation told it is coming';
+  assert exists (select 1 from public.sla_clocks where entity_id = '00000000-0000-0000-0000-00000000d001' and stage = 'assignment' and stopped_at is null), 'assignment timer';
+  -- a design-first inquiry still goes to Estimation after a requested design revision
+  update public.inquiries set release_mode = 1 where id = '00000000-0000-0000-0000-00000000d001';
+end $$;
+select pg_temp.act_as('design_manager'); set role authenticated;
+select public.assign_design_job('00000000-0000-0000-0000-00000000d001', (select id from u where role = 'lighting_designer'),
+  (select design_due_at from public.inquiries where id = '00000000-0000-0000-0000-00000000d001'), 'lighting', 'medium');
+reset role;
+select pg_temp.act_as('lighting_designer'); set role authenticated;
+do $$ declare j uuid := (select id from public.design_jobs where revision = 1);
+begin
+  perform public.acknowledge_design_job(j);
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('design_job', j, 'design_pack', 'design_job/' || j || '/pack.pdf', 'pack.pdf');
+  perform public.set_design_brands(j, '[{"group":"Downlights","brand":"TestBrand EU","origin":"european"}]');
+  perform public.submit_design_for_review(j);
+end $$;
+reset role;
+select pg_temp.act_as('design_manager'); set role authenticated;
+select public.review_design((select id from public.design_jobs where revision = 1), true, 'Good');
+select public.release_design('00000000-0000-0000-0000-00000000d001');
+reset role;
+do $$ declare e public.estimation_jobs;
+begin
+  select * into e from public.estimation_jobs where inquiry_id = '00000000-0000-0000-0000-00000000d001' and revision = 1;
+  assert (select status from public.inquiries where id = '00000000-0000-0000-0000-00000000d001') = 'in_estimation', 'revised design went to Estimation, not sales';
+  assert e.status = 'queued', 'SM Estimation accepts it';
+  assert e.previous_job_id is not null, 'last quotation linked';
+  assert e.revision_request = 'Revised design and quotation: Add the car park and use a local brand', 'estimator sees the request';
+  assert (select revision_kind from public.inquiries where id = '00000000-0000-0000-0000-00000000d001') is null, 'kind cleared after release';
+end $$;
+select pg_temp.act_as('asm_building'); set role authenticated;
+rollback to savepoint rev_kinds;
 -- Same tender, another main contractor: the released quotation is copied (no new design / estimation)
 savepoint tender;
 insert into public.organizations (id, name, visit_category) values ('00000000-0000-0000-0000-00000000a101', 'MAGA Engineering (Pvt) Ltd', 'Main Contractor');

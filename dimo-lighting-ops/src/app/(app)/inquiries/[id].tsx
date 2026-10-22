@@ -154,21 +154,35 @@ export default function InquiryDetail() {
         />,
       );
     }
-    // Client asked for a revised quotation → back to SM Estimation as the next revision (R1, R2 …)
+    // Client asked for a revision (R1, R2 …): quotation → SM Estimation; design, or design and quotation → Design Manager, then SM Estimation
     if (quotations.length && ['quotation_released', 'submitted_to_client', 'awaiting_client_approval', 'under_evaluation', 'client_approved'].includes(i.status)) {
+      const kinds = [
+        { value: 'quotation', label: 'Revised quotation – to SM Estimation' },
+        ...(i.route !== 'B'
+          ? [
+              { value: 'design', label: 'Revised design – to the Design Manager, then SM Estimation' },
+              { value: 'both', label: 'Revised design and quotation – to the Design Manager, then SM Estimation' },
+            ]
+          : []),
+      ];
       buttons.push(
         <Button
           key="qrev"
           variant="secondary"
-          title="Client requested revised quotation"
+          title="Client requested a revision"
           onPress={async () => {
             const r = await dialog.prompt({
-              title: `Revised quotation – ${i.code}-R${i.revision + 1}`,
-              message: "Goes to SM Estimation to assign. The last submitted quotation and its files stay visible to SM Estimation and the estimator. Attach the client's mark-ups or e-mail under Inquiry documents below.",
-              fields: [{ key: 'c', label: 'What the client wants changed', type: 'multiline', required: true }],
-              confirmLabel: 'Send to SM Estimation',
+              title: `Revision – ${i.code}-R${i.revision + 1}`,
+              message:
+                "A revised quotation goes to SM Estimation to assign an estimator. A revised design goes to the Design Manager to assign designers; the released design then goes to SM Estimation for the quotation. The last submitted quotation and its files stay visible. Attach the client's mark-ups or e-mail under Inquiry documents below.",
+              fields: [
+                { key: 'k', label: 'What to revise', type: 'select', required: true, options: kinds, initial: 'quotation' },
+                { key: 'c', label: 'What the client wants changed', type: 'multiline', required: true },
+                { key: 'd', label: 'Deadline for the revision (to the client)', type: 'date', required: true, hint: 'Splits into design and final pricing dates as usual' },
+              ],
+              confirmLabel: 'Send',
             });
-            if (r) await act('request_quotation_revision', { p_inquiry: i.id, p_comments: r.c }, 'Sent to SM Estimation');
+            if (r) await act('request_revision', { p_inquiry: i.id, p_kind: r.k, p_comments: r.c, p_deadline: r.d }, r.k === 'quotation' ? 'Sent to SM Estimation' : 'Sent to the Design Manager');
           }}
         />,
       );
@@ -552,6 +566,9 @@ export default function InquiryDetail() {
         {i.status === 'on_hold' ? <Notice tone={colors.grey}>On hold: {i.hold_reason}</Notice> : null}
         {i.status === 'under_evaluation' ? (
           <Notice>{`Under evaluation by the client${i.evaluation_until ? ` – decision expected by ${fmtDate(i.evaluation_until)}` : ''}${i.evaluation_note ? ` · ${i.evaluation_note}` : ''}`}</Notice>
+        ) : null}
+        {i.revision_request && i.revision_kind && ['accepted', 'in_design', 'design_review', 'design_approved', 'in_estimation'].includes(i.status) ? (
+          <Notice tone={colors.amber}>{`Client revision R${i.revision} – ${i.revision_request}`}</Notice>
         ) : null}
         {i.status === 'returned_for_info' ? <Notice tone={colors.amber}>Returned for more information – edit and resubmit. See the timeline for the reason.</Notice> : null}
         {i.checklist_incomplete && i.status !== 'draft' ? <Notice tone={colors.amber}>Document checklist incomplete.</Notice> : null}

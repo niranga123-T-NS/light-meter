@@ -220,6 +220,8 @@ export type Inquiry = {
   estimation_due_at?: string | null;
   design_due_approved_at?: string | null;
   extension_status?: 'requested' | 'granted' | 'refused' | null;
+  revision_kind?: 'quotation' | 'design' | 'both' | null;
+  revision_request?: string | null;
   design_required_by: string | null;
   design_due_proposed_at: string | null;
   design_due_at: string | null;
