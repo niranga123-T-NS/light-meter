@@ -50,22 +50,46 @@ export const courseLabel = (c: string) => ACADEMY_COURSES.find((x) => x.value ==
 
 const esc = (t: string) => t.replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch] as string);
 
-/** A course certificate (A4 landscape): name, course, date and the tests passed */
+/** A course certificate (A4 landscape) in the DIMO colours – navy and lime with the logo's diagonal stripes: name, course, date and the tests passed */
 export function certificateHtml(o: { name: string; course: string; date: string; detail: string; logo: string; serial: string }) {
+  const stripes = Array.from({ length: 7 }, (_, i) => `<span style="top:${18 + i * 9}mm"></span>`).join('');
   return `<!doctype html><html><head><meta charset="utf-8"><style>
 @page { size: A4 landscape; margin: 0 }
-body { margin: 0; font-family: Georgia, 'Times New Roman', serif; color: #111827 }
-.c { box-sizing: border-box; width: 297mm; height: 210mm; padding: 14mm; }
-.f { box-sizing: border-box; height: 100%; border: 3px solid #C8102E; outline: 1px solid #C8102E; outline-offset: -8px; padding: 16mm 20mm; text-align: center; display: flex; flex-direction: column; align-items: center }
-img { height: 22mm } .k { letter-spacing: 6px; font-size: 13px; color: #6B7280; margin-top: 8mm; font-family: Arial, sans-serif }
-h1 { font-size: 40px; margin: 6mm 0 2mm; font-weight: normal } .n { font-size: 34px; border-bottom: 1px solid #9CA3AF; padding: 0 12mm 2mm; margin: 6mm 0 }
-.t { font-size: 16px; line-height: 1.6 } .co { font-size: 26px; color: #C8102E; margin: 3mm 0 } .s { margin-top: auto; display: flex; justify-content: space-between; width: 100%; font-family: Arial, sans-serif; font-size: 12px; color: #6B7280 }
-</style></head><body><div class="c"><div class="f">
-<img src="${o.logo}"><div class="k">DACADEMY</div><h1>Certificate of Completion</h1>
+* { -webkit-print-color-adjust: exact; print-color-adjust: exact; box-sizing: border-box }
+body { margin: 0; font-family: Georgia, 'Times New Roman', serif; color: #1F2937 }
+.c { position: relative; width: 297mm; height: 210mm; overflow: hidden; background: #fff }
+.side { position: absolute; left: 0; top: 0; bottom: 0; width: 62mm; background: #244286 }
+.side span { position: absolute; left: 14mm; width: 34mm; height: 4.5mm; background: #B0D035; transform: skewY(-28deg) }
+.side .lbl { position: absolute; left: 0; right: 0; bottom: 16mm; text-align: center; color: #fff; font-family: Arial, sans-serif; letter-spacing: 5px; font-size: 13px; font-weight: bold }
+.side .lbl small { display: block; color: #B0D035; letter-spacing: 2px; font-size: 10px; font-weight: normal; margin-top: 2mm }
+.top { position: absolute; left: 62mm; right: 0; top: 0; height: 3mm; background: #B0D035 }
+.bot { position: absolute; left: 62mm; right: 0; bottom: 0; height: 9mm; background: #244286; color: #fff; font-family: Arial, sans-serif; font-size: 11px; display: flex; justify-content: space-between; align-items: center; padding: 0 14mm }
+.bot b { color: #B0D035; font-weight: normal }
+.m { position: absolute; left: 62mm; right: 0; top: 3mm; bottom: 9mm; padding: 12mm 18mm 0; text-align: center; display: flex; flex-direction: column; align-items: center }
+img { height: 20mm }
+.k { font-family: Arial, sans-serif; letter-spacing: 7px; font-size: 12px; color: #244286; margin-top: 7mm; font-weight: bold }
+h1 { font-size: 38px; margin: 3mm 0 0; font-weight: normal; color: #244286 }
+.rule { width: 46mm; height: 1.2mm; background: #B0D035; margin: 4mm 0 5mm }
+.t { font-size: 15px; color: #4B5563 }
+.n { font-size: 34px; color: #111827; border-bottom: 1px solid #244286; padding: 0 14mm 2mm; margin: 4mm 0 5mm }
+.co { font-size: 26px; color: #244286; font-weight: bold; margin: 3mm 0 2mm }
+.d { font-size: 14px; color: #4B5563 }
+.sig { margin-top: auto; margin-bottom: 12mm; align-self: stretch; display: flex; gap: 22mm; padding-right: 40mm; font-family: Arial, sans-serif; font-size: 11px; color: #244286 }
+.sig div { flex: 1; border-top: 1px solid #244286; padding-top: 2mm; text-align: center }
+.seal { position: absolute; right: 16mm; bottom: 15mm; width: 30mm; height: 30mm; border-radius: 50%; background: #B0D035; border: 2mm solid #244286; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: Arial, sans-serif; color: #244286; font-weight: bold; font-size: 10px; letter-spacing: 1px; text-align: center; line-height: 1.3 }
+.seal i { font-style: normal; font-size: 20px }
+</style></head><body><div class="c">
+<div class="side">${stripes}<div class="lbl">DACADEMY<small>DIMO LIGHTING</small></div></div>
+<div class="top"></div>
+<div class="m">
+<img src="${o.logo}"><div class="k">DACADEMY</div><h1>Certificate of Completion</h1><div class="rule"></div>
 <div class="t">This certifies that</div><div class="n">${esc(o.name)}</div>
-<div class="t">has completed every lesson and module test of</div><div class="co">${esc(o.course)}</div><div class="t">${esc(o.detail)}</div>
-<div class="s"><span>Completed ${esc(o.date)}</span><span>DIMO Lighting · Dacademy</span><span>No. ${esc(o.serial)}</span></div>
-</div></div></body></html>`;
+<div class="t">has completed every lesson and module test of</div><div class="co">${esc(o.course)}</div><div class="d">${esc(o.detail)}</div>
+<div class="sig"><div>Trainer</div><div>Senior Manager – Projects</div></div>
+</div>
+<div class="seal"><i>★</i>COURSE<br>COMPLETE</div>
+<div class="bot"><span>Completed <b>${esc(o.date)}</b></span><span>DIMO Lighting · Dacademy</span><span>No. <b>${esc(o.serial)}</b></span></div>
+</div></body></html>`;
 }
 
 export type AcademyCfg = { sb: string; key: string; token: string; name: string };
