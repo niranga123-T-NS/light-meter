@@ -8541,6 +8541,11 @@ do $$ declare w uuid; begin
   perform public.academy_record('infra_s01', 8, 10);
   assert (select done from public.academy_mine() where lesson = 'infra_s01'), 'an engineer records an infra session';
   begin perform public.academy_record('infra_s02', 11, 10); assert false, 'score above total refused'; exception when raise_exception then null; end;
+  -- module tests: 15 questions, passed at 12 (80 %)
+  perform public.academy_record('infra_mt_m1', 11, 15);
+  assert not (select done from public.academy_mine() where lesson = 'infra_mt_m1'), '11 of 15 does not pass a module test';
+  perform public.academy_record('infra_mt_m1', 12, 15);
+  assert (select done and best = 12 and attempts = 2 from public.academy_mine() where lesson = 'infra_mt_m1'), '12 of 15 passes a module test';
   w := public.academy_writeup_save('infra_s01_t1', 'ticket', '{"symptom":"No internet","cause":"Wrong VLAN","fix":"Access VLAN 10","prevention":"Port labels"}');
   perform public.academy_writeup_save('infra_s01_t1', 'ticket', '{"symptom":"No internet","cause":"Port in VLAN 1","fix":"VLAN 10","prevention":"Label ports"}');
   assert (select count(*) from public.academy_writeups_list('infra')) = 1, 'saving again replaces the write-up';
@@ -8565,7 +8570,7 @@ do $$ begin
   perform public.academy_writeup_mark(current_setting('test.wu')::uuid, 85, 'Good root cause; add how you proved it.');
   assert (select mark from public.academy_writeups where id = current_setting('test.wu')::uuid) = 85, 'marked';
   begin perform public.academy_writeup_mark(current_setting('test.wu')::uuid, 120, ''); assert false, 'mark over 100 refused'; exception when raise_exception then null; end;
-  assert exists (select 1 from public.academy_team() where role = 'assistant_engineer' and lessons_done = 1), 'team progress lists the engineers';
+  assert exists (select 1 from public.academy_team() where role = 'assistant_engineer' and lessons_done = 1 and tests_passed = 1), 'team progress lists the engineers, module tests apart';
 end $$;
 reset role;
 select pg_temp.act_as('assistant_engineer'); set role authenticated;

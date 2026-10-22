@@ -647,6 +647,7 @@ table.spec{width:100%;border-collapse:collapse;font-size:13px}table.spec td{padd
   </div>
 </div>
 </div>
+<script src="mtest.js"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 // ---------------------------------------------------------------- shared line chart (one y-axis, hover crosshair)
@@ -2931,7 +2932,7 @@ function renderHome() {
   $('mods').innerHTML = MODULES.map(([k, n, sub]) => { const ls = L.filter((l) => l.mod === k), d = ls.filter((l) => prog[l.id] && prog[l.id].done).length; return `<div class="mod ${k === mod ? 'on' : ''}" onclick="mod='${k}';renderHome()"><b>${n}</b><span class="m">${ls.length} lessons · ${sub}</span><div class="bar" style="width:100%;margin-top:6px;height:5px"><i style="width:${Math.round(100 * d / ls.length)}%"></i></div></div>`; }).join('');
   const secs = [...new Set(L.filter((l) => l.mod === mod).map((l) => l.sec))];
   $('modBody').innerHTML = secs.map((sec) => `<div class="sec">${sec}</div><div class="grid">${L.filter((l) => l.mod === mod && l.sec === sec).map((l, i) => { const p = prog[l.id];
-    return `<div class="topic" onclick="openLesson('${l.id}')">${p && p.done ? `<span class="done">✓ ${p.best}/${p.total}</span>` : l.live ? '<span class="live">● LIVE</span>' : ''}<div class="ic" style="background:${BG[i % BG.length]}">${l.icon}</div><b>${l.title}</b><span class="t">${l.type === 'lab' ? 'Interactive' : 'Lesson'} · ${l.mins} min · ${l.quiz.length} questions</span></div>`; }).join('')}</div>`).join('');
+    return `<div class="topic" onclick="openLesson('${l.id}')">${p && p.done ? `<span class="done">✓ ${p.best}/${p.total}</span>` : l.live ? '<span class="live">● LIVE</span>' : ''}<div class="ic" style="background:${BG[i % BG.length]}">${l.icon}</div><b>${l.title}</b><span class="t">${l.type === 'lab' ? 'Interactive' : 'Lesson'} · ${l.mins} min · ${l.quiz.length} questions</span></div>`; }).join('')}</div>`).join('') + (window.MT ? MT.card('light', mod, (prog[MT.id('light', mod)] || {}).best, null) : '');
 }
 const BG = ['#fef3c7', '#ffedd5', '#fce7f3', '#e0e7ff', '#e0f2fe', '#dcfce7', '#f1f5f9', '#ede9fe'];
 
@@ -3867,5 +3868,10 @@ window.addEventListener('hashchange', route);
   route();
 })();
 
+</script>
+<script>
+// Module tests (mtest.js): a card at the end of each module opens the test; the result is saved like a lesson, passed at 12 of 15
+document.addEventListener('click', function (e) { var c = e.target.closest && e.target.closest('.mtCard'); if (!c || !window.MT) return; var p = c.dataset.mt.split(':'), m = (MODULES.find(function (x) { return x[0] === p[1]; }) || [p[1], p[1]])[1];
+  MT.open(p[0], p[1], m, function (id, score, total) { record(id, score, total); if (prog[id]) prog[id].done = prog[id].best >= MT.PASS; renderHome(); }); });
 </script>
 </body></html>

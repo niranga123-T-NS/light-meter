@@ -87,6 +87,7 @@ table.spec{width:100%;border-collapse:collapse;font-size:13px}table.spec td{padd
   </div>
 </div>
 </div>
+<script src="mtest.js"></script>
 <script>
 // Course engine (Dacademy technical courses): home with modules, lessons (in one line · try it · on site · watch out · quick check),
 // live labs drawn into a lesson, timed mock exams, progress saved through the person's sign-in like the Lighting Academy
@@ -141,7 +142,7 @@ function renderHome() {
   $('mods').innerHTML = MODULES.map(([k, n, sub]) => { const ls = L.filter((l) => l.mod === k), d = ls.filter((l) => prog[l.id] && prog[l.id].done).length; return `<div class="mod ${k === mod ? 'on' : ''}" onclick="mod='${k}';renderHome()"><b>${n}</b><span class="m">${sub}</span><span class="m" style="display:block;font-size:11px;margin-top:4px;color:var(--good)">${d} / ${ls.length} done</span></div>`; }).join('');
   const secs = [...new Set(L.filter((l) => l.mod === mod).map((l) => l.sec))];
   $('modBody').innerHTML = secs.map((sec) => `<div class="sec">${sec}</div><div class="grid">${L.filter((l) => l.mod === mod && l.sec === sec).map((l, i) => { const p = prog[l.id];
-    return `<div class="topic" onclick="openLesson('${l.id}')">${p && p.done ? `<span class="done">✓ ${p.best}/${p.total}</span>` : l.exam ? '<span class="live">● EXAM</span>' : l.lab ? '<span class="live">● LIVE</span>' : ''}<div class="ic" style="background:${BG[i % BG.length]}">${l.icon}</div><b>${esc(l.title)}</b><span class="m" style="font-size:12px">${l.exam ? `${EXAMS[l.exam].n} questions · ${EXAMS[l.exam].min} min` : `${l.mins} min`}</span></div>`; }).join('')}</div>`).join('');
+    return `<div class="topic" onclick="openLesson('${l.id}')">${p && p.done ? `<span class="done">✓ ${p.best}/${p.total}</span>` : l.exam ? '<span class="live">● EXAM</span>' : l.lab ? '<span class="live">● LIVE</span>' : ''}<div class="ic" style="background:${BG[i % BG.length]}">${l.icon}</div><b>${esc(l.title)}</b><span class="m" style="font-size:12px">${l.exam ? `${EXAMS[l.exam].n} questions · ${EXAMS[l.exam].min} min` : `${l.mins} min`}</span></div>`; }).join('')}</div>`).join('') + (window.MT ? MT.card('knx', mod, (prog[MT.id('knx', mod)] || {}).best, null) : '');
 }
 
 // ---- lessons
@@ -551,5 +552,10 @@ LABS.jung = (el) => {
 };
 
 start();
+</script>
+<script>
+// Module tests (mtest.js): a card at the end of each module opens the test; the result is saved like a lesson, passed at 12 of 15
+document.addEventListener('click', function (e) { var c = e.target.closest && e.target.closest('.mtCard'); if (!c || !window.MT) return; var p = c.dataset.mt.split(':'), m = (MODULES.find(function (x) { return x[0] === p[1]; }) || [p[1], p[1]])[1];
+  MT.open(p[0], p[1], m, function (id, score, total) { record(id, score, total); if (prog[id]) prog[id].done = prog[id].best >= MT.PASS; renderHome(); }); });
 </script>
 </body></html>

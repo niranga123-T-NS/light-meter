@@ -4,7 +4,7 @@ import { fmtDate } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import { ROLE_LABELS } from '@/lib/roles';
 import { rpc } from '@/lib/supabase';
-import type { AcademyMember } from '@/lib/academy';
+import { ACADEMY_TESTS, type AcademyMember } from '@/lib/academy';
 import type { Role } from '@/lib/types';
 
 /** Lighting Academy – who has done which part (SM Projects, GM / DGM, System Administrator) */
@@ -13,7 +13,7 @@ export function AcademyTeam({ total }: { total: number }) {
   if (!data) return error ? <ErrorBanner message={error} /> : <Loading />;
   return (
     <>
-      <Muted>{`Lessons completed (2 of 3 or better in the quick check) out of ${total}. Average = the best score per lesson tried.`}</Muted>
+      <Muted>{`Lessons completed (2 of 3 or better in the quick check) out of ${total}. Average = the best score per lesson tried. Module tests: 15 questions drawn from a pool of 30 per module, passed at 12.`}</Muted>
       <DataTable
         rows={data}
         keyOf={(r) => r.user_id}
@@ -22,6 +22,7 @@ export function AcademyTeam({ total }: { total: number }) {
           { h: 'Name', w: 200, grow: true, v: (r) => `${r.full_name}\n${ROLE_LABELS[r.role as Role] ?? r.role}` },
           { h: 'Lessons done', w: 120, right: true, v: (r) => `${r.lessons_done} / ${total}` },
           { h: 'Progress', w: 90, right: true, v: (r) => `${Math.round((100 * r.lessons_done) / total)}%` },
+          { h: 'Module tests', w: 110, right: true, v: (r) => `${r.tests_passed ?? 0} / ${ACADEMY_TESTS}` },
           { h: 'Average score', w: 110, right: true, v: (r) => (r.avg_best != null ? `${r.avg_best}%` : '—') },
           { h: 'Tries', w: 70, right: true, v: (r) => String(r.attempts) },
           { h: 'Last activity', w: 110, v: (r) => (r.last_at ? fmtDate(r.last_at) : '—') },

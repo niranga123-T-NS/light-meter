@@ -14,6 +14,8 @@ export const ACADEMY_COURSES: { value: AcademyCourse; label: string; path: strin
   { value: 'infra', label: 'Infrastructure', path: '/academy/infra.html', lessons: 24 }, // 24 sessions with a virtual lab: Cisco-style switches and routers, FortiGate, Windows Server, Ubuntu, Proxmox
 ];
 export const ACADEMY_TOTAL = ACADEMY_COURSES.reduce((t, c) => t + c.lessons, 0);
+/** End-of-module tests (public/academy/mtest.js): 15 questions from a pool of 30, passed at 12 – Lighting 13, Network & IT 3, KNX 3, Infrastructure 3 */
+export const ACADEMY_TESTS = 22;
 export const ACADEMY_SITE = 'https://dimo-lighting-ops.vercel.app';
 export const ACADEMY_TEAM_VIEWERS: Role[] = ['sm_projects', 'gm', 'sys_admin'];
 /** The engineers have Dacademy (the Infrastructure course first) but not the rest of Sales Tools */
@@ -21,7 +23,7 @@ export const ACADEMY_ENGINEERS: Role[] = ['senior_elec_engineer', 'assistant_eng
 
 export type AcademyCfg = { sb: string; key: string; token: string; name: string };
 export type AcademyWriteup = { id: string; user_id: string; full_name: string; role: string; lesson: string; kind: 'ticket' | 'weekly' | 'test' | 'script' | 'notes'; body: Record<string, unknown>; mark: number | null; feedback: string | null; marked_by_name: string | null; marked_at: string | null; updated_at: string };
-export type AcademyMember = { user_id: string; full_name: string; role: string; lessons_done: number; attempts: number; avg_best: number | null; last_at: string | null };
+export type AcademyMember = { user_id: string; full_name: string; role: string; lessons_done: number; attempts: number; avg_best: number | null; last_at: string | null; tests_passed?: number };
 
 /** What the Academy page needs to save progress: the database address, the public key and the person's current sign-in */
 export async function academyCfg(name: string): Promise<AcademyCfg | null> {
