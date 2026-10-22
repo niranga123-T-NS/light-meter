@@ -1,4 +1,4 @@
-import type { ProjectType, Role } from './types';
+import type { Inquiry, ProjectType, Role, SlaColour } from './types';
 
 export const ROLE_LABELS: Record<Role, string> = {
   gm: 'GM / DGM – Lighting Solutions',
@@ -381,4 +381,13 @@ export function reportsFor(role: Role): (ReportDef & { scope: Scope })[] {
   const c = COL[role];
   if (!c) return [];
   return REPORTS.filter((r) => r.access[c]).map((r) => ({ ...r, scope: r.access[c] ?? null }));
+}
+
+/** Whose timers colour an inquiry for this viewer: the design team its design stages, Estimation its estimation stages, everyone else the worst of all. */
+export type ColourSide = 'design' | 'estimation' | 'all';
+export const colourSide = (r?: Role | null): ColourSide => (r === 'design_manager' || isDesigner(r) ? 'design' : r === 'sm_estimation' || isEstimator(r) ? 'estimation' : 'all');
+export const SIDE_COLUMN = { design: 'design_sla_colour', estimation: 'estimation_sla_colour', all: 'sla_colour' } as const;
+export function inquiryColour(i: Inquiry, side: ColourSide): SlaColour {
+  if (i.status === 'on_hold') return 'grey';
+  return (side === 'design' ? i.design_sla_colour : side === 'estimation' ? i.estimation_sla_colour : null) ?? i.sla_colour;
 }

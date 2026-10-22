@@ -2,6 +2,8 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { daysBetween, fmtDate, fmtDateTime, INQUIRY_STATUS_LABEL, SLA_COLOURS, todayISO, inquiryTitle } from '@/lib/format';
+import { useMe } from '@/lib/auth';
+import { colourSide, inquiryColour } from '@/lib/roles';
 import { rpc } from '@/lib/supabase';
 import type { Inquiry, SlaColour } from '@/lib/types';
 import { Card, colors, Muted, Pill, Progress, Row, SlaDot } from './ui';
@@ -42,7 +44,7 @@ export function deadlineNote(i: Pick<Inquiry, 'status' | 'customer_deadline' | '
 /** Progress-tracker card: stage, %, dates, colour – what Sales sees (Section 5.4). */
 export function InquiryCard({ inquiry, ownerName }: { inquiry: Inquiry; ownerName?: string }) {
   const dn = deadlineNote(inquiry);
-  const colour = inquiry.status === 'on_hold' ? 'grey' : inquiry.sla_colour;
+  const colour = inquiryColour(inquiry, colourSide(useMe().role));
   return (
     <Card onPress={() => router.push(`/inquiries/${inquiry.id}`)} style={{ borderLeftWidth: 4, borderLeftColor: STAGE_COLOUR[colour] }}>
       <Row style={{ justifyContent: 'space-between' }}>
@@ -70,7 +72,7 @@ export function InquiryCard({ inquiry, ownerName }: { inquiry: Inquiry; ownerNam
         <Muted>Due {fmtDateTime(inquiry.revised_due_at ?? inquiry.current_due_at)}{ownerName ? ` · ${ownerName}` : ''}</Muted>
         <Muted style={dn.tone ? { color: dn.tone, fontWeight: dn.bold ? '700' : '600' } : undefined}>{dn.text}</Muted>
       </Row>
-      {inquiry.sla_colour === 'red' && inquiry.delay_reason ? (
+      {colour === 'red' && inquiry.delay_reason ? (
         <Text style={{ color: colors.red, marginTop: 4 }}>
           Delay: {inquiry.delay_reason}
           {inquiry.revised_due_at ? ` · revised ${fmtDateTime(inquiry.revised_due_at)}` : ''}

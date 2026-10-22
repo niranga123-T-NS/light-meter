@@ -5,7 +5,7 @@ import { InquiryCard } from '@/components/InquiryBits';
 import { Button, colors, Empty, ErrorBanner, Row, Screen, Segmented, Select, styles } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { useLoad, usePeople } from '@/lib/hooks';
-import { isSales, PROJECT_TYPES } from '@/lib/roles';
+import { colourSide, inquiryColour, isSales, PROJECT_TYPES } from '@/lib/roles';
 import { supabase } from '@/lib/supabase';
 import type { Inquiry } from '@/lib/types';
 
@@ -36,13 +36,14 @@ export default function Inquiries() {
   });
 
   const all = data ?? [];
+  const side = colourSide(me.role), red = (i: Inquiry) => inquiryColour(i, side) === 'red';
   const isDesign = (i: Inquiry) => DESIGN.includes(i.status) && i.route !== 'B';
   const isEst = (i: Inquiry) => EST.includes(i.status) || (i.route === 'B' && ['submitted', 'accepted'].includes(i.status));
   const filters: Record<Tab, (i: Inquiry) => boolean> = {
     all: (i) => !CLOSED.includes(i.status) && i.status !== 'draft',
     design: isDesign,
     estimation: isEst,
-    delayed: (i) => i.sla_colour === 'red' && !CLOSED.includes(i.status),
+    delayed: (i) => red(i) && !CLOSED.includes(i.status),
     follow_up: (i) => FOLLOW.includes(i.status),
     drafts: (i) => ['draft', 'returned_for_info'].includes(i.status),
     closed: (i) => CLOSED.includes(i.status),
@@ -54,13 +55,13 @@ export default function Inquiries() {
     .filter((i) => !s || [i.code, i.project_name, i.inquiry_name, i.customer_name].some((v) => v?.toLowerCase().includes(s)))
     .sort((a, b) => {
       // Delayed items are pinned to the top in red (5.4)
-      const red = Number(b.sla_colour === 'red') - Number(a.sla_colour === 'red');
-      if (red) return red;
+      const late = Number(red(b)) - Number(red(a));
+      if (late) return late;
       if (sort === 'deadline') return (a.customer_deadline ?? '9').localeCompare(b.customer_deadline ?? '9');
       if (sort === 'value') return Number(b.budget_lkr ?? 0) - Number(a.budget_lkr ?? 0);
       return (a.revised_due_at ?? a.current_due_at ?? '9').localeCompare(b.revised_due_at ?? b.current_due_at ?? '9');
     });
-  const badge = (t: Tab) => all.filter(filters[t]).filter((i) => i.sla_colour === 'red').length;
+  const badge = (t: Tab) => all.filter(filters[t]).filter(red).length;
 
   return (
     <Screen refreshing={loading} onRefresh={reload}>
