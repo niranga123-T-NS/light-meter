@@ -8,6 +8,13 @@ import { Card, colors, Muted, Pill, Progress, Row, SlaDot } from './ui';
 
 export const STAGE_COLOUR: Record<SlaColour, string> = SLA_COLOURS;
 
+// An inquiry revised more than 3 times is flagged; the count carries on (R4, R5 …)
+export const REVISION_FLAG_AFTER = 3;
+export function RevisionFlag({ revision }: { revision?: number | null }) {
+  if (!revision || revision <= REVISION_FLAG_AFTER) return null;
+  return <Pill label={`Revised ${revision} times – more than ${REVISION_FLAG_AFTER}`} tone={colors.red} solid />;
+}
+
 // Stages still working towards the customer deadline (as the server's deadline alerts)
 const OPEN_STAGES = ['submitted', 'accepted', 'in_design', 'design_review', 'design_approved', 'in_estimation', 'estimation_review', 'returned_for_info'];
 export const deadlineCounting = (status: string) => OPEN_STAGES.includes(status);
@@ -48,6 +55,7 @@ export function InquiryCard({ inquiry, ownerName }: { inquiry: Inquiry; ownerNam
           <Pill label={`Route ${inquiry.route}`} />
           {inquiry.duty_status ? <Pill label={inquiry.currency} tone={colors.blue} /> : null}
           {inquiry.tender_group_id ? <Pill label="Tender · several contractors" tone={colors.amber} /> : null}
+          <RevisionFlag revision={inquiry.revision} />
         </Row>
         <Pill label={INQUIRY_STATUS_LABEL[inquiry.status] ?? inquiry.status} tone={STAGE_COLOUR[colour]} />
       </Row>

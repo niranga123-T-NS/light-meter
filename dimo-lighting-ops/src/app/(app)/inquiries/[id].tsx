@@ -6,7 +6,7 @@ import { DeadlineCard } from '@/components/DeadlineCard';
 import { DesignNotes } from '@/components/DesignNotes';
 import { ProjectTeam } from '@/components/ProjectTeam';
 import { useDialog } from '@/components/dialog';
-import { deadlineCounting, deadlineNote, InquiryTimeline, STAGE_COLOUR } from '@/components/InquiryBits';
+import { deadlineCounting, deadlineNote, InquiryTimeline, REVISION_FLAG_AFTER, RevisionFlag, STAGE_COLOUR } from '@/components/InquiryBits';
 import { PersonPicker } from '@/components/pickers';
 import { DESIGN_SCOPE, designScopeText, ESTIMATION_BASIS, ESTIMATION_SCOPE, estimationScopeText } from '@/lib/constants';
 import { Button, Card, colors, DateField, ErrorBanner, KeyValue, ListRow, Loading, Muted, Notice, Pill, Progress, Row, Screen, Section, Select, SlaDot } from '@/components/ui';
@@ -173,8 +173,9 @@ export default function InquiryDetail() {
           onPress={async () => {
             const r = await dialog.prompt({
               title: `Revision – ${i.code}-R${i.revision + 1}`,
-              message:
-                "A revised quotation goes to SM Estimation to assign an estimator. A revised design goes to the Design Manager to assign designers; the released design then goes to SM Estimation for the quotation. The last submitted quotation and its files stay visible. Attach the client's mark-ups or e-mail under Inquiry documents below.",
+              message: `A revised quotation goes to SM Estimation to assign an estimator. A revised design goes to the Design Manager to assign designers; the released design then goes to SM Estimation for the quotation, and the released quotation comes back to you. The last submitted quotation and its files stay visible. Attach the client's mark-ups or e-mail under Inquiry documents below.${
+                i.revision + 1 > REVISION_FLAG_AFTER ? `\n\nThis will be revision R${i.revision + 1} – more than ${REVISION_FLAG_AFTER} revisions, so the inquiry is flagged.` : ''
+              }`,
               fields: [
                 { key: 'k', label: 'What to revise', type: 'select', required: true, options: kinds, initial: 'quotation' },
                 { key: 'c', label: 'What the client wants changed', type: 'multiline', required: true },
@@ -514,6 +515,7 @@ export default function InquiryDetail() {
             {i.duty_status ? <Pill label={`${i.duty_status === 'duty_free' ? 'Duty Free' : 'Duty Paid'} · ${i.currency}`} tone={colors.blue} solid /> : null}
             {i.priority !== 'normal' ? <Pill label={i.priority} tone={colors.red} /> : null}
             {i.debtor_flag ? <Pill label="Outstanding debt flag" tone={colors.red} /> : null}
+            <RevisionFlag revision={i.revision} />
           </Row>
         </Row>
         <View style={{ marginVertical: 10 }}>
