@@ -79,16 +79,16 @@ h1 { font-size: 38px; margin: 3mm 0 0; font-weight: normal; color: #244286 }
 .seal { position: absolute; right: 16mm; bottom: 15mm; width: 30mm; height: 30mm; border-radius: 50%; background: #B0D035; border: 2mm solid #244286; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: Arial, sans-serif; color: #244286; font-weight: bold; font-size: 10px; letter-spacing: 1px; text-align: center; line-height: 1.3 }
 .seal i { font-style: normal; font-size: 20px }
 </style></head><body><div class="c">
-<div class="side">${stripes}<div class="lbl">DACADEMY<small>DIMO LIGHTING</small></div></div>
+<div class="side">${stripes}<div class="lbl">DIMO<small>LIGHTING SOLUTIONS</small></div></div>
 <div class="top"></div>
 <div class="m">
-<img src="${o.logo}"><div class="k">DACADEMY</div><h1>Certificate of Completion</h1><div class="rule"></div>
+<img src="${o.logo}"><div class="k">DIMO LIGHTING SOLUTIONS</div><h1>Certificate of Completion</h1><div class="rule"></div>
 <div class="t">This certifies that</div><div class="n">${esc(o.name)}</div>
 <div class="t">has completed every lesson and module test of</div><div class="co">${esc(o.course)}</div><div class="d">${esc(o.detail)}</div>
 <div class="sig"><div>Trainer</div><div>Senior Manager – Projects</div></div>
 </div>
 <div class="seal"><i>★</i>COURSE<br>COMPLETE</div>
-<div class="bot"><span>Completed <b>${esc(o.date)}</b></span><span>DIMO Lighting · Dacademy</span><span>No. <b>${esc(o.serial)}</b></span></div>
+<div class="bot"><span>Completed <b>${esc(o.date)}</b></span><span>DIMO Lighting Solutions</span><span>No. <b>${esc(o.serial)}</b></span></div>
 </div></body></html>`;
 }
 

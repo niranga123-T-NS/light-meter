@@ -32,7 +32,7 @@ function CourseCard({ c, name }: { c: AcademyCourseState; name: string }) {
           date: fmtDate(c.completed_at),
           detail: `${c.lessons} lessons${c.tests ? ` · ${c.tests} module tests (${c.tests_90} at 90 % or more)` : ''}`,
           logo: DIMO_LOGO_DATA_URI,
-          serial: `DAC-${c.course.toUpperCase()}-${(c.completed_at ?? '').slice(0, 10).replace(/-/g, '')}`,
+          serial: `DLS-${c.course.toUpperCase()}-${(c.completed_at ?? '').slice(0, 10).replace(/-/g, '')}`,
         }),
         { key: 'academy_certificate', filters: `${name} · ${courseLabel(c.course)}`, title: `Certificate – ${courseLabel(c.course)}`, landscape: true },
       ),
