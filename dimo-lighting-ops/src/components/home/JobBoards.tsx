@@ -8,7 +8,7 @@ import { isDesigner, isEstimator } from '@/lib/roles';
 import { supabase } from '@/lib/supabase';
 import type { DesignJob, EstimationJob, Inquiry, SlaClock } from '@/lib/types';
 import { type JobClock } from '@/lib/progress';
-import { STAGE_COLOUR } from '../InquiryBits';
+import { RevisionFlag, STAGE_COLOUR } from '../InquiryBits';
 import { ProgressFlags, TimeBar } from '../TimeBar';
 import { DesignHolds } from './DesignHolds';
 import { DesignPipeline } from './DesignPipeline';
@@ -186,6 +186,7 @@ function JobCard({
             {inq?.code}
             {job.revision ? `-R${job.revision}` : ''}
           </Text>
+          <RevisionFlag revision={job.revision} />
         </Row>
         {'task_type' in job ? (
           <Row gap={4}>
