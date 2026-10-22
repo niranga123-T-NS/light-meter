@@ -81,6 +81,7 @@ export async function loadDesignEngine() {
 /** Messages between the app and the calculation page */
 export type DtState = Record<string, unknown> & { tree?: unknown; tpl?: string };
 export type DtDriverRow = { id: string; make: string; model: string; data: Record<string, unknown>; file_path: string | null; file_name: string | null };
+export type DtProfileRow = { id: string; name: string; cfg: Record<string, unknown> };
 export type DtOut =
   | { type: 'dt:ready' }
   | { type: 'dt:loaded' }
@@ -89,12 +90,15 @@ export type DtOut =
   | { type: 'dt:file'; name: string; mime: string; b64: string }
   | { type: 'dt:drvSave'; driver: Record<string, unknown> & { id: string }; file: { name: string; mime: string; b64: string } | null }
   | { type: 'dt:drvOpen'; path: string; name: string }
+  | { type: 'dt:profSave'; profile: DtProfileRow }
+  | { type: 'dt:profDel'; id: string }
   | { type: 'dt:fullscreen'; on: boolean };
 export type DtIn =
   | { type: 'dt:load'; state: DtState | null; title?: string }
   | { type: 'dt:get'; id: number }
   | { type: 'dt:saved'; title?: string }
-  | { type: 'dt:drivers'; list: DtDriverRow[]; saved?: { id: string; file_path: string | null; file_name: string | null }; error?: string };
+  | { type: 'dt:drivers'; list: DtDriverRow[]; saved?: { id: string; file_path: string | null; file_name: string | null }; error?: string }
+  | { type: 'dt:profiles'; list: DtProfileRow[]; error?: string };
 export type EngineHandle = { send: (m: DtIn) => void };
 
 /** The design team's LED driver library – datasheet values the page checks the breakers against, and the datasheet PDFs */
@@ -119,6 +123,18 @@ export async function saveDriver(driver: Record<string, unknown> & { id: string 
   }
   await rpc('design_driver_save', { p_id: driver.id, p_data: driver, p_file_path: path, p_file_name: file?.name ?? null });
   return { id: driver.id, file_path: path, file_name: file?.name ?? null };
+}
+/** The design team's import profiles – how each designer's or consultant's circuit schedules are read */
+export async function loadProfiles() {
+  const { data, error } = await supabase.from('design_import_profiles').select('id, name, cfg').order('name');
+  if (error) throw new Error(error.message);
+  return (data ?? []) as DtProfileRow[];
+}
+export async function saveProfile(p: DtProfileRow) {
+  await rpc('design_import_profile_save', { p_id: p.id, p_name: p.name, p_cfg: p.cfg });
+}
+export async function deleteProfile(id: string) {
+  await rpc('design_import_profile_delete', { p_id: id });
 }
 /** Opens a driver datasheet from the library (short-lived link) */
 export async function openDriverSheet(path: string, name: string) {

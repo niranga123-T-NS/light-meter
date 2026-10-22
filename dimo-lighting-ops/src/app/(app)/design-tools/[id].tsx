@@ -14,9 +14,12 @@ import {
   dtSummaryText,
   dtTemplateLabel,
   loadDesignEngine,
+  deleteProfile,
   loadDrivers,
+  loadProfiles,
   openDriverSheet,
   saveDriver,
+  saveProfile,
   type DtFile,
   type DtLog,
   type DtOut,
@@ -48,6 +51,15 @@ async function sendDrivers(h: EngineHandle | null, saved?: { id: string; file_pa
     h?.send({ type: 'dt:drivers', list: await loadDrivers(), saved, error });
   } catch (e) {
     h?.send({ type: 'dt:drivers', list: [], error: (e as Error).message });
+  }
+}
+
+/** The import profiles go to the page with the design, and again after each save or delete from it */
+async function sendProfiles(h: EngineHandle | null, error?: string) {
+  try {
+    h?.send({ type: 'dt:profiles', list: await loadProfiles(), error });
+  } catch (e) {
+    h?.send({ type: 'dt:profiles', list: [], error: (e as Error).message });
   }
 }
 
@@ -98,6 +110,7 @@ export default function DesignToolScreen() {
       engine.current?.send({ type: 'dt:load', state: data.state, title: meta?.title });
       setDirty(isNew);
       void sendDrivers(engine.current);
+      void sendProfiles(engine.current);
     }
   }, [ready, data, id, isNew, meta?.title]);
 
@@ -132,6 +145,15 @@ export default function DesignToolScreen() {
         (e: Error) => sendDrivers(engine.current, undefined, e.message),
       );
     else if (m.type === 'dt:drvOpen') void openDriverSheet(m.path, m.name).catch((e: Error) => dialog.toast(e.message, 'error'));
+    else if (m.type === 'dt:profSave')
+      void saveProfile(m.profile).then(
+        () => {
+          dialog.toast('Import profile saved for the design team');
+          return sendProfiles(engine.current);
+        },
+        (e: Error) => sendProfiles(engine.current, e.message),
+      );
+    else if (m.type === 'dt:profDel') void deleteProfile(m.id).then(() => sendProfiles(engine.current), (e: Error) => sendProfiles(engine.current, e.message));
   }, [dialog]);
 
   if (!allowed) return <Screen><Notice>Design Tools are for the GM / DGM, SM Projects, the design team and the project engineers.</Notice></Screen>;
