@@ -53,6 +53,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 @media (max-width:820px){.app{grid-template-columns:1fr}.side{position:fixed;inset:0 30% 0 0;z-index:40;transform:translateX(-102%);transition:transform .2s}.side.open{transform:none}.menu-btn{display:inline-block}.body{padding:12px 12px 60px}.term{height:56vh}}
 </style></head>
 <body><div class="app"><aside class="side" id="side"></aside><main class="main" id="main"></main></div>
+<script src="mtest.js"></script>
 <script>
 // =================== Network engine: every lab device, cable, VLAN, route, NAT, firewall policy, tunnel and service is calculated here – nothing is scripted per lesson
 const ip2n = (s) => String(s).split('.').reduce((a, o) => a * 256 + +o, 0) >>> 0;
@@ -5224,8 +5225,13 @@ function sessionScore(S, p) {
 // ---------------------------------------------------------------- sidebar and session header
 function renderSide() {
   const done = SESSIONS.filter((S) => sessionScore(S, sp(S.id)) >= 7).length;
-  $('#side').innerHTML = `<h1>Infrastructure Engineer Program</h1><div class="sub">${done} of ${SESSIONS.length} sessions passed · 12 weeks</div><div class="bar"><i style="width:${(100 * done) / Math.max(1, SESSIONS.length)}%"></i></div>${MODS.map((m) => `<div class="mod"><b>${m.t}</b>${SESSIONS.filter((S) => S.mod === m.n).map((S) => { const sc = sessionScore(S, sp(S.id)); return `<div class="ses ${APP.sid === S.id ? 'on' : ''}" data-s="${S.id}"><span class="n">${String(S.n).padStart(2, '0')}</span><span>${esc(S.title)}${S.graded ? ' <span class="gr">● graded</span>' : ''}</span><span class="st">${sc >= 7 ? '✅' : sc > 0 ? `<span class="m">${sc}/10</span>` : ''}</span></div>`; }).join('')}</div>`).join('')}<div class="mod"><b>About</b><div class="ses" data-s="about"><span class="n">i</span><span>How the course works</span></div></div>`;
-  $$('#side .ses').forEach((e) => (e.onclick = () => { $('#side').classList.remove('open'); openSession(e.dataset.s); }));
+  $('#side').innerHTML = `<h1>Infrastructure Engineer Program</h1><div class="sub">${done} of ${SESSIONS.length} sessions passed · 12 weeks</div><div class="bar"><i style="width:${(100 * done) / Math.max(1, SESSIONS.length)}%"></i></div>${MODS.map((m) => `<div class="mod"><b>${m.t}</b>${SESSIONS.filter((S) => S.mod === m.n).map((S) => { const sc = sessionScore(S, sp(S.id)); return `<div class="ses ${APP.sid === S.id ? 'on' : ''}" data-s="${S.id}"><span class="n">${String(S.n).padStart(2, '0')}</span><span>${esc(S.title)}${S.graded ? ' <span class="gr">● graded</span>' : ''}</span><span class="st">${sc >= 7 ? '✅' : sc > 0 ? `<span class="m">${sc}/10</span>` : ''}</span></div>`; }).join('')}${window.MT && MT.has('infra', 'm' + m.n) ? (() => { const b = PROG['mt_m' + m.n]?.best; return `<div class="ses" data-mt="m${m.n}"><span class="n">📝</span><span>Module test – 15 questions</span><span class="st">${b >= MT.PASS ? '✅' : b != null ? `<span class="m">${b}/15</span>` : ''}</span></div>`; })() : ''}</div>`).join('')}<div class="mod"><b>About</b><div class="ses" data-s="about"><span class="n">i</span><span>How the course works</span></div></div>`;
+  $$('#side .ses[data-s]').forEach((e) => (e.onclick = () => { $('#side').classList.remove('open'); openSession(e.dataset.s); }));
+  // Module tests (mtest.js): 15 questions from the module's pool of 30, saved like a session result, passed at 12 of 15
+  $$('#side .ses[data-mt]').forEach((e) => (e.onclick = () => { const k = e.dataset.mt, m = MODS.find((x) => 'm' + x.n === k);
+    MT.open('infra', k, m ? m.t : k, (id, score, total, pass, secs) => { const p = (PROG['mt_' + k] ??= {}); p.best = Math.max(p.best ?? 0, score); p.at = Date.now(); store.set('infra:prog', PROG);
+      api('academy_record', { p_lesson: id, p_score: score, p_total: total, p_secs: secs, p_mins: 8 }).catch(() => void 0);
+      if (window.parent !== window) window.parent.postMessage({ type: 'academy:progress', lesson: id, score, total }, '*'); renderSide(); }); }));
 }
 function openSession(sid, tab) {
   if (APP.timer) { clearInterval(APP.timer); APP.timer = null; }

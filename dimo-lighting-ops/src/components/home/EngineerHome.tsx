@@ -1,3 +1,4 @@
+import { AcademyCard } from '@/components/home/AcademyCard';
 import { router, Stack } from 'expo-router';
 import { Text } from 'react-native';
 import { EngJobRows } from '@/components/EngJobRows';
@@ -159,6 +160,7 @@ export function EngineerHome() {
         </Section>
       ) : null}
 
+      <AcademyCard />
       <MyDayMeetings />
     </Screen>
   );

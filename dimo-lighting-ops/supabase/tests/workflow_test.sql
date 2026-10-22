@@ -8541,6 +8541,11 @@ do $$ declare w uuid; begin
   perform public.academy_record('infra_s01', 8, 10);
   assert (select done from public.academy_mine() where lesson = 'infra_s01'), 'an engineer records an infra session';
   begin perform public.academy_record('infra_s02', 11, 10); assert false, 'score above total refused'; exception when raise_exception then null; end;
+  -- module tests: 15 questions, passed at 12 (80 %)
+  perform public.academy_record('infra_mt_m1', 11, 15);
+  assert not (select done from public.academy_mine() where lesson = 'infra_mt_m1'), '11 of 15 does not pass a module test';
+  perform public.academy_record('infra_mt_m1', 12, 15);
+  assert (select done and best = 12 and attempts = 2 from public.academy_mine() where lesson = 'infra_mt_m1'), '12 of 15 passes a module test';
   w := public.academy_writeup_save('infra_s01_t1', 'ticket', '{"symptom":"No internet","cause":"Wrong VLAN","fix":"Access VLAN 10","prevention":"Port labels"}');
   perform public.academy_writeup_save('infra_s01_t1', 'ticket', '{"symptom":"No internet","cause":"Port in VLAN 1","fix":"VLAN 10","prevention":"Label ports"}');
   assert (select count(*) from public.academy_writeups_list('infra')) = 1, 'saving again replaces the write-up';
@@ -8565,7 +8570,7 @@ do $$ begin
   perform public.academy_writeup_mark(current_setting('test.wu')::uuid, 85, 'Good root cause; add how you proved it.');
   assert (select mark from public.academy_writeups where id = current_setting('test.wu')::uuid) = 85, 'marked';
   begin perform public.academy_writeup_mark(current_setting('test.wu')::uuid, 120, ''); assert false, 'mark over 100 refused'; exception when raise_exception then null; end;
-  assert exists (select 1 from public.academy_team() where role = 'assistant_engineer' and lessons_done = 1), 'team progress lists the engineers';
+  assert exists (select 1 from public.academy_team() where role = 'assistant_engineer' and lessons_done = 1 and tests_passed = 1), 'team progress lists the engineers, module tests apart';
 end $$;
 reset role;
 select pg_temp.act_as('assistant_engineer'); set role authenticated;
@@ -8580,6 +8585,65 @@ do $$ begin
   begin perform public.academy_record('infra_s01', 8, 10); assert false, 'no Dacademy for Operations'; exception when raise_exception then null; end;
 end $$;
 reset role;
+
+-- Dacademy programme: points, levels, badges, review flags, team views, spot checks, plans, weekly / monthly jobs
+select pg_temp.act_as('lighting_designer'); set role authenticated;
+do $$ declare l text; me jsonb; b text[]; begin
+  perform public.academy_record('lux', 3, 3, 20, 2);   -- 20 s on a 2-minute lesson
+  for l in select lesson from public.academy_lessons where course = 'light' and kind = 'lesson' and lesson <> 'lux' order by lesson limit 40 loop
+    perform public.academy_record(l, 3, 3, 300, 2);
+  end loop;
+  -- a lesson passed only on the fourth attempt
+  l := (select lesson from public.academy_lessons where course = 'light' and kind = 'lesson' and lesson <> 'lux' order by lesson offset 40 limit 1);
+  perform public.academy_record(l, 0, 3); perform public.academy_record(l, 1, 3); perform public.academy_record(l, 1, 3); perform public.academy_record(l, 3, 3);
+  perform public.academy_record('mt_basics', 15, 15, 400, 8);
+  me := public.academy_me();
+  select array_agg(x->>'key') into b from jsonb_array_elements(me->'badges') x;
+  assert me->'path'->'required' = '["light", "knx"]'::jsonb, 'a lighting designer''s path is Lighting and KNX';
+  assert (me->>'points')::int = 41 * 15 + 10 + 75, format('points: 41 first-time lessons, a late pass and a 15/15 module test (%s)', me->>'points');
+  assert (me->'level'->>'name') = 'Practitioner', 'level 2 from 600 points';
+  assert b @> array['light_bronze', 'sharpshooter', 'clean_sheet'], format('automatic badges awarded: %s', b);
+  assert not b @> array['light_silver'], 'Silver needs half the lessons and four module tests';
+  assert (me->>'flags_open')::int = 3, format('fast, attempts and burst flags raised (%s)', me->>'flags_open');
+  assert (select (c->>'lessons_done')::int from jsonb_array_elements(me->'courses') c where c->>'course' = 'light') = 42, 'course progress counts lessons';
+  begin perform public.academy_team_view(); assert false, 'a designer has no team view'; exception when raise_exception then null; end;
+  assert jsonb_array_length(public.academy_leaders()) >= 1, 'top learners are open to every learner';
+end $$;
+reset role;
+select pg_temp.act_as('design_manager'); set role authenticated;
+do $$ declare d uuid := (select id from public.profiles where role = 'lighting_designer' limit 1); f uuid; begin
+  assert exists (select 1 from jsonb_array_elements(public.academy_team_view()) x where (x->>'user_id')::uuid = d), 'the Design Manager sees the designer';
+  assert jsonb_array_length(public.academy_flags_list(true)) >= 3, 'and the review flags';
+  f := (select (x->>'id')::uuid from jsonb_array_elements(public.academy_flags_list(true)) x where x->>'kind' = 'fast' limit 1);
+  perform public.academy_flag_review(f, 'Talked it through – knows the lesson');
+  perform public.academy_spotcheck_add(d, 'Glare and UGR', 'pass', 'Explained UGR 19 well');
+  perform public.academy_badge_award(d, 'mentor', 'Led the October session on DALI');
+  begin perform public.academy_badge_award(d, 'mentor', 'again'); assert false, 'one Mentor a month'; exception when raise_exception then null; end;
+  begin perform public.academy_badge_award(d, 'light_gold', 'x'); assert false, 'automatic badges cannot be given by hand'; exception when raise_exception then null; end;
+  perform public.academy_plan_set(d, current_date - 30, current_date + 120, 'Joined mid-year');
+  assert (public.academy_me(d)->'path'->>'target_on')::date = current_date + 120, 'a custom target date';
+  assert (public.academy_me(d)->>'flags_open')::int = 2, 'one flag reviewed';
+  assert jsonb_array_length(public.academy_me(d)->'spotchecks') = 1, 'spot check recorded';
+end $$;
+reset role;
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+do $$ declare d uuid := (select id from public.profiles where role = 'lighting_designer' limit 1); begin
+  assert not exists (select 1 from jsonb_array_elements(public.academy_team_view()) x where (x->>'user_id')::uuid = d), 'SM Estimation sees only the estimators';
+  begin perform public.academy_me(d); assert false, 'not their team'; exception when raise_exception then null; end;
+end $$;
+reset role;
+select pg_temp.act_as('estimation_exec'); set role authenticated;
+do $$ begin
+  perform public.academy_record('lux', 3, 3);
+  assert (public.academy_me()->'path'->'required') = '["light"]'::jsonb, 'Estimation joins Dacademy with Lighting';
+end $$;
+reset role;
+do $$ declare d uuid := (select id from public.profiles where role = 'lighting_designer' limit 1); begin
+  assert public.academy_weekly_tick(now() + interval '7 days') > 0, 'weekly snapshot';
+  assert (select met from public.academy_weeks where user_id = d order by week_start desc limit 1), 'the designer met the weekly target';
+  perform public.academy_monthly_tick(now() + interval '1 month');
+  assert exists (select 1 from public.academy_badges where user_id = d and badge = 'top_month'), 'top of the month in the design team';
+end $$;
 
 -- Visit briefs: written before the visit, on the own plan line or on the visit itself
 select pg_temp.act_as('asm_infra'); set role authenticated;

@@ -1,3 +1,4 @@
+import { AcademyCard } from '@/components/home/AcademyCard';
 import { router, Stack } from 'expo-router';
 import { Text } from 'react-native';
 import { MeetingActions } from '@/components/MeetingActions';
@@ -70,6 +71,7 @@ export function SalesHome() {
       <Stack.Screen options={{ title: 'My Day' }} />
       <H1>Good day, {me.full_name.split(' ')[0]}</H1>
       <ErrorBanner message={error} />
+      <AcademyCard />
       {offline.pending ? (
         <Notice tone={colors.amber}>
           <Row style={{ justifyContent: 'space-between' }}>

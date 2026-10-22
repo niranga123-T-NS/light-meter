@@ -1,3 +1,4 @@
+import { AcademyCard } from '@/components/home/AcademyCard';
 import { AdminHome, OpsHome } from '@/components/home/OtherHomes';
 import { ExecDashboard } from '@/components/home/ExecDashboard';
 import { EngineerHome } from '@/components/home/EngineerHome';
@@ -18,7 +19,16 @@ export default function Home() {
     case 'design_manager':
     case 'lighting_designer':
     case 'lighting_engineer':
-      return <DesignBoard header={<MyDayMeetings />} />;
+      return (
+        <DesignBoard
+          header={
+            <>
+              <MyDayMeetings />
+              <AcademyCard />
+            </>
+          }
+        />
+      );
     case 'sm_estimation':
     case 'am_estimation':
     case 'estimation_exec':
@@ -28,6 +38,7 @@ export default function Home() {
             <>
               <MyDayMeetings />
               <FxCard />
+              <AcademyCard />
             </>
           }
         />

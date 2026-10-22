@@ -87,6 +87,7 @@ table.spec{width:100%;border-collapse:collapse;font-size:13px}table.spec td{padd
   </div>
 </div>
 </div>
+<script src="mtest.js"></script>
 <script>
 // Course engine (Dacademy technical courses): home with modules, lessons (in one line · try it · on site · watch out · quick check),
 // live labs drawn into a lesson, timed mock exams, progress saved through the person's sign-in like the Lighting Academy
@@ -122,10 +123,10 @@ const nextLesson = (id) => { const i = L.findIndex((l) => l.id === id); return L
 // ---- progress (Supabase through the app's sign-in, passed in by the app)
 let cfg = null, prog = {};
 function api(fn, body) { if (!cfg) return Promise.resolve(null); return fetch(`${cfg.sb}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: cfg.key, Authorization: `Bearer ${cfg.token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) }).then((r) => (r.ok ? r.json().catch(() => null) : Promise.reject(r))); }
-function record(id, score, total) {
+function record(id, score, total, secs, mins) {
   const p = prog[id] || { best: 0, attempts: 0, done: false }; p.attempts++; p.best = Math.max(p.best, score); p.total = total; p.done = p.done || score * 3 >= total * 2; prog[id] = p;
   if (window.parent !== window) window.parent.postMessage({ type: 'academy:progress', lesson: id, score, total }, '*');
-  api('academy_record', { p_lesson: id, p_score: score, p_total: total }).catch(() => { $('saveNote').textContent = 'Could not save your progress – open the course again from the app.'; });
+  api('academy_record', { p_lesson: id, p_score: score, p_total: total, p_secs: secs ?? ((window.__lt || {})[id] ? Math.round((Date.now() - window.__lt[id]) / 1000) : null), p_mins: mins ?? (LESSONS[id] ? LESSONS[id].mins : null) }).catch(() => { $('saveNote').textContent = 'Could not save your progress – open the course again from the app.'; });
 }
 function loadProgress() { return api('academy_mine').then((rows) => { if (rows) { prog = {}; rows.forEach((r) => { if (r.lesson.startsWith(COURSE.prefix)) prog[r.lesson] = { best: r.best, total: r.total, attempts: r.attempts, done: r.done }; }); } renderHome(); }).catch(() => { $('saveNote').textContent = 'Could not load your progress.'; }); }
 function setCfg(c) { cfg = c; $('saveNote').textContent = c ? `Signed in as ${c.name} – your progress is saved.` : 'Open from the DIMO app (Sales Tools → Dacademy) to save your progress.'; loadProgress(); }
@@ -141,7 +142,7 @@ function renderHome() {
   $('mods').innerHTML = MODULES.map(([k, n, sub]) => { const ls = L.filter((l) => l.mod === k), d = ls.filter((l) => prog[l.id] && prog[l.id].done).length; return `<div class="mod ${k === mod ? 'on' : ''}" onclick="mod='${k}';renderHome()"><b>${n}</b><span class="m">${sub}</span><span class="m" style="display:block;font-size:11px;margin-top:4px;color:var(--good)">${d} / ${ls.length} done</span></div>`; }).join('');
   const secs = [...new Set(L.filter((l) => l.mod === mod).map((l) => l.sec))];
   $('modBody').innerHTML = secs.map((sec) => `<div class="sec">${sec}</div><div class="grid">${L.filter((l) => l.mod === mod && l.sec === sec).map((l, i) => { const p = prog[l.id];
-    return `<div class="topic" onclick="openLesson('${l.id}')">${p && p.done ? `<span class="done">✓ ${p.best}/${p.total}</span>` : l.exam ? '<span class="live">● EXAM</span>' : l.lab ? '<span class="live">● LIVE</span>' : ''}<div class="ic" style="background:${BG[i % BG.length]}">${l.icon}</div><b>${esc(l.title)}</b><span class="m" style="font-size:12px">${l.exam ? `${EXAMS[l.exam].n} questions · ${EXAMS[l.exam].min} min` : `${l.mins} min`}</span></div>`; }).join('')}</div>`).join('');
+    return `<div class="topic" onclick="openLesson('${l.id}')">${p && p.done ? `<span class="done">✓ ${p.best}/${p.total}</span>` : l.exam ? '<span class="live">● EXAM</span>' : l.lab ? '<span class="live">● LIVE</span>' : ''}<div class="ic" style="background:${BG[i % BG.length]}">${l.icon}</div><b>${esc(l.title)}</b><span class="m" style="font-size:12px">${l.exam ? `${EXAMS[l.exam].n} questions · ${EXAMS[l.exam].min} min` : `${l.mins} min`}</span></div>`; }).join('')}</div>`).join('') + (window.MT ? MT.card('knx', mod, (prog[MT.id('knx', mod)] || {}).best, null) : '');
 }
 
 // ---- lessons
@@ -153,6 +154,7 @@ function route() {
   clearInterval(EXT);
   const h = location.hash.replace(/^#/, ''); if (!h.startsWith('l/')) { showView('home'); renderHome(); return; }
   const les = LESSONS[h.slice(2)]; if (!les) { showView('home'); renderHome(); return; }
+  (window.__lt = window.__lt || {})[les.id] = Date.now(); // when the lesson was opened – the time to its quick check goes with the result
   mod = les.mod; const p = prog[les.id], doneTxt = p && p.done ? `✓ Completed · best ${p.best}/${p.total}` : '';
   if (les.exam) { examStart(les, doneTxt); return; }
   showView('lesson');
@@ -551,5 +553,10 @@ LABS.jung = (el) => {
 };
 
 start();
+</script>
+<script>
+// Module tests (mtest.js): a card at the end of each module opens the test; the result is saved like a lesson, passed at 12 of 15
+document.addEventListener('click', function (e) { var c = e.target.closest && e.target.closest('.mtCard'); if (!c || !window.MT) return; var p = c.dataset.mt.split(':'), m = (MODULES.find(function (x) { return x[0] === p[1]; }) || [p[1], p[1]])[1];
+  MT.open(p[0], p[1], m, function (id, score, total, pass, secs) { record(id, score, total, secs, 8); if (prog[id]) prog[id].done = prog[id].best >= MT.PASS; renderHome(); }); });
 </script>
 </body></html>
