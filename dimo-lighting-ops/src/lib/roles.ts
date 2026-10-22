@@ -116,8 +116,8 @@ export function navFor(role: Role, realRole?: Role | null): NavItem[] {
     const at = t >= 0 ? t + 1 : r >= 0 ? r : items.length;
     items.splice(at, 0, { href: '/design-tools', label: 'Design Tools', icon: '⌁', pilot: true });
   }
-  // Dacademy for the engineers (the Infrastructure course) – the Tools page shows only the academy for them
-  if (['senior_elec_engineer', 'assistant_engineer', 'trainee'].includes(role) && !items.some((i) => i.href === '/tools')) {
+  // Dacademy for the engineers (the Infrastructure course) and Estimation (the Lighting course) – the Tools page shows only the academy for them
+  if (['senior_elec_engineer', 'assistant_engineer', 'trainee', 'sm_estimation', 'am_estimation', 'estimation_exec'].includes(role) && !items.some((i) => i.href === '/tools')) {
     const at = items.findIndex((i) => i.href === '/reports');
     items.splice(at < 0 ? items.length : at, 0, { href: '/tools', label: 'Dacademy', icon: '🎓' });
   }

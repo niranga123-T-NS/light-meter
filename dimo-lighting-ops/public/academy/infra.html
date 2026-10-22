@@ -5229,8 +5229,8 @@ function renderSide() {
   $$('#side .ses[data-s]').forEach((e) => (e.onclick = () => { $('#side').classList.remove('open'); openSession(e.dataset.s); }));
   // Module tests (mtest.js): 15 questions from the module's pool of 30, saved like a session result, passed at 12 of 15
   $$('#side .ses[data-mt]').forEach((e) => (e.onclick = () => { const k = e.dataset.mt, m = MODS.find((x) => 'm' + x.n === k);
-    MT.open('infra', k, m ? m.t : k, (id, score, total) => { const p = (PROG['mt_' + k] ??= {}); p.best = Math.max(p.best ?? 0, score); p.at = Date.now(); store.set('infra:prog', PROG);
-      api('academy_record', { p_lesson: id, p_score: score, p_total: total }).catch(() => void 0);
+    MT.open('infra', k, m ? m.t : k, (id, score, total, pass, secs) => { const p = (PROG['mt_' + k] ??= {}); p.best = Math.max(p.best ?? 0, score); p.at = Date.now(); store.set('infra:prog', PROG);
+      api('academy_record', { p_lesson: id, p_score: score, p_total: total, p_secs: secs, p_mins: 8 }).catch(() => void 0);
       if (window.parent !== window) window.parent.postMessage({ type: 'academy:progress', lesson: id, score, total }, '*'); renderSide(); }); }));
 }
 function openSession(sid, tab) {

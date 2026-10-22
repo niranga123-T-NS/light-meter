@@ -40,7 +40,7 @@ var POOLS = {"light":{"basics":[["A client asks for \"3,000 lumens\". What shoul
   function open(course, mod, title, onResult) {
     if (!has(course, mod)) return; style();
     var pool = POOLS[course][mod], pick = draw(course, mod), qs = pick.map(function (i) { var it = pool[i]; var opts = shuffle(it[1].map(function (t, k) { return { t: t, ok: k === 0 }; })); return { q: it[0], opts: opts, why: it[2], ans: -1 }; });
-    var el = document.createElement('div'); el.id = 'mtPop'; document.body.appendChild(el);
+    var el = document.createElement('div'); el.id = 'mtPop'; document.body.appendChild(el); var t0 = Date.now();
     var done = false;
     function render() {
       var answered = qs.filter(function (x) { return x.ans >= 0; }).length, score = qs.filter(function (x) { return x.ans >= 0 && x.opts[x.ans].ok; }).length;
@@ -53,7 +53,7 @@ var POOLS = {"light":{"basics":[["A client asks for \"3,000 lumens\". What shoul
       var t = e.target.closest('button'); if (!t) { if (e.target === el && done) el.remove(); return; }
       if (t.dataset.q != null && !done) { qs[+t.dataset.q].ans = +t.dataset.o; render(); return; }
       if (t.dataset.x === 'close') { el.remove(); return; }
-      if (t.dataset.x === 'submit') { done = true; var score = qs.filter(function (x) { return x.opts[x.ans].ok; }).length; render(); el.querySelector('.mt-box').scrollTop = 0; if (onResult) onResult(ids[course](mod), score, N, score >= PASS); return; }
+      if (t.dataset.x === 'submit') { done = true; var score = qs.filter(function (x) { return x.opts[x.ans].ok; }).length; render(); el.querySelector('.mt-box').scrollTop = 0; if (onResult) onResult(ids[course](mod), score, N, score >= PASS, Math.round((Date.now() - t0) / 1000)); return; }
       if (t.dataset.x === 'again') { el.remove(); open(course, mod, title, onResult); }
     });
     render();
