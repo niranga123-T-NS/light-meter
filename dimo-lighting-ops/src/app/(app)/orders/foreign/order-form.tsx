@@ -17,7 +17,7 @@ type Form = {
   vendor_new: boolean;
   codes_new: boolean;
   incoterm: string;
-  payment: 'TT' | 'LC';
+  payment: 'TT' | 'LC' | 'DP';
   duty: string;
   inland: boolean;
   required_on: string | null;
@@ -158,7 +158,7 @@ function OrderForm({ o, v, h, mrDate, onSaved, dialog }: { o: FoOrder | null; v:
               options={[{ value: 'EXW', label: 'EXW – Ex works' }, { value: 'FOB', label: 'FOB' }, { value: 'CIF', label: 'CIF – manufacturer’s forwarder' }]}
             />
           ) : null}
-          <Select label="Payment" required value={f.payment} onChange={(x) => set('payment', x as Form['payment'])} options={[{ value: 'TT', label: 'TT' }, { value: 'LC', label: 'LC' }]} />
+          <Select label="Payment" required value={f.payment} onChange={(x) => set('payment', x as Form['payment'])} options={[{ value: 'TT', label: 'TT' }, { value: 'LC', label: 'LC' }, { value: 'DP', label: 'DP – documents against payment' }]} />
           {material ? <Select label="Duty" required value={f.duty} onChange={(x) => set('duty', x)} options={[{ value: 'paid', label: 'Duty paid' }, { value: 'free', label: 'Duty free' }]} /> : null}
           {material ? (
             <Select

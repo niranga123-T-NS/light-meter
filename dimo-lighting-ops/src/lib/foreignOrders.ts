@@ -32,7 +32,7 @@ export type FoOrder = {
   vendor_new: boolean;
   codes_new: boolean;
   incoterm: 'EXW' | 'FOB' | 'CIF' | null;
-  payment: 'TT' | 'LC';
+  payment: 'TT' | 'LC' | 'DP';
   duty: 'paid' | 'free' | null;
   inland: boolean;
   required_on: string | null;
