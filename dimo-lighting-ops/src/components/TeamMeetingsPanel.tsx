@@ -53,7 +53,7 @@ export function TeamMeetingsPanel({ team }: { team: Team }) {
     const [m, e, inv, rs] = await Promise.all([
       supabase
         .from('sales_meetings')
-        .select(team === 'project' ? 'id, meeting_date, held_on, status, generated_at, published_at, initiated_at, starts_at, ends_at, exec_projects(name, code, wbs_no)' : 'id, meeting_date, held_on, status, generated_at, published_at, initiated_at, starts_at, ends_at')
+        .select('id, meeting_date, held_on, status, generated_at, published_at, initiated_at, starts_at, ends_at, exec_projects(name, code, wbs_no)')
         .eq('team', team)
         .order('meeting_date', { ascending: false })
         .limit(52),
@@ -64,7 +64,7 @@ export function TeamMeetingsPanel({ team }: { team: Team }) {
         : Promise.resolve({ data: [] }),
     ]);
     if (m.error) throw new Error(m.error.message);
-    return { meetings: (m.data ?? []) as Meeting[], exceptions: (e.data ?? []) as Exception[], invites: inv.filter((x) => x.team === team), moves: (rs.data ?? []) as Reschedule[] };
+    return { meetings: (m.data ?? []) as unknown as Meeting[], exceptions: (e.data ?? []) as Exception[], invites: inv.filter((x) => x.team === team), moves: (rs.data ?? []) as Reschedule[] };
   }, [team]);
   if (!data) return error ? <ErrorBanner message={error} /> : <Loading />;
   const upcoming = nextMeetingDate(team);
