@@ -4,7 +4,7 @@ var POOLS = {"light":{"basics":[["A client asks for \"3,000 lumens\". What shoul
 (function () {
   var N = 15, PASS = 12;
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
-  var ids = { light: function (m) { return 'mt_' + m; }, net: function (m) { return 'net_mt_' + m; }, knx: function (m) { return 'knx_mt_' + m; }, infra: function (m) { return 'infra_mt_' + m; } };
+  var ids = { light: function (m) { return 'mt_' + m; }, net: function (m) { return 'net_mt_' + m; }, knx: function (m) { return 'knx_mt_' + m; }, infra: function (m) { return 'infra_mt_' + m; }, bs7671: function (m) { return 'bs_mt_' + m; } };
   var store = { get: function (k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }, set: function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* private window */ } } };
   var shuffle = function (a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; };
   function has(course, mod) { return !!(POOLS[course] && POOLS[course][mod]); }
