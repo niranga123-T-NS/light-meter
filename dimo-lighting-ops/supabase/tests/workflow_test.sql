@@ -9377,5 +9377,13 @@ end $$;
 reset role;
 do $$ begin assert exists (select 1 from public.notifications where kind = 'warranty_claim_assigned' and recipient_id = (select id from u where role = 'trainee2')), 'trainee told'; end $$;
 
+-- SM Projects sees every design and estimation job (the Jobs tab)
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert (select count(*) from public.design_jobs) > 0, 'SM Projects sees the design jobs';
+  assert (select count(*) from public.estimation_jobs) > 0, 'SM Projects sees the estimation jobs';
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
