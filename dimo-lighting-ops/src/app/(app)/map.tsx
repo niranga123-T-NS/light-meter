@@ -86,6 +86,7 @@ const PERSON_COLOURS = ['#2563EB', '#DB2777', '#059669', '#7C3AED', '#EA580C', '
 const has = <T extends { lat: number | null; lng: number | null }>(x: T): x is T & { lat: number; lng: number } => x.lat != null && x.lng != null;
 const band = (d: number | null) => (d == null ? { colour: RED, label: 'Never visited' } : d <= 30 ? { colour: GREEN, label: '≤ 30 days' } : d <= 60 ? { colour: AMBER, label: '31 – 60 days' } : { colour: RED, label: 'Over 60 days' });
 const BLUE = '#2563EB';
+const PURPLE = '#7C3AED'; // checked in where no project site or customer location is set yet – nothing to compare with
 const mondayOf = (iso: string) => {
   const d = new Date(`${iso}T00:00:00`).getDay();
   return addDaysISO(iso, -((d + 6) % 7));
@@ -166,7 +167,7 @@ export default function SalesMapScreen() {
         points: v.filter(has).map((x) => ({
           lat: x.lat,
           lng: x.lng,
-          color: byPerson ? (colourOf[x.sales_person_id] ?? GREY) : x.gps_verified ? GREEN : x.gps_verified === false ? AMBER : GREY,
+          color: byPerson ? (colourOf[x.sales_person_id] ?? GREY) : x.gps_verified ? GREEN : x.gps_verified === false ? AMBER : PURPLE,
           hollow: !x.planned,
           label: visitLabel(x),
           href: `/visits/${x.id}`,
@@ -432,7 +433,7 @@ export default function SalesMapScreen() {
             <>
               <Pill label="GPS verified" tone={GREEN} />
               <Pill label="Away from the site" tone={AMBER} />
-              <Pill label="No site to check" tone={GREY} />
+              <Pill label="Checked in – no site set to compare" tone={PURPLE} />
               <Muted>Hollow = unplanned visit</Muted>
             </>
           ) : null}
