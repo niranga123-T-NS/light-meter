@@ -71,10 +71,12 @@ export const isTeam = (t: unknown): t is Team => t === 'sales' || t === 'estimat
 
 /** Teams whose meetings a role can open: the host runs theirs; GM / DGM read all published; SM Projects reads Estimation and Design. */
 export function teamsFor(role: Role): { team: Team; host: boolean }[] {
-  return TEAM_LIST.filter((t) => TEAMS[t].hostRole === role || role === 'gm' || (role === 'sm_projects' && t !== 'sales')).map((t) => ({
+  const list = TEAM_LIST.filter((t) => TEAMS[t].hostRole === role || role === 'gm' || (role === 'sm_projects' && t !== 'sales')).map((t) => ({
     team: t,
     host: TEAMS[t].hostRole === role,
   }));
+  // SM Projects reads every meeting – the project meetings of all projects too
+  return role === 'sm_projects' ? [...list, { team: 'project' as Team, host: false }] : list;
 }
 
 const dowOf = (iso: string) => {
