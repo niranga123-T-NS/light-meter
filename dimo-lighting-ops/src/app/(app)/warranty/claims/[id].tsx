@@ -1,6 +1,6 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Platform, Text } from 'react-native';
+import { Linking, Platform, Text } from 'react-native';
 import { Attachments } from '@/components/Attachments';
 import { ClaimSiteCard } from '@/components/ClaimSiteCard';
 import { LocationPicker } from '@/components/LocationPicker';
@@ -12,8 +12,8 @@ import { useMe } from '@/lib/auth';
 import { fmtDate, fmtDateTime, fmtMoney, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
-import type { Warranty, WarrantyClaim, WarrantyLine } from '@/lib/types';
-import { CLAIM_STAGE_LABEL, claimDaysOpen, claimStage, FAULT_CAUSES, faultCauseLabel, isWarrantyDesk, viaLabel } from '@/lib/warranty';
+import type { Warranty, WarrantyClaim, WarrantyLine, WarrantyReport } from '@/lib/types';
+import { CLAIM_STAGE_LABEL, claimDaysOpen, claimStage, FAULT_CAUSES, faultCauseLabel, isWarrantyDesk, phoneIn, viaLabel } from '@/lib/warranty';
 
 type Log = { id: number; at: string; user_id: string | null; kind: string; note: string | null };
 
@@ -35,11 +35,13 @@ export default function ClaimDetail() {
       supabase.from('warranty_log').select('*').eq('claim_id', id).order('at', { ascending: false }),
       supabase.from('profiles').select('id, full_name, role').in('role', ['assistant_engineer', 'senior_elec_engineer', 'trainee']).eq('active', true).order('full_name'),
     ]);
+    const report = claim.report_id ? ((await supabase.from('warranty_reports').select('*').eq('id', claim.report_id).maybeSingle()).data as WarrantyReport | null) : null;
     const rmaIds = (((await supabase.from('manufacturer_claim_items').select('rma_id').eq('claim_id', id)).data ?? []) as { rma_id: string }[]).map((x) => x.rma_id);
     const proj = (w as Warranty | null)?.project_id
       ? ((await supabase.from('projects').select('lat, lng').eq('id', (w as Warranty).project_id!).maybeSingle()).data as { lat: number | null; lng: number | null } | null)
       : null;
     return {
+      report,
       proj,
       rmaIds: [...new Set(rmaIds)],
       c: claim,
@@ -101,6 +103,14 @@ export default function ClaimDetail() {
           {c.quantity != null ? <KeyValue label="Quantity" value={String(c.quantity)} /> : null}
           {c.location ? <KeyValue label="Location" value={c.location} /> : null}
           <ReportedLocationRow lat={c.rep_lat ?? null} lng={c.rep_lng ?? null} from={c.rep_from} label={c.report_id ? 'Location shared by the sales person' : c.defect_id ? 'Location from the defect' : 'Location shared'} />
+          {data.report ? (
+            <>
+              <KeyValue label="Customer contact on site" value={data.report.site_contact || 'Not given by the sales person'} />
+              {phoneIn(data.report.site_contact) ? <Button small variant="secondary" title={`Call ${phoneIn(data.report.site_contact)}`} onPress={() => Linking.openURL(`tel:${phoneIn(data.report?.site_contact)}`)} /> : null}
+              <KeyValue label="As reported from the visit" value={`${data.report.customer}${data.report.project_name ? ` · ${data.report.project_name}` : ''}${data.report.location ? ` · ${data.report.location}` : ''}${data.report.quantity != null ? ` · qty ${data.report.quantity}` : ''} – ${data.report.code}`} />
+              <Button small variant="ghost" title="Open the sales report" onPress={() => router.push(`/warranty/reports/${data.report?.id}`)} />
+            </>
+          ) : null}
           <KeyValue label="Reported via" value={`${viaLabel(c.reported_via)}${c.reported_by ? ` · ${people[c.reported_by]?.full_name ?? ''}` : ''}`} />
           <KeyValue label="Logged" value={`${fmtDateTime(c.logged_at)} · ${people[c.logged_by ?? '']?.full_name ?? '—'}`} />
           <KeyValue label={open ? 'Open for' : 'Closed'} value={open ? `${claimDaysOpen(c, today)} days` : `${fmtDate(c.closed_on)}${c.close_note ? ` · ${c.close_note}` : ''}`} />

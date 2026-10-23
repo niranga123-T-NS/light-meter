@@ -19,6 +19,8 @@ export const REPORTED_VIA = [
 ];
 export const viaLabel = (v: string) => REPORTED_VIA.find((x) => x.value === v)?.label ?? v;
 
+/** A phone number in a free-text contact ("Mr Silva 0771234567") – for the Call button */
+export const phoneIn = (s: string | null | undefined) => (s ?? '').match(/\+?\d[\d\s-]{7,}\d/)?.[0].replace(/[\s-]/g, '') ?? null;
 export const isWarrantyDesk = (role: string) => role === 'operations_exec' || role === 'senior_elec_engineer';
 /** Sales persons and SM Projects can also raise claims (verified and assigned by the warranty desk). */
 export const canRaiseClaim = (role: string) => isWarrantyDesk(role) || role === 'asm_building' || role === 'asm_infra' || role === 'sm_projects';

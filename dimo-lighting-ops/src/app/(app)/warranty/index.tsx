@@ -300,7 +300,7 @@ function ProductWarranty({ myDay, header }: { myDay?: boolean; header?: ReactNod
               key={r.id}
               highlight={r.status === 'reported' ? colors.amber : undefined}
               title={`${r.customer}${r.project_name ? ` · ${r.project_name}` : ''}`}
-              subtitle={`${r.description}${r.quantity ? ` · qty ${r.quantity}` : ''}${r.location ? ` · ${r.location}` : ''}\n${r.code} · ${fmtDateTime(r.created_at)} · by ${people[r.sales_person_id]?.full_name ?? '—'}${r.dismiss_reason ? ` · closed: ${r.dismiss_reason}` : ''}`}
+              subtitle={`${r.description}${r.quantity ? ` · qty ${r.quantity}` : ''}${r.location ? ` · ${r.location}` : ''}${r.site_contact ? `\nSite contact: ${r.site_contact}` : ''}\n${r.code} · ${fmtDateTime(r.created_at)} · by ${people[r.sales_person_id]?.full_name ?? '—'}${r.dismiss_reason ? ` · closed: ${r.dismiss_reason}` : ''}`}
               right={
                 <Row gap={6} wrap>
                   {desk && r.status === 'reported' ? (
@@ -321,7 +321,7 @@ function ProductWarranty({ myDay, header }: { myDay?: boolean; header?: ReactNod
                   )}
                 </Row>
               }
-              onPress={r.claim_id ? () => router.push(`/warranty/claims/${r.claim_id}`) : undefined}
+              onPress={() => router.push(r.claim_id ? `/warranty/claims/${r.claim_id}` : `/warranty/reports/${r.id}`)}
             />
           ))}
           {data && !reports.length ? <Empty title="No issues reported from visits" /> : null}
