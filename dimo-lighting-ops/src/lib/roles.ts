@@ -165,6 +165,7 @@ function baseNav(role: Role): NavItem[] {
         { href: '/plan', label: 'Plans', icon: '▦' },
         { href: '/visits', label: 'Visits', icon: '◎' },
         { href: '/projects', label: 'Projects', icon: '◆' },
+        { href: '/jobs', label: 'Jobs', icon: '▣' },
         { href: '/inquiries', label: 'Inquiries', icon: '⧗', badgeKey: 'delayed' },
         { href: '/customers', label: 'Customers', icon: '☷' },
         { href: '/csi', label: 'CSI', icon: '☺' },

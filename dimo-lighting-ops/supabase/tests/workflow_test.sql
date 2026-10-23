@@ -2937,7 +2937,7 @@ reset role;
 select pg_temp.act_as('sm_projects'); set role authenticated;
 do $$ begin
   assert not exists (select 1 from public.my_pending_approvals() where source = 'meeting_exception' and title like 'Design team meeting%'), 'not SM Projects''';
-  assert not exists (select 1 from public.sales_meetings where id = current_setting('test.dmid')::uuid), 'SM Projects does not see the draft';
+  assert exists (select 1 from public.sales_meetings where id = current_setting('test.dmid')::uuid), 'SM Projects sees the draft too (reads every meeting)';
 end $$;
 reset role;
 select pg_temp.act_as('design_manager'); set role authenticated;
@@ -9376,6 +9376,26 @@ do $$ begin
 end $$;
 reset role;
 do $$ begin assert exists (select 1 from public.notifications where kind = 'warranty_claim_assigned' and recipient_id = (select id from u where role = 'trainee2')), 'trainee told'; end $$;
+
+-- SM Projects sees every design and estimation job (the Jobs tab)
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert (select count(*) from public.design_jobs) > 0, 'SM Projects sees the design jobs';
+  assert (select count(*) from public.estimation_jobs) > 0, 'SM Projects sees the estimation jobs';
+end $$;
+reset role;
+
+-- SM Projects reads every meeting, drafts too; GM / DGM only once published
+reset role;
+do $$ begin perform set_config('test.dm', (select id::text from public.sales_meetings where team <> 'sales' order by created_at limit 1), false);
+  assert current_setting('test.dm') <> '', 'a team meeting to test'; end $$;
+update public.sales_meetings set status = 'draft' where id = current_setting('test.dm')::uuid;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin assert exists (select 1 from public.sales_meetings where id = current_setting('test.dm')::uuid), 'SM Projects sees a draft team meeting'; end $$;
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ begin assert not exists (select 1 from public.sales_meetings where id = current_setting('test.dm')::uuid), 'GM waits for the published pack'; end $$;
+reset role;
 
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
