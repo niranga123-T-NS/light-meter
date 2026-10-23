@@ -8,7 +8,7 @@ export default function Jobs() {
   const me = useMe();
   const [tab, setTab] = useState<'design' | 'estimation'>('design');
   if (isDesigner(me.role) || me.role === 'design_manager') return <DesignBoard />;
-  if (me.role !== 'gm') return <EstimationBoard />;
+  if (me.role !== 'gm' && me.role !== 'sm_projects') return <EstimationBoard />;
   const header = (
     <Segmented value={tab} onChange={setTab} options={[{ value: 'design', label: 'Design' }, { value: 'estimation', label: 'Estimation' }]} />
   );
