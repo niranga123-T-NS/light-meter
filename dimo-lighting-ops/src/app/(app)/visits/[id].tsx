@@ -216,12 +216,13 @@ export default function VisitDetail() {
         </Row>
       ) : null}
 
-      {mine && v.project_id ? (
+      {mine ? (
         <Section title="Next steps">
           <Row wrap gap={8}>
             <Button title="Convert to inquiry" onPress={() => router.push(`/inquiries/new?visit=${v.id}`)} />
-            <Button title="Open project" variant="secondary" onPress={() => router.push(`/projects/${v.project_id}`)} />
+            {v.project_id ? <Button title="Open project" variant="secondary" onPress={() => router.push(`/projects/${v.project_id}`)} /> : null}
           </Row>
+          {v.project_id ? null : <Muted style={{ marginTop: 6 }}>No project on this visit – choose or create the project in the inquiry.</Muted>}
         </Section>
       ) : null}
 
