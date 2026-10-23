@@ -8645,6 +8645,40 @@ do $$ declare d uuid := (select id from public.profiles where role = 'lighting_d
   assert exists (select 1 from public.academy_badges where user_id = d and badge = 'top_month'), 'top of the month in the design team';
 end $$;
 
+-- Dacademy: Wiring Regulations (BS 7671) – 52 lessons and practicals, 10 module tests and a final exam, a badge per level, the gold on completion
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare l text; me jsonb; c jsonb; begin
+  assert (select count(*) from public.academy_lessons where course = 'bs7671' and kind <> 'test') = 52, '48 lessons and 4 practicals';
+  assert (select count(*) from public.academy_lessons where course = 'bs7671' and kind = 'test') = 11, '10 module tests and the final exam';
+  assert (public.academy_me()->'path'->'optional') @> '["bs7671"]'::jsonb, 'optional for the Senior Electrical Engineer';
+  perform public.academy_record('bs_1_1', 3, 5);
+  assert not (select done from public.academy_mine() where lesson = 'bs_1_1'), '3 of 5 does not complete a lesson';
+  perform public.academy_record('bs_1_1', 4, 5);
+  assert (select done from public.academy_mine() where lesson = 'bs_1_1'), '4 of 5 completes it';
+  -- Level 1: every lesson and the three module tests → the Foundations badge
+  for l in select lesson from public.academy_lessons where course = 'bs7671' and module in ('m1', 'm2', 'm3') and kind = 'lesson' loop perform public.academy_record(l, 5, 5); end loop;
+  perform public.academy_record('bs_mt_m1', 13, 15); perform public.academy_record('bs_mt_m2', 12, 15);
+  assert not exists (select 1 from public.academy_badges where user_id = auth.uid() and badge = 'bs_foundations'), 'no level badge before its last module test';
+  perform public.academy_record('bs_mt_m3', 11, 15);
+  assert not exists (select 1 from public.academy_badges where user_id = auth.uid() and badge = 'bs_foundations'), '11 of 15 does not pass';
+  perform public.academy_record('bs_mt_m3', 15, 15);
+  assert exists (select 1 from public.academy_badges where user_id = auth.uid() and badge = 'bs_foundations'), 'Level 1 badge';
+  -- everything else, the practicals (7 of 10 / 4 of 5) and the final exam (24 of 30)
+  for l in select lesson from public.academy_lessons where course = 'bs7671' and kind in ('lesson', 'lab') and lesson not like 'bs\_1\_%' and lesson not like 'bs\_2\_%' and lesson not like 'bs\_3\_%' loop perform public.academy_record(l, case when l like 'bs\_px\_%' then 7 else 4 end, case when l like 'bs\_px\_%' then 10 else 5 end); end loop;
+  for l in select lesson from public.academy_lessons where course = 'bs7671' and kind = 'test' and module not in ('m1', 'm2', 'm3', 'final') loop perform public.academy_record(l, 12, 15); end loop;
+  assert exists (select 1 from public.academy_badges where user_id = auth.uid() and badge = 'bs_design'), 'Level 3 badge';
+  perform public.academy_record('bs_mt_final', 23, 30);
+  c := (select x from jsonb_array_elements(public.academy_me()->'courses') x where x->>'course' = 'bs7671');
+  assert not (c->>'complete')::boolean and (c->>'lessons')::int = 52 and (c->>'tests')::int = 11, 'not complete before the final exam is passed';
+  perform public.academy_record('bs_mt_final', 24, 30);
+  c := (select x from jsonb_array_elements(public.academy_me()->'courses') x where x->>'course' = 'bs7671');
+  assert (c->>'complete')::boolean and (c->>'tests_passed')::int = 11, 'course complete';
+  assert exists (select 1 from public.academy_badges where user_id = auth.uid() and badge = 'bs7671_gold'), 'Wiring Regulations gold';
+  perform public.academy_writeup_save('bs_4_3_w', 'notes', '{"lesson":"4.3 Disconnection times and maximum Zs","text":"Three circuits on site all within the 80 % limit."}');
+  assert (select count(*) from public.academy_writeups_list(null) where lesson = 'bs_4_3_w') = 1, 'a lesson write-up';
+end $$;
+reset role;
+
 -- Visit briefs: written before the visit, on the own plan line or on the visit itself
 select pg_temp.act_as('asm_infra'); set role authenticated;
 do $$ declare ln uuid := (select id from public.visit_plan_lines where planned_objective = 'Tuesday visit' limit 1); begin

@@ -11,9 +11,12 @@ import { rpc } from '@/lib/supabase';
 import type { Role } from '@/lib/types';
 
 const KIND_LABELS: Record<AcademyWriteup['kind'], string> = { ticket: 'Ticket write-up', weekly: 'Weekly write-up', test: 'Graded test', script: 'Script hand-in', notes: 'Capstone notes' };
+const kindLabel = (w: AcademyWriteup) => (w.lesson.startsWith('bs_') ? 'Lesson write-up' : KIND_LABELS[w.kind]);
 
-/** Which session and part a lesson id points to, e.g. infra_s12_t3 → "Session 12 · ticket t3", infra_t08 → "Session 8 · test" */
+/** Which session and part a lesson id points to, e.g. infra_s12_t3 → "Session 12 · ticket t3", infra_t08 → "Session 8 · test", bs_4_3_w → "BS 7671 · 4.3" */
 function lessonLabel(w: AcademyWriteup) {
+  const bs = w.lesson.match(/^bs_(\d+)_(\d+)_w$/);
+  if (bs) return `BS 7671 · ${bs[1]}.${bs[2]}`;
   const m = w.lesson.match(/^infra_(?:s(\d+)(?:_(\w+))?|t(\d+))$/);
   if (!m) return w.lesson;
   const n = Number(m[1] ?? m[3]);
@@ -54,7 +57,7 @@ export function AcademyWriteups({ trainer }: { trainer: boolean }) {
   const dialog = useDialog();
   const [show, setShow] = useState<'open' | 'all'>(trainer ? 'open' : 'all');
   const [sel, setSel] = useState<string | null>(null);
-  const { data, error, reload } = useLoad(() => rpc<AcademyWriteup[]>('academy_writeups_list', { p_course: 'infra' }), []);
+  const { data, error, reload } = useLoad(() => rpc<AcademyWriteup[]>('academy_writeups_list', { p_course: null }), []);
   if (!data) return error ? <ErrorBanner message={error} /> : <Loading />;
   const rows = show === 'open' ? data.filter((w) => w.mark == null) : data;
   const cur = data.find((w) => w.id === sel) ?? null;
@@ -77,7 +80,7 @@ export function AcademyWriteups({ trainer }: { trainer: boolean }) {
     <View style={{ gap: 8 }}>
       <Muted>
         {trainer
-          ? 'Ticket and weekly write-ups, graded test results, the Session 16 script and the capstone notes from the Infrastructure course. Saving again replaces a write-up and clears its mark.'
+          ? 'Ticket and weekly write-ups, graded test results, the Session 16 script and the capstone notes from the Infrastructure course, and lesson write-ups from the Wiring Regulations course. Saving again replaces a write-up and clears its mark.'
           : 'Your write-ups from the Infrastructure course, with your trainer’s marks and feedback.'}
       </Muted>
       {trainer ? <Segmented value={show} onChange={setShow} options={[{ value: 'open', label: `To mark (${data.filter((w) => w.mark == null).length})` }, { value: 'all', label: 'All' }]} /> : null}
@@ -90,7 +93,7 @@ export function AcademyWriteups({ trainer }: { trainer: boolean }) {
         columns={[
           ...(trainer ? [{ h: 'Engineer', w: 180, grow: true, v: (r: AcademyWriteup) => `${r.full_name}\n${ROLE_LABELS[r.role as Role] ?? r.role}` } satisfies Column<AcademyWriteup>] : []),
           { h: 'Session', w: 140, v: (r: AcademyWriteup) => lessonLabel(r) },
-          { h: 'Kind', w: 130, v: (r: AcademyWriteup) => KIND_LABELS[r.kind] },
+          { h: 'Kind', w: 130, v: (r: AcademyWriteup) => kindLabel(r) },
           { h: 'Saved', w: 100, v: (r: AcademyWriteup) => fmtDate(r.updated_at) },
           { h: 'Mark', w: 80, right: true, v: (r: AcademyWriteup) => (r.mark != null ? `${r.mark}%` : '—') },
         ]}
@@ -98,7 +101,7 @@ export function AcademyWriteups({ trainer }: { trainer: boolean }) {
       {cur ? (
         <Card>
           <Row style={{ justifyContent: 'space-between', alignItems: 'center' }} wrap>
-            <Body style={{ fontWeight: '600' }}>{`${cur.full_name} · ${lessonLabel(cur)} · ${KIND_LABELS[cur.kind]}`}</Body>
+            <Body style={{ fontWeight: '600' }}>{`${cur.full_name} · ${lessonLabel(cur)} · ${kindLabel(cur)}`}</Body>
             {cur.mark != null ? <Pill label={`${cur.mark}%`} tone={cur.mark >= 75 ? colors.green : colors.amber} solid /> : <Pill label="Not marked" />}
           </Row>
           <WriteupBody w={cur} />

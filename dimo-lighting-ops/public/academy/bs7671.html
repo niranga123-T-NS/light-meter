@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wiring Regulations – Dacademy</title><meta name="robots" content="noindex">
+<style>
+:root{--navy:#244286;--lime:#B0D035;--red:#c8102e;--ink:#14161c;--mut:#5f6673;--line:#e3e5ea;--bg:#f4f5f7;--chip:#eef0f4;--good:#15803d;--bad:#dc2626;--warn:#b45309;--blue:#2a6fdb;--l1:#0f766e;--l2:#b45309;--l3:#7c3aed}
+*{box-sizing:border-box}body{margin:0;font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:var(--bg)}
+.wrap{padding:16px 20px;max-width:1120px;margin:0 auto}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px}
+h2{margin:0 0 4px;font-size:20px}h3{margin:18px 0 8px;font-size:15px}.m{color:var(--mut)}
+.hero{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.bar{height:8px;background:var(--chip);border-radius:99px;overflow:hidden;width:220px}.bar i{display:block;height:100%;background:var(--navy)}
+.lvl{margin:20px 0 6px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}.lvl b{font-size:16px}.lvl .tag{color:#fff;border-radius:99px;padding:2px 10px;font-size:12px;font-weight:700}
+.mods{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.mod{background:#fff;border:2px solid var(--line);border-radius:12px;padding:12px;cursor:pointer;position:relative}.mod.on{border-color:var(--navy);box-shadow:0 0 0 3px rgba(36,66,134,.12)}.mod b{display:block;font-size:14px}.mod .m{font-size:12px}
+.mod .k{font-size:11px;font-weight:800;letter-spacing:.5px;color:var(--navy)}
+.sec{margin-top:18px;font-weight:700;font-size:12px;letter-spacing:.5px;text-transform:uppercase;color:var(--mut)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-top:8px}
+.topic{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;cursor:pointer;position:relative}
+.topic:hover{border-color:var(--navy)}.topic .ic{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:8px}
+.topic b{display:block}.done{position:absolute;top:10px;right:10px;font-size:12px;font-weight:700;color:var(--good)}
+.live{position:absolute;top:10px;right:10px;font-size:11px;font-weight:700;color:#14161c;background:var(--lime);border-radius:99px;padding:1px 8px}
+.btn{display:inline-block;padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:#fff;font-weight:600;font-size:13px;cursor:pointer;font-family:inherit;color:var(--ink)}
+.btn.p{background:var(--navy);color:#fff;border-color:var(--navy)}.btn.on{background:var(--ink);color:#fff;border-color:var(--ink)}.btn.s{padding:4px 9px;font-size:12px}
+.btn[disabled]{opacity:.45;cursor:default}
+.part{display:flex;gap:10px;align-items:flex-start;margin-top:18px}.num{flex-shrink:0;width:28px;height:28px;border-radius:50%;background:var(--navy);color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center}
+.part .body{flex:1;min-width:0}.part h4{margin:3px 0 6px;font-size:15px}
+.hook{background:#f8fafc;border:1px dashed #94a3b8;border-radius:10px;padding:10px 12px;display:flex;gap:12px;align-items:flex-start}.hook .e{font-size:30px;line-height:1}
+.say{background:#f0f6ff;border-left:4px solid var(--blue);padding:10px 12px;border-radius:6px}
+.watch{background:#fff7ed;border-left:4px solid var(--warn);padding:10px 12px;border-radius:6px}
+.lk{background:#f0fdf4;border-left:4px solid var(--good);padding:10px 12px;border-radius:6px;margin-top:10px}
+.reg{display:inline-block;background:#eef2ff;color:var(--navy);border:1px solid #c7d2fe;border-radius:6px;padding:1px 7px;font-size:12px;font-weight:700;margin:2px 4px 2px 0}
+.chk{font-size:11px;color:var(--warn);font-weight:600}
+.prompts{margin:8px 0 0;padding-left:18px;font-size:13px;color:var(--mut)}.prompts li{margin:2px 0}
+table.spec{width:100%;border-collapse:collapse;font-size:13px}table.spec td,table.spec th{padding:6px 6px;border-bottom:1px solid var(--line);vertical-align:top;text-align:left}table.spec th{background:var(--chip);font-size:12px}
+.tablewrap{overflow-x:auto}
+.steps tr.hid td{color:transparent;text-shadow:0 0 8px rgba(0,0,0,.35);user-select:none}
+.q{margin-top:10px}.q p{margin:0 0 6px;font-weight:600}.opt{display:block;width:100%;text-align:left;margin:4px 0;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;cursor:pointer;font:inherit;color:inherit}
+.opt.ok{background:#dcfce7;border-color:var(--good)}.opt.no{background:#fee2e2;border-color:var(--bad)}.opt.on{outline:2px solid var(--navy);background:rgba(36,66,134,.06)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:12px 0}.kpis div{background:var(--chip);border-radius:10px;padding:10px;text-align:center;font-size:12px;color:var(--mut)}.kpis b{display:block;font-size:19px;color:var(--ink)}
+.ctl{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px 18px;margin-top:10px}
+.ctl label{font-size:12px;color:var(--mut);display:flex;justify-content:space-between;gap:6px}.ctl label b{color:var(--ink)}
+.ctl select,.ctl input[type=number],.ans input{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:8px;font:inherit;background:#fff}
+input[type=range]{width:100%;accent-color:var(--navy)}
+.stage{background:#0f1a33;border-radius:12px;overflow:hidden}.stage svg,.panel svg{display:block;width:100%;height:auto}
+.panel{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.two{display:grid;grid-template-columns:1.4fr 1fr;gap:14px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.pill{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:700;background:var(--chip)}
+.okc{color:var(--good);font-weight:700}.noc{color:var(--bad);font-weight:700}
+.ans{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}.ans input{width:150px}
+.hidden{display:none!important}.crumb{color:var(--mut);margin-bottom:8px;cursor:pointer}
+.legend{display:flex;gap:14px;font-size:12px;flex-wrap:wrap;margin:6px 0}.legend span::before{content:'';display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-2px;background:var(--c)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.tile{border:2px solid var(--line);border-radius:10px;padding:8px 10px;background:#fff;cursor:pointer;font-size:13px}.tile.sel{border-color:var(--navy);background:#eef2ff}.tile.ok{border-color:var(--good);background:#dcfce7}.tile.no{border-color:var(--bad);background:#fee2e2}
+.flip{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}.flip div{border:1px solid var(--line);border-radius:10px;padding:12px;min-height:96px;cursor:pointer;background:#fff;transition:background .2s}.flip div b{display:block;margin-bottom:4px}.flip div.on{background:#eef2ff;border-color:var(--navy)}
+.site label{display:flex;gap:8px;align-items:flex-start;padding:4px 0;cursor:pointer}
+textarea{width:100%;min-height:90px;border:1px solid var(--line);border-radius:8px;padding:8px;font:inherit}
+.tip{position:absolute;pointer-events:none;background:#fff;border:1px solid var(--line);border-radius:8px;padding:5px 8px;font-size:12px;box-shadow:0 4px 14px rgba(0,0,0,.1);display:none;white-space:nowrap;z-index:3}
+.note{font-size:12px;color:var(--mut);margin-top:6px}
+@keyframes flow{to{stroke-dashoffset:-40}}.flow{stroke-dasharray:8 12;animation:flow 1s linear infinite}
+@keyframes blink{50%{opacity:.25}}.blink{animation:blink 1s step-end infinite}
+@media(max-width:860px){.two{grid-template-columns:1fr}.wrap{padding:12px}.kpis{grid-template-columns:1fr 1fr!important}}
+</style></head><body>
+<div class="wrap">
+<div id="home">
+  <div class="card hero">
+    <div style="max-width:640px"><h2 id="hTitle"></h2><div class="m" id="hSub"></div><div class="m" id="saveNote" style="font-size:12px;margin-top:4px"></div></div>
+    <div><div class="m" style="font-size:12px;margin-bottom:4px" id="progText">Your progress</div><div class="bar"><i id="progBar" style="width:0%"></i></div><div style="margin-top:8px" id="contBtn"></div></div>
+  </div>
+  <div id="levels"></div>
+  <div id="modBody" style="margin-top:14px"></div>
+</div>
+<div id="lesson" class="hidden">
+  <div class="crumb" onclick="back()" id="lCrumb">◀ All lessons</div>
+  <div class="card">
+    <div class="hero"><div><span class="pill" id="lPill"></span><h2 style="margin-top:6px" id="lTitle"></h2><div id="lRegs"></div></div><span class="m" id="lDone"></span></div>
+    <div class="part"><div class="num">1</div><div class="body"><h4>On site</h4><div class="hook" id="lHook"></div></div></div>
+    <div class="part"><div class="num">2</div><div class="body"><h4>The rule in plain words</h4><div id="lRule"></div><div id="lLk"></div></div></div>
+    <div class="part" id="lExpP"><div class="num">3</div><div class="body"><h4>Explore</h4><div id="lExp"></div><ul class="prompts" id="lPrompts"></ul></div></div>
+    <div class="part" id="lWorkP"><div class="num">4</div><div class="body"><h4 id="lWorkH">Worked example</h4><div id="lWork"></div></div></div>
+    <div class="part" id="lTryP"><div class="num">5</div><div class="body"><h4>Try it</h4><div id="lTry"></div></div></div>
+    <div class="part" id="lSiteP"><div class="num">6</div><div class="body"><h4>Site check</h4><div class="say site" id="lSite"></div><div id="lWatch"></div></div></div>
+    <div class="part"><div class="num">7</div><div class="body"><h4>Quiz – 4 of 5 completes the lesson</h4><div id="lQuiz"></div></div></div>
+    <div class="part" id="lWriteP"><div class="num">8</div><div class="body"><h4>Write-up (optional)</h4><div id="lWrite"></div></div></div>
+  </div>
+</div>
+<div id="pracv" class="hidden">
+  <div class="crumb" onclick="back()" id="pCrumb">◀ All lessons</div>
+  <div class="card">
+    <div class="hero"><div><span class="pill" id="pPill"></span><h2 style="margin-top:6px" id="pTitle"></h2></div><span class="m" id="pDone"></span></div>
+    <div id="pIntro" style="margin:8px 0"></div><div id="pBody"></div>
+  </div>
+</div>
+</div>
+<script src="mtest.js"></script>
+<script src="bs7671/data.js"></script>
+<script>
+// Course engine – Wiring Regulations (BS 7671): levels → modules → lessons in eight steps (on site · rule · explore · worked example · try it ·
+// site check · quiz · write-up), practical assessments, module tests (mtest.js) and the final exam; progress saved through the person's sign-in
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const Q = (q, opts, c, why) => [q, opts, c, why];
+const COURSE = { key: 'bs7671', prefix: 'bs_', title: 'Wiring Regulations (BS 7671)', sub: 'BS 7671:2018+A4:2026 for DIMO engineers, supervisors, designers and technicians – explained in our own words with live simulators, charts and calculators. Every regulation number and value here is to be checked against the current copy of BS 7671.' };
+const LEVELS = [[1, 'Foundations', 'Everyone', 'var(--l1)'], [2, 'Protection', 'Engineers, supervisors, designers', 'var(--l2)'], [3, 'Design and verification', 'Designers, engineers, technicians', 'var(--l3)'], [0, 'Final exam', 'After all modules', 'var(--navy)']];
+const MODULES = [
+  ['m1', 1, 'M1', 'Scope, definitions and principles', 'Parts 1–3'], ['m2', 1, 'M2', 'Earthing systems and supply', 'TN-S, TN-C-S, TT, IT, Ze, PSCC'], ['m3', 1, 'M3', 'Identification and wiring systems', 'Colours, influences, fire, isolation'],
+  ['m4', 2, 'M4', 'Protection against electric shock', 'Chapter 41 – ADS, Zs, RCDs, bonding'], ['m5', 2, 'M5', 'Overcurrent, fault, fire and surge', 'Chapters 42–44, AFDD, SPD'], ['m6', 2, 'M6', 'Selection and erection', 'Part 5 – cables, RCD types, earthing'],
+  ['m7', 3, 'M7', 'Circuit design workshop', 'Design a circuit end to end'], ['m8', 3, 'M8', 'Inspection and testing', 'Part 6 – tests, EICR'], ['m9', 3, 'M9', 'Special installations', 'Part 7 – bathrooms to EV charging'], ['m10', 3, 'M10', 'Prosumers and the latest changes', 'Part 8, Amendment 4'],
+  ['final', 0, 'Final', 'Final exam', '30 questions from every module · 60 min']];
+const L = [];
+const lesson = (mod, num, icon, title, o) => L.push({ mod, num, id: COURSE.prefix + num.replace('.', '_'), icon, title, mins: 35, ...o });
+const prac = (mod, id, icon, title, o) => L.push({ mod, num: '', id: COURSE.prefix + id, icon, title, mins: 30, prac: true, ...o });
+const W = {};
+const TRY = {};
+let LESSONS = {};
+const BG = ['#e0f2fe', '#dcfce7', '#fef3c7', '#ede9fe', '#fce7f3', '#ffedd5', '#e0e7ff', '#f1f5f9'];
+const regs = (a) => (a || []).map((x) => `<span class="reg">${esc(x)}</span>`).join('') + (a && a.length ? ' <span class="chk">check against your copy of BS 7671</span>' : '');
+
+// ---- small helpers for widgets
+const sl = (id, label, mi, ma, st, v, unit = '') => `<div><label>${label} <b id="${id}V"></b></label><input type="range" id="${id}" min="${mi}" max="${ma}" step="${st}" value="${v}" data-unit="${unit}"></div>`;
+const sel = (id, label, opts, v) => `<div><label>${label}</label><select id="${id}">${opts.map((o) => { const [k, t] = Array.isArray(o) ? o : [o, o]; return `<option value="${esc(k)}"${String(k) === String(v) ? ' selected' : ''}>${esc(t)}</option>`; }).join('')}</select></div>`;
+const bind = (el, fn) => { el.querySelectorAll('input,select').forEach((i) => i.addEventListener('input', fn)); el.querySelectorAll('input[type=range]').forEach((i) => { const u = () => { const b = $(i.id + 'V'); if (b) b.textContent = i.value + (i.dataset.unit || ''); }; i.addEventListener('input', u); u(); }); fn(); };
+const kpi = (rows) => `<div class="kpis">${rows.map(([v, t, bad]) => `<div><b${bad === true ? ' style="color:var(--bad)"' : bad === false ? ' style="color:var(--good)"' : ''}>${v}</b>${t}</div>`).join('')}</div>`;
+const num = (id) => +$(id).value;
+const fx = (x, n = 2) => (Number.isFinite(x) ? (Math.abs(x) >= 100 ? Math.round(x).toString() : (+x.toFixed(n)).toString()) : '∞');
+
+// ---- quiz: 5 questions, options shuffled the same way every time for a lesson, 4 right completes it
+function seeded(str) { let h = 2166136261; for (const ch of str) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return ((h >>> 0) % 1000) / 1000; }; }
+function renderQuiz(el, les) {
+  const rnd = seeded(les.id); let right = 0, answered = 0;
+  el.innerHTML = les.quiz.map(([q, opts, c], qi) => { const order = opts.map((o, i) => [o, i, rnd()]).sort((a, b) => a[2] - b[2]); return `<div class="q" data-c="${c}" data-qi="${qi}"><p>${qi + 1}. ${q}</p>${order.map(([o, i]) => `<button class="opt" data-i="${i}">${o}</button>`).join('')}<div class="m why" style="font-size:12px;margin-top:4px"></div></div>`; }).join('') + `<div id="qRes" style="margin-top:8px"></div>`;
+  el.querySelectorAll('.q').forEach((qd) => qd.querySelectorAll('.opt').forEach((b) => b.onclick = () => {
+    if (qd.dataset.done) return; qd.dataset.done = 1; answered++; const ok = +b.dataset.i === +qd.dataset.c; if (ok) right++;
+    b.classList.add(ok ? 'ok' : 'no'); qd.querySelector(`.opt[data-i="${qd.dataset.c}"]`).classList.add('ok');
+    const why = les.quiz[+qd.dataset.qi][3]; if (why) qd.querySelector('.why').innerHTML = (ok ? '✓ ' : '✗ ') + why;
+    if (answered === les.quiz.length) finish(les, right, les.quiz.length);
+  }));
+}
+function finish(les, score, total) {
+  const pass = score * 5 >= total * 4, nx = nextLesson(les.id);
+  record(les.id, score, total);
+  $('qRes').innerHTML = `<b>${score} of ${total} right.</b> ${pass ? 'Lesson complete ✓' : 'Not yet – read the rule and the worked example again, then retry (4 of 5 completes the lesson).'} <span class="btn s" onclick="route()">Retry</span>${nx ? ` <span class="btn p s" onclick="openLesson('${nx.id}')">Next: ${esc(nx.title)} ▶</span>` : ''}`;
+}
+const nextLesson = (id) => { const i = L.findIndex((l) => l.id === id); return L[i + 1] && L[i + 1].mod === L[i].mod ? L[i + 1] : L.find((l, k) => k > i && !(prog[l.id] && prog[l.id].done)); };
+
+// ---- progress (Supabase through the app's sign-in, passed in by the app)
+let cfg = null, prog = {};
+function api(fn, body) { if (!cfg) return Promise.resolve(null); return fetch(`${cfg.sb}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: cfg.key, Authorization: `Bearer ${cfg.token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) }).then((r) => (r.ok ? r.json().catch(() => null) : Promise.reject(r))); }
+const passes = (id, score, total) => (/(^|_)mt_/.test(id) ? score * 5 >= total * 4 : id.startsWith('bs_px_') ? score * 3 >= total * 2 : score * 5 >= total * 4);
+function record(id, score, total, secs, mins) {
+  const p = prog[id] || { best: 0, attempts: 0, done: false }; p.attempts++; p.best = Math.max(p.best, score); p.total = total; p.done = p.done || passes(id, score, total); prog[id] = p;
+  if (window.parent !== window) window.parent.postMessage({ type: 'academy:progress', lesson: id, score, total }, '*');
+  api('academy_record', { p_lesson: id, p_score: score, p_total: total, p_secs: secs ?? ((window.__lt || {})[id] ? Math.round((Date.now() - window.__lt[id]) / 1000) : null), p_mins: mins ?? (LESSONS[id] ? LESSONS[id].mins : null) }).catch(() => { $('saveNote').textContent = 'Could not save your progress – open the course again from the app.'; });
+}
+function loadProgress() { return api('academy_mine').then((rows) => { if (rows) { prog = {}; rows.forEach((r) => { if (r.lesson.startsWith(COURSE.prefix)) prog[r.lesson] = { best: r.best, total: r.total, attempts: r.attempts, done: r.done }; }); } if ($('lesson').classList.contains('hidden')) renderHome(); }).catch(() => { $('saveNote').textContent = 'Could not load your progress.'; }); }
+function setCfg(c) { cfg = c; $('saveNote').textContent = c ? `Signed in as ${c.name} – your progress is saved.` : 'Open from the DIMO app (Tools → Dacademy) to save your progress.'; loadProgress(); }
+window.addEventListener('message', (e) => { if (e.data && e.data.type === 'academy:cfg') setCfg(e.data.cfg); });
+
+// ---- home: three levels, their modules, the lessons of the chosen module, its practical and its module test
+let mod = null;
+const isDone = (id) => !!(prog[id] && prog[id].done);
+function renderHome() {
+  if (!mod) mod = MODULES[0][0];
+  const doneN = L.filter((l) => isDone(l.id)).length;
+  $('progText').textContent = `Your progress · ${doneN} of ${L.length} lessons and practicals`; $('progBar').style.width = `${Math.round((100 * doneN) / L.length)}%`;
+  const nx = L.find((l) => !isDone(l.id)); $('contBtn').innerHTML = nx ? `<span class="btn p" onclick="openLesson('${nx.id}')">${doneN ? 'Continue' : 'Start'}: ${esc(nx.num ? nx.num + ' ' : '')}${esc(nx.title)} ▶</span>` : '<b style="color:var(--good)">All lessons complete ✓</b>';
+  $('levels').innerHTML = LEVELS.map(([lv, name, who, col]) => `<div class="lvl"><span class="tag" style="background:${col}">${lv ? 'Level ' + lv : 'Final'}</span><b>${name}</b><span class="m" style="font-size:12px">${who}</span></div><div class="mods">${MODULES.filter((m) => m[1] === lv).map(([k, , code, n, sub]) => {
+    const ls = L.filter((l) => l.mod === k), d = ls.filter((l) => isDone(l.id)).length, tid = k === 'final' ? 'bs_mt_final' : MT_ID(k), tp = isDone(tid);
+    return `<div class="mod ${k === mod ? 'on' : ''}" onclick="mod='${k}';renderHome()"><span class="k">${code}</span><b>${n}</b><span class="m">${sub}</span><span class="m" style="display:block;font-size:11px;margin-top:4px;color:var(--good)">${k === 'final' ? (tp ? '✓ Passed' : 'Not passed yet') : `${d} / ${ls.length} done${tp ? ' · test ✓' : ''}`}</span></div>`; }).join('')}</div>`).join('');
+  const M = MODULES.find((m) => m[0] === mod);
+  if (mod === 'final') { $('modBody').innerHTML = `<div class="card"><h3 style="margin-top:0">Final exam</h3><p>30 questions drawn at random from every module's question pool, 60 minutes, pass mark 24 of 30 (80 %). Take it after all ten module tests. Open book: you may use your copy of BS 7671 and the On-Site Guide.</p><div class="row"><span class="btn p" onclick="finalStart()">Start the final exam ▶</span>${prog.bs_mt_final ? `<span class="m">Best ${prog.bs_mt_final.best} / 30${isDone('bs_mt_final') ? ' – passed ✓' : ''}</span>` : ''}</div></div><div id="finalBox"></div>`; return; }
+  const items = L.filter((l) => l.mod === mod);
+  $('modBody').innerHTML = `<div class="sec">${M[2]} · ${esc(M[3])}</div><div class="grid">${items.map((l, i) => { const p = prog[l.id];
+    return `<div class="topic" onclick="openLesson('${l.id}')">${p && p.done ? `<span class="done">✓ ${p.best}/${p.total}</span>` : l.prac ? '<span class="live">PRACTICAL</span>' : l.explore ? '<span class="live">● LIVE</span>' : ''}<div class="ic" style="background:${BG[i % BG.length]}">${l.icon}</div><b>${l.num ? l.num + ' · ' : ''}${esc(l.title)}</b><span class="m" style="font-size:12px">${l.mins} min${l.regs ? ' · ' + esc(l.regs[0]) : ''}</span></div>`; }).join('')}</div>` + (window.MT ? MT.card(COURSE.key, mod, (prog[MT_ID(mod)] || {}).best, M[3]) : '');
+}
+const MT_ID = (m) => (window.MT && MT.has(COURSE.key, m) ? MT.id(COURSE.key, m) : COURSE.prefix + 'mt_' + m);
+
+// ---- lessons
+function showView(v) { ['home', 'lesson', 'pracv'].forEach((x) => $(x).classList.toggle('hidden', x !== v)); window.scrollTo(0, 0); }
+function back() { location.hash = '#home'; }
+function openLesson(id) { if (location.hash !== '#l/' + id) location.hash = '#l/' + id; else route(); }
+const modName = (k) => { const m = MODULES.find((x) => x[0] === k); return m ? `${m[2]} · ${m[3]}` : k; };
+let STOP = [];
+const onStop = (fn) => STOP.push(fn);
+function route() {
+  STOP.forEach((f) => { try { f(); } catch (e) { /* already gone */ } }); STOP = [];
+  clearInterval(EXT);
+  const h = location.hash.replace(/^#/, ''); if (!h.startsWith('l/')) { showView('home'); renderHome(); return; }
+  const les = LESSONS[h.slice(2)]; if (!les) { showView('home'); renderHome(); return; }
+  (window.__lt = window.__lt || {})[les.id] = Date.now();
+  mod = les.mod; const p = prog[les.id], doneTxt = p && p.done ? `✓ Completed · best ${p.best}/${p.total}` : '';
+  if (les.prac) { pracStart(les, doneTxt); return; }
+  showView('lesson');
+  $('lCrumb').textContent = `◀ All lessons · ${modName(les.mod)}`; $('lPill').textContent = `Lesson ${les.num} · ${les.mins} min`; $('lTitle').textContent = les.title; $('lRegs').innerHTML = regs(les.regs);
+  $('lDone').innerHTML = doneTxt ? `<b style="color:var(--good)">${doneTxt}</b>` : '';
+  $('lHook').innerHTML = `<div class="e">${les.icon}</div><div>${les.hook}</div>`;
+  $('lRule').innerHTML = les.rule; $('lLk').innerHTML = les.lk ? `<div class="lk"><b>🇱🇰 In Sri Lanka:</b> ${les.lk}</div>` : '';
+  $('lExpP').classList.toggle('hidden', !les.explore); $('lExp').innerHTML = ''; $('lPrompts').innerHTML = '';
+  if (les.explore) { try { W[les.explore.w]($('lExp'), les.explore.o || {}); } catch (e) { $('lExp').textContent = 'This simulator could not start: ' + e.message; console.error(e); } $('lPrompts').innerHTML = (les.explore.prompts || []).map((x) => `<li>${x}</li>`).join(''); }
+  renderWorked(les); renderTry(les);
+  $('lSiteP').classList.toggle('hidden', !les.site); $('lSite').innerHTML = (les.site || []).map((x) => `<label><input type="checkbox"> <span>${x}</span></label>`).join(''); $('lWatch').innerHTML = les.watch ? `<div class="watch" style="margin-top:8px"><b>Watch out:</b> ${les.watch}</div>` : '';
+  renderQuiz($('lQuiz'), les); renderWrite(les);
+}
+window.addEventListener('hashchange', route);
+
+// worked example: each step revealed on tap
+function renderWorked(les) {
+  const w = les.worked; $('lWorkP').classList.toggle('hidden', !w); if (!w) return;
+  $('lWorkH').textContent = 'Worked example' + (w.title ? ' – ' + w.title : '');
+  let shown = 0;
+  const draw = () => { $('lWork').innerHTML = `${w.intro ? `<p style="margin-top:0">${w.intro}</p>` : ''}<div class="tablewrap"><table class="spec steps"><tr><th>Step</th><th>Working</th><th>Result</th></tr>${w.steps.map(([a, b, c], i) => `<tr class="${i < shown ? '' : 'hid'}"><td>${i + 1}. ${a}</td><td>${b}</td><td><b>${c}</b></td></tr>`).join('')}</table></div>${shown < w.steps.length ? `<div class="row" style="margin-top:8px"><span class="btn p s" id="wNext">Show step ${shown + 1} ▶</span><span class="btn s" id="wAll">Show all</span></div>` : w.note ? `<p class="note">${w.note}</p>` : ''}`;
+    if ($('wNext')) { $('wNext').onclick = () => { shown++; draw(); }; $('wAll').onclick = () => { shown = w.steps.length; draw(); }; } };
+  draw();
+}
+// try it: a problem with random values (numeric, checked within a tolerance) or a random scenario with options
+function renderTry(les) {
+  const g = les.tryit; $('lTryP').classList.toggle('hidden', !g); if (!g) return;
+  const el = $('lTry'); let wrong = 0, P;
+  const fresh = () => { wrong = 0; P = g(); draw(); };
+  const draw = () => {
+    if (P.opts) { const rnd = seeded(P.q), ord = P.opts.map((o, i) => [i, rnd()]).sort((a, b) => a[1] - b[1]).map(([i]) => i);
+      el.innerHTML = `<p style="margin-top:0">${P.q}</p>${ord.map((i) => `<button class="opt" data-i="${i}">${P.opts[i]}</button>`).join('')}<div id="tyOut" class="note"></div><span class="btn s" id="tyNew" style="margin-top:6px">Another one ↻</span>`;
+      el.querySelectorAll('.opt').forEach((b) => b.onclick = () => { const ok = +b.dataset.i === P.c; b.classList.add(ok ? 'ok' : 'no'); if (ok || ++wrong >= 2) { el.querySelector(`.opt[data-i="${P.c}"]`).classList.add('ok'); $('tyOut').innerHTML = (ok ? '<span class="okc">✓ Right.</span> ' : '<span class="noc">✗</span> ') + (P.how || ''); } else $('tyOut').innerHTML = '<span class="noc">Not quite – try again.</span> ' + (P.hint || ''); });
+    } else {
+      el.innerHTML = `<p style="margin-top:0">${P.q}</p><div class="ans"><input id="tyIn" type="number" step="any" inputmode="decimal" placeholder="Your answer"><span>${P.unit || ''}</span><span class="btn p s" id="tyGo">Check</span><span class="btn s" id="tyNew">New numbers ↻</span></div><div id="tyOut" class="note"></div>`;
+      const go = () => { const v = parseFloat($('tyIn').value); if (!Number.isFinite(v)) return; const tol = P.abs != null ? P.abs : Math.abs(P.a) * (P.tol ?? 0.03); const ok = Math.abs(v - P.a) <= tol + 1e-9;
+        if (ok) $('tyOut').innerHTML = `<span class="okc">✓ Right – ${fx(P.a, 3)} ${P.unit || ''}.</span><br>${P.how || ''}`; else if (++wrong < 2) $('tyOut').innerHTML = `<span class="noc">Not quite.</span> Hint: ${P.hint || 'check each step of the worked example.'}`; else $('tyOut').innerHTML = `<span class="noc">The answer is ${fx(P.a, 3)} ${P.unit || ''}.</span><br>${P.how || ''}`; };
+      $('tyGo').onclick = go; $('tyIn').onkeydown = (e) => { if (e.key === 'Enter') go(); };
+    }
+    $('tyNew').onclick = fresh;
+  };
+  fresh();
+}
+// optional write-up: a short note from the learner's own site, read and marked by the trainer
+function renderWrite(les) {
+  $('lWriteP').classList.toggle('hidden', !les.write); if (!les.write) return;
+  $('lWrite').innerHTML = `<p style="margin-top:0">${les.write}</p><textarea id="wrTxt" maxlength="4000" placeholder="Write a few lines – what you saw, what you checked, what you would change."></textarea><div class="row" style="margin-top:6px"><span class="btn p s" id="wrGo">Send to my trainer</span><span class="note" id="wrOut">${cfg ? 'Your trainer reads and marks it under Dacademy → Write-ups.' : 'Open the course from the app to send write-ups.'}</span></div>`;
+  $('wrGo').onclick = () => { const t = $('wrTxt').value.trim(); if (t.length < 20) { $('wrOut').textContent = 'Please write at least a couple of sentences.'; return; }
+    if (!cfg) { $('wrOut').textContent = 'Open the course from the app to send write-ups.'; return; }
+    api('academy_writeup_save', { p_lesson: les.id + '_w', p_kind: 'notes', p_body: { lesson: `${les.num} ${les.title}`, text: t } }).then(() => { $('wrOut').innerHTML = '<span class="okc">✓ Sent – your trainer will mark it.</span>'; }).catch(() => { $('wrOut').textContent = 'Could not send – try again.'; }); };
+}
+
+// ---- practical assessments: 5 calculations with random values from the module's lessons, a fault-finding test, or branching scenarios
+function pracStart(les, doneTxt) {
+  showView('pracv'); $('pCrumb').textContent = `◀ All lessons · ${modName(les.mod)}`; $('pPill').textContent = `Practical assessment · ${les.mins} min`; $('pTitle').textContent = les.title;
+  $('pDone').innerHTML = doneTxt ? `<b style="color:var(--good)">${doneTxt}</b>` : '';
+  $('pIntro').innerHTML = `${les.intro}<div class="row" style="margin-top:8px"><span class="btn p" id="pGo">Start ▶</span></div>`; $('pBody').innerHTML = '';
+  $('pGo').onclick = () => (les.kind === 'calc' ? pracCalc(les) : W[les.kind]($('pBody'), { assess: true, done: (score, total) => { record(les.id, score, total); pracResult(les, score, total); } }));
+}
+function pracResult(les, score, total) {
+  const pass = passes(les.id, score, total);
+  $('pIntro').innerHTML = `${kpi([[`${score} / ${total}`, 'right'], [pass ? 'Passed ✓' : 'Not yet', pass ? 'saved to your progress' : 'new values each attempt', !pass]])}<div class="row"><span class="btn p" onclick="route()">Take it again</span><span class="btn" onclick="back()">Back to the lessons</span></div>`;
+}
+function pracCalc(les) {
+  const gens = les.from.map((id) => LESSONS[id]).filter((l) => l && l.tryit), probs = [];
+  for (let i = 0; i < 5; i++) { let p; let tries = 0; do { p = gens[(i + tries) % gens.length].tryit(); tries++; } while (p.opts && tries < 20); probs.push(p); }
+  $('pIntro').innerHTML = `<p class="m">Answer all five, then mark. Numeric answers are accepted within ${'±'}3 %. 4 of 5 passes.</p>`;
+  $('pBody').innerHTML = probs.map((p, i) => `<div class="q"><p>${i + 1}. ${p.q}</p>${p.opts ? p.opts.map((o, k) => `<button class="opt" data-q="${i}" data-k="${k}">${o}</button>`).join('') : `<div class="ans"><input id="pa${i}" type="number" step="any" inputmode="decimal"><span>${p.unit || ''}</span></div>`}<div class="note" id="pw${i}"></div></div>`).join('') + '<div class="row" style="margin-top:12px"><span class="btn p" id="pMark">Mark my answers</span></div>';
+  const pickd = {}; $('pBody').querySelectorAll('.opt').forEach((b) => b.onclick = () => { pickd[b.dataset.q] = +b.dataset.k; $('pBody').querySelectorAll(`.opt[data-q="${b.dataset.q}"]`).forEach((x) => x.classList.toggle('on', x === b)); });
+  $('pMark').onclick = () => { let score = 0; probs.forEach((p, i) => { let ok; if (p.opts) ok = pickd[i] === p.c; else { const v = parseFloat($('pa' + i).value), tol = p.abs != null ? p.abs : Math.abs(p.a) * (p.tol ?? 0.03); ok = Number.isFinite(v) && Math.abs(v - p.a) <= tol + 1e-9; }
+    if (ok) score++; $('pw' + i).innerHTML = (ok ? '<span class="okc">✓</span> ' : `<span class="noc">✗ Answer: ${p.opts ? p.opts[p.c] : fx(p.a, 3) + ' ' + (p.unit || '')}.</span> `) + (p.how || ''); });
+    $('pMark').remove(); record(les.id, score, 5); pracResult(les, score, 5); window.scrollTo(0, 0); };
+}
+
+// ---- final exam: 30 questions drawn from every module test pool, 60 minutes, pass at 24
+let EXT = null;
+function finalStart() {
+  const pools = (window.MT && MT.pools[COURSE.key]) || {}, all = [];
+  Object.keys(pools).forEach((m) => pools[m].forEach((q) => all.push(q)));
+  if (all.length < 30) { $('finalBox').innerHTML = '<p class="m">The question pools are not loaded.</p>'; return; }
+  const shuf = (a) => a.map((x) => [x, Math.random()]).sort((p, q) => p[1] - q[1]).map(([x]) => x);
+  const qs = shuf(all).slice(0, 30).map(([q, opts, why]) => { const ord = shuf(opts.map((o, i) => i)); return [q, ord.map((i) => opts[i]), ord.indexOf(0), why]; }), ans = new Array(30).fill(null); let left = 60 * 60; const t0 = Date.now();
+  const box = $('finalBox'); clearInterval(EXT);
+  box.innerHTML = `<div class="card" style="margin-top:12px"><div class="row" style="justify-content:space-between"><b id="xClock"></b><span class="m" id="xCount"></span><span class="btn p" id="xEnd">Finish and mark</span></div><div id="xBody"></div></div>`;
+  $('xBody').innerHTML = qs.map(([q, opts], qi) => `<div class="q" data-qi="${qi}"><p>${qi + 1}. ${esc(q)}</p>${opts.map((o, i) => `<button class="opt" data-i="${i}">${esc(o)}</button>`).join('')}</div>`).join('');
+  const cnt = () => { $('xCount').textContent = `${ans.filter((a) => a !== null).length} of 30 answered`; }; cnt();
+  $('xBody').querySelectorAll('.q').forEach((qd) => qd.querySelectorAll('.opt').forEach((b) => b.onclick = () => { ans[+qd.dataset.qi] = +b.dataset.i; qd.querySelectorAll('.opt').forEach((x) => x.classList.toggle('on', x === b)); cnt(); }));
+  const tick = () => { left--; if (!$('xClock')) { clearInterval(EXT); return; } $('xClock').textContent = `⏱ ${Math.floor(Math.max(0, left) / 60)}:${String(Math.max(0, left) % 60).padStart(2, '0')}`; if (left <= 0) mark(); };
+  const mark = () => { clearInterval(EXT); const right = qs.filter((q, i) => ans[i] === q[2]).length, pass = right >= 24;
+    record('bs_mt_final', right, 30, Math.round((Date.now() - t0) / 1000), 60);
+    box.innerHTML = `<div class="card" style="margin-top:12px">${kpi([[`${right} / 30`, 'right'], [pass ? 'Passed ✓' : 'Not yet', 'pass mark 24', !pass]])}<p class="m">${pass ? 'Well done – review the ones you missed below.' : 'Study the modules for the questions you missed and try again – new questions are drawn each time.'}</p>${qs.map(([q, opts, c, why], i) => `<div class="q"><p>${ans[i] === c ? '✓' : '✗'} ${i + 1}. ${esc(q)}</p>${opts.map((o, k) => `<button class="opt ${k === c ? 'ok' : k === ans[i] ? 'no' : ''}" disabled>${esc(o)}</button>`).join('')}${why ? `<div class="note">${esc(why)}</div>` : ''}</div>`).join('')}</div>`; renderHomeKeep(); };
+  $('xEnd').onclick = () => { if (ans.some((a) => a === null) && !confirm('Some questions are not answered yet. Mark the exam now?')) return; mark(); };
+  tick(); EXT = setInterval(tick, 1000);
+}
+const renderHomeKeep = () => { const box = $('finalBox').innerHTML; renderHome(); $('finalBox').innerHTML = box; };
+
+function start() {
+  LESSONS = Object.fromEntries(L.map((l) => [l.id, l]));
+  document.title = COURSE.title + ' – Dacademy'; $('hTitle').textContent = COURSE.title; $('hSub').textContent = COURSE.sub;
+  const m = location.hash.match(/cfg=([^&]+)/);
+  if (m) { try { const c = JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(m[1]))))); history.replaceState(null, '', location.pathname + '#home'); setCfg(c); } catch { setCfg(null); } }
+  else if (window.parent !== window) { $('saveNote').textContent = 'Connecting…'; window.parent.postMessage({ type: 'academy:ready' }, '*'); }
+  else setCfg(null);
+  route();
+}
+</script>
+<script src="bs7671/widgets1.js"></script>
+<script src="bs7671/widgets2.js"></script>
+<script src="bs7671/widgets3.js"></script>
+<script src="bs7671/pools.js"></script>
+<script src="bs7671/lessons1.js"></script>
+<script src="bs7671/lessons2.js"></script>
+<script src="bs7671/lessons3.js"></script>
+<script>
+start();
+// Module tests (mtest.js): a card at the end of each module opens the test; the result is saved like a lesson, passed at 12 of 15
+document.addEventListener('click', function (e) { var c = e.target.closest && e.target.closest('.mtCard'); if (!c || !window.MT) return; var p = c.dataset.mt.split(':'), m = (MODULES.find(function (x) { return x[0] === p[1]; }) || [p[1], 0, '', p[1]])[3];
+  MT.open(p[0], p[1], m, function (id, score, total, pass, secs) { record(id, score, total, secs, 8); if (prog[id]) prog[id].done = prog[id].best >= MT.PASS; renderHome(); }); });
+</script>
+</body></html>
