@@ -9400,5 +9400,21 @@ reset role;
 -- Project Management is a customer type
 do $$ begin assert exists (select 1 from public.master_lists where list_name = 'visit_category' and value = 'Project Management' and active), 'Project Management customer type'; end $$;
 
+-- The trainee assigned to a claim from a sales report reads the report (site contact, photos)
+reset role;
+do $$ declare rid uuid; begin
+  select id into rid from public.warranty_reports where claim_id is not null limit 1;
+  if rid is not null then
+    update public.warranty_claims set assignee_id = (select id from u where role = 'trainee2') where id = (select claim_id from public.warranty_reports where id = rid);
+    perform set_config('test.wr', rid::text, false);
+  else perform set_config('test.wr', '', false); end if;
+end $$;
+select pg_temp.act_as('trainee2'); set role authenticated;
+do $$ begin
+  assert current_setting('test.wr') <> '', 'a converted sales report to test';
+  assert exists (select 1 from public.warranty_reports where id = current_setting('test.wr')::uuid), 'the assigned engineer reads the sales report';
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
