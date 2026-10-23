@@ -9397,5 +9397,8 @@ select pg_temp.act_as('gm'); set role authenticated;
 do $$ begin assert not exists (select 1 from public.sales_meetings where id = current_setting('test.dm')::uuid), 'GM waits for the published pack'; end $$;
 reset role;
 
+-- Project Management is a customer type
+do $$ begin assert exists (select 1 from public.master_lists where list_name = 'visit_category' and value = 'Project Management' and active), 'Project Management customer type'; end $$;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
