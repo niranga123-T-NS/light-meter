@@ -1,6 +1,7 @@
 import { AcademyCard } from '@/components/home/AcademyCard';
 import { router, Stack } from 'expo-router';
 import { Text } from 'react-native';
+import { useDialog } from '@/components/dialog';
 import { MeetingActions } from '@/components/MeetingActions';
 import { WeekMeetings } from '@/components/WeekMeetings';
 import { TargetCard } from '@/components/TargetCharts';
@@ -42,8 +43,15 @@ type MyDay = {
 };
 
 /** "My Day" – the sales person's home (Section 9). */
+/** A next action's timing: overdue by n days, due today or tomorrow */
+const dueLabel = (d: string) => {
+  const n = Math.round((Date.parse(`${todayISO()}T00:00:00`) - Date.parse(`${d}T00:00:00`)) / 86400000);
+  return n > 0 ? `Overdue ${n} day${n === 1 ? '' : 's'}` : n === 0 ? 'Due today' : 'Due tomorrow';
+};
+
 export function SalesHome() {
   const me = useMe();
+  const dialog = useDialog();
   const { data, error, loading, reload } = useLoad(() => rpc<MyDay>('my_day'));
   const offline = useOfflineSync();
   // My retentions that need action: due and not claimed, due within 60 days, or claimed and unpaid for 60+ days
@@ -186,10 +194,34 @@ export function SalesHome() {
           <Section title="Next actions due">
             <Card style={{ padding: 0, overflow: 'hidden' }}>
               {data.next_actions.map((a) => (
-                <ListRow key={a.id} title={a.next_action} subtitle={`${a.organization} · ${fmtDate(a.date)}`} onPress={() => router.push(`/visits/${a.id}`)} />
+                <ListRow
+                  key={a.id}
+                  title={a.next_action || 'Follow-up (no description)'}
+                  subtitle={`${a.organization} · ${a.code} · due ${fmtDate(a.date)}`}
+                  wrapRight
+                  right={
+                    <Row gap={6}>
+                      <Pill label={dueLabel(a.date)} tone={a.date < todayISO() ? colors.red : colors.amber} />
+                      <Button
+                        small
+                        variant="secondary"
+                        title="Done"
+                        onPress={() =>
+                          dialog.run(async () => {
+                            const { error: e } = await supabase.from('visits').update({ next_action_done_at: new Date().toISOString() }).eq('id', a.id);
+                            if (e) throw new Error(e.message);
+                            await reload();
+                          }, 'Marked done')
+                        }
+                      />
+                    </Row>
+                  }
+                  onPress={() => router.push(`/visits/${a.id}`)}
+                />
               ))}
               {!data.next_actions.length ? <Muted style={{ padding: 12 }}>Nothing due</Muted> : null}
             </Card>
+            <Button small variant="ghost" title="All next actions – overdue, done and upcoming →" onPress={() => router.push('/visits?tab=actions')} />
           </Section>
 
           {data.first_visits_due.length ? (
