@@ -167,7 +167,7 @@ export default function MeetingPack() {
       <Screen>
         <Notice tone={colors.amber}>
           This meeting cannot be opened yet – its pack has not been published. GM / DGM see a meeting once its host (SM Projects, SM Estimation, Design Manager or
-          the Senior Electrical Engineer) publishes it. It may also have been removed.
+          the Senior Electrical Engineer) publishes it; SM Projects sees every meeting. It may also have been removed.
         </Notice>
         <Button title="Go to Meetings" onPress={() => router.replace('/meetings')} />
       </Screen>

@@ -4,6 +4,7 @@ import { useDialog } from '@/components/dialog';
 import { useMe } from '@/lib/auth';
 import { addDaysISO, fmtDate, fmtDateTime, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
+import { projectNo } from '@/lib/execution';
 import { hhmm, nextMeetingDate, type Team, TEAMS } from '@/lib/meetings';
 import { rpc, supabase } from '@/lib/supabase';
 
@@ -17,6 +18,7 @@ type Meeting = {
   initiated_at: string | null;
   starts_at: string;
   ends_at: string;
+  exec_projects?: { name: string; code: string | null; wbs_no: string | null } | null;
 };
 type InviteRequest = { meeting_id: string; team: Team; meeting_date: string; starts_at: string; ends_at: string; person_id: string; person: string; requested_by: string };
 type Reschedule = {
@@ -51,7 +53,7 @@ export function TeamMeetingsPanel({ team }: { team: Team }) {
     const [m, e, inv, rs] = await Promise.all([
       supabase
         .from('sales_meetings')
-        .select('id, meeting_date, held_on, status, generated_at, published_at, initiated_at, starts_at, ends_at')
+        .select(team === 'project' ? 'id, meeting_date, held_on, status, generated_at, published_at, initiated_at, starts_at, ends_at, exec_projects(name, code, wbs_no)' : 'id, meeting_date, held_on, status, generated_at, published_at, initiated_at, starts_at, ends_at')
         .eq('team', team)
         .order('meeting_date', { ascending: false })
         .limit(52),
@@ -173,7 +175,7 @@ export function TeamMeetingsPanel({ team }: { team: Team }) {
             />
           </Row>
         ) : (
-          <Muted>Packs appear here once {cfg.host} publishes them (read only).</Muted>
+          <Muted>{me.role === 'sm_projects' ? `Every ${cfg.label.toLowerCase()} – drafts while ${cfg.host} prepares them, and the published minutes (read only).` : `Packs appear here once ${cfg.host} publishes them (read only).`}</Muted>
         )}
       </Card>
 
@@ -269,7 +271,7 @@ export function TeamMeetingsPanel({ team }: { team: Team }) {
             data.meetings.map((m) => (
               <ListRow
                 key={m.id}
-                title={when(m)}
+                title={m.exec_projects ? `${projectNo(m.exec_projects)} ${m.exec_projects.name} · ${when(m)}`.trim() : when(m)}
                 subtitle={
                   m.status === 'published'
                     ? `Published ${fmtDateTime(m.published_at)}`
