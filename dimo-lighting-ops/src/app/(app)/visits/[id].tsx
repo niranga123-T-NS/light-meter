@@ -111,6 +111,8 @@ export default function VisitDetail() {
     dialog.run(async () => {
       if (report.summary.trim().length < 30) throw new Error('Discussion summary must be at least 30 characters');
       if (!report.outcome) throw new Error('Select the outcome');
+      if (report.next_action_date && !report.next_action?.trim()) throw new Error('Write what the next action is, or clear its date');
+      if (report.next_action?.trim() && !report.next_action_date) throw new Error('Give the next action a date');
       const pos = await captureLocation().catch(() => null);
       const { error: e } = await supabase
         .from('visits')
@@ -172,10 +174,10 @@ export default function VisitDetail() {
             <Pill label={v.outcome ?? '—'} />
             <Muted style={{ marginTop: 8 }}>Discussion</Muted>
             <Muted style={{ color: colors.text }}>{v.summary}</Muted>
-            {v.next_action ? (
+            {v.next_action || v.next_action_date ? (
               <Row style={{ marginTop: 10, justifyContent: 'space-between' }} wrap>
                 <Muted>
-                  Next action: {v.next_action} · {fmtDate(v.next_action_date)}
+                  Next action: {v.next_action || 'Follow-up (no description)'} · {fmtDate(v.next_action_date)}
                   {v.next_action_done_at ? ' · done' : ''}
                 </Muted>
                 {mine && !v.next_action_done_at ? (
