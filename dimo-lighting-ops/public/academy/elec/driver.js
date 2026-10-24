@@ -277,6 +277,7 @@
     draw();
   }
   W.driver = bench;
+  window.__DRV = { SYM, ln, txt };
   work('driver', 'd_onoff', '💡', 'On/Off constant-current driver', 'Input filter, PFC, flyback converter, feedback, LED string', 'driver', { type: 'onoff' });
   work('driver', 'd_dali', '🎛️', 'DALI dimmable driver', 'Power stage + DALI interface: bridge, opto, micro-controller, memory', 'driver', { type: 'dali' });
   work('driver', 'd_dmx', '🌈', 'DMX RGBW decoder and 24 V supply', 'RS-485 receiver, address, termination, four PWM MOSFETs', 'driver', { type: 'dmx' });
