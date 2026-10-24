@@ -9473,5 +9473,115 @@ do $$ begin
 end $$;
 reset role;
 
+-- Supplier quotes: Ops, GM / DGM and people the GM / DGM allows; quotes, lines, payments, aliases, selection
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  assert not public.sq_access_me(), 'sales has no access to supplier quotes';
+  begin insert into public.sq_suppliers (name) values ('Sneaky'); assert false, 'no access: no supplier'; exception when insufficient_privilege or check_violation then null; when others then if sqlstate <> '42501' then raise; end if; end;
+end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare pk uuid; sa uuid; sb uuid; it uuid; qa uuid; qb uuid; n int; begin
+  assert public.sq_access_me(), 'Ops has access';
+  insert into public.sq_suppliers (name, kind) values ('Alpha Supplies', 'supply') returning id into sa;
+  insert into public.sq_suppliers (name, kind) values ('Beacon Electrical', 'supply') returning id into sb;
+  insert into public.sq_items (code, name, unit) values ('FL-1500', 'LED floodlight 1500 W', 'nr') returning id into it;
+  insert into public.sq_packages (title, project_name, our_validity) values ('LED floodlights', 'Test stadium', current_date + 30) returning id into pk;
+  assert (select code from public.sq_packages where id = pk) like 'SQ-%', 'package code';
+  begin perform public.sq_save_quote(jsonb_build_object('package_id', pk, 'supplier_id', sa, 'lines', '[]'::jsonb)); assert false, 'a quote needs lines'; exception when raise_exception then null; end;
+  begin perform public.sq_save_quote(jsonb_build_object('package_id', pk, 'supplier_id', sa, 'lines', jsonb_build_array(jsonb_build_object('text', 'x', 'rate', 1)),
+    'payments', jsonb_build_array(jsonb_build_object('pct', 30, 'event', 'order'), jsonb_build_object('pct', 60, 'event', 'delivery')))); assert false, 'payments must make 100'; exception when raise_exception then null; end;
+  qa := public.sq_save_quote(jsonb_build_object('package_id', pk, 'supplier_id', sa, 'quote_no', 'Q-1', 'currency', 'USD', 'fx_rate', 300, 'freight_pct', 10,
+    'lines', jsonb_build_array(jsonb_build_object('text', 'Flood Light 1500W DMX', 'item_id', it, 'qty', 96, 'unit', 'nr', 'rate', 1000), jsonb_build_object('text', 'Aiming', 'included', true, 'rate', 5)),
+    'payments', jsonb_build_array(jsonb_build_object('name', 'Advance', 'pct', 30, 'event', 'order'), jsonb_build_object('name', 'Balance', 'pct', 70, 'event', 'delivery')),
+    'exclusions', jsonb_build_array(jsonb_build_object('text', 'Crane', 'add_lkr', 50000))));
+  assert (select count(*) from public.sq_quote_lines where quote_id = qa) = 2, 'two lines';
+  assert (select rate from public.sq_quote_lines where quote_id = qa and included) is null, 'an included line has no rate';
+  assert exists (select 1 from public.sq_item_aliases where item_id = it and alias = 'Flood Light 1500W DMX'), 'the supplier wording is remembered';
+  qb := public.sq_save_quote(jsonb_build_object('package_id', pk, 'supplier_id', sb, 'currency', 'LKR', 'fx_rate', 999,
+    'lines', jsonb_build_array(jsonb_build_object('text', 'flood light 1500w dmx', 'item_id', it, 'qty', 96, 'rate', 288500))));
+  assert (select fx_rate from public.sq_quotes where id = qb) = 1, 'LKR quotes have rate 1';
+  assert (select count(*) from public.sq_item_aliases where item_id = it) = 1, 'same wording is one alias';
+  -- edit replaces the lines
+  perform public.sq_save_quote(jsonb_build_object('id', qb, 'package_id', pk, 'supplier_id', sb, 'lines', jsonb_build_array(jsonb_build_object('text', 'LED floodlight', 'item_id', it, 'qty', 90, 'rate', 280000))));
+  assert (select count(*) from public.sq_quote_lines where quote_id = qb) = 1 and (select qty from public.sq_quote_lines where quote_id = qb) = 90, 'edit replaces the lines';
+  begin update public.sq_packages set selected_quote_id = qb, status = 'selected' where id = pk; assert false, 'selection only with a reason'; exception when raise_exception then null; end;
+  begin perform public.sq_select(pk, qb, ''); assert false, 'reason required'; exception when raise_exception then null; end;
+  perform public.sq_select(pk, qb, 'Lowest delivered price');
+  assert (select status from public.sq_packages where id = pk) = 'selected' and (select selected_quote_id from public.sq_packages where id = pk) = qb, 'supplier chosen';
+  update public.sq_packages set notes = 'ok' where id = pk;
+  update public.sq_packages set status = 'closed' where id = pk;
+  assert (select status from public.sq_packages where id = pk) = 'closed', 'a chosen package can be closed';
+  perform set_config('test.sqpk', pk::text, false);
+  begin perform public.sq_grant((select id from u where role = 'lighting_designer'), 'x'); assert false, 'only the GM grants'; exception when raise_exception then null; end;
+end $$;
+reset role;
+select pg_temp.act_as('lighting_designer'); set role authenticated;
+do $$ begin
+  assert not public.sq_access_me(), 'designer has no access yet';
+  assert (select count(*) from public.sq_packages) = 0, 'and sees no packages';
+end $$;
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ declare g uuid; begin
+  assert public.sq_access_me(), 'GM has access';
+  begin perform public.sq_grant((select id from u where role = 'lighting_designer'), ''); assert false, 'reason required'; exception when raise_exception then null; end;
+  begin perform public.sq_grant((select id from u where role = 'operations_exec'), 'x'); assert false, 'Ops already has it'; exception when raise_exception then null; end;
+  g := public.sq_grant((select id from u where role = 'lighting_designer'), 'Helps with the stadium tender');
+  begin perform public.sq_grant((select id from u where role = 'lighting_designer'), 'again'); assert false, 'one open grant'; exception when raise_exception then null; end;
+  perform set_config('test.sqg', g::text, false);
+end $$;
+reset role;
+select pg_temp.act_as('lighting_designer'); set role authenticated;
+do $$ begin
+  assert public.sq_access_me(), 'allowed person has access';
+  assert (select count(*) from public.sq_packages where id = current_setting('test.sqpk')::uuid) = 1, 'allowed person sees the package';
+  assert exists (select 1 from public.notifications where recipient_id = auth.uid() and kind = 'sq_access'), 'told about the access';
+  insert into public.sq_suppliers (name) values ('Crest Imports');
+  begin perform public.sq_revoke(current_setting('test.sqg')::uuid); assert false, 'only the GM cancels'; exception when raise_exception then null; end;
+end $$;
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+select public.sq_revoke(current_setting('test.sqg')::uuid, 'Tender finished');
+reset role;
+select pg_temp.act_as('lighting_designer'); set role authenticated;
+do $$ begin
+  assert not public.sq_access_me(), 'access ends when the GM cancels';
+  assert (select count(*) from public.sq_packages) = 0, 'and the packages are hidden again';
+end $$;
+reset role;
+
+-- Supplier quotes: versions – every revised / discounted quote kept, latest compared and chosen
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare pk uuid; sp uuid; it uuid; q0 uuid; q1 uuid; q2 uuid; begin
+  insert into public.sq_suppliers (name) values ('Version Supplier') returning id into sp;
+  insert into public.sq_items (code, name) values ('V-ITEM', 'Versioned item') returning id into it;
+  insert into public.sq_packages (title) values ('Versions test') returning id into pk;
+  q0 := public.sq_save_quote(jsonb_build_object('package_id', pk, 'supplier_id', sp, 'lines', jsonb_build_array(jsonb_build_object('text', 'Versioned item', 'item_id', it, 'qty', 10, 'rate', 100)),
+    'payments', jsonb_build_array(jsonb_build_object('pct', 100, 'event', 'delivery'))));
+  begin perform public.sq_revise_quote(q0, ''); assert false, 'a revision says what changed'; exception when raise_exception then null; end;
+  q1 := public.sq_revise_quote(q0, 'Rate reduced after meeting');
+  assert (select revision from public.sq_quotes where id = q1) = 1 and (select first_id from public.sq_quotes where id = q1) = q0, 'R1 of the same quote';
+  assert (select superseded_by from public.sq_quotes where id = q0) = q1, 'R0 superseded';
+  assert (select count(*) from public.sq_quote_lines where quote_id = q1) = 1 and (select count(*) from public.sq_quote_payments where quote_id = q1) = 1, 'lines and payments copied';
+  perform public.sq_save_quote(jsonb_build_object('id', q1, 'package_id', pk, 'supplier_id', sp, 'discount_pct', 5, 'lines', jsonb_build_array(jsonb_build_object('text', 'Versioned item', 'item_id', it, 'qty', 10, 'rate', 90))));
+  assert (select rate from public.sq_quote_lines where quote_id = q1) = 90 and (select rate from public.sq_quote_lines where quote_id = q0) = 100, 'R1 changed, R0 kept';
+  assert (select discount_pct from public.sq_quotes where id = q1) = 5 and (select revision_note from public.sq_quotes where id = q1) = 'Rate reduced after meeting', 'discount saved, note kept';
+  begin perform public.sq_save_quote(jsonb_build_object('id', q0, 'package_id', pk, 'supplier_id', sp, 'lines', jsonb_build_array(jsonb_build_object('text', 'x', 'rate', 1)))); assert false, 'earlier version read-only'; exception when raise_exception then null; end;
+  begin perform public.sq_revise_quote(q0, 'again'); assert false, 'revise the latest'; exception when raise_exception then null; end;
+  begin perform public.sq_select(pk, q0, 'old'); assert false, 'earlier version cannot be chosen'; exception when raise_exception then null; end;
+  perform public.sq_select(pk, q1, 'Best after negotiation');
+  q2 := public.sq_revise_quote(q1, 'Final 2 % more');
+  assert (select selected_quote_id from public.sq_packages where id = pk) = q2, 'the choice follows the latest version';
+  assert (select revision from public.sq_quotes where id = q2) = 2 and (select first_id from public.sq_quotes where id = q2) = q0, 'R2 in the same chain';
+  begin delete from public.sq_quotes where id = q0; assert false, 'earlier version not deleted'; exception when raise_exception then null; end;
+  delete from public.sq_quotes where id = q2;
+  assert (select superseded_by from public.sq_quotes where id = q1) is null, 'deleting the latest brings R1 back';
+  assert (select selected_quote_id from public.sq_packages where id = pk) = q1, 'and the choice goes back to R1';
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
