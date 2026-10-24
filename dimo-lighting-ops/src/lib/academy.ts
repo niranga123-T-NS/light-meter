@@ -14,7 +14,7 @@ export const ACADEMY_COURSES: { value: AcademyCourse; label: string; path: strin
   { value: 'knxlab', label: 'KNX Studio', path: '/academy/knxlab.html', lessons: 14 }, // ETS-style project trainer: 14 self-checking exercises (8 office + hotel brief + 5 hotel)
   { value: 'infra', label: 'Infrastructure', path: '/academy/infra.html', lessons: 24 }, // 24 sessions with a virtual lab: Cisco-style switches and routers, FortiGate, Windows Server, Ubuntu, Proxmox
   { value: 'bs7671', label: 'Wiring Regulations', path: '/academy/bs7671.html', lessons: 52, group: 'Electrical', short: 'Wiring Regulations' }, // BS 7671:2018+A4:2026 – 48 lessons in 10 modules over three levels + 4 practical assessments, 10 module tests and a final exam
-  { value: 'elecfix', label: 'Electrical Troubleshooting', path: '/academy/elec.html', lessons: 41, group: 'Electrical', short: 'Troubleshooting' }, // 8 guided demos, 22 random-fault jobs, 5 LED driver and 6 panel board workbenches
+  { value: 'elecfix', label: 'Electrical Troubleshooting', path: '/academy/elec.html', lessons: 43, group: 'Electrical', short: 'Troubleshooting' }, // 8 guided demos, 22 random-fault jobs, 7 LED driver (incl. the 1700 W high-power driver and its trip case) and 6 panel board workbenches
 ];
 /** The course tabs: one per course, or one per group of courses */
 export const ACADEMY_TABS = ACADEMY_COURSES.reduce<{ value: string; label: string; courses: AcademyCourse[] }[]>((t, c) => {

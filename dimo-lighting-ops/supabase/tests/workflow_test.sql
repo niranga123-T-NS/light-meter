@@ -8682,7 +8682,7 @@ reset role;
 -- Dacademy: Electrical Troubleshooting – 8 demos, 22 fault-finding jobs, 11 workbenches; the workshop badge, then the gold on completion
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
 do $$ declare l text; c jsonb; begin
-  assert (select count(*) from public.academy_lessons where course = 'elecfix') = 41, '41 items';
+  assert (select count(*) from public.academy_lessons where course = 'elecfix') = 43, '43 items';
   assert (select count(*) from public.academy_lessons where course = 'elecfix' and kind = 'lesson') = 8, '8 guided demos';
   assert (public.academy_me()->'path'->'optional') @> '["elecfix"]'::jsonb, 'optional for the Senior Electrical Engineer';
   perform public.academy_record('ef_h_room', 6, 10);
@@ -8696,7 +8696,7 @@ do $$ declare l text; c jsonb; begin
   assert not exists (select 1 from public.academy_badges where user_id = auth.uid() and badge = 'elecfix_gold'), 'no gold yet';
   for l in select lesson from public.academy_lessons where course = 'elecfix' and module not in ('driver', 'panel') loop perform public.academy_record(l, case when l like '%\_demo' then 1 else 8 end, case when l like '%\_demo' then 1 else 10 end); end loop;
   c := (select x from jsonb_array_elements(public.academy_me()->'courses') x where x->>'course' = 'elecfix');
-  assert (c->>'complete')::boolean and (c->>'lessons')::int = 41, 'course complete';
+  assert (c->>'complete')::boolean and (c->>'lessons')::int = 43, 'course complete';
   assert exists (select 1 from public.academy_badges where user_id = auth.uid() and badge = 'elecfix_gold'), 'Electrical Troubleshooting gold';
 end $$;
 reset role;
