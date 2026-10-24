@@ -15,7 +15,7 @@ export type PackageStatus = 'open' | 'selected' | 'closed' | 'cancelled';
 export type SqPackage = {
   id: string; code: string; title: string; project_name: string | null; job_ref: string | null; kind: 'supply' | 'subcontract';
   our_validity: string | null; needed_weeks: number | null; status: PackageStatus; selected_quote_id: string | null; selection_reason: string | null;
-  selected_by: string | null; selected_at: string | null; notes: string | null; created_at: string; updated_at: string;
+  selected_by: string | null; selected_at: string | null; notes: string | null; created_at: string; updated_at: string; source_kind?: 'project' | 'inquiry' | 'exec' | null; source_id?: string | null;
 };
 export type PayEvent = 'order' | 'delivery' | 'after_delivery' | 'commissioning' | 'handover' | 'shipment';
 export type SqLine = { id?: string; text: string; item_id: string | null; qty: number | null; unit: string | null; rate: number | null; included: boolean; note?: string | null; check?: boolean };
@@ -80,6 +80,27 @@ export async function loadRefs() {
   if (err) throw new Error(err.message);
   return { suppliers: (s.data ?? []) as Supplier[], items: (i.data ?? []) as SqItem[], aliases: (a.data ?? []) as SqAlias[], costPct: Number(st.data?.cost_of_money_pct ?? 12) };
 }
+
+// ---------------------------------------------------------------- the job a package is for: picked from the system or typed
+export type SqJob = { kind: 'project' | 'inquiry' | 'exec'; id: string; ref: string | null; project_name: string | null; client: string | null };
+const JOB_KIND = { exec: 'Execution', inquiry: 'Inquiry', project: 'Project' } as const;
+export async function loadJobs() {
+  const { data, error } = await supabase.rpc('sq_jobs');
+  if (error) throw new Error(error.message);
+  return (data ?? []) as SqJob[];
+}
+export const jobProject = (j: SqJob) => [j.project_name, j.client].filter(Boolean).join(' – ');
+/** A searchable choice that fills Project / client and the reference; both stay editable and typing without a choice is fine */
+export function jobField(jobs: SqJob[], initial?: string) {
+  const byKey = new Map(jobs.map((j) => [`${j.kind}:${j.id}`, j]));
+  return {
+    key: 'src', label: 'Pick from the system (optional)', type: 'select' as const, searchable: true, initial: initial ?? '',
+    hint: 'An execution project, inquiry or project – fills the two boxes below. Or just type them.',
+    options: [{ value: '', label: '— type it myself —' }, ...jobs.map((j) => ({ value: `${j.kind}:${j.id}`, label: [`${JOB_KIND[j.kind]} ${j.ref ?? ''}`.trim(), jobProject(j)].filter(Boolean).join(' · ') }))],
+    fill: (v: string): Record<string, string> => { const j = byKey.get(v); return j ? { project: jobProject(j), job: j.ref ?? '' } : {}; },
+  };
+}
+export const jobSource = (v?: string) => { const [k, id] = (v ?? '').split(':'); return k && id ? { source_kind: k, source_id: id } : { source_kind: null, source_id: null }; };
 
 // ---------------------------------------------------------------- the comparison basis
 /** Share of the line prices left after the discount on the whole quote (% and / or an amount in the quote currency) */
