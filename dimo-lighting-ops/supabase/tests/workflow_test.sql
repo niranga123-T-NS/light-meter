@@ -8682,6 +8682,7 @@ reset role;
 -- Dacademy: Electrical Troubleshooting – 8 demos, 22 fault-finding jobs, 11 workbenches; the workshop badge, then the gold on completion
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
 do $$ declare l text; c jsonb; begin
+  assert (select count(*) from public.academy_lessons where course = 'infra' and kind = 'session') = 25 and exists (select 1 from public.academy_lessons where lesson = 'infra_s25' and module = 'm5'), 'infra has 25 sessions, the builder in module 5';
   assert (select count(*) from public.academy_lessons where course = 'elecfix') = 43, '43 items';
   assert (select count(*) from public.academy_lessons where course = 'elecfix' and kind = 'lesson') = 8, '8 guided demos';
   assert (public.academy_me()->'path'->'optional') @> '["elecfix"]'::jsonb, 'optional for the Senior Electrical Engineer';
