@@ -5202,7 +5202,7 @@ const APP = { sid: null, tab: 'concept', L: null, mode: null, tk: null, shells: 
 const store = { get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }, del(k) { try { localStorage.removeItem(k); } catch {} } };
 let PROG = store.get('infra:prog', {});
 const sp = (sid) => (PROG[sid] ??= { concept: false, tasks: {}, tickets: {}, quiz: null, wu: null });
-function toast(t, ms = 3200) { let box = document.getElementById('toasts'); if (!box) { box = document.createElement('div'); box.id = 'toasts'; box.style.cssText = 'position:fixed;right:16px;bottom:16px;display:flex;flex-direction:column;gap:6px;z-index:60;align-items:flex-end'; document.body.appendChild(box); } const d = document.createElement('div'); d.className = 'toast'; d.style.position = 'static'; d.textContent = t; box.appendChild(d); while (box.children.length > 4) box.firstChild.remove(); setTimeout(() => d.remove(), ms); }
+function toast(t, ms = 3200) { let box = document.getElementById('toasts'); if (!box) { box = document.createElement('div'); box.id = 'toasts'; box.style.cssText = 'position:fixed;right:16px;bottom:16px;display:flex;flex-direction:column;gap:6px;z-index:60;align-items:flex-end;pointer-events:none'; document.body.appendChild(box); } const d = document.createElement('div'); d.className = 'toast'; d.style.position = 'static'; d.textContent = t; box.appendChild(d); while (box.children.length > 4) box.firstChild.remove(); setTimeout(() => d.remove(), ms); }
 
 // ---------------------------------------------------------------- saving progress to the person's Dacademy record
 let CFG = null;
@@ -7651,4 +7651,9 @@ SESSIONS.push({
 
 ;
 boot();
-</script></body></html>
+</script>
+<script src="infra/gloss.js"></script>
+<script src="infra/beginner.js"></script>
+<script src="infra/builder.js"></script>
+<script src="infra/guide.js"></script>
+</body></html>

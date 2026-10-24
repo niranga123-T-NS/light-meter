@@ -8682,6 +8682,7 @@ reset role;
 -- Dacademy: Electrical Troubleshooting – 8 demos, 22 fault-finding jobs, 11 workbenches; the workshop badge, then the gold on completion
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
 do $$ declare l text; c jsonb; begin
+  assert (select count(*) from public.academy_lessons where course = 'infra' and kind = 'session') = 25 and exists (select 1 from public.academy_lessons where lesson = 'infra_s25' and module = 'm5'), 'infra has 25 sessions, the builder in module 5';
   assert (select count(*) from public.academy_lessons where course = 'elecfix') = 43, '43 items';
   assert (select count(*) from public.academy_lessons where course = 'elecfix' and kind = 'lesson') = 8, '8 guided demos';
   assert (public.academy_me()->'path'->'optional') @> '["elecfix"]'::jsonb, 'optional for the Senior Electrical Engineer';
@@ -9354,7 +9355,7 @@ select pg_temp.act_as('lighting_engineer'); set role authenticated;
 do $$ declare f uuid; r public.design_tool_files;
 begin
   assert exists (select 1 from public.design_tool_engine where version = 'v12' and html like '%dtRecv%'), 'engine readable';
-  assert (select version from public.design_tool_engine order by created_at desc, version desc limit 1) = 'v128', 'newest engine first';
+  assert (select version from public.design_tool_engine order by created_at desc, version desc limit 1) = 'v129', 'newest engine first';
   assert (select html like '%dt:ready%' from public.design_tool_engine order by created_at desc, version desc limit 1), 'the newest engine is the in-app page';
   perform public.design_driver_save('11111111-1111-4111-8111-111111111111', '{"make":"Tridonic","model":"XFL-1500","inrushA":95,"src":{"inrushA":"x"}}'::jsonb, 'drivers/11111111/a.pdf', 'a.pdf');
   perform public.design_driver_save('11111111-1111-4111-8111-111111111111', '{"make":"Tridonic","model":"XFL-1500","inrushA":90}'::jsonb);
