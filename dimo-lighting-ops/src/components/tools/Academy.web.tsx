@@ -5,7 +5,7 @@ import { AcademyTeam } from '@/components/tools/AcademyTeam';
 import { AcademyWriteups } from '@/components/tools/AcademyWriteups';
 import { Segmented } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { ACADEMY_COURSES, ACADEMY_ENGINEERS, ACADEMY_TEAM_VIEWERS, ACADEMY_TRAINERS, type AcademyCourse, academyCfg } from '@/lib/academy';
+import { ACADEMY_COURSES, ACADEMY_ENGINEERS, ACADEMY_TEAM_VIEWERS, ACADEMY_TRAINERS, ACADEMY_TABS, type AcademyCourse, academyCfg, academyTab } from '@/lib/academy';
 
 /** Dacademy on the website: the chosen course's lessons page in a frame; it saves progress with the person's sign-in, passed to it here */
 export function Academy() {
@@ -45,7 +45,8 @@ export function Academy() {
         <AcademyWriteups trainer={trainer} />
       ) : (
         <>
-          <Segmented value={course} onChange={setCourse} options={ACADEMY_COURSES.map((x) => ({ value: x.value, label: x.label }))} />
+          <Segmented value={academyTab(course).value} onChange={(v) => setCourse((ACADEMY_TABS.find((t) => t.value === v) ?? ACADEMY_TABS[0]).courses[0])} options={ACADEMY_TABS.map((t) => ({ value: t.value, label: t.label }))} />
+          {academyTab(course).courses.length > 1 ? <Segmented value={course} onChange={setCourse} options={academyTab(course).courses.map((v) => { const k = ACADEMY_COURSES.find((y) => y.value === v); return { value: v, label: k?.short ?? k?.label ?? v }; })} /> : null}
           {createElement('iframe', {
           key: c.value,
           ref: setFrame,
