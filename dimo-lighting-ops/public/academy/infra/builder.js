@@ -44,7 +44,7 @@
     const c = catOf(k); if (c.one && L.devs.ISP) return { err: 'There is already an internet hand-over in this room.' };
     const id = c.k === 'isp' ? 'ISP' : nextId(L, c.pfx), n = id.replace(/^\D+/, ''), hn = (c.hn || '').replace('%', n.padStart(2, '0'));
     const spec0 = c.mk('_', 0, 0, ''); const [x, y] = c.k === 'isp' ? [480, 40] : freeSpot(L, spec0.kind);
-    const d = devAdd(L, c.mk(id, x, y, hn)); d.model = c.m; if (c.post) c.post(L, d); fresh(L, d.id); settle(L, 'nodhcp'); return { d };
+    const d = devAdd(L, c.mk(id, x, y, hn)); d.model = c.m; d.cat = c.k; if (c.post) c.post(L, d); fresh(L, d.id); settle(L, 'nodhcp'); return { d };
   }
 
   /** Plugging a cable in makes a DHCP client ask again (a real NIC does on link-up); a device with no cable has not asked yet */
@@ -78,12 +78,12 @@
   const on = () => { const S = curS(); return !!(S && S.builder && APP.L && (APP.mode === 'lab' || APP.mode === 'fix')); };
   const HINT = { move: 'Drag devices to arrange the room. Click a device to open its console or screens.', cable: 'Cable mode: click the first device and choose its port, then the second device and its port.', unplug: 'Unplug mode: click a cable to pull it out.', remove: 'Remove mode: click a device to take it out of the room (its cables are unplugged).', power: 'Power mode: click a device to switch it off or on.' };
   function bar() {
-    return `<div class="bld" id="bldbar"><button class="btn sm p" data-b="add">＋ Add device</button>${[['move', '✥ Move / open'], ['cable', '🔌 Cable'], ['unplug', '✂ Unplug'], ['remove', '🗑 Remove'], ['power', '⏻ Power']].map(([k, t]) => `<button class="btn sm ${BS.mode === k ? 'on' : ''}" data-m="${k}">${t}</button>`).join('')}<button class="btn sm" data-b="sched">📋 Cable schedule</button>${info('The builder', 'Add devices from the catalogue, drag them where they sit, connect them with cables port to port, then open each device to install and configure it – exactly the order you would follow in a real server room.')}<div class="mh" id="bldhint">${esc(BS.from ? `Cable from ${APP.L.devs[BS.from.dev]?.hostname} ${BS.from.port} – now click the device at the other end.` : HINT[BS.mode])}</div></div>`;
+    return `<div class="bld" id="bldbar"><button class="btn sm p" data-b="add">＋ Add device</button>${[['move', '✥ Move / open'], ['cable', '🔌 Cable'], ['unplug', '✂ Unplug'], ['remove', '🗑 Remove'], ['power', '⏻ Power']].map(([k, t]) => `<button class="btn sm ${BS.mode === k ? 'on' : ''}" data-m="${k}">${t}</button>`).join('')}<button class="btn sm" data-b="sched">📋 Cable schedule</button><button class="btn sm gdb" data-b="guide">🧭 Guide me</button>${info('The builder', 'Add devices from the catalogue, drag them where they sit, connect them with cables port to port, then open each device to install and configure it – exactly the order you would follow in a real server room.')}<div class="mh" id="bldhint">${esc(BS.from ? `Cable from ${APP.L.devs[BS.from.dev]?.hostname} ${BS.from.port} – now click the device at the other end.` : HINT[BS.mode])}</div></div>`;
   }
   function bindBar() {
     const b = document.getElementById('bldbar'); if (!b) return;
     b.querySelectorAll('[data-m]').forEach((x) => (x.onclick = () => { BS.mode = x.dataset.m; BS.from = null; refresh(); }));
-    b.querySelector('[data-b=add]').onclick = catalogue; b.querySelector('[data-b=sched]').onclick = schedule;
+    b.querySelector('[data-b=add]').onclick = catalogue; b.querySelector('[data-b=sched]').onclick = schedule; b.querySelector('[data-b=guide]').onclick = () => window.GUIDE && window.GUIDE.toggle();
   }
   function refresh() { const b = document.getElementById('bldbar'); if (b) { b.outerHTML = bar(); bindBar(); } drawTopo(); }
   function catalogue() {
@@ -210,7 +210,7 @@
     ],
     lab: {
       title: 'Lab: build a complete office from an empty room',
-      intro: `<p>A new office for 10 staff. The room is empty except the internet provider's box. Your <b>handover sheet</b>: public address <b>203.115.21.6/30</b>, gateway <b>203.115.21.5</b>, DNS <b>8.8.8.8</b>. Address plan: LAN <b>192.168.10.0/24</b>, gateway <b>192.168.10.1</b>, servers .10–.19, Proxmox .20, DHCP for PCs .100–.200. Passwords: <b>${PASS}</b> everywhere.</p><p>Use <b>＋ Add device</b> to unpack equipment, <b>🔌 Cable</b> to connect it, then click each device to install and configure it. You choose the devices – a Cisco router or a FortiGate both work.</p>`,
+      intro: `<p>A new office for 10 staff. The room is empty except the internet provider's box. Your <b>handover sheet</b>: public address <b>203.115.21.6/30</b>, gateway <b>203.115.21.5</b>, DNS <b>8.8.8.8</b>. Address plan: LAN <b>192.168.10.0/24</b>, gateway <b>192.168.10.1</b>, servers .10–.19, Proxmox .20, DHCP for PCs .100–.200. Passwords: <b>${PASS}</b> everywhere.</p><p>Use <b>＋ Add device</b> to unpack equipment, <b>🔌 Cable</b> to connect it, then click each device to install and configure it. You choose the devices – a Cisco router or a FortiGate both work.</p><p class="gdcall">🧭 <b>New to this?</b> Press <b>Guide me</b> in the toolbar under the drawing. A pop-up takes you through every step: what to click, what to type and why. It ticks each step when you have done it, you can go back and forth, hide it and open it again at any time.</p>`,
       build: emptyRoom, open: [],
       tasks: [
         { id: 'core', t: 'Network core: a router (or firewall) and a switch are in the room; the router\'s WAN port is cabled to the internet hand-over and a LAN port to the switch.', check: (L) => router(L).some((r) => linkedTo(L, r, (x) => x?.kind === 'isp') && linkedTo(L, r, (x) => x?.kind === 'sw')), hint: '＋ Add device › Router (Cisco ISR 1100) and Switch – 24 ports. 🔌 Cable: router Gi0/0 → Internet; router Gi0/1 → switch Te1/1/1.' },
@@ -242,7 +242,7 @@
     ],
   });
 
-  window.__BLD = { addDevice, removeDevice, portsOf, officeLab, emptyRoom, plug };
+  window.__BLD = { addDevice, removeDevice, portsOf, officeLab, emptyRoom, plug, BS, refresh, linkedTo, pingOk, reachOk, nic0, inLan, pcs, PASS };
   // ---------------------------------------------------------------- refresh the page so the new module appears
   try { renderSide(); const last = store.get('infra:last', null); if (last && last.sid === 's25') openSession('s25', last.tab); } catch (e) { console.warn(e); }
 })();
