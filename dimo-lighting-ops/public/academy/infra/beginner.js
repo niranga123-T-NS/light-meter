@@ -43,7 +43,7 @@
 
   // ---------------------------------------------------------------- annotate the first mention of each term in every block
   const SKIP_TAG = new Set(['CODE', 'PRE', 'KBD', 'BUTTON', 'INPUT', 'TEXTAREA', 'SELECT', 'OPTION', 'A', 'SCRIPT', 'STYLE', 'H2', 'H3', 'H4', 'TH']);
-  const SKIP_CLS = ['term', 'gui', 'pve', 'mono', 'gl', 'gpop', 'topo', 'tabs', 'dtabs', 'modal', 'vmw', 'logbox', 'editor', 'chips', 'plain', 'tb', 'why'];
+  const SKIP_CLS = ['term', 'gui', 'pve', 'mono', 'gl', 'gpop', 'topo', 'tabs', 'dtabs', 'modal', 'vmw', 'logbox', 'editor', 'chips', 'plain', 'tb', 'why', 'bld'];
   const done = new WeakMap(), MAXPER = 6, PERNODE = 2;
   function glossify(root) {
     if (!root) return;
@@ -91,6 +91,7 @@
     s21: ['Clusters and high availability: several hosts working together so VMs survive a failed server.', 'Like a team where a colleague takes over your work when you are ill – but only if the team can agree (quorum).', ['build a cluster', 'migrate VMs', 'set up HA']],
     s22: ['Why VMs are slow, and containers – then a graded VM fault-finding test.', 'Too many flats sharing one water pipe: everyone gets a trickle. Find who uses the most.', ['read CPU, memory and disk load', 'run containers', 'fix five VM faults']],
     s23: ['Build a whole branch office network and server room from a written plan – everything you learned together.', 'Your first full house: from the foundations (network) to the furniture (servers and VMs).', ['plan and build a branch', 'document it', 'hand it over']],
+    s25: ['Build a network yourself: unpack servers, PCs, switches, a router and a Proxmox host, cable them port by port, install and configure them – and later add, replace or remove devices.', 'Like setting up a new shop from an empty room: bring in the furniture, connect the electricity and phone lines, then open for customers – and keep a plan of where every cable goes.', ['plan and build an office network', 'install servers and connect VMs to them', 'add, replace and remove devices safely']],
     s24: ['Faults are injected into your branch; fix them, then present your work.', 'The final exam: the house has problems – find and fix them, then show the client round.', ['troubleshoot a full site', 'explain your fixes', 'present clearly']],
   };
   const origConcept = window.renderConcept;
