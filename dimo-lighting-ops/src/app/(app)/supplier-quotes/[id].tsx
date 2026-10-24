@@ -7,7 +7,7 @@ import { Button, Card, colors, Empty, ErrorBanner, Grid, KeyValue, Loading, Mute
 import { useAuth } from '@/lib/auth';
 import { fmtDate, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
-import { BASIS_LABEL, cashOf, compareRows, lkr0, lkrM, loadPackage, loadRefs, payText, quoteTotals, SPEC_LABEL, type SqQuote } from '@/lib/supplierQuotes';
+import { BASIS_LABEL, cashOf, chains, compareRows, lkr0, lkrM, loadPackage, loadRefs, payText, quoteTotals, revLabel, SPEC_LABEL, type SqItem, type SqQuote } from '@/lib/supplierQuotes';
 import { rpc, supabase } from '@/lib/supabase';
 
 type Cell = { t: ReactNode; tone?: 'good' | 'warn' | 'bad'; sub?: string };
@@ -23,7 +23,11 @@ export default function Package() {
   const { data, error, reload } = useLoad(async () => ({ ...(await loadPackage(id)), ...(await loadRefs()) }), [id]);
   if (!sqAccess) return <Screen><Notice tone={colors.amber}>No access to supplier quotes.</Notice></Screen>;
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const { pkg, quotes, suppliers, items, costPct } = data;
+  const { pkg, suppliers, items, costPct } = data;
+  // every version is kept; the comparison and the choice use each supplier's latest version
+  const quotes = data.quotes.filter((q) => !q.superseded_by);
+  const allChains = chains(data.quotes).sort((a, b) => b.length - a.length);
+  const chainOf = (q: SqQuote) => allChains.find((c) => c.some((x) => x.id === q.id)) ?? [q];
   const today = todayISO();
   const sup = (q: SqQuote) => suppliers.find((s) => s.id === q.supplier_id)?.name ?? '—';
   const tots = quotes.map(quoteTotals);
@@ -44,8 +48,15 @@ export default function Package() {
   rows.push({ key: 's2', kind: 'sec', label: 'Bringing the quotes to the same basis', cells: [] });
   rows.push({ key: 'ccy', kind: 'row', label: 'Currency', sub: 'exchange rate used (LKR per unit)', cells: quotes.map((q) => ({ t: q.currency === 'LKR' ? 'LKR' : `${q.currency} × ${q.fx_rate}` })) });
   rows.push({ key: 'basis', kind: 'row', label: 'Delivery basis', sub: 'freight, duty, clearing added', cells: quotes.map((q) => ({ t: BASIS_LABEL[q.delivery_basis], sub: q.freight_pct ? `+${q.freight_pct} % added` : undefined, tone: q.freight_pct ? 'warn' : undefined })) });
+  if (quotes.some((q) => q.discount_pct || q.discount_amt))
+    rows.push({ key: 'disc', kind: 'row', label: 'Discount on the whole quote', sub: 'already taken off the rates above', cells: quotes.map((q) => ({ t: [q.discount_pct ? `${q.discount_pct} %` : '', q.discount_amt ? `${q.currency} ${lkr0(q.discount_amt)}` : ''].filter(Boolean).join(' + ') || '–', tone: q.discount_pct || q.discount_amt ? 'good' : undefined })) });
   rows.push({ key: 'excl', kind: 'row', label: 'Exclusions priced back', sub: 'from each quote\'s exclusions', cells: quotes.map((q, i) => ({ t: tots[i].excl ? `+${lkrM(tots[i].excl)}` : '–', sub: q.exclusions.map((x) => x.text).join(', ') || undefined, tone: tots[i].excl ? 'warn' : undefined })) });
   rows.push({ key: 'tot', kind: 'total', label: 'Comparable total (LKR)', cells: quotes.map((q, i) => ({ t: lkrM(tots[i].total), sub: q.currency === 'LKR' ? `as written ${lkrM(tots[i].written)}` : `as written ${q.currency} ${lkr0(tots[i].written)}`, tone: lowTotal != null && tots[i].total === lowTotal ? 'good' : undefined })) });
+  if (quotes.some((q) => q.revision > 0))
+    rows.push({ key: 'neg', kind: 'row', label: 'Came down from the first offer', sub: 'see the versions below', cells: quotes.map((q, i) => {
+      const c = chainOf(q), f0 = quoteTotals(c[0]).total, d = f0 ? ((tots[i].total - f0) / f0) * 100 : 0;
+      return c.length > 1 ? { t: `${d.toFixed(1)} %`, sub: `${lkrM(f0)} → ${lkrM(tots[i].total)} in ${c.length} versions`, tone: d < 0 ? 'good' : d > 0 ? 'bad' : undefined } : { t: 'first offer' };
+    }) });
   rows.push({ key: 's3', kind: 'sec', label: 'Not price – but it decides', cells: [] });
   rows.push({ key: 'lead', kind: 'row', label: 'Lead time', sub: pkg.needed_weeks ? `needed within ${pkg.needed_weeks} weeks` : undefined, cells: quotes.map((q) => ({ t: q.lead_weeks != null ? `${q.lead_weeks} weeks` : 'not given', tone: q.lead_weeks == null ? 'warn' : pkg.needed_weeks && q.lead_weeks > pkg.needed_weeks ? 'bad' : 'good' })) });
   rows.push({ key: 'pay', kind: 'row', label: 'Payment terms', sub: 'stages from each quote', cells: quotes.map((q) => ({ t: payText(q), tone: !q.payments.length ? 'warn' : undefined })) });
@@ -68,7 +79,7 @@ export default function Package() {
           </View>,
     },
     ...quotes.map((q, i): Column<CRow> => ({
-      h: `${sup(q)}${q.quote_no ? ` · ${q.quote_no}` : ''}`, w: 210,
+      h: `${sup(q)}${q.quote_no ? ` · ${q.quote_no}` : ''}${q.revision ? ` · ${revLabel(q)}` : ''}`, w: 210,
       v: (r) => {
         const c = r.cells[i];
         if (r.kind === 'sec' || !c) return '';
@@ -98,8 +109,21 @@ export default function Package() {
     if (!(await dialog.confirm('Clear the choice?', 'The package goes back to comparing.'))) return;
     await dialog.run(async () => { await rpc('sq_select', { p_package: pkg.id, p_quote: null }); reload(); });
   };
+  const revise = async (q: SqQuote) => {
+    const r = await dialog.prompt({
+      title: `New version of ${sup(q)}'s quote`,
+      message: `A revised or discounted quote. ${revLabel(q)} is kept as it is; ${revLabel({ revision: q.revision + 1 })} starts as a copy for you to change.`,
+      fields: [{ key: 'note', label: 'What changed', type: 'multiline', required: true, hint: 'e.g. 5 % discount after the meeting on 24 Oct; floodlight rate reduced' }],
+      confirmLabel: 'Create version',
+    });
+    if (!r) return;
+    await dialog.run(async () => {
+      const v = await rpc<string>('sq_revise_quote', { p_quote: q.id, p_note: r.note });
+      router.push({ pathname: '/supplier-quotes/quote', params: { pkg: pkg.id, id: v } });
+    });
+  };
   const del = async (q: SqQuote) => {
-    if (!(await dialog.confirm(`Delete ${sup(q)}'s quote?`, 'Its lines leave the price history too.', { danger: true, confirmLabel: 'Delete' }))) return;
+    if (!(await dialog.confirm(q.revision ? `Delete ${revLabel(q)} of ${sup(q)}'s quote?` : `Delete ${sup(q)}'s quote?`, q.revision ? `${revLabel({ revision: q.revision - 1 })} becomes the latest again.` : 'Its lines leave the price history too.', { danger: true, confirmLabel: 'Delete' }))) return;
     await dialog.run(async () => { const { error: e } = await supabase.from('sq_quotes').delete().eq('id', q.id); if (e) throw new Error(e.message); reload(); });
   };
   const edit = async () => {
@@ -165,10 +189,11 @@ export default function Package() {
               {quotes.map((q) => (
                 <View key={q.id} style={{ minWidth: 200, flexGrow: 1, gap: 6 }}>
                   <Text style={{ fontWeight: '700', color: colors.ink }}>{sup(q)}</Text>
-                  <Muted>{`${q.quote_no ?? 'no ref.'} · ${q.quote_date ? fmtDate(q.quote_date) : 'no date'} · ${{ manual: 'typed in', excel: 'read from Excel', pdf: 'read from PDF' }[q.source]}`}</Muted>
+                  <Muted>{`${revLabel(q)}${chainOf(q).length > 1 ? ` of ${chainOf(q).length} versions` : ''} · ${q.quote_no ?? 'no ref.'} · ${q.quote_date ? fmtDate(q.quote_date) : 'no date'} · ${{ manual: 'typed in', excel: 'read from Excel', pdf: 'read from PDF' }[q.source]}`}</Muted>
                   <Row wrap gap={6}>
                     {!closed ? <Button small title={pkg.selected_quote_id === q.id ? 'Chosen ✓' : 'Choose'} variant={pkg.selected_quote_id === q.id ? 'primary' : 'secondary'} onPress={() => (pkg.selected_quote_id === q.id ? unselect() : select(q))} /> : null}
                     <Button small variant="secondary" title="Edit" onPress={() => router.push({ pathname: '/supplier-quotes/quote', params: { pkg: pkg.id, id: q.id } })} />
+                    {!closed ? <Button small variant="secondary" title="Revised / discounted quote" onPress={() => revise(q)} /> : null}
                     <Button small variant="ghost" title="Delete" onPress={() => del(q)} />
                   </Row>
                 </View>
@@ -177,6 +202,11 @@ export default function Package() {
           </Card>
         </>
       )}
+      {allChains.length ? (
+        <Section title="How each supplier came down – every version">
+          {allChains.map((c) => <Versions key={c[0].id} chain={c} name={sup(c[0])} items={items} />)}
+        </Section>
+      ) : null}
       {chosen ? (
         <Section title="Choice">
           <Card>
@@ -190,5 +220,46 @@ export default function Package() {
       <Muted>{'Green = lowest on the row. Commissioning and handover payments are taken 30 and 60 days after delivery; with no lead time given, 8 weeks is assumed.'}</Muted>
       <Pill label="Supplier prices: Operations, GM / DGM and people the GM / DGM allows" tone={colors.grey} />
     </Screen>
+  );
+}
+
+/** One supplier's versions side by side: every line's rate in each version, the change from the version before, discounts, totals and what changed */
+function Versions({ chain, name, items }: { chain: SqQuote[]; name: string; items: SqItem[] }) {
+  const tot = chain.map(quoteTotals);
+  const rows: CRow[] = compareRows(chain, items).map((r) => ({
+    key: r.key, kind: 'line', label: r.label, sub: r.sub, href: r.item_id ? `/supplier-quotes/item/${r.item_id}` : undefined,
+    cells: r.cells.map((c, i) => {
+      if (!c) return { t: '—', sub: 'not in this version', tone: 'warn' };
+      if (c.included) return { t: 'included' };
+      const p = i ? r.cells[i - 1]?.unit : null, d = p && c.unit != null ? ((c.unit - p) / p) * 100 : null;
+      return { t: lkr0(c.unit), sub: d != null && Math.abs(d) >= 0.05 ? `${d > 0 ? '+' : ''}${d.toFixed(1)} % · quoted ${c.written}` : `quoted ${c.written}`, tone: d != null && d <= -0.05 ? 'good' : d != null && d >= 0.05 ? 'bad' : undefined };
+    }),
+  }));
+  if (chain.some((q) => q.discount_pct || q.discount_amt))
+    rows.push({ key: 'disc', kind: 'row', label: 'Discount on the whole quote', cells: chain.map((q) => ({ t: [q.discount_pct ? `${q.discount_pct} %` : '', q.discount_amt ? `${q.currency} ${lkr0(q.discount_amt)}` : ''].filter(Boolean).join(' + ') || '–' })) });
+  rows.push({ key: 'tot', kind: 'total', label: 'Comparable total (LKR)', cells: chain.map((q, i) => {
+    const d = i && tot[0].total ? ((tot[i].total - tot[0].total) / tot[0].total) * 100 : null;
+    return { t: lkrM(tot[i].total), sub: d != null ? `${d > 0 ? '+' : ''}${d.toFixed(1)} % from the first offer` : 'first offer', tone: d != null && d < 0 ? 'good' : d != null && d > 0 ? 'bad' : undefined };
+  }) });
+  rows.push({ key: 'lead', kind: 'row', label: 'Lead time', cells: chain.map((q) => ({ t: q.lead_weeks != null ? `${q.lead_weeks} weeks` : '—' })) });
+  rows.push({ key: 'pay', kind: 'row', label: 'Payment terms', cells: chain.map((q) => ({ t: payText(q) })) });
+  rows.push({ key: 'note', kind: 'row', label: 'What changed', cells: chain.map((q) => ({ t: q.revision ? q.revision_note ?? '—' : 'First quote' })) });
+  const columns: Column<CRow>[] = [
+    { h: name, w: 230, grow: true, v: (r) => <View><Text style={{ fontWeight: r.kind === 'total' ? '800' : '600', color: colors.ink }}>{r.label}</Text>{r.sub ? <Muted>{r.sub}</Muted> : null}</View> },
+    ...chain.map((q, i): Column<CRow> => ({
+      h: `${revLabel(q)} · ${q.quote_date ? fmtDate(q.quote_date) : fmtDate(q.created_at)}${q.superseded_by ? '' : ' · latest'}`, w: 190,
+      v: (r) => {
+        const c = r.cells[i];
+        if (!c) return '';
+        const t = c.tone ? TONE[c.tone] : null;
+        return <View style={{ backgroundColor: t?.bg, borderRadius: 6, padding: t ? 4 : 0, alignSelf: 'stretch' }}><Text style={{ color: t?.fg ?? colors.ink, fontWeight: r.kind === 'total' ? '800' : '500' }}>{c.t}</Text>{c.sub ? <Muted>{c.sub}</Muted> : null}</View>;
+      },
+    })),
+  ];
+  return (
+    <View style={{ gap: 4, marginBottom: 12 }}>
+      <Muted>{chain.length > 1 ? `${name}: ${chain.length} versions – ${lkrM(tot[0].total)} → ${lkrM(tot[tot.length - 1].total)} (${(((tot[tot.length - 1].total - tot[0].total) / (tot[0].total || 1)) * 100).toFixed(1)} %). Green = came down from the version before.` : `${name}: one version so far.`}</Muted>
+      <DataTable rows={rows} keyOf={(r) => r.key} columns={columns} rowStyle={(r) => (r.kind === 'total' ? { borderTopWidth: 2, borderTopColor: colors.ink } : undefined)} />
+    </View>
   );
 }

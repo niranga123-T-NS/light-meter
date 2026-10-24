@@ -8,7 +8,7 @@ import { pickDocument } from '@/lib/files';
 import { fmtDate } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import {
-  BASIS_LABEL, CCYS, EVENT_LABEL, lkrM, loadPackage, loadRefs, matchItem, PAID_BY, PAY_TEMPLATES, quoteTotals, readQuoteFile, SPEC_LABEL,
+  BASIS_LABEL, CCYS, EVENT_LABEL, lkrM, loadPackage, loadRefs, matchItem, PAID_BY, PAY_TEMPLATES, quoteTotals, readQuoteFile, revLabel, SPEC_LABEL,
   type Basis, type Ccy, type PayEvent, type SqExcl, type SqItem, type SqLine, type SqPay, type SqQuote, type Supplier,
 } from '@/lib/supplierQuotes';
 import { rpc, supabase } from '@/lib/supabase';
@@ -17,6 +17,7 @@ type Form = Omit<SqQuote, 'id' | 'package_id' | 'created_at' | 'updated_at' | 's
 const EMPTY: Form = {
   supplier_id: null, quote_no: null, quote_date: null, currency: 'LKR', fx_rate: 1, valid_until: null, lead_weeks: null, delivery_basis: 'site', freight_pct: 0,
   warranty: null, paid_by: null, retention_pct: 0, adv_guarantee: false, meets_spec: 'yes', spec_note: null, source: 'manual', notes: null,
+  revision: 0, first_id: null, superseded_by: null, discount_pct: 0, discount_amt: 0, revision_note: null,
   lines: [{ text: '', item_id: null, qty: null, unit: null, rate: null, included: false }], payments: [], exclusions: [],
 };
 
@@ -119,7 +120,15 @@ function Editor({ data, id, pkgId }: { data: Loaded; id?: string; pkgId: string 
   const itemOpts = [{ value: '', label: '— not matched —' }, ...refs.items.map((i) => ({ value: i.id, label: `${i.code} · ${i.name}`, hint: i.sap_code ? `SAP ${i.sap_code}` : undefined }))];
   return (
     <Screen maxWidth={1100}>
-      <Stack.Screen options={{ title: id ? 'Edit quote' : 'Add a quote' }} />
+      <Stack.Screen options={{ title: id ? (f.revision ? `Edit version ${revLabel(f)}` : 'Edit quote') : 'Add a quote' }} />
+      {f.superseded_by ? <Notice tone={colors.amber}>{`This is an earlier version (${revLabel(f)}) – it is kept as the supplier sent it and cannot be changed.`}</Notice> : null}
+      {f.revision ? (
+        <Card>
+          <Text style={{ fontWeight: '700', color: colors.ink }}>{`Version ${revLabel(f)} – a revised or discounted quote`}</Text>
+          <Muted>Change the rates, discount and terms to what the supplier now offers. The earlier versions are kept, so the package shows how the supplier came down.</Muted>
+          <Field label="What changed" value={f.revision_note ?? ''} onChangeText={(v) => set({ revision_note: v || null })} />
+        </Card>
+      ) : null}
       <Muted>{`${data.pkg.code} · ${data.pkg.title}${data.pkg.project_name ? ` · ${data.pkg.project_name}` : ''}`}</Muted>
 
       <Section title="1 · The supplier's document">
@@ -154,6 +163,10 @@ function Editor({ data, id, pkgId }: { data: Loaded; id?: string; pkgId: string 
             <View style={{ minWidth: 140, flexGrow: 1 }}><NumberField label="Lead time" suffix="weeks" value={f.lead_weeks} onChange={(v) => set({ lead_weeks: v })} hint={data.pkg.needed_weeks ? `Needed within ${data.pkg.needed_weeks} weeks` : undefined} /></View>
             <View style={{ minWidth: 160, flexGrow: 1 }}><Field label="Warranty" value={f.warranty ?? ''} onChangeText={(v) => set({ warranty: v || null })} placeholder="e.g. 5 years" /></View>
             <View style={{ minWidth: 180, flexGrow: 1 }}><Select label="Meets the specification" value={f.meets_spec} options={Object.entries(SPEC_LABEL).map(([value, label]) => ({ value, label }))} onChange={(v) => set({ meets_spec: v as Form['meets_spec'] })} /></View>
+          </Row>
+          <Row wrap gap={10}>
+            <View style={{ minWidth: 180, flexGrow: 1 }}><NumberField label="Discount on the whole quote" suffix="%" value={f.discount_pct} onChange={(v) => set({ discount_pct: v ?? 0 })} hint="Leave 0 when the rates already include it" /></View>
+            <View style={{ minWidth: 180, flexGrow: 1 }}><NumberField label={`Discount amount (${f.currency})`} value={f.discount_amt} onChange={(v) => set({ discount_amt: v ?? 0 })} hint="A lump-sum discount, after the %" /></View>
           </Row>
           {f.meets_spec !== 'yes' ? <Field label="What differs from the specification" value={f.spec_note ?? ''} onChangeText={(v) => set({ spec_note: v || null })} /> : null}
           <Field label="Notes" value={f.notes ?? ''} onChangeText={(v) => set({ notes: v || null })} multiline />
@@ -226,13 +239,13 @@ function Editor({ data, id, pkgId }: { data: Loaded; id?: string; pkgId: string 
           ))}
           <Row wrap gap={10} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
             <Button small variant="secondary" title="Add a line" icon="＋" onPress={() => set({ lines: [...f.lines, { text: '', item_id: null, qty: null, unit: null, rate: null, included: false }] })} />
-            <Text style={{ color: colors.ink }}>{`Total as written: ${f.currency} ${totals.written.toLocaleString('en-US', { maximumFractionDigits: 2 })} · comparable LKR ${lkrM(totals.total)}`}</Text>
+            <Text style={{ color: colors.ink }}>{`Total as written${f.discount_pct || f.discount_amt ? ' after discount' : ''}: ${f.currency} ${totals.written.toLocaleString('en-US', { maximumFractionDigits: 2 })} · comparable LKR ${lkrM(totals.total)}`}</Text>
           </Row>
         </Card>
       </Section>
 
       <Row wrap gap={8}>
-        <Button title="Save quote" onPress={save} />
+        {!f.superseded_by ? <Button title={f.revision ? `Save ${revLabel(f)}` : 'Save quote'} onPress={save} /> : null}
         <Button variant="secondary" title="Cancel" onPress={() => router.back()} />
       </Row>
     </Screen>

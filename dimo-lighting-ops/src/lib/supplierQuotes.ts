@@ -28,6 +28,7 @@ export type SqQuote = {
   valid_until: string | null; lead_weeks: number | null; delivery_basis: Basis; freight_pct: number; warranty: string | null; paid_by: string | null;
   retention_pct: number; adv_guarantee: boolean; meets_spec: 'yes' | 'partly' | 'no' | 'unknown'; spec_note: string | null;
   source: 'manual' | 'excel' | 'pdf'; notes: string | null; created_at: string; updated_at: string;
+  revision: number; first_id: string | null; superseded_by: string | null; discount_pct: number; discount_amt: number; revision_note: string | null;
   lines: SqLine[]; payments: SqPay[]; exclusions: SqExcl[];
 };
 
@@ -61,6 +62,7 @@ export async function loadPackage(id: string) {
   const quotes = ((qs ?? []) as SqQuote[]).map((q) => ({
     ...q,
     fx_rate: Number(q.fx_rate), freight_pct: Number(q.freight_pct), retention_pct: Number(q.retention_pct), lead_weeks: q.lead_weeks == null ? null : Number(q.lead_weeks),
+    discount_pct: Number(q.discount_pct ?? 0), discount_amt: Number(q.discount_amt ?? 0), revision: Number(q.revision ?? 0),
     lines: [...q.lines].sort((a, b) => ((a as { seq?: number }).seq ?? 0) - ((b as { seq?: number }).seq ?? 0)).map((l) => ({ ...l, qty: l.qty == null ? null : Number(l.qty), rate: l.rate == null ? null : Number(l.rate) })),
     payments: [...q.payments].sort((a, b) => ((a as { seq?: number }).seq ?? 0) - ((b as { seq?: number }).seq ?? 0)).map((x) => ({ ...x, pct: Number(x.pct) })),
     exclusions: q.exclusions.map((x) => ({ ...x, add_lkr: Number(x.add_lkr) })),
@@ -80,13 +82,28 @@ export async function loadRefs() {
 }
 
 // ---------------------------------------------------------------- the comparison basis
-/** LKR per unit, delivered (freight / duty added) */
-export const unitLkr = (q: Pick<SqQuote, 'fx_rate' | 'freight_pct'>, l: SqLine) => (l.included || l.rate == null ? null : l.rate * q.fx_rate * (1 + q.freight_pct / 100));
+/** Share of the line prices left after the discount on the whole quote (% and / or an amount in the quote currency) */
+export function discFactor(q: { discount_pct?: number | null; discount_amt?: number | null; lines: { qty: number | null; rate: number | null; included: boolean }[] }) {
+  const gross = q.lines.reduce((t, l) => t + (l.included || l.rate == null ? 0 : Number(l.rate) * Number(l.qty ?? 1)), 0);
+  if (!gross) return 1;
+  const net = gross * (1 - Number(q.discount_pct ?? 0) / 100) - Number(q.discount_amt ?? 0);
+  return Math.max(0, net / gross);
+}
+/** LKR per unit, delivered (freight / duty added), after the quote's discount */
+export const unitLkr = (q: Pick<SqQuote, 'fx_rate' | 'freight_pct'> & { _f?: number }, l: SqLine) => (l.included || l.rate == null ? null : l.rate * q.fx_rate * (1 + q.freight_pct / 100) * (q._f ?? 1));
 export function quoteTotals(q: SqQuote) {
-  const lines = q.lines.reduce((t, l) => t + (unitLkr(q, l) ?? 0) * (l.qty ?? 1), 0);
+  const f = discFactor(q);
+  const lines = q.lines.reduce((t, l) => t + (unitLkr({ ...q, _f: f }, l) ?? 0) * (l.qty ?? 1), 0);
   const excl = q.exclusions.reduce((t, x) => t + (x.add_lkr || 0), 0);
-  const written = q.lines.reduce((t, l) => t + (l.included || l.rate == null ? 0 : l.rate * (l.qty ?? 1)), 0);
-  return { lines, excl, total: lines + excl, written };
+  const gross = q.lines.reduce((t, l) => t + (l.included || l.rate == null ? 0 : l.rate * (l.qty ?? 1)), 0);
+  return { lines, excl, total: lines + excl, written: gross * f, gross, factor: f };
+}
+export const revLabel = (q: Pick<SqQuote, 'revision'>) => `R${q.revision ?? 0}`;
+/** Each supplier's versions in a package, oldest first: the first quote and every revision after it */
+export function chains(quotes: SqQuote[]) {
+  const m = new Map<string, SqQuote[]>();
+  for (const q of quotes) m.set(q.first_id ?? q.id, [...(m.get(q.first_id ?? q.id) ?? []), q]);
+  return [...m.values()].map((c) => c.sort((a, b) => a.revision - b.revision));
 }
 
 /** Days from delivery when each stage is paid (negative = before delivery). Commissioning and handover are taken 30 and 60 days after delivery. */
@@ -128,7 +145,7 @@ export function compareRows(quotes: SqQuote[], items: SqItem[]): CompareRow[] {
       const it = l.item_id ? items.find((i) => i.id === l.item_id) : null;
       if (!rows.has(key)) rows.set(key, { key, label: it?.name ?? l.text, sub: it ? it.code : 'not matched to an item', item_id: l.item_id, cells: quotes.map(() => null), low: null });
       const r = rows.get(key)!;
-      const u = unitLkr(q, l), prev = r.cells[qi];
+      const u = unitLkr({ ...q, _f: discFactor(q) }, l), prev = r.cells[qi];
       const qty = (prev?.qty ?? 0) + (l.qty ?? 1);
       const amount = (prev?.amount ?? 0) + (u ?? 0) * (l.qty ?? 1);
       r.cells[qi] = {

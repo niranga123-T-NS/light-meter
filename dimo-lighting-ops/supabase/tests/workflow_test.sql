@@ -9552,5 +9552,36 @@ do $$ begin
 end $$;
 reset role;
 
+-- Supplier quotes: versions – every revised / discounted quote kept, latest compared and chosen
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare pk uuid; sp uuid; it uuid; q0 uuid; q1 uuid; q2 uuid; begin
+  insert into public.sq_suppliers (name) values ('Version Supplier') returning id into sp;
+  insert into public.sq_items (code, name) values ('V-ITEM', 'Versioned item') returning id into it;
+  insert into public.sq_packages (title) values ('Versions test') returning id into pk;
+  q0 := public.sq_save_quote(jsonb_build_object('package_id', pk, 'supplier_id', sp, 'lines', jsonb_build_array(jsonb_build_object('text', 'Versioned item', 'item_id', it, 'qty', 10, 'rate', 100)),
+    'payments', jsonb_build_array(jsonb_build_object('pct', 100, 'event', 'delivery'))));
+  begin perform public.sq_revise_quote(q0, ''); assert false, 'a revision says what changed'; exception when raise_exception then null; end;
+  q1 := public.sq_revise_quote(q0, 'Rate reduced after meeting');
+  assert (select revision from public.sq_quotes where id = q1) = 1 and (select first_id from public.sq_quotes where id = q1) = q0, 'R1 of the same quote';
+  assert (select superseded_by from public.sq_quotes where id = q0) = q1, 'R0 superseded';
+  assert (select count(*) from public.sq_quote_lines where quote_id = q1) = 1 and (select count(*) from public.sq_quote_payments where quote_id = q1) = 1, 'lines and payments copied';
+  perform public.sq_save_quote(jsonb_build_object('id', q1, 'package_id', pk, 'supplier_id', sp, 'discount_pct', 5, 'lines', jsonb_build_array(jsonb_build_object('text', 'Versioned item', 'item_id', it, 'qty', 10, 'rate', 90))));
+  assert (select rate from public.sq_quote_lines where quote_id = q1) = 90 and (select rate from public.sq_quote_lines where quote_id = q0) = 100, 'R1 changed, R0 kept';
+  assert (select discount_pct from public.sq_quotes where id = q1) = 5 and (select revision_note from public.sq_quotes where id = q1) = 'Rate reduced after meeting', 'discount saved, note kept';
+  begin perform public.sq_save_quote(jsonb_build_object('id', q0, 'package_id', pk, 'supplier_id', sp, 'lines', jsonb_build_array(jsonb_build_object('text', 'x', 'rate', 1)))); assert false, 'earlier version read-only'; exception when raise_exception then null; end;
+  begin perform public.sq_revise_quote(q0, 'again'); assert false, 'revise the latest'; exception when raise_exception then null; end;
+  begin perform public.sq_select(pk, q0, 'old'); assert false, 'earlier version cannot be chosen'; exception when raise_exception then null; end;
+  perform public.sq_select(pk, q1, 'Best after negotiation');
+  q2 := public.sq_revise_quote(q1, 'Final 2 % more');
+  assert (select selected_quote_id from public.sq_packages where id = pk) = q2, 'the choice follows the latest version';
+  assert (select revision from public.sq_quotes where id = q2) = 2 and (select first_id from public.sq_quotes where id = q2) = q0, 'R2 in the same chain';
+  begin delete from public.sq_quotes where id = q0; assert false, 'earlier version not deleted'; exception when raise_exception then null; end;
+  delete from public.sq_quotes where id = q2;
+  assert (select superseded_by from public.sq_quotes where id = q1) is null, 'deleting the latest brings R1 back';
+  assert (select selected_quote_id from public.sq_packages where id = pk) = q1, 'and the choice goes back to R1';
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

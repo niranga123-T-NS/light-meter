@@ -8,7 +8,7 @@ import { useAuth } from '@/lib/auth';
 import { fmtDate, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { ROLE_SHORT } from '@/lib/roles';
-import { lkr0, lkrM, loadRefs, quoteTotals, type SqItem, type SqPackage, type SqQuote, type Supplier } from '@/lib/supplierQuotes';
+import { discFactor, lkr0, lkrM, loadRefs, quoteTotals, type SqItem, type SqPackage, type SqQuote, type Supplier } from '@/lib/supplierQuotes';
 import { rpc, supabase } from '@/lib/supabase';
 
 type Tab = 'packages' | 'rates' | 'suppliers' | 'access';
@@ -54,7 +54,7 @@ function Packages() {
   const { data, error, reload } = useLoad(async () => {
     const [p, q, s] = await Promise.all([
       supabase.from('sq_packages').select('*').order('updated_at', { ascending: false }).limit(300),
-      supabase.from('sq_quotes').select('id, package_id, supplier_id, valid_until, fx_rate, freight_pct, currency, lead_weeks, lines:sq_quote_lines(qty, rate, included), exclusions:sq_quote_exclusions(add_lkr)'),
+      supabase.from('sq_quotes').select('id, package_id, supplier_id, valid_until, fx_rate, freight_pct, currency, lead_weeks, discount_pct, discount_amt, lines:sq_quote_lines(qty, rate, included), exclusions:sq_quote_exclusions(add_lkr)').is('superseded_by', null),
       supabase.from('sq_settings').select('cost_of_money_pct').maybeSingle(),
     ]);
     const err = p.error ?? q.error;
@@ -143,23 +143,26 @@ function RateLibrary() {
   const [q, setQ] = useState('');
   const { data, error } = useLoad(async () => {
     const refs = await loadRefs();
-    const { data: ls, error: e } = await supabase.from('sq_quote_lines').select('item_id, rate, included, quote:sq_quotes(quote_date, created_at, fx_rate, freight_pct, supplier_id)').not('item_id', 'is', null).limit(5000);
+    const { data: ls, error: e } = await supabase.from('sq_quote_lines').select('item_id, rate, included, quote:sq_quotes(id, first_id, revision, superseded_by, quote_date, created_at, fx_rate, freight_pct, supplier_id, discount_pct, discount_amt, lines:sq_quote_lines(qty, rate, included))').not('item_id', 'is', null).limit(5000);
     if (e) throw new Error(e.message);
-    return { ...refs, lines: (ls ?? []) as unknown as { item_id: string; rate: number | null; included: boolean; quote: { quote_date: string | null; created_at: string; fx_rate: number; freight_pct: number; supplier_id: string } }[] };
+    type QL = { item_id: string; rate: number | null; included: boolean; quote: { id: string; first_id: string | null; revision: number; superseded_by: string | null; quote_date: string | null; created_at: string; fx_rate: number; freight_pct: number; supplier_id: string; discount_pct: number; discount_amt: number; lines: { qty: number | null; rate: number | null; included: boolean }[] } };
+    return { ...refs, lines: (ls ?? []) as unknown as QL[] };
   }, []);
   if (!data) return error ? <ErrorBanner message={error} /> : <Loading />;
   const stats = (it: SqItem) => {
-    const ps = data.lines.filter((l) => l.item_id === it.id && !l.included && l.rate != null)
-      .map((l) => ({ v: Number(l.rate) * Number(l.quote.fx_rate) * (1 + Number(l.quote.freight_pct) / 100), d: l.quote.quote_date ?? l.quote.created_at.slice(0, 10), s: l.quote.supplier_id }))
-      .sort((a, b) => b.d.localeCompare(a.d));
+    const all = data.lines.filter((l) => l.item_id === it.id && !l.included && l.rate != null)
+      .map((l) => ({ v: Number(l.rate) * Number(l.quote.fx_rate) * (1 + Number(l.quote.freight_pct) / 100) * discFactor(l.quote), d: l.quote.quote_date ?? l.quote.created_at.slice(0, 10), s: l.quote.supplier_id, q: l.quote }));
+    // prices are each supplier's latest version; the drop from the first offer to the latest shows how far suppliers come down
+    const ps = all.filter((p) => !p.q.superseded_by).sort((a, b) => b.d.localeCompare(a.d));
+    const drops = ps.filter((p) => p.q.revision > 0).map((p) => { const f = all.find((x) => x.q.id === p.q.first_id); return f ? ((p.v - f.v) / f.v) * 100 : null; }).filter((x): x is number => x != null);
     const sorted = ps.map((p) => p.v).sort((a, b) => a - b);
-    return { n: ps.length, latest: ps[0], median: sorted.length ? sorted[Math.floor((sorted.length - 1) / 2)] : null, low: sorted[0] ?? null, sups: new Set(ps.map((p) => p.s)).size };
+    return { n: ps.length, versions: all.length, latest: ps[0], median: sorted.length ? sorted[Math.floor((sorted.length - 1) / 2)] : null, low: sorted[0] ?? null, sups: new Set(ps.map((p) => p.s)).size, drop: drops.length ? drops.reduce((a, b) => a + b, 0) / drops.length : null };
   };
   const items = data.items.filter((i) => !q.trim() || `${i.code} ${i.name} ${i.sap_code ?? ''}`.toLowerCase().includes(q.trim().toLowerCase()));
   return (
     <>
       <Field label="Search items" value={q} onChangeText={setQ} placeholder="Code, name or SAP code" />
-      <Muted>{'Every rate from every quote, chosen or not, in LKR delivered (freight added) at the quote\'s exchange rate. Tap an item for its full history.'}</Muted>
+      <Muted>{'Each supplier\'s latest price on every job, chosen or not, in LKR delivered (freight and discount included) at the quote\'s exchange rate. “Came down” is the average drop from the first offer to the latest version. Tap an item for every version on every job.'}</Muted>
       <DataTable
         rows={items.map((it) => ({ it, s: stats(it) }))}
         keyOf={(r) => r.it.id}
@@ -172,6 +175,7 @@ function RateLibrary() {
           { h: 'Latest', w: 130, right: true, v: (r) => (r.s.latest ? <View style={{ alignItems: 'flex-end' }}><Text style={{ color: colors.ink }}>{lkr0(r.s.latest.v)}</Text><Muted>{fmtDate(r.s.latest.d)}</Muted></View> : '—') },
           { h: 'Typical (median)', w: 130, right: true, v: (r) => lkr0(r.s.median) },
           { h: 'Lowest', w: 120, right: true, v: (r) => lkr0(r.s.low) },
+          { h: 'Came down (avg.)', w: 130, right: true, v: (r) => (r.s.drop != null ? <View style={{ alignItems: 'flex-end' }}><Text style={{ color: r.s.drop < 0 ? colors.green : colors.ink }}>{`${r.s.drop.toFixed(1)} %`}</Text><Muted>{`${r.s.versions} versions`}</Muted></View> : '—') },
         ]}
       />
     </>
