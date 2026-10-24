@@ -5,15 +5,25 @@ import type { Role } from './types';
 export const ACADEMY_PATH = '/academy/index.html';
 
 /** The Dacademy courses: each is a static page of lessons; progress is kept per lesson in the same table (ids start net_ / knx_ / knxlab_ for the newer courses) */
-export type AcademyCourse = 'light' | 'net' | 'knx' | 'knxlab' | 'infra' | 'bs7671';
-export const ACADEMY_COURSES: { value: AcademyCourse; label: string; path: string; lessons: number }[] = [
+export type AcademyCourse = 'light' | 'net' | 'knx' | 'knxlab' | 'infra' | 'bs7671' | 'elecfix';
+/** group: courses shown together under one tab (with a second selector by their short name) */
+export const ACADEMY_COURSES: { value: AcademyCourse; label: string; path: string; lessons: number; group?: string; short?: string }[] = [
   { value: 'light', label: 'Lighting', path: ACADEMY_PATH, lessons: 152 },
   { value: 'net', label: 'Network & IT', path: '/academy/net.html', lessons: 20 },
   { value: 'knx', label: 'KNX – JUNG', path: '/academy/knx.html', lessons: 30 },
   { value: 'knxlab', label: 'KNX Studio', path: '/academy/knxlab.html', lessons: 14 }, // ETS-style project trainer: 14 self-checking exercises (8 office + hotel brief + 5 hotel)
   { value: 'infra', label: 'Infrastructure', path: '/academy/infra.html', lessons: 24 }, // 24 sessions with a virtual lab: Cisco-style switches and routers, FortiGate, Windows Server, Ubuntu, Proxmox
-  { value: 'bs7671', label: 'Wiring Regulations', path: '/academy/bs7671.html', lessons: 52 }, // BS 7671:2018+A4:2026 – 48 lessons in 10 modules over three levels + 4 practical assessments, 10 module tests and a final exam
+  { value: 'bs7671', label: 'Wiring Regulations', path: '/academy/bs7671.html', lessons: 52, group: 'Electrical', short: 'Wiring Regulations' }, // BS 7671:2018+A4:2026 – 48 lessons in 10 modules over three levels + 4 practical assessments, 10 module tests and a final exam
+  { value: 'elecfix', label: 'Electrical Troubleshooting', path: '/academy/elec.html', lessons: 41, group: 'Electrical', short: 'Troubleshooting' }, // 8 guided demos, 22 random-fault jobs, 5 LED driver and 6 panel board workbenches
 ];
+/** The course tabs: one per course, or one per group of courses */
+export const ACADEMY_TABS = ACADEMY_COURSES.reduce<{ value: string; label: string; courses: AcademyCourse[] }[]>((t, c) => {
+  const g = c.group && t.find((x) => x.value === c.group);
+  if (g) g.courses.push(c.value);
+  else t.push({ value: c.group ?? c.value, label: c.group ?? c.label, courses: [c.value] });
+  return t;
+}, []);
+export const academyTab = (c: AcademyCourse) => ACADEMY_TABS.find((t) => t.courses.includes(c)) ?? ACADEMY_TABS[0];
 export const ACADEMY_TOTAL = ACADEMY_COURSES.reduce((t, c) => t + c.lessons, 0);
 /** End-of-module tests (public/academy/mtest.js): 15 questions from a pool of 30, passed at 12 – Lighting 13, Network & IT 3, KNX 3, Infrastructure 3, Wiring Regulations 10 (+ its 30-question final exam) */
 export const ACADEMY_TESTS = 33;

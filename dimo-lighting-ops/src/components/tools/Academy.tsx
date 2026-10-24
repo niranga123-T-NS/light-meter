@@ -8,7 +8,7 @@ import { AcademyTeam } from '@/components/tools/AcademyTeam';
 import { AcademyWriteups } from '@/components/tools/AcademyWriteups';
 import { Button, Loading, Row, Segmented } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { ACADEMY_COURSES, ACADEMY_ENGINEERS, ACADEMY_SITE, ACADEMY_TEAM_VIEWERS, ACADEMY_TRAINERS, type AcademyCourse, academyCfg, academyLink } from '@/lib/academy';
+import { ACADEMY_COURSES, ACADEMY_ENGINEERS, ACADEMY_SITE, ACADEMY_TEAM_VIEWERS, ACADEMY_TRAINERS, ACADEMY_TABS, type AcademyCourse, academyCfg, academyTab, academyLink } from '@/lib/academy';
 
 /** Dacademy in the phone app: the chosen course's lessons page inside the app (web view), signed in so progress is saved */
 export function Academy() {
@@ -42,7 +42,8 @@ export function Academy() {
         <AcademyWriteups trainer={trainer} />
       ) : (
         <>
-          <Segmented value={course} onChange={setCourse} options={ACADEMY_COURSES.map((c) => ({ value: c.value, label: c.label }))} />
+          <Segmented value={academyTab(course).value} onChange={(v) => setCourse((ACADEMY_TABS.find((t) => t.value === v) ?? ACADEMY_TABS[0]).courses[0])} options={ACADEMY_TABS.map((t) => ({ value: t.value, label: t.label }))} />
+          {academyTab(course).courses.length > 1 ? <Segmented value={course} onChange={setCourse} options={academyTab(course).courses.map((v) => { const k = ACADEMY_COURSES.find((y) => y.value === v); return { value: v, label: k?.short ?? k?.label ?? v }; })} /> : null}
           <Row gap={6} wrap>
             <Button small variant="secondary" title="↻ Reload" onPress={() => setN(n + 1)} />
             <Button small variant="ghost" title="Open in the browser ↗" onPress={browser} />
