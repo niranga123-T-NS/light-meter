@@ -8,7 +8,7 @@ import { useAuth } from '@/lib/auth';
 import { fmtDate, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { ROLE_SHORT } from '@/lib/roles';
-import { discFactor, lkr0, lkrM, loadRefs, quoteTotals, type SqItem, type SqPackage, type SqQuote, type Supplier } from '@/lib/supplierQuotes';
+import { discFactor, jobField, jobSource, lkr0, lkrM, loadJobs, loadRefs, quoteTotals, type SqItem, type SqJob, type SqPackage, type SqQuote, type Supplier } from '@/lib/supplierQuotes';
 import { rpc, supabase } from '@/lib/supabase';
 
 type Tab = 'packages' | 'rates' | 'suppliers' | 'access';
@@ -75,12 +75,14 @@ function Packages() {
     });
   const supName = (id?: string) => data.sups.find((s) => s.id === id)?.name ?? '—';
   const add = async () => {
+    const jobs = await loadJobs().catch(() => [] as SqJob[]);
     const r = await dialog.prompt({
       title: 'New package',
       message: 'What is being bought or subcontracted for a job. Add the quotes to it and compare them.',
       fields: [
         { key: 'title', label: 'Package', required: true, hint: 'e.g. LED floodlights, Lattice masts, Mast foundations' },
         { key: 'kind', label: 'Type', type: 'select', required: true, initial: 'supply', options: [{ value: 'supply', label: 'Supply' }, { value: 'subcontract', label: 'Subcontract' }] },
+        jobField(jobs),
         { key: 'project', label: 'Project / client', hint: 'As you know it – e.g. the stadium name' },
         { key: 'job', label: 'Job or inquiry reference', hint: 'e.g. EST-2026-0142, PRJ-0087' },
         { key: 'valid', label: 'Our quotation is valid until', type: 'date', hint: 'Warns when a supplier\'s quote ends before it' },
@@ -91,7 +93,7 @@ function Packages() {
     if (!r) return;
     await dialog.run(async () => {
       const { data: p, error: e } = await supabase.from('sq_packages')
-        .insert({ title: r.title.trim(), kind: r.kind, project_name: r.project?.trim() || null, job_ref: r.job?.trim() || null, our_validity: r.valid || null, needed_weeks: Number(r.weeks) > 0 ? Number(r.weeks) : null })
+        .insert({ title: r.title.trim(), kind: r.kind, project_name: r.project?.trim() || null, job_ref: r.job?.trim() || null, ...jobSource(r.src), our_validity: r.valid || null, needed_weeks: Number(r.weeks) > 0 ? Number(r.weeks) : null })
         .select('id').single();
       if (e) throw new Error(e.message);
       router.push(`/supplier-quotes/${p.id}`);

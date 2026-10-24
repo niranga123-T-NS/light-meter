@@ -11,7 +11,7 @@ export type PromptField = When &
   (
     | { key: string; label: string; type?: 'text' | 'multiline' | 'password'; required?: boolean; maxLength?: number; initial?: string; hint?: string }
     | { key: string; label: string; type: 'date'; required?: boolean; initial?: string; hint?: string }
-    | { key: string; label: string; type: 'select'; options: Option[]; required?: boolean; initial?: string; hint?: string; searchable?: boolean }
+    | { key: string; label: string; type: 'select'; options: Option[]; required?: boolean; initial?: string; hint?: string; searchable?: boolean; fill?: (v: string) => Record<string, string> } // fill: values a choice puts into other fields (still editable)
     /** Several choices; the value comes back comma-separated */
     | { key: string; label: string; type: 'multiselect'; options: Option[]; required?: boolean; initial?: string; hint?: string }
     /** Files picked in the dialog: the value is their count; the files come from dialog.files(key) after it closes */
@@ -142,7 +142,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
                     onChange={(v) => setValues((s) => ({ ...s, [f.key]: v.join(',') }))}
                   />
                 ) : f.type === 'select' ? (
-                  <Select key={f.key} label={f.label} required={f.required} hint={f.hint} options={f.options} searchable={f.searchable} value={values[f.key]} onChange={(v) => setValues((s) => ({ ...s, [f.key]: v }))} />
+                  <Select key={f.key} label={f.label} required={f.required} hint={f.hint} options={f.options} searchable={f.searchable} value={values[f.key]} onChange={(v) => setValues((s) => ({ ...s, [f.key]: v, ...(f.fill?.(v) ?? {}) }))} />
                 ) : (
                   <Field
                     key={f.key}

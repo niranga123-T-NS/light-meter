@@ -9489,6 +9489,9 @@ do $$ declare pk uuid; sa uuid; sb uuid; it uuid; qa uuid; qb uuid; n int; begin
   insert into public.sq_items (code, name, unit) values ('FL-1500', 'LED floodlight 1500 W', 'nr') returning id into it;
   insert into public.sq_packages (title, project_name, our_validity) values ('LED floodlights', 'Test stadium', current_date + 30) returning id into pk;
   assert (select code from public.sq_packages where id = pk) like 'SQ-%', 'package code';
+  assert (select count(*) from public.sq_jobs() where kind = 'inquiry') > 0 and (select count(*) from public.sq_jobs() where kind = 'project') > 0, 'Ops can pick inquiries and projects for a package';
+  update public.sq_packages set (source_kind, source_id, job_ref) = (select 'inquiry', id, ref from public.sq_jobs() where kind = 'inquiry' limit 1) where id = pk;
+  assert (select source_kind from public.sq_packages where id = pk) = 'inquiry', 'the picked job is kept';
   begin perform public.sq_save_quote(jsonb_build_object('package_id', pk, 'supplier_id', sa, 'lines', '[]'::jsonb)); assert false, 'a quote needs lines'; exception when raise_exception then null; end;
   begin perform public.sq_save_quote(jsonb_build_object('package_id', pk, 'supplier_id', sa, 'lines', jsonb_build_array(jsonb_build_object('text', 'x', 'rate', 1)),
     'payments', jsonb_build_array(jsonb_build_object('pct', 30, 'event', 'order'), jsonb_build_object('pct', 60, 'event', 'delivery')))); assert false, 'payments must make 100'; exception when raise_exception then null; end;
@@ -9520,6 +9523,7 @@ reset role;
 select pg_temp.act_as('lighting_designer'); set role authenticated;
 do $$ begin
   assert not public.sq_access_me(), 'designer has no access yet';
+  begin perform * from public.sq_jobs(); assert false, 'no access: no job list'; exception when raise_exception then null; end;
   assert (select count(*) from public.sq_packages) = 0, 'and sees no packages';
 end $$;
 reset role;

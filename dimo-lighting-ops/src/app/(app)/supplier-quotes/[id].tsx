@@ -7,7 +7,7 @@ import { Button, Card, colors, Empty, ErrorBanner, Grid, KeyValue, Loading, Mute
 import { useAuth } from '@/lib/auth';
 import { fmtDate, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
-import { BASIS_LABEL, cashOf, chains, compareRows, lkr0, lkrM, loadPackage, loadRefs, payText, quoteTotals, revLabel, SPEC_LABEL, type SqItem, type SqQuote } from '@/lib/supplierQuotes';
+import { BASIS_LABEL, cashOf, chains, compareRows, jobField, jobSource, lkr0, lkrM, loadJobs, loadPackage, loadRefs, payText, quoteTotals, revLabel, SPEC_LABEL, type SqItem, type SqJob, type SqQuote } from '@/lib/supplierQuotes';
 import { rpc, supabase } from '@/lib/supabase';
 
 type Cell = { t: ReactNode; tone?: 'good' | 'warn' | 'bad'; sub?: string };
@@ -127,10 +127,12 @@ export default function Package() {
     await dialog.run(async () => { const { error: e } = await supabase.from('sq_quotes').delete().eq('id', q.id); if (e) throw new Error(e.message); reload(); });
   };
   const edit = async () => {
+    const jobs = await loadJobs().catch(() => [] as SqJob[]);
     const r = await dialog.prompt({
       title: 'Edit package',
       fields: [
         { key: 'title', label: 'Package', required: true, initial: pkg.title },
+        jobField(jobs, pkg.source_kind && pkg.source_id ? `${pkg.source_kind}:${pkg.source_id}` : ''),
         { key: 'project', label: 'Project / client', initial: pkg.project_name ?? '' },
         { key: 'job', label: 'Job or inquiry reference', initial: pkg.job_ref ?? '' },
         { key: 'valid', label: 'Our quotation is valid until', type: 'date', initial: pkg.our_validity ?? '' },
@@ -140,7 +142,7 @@ export default function Package() {
     });
     if (!r) return;
     await dialog.run(async () => {
-      const { error: e } = await supabase.from('sq_packages').update({ title: r.title.trim(), project_name: r.project?.trim() || null, job_ref: r.job?.trim() || null, our_validity: r.valid || null, needed_weeks: Number(r.weeks) > 0 ? Number(r.weeks) : null, notes: r.notes?.trim() || null }).eq('id', pkg.id);
+      const { error: e } = await supabase.from('sq_packages').update({ title: r.title.trim(), project_name: r.project?.trim() || null, job_ref: r.job?.trim() || null, ...jobSource(r.src), our_validity: r.valid || null, needed_weeks: Number(r.weeks) > 0 ? Number(r.weeks) : null, notes: r.notes?.trim() || null }).eq('id', pkg.id);
       if (e) throw new Error(e.message);
       reload();
     }, 'Saved');
