@@ -1,4 +1,4 @@
--- Design Tools v130: Lighting calc – the wicket area gets its own row (size, points, spacing) in the calculation grid shown before the Relux export
+-- Design Tools v130: Lighting calc – the Relux export writes a measuring surface for every area (outer field, inner field, wicket – named and shaped), and the calculation grid before the export lists the wicket area and the raster for each surface
 insert into public.design_tool_engine (version, html, created_at) values ('v130', $dtengine$<!doctype html>
 <html lang="en">
 <head>
@@ -7306,7 +7306,7 @@ function lcBind(L) {
   $('#lc_rdfgo')?.addEventListener('click', () => { const f = LCRDFQ, v = $('#lc_rdfsp')?.value; LCRDFQ = null; if (!f) return; lcSnap(L, 'change of sport'); if (v && v !== (L.sport ?? 'cricket')) lcSetSport(L, v); L.sportSet = true; void lcRdfOpen(f); });
   $('#lc_rdfno')?.addEventListener('click', () => { LCRDFQ = null; renderLc(); });
   const rdfGo = async (f) => { LCMSG = 'Writing the Relux project…'; renderLc(); try { const r = await rdfWrite(L, f); LCMSG = `${r.name} made – ${r.n} luminaires moved and re-aimed${r.nCam ? `, ${r.nCam} camera positions updated` : ''}; Relux recalculates the results when it opens. Experimental: check the scene in Relux before relying on it.`; } catch (err) { LCMSG = `The Relux project could not be written: ${err?.message ?? err}`; } renderLc(); };
-  $('#lc_rdfnew')?.addEventListener('click', () => lcGridPop(L, async () => { LCMSG = 'Making the Relux project…'; renderLc(); try { const r = await rdfNew(L); rdfSave(r.name, r.bytes); LCMSG = `${r.name} made – ${r.n} floodlights with their aiming, photometry ${r.lum}${r.others ? ` (${r.others} floodlights of other types use it too – one luminaire type per project for now)` : ''}, ground ${r.W} × ${r.H} m, ${r.nCam} camera${r.nCam === 1 ? '' : 's'}, the measuring plane “${r.plane}”; the aiming points are where the beams meet the ground. The field centre is at x ${r.ox} / y ${r.oy} m in Relux – Export plan .dxf gives the ground drawing at the same place. Relux applies its own maintenance factor (its maintenance plan) – check it is ${L.mf} as in this design. Experimental: check the scene in Relux.`; } catch (err) { LCMSG = `The Relux project could not be made: ${err?.message ?? err}`; } renderLc(); }));
+  $('#lc_rdfnew')?.addEventListener('click', () => lcGridPop(L, async () => { LCMSG = 'Making the Relux project…'; renderLc(); try { const r = await rdfNew(L); rdfSave(r.name, r.bytes); LCMSG = `${r.name} made – ${r.n} floodlights with their aiming, photometry ${r.lum}${r.others ? ` (${r.others} floodlights of other types use it too – one luminaire type per project for now)` : ''}, ground ${r.W} × ${r.H} m, ${r.nCam} camera${r.nCam === 1 ? '' : 's'}, ${r.planes.length > 1 ? `measuring surfaces ${r.planes.map((x) => `“${x}”`).join(', ')}` : `the measuring plane “${r.plane}”`}; the aiming points are where the beams meet the ground. The field centre is at x ${r.ox} / y ${r.oy} m in Relux – Export plan .dxf gives the ground drawing at the same place. Relux applies its own maintenance factor (its maintenance plan) – check it is ${L.mf} as in this design. Experimental: check the scene in Relux.`; } catch (err) { LCMSG = `The Relux project could not be made: ${err?.message ?? err}`; } renderLc(); }));
   $('#lc_dxf')?.addEventListener('click', () => { try { const s = lcDxf(L), nm = `${String((typeof SITE !== 'undefined' && SITE?.name) || 'Light calc').replace(/[\\/:*?"<>|]+/g, '-').slice(0, 80)} – DIMO plan.dxf`; rdfSave(nm, new TextEncoder().encode(s)); const { ox, oy } = rdfFrame(L); LCMSG = `${nm} made – in Relux import it as a CAD plan at 0 / 0 (metres); the field centre is at x ${ox} / y ${oy} m, the same as in Export new .rdf.`; } catch (err) { LCMSG = `The plan could not be made: ${err?.message ?? err}`; } renderLc(); });
   $('#lc_rdfout')?.addEventListener('click', () => (RDF_LAST ? rdfGo(null) : $('#lc_rdfpick')?.click())); $('#lc_rdfpick')?.addEventListener('change', (e) => { const f = e.target.files?.[0]; if (f) rdfGo(f); });
   $('#lc_relux')?.addEventListener('click', async () => { try { await rxExport(L); } catch (err) { LCMSG = `The Relux pack could not be made: ${err?.message ?? err}`; } renderLc(); }); $('#lc_pdf')?.addEventListener('click', async (e) => { await lcPdf(L, 'full', e.currentTarget); renderLc(); }); $('#lc_pdfaim')?.addEventListener('click', async (e) => { await lcPdf(L, 'aim', e.currentTarget); renderLc(); }); $('#lc_pdfpts')?.addEventListener('click', async (e) => { await lcPdfPts(L, e.currentTarget); renderLc(); }); $('#lc_ptpaper')?.addEventListener('change', (e) => { L.ptPaper = e.target.value; });
@@ -9268,9 +9268,9 @@ function rdfPoly(Pw) {
   const A2 = P.reduce((t, p, i) => { const q = P[(i + 1) % P.length]; return t + p[0] * q[1] - q[0] * p[1]; }, 0); if (A2 < 0) P.reverse();
   return P;
 }
-// the template's calculation surface reshaped to our main area and named after it (Relux keeps the outline twice: in the surface's frame, then flat from its corner)
-function rdfPlane(sc, Pw, name) {
-  const ev = rdfTags(sc).ev, qi = ev.findIndex((e) => e.name === 'CQuader'), q = ev[qi], f = ev[qi + 1], r = ev[qi + 2]; if (!q || f?.name !== 'CFlaeche' || !r) return sc;
+// the template's calculation surface reshaped to our area and named after it (Relux keeps the outline twice: in the surface's frame, then flat from its corner); nth: which surface
+function rdfPlane(sc, Pw, name, nth = 0) {
+  const ev = rdfTags(sc).ev, qi = ev.map((e, i) => (e.name === 'CQuader' ? i : -1)).filter((i) => i >= 0)[nth] ?? -1, q = ev[qi], f = ev[qi + 1], r = ev[qi + 2]; if (!q || f?.name !== 'CFlaeche' || !r) return sc;
   const dv0 = new DataView(sc.buffer, sc.byteOffset, sc.byteLength); let c3 = -1, n = 0;
   for (let i = f.end; i + 2 < r.at && c3 < 0; i++) { const k = dv0.getUint16(i, true); if (k < 3 || k > 64 || i + 2 + 12 * k + 2 > r.at) continue; const P = Array.from({ length: k }, (_, j) => [0, 1, 2].map((d) => dv0.getFloat32(i + 2 + 12 * j + 4 * d, true))); if (P.every((p) => p.every((v) => Number.isFinite(v) && Math.abs(v) < 5000) && Math.abs(p[2]) < 1e-3) && dv0.getUint16(i + 2 + 12 * k, true) === k + 1) { c3 = i; n = k; } }
   if (c3 < 0) return sc; const c2 = c3 + 2 + 12 * n, e2 = c2 + 2 + 8 * (n + 1), ox = dv0.getFloat32(c3 + 2, true) - dv0.getFloat32(c2 + 2, true), oy = dv0.getFloat32(c3 + 6, true) - dv0.getFloat32(c2 + 6, true);
@@ -9283,12 +9283,36 @@ function rdfPlane(sc, Pw, name) {
   return rdfCat([sc.subarray(0, q.at), named, sc.subarray(f.at, f.end), pre, L3, L2, sc.subarray(e2)]);
 }
 // the main area in metres round the field centre: the marked one, else the standard ground's
-function rdfMainArea(L) {
-  const g = L.g, sp = L.sport ?? 'cricket', key = sp === 'cricket' ? 'o' : 'i', nm = (LC_AREAS.find(([k]) => k === key) ?? [key, key])[1], ell = (a, b) => Array.from({ length: 48 }, (_, i) => [a * Math.cos((i * Math.PI) / 24), b * Math.sin((i * Math.PI) / 24)]);
-  if (g.mk?.on) { const sh = lcMkA(g, key); if (sh) return { name: nm, p: sh.t === 'circ' ? ell(sh.r, sh.r).map(([x, y]) => [x + sh.c[0], y + sh.c[1]]) : sh.p }; }
-  if (lcShape(g) === 'oval') return { name: nm, p: ell(g.Rx, g.Ry) };
-  if (g.shape === 'track') return { name: nm, p: lcStadium(g.sl, g.r).slice(0, -1) };
-  return { name: nm, p: [[-g.px, -g.py], [g.px, -g.py], [g.px, g.py], [-g.px, g.py]] };
+function rdfMainArea(L) { return rdfArea(L, (L.sport ?? 'cricket') === 'cricket' ? 'o' : 'i'); }
+// one area's outline in metres round the field centre (null when the ground has no such area)
+function rdfArea(L, key) {
+  const g = L.g, nm = (LC_AREAS.find(([k]) => k === key) ?? [key, key])[1], ell = (a, b, cx = 0, cy = 0) => Array.from({ length: 48 }, (_, i) => [cx + a * Math.cos((i * Math.PI) / 24), cy + b * Math.sin((i * Math.PI) / 24)]), box = (a, b) => [[-a, -b], [a, -b], [a, b], [-a, b]];
+  if (g.mk?.on) { const sh = lcMkA(g, key); if (sh) return { key, name: nm, p: sh.t === 'circ' ? ell(sh.r, sh.r, sh.c[0], sh.c[1]) : sh.p }; if (key !== 'w') return null; }
+  if (key === 'w') return g.wA > 0 && g.wB > 0 ? { key, name: nm, p: (g.wShape ?? 'rect') === 'rect' ? box(g.wA, g.wB) : ell(g.wA, g.wB) } : null;
+  if (g.shape === 'rect' || g.shape === 'track') { if (key === 'o') return g.shape === 'rect' && g.Rx > g.px ? { key, name: nm, p: box(g.Rx, g.Ry) } : null; return g.shape === 'track' ? { key, name: nm, p: lcStadium(g.sl, g.r).slice(0, -1) } : { key, name: nm, p: box(g.px, g.py) }; }
+  if (key === 'i') return g.inR > 0 ? { key, name: nm, p: g.sx > 0 ? lcStadium(g.sx, g.inR).slice(0, -1) : ell(g.inR, g.inR) } : null;
+  if (lcShape(g) === 'oval') return { key, name: nm, p: ell(g.Rx, g.Ry) };
+  return { key, name: nm, p: box(g.px, g.py) };
+}
+// every area as its own Relux measuring surface: the main one first, then the others that have points in this design
+function rdfAreas(L) {
+  const A = rdfMainArea(L), has = new Set(L.grid === 'fixed' ? lcGrid(L.g, +L.s || 2.5).map((p) => (p.a === 'wd' ? 'w' : p.a)) : [...lcEvGrid(L).grids.map((q) => q.grid), ...(lcEvGrid(L).pts.some((p) => p.a === 'w') ? ['w'] : [])]);
+  return [A, ...['o', 'i', 'w'].filter((k) => k !== A.key && has.has(k)).map((k) => rdfArea(L, k)).filter((a) => a?.p?.length >= 3)];
+}
+// more measuring surfaces: the template's surface (its outline and result grids) copied k times right after it, numbered like Relux would write them
+function rdfPlanesAdd(sc, k) {
+  if (!k) return sc;
+  const { ev, n: nmap } = rdfTags(sc), qi = ev.findIndex((e) => e.name === 'CQuader'); if (qi < 0) return sc;
+  let j = qi + 1; while (ev[j] && (ev[j].name === 'CFlaeche' || ev[j].name === 'Result')) j++;
+  const blk = ev.slice(qi, j), A = blk[0].at, Z = ev[j]?.at ?? sc.length, T = ev[j] ? (ev[j].kind === 'new' ? ev[j].cls : ev[j].idx) : nmap + 1, per = blk.length, own = new Map(blk.map((e, i) => [e.idx, i]));
+  const parts = []; let o = A; blk.forEach((e) => { if (e.kind === 'new') { parts.push(sc.subarray(o, e.at), new Uint8Array([e.cls & 255, 0x80 | (e.cls >> 8)])); o = e.end; } }); parts.push(sc.subarray(o, Z));
+  const unit = rdfCat(parts), refs = []; { const dv = new DataView(unit.buffer); for (let i = 0; i + 6 <= unit.length; i++) if (unit[i] === 1 && unit[i + 1] === 0 && unit[i + 4] === 0 && unit[i + 5] === 0 && own.has(dv.getUint16(i + 2, true))) refs.push([i + 2, own.get(dv.getUint16(i + 2, true))]); }
+  const copies = Array.from({ length: k }, (_, c) => { const u = unit.slice(), dv = new DataView(u.buffer); refs.forEach(([at, i]) => dv.setUint16(at, T + c * per + i, true)); dv.setUint16(4, c + 2, true); return u; }); // each copy points to its own objects; the surface's number among its siblings
+  const t = sc.slice(Z), dvT = new DataView(t.buffer), s = k * per;
+  ev.forEach((e) => { if (e.at >= Z && e.kind === 'ref' && e.cls >= T) dvT.setUint16(e.at - Z, 0x8000 | (e.cls + s), true); });
+  for (let i = 0; i + 6 <= t.length; i++) if (t[i] === 1 && t[i + 1] === 0 && t[i + 4] === 0 && t[i + 5] === 0) { const v = dvT.getUint16(i + 2, true); if (v >= T && v <= nmap) dvT.setUint16(i + 2, v + s, true); }
+  const head = sc.slice(0, Z), dvH = new DataView(head.buffer); dvH.setUint32(51, dvH.getUint32(51, true) + k, true); // the scene's object count
+  return rdfCat([head, ...copies, t]);
 }
 // the size of the Relux ground and where our field centre sits on it
 function rdfFrame(L) {
@@ -9303,9 +9327,10 @@ async function rdfNew(L) {
   const pm = ours[0].pm, others = ours.filter((o) => o.pm !== pm).length;
   const { W, H, ox, oy } = rdfFrame(L);
   const Ms = ours.map((o) => { const M = rdfMat(L, o.mi, o.k, false); M[3] += ox; M[7] += oy; return [...M, 0, 0, 0, 1]; });
-  const cams = L.cams.map((c) => ({ n: c.n || `C${L.cams.indexOf(c) + 1}`, P: [c.x + ox, c.y + oy, c.z] })), A = rdfMainArea(L);
+  const cams = L.cams.map((c) => ({ n: c.n || `C${L.cams.indexOf(c) + 1}`, P: [c.x + ox, c.y + oy, c.z] })), AS = rdfAreas(L), A = AS[0];
   const S = await rdfZ(one('select data from SCENEGEOMETRY order by sceneid limit 1')[0], true);
-  const scene = rdfSceneOf(rdfPlane(S, A.p.map(([x, y]) => [x + ox, y + oy]), A.name), Ms, { W, H, cams });
+  let S2 = rdfPlanesAdd(S, AS.length - 1); AS.forEach((a, i) => { S2 = rdfPlane(S2, a.p.map(([x, y]) => [x + ox, y + oy]), a.name, i); }); // a measuring surface per area
+  const scene = rdfSceneOf(S2, Ms, { W, H, cams });
   const fname = `${String(pm.name || 'luminaire').replace(/[^\w.-]+/g, '_').slice(0, 60)}.ldt`, lb = rdfLib(await rdfZ(one('select data from LIBRARY limit 1')[0], true), pm, fname);
   let meta = await rdfZ(one('select data from PROJECTMETADATA limit 1')[0], true);
   const title = String((typeof SITE !== 'undefined' && SITE?.name) || L.rdf?.file?.replace(/\.rdf$/i, '') || 'Light calc').slice(0, 80), today = new Date(), dd = `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`;
@@ -9314,7 +9339,7 @@ async function rdfNew(L) {
   const now = Math.floor(Date.now() / 1000);
   db.run('update SCENEGEOMETRY set data = ?, timestamp = ?', [await rdfZ(scene, false), now]); db.run('update LIBRARY set data = ?, timestamp = ?', [await rdfZ(lb.lib, false), now]); db.run('update PROJECTMETADATA set data = ?, timestamp = ?', [await rdfZ(meta, false), now]);
   const out = rdfSwap(db.export(), false), name = `${title.replace(/[\\/:*?"<>|]+/g, '-')} – DIMO Light calc.rdf`;
-  return { name, bytes: out, n: ours.length, others, lum: lb.nm, W, H, ox, oy, nCam: cams.length, plane: A.name };
+  return { name, bytes: out, n: ours.length, others, lum: lb.nm, W, H, ox, oy, nCam: cams.length, plane: A.name, planes: AS.map((a) => a.name) };
 }
 // the ground drawing for Relux (File → import a DWG / DXF plan): the same place as in the exported project, in metres – ground lines, the calculation areas, masts, aiming lines and cameras on their own layers
 function lcDxf(L) {
@@ -9976,17 +10001,19 @@ async function lcMatchRules(L, onStep) {
 function lcAreaNm(k) { return (LC_AREAS.find(([a]) => a === k) ?? [k, k])[1]; }
 // before the Relux export: the grid of every area, and the raster to set in Relux for the measuring plane so both programs calculate the same points
 function lcGridPop(L, go) {
-  document.getElementById('lcMatchPop')?.remove(); const f2 = (v) => (Math.round(v * 100) / 100).toLocaleString('en-GB'), fixed = L.grid === 'fixed', G = fixed ? [] : lcEvGrid(L).grids, A = rdfMainArea(L), mk = L.sport === 'cricket' ? 'o' : 'i', mg = G.find((q) => q.grid === mk);
-  const X = A.p.map((q) => q[0]), Y = A.p.map((q) => q[1]), w = Math.max(...X) - Math.min(...X), h = Math.max(...Y) - Math.min(...Y), fx = fixed ? [Math.max(1, Math.round(w / L.s)), Math.max(1, Math.round(h / L.s))] : null, nx = mg?.nx ?? fx?.[0], ny = mg?.ny ?? fx?.[1];
+  document.getElementById('lcMatchPop')?.remove(); const f2 = (v) => (Math.round(v * 100) / 100).toLocaleString('en-GB'), fixed = L.grid === 'fixed', G = fixed ? [] : lcEvGrid(L).grids, AS = rdfAreas(L), mk = AS[0].key;
   const wp = fixed ? [] : lcEvGrid(L).pts.filter((p) => p.a === 'w'), sw = Math.min(+L.s || 2.5, 1.5), wn = (k) => new Set(wp.map((p) => Math.round(p[k] * 1000))).size; // the wicket keeps its fine grid
-  const rows = G.map((q) => `<tr${q.grid === mk ? ' style="font-weight:700"' : ''}><td>${esc(lcAreaNm(q.grid))}${q.grid === mk ? ' – in the Relux project' : ''}</td><td>${f2(q.w)} × ${f2(q.h)}</td><td>${q.nx} × ${q.ny}</td><td>${f2(q.sx)} × ${f2(q.sy)}</td><td>${q.n}</td></tr>`).join('')
-    + (wp.length ? `<tr><td>${esc(lcAreaNm('w'))} – fine grid, figures in this design only</td><td>${f2(2 * L.g.wA)} × ${f2(2 * L.g.wB)}</td><td>${wn('x')} × ${wn('y')}</td><td>${f2(sw)} × ${f2(sw)}</td><td>${wp.length}</td></tr>` : '');
+  const ext = (A) => { const X = A.p.map((q) => q[0]), Y = A.p.map((q) => q[1]); return [Math.max(...X) - Math.min(...X), Math.max(...Y) - Math.min(...Y)]; };
+  const ras = (A) => { const [w, h] = ext(A), q = G.find((g) => g.grid === A.key); if (A.key === 'w' && wp.length) return [w, h, wn('x'), wn('y')]; return [w, h, q?.nx ?? Math.max(1, Math.round(w / L.s)), q?.ny ?? Math.max(1, Math.round(h / L.s))]; };
+  const rows = G.map((q) => `<tr${q.grid === mk ? ' style="font-weight:700"' : ''}><td>${esc(lcAreaNm(q.grid))}${q.grid === mk ? ' – main surface' : ''}</td><td>${f2(q.w)} × ${f2(q.h)}</td><td>${q.nx} × ${q.ny}</td><td>${f2(q.sx)} × ${f2(q.sy)}</td><td>${q.n}</td></tr>`).join('')
+    + (wp.length ? `<tr><td>${esc(lcAreaNm('w'))} – fine grid</td><td>${f2(2 * L.g.wA)} × ${f2(2 * L.g.wB)}</td><td>${wn('x')} × ${wn('y')}</td><td>${f2(sw)} × ${f2(sw)}</td><td>${wp.length}</td></tr>` : '');
+  const lines = AS.map((A) => { const [w, h, nx, ny] = ras(A); return `<li><b>“${esc(A.name)}”</b> (${f2(w)} × ${f2(h)} m): <b>Number points X ${nx}</b> · <b>Y ${ny}</b> – distance X ${f2(w / nx)} m · Y ${f2(h / ny)} m</li>`; }).join('');
   const el = document.createElement('div'); el.id = 'lcMatchPop';
   el.innerHTML = `<div class="lcMpBox"><h3 style="margin:0 0 4px">Calculation grid – before the Relux export</h3><p class="note" style="margin:0 0 8px">${esc(lcGridName(L))}${fixed ? '' : '; points at the cell centres'}. Change it under Ground, grid & drawing → Calculation grid.</p>
-    ${G.length ? `<div class="tablewrap"><table class="sch"><thead><tr><th>Area</th><th>Size m</th><th>Points X × Y</th><th>Spacing m</th><th>Points used</th></tr></thead><tbody>${rows}</tbody></table></div>` : ''}${wp.length ? `<p class="note" style="margin:4px 0 0">The wicket area keeps its fine grid (≤ 1.5 m). It is not a measuring plane in the Relux project – check the wicket here, or add a ${f2(2 * L.g.wA)} × ${f2(2 * L.g.wB)} m plane in Relux with ${wn('x')} × ${wn('y')} points.</p>` : ''}
-    <div style="border:1.5px solid var(--sel);border-radius:8px;padding:8px 10px;margin:10px 0 6px"><b>Set in Relux for “${esc(A.name)}”</b> (${f2(w)} × ${f2(h)} m) – select the measuring surface → Calculation raster:
-      <ul style="margin:4px 0 0 18px;padding:0"><li>Untick <b>Automatically adjust number of measuring points</b> (otherwise Relux adapts the template’s raster)</li><li><b>Number points X ${nx}</b> · <b>Number points Y ${ny}</b> – Distance X ${f2(w / nx)} m · Y ${f2(h / ny)} m</li><li>Keep <b>Half raster width distance to the edge</b> ticked; <b>Raster orientation along the longest edge</b> unticked</li><li>Maintenance factor <b>${L.mf}</b> as in this design</li></ul>
-      <p class="note" style="margin:4px 0 0">The Relux project holds the main measuring plane only; the other areas are for this report.</p></div>
+    ${G.length ? `<div class="tablewrap"><table class="sch"><thead><tr><th>Area</th><th>Size m</th><th>Points X × Y</th><th>Spacing m</th><th>Points used</th></tr></thead><tbody>${rows}</tbody></table></div>` : ''}${wp.length ? '<p class="note" style="margin:4px 0 0">The wicket area keeps its fine grid (≤ 1.5 m).</p>' : ''}
+    <div style="border:1.5px solid var(--sel);border-radius:8px;padding:8px 10px;margin:10px 0 6px"><b>The Relux project gets ${AS.length > 1 ? `${AS.length} measuring surfaces, one per area` : 'one measuring surface'}.</b> In Relux select each surface → Calculation raster:
+      <ul style="margin:4px 0 0 18px;padding:0"><li>Untick <b>Automatically adjust number of measuring points</b> (otherwise Relux adapts the template’s raster)</li>${lines}<li>Keep <b>Half raster width distance to the edge</b> ticked; <b>Raster orientation along the longest edge</b> unticked</li><li>Maintenance factor <b>${L.mf}</b> as in this design</li></ul>
+      ${AS.length > 1 ? '<p class="note" style="margin:4px 0 0">New: the extra surfaces are copies of the main one – check in Relux that each one is there and calculates.</p>' : ''}</div>
     <div style="display:flex;gap:6px;justify-content:flex-end;margin-top:6px"><button class="btn" id="lc_gpno">Cancel</button><button class="btn" id="lc_gpgo" style="background:var(--ink);color:var(--bg)">Export .rdf</button></div></div>`;
   document.body.appendChild(el);
   el.querySelector('#lc_gpno').addEventListener('click', () => el.remove()); el.addEventListener('click', (e) => { if (e.target === el) el.remove(); });
