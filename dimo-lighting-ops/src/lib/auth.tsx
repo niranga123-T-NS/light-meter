@@ -21,6 +21,8 @@ type AuthState = {
   highLevel: { id: string; ends_at: string } | null;
   highLevelOn: boolean;
   setHighLevelOn: (on: boolean) => void;
+  /** Supplier quotes: the Operations Executive, the GM / DGM and people the GM / DGM allows (until cancelled) */
+  sqAccess: boolean;
 };
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -32,6 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [highLevel, setHighLevel] = useState<{ id: string; ends_at: string } | null>(null);
   const [highLevelOn, setOn] = useState(false);
+  const [sqAccess, setSqAccess] = useState(false);
   const setHighLevelOn = useCallback((on: boolean) => {
     setHighLevelView(on);
     setOn(on);
@@ -53,6 +56,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       : { data: [] };
     const g = ((data ?? [])[0] as { id: string; ends_at: string } | undefined) ?? null;
     setHighLevel(g);
+    // access to Supplier quotes is checked with the high level access (the GM / DGM can give or cancel it at any time)
+    if (uid) supabase.rpc('sq_access_me').then(({ data: ok }) => setSqAccess(!!ok));
+    else setSqAccess(false);
     if (!g) {
       // ended or cancelled: back to the user's own view
       setHighLevelView(false);
@@ -125,6 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       highLevel,
       highLevelOn: viewing,
       setHighLevelOn,
+      sqAccess: sqAccess && !viewing,
       loading,
       error,
       signIn: async (email, password) => {
@@ -146,7 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       reloadProfile: () => loadProfile(session),
     }),
-    [session, profile, loading, error, loadProfile, highLevel, viewing, setHighLevelOn],
+    [session, profile, loading, error, loadProfile, highLevel, viewing, setHighLevelOn, sqAccess],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
