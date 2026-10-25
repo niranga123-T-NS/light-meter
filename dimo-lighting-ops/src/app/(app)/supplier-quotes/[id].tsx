@@ -11,7 +11,7 @@ import { atStage, BASIS_LABEL, type BidStage, cashOf, chains, compareRows, jobFi
 import { rpc, supabase } from '@/lib/supabase';
 
 type Cell = { t: ReactNode; tone?: 'good' | 'warn' | 'bad'; sub?: string };
-type CRow = { key: string; kind: 'sec' | 'line' | 'row' | 'total'; label: string; sub?: string | null; href?: string; cells: (Cell | null)[] };
+type CRow = { key: string; kind: 'sec' | 'line' | 'row' | 'total' | 'act'; label: string; sub?: string | null; href?: string; cells: (Cell | null)[] };
 const TONE = { good: { bg: '#E4F3EA', fg: '#1A6B41' }, warn: { bg: '#FDF0DC', fg: '#8A4B0F' }, bad: { bg: '#FBE6E4', fg: '#A1281C' } };
 
 /** A package: its quotes side by side on one basis (LKR delivered, exclusions priced back), the terms that decide, and the choice. */
@@ -49,6 +49,8 @@ export default function Package() {
 
   // ---- rows of the comparison
   const rows: CRow[] = [];
+  // actions right under each supplier's name
+  rows.push({ key: 'act', kind: 'act', label: 'Actions', cells: quotes.map(() => ({ t: '' })) });
   rows.push({ key: 's1', kind: 'sec', label: 'Priced lines – LKR per unit delivered · amount', cells: [] });
   for (const r of compareRows(quotes, items)) {
     rows.push({
@@ -88,7 +90,9 @@ export default function Package() {
   const columns: Column<CRow>[] = [
     {
       h: 'Line', w: 230, grow: true,
-      v: (r) => r.kind === 'sec'
+      v: (r) => r.kind === 'act'
+        ? <Muted>{fixed ? (past ? 'Pre Bid – kept as it was' : 'Package closed') : 'Choose, revise or edit'}</Muted>
+        : r.kind === 'sec'
         ? <Text style={{ fontSize: 11, fontWeight: '700', color: colors.muted, textTransform: 'uppercase', letterSpacing: 0.6 }}>{r.label}</Text>
         : <View>
             <Text style={{ fontWeight: r.kind === 'total' ? '800' : '600', color: colors.ink }}>{r.label}</Text>
@@ -100,6 +104,14 @@ export default function Package() {
       h: `${sup(q)}${q.quote_no ? ` · ${q.quote_no}` : ''}${q.revision ? ` · ${revLabel(q)}` : ''}`, w: 210,
       v: (r) => {
         const c = r.cells[i];
+        if (r.kind === 'act') return (
+          <Row wrap gap={6}>
+            {!fixed ? <Button small title={pkg.selected_quote_id === q.id ? 'Chosen ✓' : 'Choose'} variant={pkg.selected_quote_id === q.id ? 'primary' : 'secondary'} onPress={() => (pkg.selected_quote_id === q.id ? unselect() : select(q))} /> : null}
+            {!fixed ? <Button small variant="secondary" title="Revised / discounted quote" onPress={() => revise(q)} /> : null}
+            {past && !closed && !q.superseded_by ? <Button small variant="secondary" title="Carry into Post Bid" onPress={() => carry(q)} /> : null}
+            <Button small variant="ghost" title={fixed || q.superseded_by ? 'View' : 'Edit'} onPress={() => router.push({ pathname: '/supplier-quotes/quote', params: { pkg: pkg.id, id: q.id } })} />
+          </Row>
+        );
         if (r.kind === 'sec' || !c) return '';
         const t = c.tone ? TONE[c.tone] : null;
         return (
@@ -225,7 +237,7 @@ export default function Package() {
       {stage === 'post_bid' ? (
         <Row wrap gap={8} style={{ alignItems: 'center' }}>
           {preQuotes.length ? <Segmented value={shown} onChange={(v) => setView(v as BidStage)} options={[{ value: 'post_bid', label: `Post Bid (${postCount})` }, { value: 'pre_bid', label: `Pre Bid (${preQuotes.length})` }]} /> : <Pill label="Post Bid" tone={colors.blue} />}
-          <Muted>{`${preQuotes.length ? 'Moved to' : 'At'} Post Bid since ${fmtDate(pkg.post_bid_at)}${pkg.post_bid_by ? ` by ${people[pkg.post_bid_by]?.full_name ?? '—'}` : ''}${pkg.post_bid_note ? ` · ${pkg.post_bid_note}` : ''}`}</Muted>
+          <Muted>{`${preQuotes.length ? 'Moved to Post Bid on' : 'At Post Bid since'} ${fmtDate(pkg.post_bid_at)}${pkg.post_bid_by ? ` by ${people[pkg.post_bid_by]?.full_name ?? '—'}` : ''}${pkg.post_bid_note ? ` · ${pkg.post_bid_note}` : ''}`}</Muted>
         </Row>
       ) : null}
       {past ? <Notice tone={colors.blue}>{`Pre Bid prices – kept as they were for the tender.${preChoice ? ` Chosen at Pre Bid: ${sup(preChoice)}${pkg.pre_bid_reason ? ` (${pkg.pre_bid_reason})` : ''}.` : ''} Carry a supplier on to ask for a Post Bid price.`}</Notice> : null}
