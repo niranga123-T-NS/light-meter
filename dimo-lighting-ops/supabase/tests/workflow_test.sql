@@ -9395,6 +9395,20 @@ begin
   perform public.design_tool_save(f, 'Hotel – main LV', null, '{"tpl":"building","tree":{"id":"n1","kva":1000}}'::jsonb, '{"kw":130}'::jsonb, 'transformer 1000 kVA');
   select * into r from public.design_tool_files where id = f; assert r.revision = 2 and r.status = 'draft', 'rev 2';
   assert (select count(*) from public.design_tool_revisions where file_id = f) = 2, 'two revisions kept';
+  -- autosave: one revision for autosaves one after another, made ordinary by a save by hand; save as makes a new design
+  perform public.design_tool_save(f, 'Hotel – main LV', null, '{"tpl":"building","tree":{"id":"n1","kva":1000,"a":1}}'::jsonb, '{}'::jsonb, 'Autosave');
+  perform public.design_tool_save(f, 'Hotel – main LV', null, '{"tpl":"building","tree":{"id":"n1","kva":1000,"a":2}}'::jsonb, '{}'::jsonb, 'Autosave');
+  select * into r from public.design_tool_files where id = f; assert r.revision = 3 and r.state->'tree'->>'a' = '2', 'autosaves share rev 3';
+  assert (select count(*) from public.design_tool_revisions where file_id = f) = 3, 'one autosave revision';
+  assert (select state->'tree'->>'a' = '2' and note = 'Autosave' from public.design_tool_revisions where file_id = f and revision = 3), 'autosave revision up to date';
+  perform public.design_tool_save(f, 'Hotel – main LV', null, '{"tpl":"building","tree":{"id":"n1","kva":1000,"a":2}}'::jsonb);
+  assert (select note is null from public.design_tool_revisions where file_id = f and revision = 3), 'saved by hand: no longer an autosave';
+  perform public.design_tool_save(f, 'Hotel – main LV', null, '{"tpl":"building","tree":{"id":"n1","kva":1000,"a":3}}'::jsonb, '{}'::jsonb, 'Autosave');
+  assert (select revision from public.design_tool_files where id = f) = 4, 'next autosave starts a new revision';
+  perform public.design_tool_save(f, 'Hotel – main LV', null, '{"tpl":"building","tree":{"id":"n1","kva":1000}}'::jsonb, '{"kw":130}'::jsonb, 'transformer 1000 kVA');
+  assert (select revision from public.design_tool_files where id = f) = 5, 'a save by hand after an autosave is a new revision';
+  perform set_config('test.dtcopy', public.design_tool_save(null, 'Hotel – main LV (option B)', null, '{"tpl":"building","tree":{"id":"n1","kva":1250}}'::jsonb, '{}'::jsonb, 'Saved as a copy of Hotel – main LV rev 5')::text, false);
+  assert (select revision = 1 and status = 'draft' and state->'tree'->>'kva' = '1250' from public.design_tool_files where id = current_setting('test.dtcopy')::uuid), 'save as: a new design at rev 1';
   begin perform public.design_tool_decide(f, 'check'); assert false, 'send for check first'; exception when raise_exception then null; end;
   perform public.design_tool_decide(f, 'submit');
   begin perform public.design_tool_decide(f, 'check'); assert false, 'only the Design Manager checks'; exception when raise_exception then null; end;
@@ -9406,6 +9420,7 @@ do $$ declare f uuid := current_setting('test.dtf')::uuid; begin
   begin perform public.design_tool_decide(f, 'approve'); assert false, 'not checked yet'; exception when raise_exception then null; end;
   perform public.design_tool_decide(f, 'check');
   assert (select status from public.design_tool_files where id = f) = 'checked', 'checked';
+  begin perform public.design_tool_save(f, 'Hotel – main LV', null, '{"tpl":"building","tree":{"id":"n1","x":1}}'::jsonb, '{}'::jsonb, 'Autosave'); assert false, 'no autosave once checked'; exception when raise_exception then null; end;
 end $$;
 reset role;
 select pg_temp.act_as('sm_projects'); set role authenticated;
@@ -9414,7 +9429,7 @@ do $$ declare f uuid := current_setting('test.dtf')::uuid; begin
   assert (select status from public.design_tool_files where id = f) = 'approved', 'approved';
   -- a change after approval goes back to draft as a new revision
   perform public.design_tool_save(f, 'Hotel – main LV', null, '{"tpl":"building","tree":{"id":"n1","kva":1250}}'::jsonb);
-  assert (select status = 'draft' and revision = 3 and approved_by is null from public.design_tool_files where id = f), 'back to draft';
+  assert (select status = 'draft' and revision = 6 and approved_by is null from public.design_tool_files where id = f), 'back to draft';
   begin perform public.design_tool_decide(f, 'return', ''); assert false, 'already a draft'; exception when raise_exception then null; end;
 end $$;
 reset role;
