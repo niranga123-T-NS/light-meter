@@ -8,22 +8,17 @@ import { useAuth } from '@/lib/auth';
 import { fmtDate, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { ROLE_SHORT } from '@/lib/roles';
-import { discFactor, jobField, jobSource, KIND_LABEL, lkr0, lkrM, loadJobs, loadRefs, loadSystemSuppliers, originText, quoteTotals, supplierFields, supplierRow, STAGE_LABEL, type SqItem, type SqJob, type SqPackage, type SqQuote, type Supplier, type SysSupplier } from '@/lib/supplierQuotes';
+import { discFactor, jobField, jobSource, KIND_LABEL, lkr0, lkrM, loadJobs, loadRefs, loadSystemSuppliers, originText, quoteTotals, supplierFields, supplierRow, type SqItem, type SqJob, type SqPackage, type SqQuote, type Supplier, type SysSupplier } from '@/lib/supplierQuotes';
+import { type SqProject } from '@/lib/sqAnalysis';
 import { rpc, supabase } from '@/lib/supabase';
 
-type Tab = 'packages' | 'rates' | 'suppliers' | 'access';
-const STATUS: Record<SqPackage['status'], { label: string; tone: string }> = {
-  open: { label: 'Comparing', tone: colors.blue },
-  selected: { label: 'Supplier chosen', tone: colors.green },
-  closed: { label: 'Closed', tone: colors.grey },
-  cancelled: { label: 'Cancelled', tone: colors.grey },
-};
+type Tab = 'projects' | 'rates' | 'suppliers' | 'access';
 
-/** Supplier quotes: packages with their quotes and comparison, the rate library, the suppliers, and who has access (GM / DGM). */
+/** Supplier quotes: projects with their packages, quotes and comparison, the rate library, the suppliers, and who has access (GM / DGM). */
 export default function SupplierQuotes() {
   const { sqAccess, realRole } = useAuth();
   const params = useLocalSearchParams<{ tab?: Tab }>();
-  const tab: Tab = params.tab && ['packages', 'rates', 'suppliers', 'access'].includes(params.tab) ? params.tab : 'packages';
+  const tab: Tab = params.tab && ['projects', 'rates', 'suppliers', 'access'].includes(params.tab) ? params.tab : 'projects';
   if (!sqAccess)
     return (
       <Screen>
@@ -32,7 +27,7 @@ export default function SupplierQuotes() {
       </Screen>
     );
   const opts: { value: Tab; label: string }[] = [
-    { value: 'packages', label: 'Packages' },
+    { value: 'projects', label: 'Projects' },
     { value: 'rates', label: 'Rate library' },
     { value: 'suppliers', label: 'Suppliers & manufacturers' },
     ...(realRole === 'gm' ? [{ value: 'access' as Tab, label: 'Access' }] : []),
@@ -41,66 +36,71 @@ export default function SupplierQuotes() {
     <Screen maxWidth={1240}>
       <Stack.Screen options={{ title: 'Supplier quotes' }} />
       <Row wrap gap={8} style={{ alignItems: 'center' }}>
-        <View style={{ flexGrow: 1 }}><Segmented value={tab} onChange={(v) => router.setParams({ tab: v === 'packages' ? undefined : v })} options={opts} wrap /></View>
+        <View style={{ flexGrow: 1 }}><Segmented value={tab} onChange={(v) => router.setParams({ tab: v === 'projects' ? undefined : v })} options={opts} wrap /></View>
         {realRole === 'gm' ? <Button title="Supplier reports" icon="▤" onPress={() => router.push('/supplier-quotes/reports')} /> : null}
       </Row>
-      {tab === 'packages' ? <Packages /> : tab === 'rates' ? <RateLibrary /> : tab === 'suppliers' ? <Suppliers /> : <Access />}
+      {tab === 'projects' ? <Projects /> : tab === 'rates' ? <RateLibrary /> : tab === 'suppliers' ? <Suppliers /> : <Access />}
       <Muted>Uploaded quote files are only read on this device and never stored – only the values you check and save are kept.</Muted>
     </Screen>
   );
 }
 
 // ---------------------------------------------------------------- packages
-function Packages() {
+function Projects() {
   const dialog = useDialog();
   const [show, setShow] = useState<'open' | 'all'>('open');
   const { data, error, reload } = useLoad(async () => {
-    const [p, q, s] = await Promise.all([
-      supabase.from('sq_packages').select('*').order('updated_at', { ascending: false }).limit(300),
-      supabase.from('sq_quotes').select('id, package_id, supplier_id, bid_stage, valid_until, fx_rate, freight_pct, currency, lead_weeks, discount_pct, discount_amt, lines:sq_quote_lines(qty, rate, included), exclusions:sq_quote_exclusions(add_lkr)').is('superseded_by', null),
+    const [j, p, q, s] = await Promise.all([
+      supabase.from('sq_projects').select('*').order('updated_at', { ascending: false }).limit(500),
+      supabase.from('sq_packages').select('*').limit(3000),
+      supabase.from('sq_quotes').select('id, package_id, supplier_id, bid_stage, revision, valid_until, fx_rate, freight_pct, currency, lead_weeks, discount_pct, discount_amt, lines:sq_quote_lines(qty, rate, included), exclusions:sq_quote_exclusions(add_lkr)').is('superseded_by', null),
       supabase.from('sq_settings').select('cost_of_money_pct').maybeSingle(),
     ]);
-    const err = p.error ?? q.error;
+    const err = j.error ?? p.error ?? q.error;
     if (err) throw new Error(err.message);
-    const sups = await supabase.from('sq_suppliers').select('id, name');
-    return { pkgs: (p.data ?? []) as SqPackage[], quotes: (q.data ?? []) as unknown as SqQuote[], sups: (sups.data ?? []) as Supplier[], cost: Number(s.data?.cost_of_money_pct ?? 12) };
+    return { projects: (j.data ?? []) as SqProject[], pkgs: (p.data ?? []) as SqPackage[], quotes: (q.data ?? []) as unknown as SqQuote[], cost: Number(s.data?.cost_of_money_pct ?? 12) };
   }, []);
   if (!data) return error ? <ErrorBanner message={error} /> : <Loading />;
   const today = todayISO();
-  const rows = data.pkgs
-    .filter((p) => show === 'all' || p.status === 'open' || p.status === 'selected')
-    .map((p) => {
-      const qs = data.quotes.filter((q) => q.package_id === p.id && (q.bid_stage ?? 'pre_bid') === (p.stage ?? 'pre_bid')).map((q) => ({ q, t: quoteTotals({ ...q, payments: [], lines: q.lines.map((l) => ({ ...l, rate: l.rate == null ? null : Number(l.rate), qty: l.qty == null ? null : Number(l.qty) })), exclusions: q.exclusions.map((x) => ({ ...x, add_lkr: Number(x.add_lkr) })), fx_rate: Number(q.fx_rate), freight_pct: Number(q.freight_pct) } as SqQuote).total }));
-      const low = qs.length ? qs.reduce((a, b) => (b.t < a.t ? b : a)) : null;
-      const sel = qs.find((x) => x.q.id === p.selected_quote_id);
-      const expiring = qs.filter((x) => x.q.valid_until && ((p.our_validity && x.q.valid_until < p.our_validity) || x.q.valid_until < today));
-      return { p, n: qs.length, low, sel, expiring };
+  const tot = (q: SqQuote) => quoteTotals({ ...q, payments: [], lines: q.lines.map((l) => ({ ...l, rate: l.rate == null ? null : Number(l.rate), qty: l.qty == null ? null : Number(l.qty) })), exclusions: q.exclusions.map((x) => ({ ...x, add_lkr: Number(x.add_lkr) })), fx_rate: Number(q.fx_rate), freight_pct: Number(q.freight_pct) } as SqQuote).total;
+  const rows = data.projects
+    .filter((j) => show === 'all' || j.status === 'open')
+    .map((j) => {
+      const pk = data.pkgs.filter((p) => p.project_id === j.id && p.status !== 'cancelled');
+      let low = 0, chosen = 0, offers = 0, nChosen = 0;
+      const expiring: string[] = [];
+      for (const p of pk) {
+        // each supplier's latest version at the package's stage
+        const qs = data.quotes.filter((q) => q.package_id === p.id && (q.bid_stage ?? 'pre_bid') === (p.stage ?? 'pre_bid'));
+        offers += qs.length;
+        if (qs.length) low += Math.min(...qs.map(tot));
+        const c = qs.find((q) => q.id === p.selected_quote_id);
+        if (c) { chosen += tot(c); nChosen++; }
+        if (qs.some((q) => q.valid_until && ((p.our_validity && q.valid_until < p.our_validity) || q.valid_until < today))) expiring.push(p.code);
+      }
+      return { j, pk, low, chosen, offers, nChosen, expiring };
     });
-  const supName = (id?: string) => data.sups.find((s) => s.id === id)?.name ?? '—';
   const add = async () => {
     const jobs = await loadJobs().catch(() => [] as SqJob[]);
     const r = await dialog.prompt({
-      title: 'New package',
-      message: 'What is being bought or subcontracted for a job. Add the quotes to it and compare them.',
+      title: 'New project',
+      message: 'The job the supplier quotes are for. Add its packages next (e.g. floodlights, masts, civil works).',
       fields: [
-        { key: 'title', label: 'Package', required: true, hint: 'e.g. LED floodlights, Lattice masts, Mast foundations' },
-        { key: 'kind', label: 'Type', type: 'select', required: true, initial: 'supply', options: [{ value: 'supply', label: 'Supply' }, { value: 'subcontract', label: 'Subcontract' }] },
-        { key: 'stage', label: 'Start at', type: 'select', required: true, initial: 'pre_bid', options: [{ value: 'pre_bid', label: 'Pre Bid – pricing our tender' }, { value: 'post_bid', label: 'Post Bid – tender already done (e.g. started before the system)' }] },
-        jobField(jobs),
-        { key: 'project', label: 'Project / client', hint: 'As you know it – e.g. the stadium name' },
-        { key: 'job', label: 'Job or inquiry reference', hint: 'e.g. EST-2026-0142, PRJ-0087' },
+        { ...jobField(jobs), fill: (v: string): Record<string, string> => { const x = jobs.find((y) => `${y.kind}:${y.id}` === v); return x ? { name: x.project_name ?? '', client: x.client ?? '', job: x.ref ?? '' } : {}; } },
+        { key: 'name', label: 'Project', required: true, hint: 'e.g. Kalutara road lighting' },
+        { key: 'client', label: 'Client', hint: 'e.g. Road Development Authority' },
+        { key: 'job', label: 'Job or inquiry reference', hint: 'e.g. LS-000186, EST-2026-0142' },
         { key: 'valid', label: 'Our quotation is valid until', type: 'date', hint: 'Warns when a supplier\'s quote ends before it' },
-        { key: 'weeks', label: 'Needed on site within (weeks)', hint: 'Lead times longer than this are flagged' },
       ],
       confirmLabel: 'Create',
     });
     if (!r) return;
     await dialog.run(async () => {
-      const { data: p, error: e } = await supabase.from('sq_packages')
-        .insert({ title: r.title.trim(), kind: r.kind, stage: r.stage === 'post_bid' ? 'post_bid' : 'pre_bid', project_name: r.project?.trim() || null, job_ref: r.job?.trim() || null, ...jobSource(r.src), our_validity: r.valid || null, needed_weeks: Number(r.weeks) > 0 ? Number(r.weeks) : null })
+      const { data: j, error: e } = await supabase.from('sq_projects')
+        .insert({ name: r.name.trim(), client: r.client?.trim() || null, job_ref: r.job?.trim() || null, ...jobSource(r.src), our_validity: r.valid || null })
         .select('id').single();
       if (e) throw new Error(e.message);
-      router.push(`/supplier-quotes/${p.id}`);
+      router.push(`/supplier-quotes/project/${j.id}`);
     });
   };
   const setCost = async () => {
@@ -117,28 +117,27 @@ function Packages() {
   return (
     <>
       <Row wrap gap={8} style={{ alignItems: 'center' }}>
-        <Button title="New package" icon="＋" onPress={add} />
+        <Button title="New project" icon="＋" onPress={add} />
         <Segmented value={show} onChange={setShow} options={[{ value: 'open', label: 'Open' }, { value: 'all', label: 'All' }]} />
         <Button variant="ghost" small title={`Cost of money ${data.cost} % a year`} onPress={setCost} />
       </Row>
       {rows.some((r) => r.expiring.length) ? (
-        <Notice tone={colors.amber}>{`${rows.filter((r) => r.expiring.length).length} package(s) have a supplier quote that has ended or ends before our quotation – ask the supplier to extend it.`}</Notice>
+        <Notice tone={colors.amber}>{`${rows.filter((r) => r.expiring.length).length} project(s) have a supplier quote that has ended or ends before our quotation – ask the supplier to extend it.`}</Notice>
       ) : null}
       <DataTable
         rows={rows}
-        keyOf={(r) => r.p.id}
-        onPress={(r) => router.push(`/supplier-quotes/${r.p.id}`)}
-        emptyTitle="No packages yet – create one and add the supplier quotes"
+        keyOf={(r) => r.j.id}
+        onPress={(r) => router.push(`/supplier-quotes/project/${r.j.id}`)}
+        emptyTitle="No projects yet – create one, then add its packages and the supplier quotes"
         edge={(r) => (r.expiring.length ? colors.amber : undefined)}
         columns={[
-          { h: 'Package', w: 230, grow: true, v: (r) => <View><Text style={{ fontWeight: '600', color: colors.ink }}>{r.p.title}</Text><Muted>{[r.p.code, r.p.project_name, r.p.job_ref].filter(Boolean).join(' · ')}</Muted></View> },
-          { h: 'Type', w: 100, v: (r) => (r.p.kind === 'supply' ? 'Supply' : 'Subcontract') },
-          { h: 'Stage', w: 90, v: (r) => <Pill label={STAGE_LABEL[r.p.stage ?? 'pre_bid']} tone={r.p.stage === 'post_bid' ? colors.blue : colors.grey} /> },
-          { h: 'Quotes', w: 70, right: true, v: (r) => String(r.n) },
-          { h: 'Lowest (comparable)', w: 170, v: (r) => (r.low ? <View><Text style={{ color: colors.ink }}>{`LKR ${lkrM(r.low.t)}`}</Text><Muted>{supName(r.low.q.supplier_id)}</Muted></View> : '—') },
-          { h: 'Chosen', w: 170, v: (r) => (r.sel ? supName(r.sel.q.supplier_id) : '—') },
-          { h: 'Status', w: 140, v: (r) => <Pill label={r.expiring.length ? 'Quote ending' : STATUS[r.p.status].label} tone={r.expiring.length ? colors.amber : STATUS[r.p.status].tone} /> },
-          { h: 'Updated', w: 100, v: (r) => fmtDate(r.p.updated_at) },
+          { h: 'Project', w: 240, grow: true, v: (r) => <View><Text style={{ fontWeight: '600', color: colors.ink }}>{r.j.name}</Text><Muted>{[r.j.code, r.j.client, r.j.job_ref].filter(Boolean).join(' · ')}</Muted></View> },
+          { h: 'Packages', w: 90, right: true, v: (r) => <View style={{ alignItems: 'flex-end' }}><Text style={{ color: colors.ink }}>{String(r.pk.length)}</Text><Muted>{`${r.nChosen} chosen`}</Muted></View> },
+          { h: 'Offers', w: 70, right: true, v: (r) => String(r.offers) },
+          { h: 'Lowest now', w: 120, right: true, v: (r) => (r.offers ? `LKR ${lkrM(r.low)}` : '—') },
+          { h: 'Chosen', w: 120, right: true, v: (r) => (r.nChosen ? `LKR ${lkrM(r.chosen)}` : '—') },
+          { h: 'Status', w: 130, v: (r) => <Pill label={r.expiring.length ? 'Quote ending' : r.j.status === 'open' ? 'Open' : r.j.status === 'closed' ? 'Closed' : 'Cancelled'} tone={r.expiring.length ? colors.amber : r.j.status === 'open' ? colors.blue : colors.grey} /> },
+          { h: 'Updated', w: 100, v: (r) => fmtDate(r.j.updated_at) },
         ]}
       />
     </>
@@ -192,6 +191,7 @@ function RateLibrary() {
 // ---------------------------------------------------------------- suppliers
 function Suppliers() {
   const dialog = useDialog();
+  const { realRole } = useAuth();
   const { data, error, reload } = useLoad(async () => {
     const { data: s, error: e } = await supabase.from('sq_suppliers').select('*').order('name');
     if (e) throw new Error(e.message);
@@ -239,7 +239,7 @@ function Suppliers() {
       <DataTable
         rows={data.sups}
         keyOf={(s) => s.id}
-        onPress={edit}
+        onPress={(s) => (realRole === 'gm' ? router.push(`/supplier-quotes/supplier/${s.id}`) : edit(s))}
         emptyTitle="No suppliers yet"
         rowStyle={(s) => (s.active ? undefined : { opacity: 0.5 })}
         columns={[
@@ -248,6 +248,7 @@ function Suppliers() {
           { h: 'Contact', w: 200, v: (s) => [s.contact_name, s.phone, s.email].filter(Boolean).join(' · ') || '—' },
           { h: 'Quotes', w: 70, right: true, v: (s) => String(data.quotes.filter((q) => q.supplier_id === s.id).length) },
           { h: 'Chosen', w: 70, right: true, v: (s) => String(data.quotes.filter((q) => q.supplier_id === s.id && data.chosen.has(q.id)).length) },
+          ...(realRole === 'gm' ? [{ h: '', w: 80, v: (s: Supplier) => <Button small variant="ghost" title="Edit" onPress={() => edit(s)} /> }] : []),
         ]}
       />
     </>

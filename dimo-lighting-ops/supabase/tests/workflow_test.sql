@@ -9699,5 +9699,20 @@ do $$ begin
 end $$;
 reset role;
 
+-- Supplier quotes: projects hold packages
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare pr uuid; pk uuid; begin
+  insert into public.sq_projects (name, client, job_ref) values ('Kaluthara road lighting', 'RDA', 'LS-000186') returning id into pr;
+  assert (select code like 'SQP%' from public.sq_projects where id = pr), 'project numbered';
+  insert into public.sq_packages (title, project_id) values ('Poles', pr) returning id into pk;
+  assert (select project_name = 'Kaluthara road lighting – RDA' and job_ref = 'LS-000186' from public.sq_packages where id = pk), 'package takes the project name and reference';
+  update public.sq_projects set name = 'Kalutara road lighting' where id = pr;
+  assert (select project_name from public.sq_packages where id = pk) = 'Kalutara road lighting – RDA', 'renaming carries to the packages';
+  delete from public.sq_projects where id = pr;
+  assert exists (select 1 from public.sq_projects where id = pr), 'a project with packages is not deleted';
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

@@ -1,21 +1,17 @@
-import { router, Stack } from 'expo-router';
+import { Stack } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Text, View, useWindowDimensions } from 'react-native';
-import { SvgXml } from 'react-native-svg';
-import { DataTable, type Column } from '@/components/DataTable';
+import { Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
-import { Button, Card, colors, DateField, ErrorBanner, Grid, Loading, Muted, Notice, Row, Screen, Segmented, Select, Stat } from '@/components/ui';
+import { ReportBody, reportExcel, reportPdf } from '@/components/SqReportView';
+import { Button, Card, colors, DateField, ErrorBanner, Loading, Muted, Notice, Row, Screen, Segmented, Select } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
-import { renderChartSvg } from '@/lib/charts';
-import { esc, exportExcel, exportPdf } from '@/lib/export';
 import { todayISO } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import { ROLE_SHORT } from '@/lib/roles';
 import { rpc } from '@/lib/supabase';
-import { filterText, loadReportData, PRICES_LABEL, REPORTS, runReport, WEIGHT_LABEL, WHO_LABEL, type Prices, type RCell, type Report, type ReportKey, type RFilters, type Weights, type Who } from '@/lib/supplierReports';
+import { filterText, loadReportData, PRICES_LABEL, REPORTS, runReport, WEIGHT_LABEL, WHO_LABEL, type Prices, type Report, type ReportKey, type RFilters, type Weights, type Who } from '@/lib/supplierReports';
 
 type Period = 'fy' | '12m' | 'q' | 'all' | 'custom';
-const TONE = { good: { bg: '#E4F3EA', fg: '#1A6B41' }, warn: { bg: '#FDF0DC', fg: '#8A4B0F' }, bad: { bg: '#FBE6E4', fg: '#A1281C' } };
 
 /** The financial year starts on 1 April */
 function periodOf(p: Period, from: string, to: string) {
@@ -31,7 +27,6 @@ function periodOf(p: Period, from: string, to: string) {
 export default function SupplierReports() {
   const { realRole, profile } = useAuth();
   const dialog = useDialog();
-  const { width } = useWindowDimensions();
   const { data, error, reload } = useLoad(loadReportData, []);
   const [key, setKey] = useState<ReportKey>('scorecard');
   const [period, setPeriod] = useState<Period>('fy');
@@ -71,24 +66,8 @@ export default function SupplierReports() {
     key: `supplier_${key}`, title: def.title, filters: filterText(data, f), period: `${pr.from} to ${pr.to}`,
     currencyNote: 'LKR delivered – freight, discounts and priced-back exclusions included', generatedBy: `${profile?.full_name ?? ''} – ${profile ? ROLE_SHORT[profile.role] : ''}`, landscape: true,
   });
-  const cellText = (c: RCell) => (c.sub ? `${c.t} (${c.sub})` : c.t);
-  const pdf = () => {
-    const tiles = rep.tiles.length ? `<table style="margin-bottom:10px"><tr>${rep.tiles.map((t) => `<td style="border:1px solid #ddd;padding:6px"><b style="font-size:13px">${esc(t.value)}</b><br/>${esc(t.label)}</td>`).join('')}</tr></table>` : '';
-    const chart = rep.chart ? `<div style="margin:8px 0">${renderChartSvg(rep.chart)}</div>` : '';
-    const tables = rep.tables.map((t) => `${t.title ? `<h2 style="background:#F2F2F2">${esc(t.title)}</h2>` : ''}<table><thead><tr>${t.head.map((h) => `<th style="text-align:${h.right ? 'right' : 'left'}">${esc(h.h)}</th>`).join('')}</tr></thead><tbody>${
-      t.rows.length ? t.rows.map((r) => `<tr>${r.cells.map((c, i) => `<td style="text-align:${t.head[i]?.right ? 'right' : 'left'}">${esc(c.t)}${c.sub ? `<br/><span style="color:#666">${esc(c.sub)}</span>` : ''}</td>`).join('')}</tr>`).join('') : `<tr><td colspan="${t.head.length}">${esc(t.empty)}</td></tr>`}</tbody></table>`).join('');
-    const note = rep.note ? `<p style="color:#555">${esc(rep.note)}</p>` : '';
-    return exportPdf(meta(), [], [], `<p>${esc(def.q)}</p>${tiles}${chart}${tables}${note}`);
-  };
-  const excel = () => {
-    const n = Math.max(2, ...rep.tables.map((t) => t.head.length));
-    const cols = Array.from({ length: n }, (_, i) => ({ header: '', value: (r: string[]) => r[i] ?? '', width: i ? 18 : 40 }));
-    const sections = [
-      ...(rep.tiles.length ? [{ heading: 'Summary', rows: rep.tiles.map((t) => [t.label, t.value]) }] : []),
-      ...rep.tables.map((t) => ({ heading: t.title ?? def.title, rows: [t.head.map((h) => h.h), ...t.rows.map((r) => r.cells.map(cellText))] })),
-    ];
-    return exportExcel(meta(), cols, sections);
-  };
+  const pdf = () => reportPdf(rep, meta(), def.q);
+  const excel = () => reportExcel(rep, meta());
 
   return (
     <Screen maxWidth={1400}>
@@ -115,31 +94,7 @@ export default function SupplierReports() {
         <Text style={{ fontSize: 20, fontWeight: '700', color: colors.ink }}>{def.title}</Text>
         <Muted>{def.q}</Muted>
       </View>
-      {rep.tiles.length ? <Grid min={200} max={4}>{rep.tiles.map((t) => <Stat key={t.label} label={t.label} value={t.value} tone={t.tone} sub={t.sub} />)}</Grid> : null}
-      {rep.chart ? <Card><SvgXml xml={renderChartSvg({ ...rep.chart, w: Math.min(width - 80, 1200) })} width={Math.min(width - 80, 1200)} height={rep.chart.h} /></Card> : null}
-      {rep.tables.map((t, ti) => {
-        const cols: Column<(typeof t.rows)[number]>[] = t.head.map((h, i) => ({
-          h: h.h, w: h.w, grow: h.grow, right: h.right,
-          v: (r) => {
-            const c = r.cells[i];
-            if (!c) return '';
-            const tn = c.tone ? TONE[c.tone] : null;
-            return (
-              <View style={{ backgroundColor: tn?.bg, borderRadius: 6, padding: tn ? 4 : 0, alignSelf: h.right ? 'flex-end' : 'stretch' }}>
-                <Text style={{ color: tn?.fg ?? colors.ink, fontWeight: i === 0 ? '600' : '500', textAlign: h.right ? 'right' : 'left' }}>{c.t}</Text>
-                {c.sub ? <Muted>{c.sub}</Muted> : null}
-              </View>
-            );
-          },
-        }));
-        return (
-          <View key={ti} style={{ gap: 4 }}>
-            {t.title ? <Text style={{ fontWeight: '700', color: colors.ink, marginTop: 6 }}>{t.title}</Text> : null}
-            <DataTable rows={t.rows} keyOf={(r) => r.key} columns={cols} emptyTitle={t.empty} onPress={(r) => (r.href ? router.push(r.href as never) : undefined)} />
-          </View>
-        );
-      })}
-      {rep.note ? <Muted>{rep.note}</Muted> : null}
+      <ReportBody rep={rep} />
     </Screen>
   );
 }

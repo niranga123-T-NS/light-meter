@@ -20,6 +20,7 @@ export type SqPackage = {
   id: string; code: string; title: string; project_name: string | null; job_ref: string | null; kind: 'supply' | 'subcontract';
   our_validity: string | null; needed_weeks: number | null; status: PackageStatus; selected_quote_id: string | null; selection_reason: string | null;
   selected_by: string | null; selected_at: string | null; notes: string | null; created_at: string; updated_at: string; source_kind?: 'project' | 'inquiry' | 'exec' | null; source_id?: string | null;
+  project_id?: string | null;
   stage: BidStage; post_bid_at: string | null; post_bid_by: string | null; post_bid_note: string | null; pre_bid_quote_id: string | null; pre_bid_reason: string | null;
 };
 export type PayEvent = 'order' | 'delivery' | 'after_delivery' | 'commissioning' | 'handover' | 'shipment';
