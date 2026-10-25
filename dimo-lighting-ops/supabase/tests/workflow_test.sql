@@ -7079,6 +7079,44 @@ do $$ begin
 end $$;
 rollback to savepoint fx1;
 
+-- Market prices: from the fetch workflow (secret); a misreading far from the previous price is skipped; same people as the exchange rates
+savepoint mkt1;
+insert into vault.decrypted_secrets values ('dispatch_secret', 'fx-test-secret') on conflict (name) do update set decrypted_secret = excluded.decrypted_secret;
+insert into public.fx_rates (source, rate_date, currency, mid) values ('cbsl', current_date - 1, 'USD', 300) on conflict do nothing;
+do $$ declare r jsonb; begin
+  begin perform public.market_ingest('wrong', '{}'); assert false, 'secret';
+  exception when others then assert sqlerrm like '%Not allowed%', sqlerrm; end;
+  r := public.market_ingest('fx-test-secret', jsonb_build_object('rows', jsonb_build_array(
+    jsonb_build_object('item', 'copper', 'date', current_date - 8, 'price', 14000, 'currency', 'USD', 'usd', 14000),
+    jsonb_build_object('item', 'copper', 'date', current_date - 1, 'price', 14415, 'currency', 'USD', 'usd', 14415),
+    jsonb_build_object('item', 'copper', 'date', current_date, 'price', 1441, 'currency', 'USD', 'usd', 1441),
+    jsonb_build_object('item', 'pvc', 'date', current_date - 1, 'price', 5115, 'currency', 'CNY', 'usd', 766.84, 'fx', 6.6702),
+    jsonb_build_object('item', 'scfi', 'date', current_date - 2, 'price', 3681.34, 'currency', 'PTS', 'usd', 3681.34),
+    jsonb_build_object('item', 'gold', 'date', current_date - 1, 'price', 1, 'usd', 1))));
+  assert (r ->> 'saved')::int = 4 and (r ->> 'skipped')::int = 1, r::text;
+  assert (public.market_last_dates('fx-test-secret') ->> 'copper')::date = current_date - 1, 'last dates';
+  perform public.market_ingest('fx-test-secret', jsonb_build_object('rows', jsonb_build_array(jsonb_build_object('item', 'copper', 'date', current_date - 1, 'price', 14420, 'currency', 'USD', 'usd', 14420))));
+  assert (select usd from public.market_prices where item = 'copper' and price_date = current_date - 1) = 14420, 'updated';
+end $$;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin
+  assert (select count(*) from public.market_prices) = 0, 'AE does not see the prices';
+  begin perform public.market_board(30); assert false, 'board';
+  exception when others then assert sqlerrm like '%Not allowed%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ declare b jsonb; cu jsonb; begin
+  b := public.market_board(30);
+  assert jsonb_array_length(b -> 'items') = 5, b::text;
+  assert exists (select 1 from jsonb_array_elements(b -> 'items') x where x ->> 'item' = 'scfi' and (x ->> 'usd')::numeric = 3681.34), 'freight index';
+  select x into cu from jsonb_array_elements(b -> 'items') x where x ->> 'item' = 'copper';
+  assert (cu ->> 'usd')::numeric = 14420 and (cu ->> 'week')::numeric = 14000 and (cu ->> 'usd_lkr')::numeric = 300, cu::text;
+  assert jsonb_array_length(cu -> 'history') = 2, 'history';
+end $$;
+reset role;
+rollback to savepoint mkt1;
+
 -- Tender results by the Estimation team: past tenders without a visit, competitor details, item prices
 savepoint tdr1;
 select pg_temp.act_as('am_estimation'); set role authenticated;
