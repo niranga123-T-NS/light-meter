@@ -261,21 +261,26 @@ function exceptions(d: ReportData, c: Ctx): Report {
     return { ...x, lo, prem: lo ? x.t - c.total(lo) : 0 };
   }).filter((r) => r.lo && r.prem > 0.5).sort((a, b) => b.prem - a.prem);
   const prem = rows.reduce((a, r) => a + r.prem, 0);
+  const isPost = (r: (typeof rows)[number]) => (r.q.bid_stage ?? 'pre_bid') === 'post_bid';
+  const missed = rows.filter(isPost).reduce((a, r) => a + r.prem, 0), carried = prem - missed;
   return {
     tiles: [
-      { label: `Packages, of ${c.chosen.length} chosen`, value: String(rows.length) },
-      { label: 'Paid above the lowest', value: `LKR ${M(prem)}`, tone: prem ? 'amber' : undefined },
+      { label: `Packages, of ${c.chosen.length} chosen`, value: String(rows.length), sub: `${rows.filter(isPost).length} at Post Bid · ${rows.filter((r) => !isPost(r)).length} at Pre Bid` },
+      { label: 'Potential saving – lowest not chosen at Post Bid', value: `LKR ${M(missed)}`, tone: missed ? 'red' : undefined },
+      { label: 'Above the lowest at Pre Bid (carried into our bids)', value: `LKR ${M(carried)}`, tone: carried ? 'amber' : undefined },
       { label: 'Share of the chosen value', value: c.chosen.length ? pct((prem / Math.max(1, c.chosen.reduce((a, x) => a + x.t, 0))) * 100, 1) : '—' },
     ],
     tables: [{
       empty: 'Every package went to the lowest comparable total.',
-      head: [{ h: 'Package', w: 220, grow: true }, { h: 'Chosen · lowest', w: 200 }, { h: 'Paid above', w: 110, right: true }, { h: 'Reason given', w: 280, grow: true }, { h: 'Chosen by', w: 150 }],
+      head: [{ h: 'Package', w: 220, grow: true }, { h: 'Stage', w: 110 }, { h: 'Chosen · lowest', w: 200 }, { h: 'Difference', w: 120, right: true }, { h: 'Reason given', w: 280, grow: true }, { h: 'Chosen by', w: 150 }],
       rows: rows.map((r) => ({
         key: r.p.id, href: `/supplier-quotes/${r.p.id}`,
-        cells: [{ t: r.p.title, sub: r.p.code }, { t: c.name(r.q.supplier_id), sub: `lowest: ${c.name(r.lo!.supplier_id)} ${M(c.total(r.lo!))}` }, { t: M(r.prem), sub: sgn((r.prem / c.total(r.lo!)) * 100), tone: 'warn' },
-          { t: r.p.selection_reason ?? '—' }, { t: d.people[r.p.selected_by ?? ''] ?? '—', sub: r.p.selected_at ? fmtDate(r.p.selected_at) : undefined }],
+        cells: [{ t: r.p.title, sub: [r.p.code, r.p.project_name].filter(Boolean).join(' · ') }, { t: isPost(r) ? 'Post Bid' : 'Pre Bid', sub: isPost(r) ? 'potential saving' : 'above the lowest' },
+          { t: c.name(r.q.supplier_id), sub: `lowest: ${c.name(r.lo!.supplier_id)} ${M(c.total(r.lo!))}` }, { t: M(r.prem), sub: sgn((r.prem / c.total(r.lo!)) * 100), tone: isPost(r) ? 'bad' : 'warn' },
+          { t: r.p.selection_reason ?? 'no reason given', tone: r.p.selection_reason ? undefined : 'bad' }, { t: d.people[r.p.selected_by ?? ''] ?? '—', sub: r.p.selected_at ? fmtDate(r.p.selected_at) : undefined }],
       })),
     }],
+    note: 'At Pre Bid the difference is carried into our bid; at Post Bid it is the saving that could have been made by choosing the lowest. The reason is required whenever the lowest is not chosen.',
   };
 }
 

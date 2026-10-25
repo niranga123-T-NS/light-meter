@@ -11,7 +11,7 @@ import { useLoad, usePeople } from '@/lib/hooks';
 import { ROLE_SHORT } from '@/lib/roles';
 import { packageReport } from '@/lib/sqAnalysis';
 import type { RTable } from '@/lib/supplierReports';
-import { atStage, BASIS_LABEL, type BidStage, cashOf, chains, compareRows, lkr0, lkrM, loadPackage, loadRefs, payText, quoteTotals, revLabel, SPEC_LABEL, STAGE_LABEL, type SqItem, type SqQuote } from '@/lib/supplierQuotes';
+import { atStage, BASIS_LABEL, type BidStage, cashOf, chains, compareRows, lkr0, lkrM, loadPackage, loadRefs, payText, quoteTotals, revLabel, SPEC_LABEL, STAGE_LABEL, notLowest, type SqItem, type SqQuote } from '@/lib/supplierQuotes';
 import { rpc, supabase } from '@/lib/supabase';
 
 type Cell = { t: ReactNode; tone?: 'good' | 'warn' | 'bad'; sub?: string };
@@ -53,6 +53,7 @@ export default function Package() {
   const preOf = (q: SqQuote) => [...chainOf(q)].reverse().find((x) => (x.bid_stage ?? 'pre_bid') === 'pre_bid');
   const preChoice = data.quotes.find((q) => q.id === pkg.pre_bid_quote_id);
   const project = data.projects.find((x) => x.id === pkg.project_id) ?? null;
+  const notLow = notLowest(pkg, data.quotes);
   // the analysis of every version; the chosen supplier and our validity added to its tiles
   const base = packageReport(pkg, data.quotes, suppliers);
   const analysis = { ...base, tiles: base.tiles.length ? [...base.tiles, { label: past ? 'Chosen at Post Bid' : 'Chosen', value: chosen ? sup(chosen) : '—', tone: chosen ? ('green' as const) : undefined, sub: chosen ? `LKR ${lkrM(quoteTotals(chosen).total)}` : ours ? `our quotation valid until ${fmtDate(ours)}` : undefined }] : [] };
@@ -135,11 +136,16 @@ export default function Package() {
   ];
 
   const select = async (q: SqQuote) => {
-    const cheaper = lowTotal != null && quoteTotals(q).total > lowTotal;
+    // not the lowest: the difference is shown and the reason is required (at Post Bid it is a saving given up)
+    const lowQ = quotes.length > 1 ? quotes.reduce((a, b) => (quoteTotals(b).total < quoteTotals(a).total ? b : a)) : null;
+    const diff = lowQ ? quoteTotals(q).total - quoteTotals(lowQ).total : 0;
+    const above = !!lowQ && diff > 0.5;
     const r = await dialog.prompt({
       title: `Choose ${sup(q)}?`,
-      message: cheaper ? 'This is not the lowest comparable total – say why it is the better choice.' : 'The reason is kept with the package.',
-      fields: [{ key: 'reason', label: 'Reason for the choice', type: 'multiline', required: true }],
+      message: above
+        ? `${sup(q)} is LKR ${lkrM(diff)} (${((diff / quoteTotals(lowQ!).total) * 100).toFixed(1)} %) above the lowest, ${sup(lowQ!)} at LKR ${lkrM(quoteTotals(lowQ!).total)}.${stage === 'post_bid' ? ' This is shown as a potential saving not taken.' : ' This is carried into our bid.'} Say why ${sup(q)} is the better choice.`
+        : 'The lowest comparable total. The reason is kept with the package.',
+      fields: [{ key: 'reason', label: above ? 'Reason for not choosing the lowest' : 'Reason for the choice', type: 'multiline', required: true, hint: above ? 'e.g. lowest does not meet the specification; lead time too long; better warranty and credit terms' : undefined }],
       confirmLabel: 'Choose',
     });
     if (!r) return;
@@ -346,10 +352,11 @@ export default function Package() {
             {chosen ? (
               <>
                 <KeyValue label={stage === 'post_bid' ? 'Post Bid supplier' : 'Supplier'} value={sup(chosen)} />
-                <KeyValue label="Reason" value={pkg.selection_reason ?? '—'} wide />
+                <KeyValue label={notLow ? 'Reason for not choosing the lowest' : 'Reason'} value={pkg.selection_reason ?? '—'} wide />
                 <KeyValue label="Chosen by" value={`${people[pkg.selected_by ?? '']?.full_name ?? '—'} · ${fmtDate(pkg.selected_at)}`} />
               </>
             ) : null}
+            {notLow ? <KeyValue label={notLow.stage === 'post_bid' ? 'Potential saving – lowest not chosen' : 'Above the lowest'} value={`LKR ${lkrM(notLow.diff)} (${notLow.pct > 0 ? '+' : ''}${notLow.pct.toFixed(1)} %) – lowest ${sup(notLow.low)} at LKR ${lkrM(quoteTotals(notLow.low).total)}`} wide /> : null}
             {preChoice ? <KeyValue label="Chosen at Pre Bid" value={`${sup(preChoice)}${pkg.pre_bid_reason ? ` – ${pkg.pre_bid_reason}` : ''}`} wide /> : null}
           </Card>
         </Section>

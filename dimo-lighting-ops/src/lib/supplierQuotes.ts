@@ -359,3 +359,17 @@ export function postBidSaving(p: SqPackage, quotes: SqQuote[], name?: (id: strin
   const value = now ? quoteTotals(now).total : null;
   return { basis, now: value, chosen: !!chosen, saving: basis && value != null ? basis.value - value : null, pct: basis && value != null && basis.value ? ((value - basis.value) / basis.value) * 100 : null };
 }
+
+/** When the chosen supplier is not the lowest at its stage: the lowest, the difference and the reason given.
+ * At Pre Bid the difference is what the bid carries above the lowest; at Post Bid it is the saving that could have been made. */
+export function notLowest(p: SqPackage, quotes: SqQuote[], name?: (id: string) => string) {
+  const chosen = quotes.find((q) => q.id === p.selected_quote_id);
+  if (!chosen) return null;
+  const set = atStage(quotes.filter((q) => q.package_id === p.id), chosen.bid_stage ?? 'pre_bid');
+  if (set.length < 2) return null;
+  const low = set.reduce((a, b) => (quoteTotals(b).total < quoteTotals(a).total ? b : a));
+  const ct = quoteTotals(chosen).total, lt = quoteTotals(low).total;
+  if (ct <= lt + 0.5) return null;
+  const stage = chosen.bid_stage ?? 'pre_bid';
+  return { chosen, low, diff: ct - lt, pct: lt ? ((ct - lt) / lt) * 100 : 0, stage, label: stage === 'post_bid' ? 'Potential saving (lowest not chosen)' : 'Above the lowest', lowName: name?.(low.supplier_id), reason: p.selection_reason ?? null };
+}
