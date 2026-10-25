@@ -25,7 +25,7 @@ export type SqPackage = {
   stage: BidStage; post_bid_at: string | null; post_bid_by: string | null; post_bid_note: string | null; pre_bid_quote_id: string | null; pre_bid_reason: string | null;
 };
 export type PayEvent = 'order' | 'delivery' | 'after_delivery' | 'commissioning' | 'handover' | 'shipment';
-export type SqLine = { id?: string; text: string; item_id: string | null; qty: number | null; unit: string | null; rate: number | null; included: boolean; note?: string | null; check?: boolean };
+export type SqLine = { id?: string; text: string; model?: string | null; item_id: string | null; qty: number | null; unit: string | null; rate: number | null; included: boolean; note?: string | null; check?: boolean };
 export type SqPay = { name: string; pct: number; event: PayEvent; days: number };
 export type SqExcl = { text: string; add_lkr: number };
 export type Ccy = 'LKR' | 'USD' | 'EUR' | 'GBP';
@@ -195,7 +195,7 @@ export const payText = (q: Pick<SqQuote, 'payments' | 'paid_by' | 'retention_pct
     : 'Not entered';
 
 /** One comparison row per item (or per line text when not matched to an item) across the quotes */
-export type CompareRow = { key: string; label: string; sub: string | null; item_id: string | null; cells: ({ unit: number | null; amount: number | null; qty: number | null; written: string; included: boolean } | null)[]; low: number | null };
+export type CompareRow = { key: string; label: string; sub: string | null; item_id: string | null; cells: ({ unit: number | null; amount: number | null; qty: number | null; written: string; included: boolean; model?: string | null } | null)[]; low: number | null };
 export function compareRows(quotes: SqQuote[], items: SqItem[]): CompareRow[] {
   const rows = new Map<string, CompareRow>();
   quotes.forEach((q, qi) => {
@@ -210,6 +210,7 @@ export function compareRows(quotes: SqQuote[], items: SqItem[]): CompareRow[] {
       r.cells[qi] = {
         qty, amount: l.included ? prev?.amount ?? null : amount, unit: l.included ? prev?.unit ?? null : qty ? amount / qty : u, included: l.included && !prev,
         written: l.included ? 'included' : l.rate == null ? '—' : `${q.currency === 'LKR' ? '' : `${q.currency} `}${l.rate.toLocaleString('en-US', { maximumFractionDigits: 2 })}`,
+        model: [prev?.model, l.model].filter(Boolean).join(', ') || null,
       };
     }
   });

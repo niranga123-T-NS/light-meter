@@ -9641,12 +9641,19 @@ do $$ declare pk uuid; sp uuid; it uuid; q0 uuid; q1 uuid; q2 uuid; begin
   insert into public.sq_suppliers (name) values ('Version Supplier') returning id into sp;
   insert into public.sq_items (code, name) values ('V-ITEM', 'Versioned item') returning id into it;
   insert into public.sq_packages (title) values ('Versions test') returning id into pk;
-  q0 := public.sq_save_quote(jsonb_build_object('package_id', pk, 'supplier_id', sp, 'lines', jsonb_build_array(jsonb_build_object('text', 'Versioned item', 'item_id', it, 'qty', 10, 'rate', 100)),
+  q0 := public.sq_save_quote(jsonb_build_object('package_id', pk, 'supplier_id', sp, 'lines', jsonb_build_array(jsonb_build_object('text', 'Versioned item', 'model', ' VX-100 ', 'item_id', it, 'qty', 10, 'rate', 100)),
     'payments', jsonb_build_array(jsonb_build_object('pct', 100, 'event', 'delivery'))));
   begin perform public.sq_revise_quote(q0, ''); assert false, 'a revision says what changed'; exception when raise_exception then null; end;
   q1 := public.sq_revise_quote(q0, 'Rate reduced after meeting');
   assert (select revision from public.sq_quotes where id = q1) = 1 and (select first_id from public.sq_quotes where id = q1) = q0, 'R1 of the same quote';
   assert (select superseded_by from public.sq_quotes where id = q0) = q1, 'R0 superseded';
+  assert (select model from public.sq_quote_lines where quote_id = q0 and text = 'Versioned item') = 'VX-100', 'model number kept';
+  q2 := public.sq_save_quote(jsonb_build_object('package_id', pk, 'supplier_id', sp, 'lines', jsonb_build_array(jsonb_build_object('text', 'Aiming', 'model', 'N/A', 'included', true), jsonb_build_object('text', 'Bracket', 'model', '', 'rate', 5)),
+    'payments', jsonb_build_array(jsonb_build_object('pct', 100, 'event', 'delivery'))));
+  assert (select model from public.sq_quote_lines where quote_id = q2 and text = 'Aiming') = 'N/A', 'model N/A kept';
+  assert (select model from public.sq_quote_lines where quote_id = q2 and text = 'Bracket') is null, 'no model entered';
+  delete from public.sq_quotes where id = q2;
+  assert (select model from public.sq_quote_lines where quote_id = q1 and text = 'Versioned item') = 'VX-100', 'model copied into the new version';
   assert (select count(*) from public.sq_quote_lines where quote_id = q1) = 1 and (select count(*) from public.sq_quote_payments where quote_id = q1) = 1, 'lines and payments copied';
   perform public.sq_save_quote(jsonb_build_object('id', q1, 'package_id', pk, 'supplier_id', sp, 'discount_pct', 5, 'lines', jsonb_build_array(jsonb_build_object('text', 'Versioned item', 'item_id', it, 'qty', 10, 'rate', 90))));
   assert (select rate from public.sq_quote_lines where quote_id = q1) = 90 and (select rate from public.sq_quote_lines where quote_id = q0) = 100, 'R1 changed, R0 kept';

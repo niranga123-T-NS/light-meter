@@ -68,7 +68,7 @@ export default function Package() {
   for (const r of compareRows(quotes, items)) {
     rows.push({
       key: r.key, kind: 'line', label: r.label, sub: r.sub, href: r.item_id ? `/supplier-quotes/item/${r.item_id}` : undefined,
-      cells: r.cells.map((c) => (c ? { t: c.included ? 'included' : `${lkr0(c.unit)}`, sub: c.included ? undefined : `${c.qty ?? ''} × · ${lkrM(c.amount)} · quoted ${c.written}`, tone: c.unit != null && r.low != null && c.unit === r.low ? 'good' : undefined } : { t: '—', sub: 'not quoted', tone: 'warn' })),
+      cells: r.cells.map((c) => (c ? { t: c.included ? 'included' : `${lkr0(c.unit)}`, sub: [c.model ? `model ${c.model}` : '', c.included ? '' : `${c.qty ?? ''} × · ${lkrM(c.amount)} · quoted ${c.written}`].filter(Boolean).join(' · ') || undefined, tone: c.unit != null && r.low != null && c.unit === r.low ? 'good' : undefined } : { t: '—', sub: 'not quoted', tone: 'warn' })),
     });
   }
   rows.push({ key: 's2', kind: 'sec', label: 'Bringing the quotes to the same basis', cells: [] });

@@ -18,7 +18,7 @@ const EMPTY: Form = {
   supplier_id: null, quote_no: null, quote_date: null, currency: 'LKR', fx_rate: 1, valid_until: null, lead_weeks: null, delivery_basis: 'site', freight_pct: 0,
   warranty: null, paid_by: null, retention_pct: 0, adv_guarantee: false, meets_spec: 'yes', spec_note: null, source: 'manual', notes: null,
   revision: 0, first_id: null, superseded_by: null, discount_pct: 0, discount_amt: 0, revision_note: null, bid_stage: 'pre_bid',
-  lines: [{ text: '', item_id: null, qty: null, unit: null, rate: null, included: false }], payments: [], exclusions: [],
+  lines: [{ text: '', model: null, item_id: null, qty: null, unit: null, rate: null, included: false }], payments: [], exclusions: [],
 };
 
 /** Add or edit one supplier quote. A file is only read here to fill the form – it is never uploaded or stored. */
@@ -236,6 +236,7 @@ function Editor({ data, id, pkgId }: { data: Loaded; id?: string; pkgId: string 
             <View key={i} style={{ borderTopWidth: i ? 1 : 0, borderTopColor: colors.line, paddingTop: i ? 10 : 0, gap: 6, backgroundColor: l.item_id && l.check ? '#FFFAF2' : undefined }}>
               <Row wrap gap={8} style={{ alignItems: 'flex-end' }}>
                 <View style={{ minWidth: 240, flexGrow: 2 }}><Field label={`Line ${i + 1} – as written`} value={l.text} onChangeText={(v) => setLine(i, { text: v })} /></View>
+                {l.model === 'N/A' ? null : <View style={{ width: 170 }}><Field label="Model no. (optional)" value={l.model ?? ''} onChangeText={(v) => setLine(i, { model: v || null })} /></View>}
                 <View style={{ width: 100 }}><NumberField label="Qty" value={l.qty} onChange={(v) => setLine(i, { qty: v })} /></View>
                 <View style={{ width: 90 }}><Field label="Unit" value={l.unit ?? ''} onChangeText={(v) => setLine(i, { unit: v || null })} /></View>
                 {!l.included ? <View style={{ width: 150 }}><NumberField label={`Rate (${f.currency})`} value={l.rate} onChange={(v) => setLine(i, { rate: v })} /></View> : null}
@@ -244,13 +245,14 @@ function Editor({ data, id, pkgId }: { data: Loaded; id?: string; pkgId: string 
                 <View style={{ minWidth: 260, flexGrow: 1 }}><Select label="Item" searchable value={l.item_id ?? ''} options={itemOpts} onChange={(v) => setLine(i, { item_id: v || null, check: false })} /></View>
                 {l.item_id && l.check ? <Pressable onPress={() => setLine(i, { check: false })}><Pill label="Suggested – tap to confirm" tone={colors.amber} /></Pressable> : l.item_id ? <Pill label="Matched" tone={colors.green} /> : null}
                 <Button small variant="secondary" title="New item" onPress={() => newItem(i)} />
+                <Toggle label="Model N/A" value={l.model === 'N/A'} onChange={(v) => setLine(i, { model: v ? 'N/A' : null })} />
                 <Toggle label="Included (no price)" value={l.included} onChange={(v) => setLine(i, { included: v, rate: v ? null : l.rate })} />
                 <Button small variant="ghost" title="✕" onPress={() => set({ lines: f.lines.filter((_, k) => k !== i) })} />
               </Row>
             </View>
           ))}
           <Row wrap gap={10} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-            <Button small variant="secondary" title="Add a line" icon="＋" onPress={() => set({ lines: [...f.lines, { text: '', item_id: null, qty: null, unit: null, rate: null, included: false }] })} />
+            <Button small variant="secondary" title="Add a line" icon="＋" onPress={() => set({ lines: [...f.lines, { text: '', model: null, item_id: null, qty: null, unit: null, rate: null, included: false }] })} />
             <Text style={{ color: colors.ink }}>{`Total as written${f.discount_pct || f.discount_amt ? ' after discount' : ''}: ${f.currency} ${totals.written.toLocaleString('en-US', { maximumFractionDigits: 2 })} · comparable LKR ${lkrM(totals.total)}`}</Text>
           </Row>
         </Card>
