@@ -55,7 +55,7 @@ const STATUS: Record<View_['status'], { label: string; tone: string }> = {
 const BOND_LABEL = { performance: 'Performance bond', advance_payment: 'Advance payment bond' } as const;
 const num = (v: string | undefined) => (v ? Number(v.replace(/,/g, '')) : null);
 
-/** Bonds and advance payment of an awarded project – on the overview only (not in invoicing). SEE, SM Projects, GM / DGM and Operations. */
+/** Bonds and advance payment of an awarded project – on the overview only (not in invoicing). SEE, SM Projects, DGM and Operations. */
 export function SecuritiesCard({ p, onChange }: { p: ExecProject; onChange?: () => void }) {
   const me = useMe();
   const dialog = useDialog();
@@ -96,7 +96,7 @@ export function SecuritiesCard({ p, onChange }: { p: ExecProject; onChange?: () 
           p: { pb_applicable: r.pb === 'yes', pb_pct: num(r.pb_pct), pb_value: num(r.pb_value), ap_applicable: r.ap === 'yes', ap_pct: num(r.ap_pct), ap_value: num(r.ap_value), note: r.note || null },
         });
         await done();
-      }, 'Submitted – SM Projects, the GM / DGM and Operations are told');
+      }, 'Submitted – SM Projects, the DGM and Operations are told');
   };
   const addBond = async (kind: Bond['bond_type']) => {
     const r = await dialog.prompt({

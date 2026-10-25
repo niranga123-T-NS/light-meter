@@ -1,7 +1,7 @@
 import type { Inquiry, ProjectType, Role, SlaColour } from './types';
 
 export const ROLE_LABELS: Record<Role, string> = {
-  gm: 'GM / DGM – Lighting Solutions',
+  gm: 'DGM – Lighting Solutions',
   sm_projects: 'Senior Manager – Building & Infrastructure Projects',
   asm_building: 'Assistant Sales Manager – Building Lighting',
   asm_infra: 'Assistant Sales Manager – Infrastructure Lighting',
@@ -21,7 +21,7 @@ export const ROLE_LABELS: Record<Role, string> = {
 };
 
 export const ROLE_SHORT: Record<Role, string> = {
-  gm: 'GM / DGM',
+  gm: 'DGM',
   sm_projects: 'SM Projects',
   asm_building: 'ASM Building',
   asm_infra: 'ASM Infrastructure',
@@ -84,11 +84,11 @@ export const EXEC_NAV = {
 /** Navigation per role (Section 2 visibility rule and Section 10.2 dashboards). Everyone gets Meetings: the sales,
  * estimation and design meetings in one place (invitations, attendance, leave, packs and actions). */
 export function navFor(role: Role, realRole?: Role | null, sq?: boolean, sqReports?: boolean): NavItem[] {
-  // A person from outside has nothing of their own – only the high level view (GM / DGM menu) during the period
+  // A person from outside has nothing of their own – only the high level view (DGM menu) during the period
   if (role === 'guest') return [{ href: '/', label: 'Home', icon: '⌂' }];
   const items = baseNav(role);
   const meetings: NavItem = { href: '/meetings', label: 'Meetings', icon: '◴' };
-  // Sales map: web and phone apps, for GM / DGM, SM Projects and sales – placed after Visits
+  // Sales map: web and phone apps, for DGM, SM Projects and sales – placed after Visits
   if (role === 'gm' || role === 'sm_projects' || isSales(role)) {
     // after Visits – or after Tools when it follows Visits (sales: keeps Tools in the phone's bottom bar)
     const v = items.findIndex((i) => i.href === '/visits');
@@ -100,26 +100,26 @@ export function navFor(role: Role, realRole?: Role | null, sq?: boolean, sqRepor
     const at = items.findIndex((i) => i.href === '/reports');
     items.splice(at < 0 ? items.length : at, 0, { href: '/instruments', label: 'Instruments', icon: '⚖', testing: true });
   }
-  // SAP stock: Operations uploads; GM / DGM and SM Projects see values; other office roles see quantities and ageing
+  // SAP stock: Operations uploads; DGM and SM Projects see values; other office roles see quantities and ageing
   if (!['sub_supervisor', 'trainee', 'sys_admin'].includes(role)) {
     const at = items.findIndex((i) => i.href === '/reports');
     items.splice(at < 0 ? items.length : at, 0, { href: '/stock', label: 'Stock', icon: '▤' });
   }
-  // Foreign and local orders (testing), one entry with sub-tabs: Ops records; SM Estimation, SM Projects, GM / DGM, Sales and the SEE follow them
+  // Foreign and local orders (testing), one entry with sub-tabs: Ops records; SM Estimation, SM Projects, DGM, Sales and the SEE follow them
   if (['operations_exec', 'sm_estimation', 'sm_projects', 'gm', 'asm_building', 'asm_infra', 'senior_elec_engineer'].includes(role)) {
     const at = items.findIndex((i) => i.href === '/reports');
     items.splice(at < 0 ? items.length : at, 0, { href: '/orders', label: 'Foreign & local orders', icon: '✈', pilot: true });
   }
-  // Supplier quotes: the Operations Executive, the GM / DGM and people the GM / DGM allows
+  // Supplier quotes: the Operations Executive, the DGM and people the DGM allows
   if (sq) {
     const o = items.findIndex((i) => i.href === '/orders'), r = items.findIndex((i) => i.href === '/reports');
     items.splice(o >= 0 ? o + 1 : r >= 0 ? r : items.length, 0, { href: '/supplier-quotes', label: 'Supplier quotes', icon: '⇄', pilot: true });
   } else if (sqReports) {
-    // the supplier reports only (read only): SM Estimation and the people the GM / DGM allows for the reports
+    // the supplier reports only (read only): SM Estimation and the people the DGM allows for the reports
     const o = items.findIndex((i) => i.href === '/orders'), r = items.findIndex((i) => i.href === '/reports');
     items.splice(o >= 0 ? o + 1 : r >= 0 ? r : items.length, 0, { href: '/supplier-quotes/reports', label: 'Supplier reports', icon: '▤', pilot: true });
   }
-  // Design Tools (testing): GM / DGM, SM Projects, the design team, the SEE and the Assistant Engineers – never someone viewing as a high level user
+  // Design Tools (testing): DGM, SM Projects, the design team, the SEE and the Assistant Engineers – never someone viewing as a high level user
   if (['gm', 'sm_projects', 'design_manager', 'lighting_designer', 'lighting_engineer', 'senior_elec_engineer', 'assistant_engineer'].includes(realRole ?? role)) {
     const t = items.findIndex((i) => i.href === '/tools'), r = items.findIndex((i) => i.href === '/reports');
     const at = t >= 0 ? t + 1 : r >= 0 ? r : items.length;

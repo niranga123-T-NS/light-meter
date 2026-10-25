@@ -371,7 +371,7 @@ export default function Package() {
       ) : null}
       {pkg.notes ? <Card><Muted>{pkg.notes}</Muted></Card> : null}
       <Muted>{'Green = lowest on the row. Commissioning and handover payments are taken 30 and 60 days after delivery; with no lead time given, 8 weeks is assumed.'}</Muted>
-      <Pill label="Supplier prices: Operations, GM / DGM and people the GM / DGM allows" tone={colors.grey} />
+      <Pill label="Supplier prices: Operations, DGM and people the DGM allows" tone={colors.grey} />
     </Screen>
   );
 }

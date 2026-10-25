@@ -55,7 +55,7 @@ const HEALTH: { label: string; title: string; first?: boolean; abs?: boolean; da
   { label: 'Break-Even Turnover', title: 'Break-even turnover · YTD', lowerBetter: true },
 ];
 
-/** P&L from the monthly OR file – GM / DGM, SM Projects and SM Estimation. */
+/** P&L from the monthly OR file – DGM, SM Projects and SM Estimation. */
 export default function PnlScreen() {
   const me = useMe();
   const [uploadId, setUploadId] = useState<string | null>(null);
@@ -83,7 +83,7 @@ export default function PnlScreen() {
   if (!seesPnl(me.role)) {
     return (
       <Screen>
-        <Notice>The P&L is for GM / DGM, SM Projects and SM Estimation.</Notice>
+        <Notice>The P&L is for DGM, SM Projects and SM Estimation.</Notice>
       </Screen>
     );
   }

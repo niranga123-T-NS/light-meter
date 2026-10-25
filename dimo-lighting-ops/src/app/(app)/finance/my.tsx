@@ -35,7 +35,7 @@ export default function MyTarget() {
     <Screen maxWidth={1000}>
       <Stack.Screen options={{ title: pid === me.id ? 'My target' : `Target · ${p?.name ?? ''}` }} />
       {!p ? (
-        <Empty title={`No target for ${fyLabel(fy)} yet`} hint="SM Projects sets the targets from the budget list; GM / DGM approves them." />
+        <Empty title={`No target for ${fyLabel(fy)} yet`} hint="SM Projects sets the targets from the budget list; DGM approves them." />
       ) : (
         (() => {
           const y = ytd(p, upTo);

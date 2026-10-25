@@ -69,7 +69,7 @@ export const TEAM_LIST: Team[] = ['sales', 'estimation', 'design', 'execution'];
 
 export const isTeam = (t: unknown): t is Team => t === 'sales' || t === 'estimation' || t === 'design' || t === 'execution' || t === 'project';
 
-/** Teams whose meetings a role can open: the host runs theirs; GM / DGM read all published; SM Projects reads Estimation and Design. */
+/** Teams whose meetings a role can open: the host runs theirs; DGM read all published; SM Projects reads Estimation and Design. */
 export function teamsFor(role: Role): { team: Team; host: boolean }[] {
   const list = TEAM_LIST.filter((t) => TEAMS[t].hostRole === role || role === 'gm' || (role === 'sm_projects' && t !== 'sales')).map((t) => ({
     team: t,

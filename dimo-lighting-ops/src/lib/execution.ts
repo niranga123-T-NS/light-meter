@@ -118,7 +118,7 @@ export const REQUEST_KIND: Record<AccessRequest['kind'], string> = {
 };
 export const REQUEST_STATUS: Record<AccessRequest['status'], string> = {
   pending_smp: 'Waiting for SM Projects',
-  pending_gm: 'Waiting for DGM / GM',
+  pending_gm: 'Waiting for DGM',
   approved: 'Approved – create the login',
   done: 'Done',
   rejected: 'Rejected',
@@ -334,7 +334,7 @@ export const VAR_NEXT: Record<VarStage, string> = {
   screening: 'SEE to screen it',
   design: 'Design to finish, then Estimation prices it',
   estimation: 'Estimation to price it',
-  dimo_approval: 'SM Projects (and DGM / GM above the limit) to approve',
+  dimo_approval: 'SM Projects (and DGM above the limit) to approve',
   to_submit: 'DIMO part done – SEE to submit it to the client / consultant',
   with_client: 'Waiting for the client / consultant – record their approval',
   closed: '',
@@ -355,7 +355,7 @@ export const VAR_STATUS: Record<Variation['status'], string> = {
   raised: 'Raised – SEE to screen',
   pricing: 'With Design / Estimation',
   pending_smp: 'SM Projects to approve',
-  pending_gm: 'DGM / GM to approve',
+  pending_gm: 'DGM to approve',
   approved: 'Approved – send to client',
   rejected: 'Rejected',
   client_accepted: 'Accepted by client',

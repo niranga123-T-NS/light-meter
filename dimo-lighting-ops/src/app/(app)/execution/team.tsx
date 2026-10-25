@@ -11,7 +11,7 @@ import { rpc, supabase } from '@/lib/supabase';
 type Temp = { id: string; full_name: string; role: string; is_temporary: boolean; access_until: string | null; id_no: string | null; active: boolean };
 type OpenItem = { kind: string; id: string; title: string; url: string };
 
-/** Team & access: temporary Assistant Engineers / Trainees (SEE → SM Projects → DGM / GM) and the access requests. */
+/** Team & access: temporary Assistant Engineers / Trainees (SEE → SM Projects → DGM) and the access requests. */
 export default function TeamAccess() {
   const me = useMe();
   const dialog = useDialog();
@@ -47,7 +47,7 @@ export default function TeamAccess() {
     }
     const r2 = await dialog.prompt({
       title: `Delete the temporary role – ${t.full_name}`,
-      message: 'SM Projects and then DGM / GM approve. Access ends when approved; the history stays under the name.',
+      message: 'SM Projects and then DGM approve. Access ends when approved; the history stays under the name.',
       fields: [{ key: 'r', label: 'Reason', type: 'multiline', required: true }],
       confirmLabel: 'Request deletion',
       danger: true,

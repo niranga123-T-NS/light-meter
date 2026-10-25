@@ -1,6 +1,6 @@
 import { colors } from '@/components/ui';
 
-/** The SAP stock ageing report, kept as monthly snapshots (Operations uploads; values only for GM / DGM, SM Projects, Operations). */
+/** The SAP stock ageing report, kept as monthly snapshots (Operations uploads; values only for DGM, SM Projects, Operations). */
 
 export const AGE_BANDS = [
   { key: 1, label: '0–90 days', short: '0–90', max: 90, tone: '#16A34A' },

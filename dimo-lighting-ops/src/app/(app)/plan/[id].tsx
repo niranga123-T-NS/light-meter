@@ -60,7 +60,7 @@ export default function PlanDetail() {
       .order('planned_date')
       .order('time_slot');
     const pva = await rpc<PvA[]>('plan_vs_actual', { p_sales_person: plan.sales_person_id, p_week_start: plan.week_start }).catch(() => []);
-    // The week's sales meeting (Monday 08:30 – 12:00 unless SM Projects moved it with GM / DGM approval): an exception
+    // The week's sales meeting (Monday 08:30 – 12:00 unless SM Projects moved it with DGM approval): an exception
     // approved by SM Projects frees it for this sales person
     const meet = await rpc<{ day: string; starts: string; ends: string; moved: boolean }>('sales_meeting_slot', { p_week: plan.week_start }).catch(() => null);
     const { data: ex } = await supabase

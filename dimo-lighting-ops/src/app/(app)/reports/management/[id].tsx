@@ -28,7 +28,7 @@ export default function ManagementReport() {
     if (e) throw new Error(e.message);
     return r as Saved;
   }, [id]);
-  if (me.role !== 'gm') return <Screen><Notice>The management report is for the GM / DGM.</Notice></Screen>;
+  if (me.role !== 'gm') return <Screen><Notice>The management report is for the DGM.</Notice></Screen>;
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const text = comments ?? data.comments ?? '';
   const dirty = text !== (data.comments ?? '');

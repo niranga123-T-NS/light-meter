@@ -21,7 +21,7 @@ type Meeting = {
 };
 
 /** A project's meetings: the Senior Electrical Engineer calls them (agenda, invitees, the project's figures) and runs them like the
- * team meetings. GM / DGM and SM Projects read the published ones; the invited project team opens theirs. */
+ * team meetings. DGM and SM Projects read the published ones; the invited project team opens theirs. */
 export function MeetingsTab({ p }: { p: ExecProject }) {
   const me = useMe();
   const host = me.role === 'senior_elec_engineer';
@@ -82,8 +82,8 @@ export function MeetingsTab({ p }: { p: ExecProject }) {
         <Card>
           <Muted>
             {host
-              ? 'Call a meeting about this project: set the date, time and agenda and choose the invitees (the project team at once; anyone else after SM Projects approves). On the meeting page, generate the project figures – programme progress, plan, daily reports, HSE, QA, materials, variations, design queries, billing and cost – record the discussion and actions, and publish to GM / DGM and SM Projects.'
-              : 'Meetings about this project, called by the Senior Electrical Engineer. Invitees mark attendance in Meetings; published minutes go to GM / DGM and SM Projects.'}
+              ? 'Call a meeting about this project: set the date, time and agenda and choose the invitees (the project team at once; anyone else after SM Projects approves). On the meeting page, generate the project figures – programme progress, plan, daily reports, HSE, QA, materials, variations, design queries, billing and cost – record the discussion and actions, and publish to DGM and SM Projects.'
+              : 'Meetings about this project, called by the Senior Electrical Engineer. Invitees mark attendance in Meetings; published minutes go to DGM and SM Projects.'}
           </Muted>
         </Card>
       </Section>

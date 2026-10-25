@@ -1,7 +1,7 @@
 import { colors } from '@/components/ui';
 import type { Role } from '@/lib/types';
 
-/** Scrap disposal: raised by the SEE / AE, approved by SM Projects then the DGM / GM, disposed free of charge or sold. */
+/** Scrap disposal: raised by the SEE / AE, approved by SM Projects then the DGM, disposed free of charge or sold. */
 export type ScrapStatus = 'draft' | 'pending_smp' | 'pending_dgm' | 'approved' | 'returned' | 'rejected' | 'disposed' | 'cancelled';
 export type ScrapDisposal = {
   id: string;
@@ -50,7 +50,7 @@ export type ScrapStoreItem = { item: string; unit: string; balance: number; free
 export const SCRAP_STATUS: Record<ScrapStatus, { label: string; tone: string }> = {
   draft: { label: 'Draft', tone: colors.grey },
   pending_smp: { label: 'With SM Projects', tone: colors.amber },
-  pending_dgm: { label: 'With the DGM / GM', tone: colors.amber },
+  pending_dgm: { label: 'With the DGM', tone: colors.amber },
   approved: { label: 'Approved – to dispose', tone: colors.blue },
   returned: { label: 'Returned for changes', tone: colors.red },
   rejected: { label: 'Rejected', tone: colors.red },

@@ -29,7 +29,7 @@ export default function SalesTools() {
       </Screen>
     );
   }
-  if (!TOOLS_ROLES.includes(me.role)) return <Screen><Notice>Sales Tools are for the sales, SM Projects, GM / DGM and Design teams.</Notice></Screen>;
+  if (!TOOLS_ROLES.includes(me.role)) return <Screen><Notice>Sales Tools are for the sales, SM Projects, DGM and Design teams.</Notice></Screen>;
   const android = Platform.OS === 'android';
   return (
     <Screen maxWidth={1100}>

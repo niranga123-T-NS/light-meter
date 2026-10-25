@@ -17,7 +17,7 @@ export const NOTE_KIND: Record<FoNote['kind'], { label: string; tone: string }> 
 
 /**
  * Issue records against a stage, or a set of its steps (steps whose order is not known are grouped under their stage):
- * a mistake, a delay, a complaint or a notice, with reference files. Each one alerts SM Projects, the GM / DGM,
+ * a mistake, a delay, a complaint or a notice, with reference files. Each one alerts SM Projects, the DGM,
  * SM Estimation and the order's owners (sales person, SEE).
  */
 export function FoNotes({

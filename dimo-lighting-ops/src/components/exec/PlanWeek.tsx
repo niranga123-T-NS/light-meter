@@ -91,7 +91,7 @@ export function PlanWeek({
       onChange();
     }, 'Removed');
 
-  // GM / DGM and SM Projects: past activities still without a result, or with a result the SEE has not checked
+  // DGM and SM Projects: past activities still without a result, or with a result the SEE has not checked
   const today = todayISO();
   const live = items.filter((i) => (i.source === 'plan' || i.acceptance === 'accepted') && i.acceptance !== 'rejected');
   const noResult = live.filter((i) => i.status === 'planned' && i.day < today).length;

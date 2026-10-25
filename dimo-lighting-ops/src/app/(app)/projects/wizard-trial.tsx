@@ -27,7 +27,7 @@ const BANDS: [string, number, number][] = [
   ['70% and over', 70, 100],
 ];
 
-/** Win Probability Wizard – trial comparison for GM / DGM and SM Projects: wizard vs manual, and later against results */
+/** Win Probability Wizard – trial comparison for DGM and SM Projects: wizard vs manual, and later against results */
 export default function WizardTrial() {
   const me = useMe();
   const people = usePeople();
@@ -44,7 +44,7 @@ export default function WizardTrial() {
   if (!allowed)
     return (
       <Screen>
-        <Notice>The wizard trial is reviewed by SM Projects and GM / DGM.</Notice>
+        <Notice>The wizard trial is reviewed by SM Projects and DGM.</Notice>
       </Screen>
     );
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;

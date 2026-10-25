@@ -151,7 +151,7 @@ export default function InquiryDetail() {
     }
     // A change request already waiting for approval: no second one until it is decided
     const pendingChange = approvals.find((a) => ['duty_change', 'expectation_change', 'early_design_release'].includes(a.kind) && a.status === 'pending');
-    // After submission the sales actions belong to the inquiry's own sales person only – SM Projects and GM / DGM
+    // After submission the sales actions belong to the inquiry's own sales person only – SM Projects and DGM
     // approve these requests, so they do not get the buttons that raise them
     if (i.sales_person_id !== me.id) return buttons.length ? buttons : null;
     if (['quotation_released', 'returned_to_sales'].includes(i.status) || (i.early_design_release_at && !i.submitted_to_client_at)) {
@@ -763,7 +763,7 @@ export default function InquiryDetail() {
             <Muted style={{ marginTop: 6 }}>
               {gmQuote
                 ? 'Open the draft quotation and supporting files, then approve or reject. A rejection goes back to SM Estimation for revision (SM Projects is informed).'
-                : 'Open the draft quotation and supporting files, then accept it or request a revision. From LKR 15,000,000.00 it then goes to GM / DGM; approved quotations are released to sales by SM Estimation.'}
+                : 'Open the draft quotation and supporting files, then accept it or request a revision. From LKR 15,000,000.00 it then goes to DGM; approved quotations are released to sales by SM Estimation.'}
             </Muted>
           </Card>
           <Card style={{ padding: 0, overflow: 'hidden', marginTop: 8 }}>

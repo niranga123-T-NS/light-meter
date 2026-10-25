@@ -4,7 +4,7 @@ import { fmtDate } from './format';
 import { supabase } from './supabase';
 import { atStage, cashOf, chains, discFactor, KIND_LABEL, lkr0, lkrM, normQuote, notLowest, originText, postBidSaving, preBidBasis, quoteTotals, stageDay, STAGE_LABEL, unitLkr, type SqItem, type SqPackage, type SqQuote, type Supplier } from './supplierQuotes';
 
-// Supplier base reports for the GM / DGM, worked out from the supplier quotes on the same basis as the comparison page
+// Supplier base reports for the DGM, worked out from the supplier quotes on the same basis as the comparison page
 // (LKR delivered, freight, discounts and priced-back exclusions): scorecard, awards, negotiation savings, not the lowest,
 // competition & gaps, price trends, terms & cash and one supplier. Every report is tiles + tables of plain values, so the
 // screen, the PDF and the Excel export show the same thing.
@@ -192,7 +192,7 @@ function scorecard(d: ReportData, c: Ctx): Report {
         ],
       })),
     }],
-    note: `Score out of 100 with the GM / DGM's weights: price ${w.price}, specification ${w.spec}, lead time ${w.lead}, quoting when asked ${w.response}, terms ${w.terms}. Price: every 1 % above the lowest comparable total on average takes 7 points off. Terms: credit after delivery adds, money before delivery takes off. A part with no data (e.g. no lead time needed) is left out and the others are weighted up; a supplier never compared with another quote gets no score yet. A 85+, B 72+, C 58+, D below.`,
+    note: `Score out of 100 with the DGM's weights: price ${w.price}, specification ${w.spec}, lead time ${w.lead}, quoting when asked ${w.response}, terms ${w.terms}. Price: every 1 % above the lowest comparable total on average takes 7 points off. Terms: credit after delivery adds, money before delivery takes off. A part with no data (e.g. no lead time needed) is left out and the others are weighted up; a supplier never compared with another quote gets no score yet. A 85+, B 72+, C 58+, D below.`,
   };
 }
 

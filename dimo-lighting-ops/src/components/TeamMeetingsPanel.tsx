@@ -41,7 +41,7 @@ const isTime = (t: string) => /^([01]?\d|2[0-3]):[0-5]\d$/.test(t.trim());
 const weekday = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString('en-GB', { weekday: 'short' });
 const slot = (d: string, a: string, b: string) => `${weekday(d)} ${fmtDate(d)} ${hhmm(a)} – ${hhmm(b)}`;
 
-/** One team's meetings: the host invites, generates and publishes the pack and decides leave; GM / DGM (and SM Projects for
+/** One team's meetings: the host invites, generates and publishes the pack and decides leave; DGM (and SM Projects for
  * Estimation and Design) read the published packs. */
 export function TeamMeetingsPanel({ team }: { team: Team }) {
   const me = useMe();
@@ -76,12 +76,12 @@ export function TeamMeetingsPanel({ team }: { team: Team }) {
   const pending = data.exceptions.filter((e) => e.status === 'pending');
   const movePending = data.moves.filter((x) => x.status === 'pending');
 
-  // SM Projects asks to move a week's sales meeting; GM / DGM approve
+  // SM Projects asks to move a week's sales meeting; DGM approve
   const askMove = async () => {
     const cur = target ?? null;
     const r = await dialog.prompt({
       title: 'Move the sales meeting',
-      message: 'Choose the new day (Monday to Saturday of the same week) and time. GM / DGM approve it; then the invitees and the sales team are told, and visits in the new time are flagged.',
+      message: 'Choose the new day (Monday to Saturday of the same week) and time. DGM approve it; then the invitees and the sales team are told, and visits in the new time are flagged.',
       fields: [
         { key: 'd', label: 'New day', type: 'date', required: true, initial: cur ? dayOf(cur) : date },
         { key: 's', label: 'Starts (HH:MM)', required: true, initial: hhmm(cur?.starts_at) || cfg.starts },
@@ -94,7 +94,7 @@ export function TeamMeetingsPanel({ team }: { team: Team }) {
     await dialog.run(async () => {
       await rpc('request_meeting_reschedule', { p_week: r.d, p_date: r.d, p_starts: r.s.trim(), p_ends: r.e.trim(), p_reason: r.r });
       await reload();
-    }, 'Sent to GM / DGM for approval');
+    }, 'Sent to DGM for approval');
   };
   const decideMove = async (x: Reschedule, approve: boolean) => {
     const r = await dialog.prompt({
@@ -148,8 +148,8 @@ export function TeamMeetingsPanel({ team }: { team: Team }) {
       <Card>
         <Muted>
           {team === 'sales'
-            ? 'Every Monday 08:30 – 12:00, run by SM Projects. SM Projects can move a week’s meeting to another day or time of that week with GM / DGM approval. Invite the team by Sunday 10:00 (GM / DGM are told if it is not done by 15:00). Sales persons cannot plan visits in the meeting time without approved leave.'
-            : `Run by ${cfg.host}. Choose the day and time when inviting (usually ${['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][cfg.dow]} ${cfg.starts} – ${cfg.ends}); GM / DGM are told if it is not set up by 15:00 the day before. Published packs go to GM / DGM and SM Projects.`}{' '}
+            ? 'Every Monday 08:30 – 12:00, run by SM Projects. SM Projects can move a week’s meeting to another day or time of that week with DGM approval. Invite the team by Sunday 10:00 (DGM are told if it is not done by 15:00). Sales persons cannot plan visits in the meeting time without approved leave.'
+            : `Run by ${cfg.host}. Choose the day and time when inviting (usually ${['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][cfg.dow]} ${cfg.starts} – ${cfg.ends}); DGM are told if it is not set up by 15:00 the day before. Published packs go to DGM and SM Projects.`}{' '}
           Invitees mark attendance and apply for leave in Meetings → Mine.
         </Muted>
         {host ? (
@@ -180,7 +180,7 @@ export function TeamMeetingsPanel({ team }: { team: Team }) {
       </Card>
 
       {movePending.length ? (
-        <Section title={me.role === 'gm' ? `Sales meeting moves to approve (${movePending.length})` : 'Move waiting for GM / DGM'}>
+        <Section title={me.role === 'gm' ? `Sales meeting moves to approve (${movePending.length})` : 'Move waiting for DGM'}>
           <Card style={{ padding: 0, overflow: 'hidden' }}>
             {movePending.map((x) => (
               <ListRow

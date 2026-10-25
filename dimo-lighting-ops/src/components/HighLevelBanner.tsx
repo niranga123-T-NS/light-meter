@@ -19,7 +19,7 @@ export function HighLevelBanner() {
       <Row wrap gap={10} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
         <Text style={{ color: highLevelOn ? '#fff' : colors.ink, fontWeight: '600', flexShrink: 1 }}>
           {highLevelOn
-            ? `Viewing as a high level user – GM / DGM view, view only · until ${hhmm(highLevel.ends_at)}`
+            ? `Viewing as a high level user – DGM view, view only · until ${hhmm(highLevel.ends_at)}`
             : `You have high level access (view only) until ${hhmm(highLevel.ends_at)}`}
         </Text>
         {guest ? null : <Button small variant={highLevelOn ? 'secondary' : 'primary'} title={highLevelOn ? 'Back to my own view' : 'View as high level user'} onPress={() => toggle(!highLevelOn)} />}

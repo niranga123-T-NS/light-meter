@@ -84,7 +84,7 @@ export default function RetentionDetail() {
         {r.notes ? <Muted>{r.notes}</Muted> : null}
         {stage === 'due' ? <Notice tone={colors.red}>Due date reached – claim the retention now (or request an extension). A reminder is sent every day.</Notice> : null}
         {stage === 'claim_overdue' ? <Notice tone={colors.red}>Claimed {daysFrom(r.claimed_on as string, today)} days ago and not yet collected – follow up with the client.</Notice> : null}
-        {data.pending.length ? <Notice tone={colors.amber}>Extension waiting for GM / DGM: {data.pending[0].reason}</Notice> : null}
+        {data.pending.length ? <Notice tone={colors.amber}>Extension waiting for DGM: {data.pending[0].reason}</Notice> : null}
         <Row wrap gap={8} style={{ marginTop: 8 }}>
           {canAct && r.status === 'held' ? (
             <Button
@@ -130,7 +130,7 @@ export default function RetentionDetail() {
               title="Extend due date"
               onPress={async () => {
                 const x = await dialog.prompt({
-                  title: 'Extend the due date (GM / DGM approves)',
+                  title: 'Extend the due date (DGM approves)',
                   fields: [
                     { key: 'd', label: 'New due date', type: 'date', required: true },
                     { key: 'r', label: 'Reason', type: 'multiline', required: true },
@@ -138,7 +138,7 @@ export default function RetentionDetail() {
                 });
                 if (!x) return;
                 if (x.d <= r.due_date) return dialog.toast('The new due date must be after the current due date', 'error');
-                await run('request_retention_extension', { p_id: r.id, p_new_due: x.d, p_reason: x.r }, 'Sent to GM / DGM for approval');
+                await run('request_retention_extension', { p_id: r.id, p_new_due: x.d, p_reason: x.r }, 'Sent to DGM for approval');
               }}
             />
           ) : null}

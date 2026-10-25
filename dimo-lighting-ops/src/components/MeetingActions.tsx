@@ -130,7 +130,7 @@ export function MeetingActions() {
       a.sales_person ? `sales: ${a.sales_person}` : null,
       `meeting ${fmtDate(a.meeting_date)}`,
       a.due_date ? `${a.kind === 'visit' ? 'visit by' : 'due'} ${fmtDate(a.due_date)}${a.due_date < today ? ' – overdue' : ''}` : null,
-      a.my_part === 'assign' && a.assign_by ? `appoint by ${fmtDateTime(a.assign_by)}${a.assign_by < now ? ' – late, GM / DGM told' : ''}` : null,
+      a.my_part === 'assign' && a.assign_by ? `appoint by ${fmtDateTime(a.assign_by)}${a.assign_by < now ? ' – late, DGM told' : ''}` : null,
       a.review_state ? `last update: ${reviewLabel(a.review_state).toLowerCase()} ${fmtDateTime(a.review_at)} – ${a.review_note}` : null,
       !a.reviewed && a.review_due ? `status update due before ${fmtDateTime(a.review_due)}` : null,
     ];

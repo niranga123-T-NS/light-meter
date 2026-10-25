@@ -8,7 +8,7 @@ const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
 export const isConfigured = Boolean(url && anonKey);
 
-// High level user (view only): while on, every database request is marked, and the database treats it as GM / DGM in a
+// High level user (view only): while on, every database request is marked, and the database treats it as DGM in a
 // read-only transaction (only the REST API – Edge Functions do not accept the extra header).
 let highLevelView = false;
 export function setHighLevelView(on: boolean) {

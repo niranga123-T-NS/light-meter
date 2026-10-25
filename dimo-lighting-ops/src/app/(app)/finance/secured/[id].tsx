@@ -435,7 +435,7 @@ export default function SecuredDetail() {
   const move = async (l: InvoiceLine) => {
     const r = await dialog.prompt({
       title: `Move “${l.description ?? kindLabel(l.kind)}”`,
-      message: `Now planned for ${fmtMonth(l.forecast_month)} (original ${fmtMonth(l.original_month)}). Moves of an invoice due this month or out of the financial year need SM Projects; a move to another quarter or year also needs DGM / GM (budget).`,
+      message: `Now planned for ${fmtMonth(l.forecast_month)} (original ${fmtMonth(l.original_month)}). Moves of an invoice due this month or out of the financial year need SM Projects; a move to another quarter or year also needs DGM (budget).`,
       fields: [
         {
           key: "month",

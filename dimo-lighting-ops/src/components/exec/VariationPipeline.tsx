@@ -45,7 +45,7 @@ export function VariationPipeline({ p, see }: { p: ExecProject; see: boolean }) 
         title={`Pending variations (${pending.length})${late ? ` · ${late} late` : ''}`}
         right={see ? <Button small title="+ Approved variation" onPress={() => router.push(`/execution/variation/accept?project=${p.id}`)} /> : null}
       >
-        <Muted>Not in the BOQ until the client / consultant approves them. Past the agreed date, SM Projects and DGM / GM are told.</Muted>
+        <Muted>Not in the BOQ until the client / consultant approves them. Past the agreed date, SM Projects and DGM are told.</Muted>
         {pending.length ? (
           <Card style={{ padding: 0, overflow: 'hidden' }}>
             {pending.map((v) => (

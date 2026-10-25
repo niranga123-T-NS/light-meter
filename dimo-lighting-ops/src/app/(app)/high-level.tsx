@@ -22,7 +22,7 @@ type Grant = {
 
 const TIMES = Array.from({ length: 48 }, (_, i) => `${String(Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`);
 
-/** High level users: the GM / DGM gives a person view-only GM / DGM access for up to one day; it ends by itself */
+/** High level users: the DGM gives a person view-only DGM access for up to one day; it ends by itself */
 export default function HighLevelUsers() {
   const { realRole } = useAuth();
   const dialog = useDialog();
@@ -34,7 +34,7 @@ export default function HighLevelUsers() {
     if (e) throw new Error(e.message);
     return { grants: (g ?? []) as Grant[], at: Date.now() };
   }, []);
-  if (realRole !== 'gm') return <Screen><Notice>Only the GM / DGM gives high level access.</Notice></Screen>;
+  if (realRole !== 'gm') return <Screen><Notice>Only the DGM gives high level access.</Notice></Screen>;
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const state = (g: Grant) =>
     g.cancelled_at ? { label: 'Cancelled', tone: colors.grey } : Date.parse(g.ends_at) <= now ? { label: 'Ended', tone: colors.grey } : Date.parse(g.starts_at) > now ? { label: 'Starts later', tone: colors.blue } : { label: 'In force', tone: colors.green };
@@ -45,7 +45,7 @@ export default function HighLevelUsers() {
   const grant = async () => {
     const r = await dialog.prompt({
       title: 'Give high level access',
-      message: 'View only – the person sees everything the GM / DGM sees, but cannot change or approve anything. One day at most; it ends by itself.',
+      message: 'View only – the person sees everything the DGM sees, but cannot change or approve anything. One day at most; it ends by itself.',
       fields: [
         {
           key: 'u',
@@ -156,7 +156,7 @@ export default function HighLevelUsers() {
     <Screen maxWidth={900} refreshing={loading} onRefresh={reload}>
       <Stack.Screen options={{ title: 'High level users' }} />
       <Muted>
-        Give a person temporary GM / DGM visibility – for example someone acting for you, or an outside auditor (choose “+ A new person” to create them). It is view only: the database refuses any change or approval
+        Give a person temporary DGM visibility – for example someone acting for you, or an outside auditor (choose “+ A new person” to create them). It is view only: the database refuses any change or approval
         while they view as a high level user. At most one day; it ends by itself and you and the person are told. Every grant and cancellation is logged.
       </Muted>
       <Row>

@@ -23,7 +23,7 @@ import {
 import { todayISO } from './format';
 import { rpc, supabase } from './supabase';
 
-// Management report (GM / DGM): the whole business for a month and the year to date, built from the data in the app.
+// Management report (DGM): the whole business for a month and the year to date, built from the data in the app.
 // Figures only – the highlights and exceptions come from fixed rules (THRESHOLDS), not from AI.
 
 export const THRESHOLDS = {

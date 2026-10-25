@@ -26,7 +26,7 @@ export default function SupplierProfile() {
   const [period, setPeriod] = useState<Period>('all');
   const f: RFilters = { ...periodOf(period), type: 'all', who: 'all', prices: 'final', supplier: id };
   const rep = useMemo(() => (data ? runReport('profile', data, f) : null), [data, id, period]); // eslint-disable-line react-hooks/exhaustive-deps
-  if (!sqReports) return <Screen><Notice tone={colors.amber}>Supplier profiles are for the GM / DGM, the SM Estimation and the people the GM / DGM allows for the reports.</Notice></Screen>;
+  if (!sqReports) return <Screen><Notice tone={colors.amber}>Supplier profiles are for the DGM, the SM Estimation and the people the DGM allows for the reports.</Notice></Screen>;
   if (!data || !rep) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const s = data.sups.find((x) => x.id === id);
   if (!s) return <Screen><ErrorBanner message="Supplier not found" /></Screen>;

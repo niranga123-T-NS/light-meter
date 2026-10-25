@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import { rpc, supabase } from './supabase';
 import type { Role } from './types';
 
-/** Design Tools: GM / DGM, SM Projects and the design team only (a high level user from outside does not get them) */
+/** Design Tools: DGM, SM Projects and the design team only (a high level user from outside does not get them) */
 export const DESIGN_TOOLS_ROLES: Role[] = ['gm', 'sm_projects', 'design_manager', 'lighting_designer', 'lighting_engineer', 'senior_elec_engineer', 'assistant_engineer'];
 export const canUseDesignTools = (role?: Role | null) => !!role && DESIGN_TOOLS_ROLES.includes(role);
 
@@ -24,6 +24,14 @@ export const DT_TEMPLATES = [
 export const dtTemplateLabel = (t?: string | null) => DT_TEMPLATES.find((x) => x.value === t)?.label ?? t ?? '—';
 
 export type DtSummary = { kw?: number; kva?: number; boards?: number; fails?: number; brand?: string; earthing?: string; lpl?: string | null; poles?: string; template?: string };
+/** The team a design belongs to (the team of the person who started it): it sees the design and its checker checks it */
+export type DtTeam = 'design' | 'execution' | 'management';
+export const DT_TEAM: Record<DtTeam, { label: string; checker: string; checkers: string[] }> = {
+  design: { label: 'Design team', checker: 'the Design Manager', checkers: ['design_manager'] },
+  execution: { label: 'Execution team', checker: 'the SEE', checkers: ['senior_elec_engineer'] },
+  management: { label: 'SM Projects / DGM', checker: 'SM Projects or the DGM', checkers: ['sm_projects', 'gm'] },
+};
+
 export type DtFile = {
   id: string;
   title: string;
@@ -32,6 +40,7 @@ export type DtFile = {
   revision: number;
   status: DtStatus;
   archived: boolean;
+  team: DtTeam;
   summary: DtSummary;
   created_by: string;
   created_at: string;
@@ -73,7 +82,7 @@ export async function loadDesignEngine() {
   }
   const { data, error } = await supabase.from('design_tool_engine').select('version, html').order('created_at', { ascending: false }).order('version', { ascending: false }).limit(1).maybeSingle();
   if (error) throw new Error(error.message);
-  if (!data) throw new Error('Design Tools are for the GM / DGM, SM Projects, the design team and the project engineers.');
+  if (!data) throw new Error('Design Tools are for the DGM, SM Projects, the design team and the project engineers.');
   engine = data as { version: string; html: string };
   return engine;
 }

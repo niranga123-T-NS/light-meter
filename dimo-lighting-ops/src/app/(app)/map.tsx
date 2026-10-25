@@ -252,7 +252,7 @@ export default function SalesMapScreen() {
   if (!allowed)
     return (
       <Screen>
-        <Notice>The sales map is for GM / DGM, SM Projects and the sales team.</Notice>
+        <Notice>The sales map is for DGM, SM Projects and the sales team.</Notice>
       </Screen>
     );
 

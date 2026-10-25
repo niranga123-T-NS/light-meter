@@ -52,7 +52,7 @@ function WriteupBody({ w }: { w: AcademyWriteup }) {
   );
 }
 
-/** Dacademy write-ups: the trainer (SM Projects, GM / DGM, System Administrator) reads and marks everyone's; an engineer sees their own marks and feedback */
+/** Dacademy write-ups: the trainer (SM Projects, DGM, System Administrator) reads and marks everyone's; an engineer sees their own marks and feedback */
 export function AcademyWriteups({ trainer }: { trainer: boolean }) {
   const dialog = useDialog();
   const [show, setShow] = useState<'open' | 'all'>(trainer ? 'open' : 'all');

@@ -34,7 +34,7 @@ const STAGE_TONE: Record<RetentionStage, string> = {
   cancelled: colors.grey,
 };
 
-/** Retentions tab: dashboard, customer-wise view and the list (Operations, SM Projects, GM / DGM; sales see their own). */
+/** Retentions tab: dashboard, customer-wise view and the list (Operations, SM Projects, DGM; sales see their own). */
 export default function Retentions() {
   const me = useMe();
   const people = usePeople();

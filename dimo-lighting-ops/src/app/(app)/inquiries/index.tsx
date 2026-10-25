@@ -22,7 +22,7 @@ export default function Inquiries() {
   const people = usePeople();
   const params = useLocalSearchParams<{ tab?: Tab }>();
   const sales = isSales(me.role);
-  // Sales, SM Projects and GM / DGM can raise inquiries, so they also see drafts and returned ones
+  // Sales, SM Projects and DGM can raise inquiries, so they also see drafts and returned ones
   const raises = sales || me.role === 'sm_projects' || me.role === 'gm';
   const [tab, setTab] = useState<Tab>(params.tab ?? (sales || me.role === 'sm_projects' ? 'design' : 'all'));
   const [sort, setSort] = useState<'due' | 'deadline' | 'value'>('due');

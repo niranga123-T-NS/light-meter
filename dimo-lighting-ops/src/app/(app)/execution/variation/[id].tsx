@@ -14,7 +14,7 @@ import { addDaysISO, fmtDate, fmtDateTime, fmtMoney, human, todayISO } from '@/l
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 
-/** One variation: screen (SEE), approve by value (SM Projects → DGM / GM), client's answer (SEE). */
+/** One variation: screen (SEE), approve by value (SM Projects → DGM), client's answer (SEE). */
 export default function VariationScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const me = useMe();
@@ -151,7 +151,7 @@ export default function VariationScreen() {
       await dialog.run(async () => {
         const res = await rpc<string>('decide_exec_variation', { p_id: v.id, p_approve: approve, p_note: r.n || null });
         await after();
-        if (res === 'pending_gm') dialog.toast('Above your limit – sent to DGM / GM', 'ok');
+        if (res === 'pending_gm') dialog.toast('Above your limit – sent to DGM', 'ok');
       }, approve ? 'Recorded' : 'Rejected');
   };
 
@@ -166,7 +166,7 @@ export default function VariationScreen() {
       ],
       confirmLabel: 'Record',
     });
-    if (r) await dialog.run(async () => { await rpc('submit_variation_to_client', { p_id: v.id, p: r }); await after(); }, 'Recorded – SM Projects and DGM / GM are told if it runs late');
+    if (r) await dialog.run(async () => { await rpc('submit_variation_to_client', { p_id: v.id, p: r }); await after(); }, 'Recorded – SM Projects and DGM are told if it runs late');
   };
   const moveDue = async () => {
     const r = await dialog.prompt({
@@ -223,7 +223,7 @@ export default function VariationScreen() {
           />
         ) : null}
         {v.smp_at ? <KeyValue label="SM Projects" value={`${people[v.smp_by ?? '']?.full_name ?? ''} · ${fmtDateTime(v.smp_at)}${v.smp_note ? ` · ${v.smp_note}` : ''}`} /> : null}
-        {v.gm_at ? <KeyValue label="DGM / GM" value={`${people[v.gm_by ?? '']?.full_name ?? ''} · ${fmtDateTime(v.gm_at)}${v.gm_note ? ` · ${v.gm_note}` : ''}`} /> : null}
+        {v.gm_at ? <KeyValue label="DGM" value={`${people[v.gm_by ?? '']?.full_name ?? ''} · ${fmtDateTime(v.gm_at)}${v.gm_note ? ` · ${v.gm_note}` : ''}`} /> : null}
         {v.vo_no ? <KeyValue label="Client" value={`VO ${v.vo_no} · ${fmtDate(v.client_at)}${v.client_note ? ` · ${v.client_note}` : ''}`} /> : null}
         {v.client_submitted_on ? (
           <KeyValue label="Submitted to the client" value={`${fmtDate(v.client_submitted_on)}${v.client_submit_ref ? ` · ${v.client_submit_ref}` : ''} · answer agreed by ${fmtDate(v.client_due)}`} />
@@ -231,7 +231,7 @@ export default function VariationScreen() {
         {v.client_value_lkr != null ? <KeyValue label="Approved by the client" value={`${v.client_value_lkr > 0 ? '+' : '−'}${fmtMoney(Math.abs(v.client_value_lkr), 'LKR')} · in the BOQ as a separate variation`} /> : null}
         {pv && pv.stage !== 'closed' ? (
           <Notice tone={pv.days_late > 0 ? colors.red : colors.amber}>
-            {`${pv.stage_label}${pv.due ? ` · agreed ${fmtDate(pv.due)}` : ''}${pv.days_late > 0 ? ` · ${pv.days_late} day(s) late – SM Projects and DGM / GM told` : ''}\nNext: ${VAR_NEXT[pv.stage]}`}
+            {`${pv.stage_label}${pv.due ? ` · agreed ${fmtDate(pv.due)}` : ''}${pv.days_late > 0 ? ` · ${pv.days_late} day(s) late – SM Projects and DGM told` : ''}\nNext: ${VAR_NEXT[pv.stage]}`}
           </Notice>
         ) : null}
         {v.decision_note ? <Notice tone={colors.blue}>{v.decision_note}</Notice> : null}

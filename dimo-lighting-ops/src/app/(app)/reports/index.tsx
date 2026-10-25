@@ -19,7 +19,7 @@ export default function Reports() {
           <ListRow
             title="Management report – whole business"
             subtitle="P&L, invoicing, sales, cash, execution and warranty for a month, with highlights and exceptions"
-            right={<Pill label="GM / DGM" tone={colors.brand} />}
+            right={<Pill label="DGM" tone={colors.brand} />}
             onPress={() => router.push('/reports/management')}
           />
         </Card>

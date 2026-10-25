@@ -110,7 +110,7 @@ const bar = (label: string, done: number, target: number, value: number) => (
 );
 
 /** One meeting pack (sales, estimation or design): team summary, a part per person with notes and actions. The host edits until
- * published; GM / DGM (and SM Projects for Estimation / Design) read. */
+ * published; DGM (and SM Projects for Estimation / Design) read. */
 export default function MeetingPack() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const me = useMe();
@@ -166,7 +166,7 @@ export default function MeetingPack() {
     return (
       <Screen>
         <Notice tone={colors.amber}>
-          This meeting cannot be opened yet – its pack has not been published. GM / DGM see a meeting once its host (SM Projects, SM Estimation, Design Manager or
+          This meeting cannot be opened yet – its pack has not been published. DGM see a meeting once its host (SM Projects, SM Estimation, Design Manager or
           the Senior Electrical Engineer) publishes it; SM Projects sees every meeting. It may also have been removed.
         </Notice>
         <Button title="Go to Meetings" onPress={() => router.replace('/meetings')} />
@@ -197,7 +197,7 @@ export default function MeetingPack() {
     });
     if (r) await run('save_meeting_note', { p_meeting: m.id, p_sales_person: personId, p_note: r.n ?? '' }, 'Saved');
   };
-  // Anyone but GM / DGM and System Admin can be given an action
+  // Anyone but DGM and System Admin can be given an action
   // A project meeting gives actions only to the project's people: its SEE, the project team and the meeting's invitees
   const projectPeople = isProject
     ? new Set([data.project?.see_id, (m as { initiated_by?: string | null }).initiated_by, ...data.team, ...data.invitees.filter((x) => x.status !== 'pending_approval').map((x) => x.person_id)].filter(Boolean) as string[])
@@ -256,7 +256,7 @@ export default function MeetingPack() {
     });
     if (r) await run('decide_attendance', { p_meeting: m.id, p_person: p.person_id, p_present: present, p_note: r.n || null }, 'Saved');
   };
-  // Published minutes as a PDF: GM / DGM and SM Projects
+  // Published minutes as a PDF: DGM and SM Projects
   const canDownload = m.status === 'published' && (me.role === 'gm' || me.role === 'sm_projects' || (isProject && host));
   // Project meeting: the project's figures are gathered here and kept with the meeting
   const generateProject = () =>
@@ -387,7 +387,7 @@ export default function MeetingPack() {
         notes: [m.agenda ? `Agenda: ${m.agenda}` : null, m.notes, ...generalItems.map((it, i) => `${i + 1}. ${it.body}`)].filter(Boolean).join('\n\n') || null,
         general,
         people: persons,
-        distribution: [m.team === 'sales' ? 'GM / DGM' : 'GM / DGM, SM Projects', ...invited.map((x) => name(x.person_id)).sort()],
+        distribution: [m.team === 'sales' ? 'DGM' : 'DGM, SM Projects', ...invited.map((x) => name(x.person_id)).sort()],
         generatedBy: `${me.full_name} – ${ROLE_SHORT[me.role]}`,
         logoUrl: (logo?.value as string | undefined) ?? null,
       });
@@ -552,9 +552,9 @@ export default function MeetingPack() {
               />
             )}
             <Button
-              title={m.team === 'sales' ? 'Publish to GM / DGM' : 'Publish to GM / DGM and SM Projects'}
+              title={m.team === 'sales' ? 'Publish to DGM' : 'Publish to DGM and SM Projects'}
               onPress={async () => {
-                const who = m.team === 'sales' ? 'GM / DGM' : 'GM / DGM and SM Projects';
+                const who = m.team === 'sales' ? 'DGM' : 'DGM and SM Projects';
                 if (await dialog.confirm('Publish the meeting pack?', `${who} are notified and can view it. It can no longer be changed; actions go to their people.`, { confirmLabel: 'Publish' }))
                   await run('publish_sales_meeting', { p_id: m.id }, `Published – ${who} notified`);
               }}

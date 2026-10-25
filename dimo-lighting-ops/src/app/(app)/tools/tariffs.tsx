@@ -13,7 +13,7 @@ type Row_ = Tariff & { sort: number; updated_by: string | null };
 const num = (v: string | undefined) => (v && v.trim() !== '' ? Number(v.replace(/,/g, '')) : null);
 const money = (v: number | null) => (v != null ? v.toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—');
 
-/** Electricity tariffs (PUCSL schedule) for the savings in DLux – kept by SM Projects, GM / DGM or the Design Manager */
+/** Electricity tariffs (PUCSL schedule) for the savings in DLux – kept by SM Projects, DGM or the Design Manager */
 export default function Tariffs() {
   const me = useMe();
   const dialog = useDialog();

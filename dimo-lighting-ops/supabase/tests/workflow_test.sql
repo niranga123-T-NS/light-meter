@@ -530,7 +530,7 @@ reset role;
 do $$ begin
   assert (select status from public.estimation_jobs) = 'revision_requested', 'GM rejection back to SM Estimation';
   assert exists (select 1 from public.notifications where kind = 'quotation_gm_rejected' and recipient_id = (select id from u where role = 'sm_projects')), 'SM Projects told';
-  assert exists (select 1 from public.notifications where kind = 'quotation_revision' and title like 'GM / DGM rejected%' and recipient_id = (select id from u where role = 'sm_estimation')), 'SM Estimation told';
+  assert exists (select 1 from public.notifications where kind = 'quotation_revision' and title like 'DGM rejected%' and recipient_id = (select id from u where role = 'sm_estimation')), 'SM Estimation told';
 end $$;
 -- Re-assigned, revised and approved again the same way
 select pg_temp.act_as('sm_estimation'); set role authenticated;
@@ -561,7 +561,7 @@ select public.decide_approval((select id from public.approvals where kind = 'quo
 reset role;
 do $$ begin
   assert (select status from public.estimation_jobs) = 'revision_requested', 'old-rule GM rejection goes to SM Estimation';
-  assert exists (select 1 from public.notifications where kind = 'quotation_revision' and title like 'GM / DGM rejected%'
+  assert exists (select 1 from public.notifications where kind = 'quotation_revision' and title like 'DGM rejected%'
                  and recipient_id = (select id from u where role = 'sm_estimation')), 'SM Estimation asked to re-assign';
   assert exists (select 1 from public.notifications where kind = 'quotation_gm_rejected' and recipient_id = (select id from u where role = 'sm_projects')), 'SM Projects informed';
   assert exists (select 1 from public.sla_clocks where entity_type = 'estimation_job' and stage = 'assignment' and stopped_at is null), 're-assignment timer';
@@ -1362,7 +1362,7 @@ begin
     perform public.save_retention(rid, jsonb_build_object('project_name', 'Beach Resort Galle', 'end_client', 'ABC Hotels PLC', 'currency', 'LKR',
       'retention_form', 'cash_withheld', 'retention_value', '2400000', 'start_date', (d - 300)::text, 'due_date', (d + 90)::text));
     raise exception 'due date edited directly';
-  exception when others then if sqlerrm not like '%extension approved by GM%' then raise; end if;
+  exception when others then if sqlerrm not like '%extension approved by DGM%' then raise; end if;
   end;
   perform public.request_retention_extension(rid, d + 75, 'Defects period extended by the client');
 end $$;
@@ -2658,7 +2658,7 @@ begin
   begin
     perform public.invite_sales_meeting(current_setting('test.mon2')::date, array[(select id from u where role = 'gm')]);
     assert false, 'GM cannot be invited';
-  exception when others then assert sqlerrm like 'GM / DGM, System Admin and inactive users cannot be invited%', sqlerrm; end;
+  exception when others then assert sqlerrm like 'DGM, System Admin and inactive users cannot be invited%', sqlerrm; end;
   mid := public.invite_sales_meeting(current_setting('test.mon2')::date,
     array[(select id from u where role = 'asm_building'), (select id from u where role = 'asm_infra'), (select id from u where role = 'operations_exec')]);
   perform set_config('test.m2', mid::text, false);
@@ -2711,7 +2711,7 @@ select pg_temp.act_as('sm_projects'); set role authenticated;
 do $$ declare mid uuid := current_setting('test.m2')::uuid;
 begin
   begin perform public.invite_sales_meeting(current_setting('test.mon2')::date, array[(select id from u where role = 'sys_admin')]); assert false, 'no sys admin';
-  exception when others then assert sqlerrm like 'GM / DGM, System Admin%', sqlerrm; end;
+  exception when others then assert sqlerrm like 'DGM, System Admin%', sqlerrm; end;
   begin perform public.add_meeting_action(mid, jsonb_build_object('kind', 'visit', 'owner_id', (select id from u where role = 'operations_exec'),
     'action', 'Visit', 'organization_id', '00000000-0000-0000-0000-00000000a001', 'objective', 'Project Qualification', 'due_date', current_setting('test.mon2')));
     assert false, 'visit only to sales';
@@ -2881,7 +2881,7 @@ do $$ declare mid uuid;
 begin
   begin perform public.invite_team_meeting('design', current_setting('test.dm')::date, '08:30', '10:00', array[(select id from u where role = 'gm')]);
     assert false, 'no GM';
-  exception when others then assert sqlerrm like 'GM / DGM, System Admin%', sqlerrm; end;
+  exception when others then assert sqlerrm like 'DGM, System Admin%', sqlerrm; end;
   mid := public.invite_team_meeting('design', current_setting('test.dm')::date, '09:00', '10:30',
     array[(select id from u where role = 'lighting_designer'), (select id from u where role = 'lighting_engineer'), (select id from u where role = 'estimation_exec')]);
   perform set_config('test.dmid', mid::text, false);
@@ -4338,7 +4338,7 @@ begin
   perform public.decide_invoice_move(c, true, 'Client witness');
   assert (select status = 'pending' and smp_at is not null from public.invoice_line_changes where id = c), 'waits for DGM / GM';
   assert not exists (select 1 from public.my_pending_approvals() where source = 'invoice_move' and title like '%another quarter%'), 'no longer with SM Projects';
-  begin perform public.decide_invoice_move(c, true); assert false, 'GM step'; exception when others then assert sqlerrm like 'DGM / GM approves%', sqlerrm; end;
+  begin perform public.decide_invoice_move(c, true); assert false, 'GM step'; exception when others then assert sqlerrm like 'DGM approves%', sqlerrm; end;
 end $$;
 reset role;
 select pg_temp.act_as('gm'); set role authenticated;
@@ -4585,7 +4585,7 @@ end $$;
 select pg_temp.act_as('sm_projects'); set role authenticated;
 do $$ begin
   begin perform public.save_mgmt_report(current_date, '{"pnl":{}}'); assert false, 'GM only';
-  exception when others then assert sqlerrm = 'Only the GM / DGM generates the management report', sqlerrm; end;
+  exception when others then assert sqlerrm = 'Only the DGM generates the management report', sqlerrm; end;
 end $$;
 reset role;
 select pg_temp.act_as('gm'); set role authenticated;
@@ -6055,7 +6055,7 @@ savepoint on_hold;
 select pg_temp.act_as('asm_building'); set role authenticated;
 do $$ begin
   begin perform public.hold_secured_project(current_setting('test.sec')::uuid, true, 'Client funding', current_date + 30); assert false, 'sales cannot';
-  exception when others then assert sqlerrm like 'Only Operations, SM Projects or GM%', sqlerrm; end;
+  exception when others then assert sqlerrm like 'Only Operations, SM Projects or DGM%', sqlerrm; end;
 end $$;
 reset role;
 select pg_temp.act_as('operations_exec'); set role authenticated;
@@ -6600,13 +6600,13 @@ begin
   perform public.decide_scrap_disposal(d, 'approve');
   assert (select status from public.scrap_disposals where id = d) = 'pending_dgm', 'to the DGM';
   begin perform public.decide_scrap_disposal(d, 'approve'); assert false, 'not SMP now';
-  exception when others then assert sqlerrm = 'Waiting for the DGM / GM', sqlerrm; end;
+  exception when others then assert sqlerrm = 'Waiting for the DGM', sqlerrm; end;
 end $$;
 reset role;
 select pg_temp.act_as('gm'); set role authenticated;
 do $$ declare d uuid := current_setting('test.scr')::uuid;
 begin
-  assert exists (select 1 from public.my_pending_approvals() where source = 'scrap' and id = d and step = 'DGM / GM'), 'DGM sees it';
+  assert exists (select 1 from public.my_pending_approvals() where source = 'scrap' and id = d and step = 'DGM'), 'DGM sees it';
   perform public.decide_scrap_disposal(d, 'approve', 'Sell to the highest bidder');
   assert (select status from public.scrap_disposals where id = d) = 'approved', 'approved';
 end $$;
@@ -7365,7 +7365,7 @@ reset role;
 select pg_temp.act_as('sm_projects'); set role authenticated;
 do $$ begin
   begin perform public.alert_schedules(); assert false, 'gm only';
-  exception when others then assert sqlerrm like '%GM / DGM%', sqlerrm; end;
+  exception when others then assert sqlerrm like '%DGM%', sqlerrm; end;
 end $$;
 reset role;
 rollback to savepoint alerts;
@@ -7385,7 +7385,7 @@ reset role;
 select pg_temp.act_as('sm_projects'); set role authenticated;
 do $$ begin
   begin perform public.grant_high_level(current_setting('test.hlu')::uuid, now(), now() + interval '1 hour', 'x'); assert false, 'gm only';
-  exception when others then assert sqlerrm like '%Only the GM%', sqlerrm; end;
+  exception when others then assert sqlerrm like '%Only the DGM%', sqlerrm; end;
 end $$;
 reset role;
 select pg_temp.act_as('am_estimation'); set role authenticated;
@@ -7446,7 +7446,7 @@ end $$;
 select pg_temp.act_as('sm_projects'); set role authenticated;
 do $$ begin
   begin perform public.change_high_level((select id from public.high_level_grants limit 1), null, now() + interval '1 hour', null); assert false, 'gm only';
-  exception when others then assert sqlerrm like '%Only the GM%', sqlerrm; end;
+  exception when others then assert sqlerrm like '%Only the DGM%', sqlerrm; end;
 end $$;
 reset role;
 rollback to savepoint hl4;
@@ -9437,6 +9437,51 @@ select pg_temp.act_as('lighting_designer'); set role authenticated;
 do $$ declare f uuid := current_setting('test.dtf')::uuid; begin
   assert exists (select 1 from public.design_tool_files where id = f), 'the design team sees every design';
   begin perform public.design_tool_archive(f, true); assert false, 'not the one who started it'; exception when raise_exception then null; end;
+end $$;
+reset role;
+-- each team sees its own designs; SM Projects and the DGM see every design; execution team designs are checked by the SEE
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ declare f uuid := current_setting('test.dtf')::uuid; x uuid; begin
+  assert not exists (select 1 from public.design_tool_files where id = f), 'execution team does not see a design team design';
+  assert not exists (select 1 from public.design_tool_revisions where file_id = f), 'nor its revisions';
+  begin perform public.design_tool_save(f, 'x', null, '{"tree":{"a":1}}'::jsonb); assert false, 'cannot save over it';
+  exception when raise_exception then assert sqlerrm like 'Design not found%', sqlerrm; end;
+  x := public.design_tool_save(null, 'Site office LV', null, '{"tpl":"building","tree":{"id":"e1"}}'::jsonb);
+  assert (select team from public.design_tool_files where id = x) = 'execution', 'execution team design';
+  perform set_config('test.dtx', x::text, false);
+  perform public.design_tool_decide(x, 'submit');
+end $$;
+reset role;
+select pg_temp.act_as('lighting_designer'); set role authenticated;
+do $$ declare x uuid := current_setting('test.dtx')::uuid; begin
+  assert not exists (select 1 from public.design_tool_files where id = x), 'design team does not see an execution team design';
+end $$;
+reset role;
+select pg_temp.act_as('design_manager'); set role authenticated;
+do $$ declare x uuid := current_setting('test.dtx')::uuid; begin
+  begin perform public.design_tool_decide(x, 'check'); assert false, 'not the Design Manager''s to check';
+  exception when raise_exception then assert sqlerrm like 'Design not found%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare x uuid := current_setting('test.dtx')::uuid; begin
+  assert exists (select 1 from public.notifications where entity_id = x and title = 'Design to check' and recipient_id = auth.uid()), 'the SEE is asked to check';
+  assert not exists (select 1 from public.design_tool_files where id = current_setting('test.dtf')::uuid), 'the SEE does not see design team designs';
+  perform public.design_tool_decide(x, 'check');
+  assert (select status from public.design_tool_files where id = x) = 'checked', 'checked by the SEE';
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert (select count(*) from public.design_tool_files where id in (current_setting('test.dtf')::uuid, current_setting('test.dtx')::uuid)) = 2, 'SM Projects sees every design';
+  perform public.design_tool_decide(current_setting('test.dtx')::uuid, 'approve');
+end $$;
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ begin
+  assert (select count(*) from public.design_tool_files where id in (current_setting('test.dtf')::uuid, current_setting('test.dtx')::uuid)) = 2, 'the DGM sees every design';
+  assert (select description from public.settings where key = 'sample_gm_approval_value_lkr') not like '%GM / DGM%', 'settings say DGM';
+  assert not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname in ('public', 'app') and p.prosrc like '%GM / DGM%'), 'functions say DGM';
 end $$;
 reset role;
 select pg_temp.act_as('estimation_exec'); set role authenticated;

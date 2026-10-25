@@ -35,7 +35,7 @@ export function AgeBars({ lines, byValue }: { lines: StockLine[]; byValue: boole
           </Text>
         </View>
       ))}
-      <Muted>{byValue ? 'Closing value by age (SAP ageing merged into 6 bands)' : 'Quantity by age – values are shown to GM / DGM, SM Projects and Operations'}</Muted>
+      <Muted>{byValue ? 'Closing value by age (SAP ageing merged into 6 bands)' : 'Quantity by age – values are shown to DGM, SM Projects and Operations'}</Muted>
     </View>
   );
 }

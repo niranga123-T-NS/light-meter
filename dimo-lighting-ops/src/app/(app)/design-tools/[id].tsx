@@ -11,6 +11,7 @@ import {
   canUseDesignTools,
   DT_ACTION_LABEL,
   DT_STATUS,
+  DT_TEAM,
   dtSummaryText,
   dtTemplateLabel,
   loadDesignEngine,
@@ -176,7 +177,7 @@ export default function DesignToolScreen() {
     else if (m.type === 'dt:profDel') void deleteProfile(m.id).then(() => sendProfiles(engine.current), (e: Error) => sendProfiles(engine.current, e.message));
   }, [dialog]);
 
-  if (!allowed) return <Screen><Notice>Design Tools are for the GM / DGM, SM Projects, the design team and the project engineers.</Notice></Screen>;
+  if (!allowed) return <Screen><Notice>Design Tools are for the DGM, SM Projects, the design team and the project engineers.</Notice></Screen>;
   if (error) return <Screen><ErrorBanner message={error} /></Screen>;
   if (!data || !meta) return <Screen><Loading label="Opening Design Tools…" /></Screen>;
 
@@ -288,10 +289,11 @@ export default function DesignToolScreen() {
     dialog.toast(r.revision === f?.revision ? 'Current revision' : `Revision ${r.revision} opened – save to make it the current one`);
   };
 
-  const canCheck = role === 'design_manager' && status === 'for_check' && f?.updated_by !== me.id;
+  const team = DT_TEAM[f?.team ?? 'design'];
+  const canCheck = !!role && team.checkers.includes(role) && status === 'for_check' && f?.updated_by !== me.id;
   const canApprove = (role === 'sm_projects' || role === 'gm') && status === 'checked';
-  const canReturn = (role === 'design_manager' || role === 'sm_projects' || role === 'gm') && status !== 'draft';
-  const canArchive = !!f && (f.created_by === me.id || role === 'design_manager' || role === 'sm_projects' || role === 'gm');
+  const canReturn = (!!role && team.checkers.includes(role) || role === 'sm_projects' || role === 'gm') && status !== 'draft';
+  const canArchive = !!f && (f.created_by === me.id || (!!role && team.checkers.includes(role)) || role === 'sm_projects' || role === 'gm');
 
   return (
     <Screen maxWidth={1800} flush={full}>
@@ -308,7 +310,7 @@ export default function DesignToolScreen() {
               {unsaved ? <Pill label="unsaved changes" tone="#B45309" solid /> : null}
             </Row>
             <Muted>
-              {[inq ? `Inquiry ${[inq.code, inq.project_name].filter(Boolean).join(' – ')}` : 'No inquiry linked', f ? dtTemplateLabel(f.template) : null, f ? dtSummaryText(f.summary) : null].filter(Boolean).join(' · ')}
+              {[f ? `${DT_TEAM[f.team ?? 'design'].label} – checked by ${DT_TEAM[f.team ?? 'design'].checker}` : null, inq ? `Inquiry ${[inq.code, inq.project_name].filter(Boolean).join(' – ')}` : 'No inquiry linked', f ? dtTemplateLabel(f.template) : null, f ? dtSummaryText(f.summary) : null].filter(Boolean).join(' · ')}
             </Muted>
             {f ? (
               <Muted>

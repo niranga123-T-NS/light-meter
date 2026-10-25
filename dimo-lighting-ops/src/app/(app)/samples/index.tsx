@@ -18,7 +18,7 @@ const exposureTone = (v: number) => (v > LIMIT ? colors.red : v >= LIMIT * 0.8 ?
 const DONE = ['cleared', 'rejected', 'not_available'];
 const typeText = (s: Sample) => (s.sample_type === 'returnable' ? 'returnable' : s.nr_disposition === 'sell' ? 'sell' : s.nr_disposition === 'foc' ? 'FOC' : 'non-returnable');
 const statusText = (s: Sample) =>
-  sampleOverdue(s) ? 'Overdue' : s.status === 'gm_approval' ? 'With GM / DGM' : s.status === 'return_reported' ? 'Return to confirm' : s.status === 'sold_unpaid' ? 'Sold – unpaid' : s.status === 'damaged_lost' ? 'Damaged / incomplete' : human(s.status);
+  sampleOverdue(s) ? 'Overdue' : s.status === 'gm_approval' ? 'With DGM' : s.status === 'return_reported' ? 'Return to confirm' : s.status === 'sold_unpaid' ? 'Sold – unpaid' : s.status === 'damaged_lost' ? 'Damaged / incomplete' : human(s.status);
 const clientOf = (s: Sample) => (s.client_name ?? '—').trim();
 const sum = (list: Sample[], cur: 'LKR' | 'USD') => list.filter((s) => s.currency === cur).reduce((a, s) => a + Number(s.total_value), 0);
 const money = (list: Sample[]) => [sum(list, 'LKR') ? fmtMoney(sum(list, 'LKR'), 'LKR') : null, sum(list, 'USD') ? fmtMoney(sum(list, 'USD'), 'USD') : null].filter(Boolean).join(' + ') || '–';

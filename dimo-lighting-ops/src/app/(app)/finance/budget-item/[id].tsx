@@ -38,7 +38,7 @@ export default function BudgetItemScreen() {
     const row = r as BudgetProject & { budget_invoices: BudgetInvoice[] };
     return { fy: row.fy, row };
   }, [id]);
-  if (!isFinanceDesk(me.role)) return <Screen><Notice>Operations, SM Projects or GM / DGM edit the budget list.</Notice></Screen>;
+  if (!isFinanceDesk(me.role)) return <Screen><Notice>Operations, SM Projects or DGM edit the budget list.</Notice></Screen>;
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
 
   const r = data.row;

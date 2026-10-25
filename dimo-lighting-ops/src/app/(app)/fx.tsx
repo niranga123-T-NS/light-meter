@@ -21,7 +21,7 @@ export default function FxScreen() {
   const [days, setDays] = useState<keyof typeof PERIODS>('90');
   const uploader = FX_UPLOAD.includes(me.role);
   const { data, error, loading, reload } = useLoad(async () => rpc<FxBoard>('fx_board', { p_days: 400 }), []);
-  if (!FX_SEES.includes(me.role)) return <Screen><Notice>Exchange rates are shown to the GM / DGM, SM Projects, the Estimation team and the Operations Executive.</Notice></Screen>;
+  if (!FX_SEES.includes(me.role)) return <Screen><Notice>Exchange rates are shown to the DGM, SM Projects, the Estimation team and the Operations Executive.</Notice></Screen>;
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
 
   // ---- Operations Executive: the Commercial Bank report ----

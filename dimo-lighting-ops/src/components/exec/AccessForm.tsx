@@ -39,7 +39,7 @@ export function AccessForm({ nominate }: { nominate?: string }) {
       if (nominate) await rpc('nominate_supervisor', { p_exec: nominate, p: { ...f, start_date: f.start_date ?? '', end_date: f.end_date ?? '' } });
       else await rpc('request_temp_staff', { p: { ...f, start_date: f.start_date ?? '', end_date: f.end_date ?? '' } });
       router.back();
-    }, nominate ? 'Nominated – SM Projects approves before a login is issued' : 'Requested – SM Projects, then DGM / GM approve');
+    }, nominate ? 'Nominated – SM Projects approves before a login is issued' : 'Requested – SM Projects, then DGM approve');
   };
 
   return (
@@ -98,7 +98,7 @@ export function AccessForm({ nominate }: { nominate?: string }) {
           <Muted>
             {nominate
               ? 'No login is issued until SM Projects approves. Access ends automatically on the end date or when you remove the supervisor.'
-              : 'The login is created after SM Projects and then DGM / GM approve. You will be reminded before the expected end date.'}
+              : 'The login is created after SM Projects and then DGM approve. You will be reminded before the expected end date.'}
           </Muted>
         </Card>
       </Section>

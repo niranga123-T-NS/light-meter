@@ -14,9 +14,9 @@ import { rpc, supabase } from '@/lib/supabase';
 
 type TargetRow = { sales_person_id: string; month: string; secured_target: number; invoice_target: number };
 type TargetSet = { fy: number; status: 'draft' | 'submitted' | 'approved' | 'returned'; submitted_at: string | null; decided_at: string | null; note: string | null };
-const STATUS_LABEL: Record<TargetSet['status'], string> = { draft: 'Draft', submitted: 'Waiting for GM / DGM', approved: 'Approved', returned: 'Returned by GM / DGM' };
+const STATUS_LABEL: Record<TargetSet['status'], string> = { draft: 'Draft', submitted: 'Waiting for DGM', approved: 'Approved', returned: 'Returned by DGM' };
 
-/** Sales targets: secured and invoicing per sales person and month; league table. SM Projects sets, GM / DGM approves. */
+/** Sales targets: secured and invoicing per sales person and month; league table. SM Projects sets, DGM approves. */
 export default function Targets() {
   const me = useMe();
   const dialog = useDialog();
@@ -37,7 +37,7 @@ export default function Targets() {
   if (!seesPnl(me.role)) {
     return (
       <Screen>
-        <Notice>Targets are for SM Projects, SM Estimation and GM / DGM.</Notice>
+        <Notice>Targets are for SM Projects, SM Estimation and DGM.</Notice>
       </Screen>
     );
   }
@@ -90,7 +90,7 @@ export default function Targets() {
     dialog.run(async () => {
       await rpc('submit_targets', { p_fy: fy });
       await reload();
-    }, me.role === 'gm' ? 'Targets approved' : 'Sent to GM / DGM');
+    }, me.role === 'gm' ? 'Targets approved' : 'Sent to DGM');
   const decide = async (approve: boolean) => {
     const r = await dialog.prompt({
       title: approve ? 'Approve the sales targets' : 'Return the targets',
@@ -118,7 +118,7 @@ export default function Targets() {
         <Row wrap gap={8}>
           <Pill label={`Targets: ${STATUS_LABEL[status]}`} tone={status === 'approved' ? colors.green : status === 'returned' ? colors.red : colors.amber} />
           {editable ? <Button small variant="secondary" title="Fill from budget list" onPress={fill} /> : null}
-          {editable && data.targets.length ? <Button small title={me.role === 'gm' ? 'Approve targets' : 'Submit to GM / DGM'} onPress={submit} /> : null}
+          {editable && data.targets.length ? <Button small title={me.role === 'gm' ? 'Approve targets' : 'Submit to DGM'} onPress={submit} /> : null}
           {status === 'submitted' && me.role === 'gm' ? (
             <>
               <Button small title="Approve" onPress={() => decide(true)} />
@@ -128,7 +128,7 @@ export default function Targets() {
           {status === 'approved' && me.role === 'gm' ? <Button small variant="ghost" title="Re-open for changes" onPress={() => decide(false)} /> : null}
         </Row>
       </Row>
-      {data.set?.note ? <Notice tone={status === 'returned' ? colors.red : colors.blue}>{`GM / DGM: ${data.set.note} (${fmtDateTime(data.set.decided_at)})`}</Notice> : null}
+      {data.set?.note ? <Notice tone={status === 'returned' ? colors.red : colors.blue}>{`DGM: ${data.set.note} (${fmtDateTime(data.set.decided_at)})`}</Notice> : null}
 
       <Grid min={220}>
         <Card>
@@ -225,8 +225,8 @@ export default function Targets() {
               </Row>
             </View>
           ) : null}
-          {!editable && status !== 'approved' && isReviewer(me.role) ? <Muted>Waiting for GM / DGM – targets can be changed again if returned.</Muted> : null}
-          {status === 'approved' ? <Muted>Approved targets are locked. GM / DGM can re-open them for changes.</Muted> : null}
+          {!editable && status !== 'approved' && isReviewer(me.role) ? <Muted>Waiting for DGM – targets can be changed again if returned.</Muted> : null}
+          {status === 'approved' ? <Muted>Approved targets are locked. DGM can re-open them for changes.</Muted> : null}
         </Card>
       </Section>
     </Screen>

@@ -43,7 +43,7 @@ const blank: Form = {
   notes: '',
 };
 
-/** Record or edit a retention (Operations Executive, SM Projects, GM / DGM). */
+/** Record or edit a retention (Operations Executive, SM Projects, DGM). */
 export default function RetentionEdit() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const dialog = useDialog();
@@ -143,7 +143,7 @@ export default function RetentionEdit() {
         <Card>
           <DateField label="Retention start date" required value={f.start_date} onChange={(v) => set('start_date', v)} quick={[0]} />
           {id ? (
-            <Muted>Due date {f.due_date} – to change it, use “Extend due date” on the retention (GM / DGM approves).</Muted>
+            <Muted>Due date {f.due_date} – to change it, use “Extend due date” on the retention (DGM approves).</Muted>
           ) : (
             <DateField label="Due date (release)" required value={f.due_date} onChange={(v) => set('due_date', v)} quick={[]} />
           )}
