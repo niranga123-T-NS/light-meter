@@ -68,7 +68,7 @@ export default function Package() {
       const c = chainOf(q), f0 = quoteTotals(c[0]).total, d = f0 ? ((tots[i].total - f0) / f0) * 100 : 0;
       return c.length > 1 ? { t: `${d.toFixed(1)} %`, sub: `${lkrM(f0)} → ${lkrM(tots[i].total)} in ${c.length} versions`, tone: d < 0 ? 'good' : d > 0 ? 'bad' : undefined } : { t: 'first offer' };
     }) });
-  if (shown === 'post_bid')
+  if (shown === 'post_bid' && preQuotes.length)
     rows.push({ key: 'pre', kind: 'row', label: 'Pre Bid price', sub: 'what our tender was built on', cells: quotes.map((q, i) => {
       const p = preOf(q);
       if (!p) return { t: 'new at Post Bid', tone: 'warn' };
@@ -145,7 +145,7 @@ export default function Package() {
       title: 'Move to Post Bid',
       message: 'The Pre Bid quotes and choice are kept as they are. Pick the suppliers and manufacturers that go on – each gets a Post Bid version to change. Others stay at Pre Bid; you can still carry them on or add new ones later.',
       fields: [
-        { key: 'carry', label: 'Going on to Post Bid', type: 'multiselect', initial: preQuotes.map((q) => q.id).join(','), options: preQuotes.map((q) => ({ value: q.id, label: `${sup(q)} · LKR ${lkrM(quoteTotals(q).total)}` })) },
+        ...(preQuotes.length ? [{ key: 'carry', label: 'Going on to Post Bid', type: 'multiselect' as const, initial: preQuotes.map((q) => q.id).join(','), options: preQuotes.map((q) => ({ value: q.id, label: `${sup(q)} · LKR ${lkrM(quoteTotals(q).total)}` })) }] : []),
         { key: 'note', label: 'Note', type: 'multiline', hint: 'e.g. Tender awarded on 24 Oct – final prices asked' },
       ],
       confirmLabel: 'Move to Post Bid',
@@ -215,7 +215,7 @@ export default function Package() {
         </View>
         <Row wrap gap={8}>
           {!fixed ? <Button title={stage === 'post_bid' ? 'Add a Post Bid quote' : 'Add a quote'} icon="＋" onPress={() => router.push({ pathname: '/supplier-quotes/quote', params: { pkg: pkg.id } })} /> : null}
-          {!closed && stage === 'pre_bid' && preQuotes.length ? <Button variant="secondary" title="Move to Post Bid" onPress={toPostBid} /> : null}
+          {!closed && stage === 'pre_bid' ? <Button variant="secondary" title="Move to Post Bid" onPress={toPostBid} /> : null}
           {!closed && stage === 'post_bid' && !postCount ? <Button variant="ghost" title="Back to Pre Bid" onPress={toPreBid} /> : null}
           <Button variant="secondary" title="Edit" onPress={edit} />
           {closed ? <Button variant="secondary" title="Reopen" onPress={() => setStatus('open')} /> : <Button variant="secondary" title="Close" onPress={() => setStatus('closed')} />}
@@ -224,8 +224,8 @@ export default function Package() {
       </Row>
       {stage === 'post_bid' ? (
         <Row wrap gap={8} style={{ alignItems: 'center' }}>
-          <Segmented value={shown} onChange={(v) => setView(v as BidStage)} options={[{ value: 'post_bid', label: `Post Bid (${postCount})` }, { value: 'pre_bid', label: `Pre Bid (${preQuotes.length})` }]} />
-          <Muted>{`Moved to Post Bid ${fmtDate(pkg.post_bid_at)}${pkg.post_bid_by ? ` by ${people[pkg.post_bid_by]?.full_name ?? '—'}` : ''}${pkg.post_bid_note ? ` · ${pkg.post_bid_note}` : ''}`}</Muted>
+          {preQuotes.length ? <Segmented value={shown} onChange={(v) => setView(v as BidStage)} options={[{ value: 'post_bid', label: `Post Bid (${postCount})` }, { value: 'pre_bid', label: `Pre Bid (${preQuotes.length})` }]} /> : <Pill label="Post Bid" tone={colors.blue} />}
+          <Muted>{`${preQuotes.length ? 'Moved to' : 'At'} Post Bid since ${fmtDate(pkg.post_bid_at)}${pkg.post_bid_by ? ` by ${people[pkg.post_bid_by]?.full_name ?? '—'}` : ''}${pkg.post_bid_note ? ` · ${pkg.post_bid_note}` : ''}`}</Muted>
         </Row>
       ) : null}
       {past ? <Notice tone={colors.blue}>{`Pre Bid prices – kept as they were for the tender.${preChoice ? ` Chosen at Pre Bid: ${sup(preChoice)}${pkg.pre_bid_reason ? ` (${pkg.pre_bid_reason})` : ''}.` : ''} Carry a supplier on to ask for a Post Bid price.`}</Notice> : null}

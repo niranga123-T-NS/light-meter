@@ -9644,5 +9644,21 @@ do $$ declare pk uuid; sa uuid; sb uuid; mf uuid; qa uuid; qb uuid; qa2 uuid; qm
 end $$;
 reset role;
 
+-- Supplier quotes: a package started straight at Post Bid
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare pk uuid; sp uuid; q uuid; begin
+  insert into public.sq_suppliers (name) values ('Late Supplier') returning id into sp;
+  insert into public.sq_packages (title, stage) values ('Started at Post Bid', 'post_bid') returning id into pk;
+  assert (select stage = 'post_bid' and post_bid_at is not null and post_bid_by = auth.uid() and post_bid_note = 'Started at Post Bid' from public.sq_packages where id = pk), 'started at Post Bid, recorded';
+  q := public.sq_save_quote(jsonb_build_object('package_id', pk, 'supplier_id', sp, 'lines', jsonb_build_array(jsonb_build_object('text', 'x', 'qty', 1, 'rate', 5))));
+  assert (select bid_stage from public.sq_quotes where id = q) = 'post_bid', 'its quotes are Post Bid';
+  perform public.sq_select(pk, q, 'Only quote');
+  insert into public.sq_packages (title) values ('Empty Pre Bid') returning id into pk;
+  assert public.sq_post_bid(pk, '{}') = 0, 'nothing carried';
+  assert (select stage from public.sq_packages where id = pk) = 'post_bid', 'an empty Pre Bid package can move on';
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

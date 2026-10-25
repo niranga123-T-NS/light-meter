@@ -82,6 +82,7 @@ function Packages() {
       fields: [
         { key: 'title', label: 'Package', required: true, hint: 'e.g. LED floodlights, Lattice masts, Mast foundations' },
         { key: 'kind', label: 'Type', type: 'select', required: true, initial: 'supply', options: [{ value: 'supply', label: 'Supply' }, { value: 'subcontract', label: 'Subcontract' }] },
+        { key: 'stage', label: 'Start at', type: 'select', required: true, initial: 'pre_bid', options: [{ value: 'pre_bid', label: 'Pre Bid – pricing our tender' }, { value: 'post_bid', label: 'Post Bid – tender already done (e.g. started before the system)' }] },
         jobField(jobs),
         { key: 'project', label: 'Project / client', hint: 'As you know it – e.g. the stadium name' },
         { key: 'job', label: 'Job or inquiry reference', hint: 'e.g. EST-2026-0142, PRJ-0087' },
@@ -93,7 +94,7 @@ function Packages() {
     if (!r) return;
     await dialog.run(async () => {
       const { data: p, error: e } = await supabase.from('sq_packages')
-        .insert({ title: r.title.trim(), kind: r.kind, project_name: r.project?.trim() || null, job_ref: r.job?.trim() || null, ...jobSource(r.src), our_validity: r.valid || null, needed_weeks: Number(r.weeks) > 0 ? Number(r.weeks) : null })
+        .insert({ title: r.title.trim(), kind: r.kind, stage: r.stage === 'post_bid' ? 'post_bid' : 'pre_bid', project_name: r.project?.trim() || null, job_ref: r.job?.trim() || null, ...jobSource(r.src), our_validity: r.valid || null, needed_weeks: Number(r.weeks) > 0 ? Number(r.weeks) : null })
         .select('id').single();
       if (e) throw new Error(e.message);
       router.push(`/supplier-quotes/${p.id}`);
