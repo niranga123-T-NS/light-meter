@@ -1,0 +1,48 @@
+# Market prices for the Home dashboards: LME copper and aluminium (cash settlement, Westmetall), steel hot-rolled coil
+# (Shanghai Futures Exchange) and PVC (Dalian Commodity Exchange) – see scripts/market_fetch.py.
+# Uses the same repository secrets as the backend deploy (SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF, DISPATCH_SECRET).
+name: DIMO – market prices
+
+on:
+  schedule:
+    - cron: '35 1 * * 2-6'    # 07:05 Sri Lanka – the Chinese closes and the previous day's LME settlement
+    - cron: '50 17 * * 1-5'   # 23:20 Sri Lanka – the day's LME settlement
+  workflow_dispatch:
+    inputs:
+      backfill_days:
+        description: On the first run, how many days of history to load
+        default: '400'
+  push:
+    branches: [claude/dimo-finance]
+    paths: [dimo-lighting-ops/scripts/market_fetch.py]
+
+concurrency: dimo-market-prices
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: dimo-lighting-ops
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      FX_SECRET: ${{ secrets.DISPATCH_SECRET }}
+      BACKFILL_DAYS: ${{ inputs.backfill_days || '400' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the sources (no saving)
+        if: github.event_name == 'push'
+        run: python3 scripts/market_fetch.py --dry-run
+      - uses: supabase/setup-cli@v1
+        if: github.event_name != 'push'
+        with:
+          version: latest
+      - name: Fetch and save the prices
+        if: github.event_name != 'push'
+        run: |
+          key=$(supabase projects api-keys --project-ref "$PROJECT_REF" -o json | jq -r '[.[] | select(.name == "anon" or .type == "publishable")][0].api_key')
+          if [ -z "$key" ] || [ "$key" = "null" ]; then echo "::error::Could not read the project's public (anon) key"; exit 1; fi
+          echo "::add-mask::$key"
+          SUPABASE_URL="https://$PROJECT_REF.supabase.co" SUPABASE_ANON_KEY="$key" python3 scripts/market_fetch.py
