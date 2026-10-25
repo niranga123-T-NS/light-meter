@@ -99,7 +99,7 @@ def main():
         try:
             got = lme(field, since(item))
             rows += [{'item': item, 'date': d, 'price': v, 'currency': 'USD', 'usd': v} for d, v in got.items()]
-            print(f'{item}: {len(got)} day(s), latest', max(got) if got else None, got.get(max(got)) if got else '')
+            print(f'::notice::{item}: {len(got)} day(s), latest {max(got) if got else None} {got.get(max(got)) if got else ""} USD/t')
         except Exception as e:  # noqa: BLE001 – the other prices still go in
             problems.append(f'{item}: {e}')
     try:
@@ -120,7 +120,8 @@ def main():
                     continue
                 rows.append({'item': item, 'date': d, 'price': v, 'currency': 'CNY', 'usd': round(v / fx[k], 2), 'fx': fx[k]})
                 n += 1
-            print(f'{item}: {n} day(s), latest', max(got) if got else None, got.get(max(got)) if got else '')
+            last_row = rows[-1] if n else {}
+            print(f'::notice::{item}: {n} day(s), latest {last_row.get("date")} {last_row.get("price")} CNY/t = {last_row.get("usd")} USD/t (USD/CNY {last_row.get("fx")})')
         except Exception as e:  # noqa: BLE001
             problems.append(f'{item}: {e}')
     for p in problems:
