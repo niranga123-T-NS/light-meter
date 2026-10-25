@@ -37,6 +37,7 @@ export default function SupplierReports() {
   const [prices, setPrices] = useState<Prices>('final');
   const [item, setItem] = useState('');
   const [supplier, setSupplier] = useState('');
+  const [itemSup, setItemSup] = useState('');
   const pr = periodOf(period, cFrom, cTo);
   // opens on the most-quoted item and supplier until one is picked
   const top = useMemo(() => {
@@ -45,8 +46,8 @@ export default function SupplierReports() {
     const best = (m: Map<string, number>) => [...m.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
     return { sup: best(n), item: best(it) ?? data?.items[0]?.id };
   }, [data]);
-  const f: RFilters = { ...pr, type, who, prices, item: item || top.item, supplier: supplier || top.sup };
-  const rep = useMemo<Report | null>(() => (data ? runReport(key, data, f) : null), [data, key, f.from, f.to, type, who, prices, f.item, supplier]); // eslint-disable-line react-hooks/exhaustive-deps
+  const f: RFilters = { ...pr, type, who, prices, item: item || top.item, supplier: supplier || top.sup, itemSupplier: itemSup || undefined };
+  const rep = useMemo<Report | null>(() => (data ? runReport(key, data, f) : null), [data, key, f.from, f.to, type, who, prices, f.item, supplier, itemSup]); // eslint-disable-line react-hooks/exhaustive-deps
   if (realRole !== 'gm') return <Screen><Notice tone={colors.amber}>Supplier reports are for the GM / DGM.</Notice></Screen>;
   if (!data || !rep) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const def = REPORTS.find((r) => r.key === key)!;
@@ -82,6 +83,7 @@ export default function SupplierReports() {
           {key !== 'profile' ? <View style={{ minWidth: 180, flexGrow: 1 }}><Select label="Suppliers" value={who} onChange={(v) => setWho(v as Who)} options={(Object.keys(WHO_LABEL) as Who[]).map((k) => ({ value: k, label: WHO_LABEL[k] }))} /></View> : null}
           <View style={{ minWidth: 220, flexGrow: 1 }}><Select label="Prices from" value={prices} onChange={(v) => setPrices(v as Prices)} options={(Object.keys(PRICES_LABEL) as Prices[]).map((k) => ({ value: k, label: PRICES_LABEL[k] }))} /></View>
           {key === 'prices' ? <View style={{ minWidth: 260, flexGrow: 2 }}><Select label="Item" searchable value={f.item ?? ''} onChange={setItem} options={data.items.map((i) => ({ value: i.id, label: `${i.code} · ${i.name}` }))} /></View> : null}
+          {key === 'prices' ? <View style={{ minWidth: 240, flexGrow: 1 }}><Select label="Focus on (optional)" searchable value={itemSup} onChange={(v) => setItemSup(v ?? '')} options={[{ value: '', label: 'All suppliers and manufacturers' }, ...data.sups.map((s) => ({ value: s.id, label: s.name }))]} /></View> : null}
           {key === 'profile' ? <View style={{ minWidth: 260, flexGrow: 2 }}><Select label="Supplier" searchable value={f.supplier ?? ''} onChange={setSupplier} options={data.sups.map((s) => ({ value: s.id, label: s.name }))} /></View> : null}
         </Row>
         <Row wrap gap={8} style={{ marginTop: 8 }}>

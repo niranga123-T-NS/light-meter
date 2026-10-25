@@ -10,6 +10,7 @@ import { fmtDate, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { ROLE_SHORT } from '@/lib/roles';
 import { packageReport } from '@/lib/sqAnalysis';
+import type { RTable } from '@/lib/supplierReports';
 import { atStage, BASIS_LABEL, type BidStage, cashOf, chains, compareRows, lkr0, lkrM, loadPackage, loadRefs, payText, quoteTotals, revLabel, SPEC_LABEL, STAGE_LABEL, type SqItem, type SqQuote } from '@/lib/supplierQuotes';
 import { rpc, supabase } from '@/lib/supabase';
 
@@ -241,6 +242,17 @@ export default function Package() {
     ...quotes.filter((q) => pkg.needed_weeks && q.lead_weeks && q.lead_weeks > pkg.needed_weeks).map((q) => `${sup(q)} needs ${q.lead_weeks} weeks – longer than the ${pkg.needed_weeks} weeks allowed.`),
   ];
 
+  // the PDF: the analysis, then the comparison of the stage shown as a table
+  const txt = (v: ReactNode) => (typeof v === 'string' || typeof v === 'number' ? String(v) : '');
+  const cmp: RTable = {
+    title: `Comparison – ${STAGE_LABEL[shown]} quotes (LKR delivered)`, empty: 'No quotes.',
+    head: [{ h: 'Line', w: 220, grow: true }, ...quotes.map((q) => ({ h: `${sup(q)}${q.revision ? ` · ${revLabel(q)}` : ''}`, w: 140 }))],
+    rows: rows.filter((x) => x.kind !== 'act').map((x) => ({
+      key: x.key,
+      cells: [{ t: x.kind === 'sec' ? x.label.toUpperCase() : x.label, sub: x.sub ?? undefined }, ...quotes.map((_, i) => { const c = x.cells[i]; return c ? { t: txt(c.t), sub: c.sub, tone: c.tone } : { t: '' }; })],
+    })),
+  };
+  const pdfRep = { ...analysis, tables: [...analysis.tables, cmp] };
   return (
     <Screen maxWidth={1400}>
       <Stack.Screen options={{ title: pkg.title }} />
@@ -255,7 +267,7 @@ export default function Package() {
           {!closed && stage === 'pre_bid' ? <Button variant="secondary" title="Move to Post Bid" onPress={toPostBid} /> : null}
           {!closed && stage === 'post_bid' && !postCount ? <Button variant="ghost" title="Back to Pre Bid" onPress={toPreBid} /> : null}
           <Button variant="secondary" title="Edit" onPress={edit} />
-          <Button variant="secondary" title="Export PDF" onPress={() => dialog.run(() => reportPdf(analysis, { key: 'supplier_package', title: `${pkg.title} – supplier quotes`, filters: [pkg.code, project?.name ?? pkg.project_name, STAGE_LABEL[stage]].filter(Boolean).join(' · '), period: fmtDate(pkg.created_at), currencyNote: 'LKR delivered – freight, discounts and priced-back exclusions included', generatedBy: `${profile?.full_name ?? ''} – ${profile ? ROLE_SHORT[profile.role] : ''}`, landscape: true }, 'How every supplier moved from the first offer through each revision, ranks before and after, and every version in order.'))} />
+          <Button variant="secondary" title="Export PDF" onPress={() => dialog.run(() => reportPdf(pdfRep, { key: 'supplier_package', title: `${pkg.title} – supplier quotes`, filters: [pkg.code, project?.name ?? pkg.project_name, STAGE_LABEL[stage]].filter(Boolean).join(' · '), period: fmtDate(pkg.created_at), currencyNote: 'LKR delivered – freight, discounts and priced-back exclusions included', generatedBy: `${profile?.full_name ?? ''} – ${profile ? ROLE_SHORT[profile.role] : ''}`, landscape: true }, 'How every supplier moved from the first offer through each revision, ranks before and after, and every version in order.'))} />
           {closed ? <Button variant="secondary" title="Reopen" onPress={() => setStatus('open')} /> : <Button variant="secondary" title="Close" onPress={() => setStatus('closed')} />}
           {pkg.status === 'open' ? <Button variant="ghost" title="Cancel package" onPress={() => setStatus('cancelled')} /> : null}
         </Row>

@@ -8,6 +8,7 @@ import { useAuth } from '@/lib/auth';
 import { fmtDate, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { ROLE_SHORT } from '@/lib/roles';
+import { exportExcel, exportPdf, type Column as XCol } from '@/lib/export';
 import { discFactor, jobField, jobSource, KIND_LABEL, lkr0, lkrM, loadJobs, loadRefs, loadSystemSuppliers, originText, quoteTotals, supplierFields, supplierRow, type SqItem, type SqJob, type SqPackage, type SqQuote, type Supplier, type SysSupplier } from '@/lib/supplierQuotes';
 import { type SqProject } from '@/lib/sqAnalysis';
 import { rpc, supabase } from '@/lib/supabase';
@@ -48,6 +49,7 @@ export default function SupplierQuotes() {
 // ---------------------------------------------------------------- packages
 function Projects() {
   const dialog = useDialog();
+  const { profile } = useAuth();
   const [show, setShow] = useState<'open' | 'all'>('open');
   const { data, error, reload } = useLoad(async () => {
     const [j, p, q, s] = await Promise.all([
@@ -80,6 +82,13 @@ function Projects() {
       }
       return { j, pk, low, chosen, offers, nChosen, expiring };
     });
+  const projCols: XCol<(typeof rows)[number]>[] = [
+    { header: 'Code', value: (r) => r.j.code }, { header: 'Project', value: (r) => r.j.name, width: 36 }, { header: 'Client', value: (r) => r.j.client ?? '' }, { header: 'Reference', value: (r) => r.j.job_ref ?? '' },
+    { header: 'Packages', value: (r) => r.pk.length, align: 'right' }, { header: 'Chosen', value: (r) => r.nChosen, align: 'right' }, { header: 'Offers', value: (r) => r.offers, align: 'right' },
+    { header: 'Lowest now LKR M', value: (r) => (r.offers ? lkrM(r.low) : ''), align: 'right' }, { header: 'Chosen LKR M', value: (r) => (r.nChosen ? lkrM(r.chosen) : ''), align: 'right' },
+    { header: 'Status', value: (r) => (r.expiring.length ? 'Quote ending' : r.j.status) }, { header: 'Updated', value: (r) => fmtDate(r.j.updated_at) },
+  ];
+  const projMeta = () => ({ key: 'supplier_projects', title: 'Supplier quotes – projects', filters: show === 'open' ? 'Open projects' : 'All projects', currencyNote: 'LKR delivered – freight, discounts and priced-back exclusions included', generatedBy: `${profile?.full_name ?? ''} – ${profile ? ROLE_SHORT[profile.role] : ''}`, landscape: true });
   const add = async () => {
     const jobs = await loadJobs().catch(() => [] as SqJob[]);
     const r = await dialog.prompt({
@@ -120,6 +129,8 @@ function Projects() {
         <Button title="New project" icon="＋" onPress={add} />
         <Segmented value={show} onChange={setShow} options={[{ value: 'open', label: 'Open' }, { value: 'all', label: 'All' }]} />
         <Button variant="ghost" small title={`Cost of money ${data.cost} % a year`} onPress={setCost} />
+        <Button variant="secondary" small title="Export PDF" onPress={() => dialog.run(() => exportPdf(projMeta(), projCols, [{ rows }]))} />
+        <Button variant="secondary" small title="Excel" onPress={() => dialog.run(() => exportExcel(projMeta(), projCols, [{ rows }]))} />
       </Row>
       {rows.some((r) => r.expiring.length) ? (
         <Notice tone={colors.amber}>{`${rows.filter((r) => r.expiring.length).length} project(s) have a supplier quote that has ended or ends before our quotation – ask the supplier to extend it.`}</Notice>
@@ -147,6 +158,8 @@ function Projects() {
 // ---------------------------------------------------------------- rate library
 function RateLibrary() {
   const [q, setQ] = useState('');
+  const dialog = useDialog();
+  const { profile } = useAuth();
   const { data, error } = useLoad(async () => {
     const refs = await loadRefs();
     const { data: ls, error: e } = await supabase.from('sq_quote_lines').select('item_id, rate, included, quote:sq_quotes(id, first_id, revision, superseded_by, quote_date, created_at, fx_rate, freight_pct, supplier_id, discount_pct, discount_amt, lines:sq_quote_lines(qty, rate, included))').not('item_id', 'is', null).limit(5000);
@@ -164,10 +177,23 @@ function RateLibrary() {
     const sorted = ps.map((p) => p.v).sort((a, b) => a - b);
     return { n: ps.length, versions: all.length, latest: ps[0], median: sorted.length ? sorted[Math.floor((sorted.length - 1) / 2)] : null, low: sorted[0] ?? null, sups: new Set(ps.map((p) => p.s)).size, drop: drops.length ? drops.reduce((a, b) => a + b, 0) / drops.length : null };
   };
+  type RR = { it: SqItem; s: ReturnType<typeof stats> };
+  const rateCols: XCol<RR>[] = [
+    { header: 'Code', value: (r) => r.it.code }, { header: 'Item', value: (r) => r.it.name, width: 40 }, { header: 'SAP', value: (r) => r.it.sap_code ?? '' }, { header: 'Unit', value: (r) => r.it.unit ?? '' },
+    { header: 'Quotes', value: (r) => r.s.n, align: 'right' }, { header: 'Suppliers', value: (r) => r.s.sups, align: 'right' },
+    { header: 'Latest LKR', value: (r) => (r.s.latest ? lkr0(r.s.latest.v) : ''), align: 'right' }, { header: 'Latest date', value: (r) => (r.s.latest ? fmtDate(r.s.latest.d) : '') },
+    { header: 'Median LKR', value: (r) => lkr0(r.s.median), align: 'right' }, { header: 'Lowest LKR', value: (r) => lkr0(r.s.low), align: 'right' },
+    { header: 'Came down', value: (r) => (r.s.drop != null ? `${r.s.drop.toFixed(1)} %` : ''), align: 'right' },
+  ];
+  const rateMeta = () => ({ key: 'supplier_rates', title: 'Rate library – supplier prices per item', filters: q.trim() ? `Search: ${q.trim()}` : 'All items', currencyNote: 'LKR per unit delivered – exchange rate of the quote, freight and discount included', generatedBy: `${profile?.full_name ?? ''} – ${profile ? ROLE_SHORT[profile.role] : ''}`, landscape: true });
   const items = data.items.filter((i) => !q.trim() || `${i.code} ${i.name} ${i.sap_code ?? ''}`.toLowerCase().includes(q.trim().toLowerCase()));
   return (
     <>
-      <Field label="Search items" value={q} onChangeText={setQ} placeholder="Code, name or SAP code" />
+      <Row wrap gap={8} style={{ alignItems: 'flex-end' }}>
+        <View style={{ flexGrow: 1, minWidth: 240 }}><Field label="Search items" value={q} onChangeText={setQ} placeholder="Code, name or SAP code" /></View>
+        <Button variant="secondary" small title="Export PDF" onPress={() => dialog.run(() => exportPdf(rateMeta(), rateCols, [{ rows: items.map((it) => ({ it, s: stats(it) })) }]))} />
+        <Button variant="secondary" small title="Excel" onPress={() => dialog.run(() => exportExcel(rateMeta(), rateCols, [{ rows: items.map((it) => ({ it, s: stats(it) })) }]))} />
+      </Row>
       <Muted>{'Each supplier\'s latest price on every job, chosen or not, in LKR delivered (freight and discount included) at the quote\'s exchange rate. “Came down” is the average drop from the first offer to the latest version. Tap an item for every version on every job.'}</Muted>
       <DataTable
         rows={items.map((it) => ({ it, s: stats(it) }))}
