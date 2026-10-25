@@ -20,7 +20,7 @@ const periodOf = (p: Period) => {
 /** Everything quoted for one item: every supplier and manufacturer over time and on every job, one of them against the others – and the suppliers' own names for it */
 export default function ItemHistory() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { sqAccess, profile } = useAuth();
+  const { sqAccess, sqReports, profile } = useAuth();
   const dialog = useDialog();
   const { data, error, reload } = useLoad(async () => {
     const [d, al] = await Promise.all([loadReportData(), supabase.from('sq_item_aliases').select('alias, supplier:sq_suppliers(name)').eq('item_id', id)]);
@@ -30,7 +30,7 @@ export default function ItemHistory() {
   const [focus, setFocus] = useState('');
   const pr = periodOf(period);
   const rep = useMemo(() => (data ? itemReport(data, id, pr.from, pr.to, focus || undefined) : null), [data, id, period, focus]); // eslint-disable-line react-hooks/exhaustive-deps
-  if (!sqAccess) return <Screen><Notice tone={colors.amber}>No access to supplier quotes.</Notice></Screen>;
+  if (!sqAccess && !sqReports) return <Screen><Notice tone={colors.amber}>No access to supplier quotes.</Notice></Screen>;
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const item = data.items.find((i) => i.id === id);
   if (!item || !rep) return <Screen><ErrorBanner message="Item not found" /></Screen>;
@@ -63,7 +63,7 @@ export default function ItemHistory() {
         <Row wrap gap={8}>
           <Button variant="secondary" title="Export PDF" onPress={() => dialog.run(() => reportPdf(rep, meta(), focusName ? `${focusName} against every other supplier and manufacturer who quoted this item.` : 'Every supplier and manufacturer who quoted this item, over time and on every job.'))} />
           <Button variant="secondary" title="Excel" onPress={() => dialog.run(() => reportExcel(rep, meta()))} />
-          <Button variant="ghost" title="Edit item" onPress={edit} />
+          {sqAccess ? <Button variant="ghost" title="Edit item" onPress={edit} /> : null}
         </Row>
       </Row>
       <Card>

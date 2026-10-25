@@ -288,6 +288,8 @@ function exceptions(d: ReportData, c: Ctx): Report {
 function competition(d: ReportData, c: Ctx): Report {
   const pk = c.pkgs.map((p) => ({ p, n: new Set((c.byPkg.get(p.id) ?? []).map((q) => q.supplier_id)).size, asked: d.invites.filter((x) => x.package_id === p.id).length }));
   const single = pk.filter((x) => x.n === 1);
+  // fewer than three suppliers: the reason is required when choosing
+  const few = pk.filter((x) => x.n > 0 && x.n < 3);
   const trades = new Map<string, { sups: Set<string>; label: string }>();
   for (const s of d.sups.filter((x) => x.active && c.whoOk(x.id))) for (const t of (s.trades ?? '').split(/[,;/]| and /)) {
     const k = t.trim().toLowerCase();
@@ -304,10 +306,13 @@ function competition(d: ReportData, c: Ctx): Report {
     tiles: [
       { label: 'Quotes per package on average', value: pk.length ? (avg(pk.map((x) => x.n)) ?? 0).toFixed(1) : '—' },
       { label: 'Packages with a single quote', value: String(single.length), tone: single.length ? 'red' : 'green' },
+      { label: 'Fewer than three quotes', value: String(few.length), sub: few.length ? `${few.filter((x) => !x.p.few_quotes_reason).length} without a reason yet` : undefined, tone: few.length ? 'amber' : 'green' },
       { label: 'Trades with only one supplier', value: String(tr.filter((t) => t.sups.size === 1).length), tone: tr.some((t) => t.sups.size === 1) ? 'amber' : undefined },
       { label: 'Suppliers not quoting for 6 months', value: String(dormant.length) },
     ],
     tables: [
+      { title: 'Fewer than three quotes – reason given', empty: 'Every package had three or more quotes.', head: [{ h: 'Package', w: 240, grow: true }, { h: 'Quotes', w: 80, right: true }, { h: 'Asked', w: 70, right: true }, { h: 'Reason', w: 320, grow: true }],
+        rows: few.map((x) => ({ key: `f${x.p.id}`, href: `/supplier-quotes/${x.p.id}`, cells: [{ t: x.p.title, sub: [x.p.code, x.p.project_name].filter(Boolean).join(' · ') }, { t: String(x.n), tone: x.n === 1 ? 'bad' : 'warn' }, { t: String(x.asked) }, { t: x.p.few_quotes_reason ?? (x.p.selected_quote_id ? 'no reason recorded' : 'not chosen yet – required when choosing'), tone: x.p.few_quotes_reason ? undefined : x.p.selected_quote_id ? 'bad' : undefined }] })) },
       { title: 'Packages without competition (one supplier quoted)', empty: 'Every package had two or more quotes.', head: [{ h: 'Package', w: 260, grow: true }, { h: 'Supplier', w: 200 }, { h: 'Asked', w: 80, right: true }, { h: 'Created', w: 110 }],
         rows: single.map((x) => ({ key: x.p.id, href: `/supplier-quotes/${x.p.id}`, cells: [{ t: x.p.title, sub: [x.p.code, x.p.project_name].filter(Boolean).join(' · ') }, { t: c.name((c.byPkg.get(x.p.id) ?? [])[0]?.supplier_id) }, { t: String(x.asked), tone: x.asked <= 1 ? 'bad' : undefined }, { t: fmtDate(x.p.created_at) }] })) },
       { title: 'Suppliers per trade ("What they supply" in the supplier list)', empty: 'Fill in "What they supply" for the suppliers to see the trades.', head: [{ h: 'Trade', w: 240, grow: true }, { h: 'Active suppliers', w: 120, right: true }, { h: 'Who', w: 300, grow: true }],

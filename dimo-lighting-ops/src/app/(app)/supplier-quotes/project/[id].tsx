@@ -14,10 +14,12 @@ import { supabase } from '@/lib/supabase';
 /** A project on one page: every package, who quoted, who is lowest and chosen, how far prices came down – then each package for the detail */
 export default function Project() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { sqAccess, profile } = useAuth();
+  const { sqAccess, sqReports, profile } = useAuth();
   const dialog = useDialog();
   const { data, error, reload } = useLoad(() => loadProject(id), [id]);
-  if (!sqAccess) return <Screen><Notice tone={colors.amber}>No access to supplier quotes.</Notice></Screen>;
+  if (!sqAccess && !sqReports) return <Screen><Notice tone={colors.amber}>No access to supplier quotes.</Notice></Screen>;
+  // report readers (SM Estimation, allowed estimators) see the project read only
+  const ro = !sqAccess;
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const { project: j, pkgs, quotes, suppliers } = data;
   const rep = projectReport(pkgs, quotes, suppliers);
@@ -86,11 +88,11 @@ export default function Project() {
           </Row>
         </View>
         <Row wrap gap={8}>
-          {!closed ? <Button title="Add a package" icon="＋" onPress={addPackage} /> : null}
-          <Button variant="secondary" title="Edit" onPress={edit} />
+          {!closed && !ro ? <Button title="Add a package" icon="＋" onPress={addPackage} /> : null}
+          {!ro ? <Button variant="secondary" title="Edit" onPress={edit} /> : null}
           <Button variant="secondary" title="Export PDF" onPress={() => dialog.run(() => reportPdf(rep, meta(), 'Every package of the project: who quoted, who is lowest and chosen, and how far prices came down.'))} />
           <Button variant="secondary" title="Excel" onPress={() => dialog.run(() => reportExcel(rep, meta()))} />
-          {closed ? <Button variant="secondary" title="Reopen" onPress={() => setStatus('open')} /> : <Button variant="ghost" title="Close" onPress={() => setStatus('closed')} />}
+          {ro ? null : closed ? <Button variant="secondary" title="Reopen" onPress={() => setStatus('open')} /> : <Button variant="ghost" title="Close" onPress={() => setStatus('closed')} />}
         </Row>
       </Row>
       {j.notes ? <Card><Muted>{j.notes}</Muted></Card> : null}

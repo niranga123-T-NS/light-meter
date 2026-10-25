@@ -21,12 +21,12 @@ const TONE = { good: { bg: '#E4F3EA', fg: '#1A6B41' }, warn: { bg: '#FDF0DC', fg
 /** A package: its quotes side by side on one basis (LKR delivered, exclusions priced back), the terms that decide, and the choice. */
 export default function Package() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { sqAccess, profile } = useAuth();
+  const { sqAccess, sqReports, profile } = useAuth();
   const dialog = useDialog();
   const people = usePeople();
   const [view, setView] = useState<BidStage | null>(null);
   const { data, error, reload } = useLoad(async () => ({ ...(await loadPackage(id)), ...(await loadRefs()), invites: ((await supabase.from('sq_package_invites').select('supplier_id').eq('package_id', id)).data ?? []).map((x) => x.supplier_id as string), projects: ((await supabase.from('sq_projects').select('id, code, name, client').order('name')).data ?? []) as { id: string; code: string; name: string; client: string | null }[] }), [id]);
-  if (!sqAccess) return <Screen><Notice tone={colors.amber}>No access to supplier quotes.</Notice></Screen>;
+  if (!sqAccess && !sqReports) return <Screen><Notice tone={colors.amber}>No access to supplier quotes.</Notice></Screen>;
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const { pkg, suppliers, items, costPct } = data;
   // every version is kept; the comparison and the choice use each supplier's latest version of the stage shown (Pre Bid or Post Bid)
@@ -49,7 +49,9 @@ export default function Package() {
   const past = shown !== stage;
   // our quotation's validity only matters while pricing the bid (Pre Bid)
   const ours = stage === 'pre_bid' ? pkg.our_validity : null;
-  const fixed = closed || past;
+  // report readers (SM Estimation, allowed estimators) see the package read only
+  const ro = !sqAccess;
+  const fixed = closed || past || ro;
   const preOf = (q: SqQuote) => [...chainOf(q)].reverse().find((x) => (x.bid_stage ?? 'pre_bid') === 'pre_bid');
   const preChoice = data.quotes.find((q) => q.id === pkg.pre_bid_quote_id);
   const project = data.projects.find((x) => x.id === pkg.project_id) ?? null;
@@ -119,8 +121,8 @@ export default function Package() {
           <Row wrap gap={6}>
             {!fixed ? <Button small title={pkg.selected_quote_id === q.id ? 'Chosen ✓' : 'Choose'} variant={pkg.selected_quote_id === q.id ? 'primary' : 'secondary'} onPress={() => (pkg.selected_quote_id === q.id ? unselect() : select(q))} /> : null}
             {!fixed ? <Button small variant="secondary" title="Revised / discounted quote" onPress={() => revise(q)} /> : null}
-            {past && !closed && !q.superseded_by ? <Button small variant="secondary" title="Carry into Post Bid" onPress={() => carry(q)} /> : null}
-            <Button small variant="ghost" title={fixed || q.superseded_by ? 'View' : 'Edit'} onPress={() => router.push({ pathname: '/supplier-quotes/quote', params: { pkg: pkg.id, id: q.id } })} />
+            {past && !closed && !ro && !q.superseded_by ? <Button small variant="secondary" title="Carry into Post Bid" onPress={() => carry(q)} /> : null}
+            {!ro ? <Button small variant="ghost" title={fixed || q.superseded_by ? 'View' : 'Edit'} onPress={() => router.push({ pathname: '/supplier-quotes/quote', params: { pkg: pkg.id, id: q.id } })} /> : null}
           </Row>
         );
         if (r.kind === 'sec' || !c) return '';
@@ -140,16 +142,21 @@ export default function Package() {
     const lowQ = quotes.length > 1 ? quotes.reduce((a, b) => (quoteTotals(b).total < quoteTotals(a).total ? b : a)) : null;
     const diff = lowQ ? quoteTotals(q).total - quoteTotals(lowQ).total : 0;
     const above = !!lowQ && diff > 0.5;
+    const nSup = new Set(quotes.map((x) => x.supplier_id)).size;
     const r = await dialog.prompt({
       title: `Choose ${sup(q)}?`,
       message: above
         ? `${sup(q)} is LKR ${lkrM(diff)} (${((diff / quoteTotals(lowQ!).total) * 100).toFixed(1)} %) above the lowest, ${sup(lowQ!)} at LKR ${lkrM(quoteTotals(lowQ!).total)}.${stage === 'post_bid' ? ' This is shown as a potential saving not taken.' : ' This is carried into our bid.'} Say why ${sup(q)} is the better choice.`
         : 'The lowest comparable total. The reason is kept with the package.',
-      fields: [{ key: 'reason', label: above ? 'Reason for not choosing the lowest' : 'Reason for the choice', type: 'multiline', required: true, hint: above ? 'e.g. lowest does not meet the specification; lead time too long; better warranty and credit terms' : undefined }],
+      fields: [
+        { key: 'reason', label: above ? 'Reason for not choosing the lowest' : 'Reason for the choice', type: 'multiline', required: true, hint: above ? 'e.g. lowest does not meet the specification; lead time too long; better warranty and credit terms' : undefined },
+        // fewer than three suppliers quoting: why there is not more competition
+        ...(nSup < 3 ? [{ key: 'few', label: `Reason for only ${nSup} quote${nSup === 1 ? '' : 's'} (three are expected)`, type: 'multiline' as const, required: true, initial: pkg.few_quotes_reason ?? '', hint: 'e.g. only two approved makers; others asked but did not quote; client-nominated brand' }] : []),
+      ],
       confirmLabel: 'Choose',
     });
     if (!r) return;
-    await dialog.run(async () => { await rpc('sq_select', { p_package: pkg.id, p_quote: q.id, p_reason: r.reason }); reload(); }, 'Supplier chosen');
+    await dialog.run(async () => { await rpc('sq_select', { p_package: pkg.id, p_quote: q.id, p_reason: r.reason, p_few_reason: r.few ?? null }); reload(); }, 'Supplier chosen');
   };
   const unselect = async () => {
     if (!(await dialog.confirm('Clear the choice?', 'The package goes back to comparing.'))) return;
@@ -288,13 +295,13 @@ export default function Package() {
         </View>
         <Row wrap gap={8}>
           {!fixed ? <Button title={stage === 'post_bid' ? 'Add a Post Bid quote' : 'Add a quote'} icon="＋" onPress={() => router.push({ pathname: '/supplier-quotes/quote', params: { pkg: pkg.id } })} /> : null}
-          {!closed && stage === 'pre_bid' ? <Button variant="secondary" title="Move to Post Bid" onPress={toPostBid} /> : null}
-          {!closed && stage === 'post_bid' && !postCount ? <Button variant="ghost" title="Back to Pre Bid" onPress={toPreBid} /> : null}
-          {stage === 'post_bid' && !pkg.pre_bid_quote_id ? <Button variant="secondary" title={pkg.pre_bid_value != null ? `Pre Bid value LKR ${lkrM(Number(pkg.pre_bid_value))}` : 'Enter Pre Bid value'} onPress={setPreBid} /> : null}
-          <Button variant="secondary" title="Edit" onPress={edit} />
+          {!closed && !ro && stage === 'pre_bid' ? <Button variant="secondary" title="Move to Post Bid" onPress={toPostBid} /> : null}
+          {!closed && !ro && stage === 'post_bid' && !postCount ? <Button variant="ghost" title="Back to Pre Bid" onPress={toPreBid} /> : null}
+          {stage === 'post_bid' && !pkg.pre_bid_quote_id && !ro ? <Button variant="secondary" title={pkg.pre_bid_value != null ? `Pre Bid value LKR ${lkrM(Number(pkg.pre_bid_value))}` : 'Enter Pre Bid value'} onPress={setPreBid} /> : null}
+          {!ro ? <Button variant="secondary" title="Edit" onPress={edit} /> : null}
           <Button variant="secondary" title="Export PDF" onPress={() => dialog.run(() => reportPdf(pdfRep, { key: 'supplier_package', title: `${pkg.title} – supplier quotes`, filters: [pkg.code, project?.name ?? pkg.project_name, STAGE_LABEL[stage]].filter(Boolean).join(' · '), period: fmtDate(pkg.created_at), currencyNote: 'LKR delivered – freight, discounts and priced-back exclusions included', generatedBy: `${profile?.full_name ?? ''} – ${profile ? ROLE_SHORT[profile.role] : ''}`, landscape: true }, 'How every supplier moved from the first offer through each revision, ranks before and after, and every version in order.'))} />
-          {closed ? <Button variant="secondary" title="Reopen" onPress={() => setStatus('open')} /> : <Button variant="secondary" title="Close" onPress={() => setStatus('closed')} />}
-          {pkg.status === 'open' ? <Button variant="ghost" title="Cancel package" onPress={() => setStatus('cancelled')} /> : null}
+          {ro ? null : closed ? <Button variant="secondary" title="Reopen" onPress={() => setStatus('open')} /> : <Button variant="secondary" title="Close" onPress={() => setStatus('closed')} />}
+          {pkg.status === 'open' && !ro ? <Button variant="ghost" title="Cancel package" onPress={() => setStatus('cancelled')} /> : null}
         </Row>
       </Row>
       {stage === 'post_bid' ? (
@@ -306,7 +313,7 @@ export default function Package() {
       {past ? <Notice tone={colors.blue}>{`Pre Bid prices – kept as they were for the tender.${preChoice ? ` Chosen at Pre Bid: ${sup(preChoice)}${pkg.pre_bid_reason ? ` (${pkg.pre_bid_reason})` : ''}.` : ''} Carry a supplier on to ask for a Post Bid price.`}</Notice> : null}
       <Row wrap gap={8} style={{ alignItems: 'center' }}>
         <Muted>{`Asked to quote: ${[...askedIds].map((x) => `${suppliers.find((s) => s.id === x)?.name ?? '—'}${data.quotes.some((q) => q.supplier_id === x) ? '' : ' (no quote yet)'}`).join(', ') || 'nobody recorded'}`}</Muted>
-        {!closed ? <Button small variant="ghost" title="Edit who was asked" onPress={editAsked} /> : null}
+        {!closed && !ro ? <Button small variant="ghost" title="Edit who was asked" onPress={editAsked} /> : null}
       </Row>
       {warnings.length && !past ? <Notice tone={colors.amber}>{warnings.join('\n')}</Notice> : null}
       {analysis.tiles.length ? (
@@ -329,11 +336,11 @@ export default function Package() {
                   <Muted>{`${sKind(q)}${revLabel(q)}${chainOf(q).length > 1 ? ` of ${chainOf(q).length} versions` : ''} · ${q.quote_no ?? 'no ref.'} · ${q.quote_date ? fmtDate(q.quote_date) : 'no date'} · ${{ manual: 'typed in', excel: 'read from Excel', pdf: 'read from PDF' }[q.source]}`}</Muted>
                   <Row wrap gap={6}>
                     {!fixed ? <Button small title={pkg.selected_quote_id === q.id ? 'Chosen ✓' : 'Choose'} variant={pkg.selected_quote_id === q.id ? 'primary' : 'secondary'} onPress={() => (pkg.selected_quote_id === q.id ? unselect() : select(q))} /> : null}
-                    <Button small variant="secondary" title={past || q.superseded_by ? 'View' : 'Edit'} onPress={() => router.push({ pathname: '/supplier-quotes/quote', params: { pkg: pkg.id, id: q.id } })} />
+                    {!ro ? <Button small variant="secondary" title={past || q.superseded_by ? 'View' : 'Edit'} onPress={() => router.push({ pathname: '/supplier-quotes/quote', params: { pkg: pkg.id, id: q.id } })} /> : null}
                     {!fixed ? <Button small variant="secondary" title="Revised / discounted quote" onPress={() => revise(q)} /> : null}
-                    {past && !closed && !q.superseded_by ? <Button small variant="secondary" title="Carry into Post Bid" onPress={() => carry(q)} /> : null}
+                    {past && !closed && !ro && !q.superseded_by ? <Button small variant="secondary" title="Carry into Post Bid" onPress={() => carry(q)} /> : null}
                     {past && q.superseded_by ? <Pill label="Carried into Post Bid" tone={colors.blue} /> : null}
-                    {!past ? <Button small variant="ghost" title="Delete" onPress={() => del(q)} /> : null}
+                    {!past && !ro ? <Button small variant="ghost" title="Delete" onPress={() => del(q)} /> : null}
                   </Row>
                 </View>
               ))}
@@ -357,6 +364,7 @@ export default function Package() {
               </>
             ) : null}
             {notLow ? <KeyValue label={notLow.stage === 'post_bid' ? 'Potential saving – lowest not chosen' : 'Above the lowest'} value={`LKR ${lkrM(notLow.diff)} (${notLow.pct > 0 ? '+' : ''}${notLow.pct.toFixed(1)} %) – lowest ${sup(notLow.low)} at LKR ${lkrM(quoteTotals(notLow.low).total)}`} wide /> : null}
+            {pkg.few_quotes_reason ? <KeyValue label="Fewer than three quotes – reason" value={pkg.few_quotes_reason} wide /> : null}
             {preChoice ? <KeyValue label="Chosen at Pre Bid" value={`${sup(preChoice)}${pkg.pre_bid_reason ? ` – ${pkg.pre_bid_reason}` : ''}`} wide /> : null}
           </Card>
         </Section>

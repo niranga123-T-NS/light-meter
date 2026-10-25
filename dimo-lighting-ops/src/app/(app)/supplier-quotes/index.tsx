@@ -17,7 +17,7 @@ type Tab = 'projects' | 'rates' | 'suppliers' | 'access';
 
 /** Supplier quotes: projects with their packages, quotes and comparison, the rate library, the suppliers, and who has access (GM / DGM). */
 export default function SupplierQuotes() {
-  const { sqAccess, realRole } = useAuth();
+  const { sqAccess, realRole, sqReports } = useAuth();
   const params = useLocalSearchParams<{ tab?: Tab }>();
   const tab: Tab = params.tab && ['projects', 'rates', 'suppliers', 'access'].includes(params.tab) ? params.tab : 'projects';
   if (!sqAccess)
@@ -38,7 +38,7 @@ export default function SupplierQuotes() {
       <Stack.Screen options={{ title: 'Supplier quotes' }} />
       <Row wrap gap={8} style={{ alignItems: 'center' }}>
         <View style={{ flexGrow: 1 }}><Segmented value={tab} onChange={(v) => router.setParams({ tab: v === 'projects' ? undefined : v })} options={opts} wrap /></View>
-        {realRole === 'gm' ? <Button title="Supplier reports" icon="▤" onPress={() => router.push('/supplier-quotes/reports')} /> : null}
+        {sqReports ? <Button title="Supplier reports" icon="▤" onPress={() => router.push('/supplier-quotes/reports')} /> : null}
       </Row>
       {tab === 'projects' ? <Projects /> : tab === 'rates' ? <RateLibrary /> : tab === 'suppliers' ? <Suppliers /> : <Access />}
       <Muted>Uploaded quote files are only read on this device and never stored – only the values you check and save are kept.</Muted>
@@ -217,7 +217,7 @@ function RateLibrary() {
 // ---------------------------------------------------------------- suppliers
 function Suppliers() {
   const dialog = useDialog();
-  const { realRole } = useAuth();
+  const { sqReports } = useAuth();
   const { data, error, reload } = useLoad(async () => {
     const { data: s, error: e } = await supabase.from('sq_suppliers').select('*').order('name');
     if (e) throw new Error(e.message);
@@ -265,7 +265,7 @@ function Suppliers() {
       <DataTable
         rows={data.sups}
         keyOf={(s) => s.id}
-        onPress={(s) => (realRole === 'gm' ? router.push(`/supplier-quotes/supplier/${s.id}`) : edit(s))}
+        onPress={(s) => (sqReports ? router.push(`/supplier-quotes/supplier/${s.id}`) : edit(s))}
         emptyTitle="No suppliers yet"
         rowStyle={(s) => (s.active ? undefined : { opacity: 0.5 })}
         columns={[
@@ -274,7 +274,7 @@ function Suppliers() {
           { h: 'Contact', w: 200, v: (s) => [s.contact_name, s.phone, s.email].filter(Boolean).join(' · ') || '—' },
           { h: 'Quotes', w: 70, right: true, v: (s) => String(data.quotes.filter((q) => q.supplier_id === s.id).length) },
           { h: 'Chosen', w: 70, right: true, v: (s) => String(data.quotes.filter((q) => q.supplier_id === s.id && data.chosen.has(q.id)).length) },
-          ...(realRole === 'gm' ? [{ h: '', w: 80, v: (s: Supplier) => <Button small variant="ghost" title="Edit" onPress={() => edit(s)} /> }] : []),
+          ...(sqReports ? [{ h: '', w: 80, v: (s: Supplier) => <Button small variant="ghost" title="Edit" onPress={() => edit(s)} /> }] : []),
         ]}
       />
     </>
@@ -282,7 +282,7 @@ function Suppliers() {
 }
 
 // ---------------------------------------------------------------- access (GM / DGM)
-type Grant = { id: string; user_id: string; reason: string; granted_by: string; granted_at: string; cancelled_at: string | null; cancelled_by: string | null; cancel_reason: string | null };
+type Grant = { id: string; user_id: string; reason: string; reports_only?: boolean; granted_by: string; granted_at: string; cancelled_at: string | null; cancelled_by: string | null; cancel_reason: string | null };
 function Access() {
   const dialog = useDialog();
   const people = usePeople();
@@ -294,12 +294,13 @@ function Access() {
   if (!data) return error ? <ErrorBanner message={error} /> : <Loading />;
   const name = (id?: string | null) => (id ? people[id]?.full_name ?? '—' : '—');
   const open = data.filter((g) => !g.cancelled_at), past = data.filter((g) => g.cancelled_at);
-  const ops = Object.values(people).filter((p) => p.active && (p.role === 'operations_exec' || p.role === 'gm'));
+  const ops = Object.values(people).filter((p) => p.active && (p.role === 'operations_exec' || p.role === 'gm' || p.role === 'sm_estimation'));
   const allow = async () => {
     const r = await dialog.prompt({
       title: 'Allow a person',
-      message: 'They can see supplier quotes and add, upload, enter and edit them – until you cancel it.',
+      message: 'Supplier quotes: they see the quotes and add, upload, enter and edit them. Reports only: they open the supplier reports and the project, package, item and supplier analyses, read only. Until you cancel it.',
       fields: [
+        { key: 'kind', label: 'Access', type: 'select', required: true, initial: 'full', options: [{ value: 'full', label: 'Supplier quotes – see and edit' }, { value: 'reports', label: 'Supplier reports only – read only (e.g. estimators)' }] },
         { key: 'u', label: 'Person', type: 'select', required: true, searchable: true, options: Object.values(people)
             .filter((p) => p.active && !['gm', 'operations_exec', 'guest', 'sub_supervisor'].includes(p.role) && !open.some((g) => g.user_id === p.id))
             .sort((a, b) => a.full_name.localeCompare(b.full_name)).map((p) => ({ value: p.id, label: p.full_name, hint: ROLE_SHORT[p.role] })) },
@@ -308,7 +309,7 @@ function Access() {
       confirmLabel: 'Allow',
     });
     if (!r) return;
-    await dialog.run(async () => { await rpc('sq_grant', { p_user: r.u, p_reason: r.reason }); reload(); }, 'Access given – the person is told');
+    await dialog.run(async () => { await rpc('sq_grant', { p_user: r.u, p_reason: r.reason, p_reports_only: r.kind === 'reports' }); reload(); }, 'Access given – the person is told');
   };
   const cancel = async (g: Grant) => {
     const r = await dialog.prompt({ title: `End ${name(g.user_id)}'s access?`, fields: [{ key: 'reason', label: 'Reason (optional)', type: 'multiline' }], confirmLabel: 'End access', danger: true });
@@ -317,17 +318,17 @@ function Access() {
   };
   return (
     <>
-      <Notice>The Operations Executive and the GM / DGM always see supplier quotes. Anyone else needs your permission, which lasts until you cancel it.</Notice>
+      <Notice>The Operations Executive and the GM / DGM always see supplier quotes; the SM Estimation always opens the supplier reports (read only). Anyone else needs your permission – for the quotes, or for the reports only – which lasts until you cancel it.</Notice>
       <Row><Button title="Allow a person" icon="＋" onPress={allow} /></Row>
       <Section title="Always">
         <Card style={{ padding: 0, overflow: 'hidden' }}>
-          {ops.map((p) => <ListRow key={p.id} title={p.full_name} subtitle={ROLE_SHORT[p.role]} />)}
+          {ops.map((p) => <ListRow key={p.id} title={p.full_name} subtitle={`${ROLE_SHORT[p.role]}${p.role === 'sm_estimation' ? ' · reports only' : ''}`} />)}
         </Card>
       </Section>
       <Section title={`Allowed by you (${open.length})`}>
         <Card style={{ padding: 0, overflow: 'hidden' }}>
           {open.length ? open.map((g) => (
-            <ListRow key={g.id} title={name(g.user_id)} subtitle={`${people[g.user_id] ? ROLE_SHORT[people[g.user_id].role] : ''} · since ${fmtDate(g.granted_at)} · ${g.reason}`} right={<Button small variant="secondary" title="End access" onPress={() => cancel(g)} />} />
+            <ListRow key={g.id} title={name(g.user_id)} subtitle={`${g.reports_only ? 'Reports only' : 'Supplier quotes'} · ${people[g.user_id] ? ROLE_SHORT[people[g.user_id].role] : ''} · since ${fmtDate(g.granted_at)} · ${g.reason}`} right={<Button small variant="secondary" title="End access" onPress={() => cancel(g)} />} />
           )) : <Empty title="Nobody else has access" />}
         </Card>
       </Section>

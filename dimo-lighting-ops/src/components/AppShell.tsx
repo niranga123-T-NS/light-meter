@@ -83,7 +83,7 @@ export function Sidebar() {
   const me = useMe();
   const pathname = usePathname();
   const { counts } = useShellCounts();
-  const nav = navFor(me.role, useAuth().realRole, useAuth().sqAccess);
+  const nav = navFor(me.role, useAuth().realRole, useAuth().sqAccess, useAuth().sqReports);
   return (
     <View style={{ width: 236, backgroundColor: '#15171C', paddingTop: 18 }}>
       <View style={{ paddingHorizontal: 18, marginBottom: 18 }}>
@@ -141,7 +141,7 @@ export function BottomBar() {
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const { counts } = useShellCounts();
-  const nav = navFor(me.role, useAuth().realRole, useAuth().sqAccess);
+  const nav = navFor(me.role, useAuth().realRole, useAuth().sqAccess, useAuth().sqReports);
   const main = nav.slice(0, 4);
   const moreActive = !main.some((m) => isActive(pathname, m.href)) && pathname !== '/';
   return (

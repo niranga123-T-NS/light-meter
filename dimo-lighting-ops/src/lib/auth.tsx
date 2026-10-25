@@ -23,6 +23,8 @@ type AuthState = {
   setHighLevelOn: (on: boolean) => void;
   /** Supplier quotes: the Operations Executive, the GM / DGM and people the GM / DGM allows (until cancelled) */
   sqAccess: boolean;
+  /** Supplier reports (read only): the GM / DGM, the SM Estimation and people the GM / DGM allows for the reports */
+  sqReports: boolean;
 };
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -35,6 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [highLevel, setHighLevel] = useState<{ id: string; ends_at: string } | null>(null);
   const [highLevelOn, setOn] = useState(false);
   const [sqAccess, setSqAccess] = useState(false);
+  const [sqReports, setSqReports] = useState(false);
   const setHighLevelOn = useCallback((on: boolean) => {
     setHighLevelView(on);
     setOn(on);
@@ -57,8 +60,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const g = ((data ?? [])[0] as { id: string; ends_at: string } | undefined) ?? null;
     setHighLevel(g);
     // access to Supplier quotes is checked with the high level access (the GM / DGM can give or cancel it at any time)
-    if (uid) supabase.rpc('sq_access_me').then(({ data: ok }) => setSqAccess(!!ok));
-    else setSqAccess(false);
+    if (uid) {
+      supabase.rpc('sq_access_me').then(({ data: ok }) => setSqAccess(!!ok));
+      supabase.rpc('sq_reports_me').then(({ data: ok }) => setSqReports(!!ok));
+    } else {
+      setSqAccess(false);
+      setSqReports(false);
+    }
     if (!g) {
       // ended or cancelled: back to the user's own view
       setHighLevelView(false);
@@ -132,6 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       highLevelOn: viewing,
       setHighLevelOn,
       sqAccess: sqAccess && !viewing,
+      sqReports: sqReports && !viewing,
       loading,
       error,
       signIn: async (email, password) => {
@@ -153,7 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       reloadProfile: () => loadProfile(session),
     }),
-    [session, profile, loading, error, loadProfile, highLevel, viewing, setHighLevelOn, sqAccess],
+    [session, profile, loading, error, loadProfile, highLevel, viewing, setHighLevelOn, sqAccess, sqReports],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
