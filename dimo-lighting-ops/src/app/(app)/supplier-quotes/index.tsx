@@ -8,7 +8,7 @@ import { useAuth } from '@/lib/auth';
 import { fmtDate, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { ROLE_SHORT } from '@/lib/roles';
-import { discFactor, jobField, jobSource, KIND_LABEL, KIND_OPTIONS, lkr0, lkrM, loadJobs, loadRefs, quoteTotals, STAGE_LABEL, type SqItem, type SqJob, type SqPackage, type SqQuote, type Supplier } from '@/lib/supplierQuotes';
+import { discFactor, jobField, jobSource, KIND_LABEL, lkr0, lkrM, loadJobs, loadRefs, loadSystemSuppliers, originText, quoteTotals, supplierFields, supplierRow, STAGE_LABEL, type SqItem, type SqJob, type SqPackage, type SqQuote, type Supplier, type SysSupplier } from '@/lib/supplierQuotes';
 import { rpc, supabase } from '@/lib/supabase';
 
 type Tab = 'packages' | 'rates' | 'suppliers' | 'access';
@@ -197,31 +197,42 @@ function Suppliers() {
     return { sups: (s ?? []) as Supplier[], quotes: (q ?? []) as { id: string; supplier_id: string }[], chosen: new Set((sel ?? []).map((x) => x.selected_quote_id as string)) };
   }, []);
   if (!data) return error ? <ErrorBanner message={error} /> : <Loading />;
-  const edit = async (s?: Supplier) => {
+  const edit = async (s?: Supplier, from?: SysSupplier) => {
     const r = await dialog.prompt({
-      title: s ? 'Edit supplier' : 'New supplier / manufacturer / subcontractor',
+      title: s ? 'Edit supplier' : from ? `Add ${from.name}` : 'New supplier / manufacturer / subcontractor',
+      message: from ? `From ${from.source}. Check the details before adding.` : undefined,
       fields: [
-        { key: 'name', label: 'Name', required: true, initial: s?.name },
-        { key: 'kind', label: 'Type', type: 'select', required: true, initial: s?.kind ?? 'supply', options: KIND_OPTIONS },
-        { key: 'trades', label: 'What they supply', initial: s?.trades ?? '', hint: 'e.g. floodlights, masts, civil works' },
-        { key: 'contact', label: 'Contact person', initial: s?.contact_name ?? '' },
-        { key: 'phone', label: 'Phone', initial: s?.phone ?? '' },
-        { key: 'email', label: 'Email', initial: s?.email ?? '' },
+        ...supplierFields(s ?? from),
         { key: 'notes', label: 'Notes', type: 'multiline', initial: s?.notes ?? '' },
         ...(s ? [{ key: 'active', label: 'Status', type: 'select' as const, initial: s.active ? 'yes' : 'no', options: [{ value: 'yes', label: 'Active' }, { value: 'no', label: 'Not used any more' }] }] : []),
       ],
     });
     if (!r) return;
-    const row = { name: r.name.trim(), kind: r.kind, trades: r.trades?.trim() || null, contact_name: r.contact?.trim() || null, phone: r.phone?.trim() || null, email: r.email?.trim() || null, notes: r.notes?.trim() || null, ...(s ? { active: r.active !== 'no' } : {}) };
+    const row = { ...supplierRow(r), notes: r.notes?.trim() || null, ...(s ? { active: r.active !== 'no' } : {}) };
     await dialog.run(async () => {
       const { error: e } = s ? await supabase.from('sq_suppliers').update(row).eq('id', s.id) : await supabase.from('sq_suppliers').insert(row);
       if (e) throw new Error(/duplicate|unique/i.test(e.message) ? 'A supplier with this name is already in the list' : e.message);
       reload();
     }, 'Saved');
   };
+  // suppliers and manufacturers already named in manufacturers, brands, foreign and local orders or material requests
+  const fromSystem = async () => {
+    const sys = await loadSystemSuppliers().catch(() => [] as SysSupplier[]);
+    if (!sys.length) return dialog.alert('Nothing new to add', 'Every supplier and manufacturer named in the system is already in the list.');
+    const r = await dialog.prompt({
+      title: 'Add from system records',
+      message: 'Names from manufacturers, brands, foreign and local orders and material requests that are not in the supplier list yet.',
+      fields: [{ key: 'i', label: 'Supplier or manufacturer', type: 'select', searchable: true, required: true, options: sys.map((x, i) => ({ value: String(i), label: `${x.name} · ${x.source} · ${x.origin === 'foreign' ? 'Foreign' : 'Local'}` })) }],
+      confirmLabel: 'Next',
+    });
+    if (r?.i) await edit(undefined, sys[Number(r.i)]);
+  };
   return (
     <>
-      <Row><Button title="New supplier" icon="＋" onPress={() => edit()} /></Row>
+      <Row wrap gap={8}>
+        <Button title="New supplier / manufacturer" icon="＋" onPress={() => edit()} />
+        <Button variant="secondary" title="Add from system records" onPress={fromSystem} />
+      </Row>
       <DataTable
         rows={data.sups}
         keyOf={(s) => s.id}
@@ -230,7 +241,7 @@ function Suppliers() {
         rowStyle={(s) => (s.active ? undefined : { opacity: 0.5 })}
         columns={[
           { h: 'Supplier / manufacturer / subcontractor', w: 240, grow: true, v: (s) => <View><Text style={{ fontWeight: '600', color: colors.ink }}>{s.name}</Text><Muted>{s.trades ?? ''}</Muted></View> },
-          { h: 'Type', w: 130, v: (s) => KIND_LABEL[s.kind] },
+          { h: 'Type', w: 150, v: (s) => <View><Text style={{ color: colors.ink }}>{KIND_LABEL[s.kind]}</Text><Muted>{originText(s)}</Muted></View> },
           { h: 'Contact', w: 200, v: (s) => [s.contact_name, s.phone, s.email].filter(Boolean).join(' · ') || '—' },
           { h: 'Quotes', w: 70, right: true, v: (s) => String(data.quotes.filter((q) => q.supplier_id === s.id).length) },
           { h: 'Chosen', w: 70, right: true, v: (s) => String(data.quotes.filter((q) => q.supplier_id === s.id && data.chosen.has(q.id)).length) },

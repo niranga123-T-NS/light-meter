@@ -9660,5 +9660,23 @@ do $$ declare pk uuid; sp uuid; q uuid; begin
 end $$;
 reset role;
 
+-- Supplier quotes: suppliers from other modules' records, local / foreign
+reset role;
+insert into public.manufacturers (name, local_agent) values ('Records Test Mfr GmbH', 'Agent Lanka');
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare r record; begin
+  select * into r from public.sq_system_suppliers() where name = 'Records Test Mfr GmbH';
+  assert r.source = 'Manufacturers' and r.kind = 'manufacturer' and r.origin = 'foreign', 'manufacturer offered from the system';
+  insert into public.sq_suppliers (name, kind, origin, country, address) values ('Records Test Mfr GmbH', 'manufacturer', 'foreign', 'Germany', 'Berlin');
+  assert not exists (select 1 from public.sq_system_suppliers() where lower(name) = 'records test mfr gmbh'), 'not offered again once in the list';
+  begin insert into public.sq_suppliers (name, origin) values ('Bad origin', 'mars'); assert false, 'origin checked'; exception when check_violation then null; end;
+end $$;
+reset role;
+select pg_temp.act_as('lighting_designer'); set role authenticated;
+do $$ begin
+  begin perform public.sq_system_suppliers(); assert false, 'no access without supplier quotes'; exception when raise_exception then null; end;
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
