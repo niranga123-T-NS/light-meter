@@ -1,8 +1,8 @@
-import { PALETTE, type ChartSpec } from './charts';
 import { fmtDate } from './format';
 import { supabase } from './supabase';
 import { atStage, chains, KIND_LABEL, lkrM, normQuote, notLowest, originText, postBidSaving, quoteTotals, STAGE_LABEL, type SqPackage, type SqQuote, type Supplier } from './supplierQuotes';
-import type { Report, Tone } from './supplierReports';
+import { dumbbell, lollipop, priceWalk, rankRace, savingSteps, SERIES, waterfall } from './sqCharts';
+import type { RChart, Report, Tone } from './supplierReports';
 
 // Supplier quotes analysis on one page: the project summary (every package, who quoted, who was lowest and chosen, how far prices
 // came down) and the package analysis (how each supplier moved from the first offer through every revision, ranks before and after).
@@ -36,10 +36,6 @@ const pctCh = (a: number, b: number) => (a ? ((b - a) / a) * 100 : 0);
 const toM = (v: number | null) => (v == null ? null : Math.round(v / 1e4) / 100);
 const short = (s: string, n = 16) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 const moveTone = (v: number | null): Tone | undefined => (v == null ? undefined : v < -0.05 ? 'good' : v > 0.05 ? 'bad' : undefined);
-const chart = (type: ChartSpec['type'], categories: string[], series: { name: string; values: (number | null)[] }[], yLabel: string, h = 280): ChartSpec => ({
-  type, title: '', xLabel: '', yLabel, categories, legend: true, showValues: false, yMin: null, yMax: null, w: 760, h,
-  series: series.map((s, i) => ({ ...s, color: PALETTE[i % PALETTE.length] })),
-});
 
 /** Per package: each supplier's versions, the quotes compared now, the lowest and the chosen */
 function packageFacts(p: SqPackage, quotes: SqQuote[], total: (q: SqQuote) => number) {
@@ -52,6 +48,19 @@ function packageFacts(p: SqPackage, quotes: SqQuote[], total: (q: SqQuote) => nu
   const chosen = all.find((q) => q.id === p.selected_quote_id) ?? null;
   const moves = ch.filter((c) => c.length > 1).map((c) => pctCh(total(c[0]), total(c[c.length - 1])));
   return { all, ch, set, low, lowFirst, chosen, moves, avgMove: moves.length ? moves.reduce((a, b) => a + b, 0) / moves.length : null };
+}
+
+/** Project charts: Pre Bid value → final price for the Post Bid packages and the saving % per package; otherwise lowest first offer → lowest now per package */
+function projectCharts(xs: { f: ReturnType<typeof packageFacts> & { p: SqPackage }; sv: ReturnType<typeof postBidSaving> }[], total: (q: SqQuote) => number): RChart[] {
+  const post = xs.filter((x) => x.sv?.basis && x.sv.now != null && x.f.low);
+  const out: RChart[] = [];
+  if (post.length) {
+    out.push({ title: `Pre Bid value → Post Bid chosen – ${post.length} package(s) (LKR M)`, why: 'Green is what negotiation took off our bid value; red is what was added by not choosing the lowest.', draw: waterfall(savingSteps(post.map((x) => ({ basis: x.sv!.basis!.value, low: total(x.f.low!), now: x.sv!.now! })))) });
+    out.push({ title: 'Each package against its Pre Bid value', why: 'Below zero = cheaper than our bid value (a saving).', draw: lollipop(post.map((x) => ({ name: x.f.p.title, sub: `${x.f.p.code} · ${M(x.sv!.now)} vs ${M(x.sv!.basis!.value)}`, v: x.sv!.pct ?? 0 }))) });
+  }
+  const moved = xs.filter((x) => x.f.lowFirst != null && x.f.low);
+  if (moved.length && (!post.length || moved.length > post.length)) out.push({ title: 'Each package – lowest first offer → lowest now (LKR M)', why: 'Hollow dot the lowest first offer, solid dot the lowest price now.', draw: dumbbell(moved.map((x, i) => ({ name: x.f.p.title, sub: `${x.f.p.code} · ${x.f.ch.length} offer(s)`, a: toM(x.f.lowFirst) ?? 0, b: toM(total(x.f.low!)) ?? 0, color: SERIES[i % SERIES.length] }))) });
+  return out;
 }
 
 // ---------------------------------------------------------------- the project on one page
@@ -96,18 +105,7 @@ export function projectReport(pkgs: SqPackage[], quotes: SqQuote[], sups: Suppli
       ...(missed > 0.5 ? [{ label: 'Potential saving – lowest not chosen at Post Bid', value: `LKR ${M(missed)}`, sub: `${nls.filter((x) => x.n.stage === 'post_bid').length} package(s) – reasons below`, tone: 'red' as const }] : []),
       ...(carried > 0.5 ? [{ label: 'Above the lowest at Pre Bid (carried into our bid)', value: `LKR ${M(carried)}`, sub: `${nls.filter((x) => x.n.stage !== 'post_bid').length} package(s) – reasons below`, tone: 'amber' as const }] : []),
     ],
-    charts: facts.length ? [
-      { title: 'Each package – lowest first offer, lowest now and chosen (LKR M)', spec: chart('bar', facts.map((f) => short(f.p.title)), [
-        { name: 'Lowest first offer', values: facts.map((f) => toM(f.lowFirst)) },
-        { name: 'Lowest now', values: facts.map((f) => toM(f.low ? total(f.low) : null)) },
-        { name: 'Chosen', values: facts.map((f) => toM(f.chosen ? total(f.chosen) : null)) },
-      ], 'LKR M') },
-      { title: 'Who quoted, who was lowest, who was chosen (packages)', spec: { ...chart('bar', supRows.slice(0, 10).map((r) => short(name(r.id))), [
-        { name: 'Quoted', values: supRows.slice(0, 10).map((r) => r.quoted) },
-        { name: 'Lowest', values: supRows.slice(0, 10).map((r) => r.lowest) },
-        { name: 'Chosen', values: supRows.slice(0, 10).map((r) => r.won) },
-      ], 'Packages'), yMin: 0, yMax: Math.max(4, ...supRows.map((r) => r.quoted)) } },
-    ] : [],
+    charts: projectCharts(facts.map((f) => ({ f, sv: postBidSaving(f.p, quotes, name) })), total),
     tables: [
       {
         title: 'Packages', empty: 'No package yet – add the first one.',
@@ -192,7 +190,6 @@ export function packageReport(p: SqPackage, quotes: SqQuote[], sups: Supplier[])
   const maxRev = Math.max(...rows.map((r) => r.c.length));
   const moved = rows.filter((r) => r.c.length > 1);
   const best = moved.length ? moved.reduce((a, b) => (b.move < a.move ? b : a)) : null;
-  const post = p.stage === 'post_bid' ? rows.filter((r) => r.pre && r.now && r.now.id !== r.pre.id) : [];
   const sv = postBidSaving(p, quotes, name);
   const nl = notLowest(p, quotes, name);
   const versions = [...f.all].sort((a, b) => (a.quote_date ?? a.created_at).localeCompare(b.quote_date ?? b.created_at) || a.revision - b.revision);
@@ -209,12 +206,9 @@ export function packageReport(p: SqPackage, quotes: SqQuote[], sups: Supplier[])
       ] : []),
     ],
     charts: [
-      { title: 'How each supplier moved – comparable total per version (LKR M)', spec: chart('line', Array.from({ length: maxRev }, (_, i) => (i ? `R${i}` : 'First offer')), rows.map((r) => ({ name: name(r.first.supplier_id), values: Array.from({ length: maxRev }, (_, i) => { const q = r.c.find((x) => x.revision === i); return q ? toM(total(q)) : null; }) })), 'LKR M') },
-      { title: 'First offer against latest (LKR M)', spec: chart('bar', rows.map((r) => short(name(r.first.supplier_id))), [
-        { name: 'First offer', values: rows.map((r) => toM(total(r.first))) },
-        ...(post.length ? [{ name: 'Last Pre Bid', values: rows.map((r) => toM(r.pre ? total(r.pre) : null)) }] : []),
-        { name: 'Latest', values: rows.map((r) => toM(total(r.last))) },
-      ], 'LKR M') },
+      { title: 'Price walk – every offer by date (LKR M)', why: 'Each step down is a revised quote; the line ends at the price compared now. The dashed line is the lowest now.', draw: priceWalk(rows.map((r, i) => ({ name: name(r.first.supplier_id), color: SERIES[i % SERIES.length], pts: r.c.map((q) => ({ date: q.quote_date ?? q.created_at, v: toM(total(q)) ?? 0 })) }))) },
+      { title: 'First offer → latest (LKR M)', why: 'Hollow dot the first offer, solid dot the latest; the lowest now is on top.', draw: dumbbell(rows.map((r, i) => ({ name: name(r.first.supplier_id), sub: `${r.c.length} version(s)${f.chosen && r.c.some((x) => x.id === f.chosen!.id) ? ' · chosen' : ''}`, a: toM(total(r.first)) ?? 0, b: toM(total(r.now ?? r.last)) ?? 0, color: SERIES[i % SERIES.length] }))) },
+      ...(maxRev > 1 && rows.length > 1 ? [{ title: 'Rank at each round (1 = lowest)', why: 'Lines cross where a supplier overtakes another; a supplier keeps its last price in later rounds.', draw: rankRace([...Array.from({ length: maxRev - 1 }, (_, i) => (i ? `R${i}` : 'First offers')), 'Now'], rows.map((r, i) => ({ name: name(r.first.supplier_id), color: SERIES[i % SERIES.length], vals: Array.from({ length: maxRev }, (_, k) => (k === maxRev - 1 ? toM(total(r.now ?? r.last)) : (() => { const q = r.c.find((x) => x.revision === k); return q ? toM(total(q)) : null; })())) }))) }] : []),
     ],
     tables: [
       {
@@ -240,6 +234,23 @@ export function packageReport(p: SqPackage, quotes: SqQuote[], sups: Supplier[])
           };
         }),
       },
+      ...(maxRev > 1 ? [{
+        title: 'What each round of negotiation saved', empty: '—',
+        head: [{ h: 'Supplier', w: 200, grow: true }, ...Array.from({ length: maxRev - 1 }, (_, i) => ({ h: `${i ? `R${i}` : 'First'} → R${i + 1}`, w: 110, right: true })), { h: 'In all', w: 120, right: true }],
+        rows: [...rows].sort((a, b) => total(a.last) - total(b.last)).map((r) => ({
+          key: r.first.id,
+          cells: [
+            { t: name(r.first.supplier_id), sub: `first ${M(total(r.first))} → latest ${M(total(r.last))}` },
+            ...Array.from({ length: maxRev - 1 }, (_, i) => {
+              const a = r.c.find((x) => x.revision === i), b = r.c.find((x) => x.revision === i + 1);
+              if (!a || !b) return { t: '—' };
+              const d = total(b) - total(a);
+              return { t: M(d), sub: sgn(pctCh(total(a), total(b))), tone: moveTone(pctCh(total(a), total(b))) };
+            }),
+            { t: r.c.length > 1 ? M(total(r.last) - total(r.first)) : '—', sub: r.c.length > 1 ? sgn(r.move) : 'one offer', tone: r.c.length > 1 ? moveTone(r.move) : undefined },
+          ],
+        })),
+      }] : []),
       {
         title: 'Every version, in order', empty: '—',
         head: [{ h: 'Date', w: 100 }, { h: 'Supplier', w: 190, grow: true }, { h: 'Version', w: 110 }, { h: 'Comparable total', w: 130, right: true }, { h: 'From previous', w: 110, right: true }, { h: 'What changed', w: 260, grow: true }],
