@@ -61,13 +61,36 @@ export function ReportBody({ rep }: { rep: Report }) {
 const cellText = (c: RCell) => (c.sub ? `${c.t} (${c.sub})` : c.t);
 
 /** The report as a branded PDF: intro line, tiles, charts, every table and the note */
-export function reportPdf(rep: Report, meta: ReportMeta, intro?: string) {
+/** One report as HTML: tiles, charts, every table and the note */
+function reportHtmlBody(rep: Report) {
   const tiles = rep.tiles.length ? `<table style="margin-bottom:10px"><tr>${rep.tiles.map((t) => `<td style="border:1px solid #ddd;padding:6px;vertical-align:top"><b style="font-size:13px">${esc(t.value)}</b><br/>${esc(t.label)}${t.sub ? `<br/><span style="color:#666">${esc(t.sub)}</span>` : ''}</td>`).join('')}</tr></table>` : '';
   const charts = (rep.charts ?? []).map((c) => `<h2 style="background:#F2F2F2">${esc(c.title)}</h2><div style="margin:4px 0 8px;page-break-inside:avoid">${renderChartSvg({ ...c.spec, w: 900 })}</div>`).join('');
   const tables = rep.tables.map((t) => `${t.title ? `<h2 style="background:#F2F2F2">${esc(t.title)}</h2>` : ''}<table><thead><tr>${t.head.map((h) => `<th style="text-align:${h.right ? 'right' : 'left'}">${esc(h.h)}</th>`).join('')}</tr></thead><tbody>${
     t.rows.length ? t.rows.map((r) => `<tr>${r.cells.map((c, i) => `<td style="text-align:${t.head[i]?.right ? 'right' : 'left'}">${esc(c.t)}${c.sub ? `<br/><span style="color:#666">${esc(c.sub)}</span>` : ''}</td>`).join('')}</tr>`).join('') : `<tr><td colspan="${t.head.length}">${esc(t.empty)}</td></tr>`}</tbody></table>`).join('');
   const note = rep.note ? `<p style="color:#555">${esc(rep.note)}</p>` : '';
-  return exportPdf(meta, [], [], `${intro ? `<p>${esc(intro)}</p>` : ''}${tiles}${charts}${tables}${note}`);
+  return `${tiles}${charts}${tables}${note}`;
+}
+
+/** The report as a branded PDF: intro line, tiles, charts, every table and the note */
+export function reportPdf(rep: Report, meta: ReportMeta, intro?: string) {
+  return exportPdf(meta, [], [], `${intro ? `<p>${esc(intro)}</p>` : ''}${reportHtmlBody(rep)}`);
+}
+
+/** Several reports in one PDF, each section on a new page under its heading (e.g. the project summary, then every package) */
+export function reportPdfSections(sections: { heading: string; rep: Report }[], meta: ReportMeta, intro?: string) {
+  const body = sections.map((x, i) => `<div style="${i ? 'page-break-before:always;' : ''}"><h1 style="font-size:15px;margin:6px 0 8px;border-bottom:2px solid #C8102E;padding-bottom:4px">${esc(x.heading)}</h1>${reportHtmlBody(x.rep)}</div>`).join('');
+  return exportPdf(meta, [], [], `${intro ? `<p>${esc(intro)}</p>` : ''}${body}`);
+}
+
+/** Several reports in one Excel sheet, each table under its section heading */
+export function reportExcelSections(sections: { heading: string; rep: Report }[], meta: ReportMeta) {
+  const n = Math.max(3, ...sections.flatMap((x) => x.rep.tables.map((t) => t.head.length)));
+  const cols = Array.from({ length: n }, (_, i) => ({ header: '', value: (r: string[]) => r[i] ?? '', width: i ? 18 : 40 }));
+  const out = sections.flatMap((x) => [
+    ...(x.rep.tiles.length ? [{ heading: `${x.heading} – summary`, rows: x.rep.tiles.map((t) => [t.label, t.value, t.sub ?? '']) }] : []),
+    ...x.rep.tables.map((t) => ({ heading: `${x.heading} – ${t.title ?? 'table'}`, rows: [t.head.map((h) => h.h), ...t.rows.map((r) => r.cells.map(cellText))] })),
+  ]);
+  return exportExcel(meta, cols, out);
 }
 
 /** The report's tiles and tables in one Excel sheet */
