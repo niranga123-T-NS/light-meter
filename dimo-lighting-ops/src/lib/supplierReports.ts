@@ -1,7 +1,7 @@
 import { PALETTE, type ChartSpec } from './charts';
 import { fmtDate } from './format';
 import { supabase } from './supabase';
-import { atStage, cashOf, chains, discFactor, KIND_LABEL, lkr0, lkrM, normQuote, originText, quoteTotals, stageDay, STAGE_LABEL, unitLkr, type SqItem, type SqPackage, type SqQuote, type Supplier } from './supplierQuotes';
+import { atStage, cashOf, chains, discFactor, KIND_LABEL, lkr0, lkrM, normQuote, originText, preBidBasis, quoteTotals, stageDay, STAGE_LABEL, unitLkr, type SqItem, type SqPackage, type SqQuote, type Supplier } from './supplierQuotes';
 
 // Supplier base reports for the GM / DGM, worked out from the supplier quotes on the same basis as the comparison page
 // (LKR delivered, freight, discounts and priced-back exclusions): scorecard, awards, negotiation savings, not the lowest,
@@ -226,7 +226,9 @@ function savings(d: ReportData, c: Ctx): Report {
     const ch = chains(c.byPkg.get(x.p.id) ?? []).find((k) => k.some((y) => y.id === x.q.id)) ?? [x.q];
     const upto = ch.filter((y) => y.revision <= x.q.revision);
     const pre = [...upto].reverse().find((y) => (y.bid_stage ?? 'pre_bid') === 'pre_bid');
-    return { p: x.p, q: x.q, first: c.total(upto[0]), pre: pre ? c.total(pre) : null, fin: x.t, n: upto.length };
+    // at Post Bid the saving is against our bid's value (Pre Bid choice, entered value or lowest Pre Bid)
+    const basis = x.p.stage === 'post_bid' ? preBidBasis(x.p, c.byPkg.get(x.p.id) ?? [], c.name) : null;
+    return { p: x.p, q: x.q, first: c.total(upto[0]), pre: basis ? basis.value : pre ? c.total(pre) : null, how: basis?.how, fin: x.t, n: upto.length };
   });
   const f = rows.reduce((a, r) => a + r.first, 0), fin = rows.reduce((a, r) => a + r.fin, 0);
   const post = rows.filter((r) => r.p.stage === 'post_bid' && r.pre != null);
@@ -235,7 +237,7 @@ function savings(d: ReportData, c: Ctx): Report {
     tiles: [
       { label: 'Saved from the first offers', value: `LKR ${M(f - fin)}`, tone: f - fin > 0 ? 'green' : undefined },
       { label: 'First offer → final', value: f ? sgn(((fin - f) / f) * 100) : '—' },
-      { label: 'Saved after the tender (Pre Bid → Post Bid)', value: `LKR ${M(preSum - postSum)}`, tone: preSum - postSum > 0 ? 'green' : undefined },
+      { label: 'Saved against Pre Bid (our bid value → final Post Bid)', value: `LKR ${M(preSum - postSum)}`, tone: preSum - postSum > 0 ? 'green' : undefined },
       { label: 'Pre Bid → Post Bid', value: preSum ? sgn(((postSum - preSum) / preSum) * 100) : '—' },
     ],
     tables: [{
@@ -243,11 +245,11 @@ function savings(d: ReportData, c: Ctx): Report {
       head: [{ h: 'Package', w: 240, grow: true }, { h: 'Chosen', w: 170 }, { h: 'First offer', w: 110, right: true }, { h: 'Pre Bid', w: 110, right: true }, { h: 'Final', w: 110, right: true }, { h: 'Saved', w: 110, right: true }],
       rows: rows.sort((a, b) => b.first - b.fin - (a.first - a.fin)).map((r) => ({
         key: r.p.id, href: `/supplier-quotes/${r.p.id}`,
-        cells: [{ t: r.p.title, sub: `${r.p.code} · ${STAGE_LABEL[r.p.stage ?? 'pre_bid']} · ${r.n} version(s)` }, { t: c.name(r.q.supplier_id) }, { t: M(r.first) }, { t: M(r.pre) }, { t: M(r.fin) },
+        cells: [{ t: r.p.title, sub: `${r.p.code} · ${STAGE_LABEL[r.p.stage ?? 'pre_bid']} · ${r.n} version(s)` }, { t: c.name(r.q.supplier_id) }, { t: M(r.first) }, { t: M(r.pre), sub: r.how }, { t: M(r.fin) },
           { t: M(r.first - r.fin), sub: r.first ? sgn(((r.fin - r.first) / r.first) * 100) : undefined, tone: r.first - r.fin > 0 ? 'good' : undefined }],
       })),
     }],
-    note: 'First offer is the chosen supplier\'s first version on the package; Pre Bid is its last Pre Bid version; final is the chosen version.',
+    note: 'First offer is the chosen supplier\'s first version on the package; final is the chosen version. Pre Bid is the value our bid was built on – the supplier chosen at Pre Bid, else the Pre Bid value entered (packages started at Post Bid), else the lowest Pre Bid quote; for Pre Bid packages it is the chosen supplier\'s last Pre Bid version.',
   };
 }
 
@@ -259,21 +261,26 @@ function exceptions(d: ReportData, c: Ctx): Report {
     return { ...x, lo, prem: lo ? x.t - c.total(lo) : 0 };
   }).filter((r) => r.lo && r.prem > 0.5).sort((a, b) => b.prem - a.prem);
   const prem = rows.reduce((a, r) => a + r.prem, 0);
+  const isPost = (r: (typeof rows)[number]) => (r.q.bid_stage ?? 'pre_bid') === 'post_bid';
+  const missed = rows.filter(isPost).reduce((a, r) => a + r.prem, 0), carried = prem - missed;
   return {
     tiles: [
-      { label: `Packages, of ${c.chosen.length} chosen`, value: String(rows.length) },
-      { label: 'Paid above the lowest', value: `LKR ${M(prem)}`, tone: prem ? 'amber' : undefined },
+      { label: `Packages, of ${c.chosen.length} chosen`, value: String(rows.length), sub: `${rows.filter(isPost).length} at Post Bid · ${rows.filter((r) => !isPost(r)).length} at Pre Bid` },
+      { label: 'Potential saving – lowest not chosen at Post Bid', value: `LKR ${M(missed)}`, tone: missed ? 'red' : undefined },
+      { label: 'Above the lowest at Pre Bid (carried into our bids)', value: `LKR ${M(carried)}`, tone: carried ? 'amber' : undefined },
       { label: 'Share of the chosen value', value: c.chosen.length ? pct((prem / Math.max(1, c.chosen.reduce((a, x) => a + x.t, 0))) * 100, 1) : '—' },
     ],
     tables: [{
       empty: 'Every package went to the lowest comparable total.',
-      head: [{ h: 'Package', w: 220, grow: true }, { h: 'Chosen · lowest', w: 200 }, { h: 'Paid above', w: 110, right: true }, { h: 'Reason given', w: 280, grow: true }, { h: 'Chosen by', w: 150 }],
+      head: [{ h: 'Package', w: 220, grow: true }, { h: 'Stage', w: 110 }, { h: 'Chosen · lowest', w: 200 }, { h: 'Difference', w: 120, right: true }, { h: 'Reason given', w: 280, grow: true }, { h: 'Chosen by', w: 150 }],
       rows: rows.map((r) => ({
         key: r.p.id, href: `/supplier-quotes/${r.p.id}`,
-        cells: [{ t: r.p.title, sub: r.p.code }, { t: c.name(r.q.supplier_id), sub: `lowest: ${c.name(r.lo!.supplier_id)} ${M(c.total(r.lo!))}` }, { t: M(r.prem), sub: sgn((r.prem / c.total(r.lo!)) * 100), tone: 'warn' },
-          { t: r.p.selection_reason ?? '—' }, { t: d.people[r.p.selected_by ?? ''] ?? '—', sub: r.p.selected_at ? fmtDate(r.p.selected_at) : undefined }],
+        cells: [{ t: r.p.title, sub: [r.p.code, r.p.project_name].filter(Boolean).join(' · ') }, { t: isPost(r) ? 'Post Bid' : 'Pre Bid', sub: isPost(r) ? 'potential saving' : 'above the lowest' },
+          { t: c.name(r.q.supplier_id), sub: `lowest: ${c.name(r.lo!.supplier_id)} ${M(c.total(r.lo!))}` }, { t: M(r.prem), sub: sgn((r.prem / c.total(r.lo!)) * 100), tone: isPost(r) ? 'bad' : 'warn' },
+          { t: r.p.selection_reason ?? 'no reason given', tone: r.p.selection_reason ? undefined : 'bad' }, { t: d.people[r.p.selected_by ?? ''] ?? '—', sub: r.p.selected_at ? fmtDate(r.p.selected_at) : undefined }],
       })),
     }],
+    note: 'At Pre Bid the difference is carried into our bid; at Post Bid it is the saving that could have been made by choosing the lowest. The reason is required whenever the lowest is not chosen.',
   };
 }
 
@@ -281,6 +288,8 @@ function exceptions(d: ReportData, c: Ctx): Report {
 function competition(d: ReportData, c: Ctx): Report {
   const pk = c.pkgs.map((p) => ({ p, n: new Set((c.byPkg.get(p.id) ?? []).map((q) => q.supplier_id)).size, asked: d.invites.filter((x) => x.package_id === p.id).length }));
   const single = pk.filter((x) => x.n === 1);
+  // fewer than three suppliers: the reason is required when choosing
+  const few = pk.filter((x) => x.n > 0 && x.n < 3);
   const trades = new Map<string, { sups: Set<string>; label: string }>();
   for (const s of d.sups.filter((x) => x.active && c.whoOk(x.id))) for (const t of (s.trades ?? '').split(/[,;/]| and /)) {
     const k = t.trim().toLowerCase();
@@ -297,10 +306,13 @@ function competition(d: ReportData, c: Ctx): Report {
     tiles: [
       { label: 'Quotes per package on average', value: pk.length ? (avg(pk.map((x) => x.n)) ?? 0).toFixed(1) : '—' },
       { label: 'Packages with a single quote', value: String(single.length), tone: single.length ? 'red' : 'green' },
+      { label: 'Fewer than three quotes', value: String(few.length), sub: few.length ? `${few.filter((x) => !x.p.few_quotes_reason).length} without a reason yet` : undefined, tone: few.length ? 'amber' : 'green' },
       { label: 'Trades with only one supplier', value: String(tr.filter((t) => t.sups.size === 1).length), tone: tr.some((t) => t.sups.size === 1) ? 'amber' : undefined },
       { label: 'Suppliers not quoting for 6 months', value: String(dormant.length) },
     ],
     tables: [
+      { title: 'Fewer than three quotes – reason given', empty: 'Every package had three or more quotes.', head: [{ h: 'Package', w: 240, grow: true }, { h: 'Quotes', w: 80, right: true }, { h: 'Asked', w: 70, right: true }, { h: 'Reason', w: 320, grow: true }],
+        rows: few.map((x) => ({ key: `f${x.p.id}`, href: `/supplier-quotes/${x.p.id}`, cells: [{ t: x.p.title, sub: [x.p.code, x.p.project_name].filter(Boolean).join(' · ') }, { t: String(x.n), tone: x.n === 1 ? 'bad' : 'warn' }, { t: String(x.asked) }, { t: x.p.few_quotes_reason ?? (x.p.selected_quote_id ? 'no reason recorded' : 'not chosen yet – required when choosing'), tone: x.p.few_quotes_reason ? undefined : x.p.selected_quote_id ? 'bad' : undefined }] })) },
       { title: 'Packages without competition (one supplier quoted)', empty: 'Every package had two or more quotes.', head: [{ h: 'Package', w: 260, grow: true }, { h: 'Supplier', w: 200 }, { h: 'Asked', w: 80, right: true }, { h: 'Created', w: 110 }],
         rows: single.map((x) => ({ key: x.p.id, href: `/supplier-quotes/${x.p.id}`, cells: [{ t: x.p.title, sub: [x.p.code, x.p.project_name].filter(Boolean).join(' · ') }, { t: c.name((c.byPkg.get(x.p.id) ?? [])[0]?.supplier_id) }, { t: String(x.asked), tone: x.asked <= 1 ? 'bad' : undefined }, { t: fmtDate(x.p.created_at) }] })) },
       { title: 'Suppliers per trade ("What they supply" in the supplier list)', empty: 'Fill in "What they supply" for the suppliers to see the trades.', head: [{ h: 'Trade', w: 240, grow: true }, { h: 'Active suppliers', w: 120, right: true }, { h: 'Who', w: 300, grow: true }],
@@ -504,7 +516,7 @@ function profile(d: ReportData, c: Ctx, f: RFilters): Report {
   for (const p of mine) {
     const q = [...(c.byPkg.get(p.id) ?? [])].filter((x) => x.supplier_id === r.s.id && !x.superseded_by)[0];
     q?.exclusions.forEach((x) => excl.add(x.text));
-    if (q?.valid_until && p.our_validity && q.valid_until < p.our_validity) late.push(p.code);
+    if (q?.valid_until && (p.stage ?? 'pre_bid') === 'pre_bid' && p.our_validity && q.valid_until < p.our_validity) late.push(p.code);
   }
   const points = [
     ['Price', r.gap == null ? 'Not compared with another quote yet' : `${r.gap.toFixed(1)} % above the lowest on average · lowest ${r.low} of ${r.compared} times`],

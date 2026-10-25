@@ -20,13 +20,13 @@ const periodOf = (p: Period) => {
 /** One supplier or manufacturer: score, prices against the market, head to head with every competitor on the same packages, each package */
 export default function SupplierProfile() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { realRole, profile } = useAuth();
+  const { sqReports, profile } = useAuth();
   const dialog = useDialog();
   const { data, error } = useLoad(loadReportData, []);
   const [period, setPeriod] = useState<Period>('all');
   const f: RFilters = { ...periodOf(period), type: 'all', who: 'all', prices: 'final', supplier: id };
   const rep = useMemo(() => (data ? runReport('profile', data, f) : null), [data, id, period]); // eslint-disable-line react-hooks/exhaustive-deps
-  if (realRole !== 'gm') return <Screen><Notice tone={colors.amber}>Supplier profiles are for the GM / DGM.</Notice></Screen>;
+  if (!sqReports) return <Screen><Notice tone={colors.amber}>Supplier profiles are for the GM / DGM, the SM Estimation and the people the GM / DGM allows for the reports.</Notice></Screen>;
   if (!data || !rep) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const s = data.sups.find((x) => x.id === id);
   if (!s) return <Screen><ErrorBanner message="Supplier not found" /></Screen>;

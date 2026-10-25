@@ -83,7 +83,7 @@ export const EXEC_NAV = {
 
 /** Navigation per role (Section 2 visibility rule and Section 10.2 dashboards). Everyone gets Meetings: the sales,
  * estimation and design meetings in one place (invitations, attendance, leave, packs and actions). */
-export function navFor(role: Role, realRole?: Role | null, sq?: boolean): NavItem[] {
+export function navFor(role: Role, realRole?: Role | null, sq?: boolean, sqReports?: boolean): NavItem[] {
   // A person from outside has nothing of their own – only the high level view (GM / DGM menu) during the period
   if (role === 'guest') return [{ href: '/', label: 'Home', icon: '⌂' }];
   const items = baseNav(role);
@@ -114,6 +114,10 @@ export function navFor(role: Role, realRole?: Role | null, sq?: boolean): NavIte
   if (sq) {
     const o = items.findIndex((i) => i.href === '/orders'), r = items.findIndex((i) => i.href === '/reports');
     items.splice(o >= 0 ? o + 1 : r >= 0 ? r : items.length, 0, { href: '/supplier-quotes', label: 'Supplier quotes', icon: '⇄', pilot: true });
+  } else if (sqReports) {
+    // the supplier reports only (read only): SM Estimation and the people the GM / DGM allows for the reports
+    const o = items.findIndex((i) => i.href === '/orders'), r = items.findIndex((i) => i.href === '/reports');
+    items.splice(o >= 0 ? o + 1 : r >= 0 ? r : items.length, 0, { href: '/supplier-quotes/reports', label: 'Supplier reports', icon: '▤', pilot: true });
   }
   // Design Tools (testing): GM / DGM, SM Projects, the design team, the SEE and the Assistant Engineers – never someone viewing as a high level user
   if (['gm', 'sm_projects', 'design_manager', 'lighting_designer', 'lighting_engineer', 'senior_elec_engineer', 'assistant_engineer'].includes(realRole ?? role)) {

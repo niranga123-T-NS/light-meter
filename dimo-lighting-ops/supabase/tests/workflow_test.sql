@@ -9529,7 +9529,7 @@ do $$ declare pk uuid; sa uuid; sb uuid; it uuid; qa uuid; qb uuid; n int; begin
   assert (select count(*) from public.sq_quote_lines where quote_id = qb) = 1 and (select qty from public.sq_quote_lines where quote_id = qb) = 90, 'edit replaces the lines';
   begin update public.sq_packages set selected_quote_id = qb, status = 'selected' where id = pk; assert false, 'selection only with a reason'; exception when raise_exception then null; end;
   begin perform public.sq_select(pk, qb, ''); assert false, 'reason required'; exception when raise_exception then null; end;
-  perform public.sq_select(pk, qb, 'Lowest delivered price');
+  perform public.sq_select(pk, qb, 'Lowest delivered price', 'Specialist item, few makers');
   assert (select status from public.sq_packages where id = pk) = 'selected' and (select selected_quote_id from public.sq_packages where id = pk) = qb, 'supplier chosen';
   update public.sq_packages set notes = 'ok' where id = pk;
   update public.sq_packages set status = 'closed' where id = pk;
@@ -9594,7 +9594,7 @@ do $$ declare pk uuid; sp uuid; it uuid; q0 uuid; q1 uuid; q2 uuid; begin
   begin perform public.sq_save_quote(jsonb_build_object('id', q0, 'package_id', pk, 'supplier_id', sp, 'lines', jsonb_build_array(jsonb_build_object('text', 'x', 'rate', 1)))); assert false, 'earlier version read-only'; exception when raise_exception then null; end;
   begin perform public.sq_revise_quote(q0, 'again'); assert false, 'revise the latest'; exception when raise_exception then null; end;
   begin perform public.sq_select(pk, q0, 'old'); assert false, 'earlier version cannot be chosen'; exception when raise_exception then null; end;
-  perform public.sq_select(pk, q1, 'Best after negotiation');
+  perform public.sq_select(pk, q1, 'Best after negotiation', 'Specialist item, few makers');
   q2 := public.sq_revise_quote(q1, 'Final 2 % more');
   assert (select selected_quote_id from public.sq_packages where id = pk) = q2, 'the choice follows the latest version';
   assert (select revision from public.sq_quotes where id = q2) = 2 and (select first_id from public.sq_quotes where id = q2) = q0, 'R2 in the same chain';
@@ -9617,7 +9617,7 @@ do $$ declare pk uuid; sa uuid; sb uuid; mf uuid; qa uuid; qb uuid; qa2 uuid; qm
   qa := public.sq_save_quote(jsonb_build_object('package_id', pk, 'supplier_id', sa, 'lines', lines));
   qb := public.sq_save_quote(jsonb_build_object('package_id', pk, 'supplier_id', sb, 'lines', lines));
   assert (select bid_stage from public.sq_quotes where id = qa) = 'pre_bid', 'quote given at Pre Bid';
-  perform public.sq_select(pk, qa, 'Lowest for the tender');
+  perform public.sq_select(pk, qa, 'Lowest for the tender', 'Specialist item, few makers');
   begin update public.sq_packages set stage = 'post_bid' where id = pk; assert false, 'stage only through the RPC'; exception when raise_exception then null; end;
   begin perform public.sq_post_bid(pk, array[gen_random_uuid()]); assert false, 'only this package''s quotes'; exception when raise_exception then null; end;
   assert public.sq_post_bid(pk, array[qa], 'Tender won') = 1, 'one supplier carried on';
@@ -9631,11 +9631,11 @@ do $$ declare pk uuid; sa uuid; sb uuid; mf uuid; qa uuid; qb uuid; qa2 uuid; qm
   assert (select bid_stage from public.sq_quotes where id = qm) = 'post_bid', 'new manufacturer added at Post Bid';
   qb2 := public.sq_revise_quote(qb, 'Asked back after the tender');
   assert (select bid_stage from public.sq_quotes where id = qb2) = 'post_bid', 'B can still come on at Post Bid';
-  perform public.sq_select(pk, qm, 'Direct from the manufacturer');
+  perform public.sq_select(pk, qm, 'Direct from the manufacturer', 'Specialist item, few makers');
   begin perform public.sq_pre_bid(pk); assert false, 'no going back with Post Bid quotes'; exception when raise_exception then null; end;
   delete from public.sq_quotes where id = qm;
   assert (select selected_quote_id from public.sq_packages where id = pk) is null, 'choice cleared with the deleted quote';
-  perform public.sq_select(pk, qa2, 'Best at Post Bid');
+  perform public.sq_select(pk, qa2, 'Best at Post Bid', 'Specialist item, few makers');
   delete from public.sq_quotes where id = qa2;
   assert (select selected_quote_id from public.sq_packages where id = pk) is null, 'the choice does not fall back to a Pre Bid version';
   delete from public.sq_quotes where id = qb2;
@@ -9653,7 +9653,7 @@ do $$ declare pk uuid; sp uuid; q uuid; begin
   assert (select stage = 'post_bid' and post_bid_at is not null and post_bid_by = auth.uid() and post_bid_note = 'Started at Post Bid' from public.sq_packages where id = pk), 'started at Post Bid, recorded';
   q := public.sq_save_quote(jsonb_build_object('package_id', pk, 'supplier_id', sp, 'lines', jsonb_build_array(jsonb_build_object('text', 'x', 'qty', 1, 'rate', 5))));
   assert (select bid_stage from public.sq_quotes where id = q) = 'post_bid', 'its quotes are Post Bid';
-  perform public.sq_select(pk, q, 'Only quote');
+  perform public.sq_select(pk, q, 'Only quote', 'Specialist item, few makers');
   insert into public.sq_packages (title) values ('Empty Pre Bid') returning id into pk;
   assert public.sq_post_bid(pk, '{}') = 0, 'nothing carried';
   assert (select stage from public.sq_packages where id = pk) = 'post_bid', 'an empty Pre Bid package can move on';
@@ -9711,6 +9711,53 @@ do $$ declare pr uuid; pk uuid; begin
   assert (select project_name from public.sq_packages where id = pk) = 'Kalutara road lighting – RDA', 'renaming carries to the packages';
   delete from public.sq_projects where id = pr;
   assert exists (select 1 from public.sq_projects where id = pr), 'a project with packages is not deleted';
+end $$;
+reset role;
+
+-- Supplier quotes: Pre Bid value entered for a package started at Post Bid
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare pk uuid; begin
+  insert into public.sq_packages (title, stage) values ('Old tender', 'post_bid') returning id into pk;
+  update public.sq_packages set pre_bid_value = 1250000, pre_bid_note = 'Bid built on Alpha at 1.25 M' where id = pk;
+  assert (select pre_bid_value from public.sq_packages where id = pk) = 1250000, 'Pre Bid value kept';
+  begin update public.sq_packages set pre_bid_value = -1 where id = pk; assert false, 'no negative value'; exception when check_violation then null; end;
+end $$;
+reset role;
+
+-- Supplier quotes: fewer than three quotes needs a reason; reports open to SM Estimation and report readers (read only)
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare pk uuid; s1 uuid; s2 uuid; s3 uuid; q1 uuid; q2 uuid; q3 uuid; l jsonb := jsonb_build_array(jsonb_build_object('text', 'x', 'qty', 1, 'rate', 5)); begin
+  insert into public.sq_suppliers (name) values ('Few A') returning id into s1;
+  insert into public.sq_suppliers (name) values ('Few B') returning id into s2;
+  insert into public.sq_suppliers (name) values ('Few C') returning id into s3;
+  insert into public.sq_packages (title) values ('Few quotes test') returning id into pk;
+  q1 := public.sq_save_quote(jsonb_build_object('package_id', pk, 'supplier_id', s1, 'lines', l));
+  q2 := public.sq_save_quote(jsonb_build_object('package_id', pk, 'supplier_id', s2, 'lines', l));
+  begin perform public.sq_select(pk, q1, 'Lowest'); assert false, 'two quotes need a reason'; exception when raise_exception then null; end;
+  perform public.sq_select(pk, q1, 'Lowest', 'Only two makers of 30 m masts in Sri Lanka');
+  assert (select few_quotes_reason from public.sq_packages where id = pk) = 'Only two makers of 30 m masts in Sri Lanka', 'reason for few quotes kept';
+  q3 := public.sq_save_quote(jsonb_build_object('package_id', pk, 'supplier_id', s3, 'lines', l));
+  perform public.sq_select(pk, q3, 'Better terms');
+  assert (select selected_quote_id from public.sq_packages where id = pk) = q3, 'three quotes – no extra reason needed';
+end $$;
+reset role;
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+do $$ begin
+  assert public.sq_reports_me(), 'SM Estimation opens the reports';
+  assert not public.sq_access_me(), 'but does not edit supplier quotes';
+  assert (select count(*) from public.sq_packages) > 0, 'reads the packages for the reports';
+  begin insert into public.sq_suppliers (name) values ('Not allowed'); assert false, 'read only'; exception when insufficient_privilege or raise_exception then null; end;
+end $$;
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+select set_config('test.sqr', public.sq_grant((select id from public.profiles where role = 'estimation_exec' and active limit 1), 'Estimator – supplier reports', true)::text, false);
+reset role;
+select pg_temp.act_as('estimation_exec'); set role authenticated;
+do $$ begin
+  assert public.sq_reports_me() and not public.sq_access_me(), 'estimator allowed for the reports only';
+  assert (select count(*) from public.sq_quotes) > 0, 'reads the quotes';
 end $$;
 reset role;
 
