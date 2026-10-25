@@ -8,7 +8,7 @@ import { pickDocument } from '@/lib/files';
 import { fmtDate } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import {
-  BASIS_LABEL, CCYS, EVENT_LABEL, lkrM, loadPackage, loadRefs, matchItem, PAID_BY, PAY_TEMPLATES, quoteTotals, readQuoteFile, revLabel, SPEC_LABEL,
+  BASIS_LABEL, CCYS, EVENT_LABEL, KIND_OPTIONS, lkrM, loadPackage, loadRefs, matchItem, PAID_BY, PAY_TEMPLATES, quoteTotals, readQuoteFile, revLabel, SPEC_LABEL, STAGE_LABEL,
   type Basis, type Ccy, type PayEvent, type SqExcl, type SqItem, type SqLine, type SqPay, type SqQuote, type Supplier,
 } from '@/lib/supplierQuotes';
 import { rpc, supabase } from '@/lib/supabase';
@@ -17,7 +17,7 @@ type Form = Omit<SqQuote, 'id' | 'package_id' | 'created_at' | 'updated_at' | 's
 const EMPTY: Form = {
   supplier_id: null, quote_no: null, quote_date: null, currency: 'LKR', fx_rate: 1, valid_until: null, lead_weeks: null, delivery_basis: 'site', freight_pct: 0,
   warranty: null, paid_by: null, retention_pct: 0, adv_guarantee: false, meets_spec: 'yes', spec_note: null, source: 'manual', notes: null,
-  revision: 0, first_id: null, superseded_by: null, discount_pct: 0, discount_amt: 0, revision_note: null,
+  revision: 0, first_id: null, superseded_by: null, discount_pct: 0, discount_amt: 0, revision_note: null, bid_stage: 'pre_bid',
   lines: [{ text: '', item_id: null, qty: null, unit: null, rate: null, included: false }], payments: [], exclusions: [],
 };
 
@@ -78,7 +78,7 @@ function Editor({ data, id, pkgId }: { data: Loaded; id?: string; pkgId: string 
     });
   };
   const newSupplier = async () => {
-    const r = await dialog.prompt({ title: 'New supplier / subcontractor', fields: [{ key: 'name', label: 'Name', required: true }, { key: 'kind', label: 'Supplies', type: 'select', required: true, initial: data.pkg.kind === 'subcontract' ? 'subcontract' : 'supply', options: [{ value: 'supply', label: 'Materials (supplier)' }, { value: 'subcontract', label: 'Work (subcontractor)' }, { value: 'both', label: 'Both' }] }] });
+    const r = await dialog.prompt({ title: 'New supplier / manufacturer', fields: [{ key: 'name', label: 'Name', required: true }, { key: 'kind', label: 'Supplies', type: 'select', required: true, initial: data.pkg.kind === 'subcontract' ? 'subcontract' : 'supply', options: KIND_OPTIONS }] });
     if (!r) return;
     await dialog.run(async () => {
       const { data: s, error: e } = await supabase.from('sq_suppliers').insert({ name: r.name.trim(), kind: r.kind }).select('*').single();
@@ -116,7 +116,7 @@ function Editor({ data, id, pkgId }: { data: Loaded; id?: string; pkgId: string 
     }, 'Quote saved');
   };
 
-  const supOpts = refs.suppliers.filter((s) => s.active || s.id === f.supplier_id).map((s) => ({ value: s.id, label: s.name, hint: s.trades ?? undefined }));
+  const supOpts = refs.suppliers.filter((s) => s.active || s.id === f.supplier_id).map((s) => ({ value: s.id, label: s.name, hint: [s.kind === 'manufacturer' ? 'Manufacturer' : '', s.trades].filter(Boolean).join(' · ') || undefined }));
   const itemOpts = [{ value: '', label: '— not matched —' }, ...refs.items.map((i) => ({ value: i.id, label: `${i.code} · ${i.name}`, hint: i.sap_code ? `SAP ${i.sap_code}` : undefined }))];
   return (
     <Screen maxWidth={1100}>
@@ -129,7 +129,7 @@ function Editor({ data, id, pkgId }: { data: Loaded; id?: string; pkgId: string 
           <Field label="What changed" value={f.revision_note ?? ''} onChangeText={(v) => set({ revision_note: v || null })} />
         </Card>
       ) : null}
-      <Muted>{`${data.pkg.code} · ${data.pkg.title}${data.pkg.project_name ? ` · ${data.pkg.project_name}` : ''}`}</Muted>
+      <Muted>{`${data.pkg.code} · ${data.pkg.title}${data.pkg.project_name ? ` · ${data.pkg.project_name}` : ''} · ${STAGE_LABEL[id ? f.bid_stage ?? 'pre_bid' : data.pkg.stage ?? 'pre_bid']} quote`}</Muted>
 
       <Section title="1 · The supplier's document">
         <Card>
@@ -145,7 +145,7 @@ function Editor({ data, id, pkgId }: { data: Loaded; id?: string; pkgId: string 
       <Section title="2 · Quote details">
         <Card>
           <Row wrap gap={10} style={{ alignItems: 'flex-end' }}>
-            <View style={{ flexGrow: 1, minWidth: 260 }}><Select label="Supplier / subcontractor" required searchable value={f.supplier_id} options={supOpts} onChange={(v) => set({ supplier_id: v })} /></View>
+            <View style={{ flexGrow: 1, minWidth: 260 }}><Select label="Supplier / manufacturer / subcontractor" required searchable value={f.supplier_id} options={supOpts} onChange={(v) => set({ supplier_id: v })} /></View>
             <Button variant="secondary" small title="New supplier" onPress={newSupplier} />
           </Row>
           <Row wrap gap={10}>

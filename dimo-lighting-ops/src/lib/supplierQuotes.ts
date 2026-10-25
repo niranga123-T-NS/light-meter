@@ -7,15 +7,20 @@ import { supabase } from './supabase';
 // Supplier & subcontractor quotes: types, the comparison on one basis (LKR, freight, exclusions, payment stages) and reading a quote
 // file on the device. The file itself is never uploaded or stored – only the values the user checks and saves.
 
-export type SqKind = 'supply' | 'subcontract' | 'both';
+export type SqKind = 'supply' | 'subcontract' | 'both' | 'manufacturer';
 export type Supplier = { id: string; name: string; kind: SqKind; trades: string | null; contact_name: string | null; phone: string | null; email: string | null; notes: string | null; active: boolean };
 export type SqItem = { id: string; code: string; name: string; unit: string | null; sap_code: string | null };
 export type SqAlias = { id: string; item_id: string; alias: string; supplier_id: string | null };
 export type PackageStatus = 'open' | 'selected' | 'closed' | 'cancelled';
+export type BidStage = 'pre_bid' | 'post_bid';
+export const STAGE_LABEL: Record<BidStage, string> = { pre_bid: 'Pre Bid', post_bid: 'Post Bid' };
+export const KIND_LABEL: Record<SqKind, string> = { supply: 'Supplier', subcontract: 'Subcontractor', both: 'Supplier & subcontractor', manufacturer: 'Manufacturer' };
+export const KIND_OPTIONS = [{ value: 'supply', label: 'Materials (supplier)' }, { value: 'manufacturer', label: 'Manufacturer (quotes direct)' }, { value: 'subcontract', label: 'Work (subcontractor)' }, { value: 'both', label: 'Both materials and work' }];
 export type SqPackage = {
   id: string; code: string; title: string; project_name: string | null; job_ref: string | null; kind: 'supply' | 'subcontract';
   our_validity: string | null; needed_weeks: number | null; status: PackageStatus; selected_quote_id: string | null; selection_reason: string | null;
   selected_by: string | null; selected_at: string | null; notes: string | null; created_at: string; updated_at: string; source_kind?: 'project' | 'inquiry' | 'exec' | null; source_id?: string | null;
+  stage: BidStage; post_bid_at: string | null; post_bid_by: string | null; post_bid_note: string | null; pre_bid_quote_id: string | null; pre_bid_reason: string | null;
 };
 export type PayEvent = 'order' | 'delivery' | 'after_delivery' | 'commissioning' | 'handover' | 'shipment';
 export type SqLine = { id?: string; text: string; item_id: string | null; qty: number | null; unit: string | null; rate: number | null; included: boolean; note?: string | null; check?: boolean };
@@ -28,7 +33,7 @@ export type SqQuote = {
   valid_until: string | null; lead_weeks: number | null; delivery_basis: Basis; freight_pct: number; warranty: string | null; paid_by: string | null;
   retention_pct: number; adv_guarantee: boolean; meets_spec: 'yes' | 'partly' | 'no' | 'unknown'; spec_note: string | null;
   source: 'manual' | 'excel' | 'pdf'; notes: string | null; created_at: string; updated_at: string;
-  revision: number; first_id: string | null; superseded_by: string | null; discount_pct: number; discount_amt: number; revision_note: string | null;
+  revision: number; first_id: string | null; superseded_by: string | null; discount_pct: number; discount_amt: number; revision_note: string | null; bid_stage: BidStage;
   lines: SqLine[]; payments: SqPay[]; exclusions: SqExcl[];
 };
 
@@ -126,6 +131,8 @@ export function chains(quotes: SqQuote[]) {
   for (const q of quotes) m.set(q.first_id ?? q.id, [...(m.get(q.first_id ?? q.id) ?? []), q]);
   return [...m.values()].map((c) => c.sort((a, b) => a.revision - b.revision));
 }
+/** Each supplier's latest version given at a stage (Pre Bid or Post Bid); suppliers with nothing at that stage are left out */
+export const atStage = (quotes: SqQuote[], stage: BidStage) => chains(quotes).map((c) => [...c].reverse().find((q) => (q.bid_stage ?? 'pre_bid') === stage)).filter((q): q is SqQuote => !!q).sort((a, b) => a.created_at.localeCompare(b.created_at));
 
 /** Days from delivery when each stage is paid (negative = before delivery). Commissioning and handover are taken 30 and 60 days after delivery. */
 export function stageDay(p: SqPay, leadWeeks: number | null) {

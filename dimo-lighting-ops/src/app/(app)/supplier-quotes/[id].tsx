@@ -1,13 +1,13 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { DataTable, type Column } from '@/components/DataTable';
 import { useDialog } from '@/components/dialog';
-import { Button, Card, colors, Empty, ErrorBanner, Grid, KeyValue, Loading, Muted, Notice, Pill, Row, Screen, Section, Stat } from '@/components/ui';
+import { Button, Card, colors, Empty, ErrorBanner, Grid, KeyValue, Loading, Muted, Notice, Pill, Row, Screen, Section, Segmented, Stat } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { fmtDate, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
-import { BASIS_LABEL, cashOf, chains, compareRows, jobField, jobSource, lkr0, lkrM, loadJobs, loadPackage, loadRefs, payText, quoteTotals, revLabel, SPEC_LABEL, type SqItem, type SqJob, type SqQuote } from '@/lib/supplierQuotes';
+import { atStage, BASIS_LABEL, type BidStage, cashOf, chains, compareRows, jobField, jobSource, lkr0, lkrM, loadJobs, loadPackage, loadRefs, payText, quoteTotals, revLabel, SPEC_LABEL, STAGE_LABEL, type SqItem, type SqJob, type SqQuote } from '@/lib/supplierQuotes';
 import { rpc, supabase } from '@/lib/supabase';
 
 type Cell = { t: ReactNode; tone?: 'good' | 'warn' | 'bad'; sub?: string };
@@ -20,21 +20,32 @@ export default function Package() {
   const { sqAccess } = useAuth();
   const dialog = useDialog();
   const people = usePeople();
+  const [view, setView] = useState<BidStage | null>(null);
   const { data, error, reload } = useLoad(async () => ({ ...(await loadPackage(id)), ...(await loadRefs()) }), [id]);
   if (!sqAccess) return <Screen><Notice tone={colors.amber}>No access to supplier quotes.</Notice></Screen>;
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const { pkg, suppliers, items, costPct } = data;
-  // every version is kept; the comparison and the choice use each supplier's latest version
-  const quotes = data.quotes.filter((q) => !q.superseded_by);
+  // every version is kept; the comparison and the choice use each supplier's latest version of the stage shown (Pre Bid or Post Bid)
+  const stage: BidStage = pkg.stage ?? 'pre_bid';
+  const shown: BidStage = view ?? stage;
+  const quotes = atStage(data.quotes, shown);
+  const preQuotes = atStage(data.quotes, 'pre_bid');
+  const postCount = stage === 'post_bid' ? atStage(data.quotes, 'post_bid').length : 0;
   const allChains = chains(data.quotes).sort((a, b) => b.length - a.length);
   const chainOf = (q: SqQuote) => allChains.find((c) => c.some((x) => x.id === q.id)) ?? [q];
   const today = todayISO();
   const sup = (q: SqQuote) => suppliers.find((s) => s.id === q.supplier_id)?.name ?? '—';
+  const sKind = (q: SqQuote) => (suppliers.find((s) => s.id === q.supplier_id)?.kind === 'manufacturer' ? 'Manufacturer · ' : '');
   const tots = quotes.map(quoteTotals);
   const cash = quotes.map((q, i) => cashOf(q, tots[i].total, costPct));
   const lowTotal = quotes.length > 1 ? Math.min(...tots.map((t) => t.total)) : null;
   const chosen = quotes.find((q) => q.id === pkg.selected_quote_id);
   const closed = pkg.status === 'closed' || pkg.status === 'cancelled';
+  // an earlier stage is kept for reference only
+  const past = shown !== stage;
+  const fixed = closed || past;
+  const preOf = (q: SqQuote) => [...chainOf(q)].reverse().find((x) => (x.bid_stage ?? 'pre_bid') === 'pre_bid');
+  const preChoice = data.quotes.find((q) => q.id === pkg.pre_bid_quote_id);
 
   // ---- rows of the comparison
   const rows: CRow[] = [];
@@ -56,6 +67,13 @@ export default function Package() {
     rows.push({ key: 'neg', kind: 'row', label: 'Came down from the first offer', sub: 'see the versions below', cells: quotes.map((q, i) => {
       const c = chainOf(q), f0 = quoteTotals(c[0]).total, d = f0 ? ((tots[i].total - f0) / f0) * 100 : 0;
       return c.length > 1 ? { t: `${d.toFixed(1)} %`, sub: `${lkrM(f0)} → ${lkrM(tots[i].total)} in ${c.length} versions`, tone: d < 0 ? 'good' : d > 0 ? 'bad' : undefined } : { t: 'first offer' };
+    }) });
+  if (shown === 'post_bid')
+    rows.push({ key: 'pre', kind: 'row', label: 'Pre Bid price', sub: 'what our tender was built on', cells: quotes.map((q, i) => {
+      const p = preOf(q);
+      if (!p) return { t: 'new at Post Bid', tone: 'warn' };
+      const f0 = quoteTotals(p).total, d = f0 ? ((tots[i].total - f0) / f0) * 100 : 0;
+      return { t: `${d > 0 ? '+' : ''}${d.toFixed(1)} %`, sub: `${lkrM(f0)} at Pre Bid → ${lkrM(tots[i].total)}`, tone: d < 0 ? 'good' : d > 0 ? 'bad' : undefined };
     }) });
   rows.push({ key: 's3', kind: 'sec', label: 'Not price – but it decides', cells: [] });
   rows.push({ key: 'lead', kind: 'row', label: 'Lead time', sub: pkg.needed_weeks ? `needed within ${pkg.needed_weeks} weeks` : undefined, cells: quotes.map((q) => ({ t: q.lead_weeks != null ? `${q.lead_weeks} weeks` : 'not given', tone: q.lead_weeks == null ? 'warn' : pkg.needed_weeks && q.lead_weeks > pkg.needed_weeks ? 'bad' : 'good' })) });
@@ -122,6 +140,34 @@ export default function Package() {
       router.push({ pathname: '/supplier-quotes/quote', params: { pkg: pkg.id, id: v } });
     });
   };
+  const toPostBid = async () => {
+    const r = await dialog.prompt({
+      title: 'Move to Post Bid',
+      message: 'The Pre Bid quotes and choice are kept as they are. Pick the suppliers and manufacturers that go on – each gets a Post Bid version to change. Others stay at Pre Bid; you can still carry them on or add new ones later.',
+      fields: [
+        { key: 'carry', label: 'Going on to Post Bid', type: 'multiselect', initial: preQuotes.map((q) => q.id).join(','), options: preQuotes.map((q) => ({ value: q.id, label: `${sup(q)} · LKR ${lkrM(quoteTotals(q).total)}` })) },
+        { key: 'note', label: 'Note', type: 'multiline', hint: 'e.g. Tender awarded on 24 Oct – final prices asked' },
+      ],
+      confirmLabel: 'Move to Post Bid',
+    });
+    if (!r) return;
+    await dialog.run(async () => {
+      await rpc('sq_post_bid', { p_package: pkg.id, p_carry: (r.carry ?? '').split(',').filter(Boolean), p_note: r.note?.trim() || null });
+      setView(null);
+      reload();
+    }, 'At Post Bid');
+  };
+  const toPreBid = async () => {
+    if (!(await dialog.confirm('Back to Pre Bid?', 'Only while no quote is in at Post Bid. The Pre Bid choice comes back.'))) return;
+    await dialog.run(async () => { await rpc('sq_pre_bid', { p_package: pkg.id }); setView(null); reload(); });
+  };
+  const carry = async (q: SqQuote) => {
+    await dialog.run(async () => {
+      const v = await rpc<string>('sq_revise_quote', { p_quote: q.id, p_note: 'Carried into Post Bid' });
+      setView(null);
+      router.push({ pathname: '/supplier-quotes/quote', params: { pkg: pkg.id, id: v } });
+    });
+  };
   const del = async (q: SqQuote) => {
     if (!(await dialog.confirm(q.revision ? `Delete ${revLabel(q)} of ${sup(q)}'s quote?` : `Delete ${sup(q)}'s quote?`, q.revision ? `${revLabel({ revision: q.revision - 1 })} becomes the latest again.` : 'Its lines leave the price history too.', { danger: true, confirmLabel: 'Delete' }))) return;
     await dialog.run(async () => { const { error: e } = await supabase.from('sq_quotes').delete().eq('id', q.id); if (e) throw new Error(e.message); reload(); });
@@ -164,25 +210,34 @@ export default function Package() {
       <Stack.Screen options={{ title: pkg.title }} />
       <Row wrap gap={8} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
         <View>
-          <Muted>{[pkg.code, pkg.kind === 'supply' ? 'Supply' : 'Subcontract', pkg.project_name, pkg.job_ref].filter(Boolean).join(' · ')}</Muted>
+          <Muted>{[pkg.code, pkg.kind === 'supply' ? 'Supply' : 'Subcontract', pkg.project_name, pkg.job_ref, STAGE_LABEL[stage]].filter(Boolean).join(' · ')}</Muted>
           <Text style={{ fontSize: 22, fontWeight: '700', color: colors.ink }}>{pkg.title}</Text>
         </View>
         <Row wrap gap={8}>
-          {!closed ? <Button title="Add a quote" icon="＋" onPress={() => router.push({ pathname: '/supplier-quotes/quote', params: { pkg: pkg.id } })} /> : null}
+          {!fixed ? <Button title={stage === 'post_bid' ? 'Add a Post Bid quote' : 'Add a quote'} icon="＋" onPress={() => router.push({ pathname: '/supplier-quotes/quote', params: { pkg: pkg.id } })} /> : null}
+          {!closed && stage === 'pre_bid' && preQuotes.length ? <Button variant="secondary" title="Move to Post Bid" onPress={toPostBid} /> : null}
+          {!closed && stage === 'post_bid' && !postCount ? <Button variant="ghost" title="Back to Pre Bid" onPress={toPreBid} /> : null}
           <Button variant="secondary" title="Edit" onPress={edit} />
           {closed ? <Button variant="secondary" title="Reopen" onPress={() => setStatus('open')} /> : <Button variant="secondary" title="Close" onPress={() => setStatus('closed')} />}
           {pkg.status === 'open' ? <Button variant="ghost" title="Cancel package" onPress={() => setStatus('cancelled')} /> : null}
         </Row>
       </Row>
+      {stage === 'post_bid' ? (
+        <Row wrap gap={8} style={{ alignItems: 'center' }}>
+          <Segmented value={shown} onChange={(v) => setView(v as BidStage)} options={[{ value: 'post_bid', label: `Post Bid (${postCount})` }, { value: 'pre_bid', label: `Pre Bid (${preQuotes.length})` }]} />
+          <Muted>{`Moved to Post Bid ${fmtDate(pkg.post_bid_at)}${pkg.post_bid_by ? ` by ${people[pkg.post_bid_by]?.full_name ?? '—'}` : ''}${pkg.post_bid_note ? ` · ${pkg.post_bid_note}` : ''}`}</Muted>
+        </Row>
+      ) : null}
+      {past ? <Notice tone={colors.blue}>{`Pre Bid prices – kept as they were for the tender.${preChoice ? ` Chosen at Pre Bid: ${sup(preChoice)}${pkg.pre_bid_reason ? ` (${pkg.pre_bid_reason})` : ''}.` : ''} Carry a supplier on to ask for a Post Bid price.`}</Notice> : null}
       <Grid min={180} max={4}>
         <Stat label="Quotes" value={String(quotes.length)} />
         <Stat label="Lowest comparable" value={lowTotal != null ? `LKR ${lkrM(lowTotal)}` : quotes.length ? `LKR ${lkrM(tots[0].total)}` : '—'} sub={quotes.length ? sup(quotes[tots.findIndex((t) => t.total === Math.min(...tots.map((x) => x.total)))]) : undefined} />
         <Stat label="Our quotation valid until" value={pkg.our_validity ? fmtDate(pkg.our_validity) : '—'} />
-        <Stat label="Chosen" value={chosen ? sup(chosen) : '—'} tone={chosen ? 'green' : undefined} sub={chosen ? `LKR ${lkrM(quoteTotals(chosen).total)}` : undefined} />
+        <Stat label={past ? 'Chosen at Post Bid' : 'Chosen'} value={chosen ? sup(chosen) : '—'} tone={chosen ? 'green' : undefined} sub={chosen ? `LKR ${lkrM(quoteTotals(chosen).total)}` : undefined} />
       </Grid>
-      {warnings.length ? <Notice tone={colors.amber}>{warnings.join('\n')}</Notice> : null}
+      {warnings.length && !past ? <Notice tone={colors.amber}>{warnings.join('\n')}</Notice> : null}
       {!quotes.length ? (
-        <Card><Empty title="No quotes yet" hint="Add each supplier's quote – upload their Excel or PDF to read the lines, or type them in." /></Card>
+        <Card><Empty title={shown === 'post_bid' ? 'No Post Bid quotes yet' : 'No quotes yet'} hint={shown === 'post_bid' ? 'Carry a Pre Bid supplier on (Pre Bid tab) or add a new supplier or manufacturer.' : 'Add each supplier\'s quote – upload their Excel or PDF to read the lines, or type them in.'} /></Card>
       ) : (
         <>
           <DataTable rows={rows} keyOf={(r) => r.key} columns={columns} rowStyle={(r) => (r.kind === 'sec' ? { backgroundColor: '#F6F8F7' } : r.kind === 'total' ? { borderTopWidth: 2, borderTopColor: colors.ink } : undefined)} />
@@ -191,12 +246,14 @@ export default function Package() {
               {quotes.map((q) => (
                 <View key={q.id} style={{ minWidth: 200, flexGrow: 1, gap: 6 }}>
                   <Text style={{ fontWeight: '700', color: colors.ink }}>{sup(q)}</Text>
-                  <Muted>{`${revLabel(q)}${chainOf(q).length > 1 ? ` of ${chainOf(q).length} versions` : ''} · ${q.quote_no ?? 'no ref.'} · ${q.quote_date ? fmtDate(q.quote_date) : 'no date'} · ${{ manual: 'typed in', excel: 'read from Excel', pdf: 'read from PDF' }[q.source]}`}</Muted>
+                  <Muted>{`${sKind(q)}${revLabel(q)}${chainOf(q).length > 1 ? ` of ${chainOf(q).length} versions` : ''} · ${q.quote_no ?? 'no ref.'} · ${q.quote_date ? fmtDate(q.quote_date) : 'no date'} · ${{ manual: 'typed in', excel: 'read from Excel', pdf: 'read from PDF' }[q.source]}`}</Muted>
                   <Row wrap gap={6}>
-                    {!closed ? <Button small title={pkg.selected_quote_id === q.id ? 'Chosen ✓' : 'Choose'} variant={pkg.selected_quote_id === q.id ? 'primary' : 'secondary'} onPress={() => (pkg.selected_quote_id === q.id ? unselect() : select(q))} /> : null}
-                    <Button small variant="secondary" title="Edit" onPress={() => router.push({ pathname: '/supplier-quotes/quote', params: { pkg: pkg.id, id: q.id } })} />
-                    {!closed ? <Button small variant="secondary" title="Revised / discounted quote" onPress={() => revise(q)} /> : null}
-                    <Button small variant="ghost" title="Delete" onPress={() => del(q)} />
+                    {!fixed ? <Button small title={pkg.selected_quote_id === q.id ? 'Chosen ✓' : 'Choose'} variant={pkg.selected_quote_id === q.id ? 'primary' : 'secondary'} onPress={() => (pkg.selected_quote_id === q.id ? unselect() : select(q))} /> : null}
+                    <Button small variant="secondary" title={past || q.superseded_by ? 'View' : 'Edit'} onPress={() => router.push({ pathname: '/supplier-quotes/quote', params: { pkg: pkg.id, id: q.id } })} />
+                    {!fixed ? <Button small variant="secondary" title="Revised / discounted quote" onPress={() => revise(q)} /> : null}
+                    {past && !closed && !q.superseded_by ? <Button small variant="secondary" title="Carry into Post Bid" onPress={() => carry(q)} /> : null}
+                    {past && q.superseded_by ? <Pill label="Carried into Post Bid" tone={colors.blue} /> : null}
+                    {!past ? <Button small variant="ghost" title="Delete" onPress={() => del(q)} /> : null}
                   </Row>
                 </View>
               ))}
@@ -209,12 +266,17 @@ export default function Package() {
           {allChains.map((c) => <Versions key={c[0].id} chain={c} name={sup(c[0])} items={items} />)}
         </Section>
       ) : null}
-      {chosen ? (
+      {chosen || preChoice ? (
         <Section title="Choice">
           <Card>
-            <KeyValue label="Supplier" value={sup(chosen)} />
-            <KeyValue label="Reason" value={pkg.selection_reason ?? '—'} wide />
-            <KeyValue label="Chosen by" value={`${people[pkg.selected_by ?? '']?.full_name ?? '—'} · ${fmtDate(pkg.selected_at)}`} />
+            {chosen ? (
+              <>
+                <KeyValue label={stage === 'post_bid' ? 'Post Bid supplier' : 'Supplier'} value={sup(chosen)} />
+                <KeyValue label="Reason" value={pkg.selection_reason ?? '—'} wide />
+                <KeyValue label="Chosen by" value={`${people[pkg.selected_by ?? '']?.full_name ?? '—'} · ${fmtDate(pkg.selected_at)}`} />
+              </>
+            ) : null}
+            {preChoice ? <KeyValue label="Chosen at Pre Bid" value={`${sup(preChoice)}${pkg.pre_bid_reason ? ` – ${pkg.pre_bid_reason}` : ''}`} wide /> : null}
           </Card>
         </Section>
       ) : null}
@@ -249,7 +311,7 @@ function Versions({ chain, name, items }: { chain: SqQuote[]; name: string; item
   const columns: Column<CRow>[] = [
     { h: name, w: 230, grow: true, v: (r) => <View><Text style={{ fontWeight: r.kind === 'total' ? '800' : '600', color: colors.ink }}>{r.label}</Text>{r.sub ? <Muted>{r.sub}</Muted> : null}</View> },
     ...chain.map((q, i): Column<CRow> => ({
-      h: `${revLabel(q)} · ${q.quote_date ? fmtDate(q.quote_date) : fmtDate(q.created_at)}${q.superseded_by ? '' : ' · latest'}`, w: 190,
+      h: `${revLabel(q)} · ${STAGE_LABEL[q.bid_stage ?? 'pre_bid']} · ${q.quote_date ? fmtDate(q.quote_date) : fmtDate(q.created_at)}${q.superseded_by ? '' : ' · latest'}`, w: 190,
       v: (r) => {
         const c = r.cells[i];
         if (!c) return '';
