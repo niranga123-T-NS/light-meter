@@ -9,21 +9,22 @@ import { FX_SEES } from '@/lib/fx';
 import { useLoad } from '@/lib/hooks';
 import { rpc } from '@/lib/supabase';
 
-// Market prices (copper, aluminium, steel, PVC) beside the exchange rates – fetched every day by the "DIMO – market prices" workflow.
+// Market prices (copper, aluminium, steel, PVC) and sea freight from China (SCFI) beside the exchange rates – fetched every day by the "DIMO – market prices" workflow.
 // A price going up is shown red (our cost goes up), going down green – as the exchange rates.
 
 export type MarketItem = {
-  item: 'copper' | 'aluminium' | 'steel_hrc' | 'pvc';
-  date: string | null; price: number | null; currency: 'USD' | 'CNY' | null; usd: number | null; usd_lkr: number | null;
+  item: 'copper' | 'aluminium' | 'steel_hrc' | 'pvc' | 'scfi';
+  date: string | null; price: number | null; currency: 'USD' | 'CNY' | 'PTS' | null; usd: number | null; usd_lkr: number | null;
   week: number | null; month: number | null; history: { d: string; v: number }[];
 };
 export type MarketBoard = { today: string; items: MarketItem[] };
 
-export const MARKET: Record<MarketItem['item'], { name: string; src: string; long: string; follows: string }> = {
+export const MARKET: Record<MarketItem['item'], { name: string; src: string; long: string; follows: string; unit?: string }> = {
   copper: { name: 'Copper', src: 'LME cash', long: 'LME official cash settlement', follows: 'Copper cable follows it with about a 4–8 week lag.' },
   aluminium: { name: 'Aluminium', src: 'LME cash', long: 'LME official cash settlement', follows: 'Aluminium poles, brackets and luminaire housings follow it.' },
   steel_hrc: { name: 'Steel', src: 'HRC · Shanghai', long: 'Hot-rolled coil, Shanghai Futures Exchange main contract (CNY, Chinese VAT included)', follows: 'Steel poles, high masts, brackets and foundation bolts follow it.' },
   pvc: { name: 'PVC', src: 'Dalian', long: 'PVC, Dalian Commodity Exchange main contract (CNY, Chinese VAT included)', follows: 'PVC conduit and cable sheathing follow it.' },
+  scfi: { name: 'Sea freight', src: 'SCFI · from China', unit: 'index points', long: 'Sea freight: SCFI comprehensive index of the Shanghai Shipping Exchange – container freight out of Shanghai, weekly on Fridays (index points; no index is published for Colombo)', follows: 'Container freight from China follows it – a market trend, not our rate.' },
 };
 
 const n0 = (v: number) => Math.round(v).toLocaleString('en-US');
@@ -67,10 +68,10 @@ function Tile({ m }: { m: MarketItem }) {
       <Text style={{ fontSize: 13, fontWeight: '700', color: colors.ink }}>{meta.name}</Text>
       <Text style={{ fontSize: 11, color: colors.muted }}>{meta.src}</Text>
       <Text style={{ fontSize: 18, fontWeight: '800', color: colors.ink, marginTop: 4, fontVariant: ['tabular-nums'] }}>{m.usd != null ? n0(m.usd) : '—'}</Text>
-      <Text style={{ fontSize: 11, color: colors.muted }}>{m.currency === 'CNY' && m.price != null ? `USD / t · CNY ${n0(m.price)}` : 'USD / t'}</Text>
+      <Text style={{ fontSize: 11, color: colors.muted }}>{meta.unit ?? (m.currency === 'CNY' && m.price != null ? `USD / t · CNY ${n0(m.price)}` : 'USD / t')}</Text>
       <Spark pts={m.history} w={w} h={30} tone={tone} />
       <Change v={wk} label="week" />
-      <Text style={{ fontSize: 11, color: colors.muted }}>{`LKR ${lkrT(m.usd, m.usd_lkr)}`}</Text>
+      <Text style={{ fontSize: 11, color: colors.muted }}>{meta.unit ? 'weekly · Fridays' : `LKR ${lkrT(m.usd, m.usd_lkr)}`}</Text>
     </Pressable>
   );
 }
@@ -96,7 +97,7 @@ export function MarketCard() {
               {items.map((m) => <Tile key={m.item} m={m} />)}
             </View>
             <Text style={{ fontSize: 11, color: colors.muted }}>
-              {`USD per tonne · ${last ? fmtDate(last) : ''} · ▲ dearer than a week ago, ▼ cheaper · LKR at the CBSL USD rate · tap for the charts`}
+              {`Metals and PVC in USD per tonne, sea freight in index points · ${last ? fmtDate(last) : ''} · ▲ dearer than a week ago, ▼ cheaper · LKR at the CBSL USD rate · tap for the charts`}
             </Text>
           </View>
         )}

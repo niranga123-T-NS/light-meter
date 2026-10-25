@@ -6,6 +6,8 @@
 * Steel: Shanghai Futures Exchange hot-rolled coil (HC, main contract) and PVC: Dalian Commodity Exchange PVC (V, main
   contract) – CNY per tonne (Chinese VAT included) from the Sina finance daily series; converted to USD with the day's
   ECB USD/CNY rate (Frankfurter). They follow the Platts steel and PVC assessments but are not the Platts figures.
+* Sea freight from China: the SCFI comprehensive index of the Shanghai Shipping Exchange (weekly, Fridays; index points).
+  Only the comprehensive index is public – the route rates need an SSE account.
 
 Env: SUPABASE_URL, SUPABASE_ANON_KEY, FX_SECRET (the dispatch secret); BACKFILL_DAYS (first run, default 400).
 With --dry-run nothing is sent: the readings are printed.
@@ -16,6 +18,7 @@ import json
 import os
 import re
 import sys
+import time
 import urllib.request
 
 UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36'
@@ -86,6 +89,26 @@ def usd_cny(since):
     return {d: v['CNY'] for d, v in data.get('rates', {}).items() if v.get('CNY')}
 
 
+def scfi():
+    """{date: points} – this week's and last week's SCFI comprehensive index (the SSE site drops connections now and then)"""
+    for k in range(5):
+        try:
+            d = json.loads(get('https://en.sse.net.cn/currentIndex?indexName=scfi'))['data']
+            break
+        except Exception as e:  # noqa: BLE001
+            if k == 4:
+                raise
+            print(f'SCFI try {k + 1}: {e}')
+            time.sleep(15)
+    line = next(x for x in d['lineDataList'] if x.get('dataItemTypeName') == 'SCFI_T')
+    out = {}
+    if d.get('lastDate') and line.get('lastContent'):
+        out[d['lastDate']] = float(line['lastContent'])
+    if d.get('currentDate') and line.get('currentContent'):
+        out[d['currentDate']] = float(line['currentContent'])
+    return out
+
+
 def main():
     today = dt.date.today()
     last = {} if DRY else (rpc('market_last_dates', {'p_secret': os.environ['FX_SECRET']}) or {})
@@ -124,6 +147,12 @@ def main():
             print(f'::notice::{item}: {n} day(s), latest {last_row.get("date")} {last_row.get("price")} CNY/t = {last_row.get("usd")} USD/t (USD/CNY {last_row.get("fx")})')
         except Exception as e:  # noqa: BLE001
             problems.append(f'{item}: {e}')
+    try:
+        got = scfi()
+        rows += [{'item': 'scfi', 'date': d, 'price': v, 'currency': 'PTS', 'usd': v} for d, v in got.items()]
+        print(f'::notice::scfi: latest {max(got) if got else None} {got.get(max(got)) if got else ""} points')
+    except Exception as e:  # noqa: BLE001
+        problems.append(f'scfi: {e}')
     for p in problems:
         print(f'::warning::{p}')
     if DRY:

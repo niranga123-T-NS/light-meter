@@ -1,5 +1,5 @@
 # Market prices for the Home dashboards: LME copper and aluminium (cash settlement, Westmetall), steel hot-rolled coil
-# (Shanghai Futures Exchange) and PVC (Dalian Commodity Exchange) – see scripts/market_fetch.py.
+# (Shanghai Futures Exchange), PVC (Dalian Commodity Exchange) and sea freight from China (SCFI) – see scripts/market_fetch.py.
 # Uses the same repository secrets as the backend deploy (SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF, DISPATCH_SECRET).
 name: DIMO – market prices
 

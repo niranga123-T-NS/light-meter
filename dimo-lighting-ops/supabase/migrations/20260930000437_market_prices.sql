@@ -2,13 +2,14 @@
 -- settlement, USD per tonne), steel hot-rolled coil (Shanghai Futures Exchange) and PVC (Dalian Commodity Exchange), both
 -- CNY per tonne with the USD worked out at the day's USD/CNY rate. Fetched automatically every day by the GitHub workflow
 -- "DIMO – market prices"; LKR at the Central Bank USD rate of the day (or the last before it).
+-- Sea freight from China: the SCFI comprehensive index (Shanghai Shipping Exchange, weekly, index points – kept in `usd`).
 
 create table public.market_prices (
-  item text not null check (item in ('copper', 'aluminium', 'steel_hrc', 'pvc')),
+  item text not null check (item in ('copper', 'aluminium', 'steel_hrc', 'pvc', 'scfi')),
   price_date date not null,
   price numeric(14, 2) not null check (price > 0),           -- as quoted, per tonne
-  currency text not null check (currency in ('USD', 'CNY')),
-  usd numeric(14, 2) not null check (usd > 0),               -- USD per tonne
+  currency text not null check (currency in ('USD', 'CNY', 'PTS')),        -- PTS: index points (SCFI)
+  usd numeric(14, 2) not null check (usd > 0),               -- USD per tonne (SCFI: index points)
   fx_cny numeric(10, 4),                                     -- CNY per USD used for the conversion
   at timestamptz not null default now(),
   primary key (item, price_date)
@@ -25,7 +26,7 @@ begin
   perform app.require(app.fx_secret() is not null and p_secret = app.fx_secret(), 'Not allowed');
   for r in select * from jsonb_array_elements(coalesce(p -> 'rows', '[]')) order by (value ->> 'date') loop
     v := app.fx_num(r -> 'price'); u := app.fx_num(r -> 'usd');
-    continue when v is null or v <= 0 or u is null or u <= 0 or (r ->> 'item') not in ('copper', 'aluminium', 'steel_hrc', 'pvc');
+    continue when v is null or v <= 0 or u is null or u <= 0 or (r ->> 'item') not in ('copper', 'aluminium', 'steel_hrc', 'pvc', 'scfi');
     select usd into prev from public.market_prices where item = r ->> 'item' and price_date < (r ->> 'date')::date order by price_date desc limit 1;
     if prev is not null and abs(u / prev - 1) > 0.25 then
       skipped := skipped + 1;
@@ -56,7 +57,7 @@ language plpgsql stable security definer set search_path = public as $$
 declare today date := (now() at time zone app.tz())::date; res jsonb := '[]'; it text; l public.market_prices; usd_lkr numeric;
 begin
   perform app.require(app.sees_fx(), 'Not allowed');
-  foreach it in array array['copper', 'aluminium', 'steel_hrc', 'pvc'] loop
+  foreach it in array array['copper', 'aluminium', 'steel_hrc', 'pvc', 'scfi'] loop
     select * into l from public.market_prices where item = it and price_date <= today order by price_date desc limit 1;
     select mid into usd_lkr from public.fx_rates where source = 'cbsl' and currency = 'USD' and rate_date <= coalesce(l.price_date, today) order by rate_date desc limit 1;
     res := res || jsonb_build_array(jsonb_build_object(

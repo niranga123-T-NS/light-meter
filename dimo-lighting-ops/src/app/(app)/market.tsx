@@ -11,7 +11,7 @@ import { rpc } from '@/lib/supabase';
 
 const PERIODS = { '30': 30, '182': 182, '365': 365 } as const;
 
-/** Market rates: copper, aluminium, steel and PVC – the price, the change over a week and a month, LKR, and the chart */
+/** Market rates: copper, aluminium, steel, PVC and sea freight from China – the price, the change over a week and a month, LKR, and the chart */
 export default function MarketScreen() {
   const me = useMe();
   const [days, setDays] = useState<keyof typeof PERIODS>('182');
@@ -40,9 +40,9 @@ export default function MarketScreen() {
                 <>
                   <Row style={{ justifyContent: 'space-between', alignItems: 'baseline' }} wrap>
                     <Text style={{ fontSize: 22, fontWeight: '800', color: colors.ink, fontVariant: ['tabular-nums'] }}>
-                      {n0(m.usd)} <Text style={{ fontSize: 12, fontWeight: '600', color: colors.muted }}>USD / t</Text>
+                      {n0(m.usd)} <Text style={{ fontSize: 12, fontWeight: '600', color: colors.muted }}>{meta.unit ?? 'USD / t'}</Text>
                     </Text>
-                    <Text style={{ fontSize: 12, color: colors.muted }}>{`${m.currency === 'CNY' && m.price != null ? `CNY ${n0(m.price)} / t · ` : ''}LKR ${lkrT(m.usd, m.usd_lkr)}`}</Text>
+                    <Text style={{ fontSize: 12, color: colors.muted }}>{meta.unit ? 'weekly · Fridays' : `${m.currency === 'CNY' && m.price != null ? `CNY ${n0(m.price)} / t · ` : ''}LKR ${lkrT(m.usd, m.usd_lkr)}`}</Text>
                   </Row>
                   <MarketChart m={m} days={PERIODS[days]} today={data.today} />
                   <Muted>{`${meta.follows} · ${m.date ? fmtDate(m.date) : ''}`}</Muted>
