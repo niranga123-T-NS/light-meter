@@ -1,0 +1,12 @@
+name: DIMO – freight sources probe (temporary)
+on:
+  push:
+    branches: [claude/dimo-finance]
+    paths: [dimo-lighting-ops/scripts/freight_probe.py]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 dimo-lighting-ops/scripts/freight_probe.py
