@@ -1,4 +1,4 @@
-import { Stack } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
@@ -28,7 +28,8 @@ export default function SupplierReports() {
   const { realRole, profile, sqReports } = useAuth();
   const dialog = useDialog();
   const { data, error, reload } = useLoad(loadReportData, []);
-  const [key, setKey] = useState<ReportKey>('scorecard');
+  const params = useLocalSearchParams<{ r?: string }>();
+  const [key, setKey] = useState<ReportKey>(REPORTS.some((x) => x.key === params.r) ? (params.r as ReportKey) : 'projects');
   const [period, setPeriod] = useState<Period>('fy');
   const [cFrom, setCFrom] = useState('');
   const [cTo, setCTo] = useState('');

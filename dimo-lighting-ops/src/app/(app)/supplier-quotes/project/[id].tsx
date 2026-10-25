@@ -1,13 +1,13 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
-import { ReportBody, reportExcel, reportPdf } from '@/components/SqReportView';
+import { ReportBody, reportExcelSections, reportPdfSections } from '@/components/SqReportView';
 import { Button, Card, colors, ErrorBanner, Loading, Muted, Notice, Pill, Row, Screen } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { fmtDate } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import { ROLE_SHORT } from '@/lib/roles';
-import { loadProject, projectReport } from '@/lib/sqAnalysis';
+import { loadProject, packageReport, projectReport } from '@/lib/sqAnalysis';
 import { jobField, jobSource, loadJobs, type SqJob } from '@/lib/supplierQuotes';
 import { supabase } from '@/lib/supabase';
 
@@ -29,6 +29,22 @@ export default function Project() {
     currencyNote: 'LKR delivered – freight, discounts and priced-back exclusions included', generatedBy: `${profile?.full_name ?? ''} – ${profile ? ROLE_SHORT[profile.role] : ''}`, landscape: true,
   });
 
+  // the project summary alone, or with a section for every package
+  const exportAll = async (fmt: 'pdf' | 'xlsx') => {
+    const live = pkgs.filter((p) => p.status !== 'cancelled');
+    const r = await dialog.prompt({
+      title: fmt === 'pdf' ? 'Export PDF' : 'Export Excel',
+      fields: [{ key: 'what', label: 'What to include', type: 'select', required: true, initial: 'all', options: [{ value: 'all', label: `Project summary and every package (${live.length})` }, { value: 'project', label: 'Project summary only' }, ...live.map((p) => ({ value: p.id, label: `Package only: ${p.title}` }))] }],
+      confirmLabel: 'Export',
+    });
+    if (!r) return;
+    const pkgSection = (p: (typeof live)[number]) => ({ heading: `${p.code} · ${p.title}`, rep: packageReport(p, quotes, suppliers) });
+    const sections = r.what === 'all' ? [{ heading: `${j.name} – project summary`, rep }, ...live.map(pkgSection)]
+      : r.what === 'project' ? [{ heading: `${j.name} – project summary`, rep }]
+      : live.filter((p) => p.id === r.what).map(pkgSection);
+    const intro = r.what === 'all' ? 'The project on one page, then every package: how each supplier moved, ranks, savings against Pre Bid and the reasons given.' : undefined;
+    await dialog.run(() => (fmt === 'pdf' ? reportPdfSections(sections, meta(), intro) : reportExcelSections(sections, meta())));
+  };
   const addPackage = async () => {
     const r = await dialog.prompt({
       title: 'New package',
@@ -90,8 +106,8 @@ export default function Project() {
         <Row wrap gap={8}>
           {!closed && !ro ? <Button title="Add a package" icon="＋" onPress={addPackage} /> : null}
           {!ro ? <Button variant="secondary" title="Edit" onPress={edit} /> : null}
-          <Button variant="secondary" title="Export PDF" onPress={() => dialog.run(() => reportPdf(rep, meta(), 'Every package of the project: who quoted, who is lowest and chosen, and how far prices came down.'))} />
-          <Button variant="secondary" title="Excel" onPress={() => dialog.run(() => reportExcel(rep, meta()))} />
+          <Button variant="secondary" title="Export PDF" onPress={() => exportAll('pdf')} />
+          <Button variant="secondary" title="Excel" onPress={() => exportAll('xlsx')} />
           {ro ? null : closed ? <Button variant="secondary" title="Reopen" onPress={() => setStatus('open')} /> : <Button variant="ghost" title="Close" onPress={() => setStatus('closed')} />}
         </Row>
       </Row>

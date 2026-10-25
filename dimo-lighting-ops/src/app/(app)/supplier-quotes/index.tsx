@@ -49,7 +49,7 @@ export default function SupplierQuotes() {
 // ---------------------------------------------------------------- packages
 function Projects() {
   const dialog = useDialog();
-  const { profile } = useAuth();
+  const { profile, sqReports } = useAuth();
   const [show, setShow] = useState<'open' | 'all'>('open');
   const { data, error, reload } = useLoad(async () => {
     const [j, p, q, s] = await Promise.all([
@@ -128,6 +128,7 @@ function Projects() {
       <Row wrap gap={8} style={{ alignItems: 'center' }}>
         <Button title="New project" icon="＋" onPress={add} />
         <Segmented value={show} onChange={setShow} options={[{ value: 'open', label: 'Open' }, { value: 'all', label: 'All' }]} />
+        {sqReports ? <Button variant="secondary" small title="Overall summary – every project and package" onPress={() => router.push({ pathname: '/supplier-quotes/reports', params: { r: 'projects' } })} /> : null}
         <Button variant="ghost" small title={`Cost of money ${data.cost} % a year`} onPress={setCost} />
         <Button variant="secondary" small title="Export PDF" onPress={() => dialog.run(() => exportPdf(projMeta(), projCols, [{ rows }]))} />
         <Button variant="secondary" small title="Excel" onPress={() => dialog.run(() => exportExcel(projMeta(), projCols, [{ rows }]))} />

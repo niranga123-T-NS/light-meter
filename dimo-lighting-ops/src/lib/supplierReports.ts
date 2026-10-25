@@ -1,7 +1,7 @@
 import { PALETTE, type ChartSpec } from './charts';
 import { fmtDate } from './format';
 import { supabase } from './supabase';
-import { atStage, cashOf, chains, discFactor, KIND_LABEL, lkr0, lkrM, normQuote, originText, preBidBasis, quoteTotals, stageDay, STAGE_LABEL, unitLkr, type SqItem, type SqPackage, type SqQuote, type Supplier } from './supplierQuotes';
+import { atStage, cashOf, chains, discFactor, KIND_LABEL, lkr0, lkrM, normQuote, notLowest, originText, postBidSaving, preBidBasis, quoteTotals, stageDay, STAGE_LABEL, unitLkr, type SqItem, type SqPackage, type SqQuote, type Supplier } from './supplierQuotes';
 
 // Supplier base reports for the GM / DGM, worked out from the supplier quotes on the same basis as the comparison page
 // (LKR delivered, freight, discounts and priced-back exclusions): scorecard, awards, negotiation savings, not the lowest,
@@ -12,8 +12,9 @@ export type Weights = { price: number; spec: number; lead: number; response: num
 export const DEFAULT_WEIGHTS: Weights = { price: 40, spec: 20, lead: 15, response: 15, terms: 10 };
 export const WEIGHT_LABEL: Record<keyof Weights, string> = { price: 'Price (how far above the lowest)', spec: 'Meets the specification', lead: 'Lead time within what the job needs', response: 'Quotes when asked', terms: 'Payment terms (credit, little advance)' };
 
-export type ReportKey = 'scorecard' | 'awards' | 'savings' | 'exceptions' | 'competition' | 'prices' | 'terms' | 'profile';
+export type ReportKey = 'projects' | 'scorecard' | 'awards' | 'savings' | 'exceptions' | 'competition' | 'prices' | 'terms' | 'profile';
 export const REPORTS: { key: ReportKey; title: string; q: string }[] = [
+  { key: 'projects', title: 'Projects & packages summary', q: 'Every project and every package on one page: lowest, chosen, savings against Pre Bid, the lowest not chosen and the reasons.' },
   { key: 'scorecard', title: 'Supplier scorecard', q: 'Who are our best suppliers, and who only quotes high, late or off-spec?' },
   { key: 'awards', title: 'Awards & concentration', q: 'Where does the money go, and do we depend too much on a few suppliers?' },
   { key: 'savings', title: 'Negotiation savings', q: 'How much did we save from the first offer to Pre Bid to the final price?' },
@@ -38,10 +39,10 @@ export type RChart = { title: string; spec: ChartSpec };
 export type Report = { tiles: RTile[]; tables: RTable[]; charts?: RChart[]; note?: string };
 
 type Invite = { package_id: string; supplier_id: string; asked_at: string };
-export type ReportData = { pkgs: SqPackage[]; quotes: SqQuote[]; sups: Supplier[]; items: SqItem[]; invites: Invite[]; costPct: number; weights: Weights; people: Record<string, string> };
+export type ReportData = { projects: { id: string; code: string; name: string; client: string | null; job_ref: string | null; status: string }[]; pkgs: SqPackage[]; quotes: SqQuote[]; sups: Supplier[]; items: SqItem[]; invites: Invite[]; costPct: number; weights: Weights; people: Record<string, string> };
 
 export async function loadReportData(): Promise<ReportData> {
-  const [p, q, s, i, inv, st, pe] = await Promise.all([
+  const [p, q, s, i, inv, st, pe, pj] = await Promise.all([
     supabase.from('sq_packages').select('*').limit(5000),
     supabase.from('sq_quotes').select('*, lines:sq_quote_lines(*), payments:sq_quote_payments(*), exclusions:sq_quote_exclusions(*)').order('created_at').limit(10000),
     supabase.from('sq_suppliers').select('*').order('name'),
@@ -49,12 +50,13 @@ export async function loadReportData(): Promise<ReportData> {
     supabase.from('sq_package_invites').select('package_id, supplier_id, asked_at').limit(20000),
     supabase.from('sq_settings').select('cost_of_money_pct, score_weights').maybeSingle(),
     supabase.from('profiles').select('id, full_name'),
+    supabase.from('sq_projects').select('id, code, name, client, job_ref, status').order('name'),
   ]);
   const err = p.error ?? q.error ?? s.error ?? i.error ?? inv.error;
   if (err) throw new Error(err.message);
   const w = (st.data?.score_weights ?? {}) as Partial<Weights>;
   return {
-    pkgs: (p.data ?? []) as SqPackage[], quotes: ((q.data ?? []) as SqQuote[]).map(normQuote), sups: (s.data ?? []) as Supplier[], items: (i.data ?? []) as SqItem[],
+    projects: (pj.data ?? []) as ReportData['projects'], pkgs: (p.data ?? []) as SqPackage[], quotes: ((q.data ?? []) as SqQuote[]).map(normQuote), sups: (s.data ?? []) as Supplier[], items: (i.data ?? []) as SqItem[],
     invites: (inv.data ?? []) as Invite[], costPct: Number(st.data?.cost_of_money_pct ?? 12),
     weights: { price: Number(w.price ?? DEFAULT_WEIGHTS.price), spec: Number(w.spec ?? DEFAULT_WEIGHTS.spec), lead: Number(w.lead ?? DEFAULT_WEIGHTS.lead), response: Number(w.response ?? DEFAULT_WEIGHTS.response), terms: Number(w.terms ?? DEFAULT_WEIGHTS.terms) },
     people: Object.fromEntries(((pe.data ?? []) as { id: string; full_name: string }[]).map((x) => [x.id, x.full_name])),
@@ -598,9 +600,87 @@ function profile(d: ReportData, c: Ctx, f: RFilters): Report {
   };
 }
 
+// ---------------------------------------------------------------- 0. every project and every package
+function projectsSummary(d: ReportData, c: Ctx): Report {
+  const pj = new Map(d.projects.map((x) => [x.id, x]));
+  const facts = c.pkgs.map((p) => {
+    const all = c.byPkg.get(p.id) ?? [];
+    const set = atStage(all, p.stage ?? 'pre_bid');
+    const low = set.length ? set.reduce((a, b) => (c.total(b) < c.total(a) ? b : a)) : null;
+    const chosen = all.find((q) => q.id === p.selected_quote_id) ?? null;
+    return { p, all, set, low, chosen, nSup: new Set(set.map((q) => q.supplier_id)).size, sv: postBidSaving(p, all, c.name), nl: notLowest(p, all, c.name) };
+  });
+  const byProject = new Map<string, typeof facts>();
+  for (const f of facts) byProject.set(f.p.project_id ?? '-', [...(byProject.get(f.p.project_id ?? '-') ?? []), f]);
+  const sum = (xs: typeof facts, v: (f: (typeof facts)[number]) => number | null | undefined) => xs.reduce((a, f) => a + (v(f) ?? 0), 0);
+  const lowNow = (f: (typeof facts)[number]) => (f.low ? c.total(f.low) : null);
+  const chosenT = (f: (typeof facts)[number]) => (f.chosen ? c.total(f.chosen) : null);
+  const saved = sum(facts, (f) => f.sv?.saving), basis = sum(facts, (f) => (f.sv?.saving != null ? f.sv.basis?.value : null));
+  const missed = sum(facts, (f) => (f.nl && f.nl.stage === 'post_bid' ? f.nl.diff : null)), carried = sum(facts, (f) => (f.nl && f.nl.stage !== 'post_bid' ? f.nl.diff : null));
+  const few = facts.filter((f) => f.nSup > 0 && f.nSup < 3);
+  const projRows = [...byProject.entries()].map(([id, xs]) => ({ id, j: pj.get(id), xs })).sort((a, b) => sum(b.xs, chosenT) + sum(b.xs, lowNow) - sum(a.xs, chosenT) - sum(a.xs, lowNow));
+  const top = projRows.slice(0, 10);
+  return {
+    tiles: [
+      { label: 'Projects · packages', value: `${projRows.length} · ${facts.length}`, sub: `${facts.filter((f) => f.chosen).length} package(s) chosen · ${facts.filter((f) => f.p.stage === 'post_bid').length} at Post Bid` },
+      { label: 'Lowest now on every package', value: `LKR ${M(sum(facts, lowNow))}` },
+      { label: 'Chosen', value: `LKR ${M(sum(facts, chosenT))}` },
+      { label: 'Saving against Pre Bid (Post Bid packages)', value: `LKR ${M(saved)}`, sub: basis ? `${sgn(-(saved / basis) * 100)} on bid values of ${M(basis)}` : undefined, tone: saved > 0 ? 'green' : saved < 0 ? 'red' : undefined },
+      { label: 'Potential saving – lowest not chosen at Post Bid', value: `LKR ${M(missed)}`, tone: missed > 0.5 ? 'red' : undefined },
+      { label: 'Above the lowest at Pre Bid (in our bids)', value: `LKR ${M(carried)}`, tone: carried > 0.5 ? 'amber' : undefined },
+      { label: 'Packages with fewer than three quotes', value: String(few.length), sub: few.length ? `${few.filter((f) => !f.p.few_quotes_reason).length} without a reason` : undefined, tone: few.length ? 'amber' : 'green' },
+    ],
+    charts: top.length ? [{ title: 'Each project – lowest now, chosen and Pre Bid value (LKR M)', spec: { type: 'bar' as const, title: '', xLabel: '', yLabel: 'LKR M', categories: top.map((x) => (x.j?.name ?? 'No project').slice(0, 16)), legend: true, showValues: false, yMin: null, yMax: null, w: 760, h: 280,
+      series: [
+        { name: 'Lowest now', color: PALETTE[0], values: top.map((x) => Math.round(sum(x.xs, lowNow) / 1e4) / 100) },
+        { name: 'Chosen', color: PALETTE[2], values: top.map((x) => Math.round(sum(x.xs, chosenT) / 1e4) / 100) },
+        { name: 'Pre Bid value (Post Bid packages)', color: PALETTE[3], values: top.map((x) => Math.round(sum(x.xs, (f) => (f.sv?.saving != null ? f.sv.basis?.value : null)) / 1e4) / 100) },
+      ] } }] : undefined,
+    tables: [
+      {
+        title: 'Projects', empty: 'No project in the period.',
+        head: [{ h: 'Project', w: 220, grow: true }, { h: 'Packages', w: 90, right: true }, { h: 'Lowest now', w: 110, right: true }, { h: 'Chosen', w: 110, right: true }, { h: 'Saving vs Pre Bid', w: 130, right: true }, { h: 'Lowest not chosen', w: 140, right: true }, { h: '< 3 quotes', w: 90, right: true }],
+        rows: projRows.map((x) => {
+          const sv = sum(x.xs, (f) => f.sv?.saving), b = sum(x.xs, (f) => (f.sv?.saving != null ? f.sv.basis?.value : null));
+          const nl = x.xs.filter((f) => f.nl), nlv = sum(nl, (f) => f.nl?.diff);
+          return {
+            key: x.id, href: x.j ? `/supplier-quotes/project/${x.id}` : undefined,
+            cells: [
+              { t: x.j?.name ?? 'No project', sub: [x.j?.code, x.j?.client, x.j?.job_ref].filter(Boolean).join(' · ') },
+              { t: String(x.xs.length), sub: `${x.xs.filter((f) => f.chosen).length} chosen` },
+              { t: M(sum(x.xs, lowNow)) }, { t: x.xs.some((f) => f.chosen) ? M(sum(x.xs, chosenT)) : '—' },
+              { t: b ? M(sv) : '—', sub: b ? sgn(-(sv / b) * 100) : undefined, tone: b ? (sv >= 0 ? 'good' : 'bad') : undefined },
+              { t: nl.length ? M(nlv) : '—', sub: nl.length ? `${nl.length} package(s)` : undefined, tone: nl.some((f) => f.nl!.stage === 'post_bid') ? 'bad' : nl.length ? 'warn' : undefined },
+              { t: String(x.xs.filter((f) => f.nSup > 0 && f.nSup < 3).length) },
+            ],
+          };
+        }),
+      },
+      {
+        title: 'Every package', empty: 'No package in the period.',
+        head: [{ h: 'Project · package', w: 240, grow: true }, { h: 'Offers', w: 70, right: true }, { h: 'Lowest now', w: 140, right: true }, { h: 'Chosen', w: 140, right: true }, { h: 'Saving vs Pre Bid', w: 130, right: true }, { h: 'Lowest not chosen', w: 130, right: true }, { h: 'Reasons', w: 260, grow: true }],
+        rows: [...facts].sort((a, b) => (pj.get(a.p.project_id ?? '')?.name ?? '').localeCompare(pj.get(b.p.project_id ?? '')?.name ?? '') || a.p.title.localeCompare(b.p.title)).map((f) => ({
+          key: f.p.id, href: `/supplier-quotes/${f.p.id}`,
+          cells: [
+            { t: f.p.title, sub: [pj.get(f.p.project_id ?? '')?.name, f.p.code, STAGE_LABEL[f.p.stage ?? 'pre_bid']].filter(Boolean).join(' · ') },
+            { t: String(f.nSup), tone: f.nSup > 0 && f.nSup < 3 ? 'warn' : undefined },
+            { t: M(lowNow(f)), sub: f.low ? c.name(f.low.supplier_id) : undefined },
+            { t: f.chosen ? M(chosenT(f)) : '—', sub: f.chosen ? c.name(f.chosen.supplier_id) : 'not chosen' },
+            { t: f.sv?.saving != null ? M(f.sv.saving) : f.sv ? '—' : 'Pre Bid', sub: f.sv?.saving != null ? `${sgn(f.sv.pct ?? 0)} · ${f.sv.basis?.how ?? ''}` : f.sv && !f.sv.basis ? 'enter the Pre Bid value' : undefined, tone: f.sv?.saving != null ? (f.sv.saving >= 0 ? 'good' : 'bad') : undefined },
+            { t: f.nl ? M(f.nl.diff) : '—', sub: f.nl ? `${f.nl.stage === 'post_bid' ? 'potential saving' : 'above the lowest'} · ${sgn(f.nl.pct)}` : undefined, tone: f.nl ? (f.nl.stage === 'post_bid' ? 'bad' : 'warn') : undefined },
+            { t: [f.nl ? `Not the lowest: ${f.nl.reason ?? 'no reason'}` : '', f.nSup > 0 && f.nSup < 3 ? `${f.nSup} quote(s): ${f.p.few_quotes_reason ?? (f.chosen ? 'no reason' : 'reason due when choosing')}` : ''].filter(Boolean).join(' · ') || '—' },
+          ],
+        })),
+      },
+    ],
+    note: 'Packages created in the period. Lowest now uses each package\'s current stage. Saving against Pre Bid: the Pre Bid choice, else the Pre Bid value entered, else the lowest Pre Bid quote, against the chosen Post Bid price (or the lowest while nothing is chosen).',
+  };
+}
+
 export function runReport(key: ReportKey, d: ReportData, f: RFilters): Report {
   const c = context(d, f);
   switch (key) {
+    case 'projects': return projectsSummary(d, c);
     case 'scorecard': return scorecard(d, c);
     case 'awards': return awards(d, c);
     case 'savings': return savings(d, c);
