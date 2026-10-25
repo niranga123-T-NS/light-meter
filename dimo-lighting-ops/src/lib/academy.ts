@@ -5,7 +5,7 @@ import type { Role } from './types';
 export const ACADEMY_PATH = '/academy/index.html';
 
 /** The Dacademy courses: each is a static page of lessons; progress is kept per lesson in the same table (ids start net_ / knx_ / knxlab_ for the newer courses) */
-export type AcademyCourse = 'light' | 'net' | 'knx' | 'knxlab' | 'infra' | 'bs7671' | 'elecfix';
+export type AcademyCourse = 'light' | 'net' | 'knx' | 'knxlab' | 'infra' | 'bs7671' | 'elecfix' | 'vdgs';
 /** group: courses shown together under one tab (with a second selector by their short name) */
 export const ACADEMY_COURSES: { value: AcademyCourse; label: string; path: string; lessons: number; group?: string; short?: string }[] = [
   { value: 'light', label: 'Lighting', path: ACADEMY_PATH, lessons: 152 },
@@ -15,6 +15,7 @@ export const ACADEMY_COURSES: { value: AcademyCourse; label: string; path: strin
   { value: 'infra', label: 'Infrastructure', path: '/academy/infra.html', lessons: 25 }, // 25 sessions with a virtual lab: Cisco-style switches and routers, FortiGate, Windows Server, Ubuntu, Proxmox, plus the network builder
   { value: 'bs7671', label: 'Wiring Regulations', path: '/academy/bs7671.html', lessons: 52, group: 'Electrical', short: 'Wiring Regulations' }, // BS 7671:2018+A4:2026 – 48 lessons in 10 modules over three levels + 4 practical assessments, 10 module tests and a final exam
   { value: 'elecfix', label: 'Electrical Troubleshooting', path: '/academy/elec.html', lessons: 43, group: 'Electrical', short: 'Troubleshooting' }, // 8 guided demos, 22 random-fault jobs, 7 LED driver (incl. the 1700 W high-power driver and its trip case) and 6 panel board workbenches
+  { value: 'vdgs', label: 'VDGS', path: '/academy/vdgs.html', lessons: 20 }, // Safedock FleX & AiPRON Manager on the BIA project: 5 lessons, 14 labs (stand planning to a Proxmox server build and a live AiPRON shift) and a final test
 ];
 /** The course tabs: one per course, or one per group of courses */
 export const ACADEMY_TABS = ACADEMY_COURSES.reduce<{ value: string; label: string; courses: AcademyCourse[] }[]>((t, c) => {
