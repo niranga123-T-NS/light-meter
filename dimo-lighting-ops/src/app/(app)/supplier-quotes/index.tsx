@@ -8,22 +8,18 @@ import { useAuth } from '@/lib/auth';
 import { fmtDate, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { ROLE_SHORT } from '@/lib/roles';
-import { discFactor, jobField, jobSource, KIND_LABEL, lkr0, lkrM, loadJobs, loadRefs, loadSystemSuppliers, originText, quoteTotals, supplierFields, supplierRow, STAGE_LABEL, type SqItem, type SqJob, type SqPackage, type SqQuote, type Supplier, type SysSupplier } from '@/lib/supplierQuotes';
+import { exportExcel, exportPdf, type Column as XCol } from '@/lib/export';
+import { discFactor, jobField, jobSource, KIND_LABEL, lkr0, lkrM, loadJobs, loadRefs, loadSystemSuppliers, originText, quoteTotals, supplierFields, supplierRow, type SqItem, type SqJob, type SqPackage, type SqQuote, type Supplier, type SysSupplier } from '@/lib/supplierQuotes';
+import { type SqProject } from '@/lib/sqAnalysis';
 import { rpc, supabase } from '@/lib/supabase';
 
-type Tab = 'packages' | 'rates' | 'suppliers' | 'access';
-const STATUS: Record<SqPackage['status'], { label: string; tone: string }> = {
-  open: { label: 'Comparing', tone: colors.blue },
-  selected: { label: 'Supplier chosen', tone: colors.green },
-  closed: { label: 'Closed', tone: colors.grey },
-  cancelled: { label: 'Cancelled', tone: colors.grey },
-};
+type Tab = 'projects' | 'rates' | 'suppliers' | 'access';
 
-/** Supplier quotes: packages with their quotes and comparison, the rate library, the suppliers, and who has access (GM / DGM). */
+/** Supplier quotes: projects with their packages, quotes and comparison, the rate library, the suppliers, and who has access (GM / DGM). */
 export default function SupplierQuotes() {
   const { sqAccess, realRole } = useAuth();
   const params = useLocalSearchParams<{ tab?: Tab }>();
-  const tab: Tab = params.tab && ['packages', 'rates', 'suppliers', 'access'].includes(params.tab) ? params.tab : 'packages';
+  const tab: Tab = params.tab && ['projects', 'rates', 'suppliers', 'access'].includes(params.tab) ? params.tab : 'projects';
   if (!sqAccess)
     return (
       <Screen>
@@ -32,7 +28,7 @@ export default function SupplierQuotes() {
       </Screen>
     );
   const opts: { value: Tab; label: string }[] = [
-    { value: 'packages', label: 'Packages' },
+    { value: 'projects', label: 'Projects' },
     { value: 'rates', label: 'Rate library' },
     { value: 'suppliers', label: 'Suppliers & manufacturers' },
     ...(realRole === 'gm' ? [{ value: 'access' as Tab, label: 'Access' }] : []),
@@ -41,66 +37,79 @@ export default function SupplierQuotes() {
     <Screen maxWidth={1240}>
       <Stack.Screen options={{ title: 'Supplier quotes' }} />
       <Row wrap gap={8} style={{ alignItems: 'center' }}>
-        <View style={{ flexGrow: 1 }}><Segmented value={tab} onChange={(v) => router.setParams({ tab: v === 'packages' ? undefined : v })} options={opts} wrap /></View>
+        <View style={{ flexGrow: 1 }}><Segmented value={tab} onChange={(v) => router.setParams({ tab: v === 'projects' ? undefined : v })} options={opts} wrap /></View>
         {realRole === 'gm' ? <Button title="Supplier reports" icon="▤" onPress={() => router.push('/supplier-quotes/reports')} /> : null}
       </Row>
-      {tab === 'packages' ? <Packages /> : tab === 'rates' ? <RateLibrary /> : tab === 'suppliers' ? <Suppliers /> : <Access />}
+      {tab === 'projects' ? <Projects /> : tab === 'rates' ? <RateLibrary /> : tab === 'suppliers' ? <Suppliers /> : <Access />}
       <Muted>Uploaded quote files are only read on this device and never stored – only the values you check and save are kept.</Muted>
     </Screen>
   );
 }
 
 // ---------------------------------------------------------------- packages
-function Packages() {
+function Projects() {
   const dialog = useDialog();
+  const { profile } = useAuth();
   const [show, setShow] = useState<'open' | 'all'>('open');
   const { data, error, reload } = useLoad(async () => {
-    const [p, q, s] = await Promise.all([
-      supabase.from('sq_packages').select('*').order('updated_at', { ascending: false }).limit(300),
-      supabase.from('sq_quotes').select('id, package_id, supplier_id, bid_stage, valid_until, fx_rate, freight_pct, currency, lead_weeks, discount_pct, discount_amt, lines:sq_quote_lines(qty, rate, included), exclusions:sq_quote_exclusions(add_lkr)').is('superseded_by', null),
+    const [j, p, q, s] = await Promise.all([
+      supabase.from('sq_projects').select('*').order('updated_at', { ascending: false }).limit(500),
+      supabase.from('sq_packages').select('*').limit(3000),
+      supabase.from('sq_quotes').select('id, package_id, supplier_id, bid_stage, revision, valid_until, fx_rate, freight_pct, currency, lead_weeks, discount_pct, discount_amt, lines:sq_quote_lines(qty, rate, included), exclusions:sq_quote_exclusions(add_lkr)').is('superseded_by', null),
       supabase.from('sq_settings').select('cost_of_money_pct').maybeSingle(),
     ]);
-    const err = p.error ?? q.error;
+    const err = j.error ?? p.error ?? q.error;
     if (err) throw new Error(err.message);
-    const sups = await supabase.from('sq_suppliers').select('id, name');
-    return { pkgs: (p.data ?? []) as SqPackage[], quotes: (q.data ?? []) as unknown as SqQuote[], sups: (sups.data ?? []) as Supplier[], cost: Number(s.data?.cost_of_money_pct ?? 12) };
+    return { projects: (j.data ?? []) as SqProject[], pkgs: (p.data ?? []) as SqPackage[], quotes: (q.data ?? []) as unknown as SqQuote[], cost: Number(s.data?.cost_of_money_pct ?? 12) };
   }, []);
   if (!data) return error ? <ErrorBanner message={error} /> : <Loading />;
   const today = todayISO();
-  const rows = data.pkgs
-    .filter((p) => show === 'all' || p.status === 'open' || p.status === 'selected')
-    .map((p) => {
-      const qs = data.quotes.filter((q) => q.package_id === p.id && (q.bid_stage ?? 'pre_bid') === (p.stage ?? 'pre_bid')).map((q) => ({ q, t: quoteTotals({ ...q, payments: [], lines: q.lines.map((l) => ({ ...l, rate: l.rate == null ? null : Number(l.rate), qty: l.qty == null ? null : Number(l.qty) })), exclusions: q.exclusions.map((x) => ({ ...x, add_lkr: Number(x.add_lkr) })), fx_rate: Number(q.fx_rate), freight_pct: Number(q.freight_pct) } as SqQuote).total }));
-      const low = qs.length ? qs.reduce((a, b) => (b.t < a.t ? b : a)) : null;
-      const sel = qs.find((x) => x.q.id === p.selected_quote_id);
-      const expiring = qs.filter((x) => x.q.valid_until && ((p.our_validity && x.q.valid_until < p.our_validity) || x.q.valid_until < today));
-      return { p, n: qs.length, low, sel, expiring };
+  const tot = (q: SqQuote) => quoteTotals({ ...q, payments: [], lines: q.lines.map((l) => ({ ...l, rate: l.rate == null ? null : Number(l.rate), qty: l.qty == null ? null : Number(l.qty) })), exclusions: q.exclusions.map((x) => ({ ...x, add_lkr: Number(x.add_lkr) })), fx_rate: Number(q.fx_rate), freight_pct: Number(q.freight_pct) } as SqQuote).total;
+  const rows = data.projects
+    .filter((j) => show === 'all' || j.status === 'open')
+    .map((j) => {
+      const pk = data.pkgs.filter((p) => p.project_id === j.id && p.status !== 'cancelled');
+      let low = 0, chosen = 0, offers = 0, nChosen = 0;
+      const expiring: string[] = [];
+      for (const p of pk) {
+        // each supplier's latest version at the package's stage
+        const qs = data.quotes.filter((q) => q.package_id === p.id && (q.bid_stage ?? 'pre_bid') === (p.stage ?? 'pre_bid'));
+        offers += qs.length;
+        if (qs.length) low += Math.min(...qs.map(tot));
+        const c = qs.find((q) => q.id === p.selected_quote_id);
+        if (c) { chosen += tot(c); nChosen++; }
+        if (qs.some((q) => q.valid_until && ((p.our_validity && q.valid_until < p.our_validity) || q.valid_until < today))) expiring.push(p.code);
+      }
+      return { j, pk, low, chosen, offers, nChosen, expiring };
     });
-  const supName = (id?: string) => data.sups.find((s) => s.id === id)?.name ?? '—';
+  const projCols: XCol<(typeof rows)[number]>[] = [
+    { header: 'Code', value: (r) => r.j.code }, { header: 'Project', value: (r) => r.j.name, width: 36 }, { header: 'Client', value: (r) => r.j.client ?? '' }, { header: 'Reference', value: (r) => r.j.job_ref ?? '' },
+    { header: 'Packages', value: (r) => r.pk.length, align: 'right' }, { header: 'Chosen', value: (r) => r.nChosen, align: 'right' }, { header: 'Offers', value: (r) => r.offers, align: 'right' },
+    { header: 'Lowest now LKR M', value: (r) => (r.offers ? lkrM(r.low) : ''), align: 'right' }, { header: 'Chosen LKR M', value: (r) => (r.nChosen ? lkrM(r.chosen) : ''), align: 'right' },
+    { header: 'Status', value: (r) => (r.expiring.length ? 'Quote ending' : r.j.status) }, { header: 'Updated', value: (r) => fmtDate(r.j.updated_at) },
+  ];
+  const projMeta = () => ({ key: 'supplier_projects', title: 'Supplier quotes – projects', filters: show === 'open' ? 'Open projects' : 'All projects', currencyNote: 'LKR delivered – freight, discounts and priced-back exclusions included', generatedBy: `${profile?.full_name ?? ''} – ${profile ? ROLE_SHORT[profile.role] : ''}`, landscape: true });
   const add = async () => {
     const jobs = await loadJobs().catch(() => [] as SqJob[]);
     const r = await dialog.prompt({
-      title: 'New package',
-      message: 'What is being bought or subcontracted for a job. Add the quotes to it and compare them.',
+      title: 'New project',
+      message: 'The job the supplier quotes are for. Add its packages next (e.g. floodlights, masts, civil works).',
       fields: [
-        { key: 'title', label: 'Package', required: true, hint: 'e.g. LED floodlights, Lattice masts, Mast foundations' },
-        { key: 'kind', label: 'Type', type: 'select', required: true, initial: 'supply', options: [{ value: 'supply', label: 'Supply' }, { value: 'subcontract', label: 'Subcontract' }] },
-        { key: 'stage', label: 'Start at', type: 'select', required: true, initial: 'pre_bid', options: [{ value: 'pre_bid', label: 'Pre Bid – pricing our tender' }, { value: 'post_bid', label: 'Post Bid – tender already done (e.g. started before the system)' }] },
-        jobField(jobs),
-        { key: 'project', label: 'Project / client', hint: 'As you know it – e.g. the stadium name' },
-        { key: 'job', label: 'Job or inquiry reference', hint: 'e.g. EST-2026-0142, PRJ-0087' },
+        { ...jobField(jobs), fill: (v: string): Record<string, string> => { const x = jobs.find((y) => `${y.kind}:${y.id}` === v); return x ? { name: x.project_name ?? '', client: x.client ?? '', job: x.ref ?? '' } : {}; } },
+        { key: 'name', label: 'Project', required: true, hint: 'e.g. Kalutara road lighting' },
+        { key: 'client', label: 'Client', hint: 'e.g. Road Development Authority' },
+        { key: 'job', label: 'Job or inquiry reference', hint: 'e.g. LS-000186, EST-2026-0142' },
         { key: 'valid', label: 'Our quotation is valid until', type: 'date', hint: 'Warns when a supplier\'s quote ends before it' },
-        { key: 'weeks', label: 'Needed on site within (weeks)', hint: 'Lead times longer than this are flagged' },
       ],
       confirmLabel: 'Create',
     });
     if (!r) return;
     await dialog.run(async () => {
-      const { data: p, error: e } = await supabase.from('sq_packages')
-        .insert({ title: r.title.trim(), kind: r.kind, stage: r.stage === 'post_bid' ? 'post_bid' : 'pre_bid', project_name: r.project?.trim() || null, job_ref: r.job?.trim() || null, ...jobSource(r.src), our_validity: r.valid || null, needed_weeks: Number(r.weeks) > 0 ? Number(r.weeks) : null })
+      const { data: j, error: e } = await supabase.from('sq_projects')
+        .insert({ name: r.name.trim(), client: r.client?.trim() || null, job_ref: r.job?.trim() || null, ...jobSource(r.src), our_validity: r.valid || null })
         .select('id').single();
       if (e) throw new Error(e.message);
-      router.push(`/supplier-quotes/${p.id}`);
+      router.push(`/supplier-quotes/project/${j.id}`);
     });
   };
   const setCost = async () => {
@@ -117,28 +126,29 @@ function Packages() {
   return (
     <>
       <Row wrap gap={8} style={{ alignItems: 'center' }}>
-        <Button title="New package" icon="＋" onPress={add} />
+        <Button title="New project" icon="＋" onPress={add} />
         <Segmented value={show} onChange={setShow} options={[{ value: 'open', label: 'Open' }, { value: 'all', label: 'All' }]} />
         <Button variant="ghost" small title={`Cost of money ${data.cost} % a year`} onPress={setCost} />
+        <Button variant="secondary" small title="Export PDF" onPress={() => dialog.run(() => exportPdf(projMeta(), projCols, [{ rows }]))} />
+        <Button variant="secondary" small title="Excel" onPress={() => dialog.run(() => exportExcel(projMeta(), projCols, [{ rows }]))} />
       </Row>
       {rows.some((r) => r.expiring.length) ? (
-        <Notice tone={colors.amber}>{`${rows.filter((r) => r.expiring.length).length} package(s) have a supplier quote that has ended or ends before our quotation – ask the supplier to extend it.`}</Notice>
+        <Notice tone={colors.amber}>{`${rows.filter((r) => r.expiring.length).length} project(s) have a supplier quote that has ended or ends before our quotation – ask the supplier to extend it.`}</Notice>
       ) : null}
       <DataTable
         rows={rows}
-        keyOf={(r) => r.p.id}
-        onPress={(r) => router.push(`/supplier-quotes/${r.p.id}`)}
-        emptyTitle="No packages yet – create one and add the supplier quotes"
+        keyOf={(r) => r.j.id}
+        onPress={(r) => router.push(`/supplier-quotes/project/${r.j.id}`)}
+        emptyTitle="No projects yet – create one, then add its packages and the supplier quotes"
         edge={(r) => (r.expiring.length ? colors.amber : undefined)}
         columns={[
-          { h: 'Package', w: 230, grow: true, v: (r) => <View><Text style={{ fontWeight: '600', color: colors.ink }}>{r.p.title}</Text><Muted>{[r.p.code, r.p.project_name, r.p.job_ref].filter(Boolean).join(' · ')}</Muted></View> },
-          { h: 'Type', w: 100, v: (r) => (r.p.kind === 'supply' ? 'Supply' : 'Subcontract') },
-          { h: 'Stage', w: 90, v: (r) => <Pill label={STAGE_LABEL[r.p.stage ?? 'pre_bid']} tone={r.p.stage === 'post_bid' ? colors.blue : colors.grey} /> },
-          { h: 'Quotes', w: 70, right: true, v: (r) => String(r.n) },
-          { h: 'Lowest (comparable)', w: 170, v: (r) => (r.low ? <View><Text style={{ color: colors.ink }}>{`LKR ${lkrM(r.low.t)}`}</Text><Muted>{supName(r.low.q.supplier_id)}</Muted></View> : '—') },
-          { h: 'Chosen', w: 170, v: (r) => (r.sel ? supName(r.sel.q.supplier_id) : '—') },
-          { h: 'Status', w: 140, v: (r) => <Pill label={r.expiring.length ? 'Quote ending' : STATUS[r.p.status].label} tone={r.expiring.length ? colors.amber : STATUS[r.p.status].tone} /> },
-          { h: 'Updated', w: 100, v: (r) => fmtDate(r.p.updated_at) },
+          { h: 'Project', w: 240, grow: true, v: (r) => <View><Text style={{ fontWeight: '600', color: colors.ink }}>{r.j.name}</Text><Muted>{[r.j.code, r.j.client, r.j.job_ref].filter(Boolean).join(' · ')}</Muted></View> },
+          { h: 'Packages', w: 90, right: true, v: (r) => <View style={{ alignItems: 'flex-end' }}><Text style={{ color: colors.ink }}>{String(r.pk.length)}</Text><Muted>{`${r.nChosen} chosen`}</Muted></View> },
+          { h: 'Offers', w: 70, right: true, v: (r) => String(r.offers) },
+          { h: 'Lowest now', w: 120, right: true, v: (r) => (r.offers ? `LKR ${lkrM(r.low)}` : '—') },
+          { h: 'Chosen', w: 120, right: true, v: (r) => (r.nChosen ? `LKR ${lkrM(r.chosen)}` : '—') },
+          { h: 'Status', w: 130, v: (r) => <Pill label={r.expiring.length ? 'Quote ending' : r.j.status === 'open' ? 'Open' : r.j.status === 'closed' ? 'Closed' : 'Cancelled'} tone={r.expiring.length ? colors.amber : r.j.status === 'open' ? colors.blue : colors.grey} /> },
+          { h: 'Updated', w: 100, v: (r) => fmtDate(r.j.updated_at) },
         ]}
       />
     </>
@@ -148,6 +158,8 @@ function Packages() {
 // ---------------------------------------------------------------- rate library
 function RateLibrary() {
   const [q, setQ] = useState('');
+  const dialog = useDialog();
+  const { profile } = useAuth();
   const { data, error } = useLoad(async () => {
     const refs = await loadRefs();
     const { data: ls, error: e } = await supabase.from('sq_quote_lines').select('item_id, rate, included, quote:sq_quotes(id, first_id, revision, superseded_by, quote_date, created_at, fx_rate, freight_pct, supplier_id, discount_pct, discount_amt, lines:sq_quote_lines(qty, rate, included))').not('item_id', 'is', null).limit(5000);
@@ -165,10 +177,23 @@ function RateLibrary() {
     const sorted = ps.map((p) => p.v).sort((a, b) => a - b);
     return { n: ps.length, versions: all.length, latest: ps[0], median: sorted.length ? sorted[Math.floor((sorted.length - 1) / 2)] : null, low: sorted[0] ?? null, sups: new Set(ps.map((p) => p.s)).size, drop: drops.length ? drops.reduce((a, b) => a + b, 0) / drops.length : null };
   };
+  type RR = { it: SqItem; s: ReturnType<typeof stats> };
+  const rateCols: XCol<RR>[] = [
+    { header: 'Code', value: (r) => r.it.code }, { header: 'Item', value: (r) => r.it.name, width: 40 }, { header: 'SAP', value: (r) => r.it.sap_code ?? '' }, { header: 'Unit', value: (r) => r.it.unit ?? '' },
+    { header: 'Quotes', value: (r) => r.s.n, align: 'right' }, { header: 'Suppliers', value: (r) => r.s.sups, align: 'right' },
+    { header: 'Latest LKR', value: (r) => (r.s.latest ? lkr0(r.s.latest.v) : ''), align: 'right' }, { header: 'Latest date', value: (r) => (r.s.latest ? fmtDate(r.s.latest.d) : '') },
+    { header: 'Median LKR', value: (r) => lkr0(r.s.median), align: 'right' }, { header: 'Lowest LKR', value: (r) => lkr0(r.s.low), align: 'right' },
+    { header: 'Came down', value: (r) => (r.s.drop != null ? `${r.s.drop.toFixed(1)} %` : ''), align: 'right' },
+  ];
+  const rateMeta = () => ({ key: 'supplier_rates', title: 'Rate library – supplier prices per item', filters: q.trim() ? `Search: ${q.trim()}` : 'All items', currencyNote: 'LKR per unit delivered – exchange rate of the quote, freight and discount included', generatedBy: `${profile?.full_name ?? ''} – ${profile ? ROLE_SHORT[profile.role] : ''}`, landscape: true });
   const items = data.items.filter((i) => !q.trim() || `${i.code} ${i.name} ${i.sap_code ?? ''}`.toLowerCase().includes(q.trim().toLowerCase()));
   return (
     <>
-      <Field label="Search items" value={q} onChangeText={setQ} placeholder="Code, name or SAP code" />
+      <Row wrap gap={8} style={{ alignItems: 'flex-end' }}>
+        <View style={{ flexGrow: 1, minWidth: 240 }}><Field label="Search items" value={q} onChangeText={setQ} placeholder="Code, name or SAP code" /></View>
+        <Button variant="secondary" small title="Export PDF" onPress={() => dialog.run(() => exportPdf(rateMeta(), rateCols, [{ rows: items.map((it) => ({ it, s: stats(it) })) }]))} />
+        <Button variant="secondary" small title="Excel" onPress={() => dialog.run(() => exportExcel(rateMeta(), rateCols, [{ rows: items.map((it) => ({ it, s: stats(it) })) }]))} />
+      </Row>
       <Muted>{'Each supplier\'s latest price on every job, chosen or not, in LKR delivered (freight and discount included) at the quote\'s exchange rate. “Came down” is the average drop from the first offer to the latest version. Tap an item for every version on every job.'}</Muted>
       <DataTable
         rows={items.map((it) => ({ it, s: stats(it) }))}
@@ -192,6 +217,7 @@ function RateLibrary() {
 // ---------------------------------------------------------------- suppliers
 function Suppliers() {
   const dialog = useDialog();
+  const { realRole } = useAuth();
   const { data, error, reload } = useLoad(async () => {
     const { data: s, error: e } = await supabase.from('sq_suppliers').select('*').order('name');
     if (e) throw new Error(e.message);
@@ -239,7 +265,7 @@ function Suppliers() {
       <DataTable
         rows={data.sups}
         keyOf={(s) => s.id}
-        onPress={edit}
+        onPress={(s) => (realRole === 'gm' ? router.push(`/supplier-quotes/supplier/${s.id}`) : edit(s))}
         emptyTitle="No suppliers yet"
         rowStyle={(s) => (s.active ? undefined : { opacity: 0.5 })}
         columns={[
@@ -248,6 +274,7 @@ function Suppliers() {
           { h: 'Contact', w: 200, v: (s) => [s.contact_name, s.phone, s.email].filter(Boolean).join(' · ') || '—' },
           { h: 'Quotes', w: 70, right: true, v: (s) => String(data.quotes.filter((q) => q.supplier_id === s.id).length) },
           { h: 'Chosen', w: 70, right: true, v: (s) => String(data.quotes.filter((q) => q.supplier_id === s.id && data.chosen.has(q.id)).length) },
+          ...(realRole === 'gm' ? [{ h: '', w: 80, v: (s: Supplier) => <Button small variant="ghost" title="Edit" onPress={() => edit(s)} /> }] : []),
         ]}
       />
     </>

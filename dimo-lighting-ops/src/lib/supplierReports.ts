@@ -19,14 +19,14 @@ export const REPORTS: { key: ReportKey; title: string; q: string }[] = [
   { key: 'savings', title: 'Negotiation savings', q: 'How much did we save from the first offer to Pre Bid to the final price?' },
   { key: 'exceptions', title: 'Not the lowest', q: 'Where did we choose a supplier who was not the lowest, why, and what did it cost?' },
   { key: 'competition', title: 'Competition & gaps', q: 'Which trades have too few suppliers, and which packages went without competition?' },
-  { key: 'prices', title: 'Price trends', q: 'Is a material getting cheaper or dearer, and who is out of line with the market?' },
+  { key: 'prices', title: 'Item price history', q: 'What has every supplier and manufacturer quoted for an item, over time and job by job – and who is out of line?' },
   { key: 'terms', title: 'Terms & cash', q: 'How much cash do suppliers ask before delivery, and what does it cost us?' },
   { key: 'profile', title: 'One supplier', q: 'Everything about one supplier on one page, for a supplier meeting.' },
 ];
 
 export type Who = 'all' | 'supply' | 'manufacturer' | 'subcontract' | 'local' | 'foreign';
 export type Prices = 'final' | 'pre_bid' | 'post_bid';
-export type RFilters = { from: string; to: string; type: 'all' | 'supply' | 'subcontract'; who: Who; prices: Prices; item?: string; supplier?: string };
+export type RFilters = { from: string; to: string; type: 'all' | 'supply' | 'subcontract'; who: Who; prices: Prices; item?: string; supplier?: string; itemSupplier?: string };
 export const WHO_LABEL: Record<Who, string> = { all: 'All suppliers', supply: 'Local and foreign suppliers', manufacturer: 'Manufacturers', subcontract: 'Subcontractors', local: 'Local only', foreign: 'Foreign only' };
 export const PRICES_LABEL: Record<Prices, string> = { final: 'Final prices (each package\'s current stage)', pre_bid: 'Pre Bid prices', post_bid: 'Post Bid prices' };
 
@@ -34,7 +34,8 @@ export type Tone = 'good' | 'warn' | 'bad';
 export type RCell = { t: string; sub?: string; tone?: Tone };
 export type RTable = { title?: string; head: { h: string; w: number; grow?: boolean; right?: boolean }[]; rows: { key: string; cells: RCell[]; href?: string }[]; empty: string };
 export type RTile = { label: string; value: string; tone?: 'green' | 'amber' | 'red'; sub?: string };
-export type Report = { tiles: RTile[]; tables: RTable[]; chart?: ChartSpec; note?: string };
+export type RChart = { title: string; spec: ChartSpec };
+export type Report = { tiles: RTile[]; tables: RTable[]; charts?: RChart[]; note?: string };
 
 type Invite = { package_id: string; supplier_id: string; asked_at: string };
 export type ReportData = { pkgs: SqPackage[]; quotes: SqQuote[]; sups: Supplier[]; items: SqItem[]; invites: Invite[]; costPct: number; weights: Weights; people: Record<string, string> };
@@ -312,11 +313,13 @@ function competition(d: ReportData, c: Ctx): Report {
 
 // ---------------------------------------------------------------- 6. price trends
 export function monthsOf(from: string, to: string) {
-  const out: string[] = [];
-  let y = Number(from.slice(0, 4)), m = Number(from.slice(5, 7));
+  // at most the last 24 months up to "to"
   const ey = Number(to.slice(0, 4)), em = Number(to.slice(5, 7));
-  while ((y < ey || (y === ey && m <= em)) && out.length < 36) { out.push(`${y}-${String(m).padStart(2, '0')}`); m++; if (m > 12) { m = 1; y++; } }
-  return out.slice(-24);
+  const back = ey * 12 + em - 1 - 23, fy = Number(from.slice(0, 4)), fm = Number(from.slice(5, 7));
+  const start = Math.max(back, fy * 12 + fm - 1);
+  const out: string[] = [];
+  for (let k = start; k <= ey * 12 + em - 1; k++) out.push(`${Math.floor(k / 12)}-${String((k % 12) + 1).padStart(2, '0')}`);
+  return out;
 }
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const monLabel = (k: string) => `${MON[Number(k.slice(5, 7)) - 1]} ${k.slice(2, 4)}`;
@@ -334,7 +337,9 @@ export function itemPrices(d: ReportData, c: Ctx, item: string, from: string, to
   const sups = [...new Set(pts.map((p) => p.s))].sort((a, b) => pts.filter((p) => p.s === b).length - pts.filter((p) => p.s === a).length);
   const series = sups.map((s) => ({ s, values: months.map((m) => { const x = pts.filter((p) => p.s === s && p.m === m).sort((a, b) => b.dt.localeCompare(a.dt))[0]; return x ? x.v : null; }) }));
   const median = months.map((m) => { const v = pts.filter((p) => p.m === m).map((p) => p.v).sort((a, b) => a - b); return v.length ? v[Math.floor((v.length - 1) / 2)] : null; });
-  return { months, series, median, pts };
+  // the chart starts at the first month with a price
+  const k = Math.max(0, Math.min(months.length - 1, median.findIndex((v) => v != null)));
+  return { months: months.slice(k), series: series.map((x) => ({ ...x, values: x.values.slice(k) })), median: median.slice(k), pts };
 }
 function priceChart(months: string[], series: { name: string; values: (number | null)[] }[], median: (number | null)[]): ChartSpec {
   return {
@@ -345,28 +350,118 @@ function priceChart(months: string[], series: { name: string; values: (number | 
 function prices(d: ReportData, c: Ctx, f: RFilters): Report {
   const item = d.items.find((i) => i.id === f.item) ?? null;
   if (!item) return { tiles: [], tables: [], note: d.items.length ? 'Choose an item.' : 'No items yet – items are made when quote lines are matched.' };
-  const r = itemPrices(d, c, item.id, f.from, f.to);
-  const lastMed = [...r.median].reverse().find((v) => v != null) ?? null, firstMed = r.median.find((v) => v != null) ?? null;
-  const latest = r.series.map((s) => ({ s: s.s, v: [...s.values].reverse().find((v) => v != null) ?? null })).filter((x) => x.v != null) as { s: string; v: number }[];
-  const lo = latest.length ? latest.reduce((a, b) => (b.v < a.v ? b : a)) : null;
+  return itemHistory(d, c, item, f.from, f.to, f.itemSupplier);
+}
+
+/** Everything quoted for one item: each supplier / manufacturer's prices over time and on every job, every version, against the market */
+export function itemHistory(d: ReportData, c: Ctx, item: SqItem, from: string, to: string, focus?: string): Report {
+  const pk = new Map(d.pkgs.map((p) => [p.id, p]));
+  type V = { q: SqQuote; v: number | null; dt: string; text: string; qty: number | null; unit: string | null; rate: number | null; latest: boolean; chosen: boolean };
+  const vs: V[] = [];
+  for (const q of d.quotes) {
+    if (!c.whoOk(q.supplier_id) && q.supplier_id !== focus) continue;
+    const dt = day(q.quote_date ?? q.created_at);
+    if (dt < from || dt > to) continue;
+    const f = discFactor(q);
+    for (const l of q.lines) if (l.item_id === item.id) vs.push({ q, v: unitLkr({ ...q, _f: f }, l), dt, text: l.text, qty: l.qty, unit: l.unit, rate: l.rate, latest: !q.superseded_by, chosen: pk.get(q.package_id)?.selected_quote_id === q.id });
+  }
+  const priced = vs.filter((x) => x.v != null) as (V & { v: number })[];
+  const latestPriced = priced.filter((x) => x.latest);
+  const sorted = latestPriced.map((x) => x.v).sort((a, b) => a - b);
+  const med = sorted.length ? sorted[Math.floor((sorted.length - 1) / 2)] : null;
+  const sups = [...new Set(vs.map((x) => x.q.supplier_id))];
+  const r0 = (x: V) => vs.find((y) => (y.q.first_id ?? y.q.id) === (x.q.first_id ?? x.q.id) && y.q.revision === 0) ?? null;
+  const drops = latestPriced.filter((x) => x.q.revision > 0).map((x) => { const f0 = r0(x); return f0?.v ? ((x.v - f0.v) / f0.v) * 100 : null; }).filter((x): x is number => x != null);
+  const bySup = sups.map((id) => {
+    const mine = priced.filter((x) => x.q.supplier_id === id).sort((a, b) => a.dt.localeCompare(b.dt) || a.q.revision - b.q.revision);
+    const latest = mine.filter((x) => x.latest);
+    const vals = latest.map((x) => x.v);
+    const lastText = [...vs].filter((x) => x.q.supplier_id === id).sort((a, b) => b.dt.localeCompare(a.dt))[0]?.text ?? '';
+    return {
+      id, n: new Set(vs.filter((x) => x.q.supplier_id === id).map((x) => x.q.package_id)).size, versions: vs.filter((x) => x.q.supplier_id === id).length,
+      first: mine[0] ?? null, last: mine[mine.length - 1] ?? null, low: vals.length ? Math.min(...vals) : null, high: vals.length ? Math.max(...vals) : null, avg: avg(vals),
+      chosen: vs.filter((x) => x.q.supplier_id === id && x.chosen).length, lastText,
+    };
+  }).sort((a, b) => (a.last?.v ?? Infinity) - (b.last?.v ?? Infinity));
+  const lowest = latestPriced.length ? latestPriced.reduce((a, b) => (b.v < a.v ? b : a)) : null;
+  const firstAll = priced.length ? [...priced].sort((a, b) => a.dt.localeCompare(b.dt))[0] : null, lastAll = priced.length ? [...priced].sort((a, b) => b.dt.localeCompare(a.dt))[0] : null;
+  const fr = focus ? bySup.find((x) => x.id === focus) ?? null : null;
+  const others = focus ? latestPriced.filter((x) => x.q.supplier_id !== focus).map((x) => x.v).sort((a, b) => a - b) : [];
+  const othersMed = others.length ? others[Math.floor((others.length - 1) / 2)] : null;
+  const tr = itemPrices(d, { ...c, whoOk: (id: string) => c.whoOk(id) || id === focus }, item.id, from, to);
+  const series = focus ? [...tr.series.filter((x) => x.s === focus), ...tr.series.filter((x) => x.s !== focus)] : tr.series;
+  const rows = focus ? vs.filter((x) => x.q.supplier_id === focus) : vs;
   return {
     tiles: [
-      { label: 'Typical price, latest month (median)', value: lastMed ? `LKR ${lkr0(lastMed)}` : '—' },
-      { label: 'Change over the period', value: firstMed && lastMed ? sgn(((lastMed - firstMed) / firstMed) * 100) : '—', tone: firstMed && lastMed ? (lastMed < firstMed ? 'green' : lastMed > firstMed ? 'red' : undefined) : undefined },
-      { label: lo ? `Lowest latest: ${c.name(lo.s)}` : 'Lowest latest', value: lo ? `LKR ${lkr0(lo.v)}` : '—' },
-      { label: 'Prices in the period', value: String(r.pts.length) },
+      ...(fr ? [
+        { label: `${c.name(focus!)} – latest`, value: fr.last ? `LKR ${lkr0(fr.last.v)}` : '—', sub: fr.last ? fmtDate(fr.last.dt) : 'no price in the period' },
+        { label: 'Against the other suppliers (median)', value: fr.last && othersMed ? sgn(((fr.last.v - othersMed) / othersMed) * 100) : '—', tone: fr.last && othersMed ? (fr.last.v <= othersMed ? 'green' as const : 'red' as const) : undefined, sub: othersMed ? `others: LKR ${lkr0(othersMed)}` : 'no other supplier quoted it' },
+        { label: 'Rank among suppliers (latest)', value: fr.last ? `${bySup.findIndex((x) => x.id === focus) + 1} of ${bySup.filter((x) => x.last).length}` : '—' },
+      ] : []),
+      { label: 'Quoted on', value: `${new Set(vs.map((x) => x.q.package_id)).size} package(s)`, sub: `${vs.length} version(s) · ${sups.length} supplier(s) / manufacturer(s)` },
+      { label: 'Typical latest price (median)', value: med ? `LKR ${lkr0(med)}` : '—', sub: sorted.length ? `range ${lkr0(sorted[0])} – ${lkr0(sorted[sorted.length - 1])}` : undefined },
+      { label: lowest ? `Lowest: ${c.name(lowest.q.supplier_id)}` : 'Lowest', value: lowest ? `LKR ${lkr0(lowest.v)}` : '—', sub: lowest ? `${fmtDate(lowest.dt)} · ${pk.get(lowest.q.package_id)?.title ?? ''}` : undefined, tone: lowest ? 'green' : undefined },
+      { label: 'Came down after negotiation', value: drops.length ? sgn(avg(drops)!) : '—', sub: drops.length ? `average of ${drops.length} revised quote(s)` : 'no revised quotes', tone: drops.length ? 'green' : undefined },
+      { label: 'Since the first quote', value: firstAll && lastAll && firstAll !== lastAll ? sgn(((lastAll.v - firstAll.v) / firstAll.v) * 100) : '—', sub: firstAll ? `${lkr0(firstAll.v)} (${fmtDate(firstAll.dt)}) → ${lkr0(lastAll?.v)}` : undefined },
     ],
-    chart: r.pts.length ? priceChart(r.months, r.series.map((s) => ({ name: c.name(s.s), values: s.values })), r.median) : undefined,
-    tables: [{
-      empty: 'No price for this item in the period.',
-      head: [{ h: 'Supplier', w: 220, grow: true }, { h: 'Latest (LKR / unit)', w: 140, right: true }, { h: 'Against the median', w: 140, right: true }, { h: 'Prices', w: 80, right: true }],
-      rows: latest.sort((a, b) => a.v - b.v).map((x) => {
-        const dv = lastMed ? ((x.v - lastMed) / lastMed) * 100 : null;
-        return { key: x.s, cells: [{ t: c.name(x.s) }, { t: lkr0(x.v) }, { t: dv == null ? '—' : sgn(dv), tone: dv == null ? undefined : dv <= 0 ? 'good' : dv > 3 ? 'bad' : 'warn' }, { t: String(r.pts.filter((p) => p.s === x.s).length) }] };
-      }),
-    }],
-    note: `${item.code} · ${item.name}. LKR per unit delivered (exchange rate of the quote, freight and discount included), every version on every package.`,
+    charts: tr.pts.length ? [
+      { title: 'LKR per unit delivered – each supplier\'s latest price in the month', spec: priceChart(tr.months, series.map((x) => ({ name: c.name(x.s), values: x.values })), tr.median) },
+      { title: 'Latest price by supplier / manufacturer (LKR per unit)', spec: { type: 'hbar' as const, title: '', xLabel: '', yLabel: '', categories: bySup.filter((x) => x.last).slice(0, 10).map((x) => c.name(x.id).slice(0, 18)), legend: false, showValues: true, yMin: null, yMax: null, w: 760, h: Math.max(160, 40 + bySup.filter((x) => x.last).slice(0, 10).length * 26), series: [{ name: 'Latest', color: PALETTE[0], values: bySup.filter((x) => x.last).slice(0, 10).map((x) => Math.round(x.last!.v)) }] } },
+    ] : undefined,
+    tables: [
+      {
+        title: 'By supplier / manufacturer', empty: 'Nobody quoted this item in the period.',
+        head: [{ h: 'Supplier / manufacturer', w: 220, grow: true }, { h: 'Packages', w: 80, right: true }, { h: 'First', w: 120, right: true }, { h: 'Latest', w: 120, right: true }, { h: 'Change', w: 90, right: true }, { h: 'Lowest · highest', w: 150, right: true }, { h: 'Against median', w: 110, right: true }, { h: 'Chosen', w: 70, right: true }],
+        rows: bySup.map((x) => {
+          const s = c.sup.get(x.id);
+          const dm = x.last && med ? ((x.last.v - med) / med) * 100 : null;
+          const ch = x.first && x.last && x.first !== x.last ? ((x.last.v - x.first.v) / x.first.v) * 100 : null;
+          return {
+            key: x.id, href: `/supplier-quotes/supplier/${x.id}`,
+            cells: [
+              { t: c.name(x.id), sub: [s ? `${KIND_LABEL[s.kind]} · ${originText(s)}` : '', x.lastText ? `"${x.lastText}"` : ''].filter(Boolean).join(' · ') },
+              { t: String(x.n), sub: `${x.versions} version(s)` },
+              { t: x.first ? lkr0(x.first.v) : '—', sub: x.first ? fmtDate(x.first.dt) : undefined },
+              { t: x.last ? lkr0(x.last.v) : '—', sub: x.last ? fmtDate(x.last.dt) : undefined },
+              { t: ch == null ? '—' : sgn(ch), tone: ch == null ? undefined : ch < 0 ? 'good' : ch > 0 ? 'bad' : undefined },
+              { t: x.low == null ? '—' : `${lkr0(x.low)} · ${lkr0(x.high)}`, sub: x.avg ? `average ${lkr0(x.avg)}` : undefined },
+              { t: dm == null ? '—' : sgn(dm), tone: dm == null ? undefined : dm <= 0 ? 'good' : dm > 3 ? 'bad' : 'warn' },
+              { t: String(x.chosen) },
+            ],
+          };
+        }),
+      },
+      {
+        title: focus ? `Every version from ${c.name(focus)}` : 'Every version on every job', empty: 'No version in the period.',
+        head: [{ h: 'Date', w: 100 }, { h: 'Supplier', w: 170 }, { h: 'Project · package', w: 220, grow: true }, { h: 'Version', w: 110 }, { h: 'Qty', w: 80, right: true }, { h: 'LKR per unit', w: 120, right: true }, { h: 'As quoted', w: 120, right: true }, { h: 'Outcome', w: 100 }],
+        rows: [...rows].sort((a, b) => b.dt.localeCompare(a.dt) || b.q.revision - a.q.revision).map((x) => {
+          const p = pk.get(x.q.package_id);
+          const f0 = x.q.revision ? r0(x) : null;
+          const dd = f0?.v && x.v != null ? ((x.v - f0.v) / f0.v) * 100 : null;
+          return {
+            key: `${x.q.id}-${x.text}`, href: p ? `/supplier-quotes/${p.id}` : undefined,
+            cells: [
+              { t: fmtDate(x.dt) }, { t: c.name(x.q.supplier_id), sub: x.q.quote_no ?? undefined },
+              { t: p?.title ?? '—', sub: [p?.code, p?.project_name].filter(Boolean).join(' · ') },
+              { t: `R${x.q.revision}`, sub: [STAGE_LABEL[x.q.bid_stage ?? 'pre_bid'], x.latest ? '' : 'later revised'].filter(Boolean).join(' · ') },
+              { t: x.qty == null ? '—' : `${x.qty} ${x.unit ?? ''}` },
+              { t: x.v == null ? 'included' : lkr0(x.v), sub: dd == null ? undefined : `${sgn(dd)} vs R0`, tone: dd == null ? undefined : dd < 0 ? 'good' : dd > 0 ? 'bad' : undefined },
+              { t: x.rate == null ? '—' : `${x.q.currency === 'LKR' ? '' : `${x.q.currency} `}${lkr0(x.rate)}` },
+              { t: !x.latest ? 'Revised' : x.chosen ? 'Chosen' : p?.selected_quote_id ? 'Not chosen' : 'Comparing', tone: x.chosen && x.latest ? 'good' : undefined },
+            ],
+          };
+        }),
+      },
+    ],
+    note: `${item.code} · ${item.name}${item.sap_code ? ` · SAP ${item.sap_code}` : ''}. LKR per unit delivered: the quote's exchange rate, freight and discount included. Each supplier's own wording for the item is shown under its name.`,
   };
+}
+
+/** The item history for the item page (any period, every supplier) */
+export function itemReport(d: ReportData, itemId: string, from: string, to: string, focus?: string) {
+  const item = d.items.find((i) => i.id === itemId);
+  if (!item) return null;
+  return itemHistory(d, context(d, { from, to, type: 'all', who: 'all', prices: 'final' }), item, from, to, focus);
 }
 
 // ---------------------------------------------------------------- 7. terms & cash
@@ -423,24 +518,71 @@ function profile(d: ReportData, c: Ctx, f: RFilters): Report {
   const item = (() => { const m = new Map<string, number>(); d.quotes.filter((q) => q.supplier_id === r.s.id).forEach((q) => q.lines.forEach((l) => l.item_id && m.set(l.item_id, (m.get(l.item_id) ?? 0) + 1))); return [...m.entries()].sort((a, b) => b[1] - a[1])[0]?.[0]; })();
   const pr = item ? itemPrices(d, { ...c, whoOk: () => true }, item, f.from, f.to) : null;
   const own = pr?.series.find((s) => s.s === r.s.id);
+  // competitors: the others who quoted on the same packages – head to head on the prices compared now
+  const h2h = new Map<string, { met: number; cheaper: number; diffs: number[]; meChosen: number; themChosen: number }>();
+  const pos = new Map<string, { rank: number; n: number; gap: number | null; lowBy: string | null }>();
+  for (const p of mine) {
+    const set = c.sets.get(p.id) ?? [];
+    const me = set.find((q) => q.supplier_id === r.s.id);
+    if (!me) continue;
+    const sorted = [...set].sort((a, b) => c.total(a) - c.total(b));
+    const lo = c.total(sorted[0]);
+    pos.set(p.id, { rank: sorted.indexOf(me) + 1, n: sorted.length, gap: lo ? ((c.total(me) - lo) / lo) * 100 : null, lowBy: sorted[0].supplier_id === r.s.id ? null : sorted[0].supplier_id });
+    const chosenBy = c.chosen.find((x) => x.p.id === p.id)?.q.supplier_id;
+    for (const o of set) {
+      if (o.supplier_id === r.s.id) continue;
+      const h = h2h.get(o.supplier_id) ?? { met: 0, cheaper: 0, diffs: [], meChosen: 0, themChosen: 0 };
+      h.met++;
+      if (c.total(me) < c.total(o)) h.cheaper++;
+      if (c.total(o)) h.diffs.push(((c.total(me) - c.total(o)) / c.total(o)) * 100);
+      if (chosenBy === r.s.id) h.meChosen++;
+      if (chosenBy === o.supplier_id) h.themChosen++;
+      h2h.set(o.supplier_id, h);
+    }
+  }
+  const comps = [...h2h.entries()].map(([id, h]) => ({ id, ...h, diff: avg(h.diffs) })).sort((a, b) => b.met - a.met || (a.diff ?? 0) - (b.diff ?? 0));
+  const meets = comps.reduce((a, x) => a + x.met, 0), wins = comps.reduce((a, x) => a + x.cheaper, 0);
+  const charts = [
+    ...(comps.length ? [{ title: 'Price against each competitor – average % (below 0 = cheaper than them)', spec: { type: 'bar' as const, title: '', xLabel: '', yLabel: '%', categories: comps.slice(0, 8).map((x) => c.name(x.id).slice(0, 16)), legend: false, showValues: true, yMin: null, yMax: null, w: 760, h: 260, series: [{ name: r.s.name, color: PALETTE[0], values: comps.slice(0, 8).map((x) => (x.diff == null ? null : Math.round(x.diff * 10) / 10)) }] } }] : []),
+    ...(pr && own ? [{ title: `${d.items.find((i) => i.id === item)?.name ?? 'Main item'} – against the median of all quotes`, spec: priceChart(pr.months, [{ name: r.s.name, values: own.values }], pr.median) }] : []),
+  ];
   return {
     tiles: [
       { label: `Score – ${rank} of ${all.length}`, value: r.score == null ? '—' : `${r.grade} ${r.score}`, tone: r.grade === 'A' ? 'green' : r.grade === 'D' ? 'red' : r.grade === 'C' ? 'amber' : undefined },
       { label: `Chosen value · ${r.won} package(s)`, value: `LKR ${M(r.value)}` },
       { label: 'Quoted when asked', value: `${r.quoted} of ${r.asked}` },
       { label: 'Lowest price', value: r.compared ? `${r.low} of ${r.compared}` : '—' },
+      { label: `Cheaper than the competitor, ${meets} meeting(s)`, value: meets ? pct((wins / meets) * 100) : '—', sub: comps.length ? `${comps.length} competitor(s)` : 'no competitor yet', tone: meets ? (wins / meets >= 0.5 ? 'green' : 'amber') : undefined },
     ],
-    chart: pr && own ? priceChart(pr.months, [{ name: r.s.name, values: own.values }], pr.median) : undefined,
+    charts: charts.length ? charts : undefined,
     tables: [
       { title: 'Strengths and points to raise', empty: '—', head: [{ h: 'Point', w: 150 }, { h: 'What the quotes show', w: 420, grow: true }], rows: points.map(([a, b]) => ({ key: a, cells: [{ t: a }, { t: b }] })) },
-      { title: 'Packages', empty: 'No package in the period.', head: [{ h: 'Package', w: 260, grow: true }, { h: 'Stage', w: 90 }, { h: 'Latest (LKR)', w: 120, right: true }, { h: 'Result', w: 110 }],
+      { title: 'Against competitors (quoted on the same packages)', empty: 'No other supplier quoted on the same packages in the period.',
+        head: [{ h: 'Competitor', w: 220, grow: true }, { h: 'Met on', w: 80, right: true }, { h: 'Cheaper than them', w: 130, right: true }, { h: 'Price difference', w: 130, right: true }, { h: 'Chosen: us · them', w: 130, right: true }],
+        rows: comps.map((x) => {
+          const s = c.sup.get(x.id);
+          return { key: x.id, href: `/supplier-quotes/supplier/${x.id}`, cells: [
+            { t: c.name(x.id), sub: s ? `${KIND_LABEL[s.kind]} · ${originText(s)}` : undefined },
+            { t: `${x.met} package(s)` },
+            { t: `${x.cheaper} of ${x.met}`, tone: x.cheaper * 2 >= x.met ? 'good' : 'bad' },
+            { t: x.diff == null ? '—' : sgn(x.diff), sub: x.diff == null ? undefined : x.diff < 0 ? 'cheaper on average' : 'dearer on average', tone: x.diff == null ? undefined : x.diff < 0 ? 'good' : x.diff > 3 ? 'bad' : 'warn' },
+            { t: `${x.meChosen} · ${x.themChosen}`, tone: x.meChosen > x.themChosen ? 'good' : x.meChosen < x.themChosen ? 'bad' : undefined },
+          ] };
+        }) },
+      { title: 'Packages', empty: 'No package in the period.', head: [{ h: 'Package', w: 240, grow: true }, { h: 'Stage', w: 90 }, { h: 'Latest (LKR)', w: 120, right: true }, { h: 'Rank', w: 80, right: true }, { h: 'Above lowest', w: 140, right: true }, { h: 'Result', w: 110 }],
         rows: mine.map((p) => {
           const q = atStage(c.byPkg.get(p.id) ?? [], p.stage ?? 'pre_bid').find((x) => x.supplier_id === r.s.id) ?? [...(c.byPkg.get(p.id) ?? [])].reverse().find((x) => x.supplier_id === r.s.id)!;
           const won = c.chosen.some((x) => x.p.id === p.id && x.q.supplier_id === r.s.id);
-          return { key: p.id, href: `/supplier-quotes/${p.id}`, cells: [{ t: p.title, sub: `${p.code} · R${q.revision}` }, { t: STAGE_LABEL[q.bid_stage ?? 'pre_bid'] }, { t: M(c.total(q)) }, { t: won ? 'Chosen' : p.selected_quote_id ? 'Not chosen' : 'Comparing', tone: won ? 'good' : undefined }] };
+          const ps = pos.get(p.id);
+          return { key: p.id, href: `/supplier-quotes/${p.id}`, cells: [
+            { t: p.title, sub: `${p.code} · ${p.project_name ?? ''} · R${q.revision}` }, { t: STAGE_LABEL[q.bid_stage ?? 'pre_bid'] }, { t: M(c.total(q)) },
+            { t: ps ? `${ps.rank} of ${ps.n}` : '—', tone: ps ? (ps.rank === 1 && ps.n > 1 ? 'good' : ps.rank === ps.n && ps.n > 1 ? 'bad' : undefined) : undefined },
+            { t: !ps || ps.gap == null ? '—' : ps.rank === 1 ? 'lowest' : sgn(ps.gap), sub: ps?.lowBy ? `lowest: ${c.name(ps.lowBy)}` : undefined },
+            { t: won ? 'Chosen' : p.selected_quote_id ? 'Not chosen' : 'Comparing', tone: won ? 'good' : undefined },
+          ] };
         }) },
     ],
-    note: item && pr ? `Price chart: ${d.items.find((i) => i.id === item)?.name ?? ''} – this supplier against the median of all quotes.` : undefined,
+    note: 'Competitors are the other suppliers and manufacturers who quoted on the same packages; prices compared are each one\'s latest at the package\'s stage (or the stage chosen in the filter).',
   };
 }
 

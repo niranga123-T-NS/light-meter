@@ -3,11 +3,15 @@ import { useState, type ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { DataTable, type Column } from '@/components/DataTable';
 import { useDialog } from '@/components/dialog';
-import { Button, Card, colors, Empty, ErrorBanner, Grid, KeyValue, Loading, Muted, Notice, Pill, Row, Screen, Section, Segmented, Stat } from '@/components/ui';
+import { Button, Card, colors, Empty, ErrorBanner, KeyValue, Loading, Muted, Notice, Pill, Row, Screen, Section, Segmented } from '@/components/ui';
+import { ReportBody, reportPdf } from '@/components/SqReportView';
 import { useAuth } from '@/lib/auth';
 import { fmtDate, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
-import { atStage, BASIS_LABEL, type BidStage, cashOf, chains, compareRows, jobField, jobSource, lkr0, lkrM, loadJobs, loadPackage, loadRefs, payText, quoteTotals, revLabel, SPEC_LABEL, STAGE_LABEL, type SqItem, type SqJob, type SqQuote } from '@/lib/supplierQuotes';
+import { ROLE_SHORT } from '@/lib/roles';
+import { packageReport } from '@/lib/sqAnalysis';
+import type { RTable } from '@/lib/supplierReports';
+import { atStage, BASIS_LABEL, type BidStage, cashOf, chains, compareRows, lkr0, lkrM, loadPackage, loadRefs, payText, quoteTotals, revLabel, SPEC_LABEL, STAGE_LABEL, type SqItem, type SqQuote } from '@/lib/supplierQuotes';
 import { rpc, supabase } from '@/lib/supabase';
 
 type Cell = { t: ReactNode; tone?: 'good' | 'warn' | 'bad'; sub?: string };
@@ -17,11 +21,11 @@ const TONE = { good: { bg: '#E4F3EA', fg: '#1A6B41' }, warn: { bg: '#FDF0DC', fg
 /** A package: its quotes side by side on one basis (LKR delivered, exclusions priced back), the terms that decide, and the choice. */
 export default function Package() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { sqAccess } = useAuth();
+  const { sqAccess, profile } = useAuth();
   const dialog = useDialog();
   const people = usePeople();
   const [view, setView] = useState<BidStage | null>(null);
-  const { data, error, reload } = useLoad(async () => ({ ...(await loadPackage(id)), ...(await loadRefs()), invites: ((await supabase.from('sq_package_invites').select('supplier_id').eq('package_id', id)).data ?? []).map((x) => x.supplier_id as string) }), [id]);
+  const { data, error, reload } = useLoad(async () => ({ ...(await loadPackage(id)), ...(await loadRefs()), invites: ((await supabase.from('sq_package_invites').select('supplier_id').eq('package_id', id)).data ?? []).map((x) => x.supplier_id as string), projects: ((await supabase.from('sq_projects').select('id, code, name, client').order('name')).data ?? []) as { id: string; code: string; name: string; client: string | null }[] }), [id]);
   if (!sqAccess) return <Screen><Notice tone={colors.amber}>No access to supplier quotes.</Notice></Screen>;
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const { pkg, suppliers, items, costPct } = data;
@@ -46,6 +50,10 @@ export default function Package() {
   const fixed = closed || past;
   const preOf = (q: SqQuote) => [...chainOf(q)].reverse().find((x) => (x.bid_stage ?? 'pre_bid') === 'pre_bid');
   const preChoice = data.quotes.find((q) => q.id === pkg.pre_bid_quote_id);
+  const project = data.projects.find((x) => x.id === pkg.project_id) ?? null;
+  // the analysis of every version; the chosen supplier and our validity added to its tiles
+  const base = packageReport(pkg, data.quotes, suppliers);
+  const analysis = { ...base, tiles: base.tiles.length ? [...base.tiles, { label: past ? 'Chosen at Post Bid' : 'Chosen', value: chosen ? sup(chosen) : '—', tone: chosen ? ('green' as const) : undefined, sub: chosen ? `LKR ${lkrM(quoteTotals(chosen).total)}` : pkg.our_validity ? `our quotation valid until ${fmtDate(pkg.our_validity)}` : undefined }] : [] };
 
   // ---- rows of the comparison
   const rows: CRow[] = [];
@@ -205,14 +213,11 @@ export default function Package() {
     await dialog.run(async () => { const { error: e } = await supabase.from('sq_quotes').delete().eq('id', q.id); if (e) throw new Error(e.message); reload(); });
   };
   const edit = async () => {
-    const jobs = await loadJobs().catch(() => [] as SqJob[]);
     const r = await dialog.prompt({
       title: 'Edit package',
       fields: [
         { key: 'title', label: 'Package', required: true, initial: pkg.title },
-        jobField(jobs, pkg.source_kind && pkg.source_id ? `${pkg.source_kind}:${pkg.source_id}` : ''),
-        { key: 'project', label: 'Project / client', initial: pkg.project_name ?? '' },
-        { key: 'job', label: 'Job or inquiry reference', initial: pkg.job_ref ?? '' },
+        { key: 'project', label: 'Project', type: 'select', searchable: true, required: true, initial: pkg.project_id ?? '', options: data.projects.map((x) => ({ value: x.id, label: [x.name, x.client].filter(Boolean).join(' – '), hint: x.code })) },
         { key: 'valid', label: 'Our quotation is valid until', type: 'date', initial: pkg.our_validity ?? '' },
         { key: 'weeks', label: 'Needed on site within (weeks)', initial: pkg.needed_weeks ? String(pkg.needed_weeks) : '' },
         { key: 'notes', label: 'Notes', type: 'multiline', initial: pkg.notes ?? '' },
@@ -220,7 +225,7 @@ export default function Package() {
     });
     if (!r) return;
     await dialog.run(async () => {
-      const { error: e } = await supabase.from('sq_packages').update({ title: r.title.trim(), project_name: r.project?.trim() || null, job_ref: r.job?.trim() || null, ...jobSource(r.src), our_validity: r.valid || null, needed_weeks: Number(r.weeks) > 0 ? Number(r.weeks) : null, notes: r.notes?.trim() || null }).eq('id', pkg.id);
+      const { error: e } = await supabase.from('sq_packages').update({ title: r.title.trim(), project_id: r.project || pkg.project_id, our_validity: r.valid || null, needed_weeks: Number(r.weeks) > 0 ? Number(r.weeks) : null, notes: r.notes?.trim() || null }).eq('id', pkg.id);
       if (e) throw new Error(e.message);
       reload();
     }, 'Saved');
@@ -237,12 +242,24 @@ export default function Package() {
     ...quotes.filter((q) => pkg.needed_weeks && q.lead_weeks && q.lead_weeks > pkg.needed_weeks).map((q) => `${sup(q)} needs ${q.lead_weeks} weeks – longer than the ${pkg.needed_weeks} weeks allowed.`),
   ];
 
+  // the PDF: the analysis, then the comparison of the stage shown as a table
+  const txt = (v: ReactNode) => (typeof v === 'string' || typeof v === 'number' ? String(v) : '');
+  const cmp: RTable = {
+    title: `Comparison – ${STAGE_LABEL[shown]} quotes (LKR delivered)`, empty: 'No quotes.',
+    head: [{ h: 'Line', w: 220, grow: true }, ...quotes.map((q) => ({ h: `${sup(q)}${q.revision ? ` · ${revLabel(q)}` : ''}`, w: 140 }))],
+    rows: rows.filter((x) => x.kind !== 'act').map((x) => ({
+      key: x.key,
+      cells: [{ t: x.kind === 'sec' ? x.label.toUpperCase() : x.label, sub: x.sub ?? undefined }, ...quotes.map((_, i) => { const c = x.cells[i]; return c ? { t: txt(c.t), sub: c.sub, tone: c.tone } : { t: '' }; })],
+    })),
+  };
+  const pdfRep = { ...analysis, tables: [...analysis.tables, cmp] };
   return (
     <Screen maxWidth={1400}>
       <Stack.Screen options={{ title: pkg.title }} />
       <Row wrap gap={8} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
         <View>
-          <Muted>{[pkg.code, pkg.kind === 'supply' ? 'Supply' : 'Subcontract', pkg.project_name, pkg.job_ref, STAGE_LABEL[stage]].filter(Boolean).join(' · ')}</Muted>
+          {project ? <Pressable onPress={() => router.push(`/supplier-quotes/project/${project.id}`)}><Text style={{ color: colors.blue, fontWeight: '600' }}>{`‹ ${project.name}${project.client ? ` – ${project.client}` : ''}`}</Text></Pressable> : null}
+          <Muted>{[pkg.code, pkg.kind === 'supply' ? 'Supply' : 'Subcontract', project ? null : pkg.project_name, pkg.job_ref, STAGE_LABEL[stage]].filter(Boolean).join(' · ')}</Muted>
           <Text style={{ fontSize: 22, fontWeight: '700', color: colors.ink }}>{pkg.title}</Text>
         </View>
         <Row wrap gap={8}>
@@ -250,6 +267,7 @@ export default function Package() {
           {!closed && stage === 'pre_bid' ? <Button variant="secondary" title="Move to Post Bid" onPress={toPostBid} /> : null}
           {!closed && stage === 'post_bid' && !postCount ? <Button variant="ghost" title="Back to Pre Bid" onPress={toPreBid} /> : null}
           <Button variant="secondary" title="Edit" onPress={edit} />
+          <Button variant="secondary" title="Export PDF" onPress={() => dialog.run(() => reportPdf(pdfRep, { key: 'supplier_package', title: `${pkg.title} – supplier quotes`, filters: [pkg.code, project?.name ?? pkg.project_name, STAGE_LABEL[stage]].filter(Boolean).join(' · '), period: fmtDate(pkg.created_at), currencyNote: 'LKR delivered – freight, discounts and priced-back exclusions included', generatedBy: `${profile?.full_name ?? ''} – ${profile ? ROLE_SHORT[profile.role] : ''}`, landscape: true }, 'How every supplier moved from the first offer through each revision, ranks before and after, and every version in order.'))} />
           {closed ? <Button variant="secondary" title="Reopen" onPress={() => setStatus('open')} /> : <Button variant="secondary" title="Close" onPress={() => setStatus('closed')} />}
           {pkg.status === 'open' ? <Button variant="ghost" title="Cancel package" onPress={() => setStatus('cancelled')} /> : null}
         </Row>
@@ -261,17 +279,18 @@ export default function Package() {
         </Row>
       ) : null}
       {past ? <Notice tone={colors.blue}>{`Pre Bid prices – kept as they were for the tender.${preChoice ? ` Chosen at Pre Bid: ${sup(preChoice)}${pkg.pre_bid_reason ? ` (${pkg.pre_bid_reason})` : ''}.` : ''} Carry a supplier on to ask for a Post Bid price.`}</Notice> : null}
-      <Grid min={180} max={4}>
-        <Stat label="Quotes" value={String(quotes.length)} />
-        <Stat label="Lowest comparable" value={lowTotal != null ? `LKR ${lkrM(lowTotal)}` : quotes.length ? `LKR ${lkrM(tots[0].total)}` : '—'} sub={quotes.length ? sup(quotes[tots.findIndex((t) => t.total === Math.min(...tots.map((x) => x.total)))]) : undefined} />
-        <Stat label="Our quotation valid until" value={pkg.our_validity ? fmtDate(pkg.our_validity) : '—'} />
-        <Stat label={past ? 'Chosen at Post Bid' : 'Chosen'} value={chosen ? sup(chosen) : '—'} tone={chosen ? 'green' : undefined} sub={chosen ? `LKR ${lkrM(quoteTotals(chosen).total)}` : undefined} />
-      </Grid>
       <Row wrap gap={8} style={{ alignItems: 'center' }}>
         <Muted>{`Asked to quote: ${[...askedIds].map((x) => `${suppliers.find((s) => s.id === x)?.name ?? '—'}${data.quotes.some((q) => q.supplier_id === x) ? '' : ' (no quote yet)'}`).join(', ') || 'nobody recorded'}`}</Muted>
         {!closed ? <Button small variant="ghost" title="Edit who was asked" onPress={editAsked} /> : null}
       </Row>
       {warnings.length && !past ? <Notice tone={colors.amber}>{warnings.join('\n')}</Notice> : null}
+      {analysis.tiles.length ? (
+        <View style={{ gap: 6 }}>
+          <Text style={{ fontSize: 17, fontWeight: '700', color: colors.ink }}>Price analysis – how everybody came down or up</Text>
+          <ReportBody rep={analysis} />
+          <Text style={{ fontSize: 17, fontWeight: '700', color: colors.ink, marginTop: 8 }}>{`Comparison – ${STAGE_LABEL[shown]} quotes line by line`}</Text>
+        </View>
+      ) : null}
       {!quotes.length ? (
         <Card><Empty title={shown === 'post_bid' ? 'No Post Bid quotes yet' : 'No quotes yet'} hint={shown === 'post_bid' ? 'Carry a Pre Bid supplier on (Pre Bid tab) or add a new supplier or manufacturer.' : 'Add each supplier\'s quote – upload their Excel or PDF to read the lines, or type them in.'} /></Card>
       ) : (
