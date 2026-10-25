@@ -57,6 +57,15 @@ export const lkr0 = (v: number | null | undefined) => (v == null || !Number.isFi
 export const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
 // ---------------------------------------------------------------- loading
+/** Numbers from the database as numbers, lines and payments in their order */
+export const normQuote = (q: SqQuote): SqQuote => ({
+  ...q,
+  fx_rate: Number(q.fx_rate), freight_pct: Number(q.freight_pct), retention_pct: Number(q.retention_pct), lead_weeks: q.lead_weeks == null ? null : Number(q.lead_weeks),
+  discount_pct: Number(q.discount_pct ?? 0), discount_amt: Number(q.discount_amt ?? 0), revision: Number(q.revision ?? 0),
+  lines: [...q.lines].sort((a, b) => ((a as { seq?: number }).seq ?? 0) - ((b as { seq?: number }).seq ?? 0)).map((l) => ({ ...l, qty: l.qty == null ? null : Number(l.qty), rate: l.rate == null ? null : Number(l.rate) })),
+  payments: [...q.payments].sort((a, b) => ((a as { seq?: number }).seq ?? 0) - ((b as { seq?: number }).seq ?? 0)).map((x) => ({ ...x, pct: Number(x.pct) })),
+  exclusions: q.exclusions.map((x) => ({ ...x, add_lkr: Number(x.add_lkr) })),
+});
 export async function loadPackage(id: string) {
   const [{ data: p, error: e1 }, { data: qs, error: e2 }] = await Promise.all([
     supabase.from('sq_packages').select('*').eq('id', id).maybeSingle(),
@@ -64,14 +73,7 @@ export async function loadPackage(id: string) {
   ]);
   if (e1 || e2) throw new Error((e1 ?? e2)!.message);
   if (!p) throw new Error('Package not found');
-  const quotes = ((qs ?? []) as SqQuote[]).map((q) => ({
-    ...q,
-    fx_rate: Number(q.fx_rate), freight_pct: Number(q.freight_pct), retention_pct: Number(q.retention_pct), lead_weeks: q.lead_weeks == null ? null : Number(q.lead_weeks),
-    discount_pct: Number(q.discount_pct ?? 0), discount_amt: Number(q.discount_amt ?? 0), revision: Number(q.revision ?? 0),
-    lines: [...q.lines].sort((a, b) => ((a as { seq?: number }).seq ?? 0) - ((b as { seq?: number }).seq ?? 0)).map((l) => ({ ...l, qty: l.qty == null ? null : Number(l.qty), rate: l.rate == null ? null : Number(l.rate) })),
-    payments: [...q.payments].sort((a, b) => ((a as { seq?: number }).seq ?? 0) - ((b as { seq?: number }).seq ?? 0)).map((x) => ({ ...x, pct: Number(x.pct) })),
-    exclusions: q.exclusions.map((x) => ({ ...x, add_lkr: Number(x.add_lkr) })),
-  }));
+  const quotes = ((qs ?? []) as SqQuote[]).map(normQuote);
   return { pkg: p as SqPackage, quotes };
 }
 export async function loadRefs() {

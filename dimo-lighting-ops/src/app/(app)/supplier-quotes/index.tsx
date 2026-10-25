@@ -40,7 +40,10 @@ export default function SupplierQuotes() {
   return (
     <Screen maxWidth={1240}>
       <Stack.Screen options={{ title: 'Supplier quotes' }} />
-      <Segmented value={tab} onChange={(v) => router.setParams({ tab: v === 'packages' ? undefined : v })} options={opts} wrap />
+      <Row wrap gap={8} style={{ alignItems: 'center' }}>
+        <View style={{ flexGrow: 1 }}><Segmented value={tab} onChange={(v) => router.setParams({ tab: v === 'packages' ? undefined : v })} options={opts} wrap /></View>
+        {realRole === 'gm' ? <Button title="Supplier reports" icon="▤" onPress={() => router.push('/supplier-quotes/reports')} /> : null}
+      </Row>
       {tab === 'packages' ? <Packages /> : tab === 'rates' ? <RateLibrary /> : tab === 'suppliers' ? <Suppliers /> : <Access />}
       <Muted>Uploaded quote files are only read on this device and never stored – only the values you check and save are kept.</Muted>
     </Screen>

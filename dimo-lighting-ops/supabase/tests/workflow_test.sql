@@ -9678,5 +9678,26 @@ do $$ begin
 end $$;
 reset role;
 
+-- Supplier reports: weights by the GM / DGM, who was asked to quote
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare pk uuid; sa uuid; sb uuid; begin
+  begin perform public.sq_set_weights('{"price":40,"spec":20,"lead":15,"response":15,"terms":10}'); assert false, 'only the GM sets weights'; exception when raise_exception then null; end;
+  insert into public.sq_suppliers (name) values ('Invite A') returning id into sa;
+  insert into public.sq_suppliers (name) values ('Invite B') returning id into sb;
+  insert into public.sq_packages (title) values ('Invites test') returning id into pk;
+  insert into public.sq_package_invites (package_id, supplier_id) values (pk, sb);
+  perform public.sq_save_quote(jsonb_build_object('package_id', pk, 'supplier_id', sa, 'lines', jsonb_build_array(jsonb_build_object('text', 'x', 'qty', 1, 'rate', 5))));
+  assert (select count(*) from public.sq_package_invites where package_id = pk) = 2, 'quoting counts as asked; asked without a quote kept';
+end $$;
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ begin
+  begin perform public.sq_set_weights('{"price":50,"spec":20,"lead":15,"response":15,"terms":10}'); assert false, 'weights make 100'; exception when raise_exception then null; end;
+  perform public.sq_set_weights('{"price":50,"spec":20,"lead":10,"response":10,"terms":10}');
+  assert (select (score_weights->>'price')::numeric from public.sq_settings) = 50, 'weights saved';
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
