@@ -8702,6 +8702,24 @@ do $$ declare l text; c jsonb; begin
 end $$;
 reset role;
 
+-- Dacademy: VDGS – 20 items (5 lessons, 14 labs, the final test); the server-builder badge, then the gold on completion
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare l text; c jsonb; begin
+  assert (select count(*) from public.academy_lessons where course = 'vdgs') = 20, '20 items';
+  assert (select count(*) from public.academy_lessons where course = 'vdgs' and kind = 'lab') = 14, '14 labs';
+  assert (public.academy_me()->'path'->'optional') @> '["vdgs"]'::jsonb, 'optional for the Senior Electrical Engineer';
+  perform public.academy_record('vd_pve', 9, 14);
+  assert not (select done from public.academy_mine() where lesson = 'vd_pve'), '9 of 14 does not pass the Proxmox build';
+  for l in select lesson from public.academy_lessons where course = 'vdgs' and module = 'server' loop perform public.academy_record(l, 10, 14); end loop;
+  assert exists (select 1 from public.academy_badges where user_id = auth.uid() and badge = 'vd_server'), 'server builder badge';
+  assert not exists (select 1 from public.academy_badges where user_id = auth.uid() and badge = 'vdgs_gold'), 'no gold yet';
+  for l in select lesson from public.academy_lessons where course = 'vdgs' and module <> 'server' loop perform public.academy_record(l, 14, 20); end loop;
+  c := (select x from jsonb_array_elements(public.academy_me()->'courses') x where x->>'course' = 'vdgs');
+  assert (c->>'complete')::boolean and (c->>'lessons')::int = 19 and (c->>'tests')::int = 1, 'course complete';
+  assert exists (select 1 from public.academy_badges where user_id = auth.uid() and badge = 'vdgs_gold'), 'VDGS gold';
+end $$;
+reset role;
+
 -- Visit briefs: written before the visit, on the own plan line or on the visit itself
 select pg_temp.act_as('asm_infra'); set role authenticated;
 do $$ declare ln uuid := (select id from public.visit_plan_lines where planned_objective = 'Tuesday visit' limit 1); begin

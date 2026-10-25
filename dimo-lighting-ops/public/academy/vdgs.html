@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VDGS – Safedock FleX – Dacademy</title><meta name="robots" content="noindex">
+<style>
+:root{--navy:#244286;--lime:#B0D035;--ink:#14161c;--mut:#5f6673;--line:#e3e5ea;--bg:#f4f5f7;--chip:#eef0f4;--good:#15803d;--bad:#dc2626;--warn:#b45309;--blue:#2a6fdb;--taxi:#f2b705}
+*{box-sizing:border-box}body{margin:0;font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:var(--bg)}
+.wrap{padding:16px 20px;max-width:1280px;margin:0 auto}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px}
+h2{margin:0 0 4px;font-size:20px}h3{margin:16px 0 8px;font-size:15px}h4{margin:12px 0 6px;font-size:14px}.m{color:var(--mut)}
+.hero{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.bar{height:8px;background:var(--chip);border-radius:99px;overflow:hidden;width:220px}.bar i{display:block;height:100%;background:var(--navy)}
+.mods{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:14px}
+.mod{background:#fff;border:2px solid var(--line);border-radius:12px;padding:12px;cursor:pointer}.mod.on{border-color:var(--navy);box-shadow:0 0 0 3px rgba(36,66,134,.12)}.mod b{display:block;font-size:14px}.mod .m{font-size:12px}.mod .ic{font-size:22px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin-top:8px}
+.topic{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;cursor:pointer;position:relative}.topic:hover{border-color:var(--navy)}
+.topic .ic{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:8px;background:#e0f2fe}
+.topic b{display:block}.done{position:absolute;top:10px;right:10px;font-size:12px;font-weight:700;color:var(--good)}
+.tag{position:absolute;top:10px;right:10px;font-size:11px;font-weight:700;border-radius:99px;padding:1px 8px;background:var(--lime)}
+.btn{display:inline-block;padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:#fff;font-weight:600;font-size:13px;cursor:pointer;font-family:inherit;color:var(--ink);user-select:none}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.p{background:var(--navy);color:#fff;border-color:var(--navy)}.btn.on{background:var(--ink);color:#fff;border-color:var(--ink)}.btn.s{padding:4px 9px;font-size:12px}.btn.red{background:#dc2626;color:#fff;border-color:#dc2626}.btn.g{background:var(--good);color:#fff;border-color:var(--good)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.chips{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0}
+.pill{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:700;background:var(--chip)}
+.panel{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}.panel svg{display:block;width:100%;height:auto}.scroll{overflow-x:auto}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}.tw{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:14px;align-items:start}
+.say{background:#f0f6ff;border-left:4px solid var(--blue);padding:10px 12px;border-radius:6px;margin:8px 0}.watch{background:#fff7ed;border-left:4px solid var(--warn);padding:10px 12px;border-radius:6px;margin:8px 0}
+.task{background:#f7fbe8;border-left:4px solid var(--lime);padding:10px 12px;border-radius:6px;margin:8px 0}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:12px 0}.kpis div{background:var(--chip);border-radius:10px;padding:10px;text-align:center;font-size:12px;color:var(--mut)}.kpis b{display:block;font-size:19px;color:var(--ink)}
+.ctl{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px 18px;margin-top:10px}.ctl label{font-size:12px;color:var(--mut);display:flex;justify-content:space-between;gap:6px}.ctl label b{color:var(--ink)}.ctl select,.ctl input[type=text],.ctl input[type=number]{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:8px;font:inherit;background:#fff}
+input[type=range]{accent-color:var(--navy)}
+table.spec{width:100%;border-collapse:collapse;font-size:13px}table.spec td,table.spec th{padding:5px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}table.spec th{background:var(--chip);font-size:12px}
+.tablewrap{overflow-x:auto}
+.hidden{display:none!important}.crumb{color:var(--mut);margin-bottom:8px;cursor:pointer}
+.note{font-size:12px;color:var(--mut);margin-top:6px}.okc{color:var(--good);font-weight:700}.noc{color:var(--bad);font-weight:700}
+.chk{display:grid;gap:4px;margin:8px 0}.chk div{padding:5px 8px;border-radius:6px;font-size:13px}.chk .y{background:#ecfdf3;color:#065f46}.chk .n{background:#fef2f2;color:#991b1b}
+.q{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0}.q b{display:block;margin-bottom:6px}.q label{display:flex;gap:8px;align-items:flex-start;padding:4px 6px;border-radius:6px;cursor:pointer}.q label:hover{background:var(--chip)}.q .why{font-size:12px;margin-top:4px}
+.term{background:#0b0f14;color:#d6dde6;font:12.5px/1.45 ui-monospace,Menlo,Consolas,monospace;border-radius:8px;padding:10px 12px;min-height:280px;max-height:460px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+.term input{background:transparent;border:0;outline:0;color:#e8f1f3;font:inherit;width:70%}
+.steps{display:grid;gap:4px;margin:6px 0}.steps div{font-size:13px;padding:4px 8px;border-radius:6px;background:var(--chip)}.steps .ok{background:#ecfdf3;color:#065f46}.steps .cur{background:#eef2ff;outline:2px solid var(--navy)}
+@keyframes blink{0%,49%{opacity:1}50%,100%{opacity:.15}}.blink{animation:blink .8s steps(1) infinite}
+@media(max-width:900px){.two,.tw{grid-template-columns:1fr}.wrap{padding:12px}}
+</style></head><body>
+<div class="wrap">
+<div id="home">
+  <div class="card hero">
+    <div style="max-width:760px"><h2>VDGS – Safedock FleX &amp; AiPRON Manager</h2><div class="m">Install, connect, commission and run the A-VDGS on a real airport project: Bandaranaike International Airport, Pier 01, stands A6–A9 and B10–B14. Plan the stand, mount and wire the units, build the servers from bare metal on Proxmox, run dockings in AiPRON Manager and find the faults. Values are taken from the project drawings and documents; sizes, IPs and names in the server labs are examples.</div><div class="m" id="saveNote" style="font-size:12px;margin-top:4px"></div></div>
+    <div><div class="m" style="font-size:12px;margin-bottom:4px" id="progText">Your progress</div><div class="bar"><i id="progBar" style="width:0%"></i></div></div>
+  </div>
+  <div class="mods" id="mods"></div>
+  <div id="modBody" style="margin-top:14px"></div>
+</div>
+<div id="item" class="hidden">
+  <div class="crumb" onclick="back()" id="iCrumb">◀ All units</div>
+  <div class="card"><div class="hero"><div><span class="pill" id="iPill"></span><h2 style="margin-top:6px" id="iTitle"></h2><div class="m" id="iSub"></div></div><span class="m" id="iDone"></span></div><div id="iBody" style="margin-top:10px"></div></div>
+</div>
+</div>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+let STOP = []; const onStop = (f) => STOP.push(f);
+const MODS = [['intro', '🛬', 'What an A-VDGS does', 'Units, docking states, ICAO Annex 14'], ['stand', '📐', 'Stand planning', 'Stop positions, scan fan, mounting height'], ['mech', '🏗️', 'Mechanical installation', 'Pole, clamps, torque, lifting'], ['cable', '🔌', 'Power & network cabling', 'Supplies, Neutrik connectors, glands'], ['server', '🖥️', 'Servers & network', 'Segments, Proxmox, RHEL, Kubernetes, backup'], ['ops', '🗼', 'AiPRON Manager', 'Map, stands, RIDS, flights, a live shift'], ['comm', '✅', 'Commissioning', 'SMT, verification dockings, PBB interlock'], ['fault', '🧰', 'Fault-finding & final', 'Real fault cases, final test']];
+const IT = [];
+// a lesson, lab or exam: fn(el, done) builds it; done(score, total) records it
+const item = (mod, id, icon, title, sub, kind, fn) => IT.push({ mod, id: 'vd_' + id, icon, title, sub, kind, fn });
+
+// ---- progress (the app passes the sign-in, like the other Dacademy courses)
+let cfg = null, prog = {};
+function api(fn, body) { if (!cfg) return Promise.resolve(null); return fetch(`${cfg.sb}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: cfg.key, Authorization: `Bearer ${cfg.token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) }).then((r) => (r.ok ? r.json().catch(() => null) : Promise.reject(r))); }
+function record(id, score, total) {
+  const p = prog[id] || { best: 0, attempts: 0, done: false }; p.attempts++; p.best = Math.max(p.best, score); p.total = total; p.done = p.done || score * 3 >= total * 2; prog[id] = p;
+  if (window.parent !== window) window.parent.postMessage({ type: 'academy:progress', lesson: id, score, total }, '*');
+  api('academy_record', { p_lesson: id, p_score: score, p_total: total, p_secs: window.__t0 ? Math.round((Date.now() - window.__t0) / 1000) : null, p_mins: null }).catch(() => { $('saveNote').textContent = 'Could not save your progress – open again from the app.'; });
+}
+function loadProgress() { return api('academy_mine').then((rows) => { if (rows) { prog = {}; rows.forEach((r) => { if (r.lesson.startsWith('vd_')) prog[r.lesson] = { best: r.best, total: r.total, done: r.done }; }); } if (!$('home').classList.contains('hidden')) renderHome(); }).catch(() => {}); }
+function setCfg(c) { cfg = c; $('saveNote').textContent = c ? `Signed in as ${c.name} – your progress is saved.` : 'Open from the DIMO app (Tools → Dacademy → VDGS) to save your progress.'; loadProgress(); }
+window.addEventListener('message', (e) => { if (e.data && e.data.type === 'academy:cfg') setCfg(e.data.cfg); });
+
+// ---- home
+let mod = 'intro';
+const KIND = { lesson: 'LESSON', lab: 'LAB', exam: 'FINAL TEST' };
+function renderHome() {
+  const doneN = IT.filter((l) => prog[l.id] && prog[l.id].done).length;
+  $('progText').textContent = `Your progress · ${doneN} of ${IT.length}`; $('progBar').style.width = `${Math.round((100 * doneN) / IT.length)}%`;
+  $('mods').innerHTML = MODS.map(([k, ic, n, sub], i) => { const ls = IT.filter((l) => l.mod === k), d = ls.filter((l) => prog[l.id] && prog[l.id].done).length; return `<div class="mod ${k === mod ? 'on' : ''}" onclick="mod='${k}';renderHome()"><span class="ic">${ic}</span><b>Unit ${i + 1} · ${n}</b><span class="m">${sub}</span><span class="m" style="display:block;font-size:11px;margin-top:4px;color:var(--good)">${d} / ${ls.length} done</span></div>`; }).join('');
+  const items = IT.filter((l) => l.mod === mod);
+  $('modBody').innerHTML = `<div class="grid">${items.map((l) => { const p = prog[l.id]; return `<div class="topic" onclick="openItem('${l.id}')">${p && p.done ? `<span class="done">✓ ${p.best}/${p.total}</span>` : `<span class="tag">${KIND[l.kind]}</span>`}<div class="ic">${l.icon}</div><b>${esc(l.title)}</b><span class="m" style="font-size:12px">${esc(l.sub || '')}</span></div>`; }).join('')}</div>`;
+}
+function back() { location.hash = '#home'; }
+function openItem(id) { location.hash = '#i/' + id; }
+function route() {
+  STOP.forEach((f) => { try { f(); } catch (e) { /* gone */ } }); STOP = [];
+  const h = location.hash.replace(/^#/, ''), it = h.startsWith('i/') && IT.find((x) => x.id === h.slice(2));
+  ['home', 'item'].forEach((x) => $(x).classList.toggle('hidden', x !== (it ? 'item' : 'home'))); window.scrollTo(0, 0);
+  if (!it) { renderHome(); return; }
+  mod = it.mod; window.__t0 = Date.now();
+  const i = MODS.findIndex((x) => x[0] === it.mod), p = prog[it.id];
+  $('iCrumb').textContent = `◀ Unit ${i + 1} · ${MODS[i][2]}`; $('iPill').textContent = it.kind === 'lesson' ? 'Lesson' : it.kind === 'lab' ? 'Practical lab' : 'Final test'; $('iTitle').textContent = it.title; $('iSub').textContent = it.sub || ''; $('iDone').innerHTML = p && p.done ? `<b style="color:var(--good)">✓ best ${p.best}/${p.total}</b>` : '';
+  it.fn($('iBody'), (score, total) => record(it.id, score, total));
+}
+window.addEventListener('hashchange', route);
+function start() {
+  const m = location.hash.match(/cfg=([^&]+)/);
+  if (m) { try { const c = JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(m[1]))))); history.replaceState(null, '', location.pathname + '#home'); setCfg(c); } catch { setCfg(null); } }
+  else if (window.parent !== window) { $('saveNote').textContent = 'Connecting…'; window.parent.postMessage({ type: 'academy:ready' }, '*'); }
+  else setCfg(null);
+  route();
+}
+</script>
+<script src="vdgs/core.js"></script>
+<script src="vdgs/stand.js"></script>
+<script src="vdgs/hw.js"></script>
+<script src="vdgs/srv.js"></script>
+<script src="vdgs/pve.js"></script>
+<script src="vdgs/aipron.js"></script>
+<script src="vdgs/faults.js"></script>
+<script>start();</script>
+</body></html>
