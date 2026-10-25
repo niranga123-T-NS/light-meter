@@ -9605,5 +9605,60 @@ do $$ declare pk uuid; sp uuid; it uuid; q0 uuid; q1 uuid; q2 uuid; begin
 end $$;
 reset role;
 
+-- Supplier quotes: Pre Bid and Post Bid – suppliers carried on, new ones added, manufacturers
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare pk uuid; sa uuid; sb uuid; mf uuid; qa uuid; qb uuid; qa2 uuid; qm uuid; qb2 uuid; lines jsonb := jsonb_build_array(jsonb_build_object('text', 'Floodlight', 'qty', 4, 'rate', 1000)); begin
+  insert into public.sq_suppliers (name) values ('Bid Supplier A') returning id into sa;
+  insert into public.sq_suppliers (name) values ('Bid Supplier B') returning id into sb;
+  insert into public.sq_suppliers (name, kind) values ('Bid Manufacturer', 'manufacturer') returning id into mf;
+  insert into public.sq_packages (title) values ('Bid stages test') returning id into pk;
+  assert (select stage from public.sq_packages where id = pk) = 'pre_bid', 'a package starts at Pre Bid';
+  qa := public.sq_save_quote(jsonb_build_object('package_id', pk, 'supplier_id', sa, 'lines', lines));
+  qb := public.sq_save_quote(jsonb_build_object('package_id', pk, 'supplier_id', sb, 'lines', lines));
+  assert (select bid_stage from public.sq_quotes where id = qa) = 'pre_bid', 'quote given at Pre Bid';
+  perform public.sq_select(pk, qa, 'Lowest for the tender');
+  begin update public.sq_packages set stage = 'post_bid' where id = pk; assert false, 'stage only through the RPC'; exception when raise_exception then null; end;
+  begin perform public.sq_post_bid(pk, array[gen_random_uuid()]); assert false, 'only this package''s quotes'; exception when raise_exception then null; end;
+  assert public.sq_post_bid(pk, array[qa], 'Tender won') = 1, 'one supplier carried on';
+  select id into qa2 from public.sq_quotes where first_id = qa and superseded_by is null;
+  assert (select bid_stage from public.sq_quotes where id = qa2) = 'post_bid' and (select superseded_by from public.sq_quotes where id = qa) = qa2, 'A carried into Post Bid, Pre Bid kept';
+  assert (select bid_stage from public.sq_quotes where id = qb) = 'pre_bid' and (select superseded_by from public.sq_quotes where id = qb) is null, 'B stays at Pre Bid';
+  assert (select stage = 'post_bid' and selected_quote_id is null and status = 'open' and pre_bid_quote_id = qa and pre_bid_reason = 'Lowest for the tender' from public.sq_packages where id = pk), 'Pre Bid choice kept, Post Bid chosen again';
+  begin perform public.sq_post_bid(pk, '{}'); assert false, 'already at Post Bid'; exception when raise_exception then null; end;
+  begin perform public.sq_select(pk, qb, 'pre bid'); assert false, 'a Pre Bid quote is not chosen at Post Bid'; exception when raise_exception then null; end;
+  qm := public.sq_save_quote(jsonb_build_object('package_id', pk, 'supplier_id', mf, 'lines', lines));
+  assert (select bid_stage from public.sq_quotes where id = qm) = 'post_bid', 'new manufacturer added at Post Bid';
+  qb2 := public.sq_revise_quote(qb, 'Asked back after the tender');
+  assert (select bid_stage from public.sq_quotes where id = qb2) = 'post_bid', 'B can still come on at Post Bid';
+  perform public.sq_select(pk, qm, 'Direct from the manufacturer');
+  begin perform public.sq_pre_bid(pk); assert false, 'no going back with Post Bid quotes'; exception when raise_exception then null; end;
+  delete from public.sq_quotes where id = qm;
+  assert (select selected_quote_id from public.sq_packages where id = pk) is null, 'choice cleared with the deleted quote';
+  perform public.sq_select(pk, qa2, 'Best at Post Bid');
+  delete from public.sq_quotes where id = qa2;
+  assert (select selected_quote_id from public.sq_packages where id = pk) is null, 'the choice does not fall back to a Pre Bid version';
+  delete from public.sq_quotes where id = qb2;
+  perform public.sq_pre_bid(pk);
+  assert (select stage = 'pre_bid' and selected_quote_id = qa and status = 'selected' from public.sq_packages where id = pk), 'back to Pre Bid with its choice';
+end $$;
+reset role;
+
+-- Supplier quotes: a package started straight at Post Bid
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare pk uuid; sp uuid; q uuid; begin
+  insert into public.sq_suppliers (name) values ('Late Supplier') returning id into sp;
+  insert into public.sq_packages (title, stage) values ('Started at Post Bid', 'post_bid') returning id into pk;
+  assert (select stage = 'post_bid' and post_bid_at is not null and post_bid_by = auth.uid() and post_bid_note = 'Started at Post Bid' from public.sq_packages where id = pk), 'started at Post Bid, recorded';
+  q := public.sq_save_quote(jsonb_build_object('package_id', pk, 'supplier_id', sp, 'lines', jsonb_build_array(jsonb_build_object('text', 'x', 'qty', 1, 'rate', 5))));
+  assert (select bid_stage from public.sq_quotes where id = q) = 'post_bid', 'its quotes are Post Bid';
+  perform public.sq_select(pk, q, 'Only quote');
+  insert into public.sq_packages (title) values ('Empty Pre Bid') returning id into pk;
+  assert public.sq_post_bid(pk, '{}') = 0, 'nothing carried';
+  assert (select stage from public.sq_packages where id = pk) = 'post_bid', 'an empty Pre Bid package can move on';
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

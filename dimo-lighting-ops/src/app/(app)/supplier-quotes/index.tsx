@@ -8,7 +8,7 @@ import { useAuth } from '@/lib/auth';
 import { fmtDate, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { ROLE_SHORT } from '@/lib/roles';
-import { discFactor, jobField, jobSource, lkr0, lkrM, loadJobs, loadRefs, quoteTotals, type SqItem, type SqJob, type SqPackage, type SqQuote, type Supplier } from '@/lib/supplierQuotes';
+import { discFactor, jobField, jobSource, KIND_LABEL, KIND_OPTIONS, lkr0, lkrM, loadJobs, loadRefs, quoteTotals, STAGE_LABEL, type SqItem, type SqJob, type SqPackage, type SqQuote, type Supplier } from '@/lib/supplierQuotes';
 import { rpc, supabase } from '@/lib/supabase';
 
 type Tab = 'packages' | 'rates' | 'suppliers' | 'access';
@@ -34,7 +34,7 @@ export default function SupplierQuotes() {
   const opts: { value: Tab; label: string }[] = [
     { value: 'packages', label: 'Packages' },
     { value: 'rates', label: 'Rate library' },
-    { value: 'suppliers', label: 'Suppliers' },
+    { value: 'suppliers', label: 'Suppliers & manufacturers' },
     ...(realRole === 'gm' ? [{ value: 'access' as Tab, label: 'Access' }] : []),
   ];
   return (
@@ -54,7 +54,7 @@ function Packages() {
   const { data, error, reload } = useLoad(async () => {
     const [p, q, s] = await Promise.all([
       supabase.from('sq_packages').select('*').order('updated_at', { ascending: false }).limit(300),
-      supabase.from('sq_quotes').select('id, package_id, supplier_id, valid_until, fx_rate, freight_pct, currency, lead_weeks, discount_pct, discount_amt, lines:sq_quote_lines(qty, rate, included), exclusions:sq_quote_exclusions(add_lkr)').is('superseded_by', null),
+      supabase.from('sq_quotes').select('id, package_id, supplier_id, bid_stage, valid_until, fx_rate, freight_pct, currency, lead_weeks, discount_pct, discount_amt, lines:sq_quote_lines(qty, rate, included), exclusions:sq_quote_exclusions(add_lkr)').is('superseded_by', null),
       supabase.from('sq_settings').select('cost_of_money_pct').maybeSingle(),
     ]);
     const err = p.error ?? q.error;
@@ -67,7 +67,7 @@ function Packages() {
   const rows = data.pkgs
     .filter((p) => show === 'all' || p.status === 'open' || p.status === 'selected')
     .map((p) => {
-      const qs = data.quotes.filter((q) => q.package_id === p.id).map((q) => ({ q, t: quoteTotals({ ...q, payments: [], lines: q.lines.map((l) => ({ ...l, rate: l.rate == null ? null : Number(l.rate), qty: l.qty == null ? null : Number(l.qty) })), exclusions: q.exclusions.map((x) => ({ ...x, add_lkr: Number(x.add_lkr) })), fx_rate: Number(q.fx_rate), freight_pct: Number(q.freight_pct) } as SqQuote).total }));
+      const qs = data.quotes.filter((q) => q.package_id === p.id && (q.bid_stage ?? 'pre_bid') === (p.stage ?? 'pre_bid')).map((q) => ({ q, t: quoteTotals({ ...q, payments: [], lines: q.lines.map((l) => ({ ...l, rate: l.rate == null ? null : Number(l.rate), qty: l.qty == null ? null : Number(l.qty) })), exclusions: q.exclusions.map((x) => ({ ...x, add_lkr: Number(x.add_lkr) })), fx_rate: Number(q.fx_rate), freight_pct: Number(q.freight_pct) } as SqQuote).total }));
       const low = qs.length ? qs.reduce((a, b) => (b.t < a.t ? b : a)) : null;
       const sel = qs.find((x) => x.q.id === p.selected_quote_id);
       const expiring = qs.filter((x) => x.q.valid_until && ((p.our_validity && x.q.valid_until < p.our_validity) || x.q.valid_until < today));
@@ -82,6 +82,7 @@ function Packages() {
       fields: [
         { key: 'title', label: 'Package', required: true, hint: 'e.g. LED floodlights, Lattice masts, Mast foundations' },
         { key: 'kind', label: 'Type', type: 'select', required: true, initial: 'supply', options: [{ value: 'supply', label: 'Supply' }, { value: 'subcontract', label: 'Subcontract' }] },
+        { key: 'stage', label: 'Start at', type: 'select', required: true, initial: 'pre_bid', options: [{ value: 'pre_bid', label: 'Pre Bid – pricing our tender' }, { value: 'post_bid', label: 'Post Bid – tender already done (e.g. started before the system)' }] },
         jobField(jobs),
         { key: 'project', label: 'Project / client', hint: 'As you know it – e.g. the stadium name' },
         { key: 'job', label: 'Job or inquiry reference', hint: 'e.g. EST-2026-0142, PRJ-0087' },
@@ -93,7 +94,7 @@ function Packages() {
     if (!r) return;
     await dialog.run(async () => {
       const { data: p, error: e } = await supabase.from('sq_packages')
-        .insert({ title: r.title.trim(), kind: r.kind, project_name: r.project?.trim() || null, job_ref: r.job?.trim() || null, ...jobSource(r.src), our_validity: r.valid || null, needed_weeks: Number(r.weeks) > 0 ? Number(r.weeks) : null })
+        .insert({ title: r.title.trim(), kind: r.kind, stage: r.stage === 'post_bid' ? 'post_bid' : 'pre_bid', project_name: r.project?.trim() || null, job_ref: r.job?.trim() || null, ...jobSource(r.src), our_validity: r.valid || null, needed_weeks: Number(r.weeks) > 0 ? Number(r.weeks) : null })
         .select('id').single();
       if (e) throw new Error(e.message);
       router.push(`/supplier-quotes/${p.id}`);
@@ -129,6 +130,7 @@ function Packages() {
         columns={[
           { h: 'Package', w: 230, grow: true, v: (r) => <View><Text style={{ fontWeight: '600', color: colors.ink }}>{r.p.title}</Text><Muted>{[r.p.code, r.p.project_name, r.p.job_ref].filter(Boolean).join(' · ')}</Muted></View> },
           { h: 'Type', w: 100, v: (r) => (r.p.kind === 'supply' ? 'Supply' : 'Subcontract') },
+          { h: 'Stage', w: 90, v: (r) => <Pill label={STAGE_LABEL[r.p.stage ?? 'pre_bid']} tone={r.p.stage === 'post_bid' ? colors.blue : colors.grey} /> },
           { h: 'Quotes', w: 70, right: true, v: (r) => String(r.n) },
           { h: 'Lowest (comparable)', w: 170, v: (r) => (r.low ? <View><Text style={{ color: colors.ink }}>{`LKR ${lkrM(r.low.t)}`}</Text><Muted>{supName(r.low.q.supplier_id)}</Muted></View> : '—') },
           { h: 'Chosen', w: 170, v: (r) => (r.sel ? supName(r.sel.q.supplier_id) : '—') },
@@ -197,10 +199,10 @@ function Suppliers() {
   if (!data) return error ? <ErrorBanner message={error} /> : <Loading />;
   const edit = async (s?: Supplier) => {
     const r = await dialog.prompt({
-      title: s ? 'Edit supplier' : 'New supplier / subcontractor',
+      title: s ? 'Edit supplier' : 'New supplier / manufacturer / subcontractor',
       fields: [
         { key: 'name', label: 'Name', required: true, initial: s?.name },
-        { key: 'kind', label: 'Supplies', type: 'select', required: true, initial: s?.kind ?? 'supply', options: [{ value: 'supply', label: 'Materials (supplier)' }, { value: 'subcontract', label: 'Work (subcontractor)' }, { value: 'both', label: 'Both' }] },
+        { key: 'kind', label: 'Type', type: 'select', required: true, initial: s?.kind ?? 'supply', options: KIND_OPTIONS },
         { key: 'trades', label: 'What they supply', initial: s?.trades ?? '', hint: 'e.g. floodlights, masts, civil works' },
         { key: 'contact', label: 'Contact person', initial: s?.contact_name ?? '' },
         { key: 'phone', label: 'Phone', initial: s?.phone ?? '' },
@@ -227,8 +229,8 @@ function Suppliers() {
         emptyTitle="No suppliers yet"
         rowStyle={(s) => (s.active ? undefined : { opacity: 0.5 })}
         columns={[
-          { h: 'Supplier / subcontractor', w: 240, grow: true, v: (s) => <View><Text style={{ fontWeight: '600', color: colors.ink }}>{s.name}</Text><Muted>{s.trades ?? ''}</Muted></View> },
-          { h: 'Type', w: 110, v: (s) => ({ supply: 'Supplier', subcontract: 'Subcontractor', both: 'Both' })[s.kind] },
+          { h: 'Supplier / manufacturer / subcontractor', w: 240, grow: true, v: (s) => <View><Text style={{ fontWeight: '600', color: colors.ink }}>{s.name}</Text><Muted>{s.trades ?? ''}</Muted></View> },
+          { h: 'Type', w: 130, v: (s) => KIND_LABEL[s.kind] },
           { h: 'Contact', w: 200, v: (s) => [s.contact_name, s.phone, s.email].filter(Boolean).join(' · ') || '—' },
           { h: 'Quotes', w: 70, right: true, v: (s) => String(data.quotes.filter((q) => q.supplier_id === s.id).length) },
           { h: 'Chosen', w: 70, right: true, v: (s) => String(data.quotes.filter((q) => q.supplier_id === s.id && data.chosen.has(q.id)).length) },
