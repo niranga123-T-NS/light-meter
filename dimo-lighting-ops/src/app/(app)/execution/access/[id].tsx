@@ -1,4 +1,4 @@
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Text } from 'react-native';
 import { useShellCounts } from '@/components/AppShell';
@@ -97,6 +97,41 @@ export default function AccessRequestScreen() {
       }, approve ? 'Approved – the change applies now' : 'Rejected');
   };
 
+  // the SEE asks for the appointment to be deleted (SM Projects approves): open items go to someone else first
+  const uid = r.created_user_id ?? (r.status === 'done' ? r.user_id : null);
+  const canDelete = me.role === 'senior_elec_engineer' && (r.kind === 'sub_appoint' || r.kind === 'temp_add') && ['approved', 'done'].includes(r.status);
+  const askDelete = async () => {
+    if (uid) {
+      const items = await rpc<{ kind: string; title: string }[]>('person_open_items', { p_user: uid });
+      if (items.length) {
+        const roles = r.kind === 'sub_appoint' ? ['sub_supervisor', 'assistant_engineer', 'trainee'] : ['assistant_engineer', 'trainee'];
+        const others = Object.values(people).filter((x) => roles.includes(x.role) && x.id !== uid && x.active);
+        const re = await dialog.prompt({
+          title: `${r.person_name} has ${items.length} open items`,
+          message: `${items.map((i) => `• ${i.kind}: ${i.title}`).join('\n')}\n\nEverything must be reassigned before the deletion can be requested.`,
+          fields: [{ key: 'to', label: 'Reassign all to', type: 'select', required: true, options: others.map((x) => ({ value: x.id, label: x.full_name })) }],
+          confirmLabel: 'Reassign all',
+        });
+        if (!re) return;
+        if (!(await dialog.run(() => rpc('reassign_open_items', { p_from: uid, p_to: re.to }), 'Reassigned – the new person is told'))) return;
+      }
+    }
+    const res = await dialog.prompt({
+      title: `Delete – ${r.person_name}`,
+      message: r.status === 'approved'
+        ? 'The login was never created. SM Projects approves the deletion; the request then shows as deleted.'
+        : `SM Projects approves. ${r.kind === 'sub_appoint' ? 'The supervisor comes off this request\'s projects; the login is blocked when no other project is left.' : 'Access to every project ends and the login is blocked.'} The history stays under the name.`,
+      fields: [{ key: 'r', label: 'Reason', type: 'multiline', required: true }],
+      confirmLabel: 'Request deletion',
+      danger: true,
+    });
+    if (!res) return;
+    await dialog.run(async () => {
+      const nid = await rpc<string>('request_access_delete', { p_request: r.id, p_reason: res.r });
+      router.push(`/execution/access/${nid}`);
+    }, 'Sent to SM Projects');
+  };
+
   const provision = () =>
     dialog.run(async () => {
       const res = await callFunction<{ login: string; password: string }>('admin-users', { action: 'provision', request_id: r.id });
@@ -111,7 +146,7 @@ export default function AccessRequestScreen() {
       <Card>
         <Row style={{ justifyContent: 'space-between' }} wrap>
           <Text style={{ fontSize: 18, fontWeight: '700', color: colors.ink }}>{`${REQUEST_KIND[r.kind]} – ${r.person_name}`}</Text>
-          <Pill label={REQUEST_STATUS[r.status]} tone={r.status === 'rejected' ? colors.red : r.status === 'done' ? colors.green : colors.amber} solid />
+          <Pill label={REQUEST_STATUS[r.status]} tone={r.status === 'rejected' ? colors.red : r.status === 'done' ? colors.green : r.status === 'deleted' ? colors.grey : colors.amber} solid />
         </Row>
         <KeyValue label="Role" value={roleTypeLabel(r.role_type)} />
         {r.company ? <KeyValue label="Company" value={r.company} /> : null}
@@ -125,6 +160,8 @@ export default function AccessRequestScreen() {
         {r.smp_at ? <KeyValue label="SM Projects" value={`${people[r.smp_by ?? '']?.full_name ?? ''} · ${fmtDateTime(r.smp_at)}${r.smp_note ? ` · ${r.smp_note}` : ''}`} /> : null}
         {r.gm_at ? <KeyValue label="DGM" value={`${people[r.gm_by ?? '']?.full_name ?? ''} · ${fmtDateTime(r.gm_at)}${r.gm_note ? ` · ${r.gm_note}` : ''}`} /> : null}
         {r.kind === 'temp_add' ? <Muted>Approval chain: SM Projects → DGM, then the login is created.</Muted> : null}
+        {r.kind === 'temp_delete' ? <Muted>SM Projects approves the deletion; access ends at once and the history stays under the name.</Muted> : null}
+        {r.target_request_id ? <Button small variant="ghost" title="Open the appointment it deletes" onPress={() => router.push(`/execution/access/${r.target_request_id}`)} /> : null}
         {r.kind === 'sub_appoint' ? <Muted>The supervisor sees only their own tasks, instructions, issued drawings, own reports and HSE – never costs, rates or other subcontractors.</Muted> : null}
         <Row wrap gap={6} style={{ marginTop: 10 }}>
           {myTurn ? (
@@ -134,6 +171,7 @@ export default function AccessRequestScreen() {
             </>
           ) : null}
           {r.status === 'approved' && ['senior_elec_engineer', 'sm_projects', 'gm'].includes(me.role) ? <Button title="Create the login" onPress={provision} /> : null}
+          {canDelete ? <Button variant="danger" title="Request deletion…" onPress={askDelete} /> : null}
           {canEdit ? <Button variant="secondary" title={r.status === 'pending_smp' ? '✎ Edit' : '✎ Edit (SM Projects approves)'} onPress={edit} /> : null}
           {['pending_smp', 'pending_gm'].includes(r.status) && r.requested_by === me.id ? (
             <Button variant="ghost" title="Cancel request" onPress={() => dialog.run(async () => { await rpc('cancel_access_request', { p_id: r.id }); await reload(); }, 'Cancelled')} />
