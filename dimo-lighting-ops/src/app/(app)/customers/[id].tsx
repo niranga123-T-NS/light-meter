@@ -83,7 +83,7 @@ export default function CustomerDetail() {
     }, 'Unit added');
   };
 
-  // Units and contacts: the account owner, SM Projects and GM / DGM can correct them (logged)
+  // Units and contacts: the account owner, SM Projects and DGM can correct them (logged)
   const descendants = (id: string): string[] => units.filter((u) => u.parent_unit_id === id).flatMap((u) => [u.id, ...descendants(u.id)]);
   const editUnit = async (unit: OrgUnit) => {
     const blocked = new Set([unit.id, ...descendants(unit.id)]);
@@ -142,7 +142,7 @@ export default function CustomerDetail() {
     }, 'Contact added');
   };
 
-  // Account owner, SM Projects and GM / DGM can edit; renames are logged and may not duplicate another customer.
+  // Account owner, SM Projects and DGM can edit; renames are logged and may not duplicate another customer.
   const canEdit = manager || org.account_owner_id === me.id;
   const editDetails = async () => {
     const r = await dialog.prompt({

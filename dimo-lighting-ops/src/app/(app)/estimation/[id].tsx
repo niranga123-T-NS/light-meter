@@ -167,7 +167,7 @@ export default function EstimationJobScreen() {
           {j.docs_not_applicable?.compliance_sheet ? <KeyValue label="Compliance sheet" value={`Not applicable – ${j.docs_not_applicable.compliance_sheet}`} /> : null}
           {j.docs_not_applicable?.technical_data ? <KeyValue label="Data sheets" value={`Not applicable – ${j.docs_not_applicable.technical_data}`} /> : null}
         </Row>
-        {j.status === 'sm_projects_approval' ? <Notice tone={colors.blue}>Waiting for approval to release: SM Projects verifies, and from LKR 15,000,000.00 (or below the margin floor) GM / DGM approves after SM Projects.</Notice> : null}
+        {j.status === 'sm_projects_approval' ? <Notice tone={colors.blue}>Waiting for approval to release: SM Projects verifies, and from LKR 15,000,000.00 (or below the margin floor) DGM approves after SM Projects.</Notice> : null}
         {j.status === 'revision_requested' ? (
           <Notice tone={colors.red}>
             Sent back to SM Estimation for revision: {j.review_comment}
@@ -216,8 +216,8 @@ export default function EstimationJobScreen() {
                 onPress={() =>
                   dialog.run(async () => {
                     const res = await rpc<string>('review_estimate', { p_job: j.id, p_approve: true });
-                    if (res === 'gm_approval') dialog.toast('Above the value / below the margin limit – sent to GM / DGM for approval');
-                    if (res === 'sm_projects_approval') dialog.toast('Sent to SM Projects (then GM / DGM from LKR 15,000,000.00) for approval to release');
+                    if (res === 'gm_approval') dialog.toast('Above the value / below the margin limit – sent to DGM for approval');
+                    if (res === 'sm_projects_approval') dialog.toast('Sent to SM Projects (then DGM from LKR 15,000,000.00) for approval to release');
                     await reload();
                   })
                 }

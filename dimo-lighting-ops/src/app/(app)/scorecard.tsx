@@ -74,7 +74,7 @@ export default function ScorecardScreen() {
     if (!sc || !user) return;
     const r = await dialog.prompt({
       title: `Targets – ${month.slice(0, 7)}`,
-      message: 'Set by SM Projects, approved by GM / DGM before the month starts.',
+      message: 'Set by SM Projects, approved by DGM before the month starts.',
       fields: [
         { key: 'order_intake_lkr', label: 'Order intake target (LKR)', initial: String(sc.targets.order_intake_lkr ?? '') },
         { key: 'weighted_pipeline_lkr', label: 'Weighted pipeline target (LKR)', initial: String(sc.targets.weighted_pipeline_lkr ?? '') },
@@ -89,7 +89,7 @@ export default function ScorecardScreen() {
       const { error: e } = await supabase.from('kpi_targets').upsert({ user_id: user, month, targets, status: me.role === 'gm' ? 'approved' : 'submitted', approved_by: me.role === 'gm' ? me.id : null });
       if (e) throw new Error(e.message);
       await reload();
-    }, me.role === 'gm' ? 'Targets approved' : 'Targets submitted for GM / DGM approval');
+    }, me.role === 'gm' ? 'Targets approved' : 'Targets submitted for DGM approval');
   };
 
   return (

@@ -112,10 +112,19 @@ function printWeb(html: string): Promise<void> {
   body > *:not(#__print) { display: none !important; }
   #__print { display: block !important; }
   ${css.replace(/\bbody\b/g, '#__print')}
+  /* no page margin: the browser has no room to print its own header and footer (the page address, date and title);
+     the margins are made inside the page instead – a header and footer row that repeat on every page */
+  @page { margin: 0; }
+  #__print { padding: 0 12mm !important; }
+  #__print > table.__pg { width: 100%; border-collapse: collapse; }
+  #__print > table.__pg > thead > tr > td { height: 14mm; padding: 0; border: 0; }
+  #__print > table.__pg > tfoot > tr > td { height: 14mm; padding: 0; border: 0; }
+  #__print > table.__pg > tbody > tr, #__print > table.__pg > tbody > tr > td { page-break-inside: auto !important; break-inside: auto !important; padding: 0; border: 0; }
+  #__print .foot { bottom: 6mm !important; left: 12mm !important; right: 12mm !important; }
 }`;
   const root = document.createElement('div');
   root.id = '__print';
-  root.innerHTML = doc.body.innerHTML;
+  root.innerHTML = `<table class="__pg"><thead><tr><td></td></tr></thead><tfoot><tr><td></td></tr></tfoot><tbody><tr><td>${doc.body.innerHTML}</td></tr></tbody></table>`;
   document.head.appendChild(style);
   document.body.appendChild(root);
   const cleanup = () => {

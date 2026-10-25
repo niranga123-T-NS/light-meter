@@ -55,7 +55,7 @@ export default function ScrapList() {
       <Stack.Screen options={{ title: 'Scrap disposal' }} />
       <Muted>
         Scrap from a project&apos;s site store, the Project returns, or old material removed on site. Raised by the SEE or the project&apos;s Assistant Engineers, approved
-        by SM Projects and then the DGM / GM, and disposed free of charge (with the reason) or sold (with quotations).
+        by SM Projects and then the DGM, and disposed free of charge (with the reason) or sold (with quotations).
       </Muted>
       <Grid min={170}>
         <Stat label="Waiting for approval" value={String(rows.filter((d) => d.status === 'pending_smp' || d.status === 'pending_dgm').length)} tone="amber" />

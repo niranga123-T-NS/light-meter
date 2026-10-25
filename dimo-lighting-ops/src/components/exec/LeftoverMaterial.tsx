@@ -76,7 +76,7 @@ export function LeftoverMaterial({ p, onChange }: { p: ExecProject; onChange: ()
         <>
           <Notice tone={colors.amber}>
             The handover (DLP) cannot be requested until every leftover item under DIMO&apos;s custody is returned – to SAP or to the Project returns stock – or disposed as
-            scrap (approved by SM Projects and the DGM / GM). Client&apos;s and subcontractors&apos; material is not included.
+            scrap (approved by SM Projects and the DGM). Client&apos;s and subcontractors&apos; material is not included.
           </Notice>
           {left.map((l) => (
             <ListRow

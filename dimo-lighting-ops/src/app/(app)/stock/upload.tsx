@@ -82,7 +82,7 @@ export default function StockUpload() {
     await dialog.run(async () => {
       await rpc('confirm_stock_upload', { p_id: pv.snap.id, p_reason: reason });
       router.replace({ pathname: '/stock', params: { s: pv.snap.id } });
-    }, 'Confirmed – GM / DGM and SM Projects are told');
+    }, 'Confirmed – DGM and SM Projects are told');
   };
   const discard = async () => {
     if (!pv) return;

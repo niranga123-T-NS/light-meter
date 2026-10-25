@@ -28,7 +28,7 @@ const LABEL_KIND: Record<string, string> = { projects: 'Projects', inquiries: 'I
 /** "exec_reports" → "Exec reports" */
 const tableLabel = (t: string) => (t.charAt(0).toUpperCase() + t.slice(1)).replace(/_/g, ' ');
 
-/** GM / DGM: delete test (dummy) projects, inquiries, secured and execution projects, invoices and users for good, with
+/** DGM: delete test (dummy) projects, inquiries, secured and execution projects, invoices and users for good, with
  *  everything that hangs off them. Each delete is previewed first (exactly what would go), then confirmed by typing DELETE. */
 export function Cleanup() {
   const me = useMe();
@@ -78,7 +78,7 @@ export function Cleanup() {
       log: rows(log),
     };
   }, []);
-  if (me.role !== 'gm') return <Notice>Only the GM / DGM deletes records.</Notice>;
+  if (me.role !== 'gm') return <Notice>Only the DGM deletes records.</Notice>;
   if (!data) return error ? <ErrorBanner message={error} /> : <Loading />;
 
   const del = async (it: Item) => {
@@ -166,7 +166,7 @@ export function Cleanup() {
       ) : (
         <>
           <Field label="Search" value={q} onChangeText={setQ} placeholder="Name, code, customer or e-mail" />
-          {sub === 'user' ? <Muted>Includes temporary staff and subcontractor logins. GM / DGM and System Administrator logins are not listed. Deleting a user also deletes everything they created or own (shown before you confirm); to keep a real person’s work, deactivate them in Users instead.</Muted> : null}
+          {sub === 'user' ? <Muted>Includes temporary staff and subcontractor logins. DGM and System Administrator logins are not listed. Deleting a user also deletes everything they created or own (shown before you confirm); to keep a real person’s work, deactivate them in Users instead.</Muted> : null}
           {sub === 'project' ? <Muted>A project takes its inquiries, secured and execution records with it.</Muted> : null}
           <DataTable
             rows={list}

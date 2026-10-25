@@ -23,7 +23,7 @@ function periodOf(p: Period, from: string, to: string) {
   return { from: from || t, to: to || t };
 }
 
-/** Supplier base reports for the GM / DGM, with the scorecard weights they set */
+/** Supplier base reports for the DGM, with the scorecard weights they set */
 export default function SupplierReports() {
   const { realRole, profile, sqReports } = useAuth();
   const dialog = useDialog();
@@ -49,7 +49,7 @@ export default function SupplierReports() {
   }, [data]);
   const f: RFilters = { ...pr, type, who, prices, item: item || top.item, supplier: supplier || top.sup, itemSupplier: itemSup || undefined };
   const rep = useMemo<Report | null>(() => (data ? runReport(key, data, f) : null), [data, key, f.from, f.to, type, who, prices, f.item, supplier, itemSup]); // eslint-disable-line react-hooks/exhaustive-deps
-  if (!sqReports) return <Screen><Notice tone={colors.amber}>Supplier reports are for the GM / DGM, the SM Estimation and the people the GM / DGM allows.</Notice></Screen>;
+  if (!sqReports) return <Screen><Notice tone={colors.amber}>Supplier reports are for the DGM, the SM Estimation and the people the DGM allows.</Notice></Screen>;
   if (!data || !rep) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const def = REPORTS.find((r) => r.key === key)!;
 
@@ -88,7 +88,7 @@ export default function SupplierReports() {
           {key === 'profile' ? <View style={{ minWidth: 260, flexGrow: 2 }}><Select label="Supplier" searchable value={f.supplier ?? ''} onChange={setSupplier} options={data.sups.map((s) => ({ value: s.id, label: s.name }))} /></View> : null}
         </Row>
         <Row wrap gap={8} style={{ marginTop: 8 }}>
-          {realRole === 'gm' ? <Button variant="secondary" small title={`Scorecard weights ${data.weights.price}/${data.weights.spec}/${data.weights.lead}/${data.weights.response}/${data.weights.terms}`} onPress={setWeights} /> : <Muted>{`Scorecard weights ${data.weights.price}/${data.weights.spec}/${data.weights.lead}/${data.weights.response}/${data.weights.terms} – set by the GM / DGM`}</Muted>}
+          {realRole === 'gm' ? <Button variant="secondary" small title={`Scorecard weights ${data.weights.price}/${data.weights.spec}/${data.weights.lead}/${data.weights.response}/${data.weights.terms}`} onPress={setWeights} /> : <Muted>{`Scorecard weights ${data.weights.price}/${data.weights.spec}/${data.weights.lead}/${data.weights.response}/${data.weights.terms} – set by the DGM`}</Muted>}
           <Button variant="secondary" small title="Export PDF" onPress={() => dialog.run(pdf)} />
           <Button variant="secondary" small title="Export Excel" onPress={() => dialog.run(excel)} />
         </Row>

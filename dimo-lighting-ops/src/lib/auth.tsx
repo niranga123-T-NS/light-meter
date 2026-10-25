@@ -17,13 +17,13 @@ type AuthState = {
   reloadProfile: () => Promise<void>;
   /** The user's own role, also while viewing as a high level user */
   realRole: Role | null;
-  /** High level access (view only) in force now, given by the GM / DGM */
+  /** High level access (view only) in force now, given by the DGM */
   highLevel: { id: string; ends_at: string } | null;
   highLevelOn: boolean;
   setHighLevelOn: (on: boolean) => void;
-  /** Supplier quotes: the Operations Executive, the GM / DGM and people the GM / DGM allows (until cancelled) */
+  /** Supplier quotes: the Operations Executive, the DGM and people the DGM allows (until cancelled) */
   sqAccess: boolean;
-  /** Supplier reports (read only): the GM / DGM, the SM Estimation and people the GM / DGM allows for the reports */
+  /** Supplier reports (read only): the DGM, the SM Estimation and people the DGM allows for the reports */
   sqReports: boolean;
 };
 
@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       : { data: [] };
     const g = ((data ?? [])[0] as { id: string; ends_at: string } | undefined) ?? null;
     setHighLevel(g);
-    // access to Supplier quotes is checked with the high level access (the GM / DGM can give or cancel it at any time)
+    // access to Supplier quotes is checked with the high level access (the DGM can give or cancel it at any time)
     if (uid) {
       supabase.rpc('sq_access_me').then(({ data: ok }) => setSqAccess(!!ok));
       supabase.rpc('sq_reports_me').then(({ data: ok }) => setSqReports(!!ok));

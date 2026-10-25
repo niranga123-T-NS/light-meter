@@ -14,7 +14,7 @@ import { rpc, supabase } from '@/lib/supabase';
 
 type Saved = { id: string; month: string; generated_by: string; generated_at: string; comments: string | null; data: Pick<MgmtReport, 'status' | 'flags'> };
 
-/** Management report (GM / DGM): pick the month, generate – the report is built from the app's data and kept as a snapshot. */
+/** Management report (DGM): pick the month, generate – the report is built from the app's data and kept as a snapshot. */
 export default function ManagementReports() {
   const me = useMe();
   const people = usePeople();
@@ -25,7 +25,7 @@ export default function ManagementReports() {
     if (error) throw new Error(error.message);
     return ((r ?? []) as unknown as (Omit<Saved, 'data'> & Saved['data'])[]).map((x) => ({ ...x, data: { status: x.status, flags: x.flags } })) as Saved[];
   });
-  if (me.role !== 'gm') return <Screen><Notice>The management report is for the GM / DGM.</Notice></Screen>;
+  if (me.role !== 'gm') return <Screen><Notice>The management report is for the DGM.</Notice></Screen>;
   const months = Array.from({ length: 18 }, (_, i) => addMonths(thisMonth(), -i));
 
   const generate = () =>

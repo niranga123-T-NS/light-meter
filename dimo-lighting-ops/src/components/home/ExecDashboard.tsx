@@ -65,7 +65,7 @@ const PERIOD_LABEL: Record<Period, string> = { month: 'This month', last: 'Last 
 /** LKR in millions, e.g. "LKR 2,404.8 Mn" */
 const mn = (v: number | null | undefined) => (v == null || !Number(v) ? '—' : `LKR ${(Number(v) / 1e6).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} Mn`);
 
-/** Overall Dashboard (GM / DGM) and Sales Management dashboard (SM Projects) – Section 9.1. */
+/** Overall Dashboard (DGM) and Sales Management dashboard (SM Projects) – Section 9.1. */
 export function ExecDashboard() {
   const me = useMe();
   const [period, setPeriod] = useState<Period>('month');

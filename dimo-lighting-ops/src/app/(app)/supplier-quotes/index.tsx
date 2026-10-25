@@ -15,7 +15,7 @@ import { rpc, supabase } from '@/lib/supabase';
 
 type Tab = 'projects' | 'rates' | 'suppliers' | 'access';
 
-/** Supplier quotes: projects with their packages, quotes and comparison, the rate library, the suppliers, and who has access (GM / DGM). */
+/** Supplier quotes: projects with their packages, quotes and comparison, the rate library, the suppliers, and who has access (DGM). */
 export default function SupplierQuotes() {
   const { sqAccess, realRole, sqReports } = useAuth();
   const params = useLocalSearchParams<{ tab?: Tab }>();
@@ -24,7 +24,7 @@ export default function SupplierQuotes() {
     return (
       <Screen>
         <Stack.Screen options={{ title: 'Supplier quotes' }} />
-        <Notice tone={colors.amber}>Supplier quotes are open to the Operations Executive, the GM / DGM and the people the GM / DGM allows.</Notice>
+        <Notice tone={colors.amber}>Supplier quotes are open to the Operations Executive, the DGM and the people the DGM allows.</Notice>
       </Screen>
     );
   const opts: { value: Tab; label: string }[] = [
@@ -282,7 +282,7 @@ function Suppliers() {
   );
 }
 
-// ---------------------------------------------------------------- access (GM / DGM)
+// ---------------------------------------------------------------- access (DGM)
 type Grant = { id: string; user_id: string; reason: string; reports_only?: boolean; granted_by: string; granted_at: string; cancelled_at: string | null; cancelled_by: string | null; cancel_reason: string | null };
 function Access() {
   const dialog = useDialog();
@@ -319,7 +319,7 @@ function Access() {
   };
   return (
     <>
-      <Notice>The Operations Executive and the GM / DGM always see supplier quotes; the SM Estimation always opens the supplier reports (read only). Anyone else needs your permission – for the quotes, or for the reports only – which lasts until you cancel it.</Notice>
+      <Notice>The Operations Executive and the DGM always see supplier quotes; the SM Estimation always opens the supplier reports (read only). Anyone else needs your permission – for the quotes, or for the reports only – which lasts until you cancel it.</Notice>
       <Row><Button title="Allow a person" icon="＋" onPress={allow} /></Row>
       <Section title="Always">
         <Card style={{ padding: 0, overflow: 'hidden' }}>

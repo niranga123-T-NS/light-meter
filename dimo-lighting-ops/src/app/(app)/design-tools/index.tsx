@@ -28,7 +28,7 @@ export default function DesignToolsList() {
     if (e) throw new Error(e.message);
     return (rows ?? []) as unknown as DtFile[];
   }, [allowed]);
-  if (!allowed) return <Screen><Notice>Design Tools are for the GM / DGM, SM Projects, the design team and the project engineers.</Notice></Screen>;
+  if (!allowed) return <Screen><Notice>Design Tools are for the DGM, SM Projects, the design team and the project engineers.</Notice></Screen>;
 
   const rows = (data ?? []).filter((f) => (filter === 'archived' ? f.archived : !f.archived && (filter === 'all' || f.status === filter)));
   const count = (s: DtStatus) => (data ?? []).filter((f) => !f.archived && f.status === s).length;
@@ -53,7 +53,7 @@ export default function DesignToolsList() {
       <Card>
         <Row wrap gap={10} style={{ justifyContent: 'space-between', alignItems: 'center' }}>
           <Muted style={{ flex: 1, minWidth: 240 }}>
-            Single line diagrams, network and cable sizing (ACL catalogues, BS 7671), DB layouts, MV panel, transformer, generator and ATS, protection settings, KNX (Jung), earthing and lightning protection, and pole / high-mast structural design. Every save keeps a revision; Design Manager checks, SM Projects or GM / DGM approves.
+            Single line diagrams, network and cable sizing (ACL catalogues, BS 7671), DB layouts, MV panel, transformer, generator and ATS, protection settings, KNX (Jung), earthing and lightning protection, and pole / high-mast structural design. Every save keeps a revision. Each team sees its own designs (design team or execution team) and SM Projects and the DGM see all; the Design Manager checks design team designs, the SEE checks execution team designs, SM Projects or the DGM approves.
           </Muted>
           <Button title="+ New design" onPress={start} />
         </Row>

@@ -4,7 +4,7 @@ import { fmtDate } from './format';
 import { supabase } from './supabase';
 import { atStage, cashOf, chains, discFactor, KIND_LABEL, lkr0, lkrM, normQuote, notLowest, originText, postBidSaving, preBidBasis, quoteTotals, stageDay, STAGE_LABEL, unitLkr, type SqItem, type SqPackage, type SqQuote, type Supplier } from './supplierQuotes';
 
-// Supplier base reports for the GM / DGM, worked out from the supplier quotes on the same basis as the comparison page
+// Supplier base reports for the DGM, worked out from the supplier quotes on the same basis as the comparison page
 // (LKR delivered, freight, discounts and priced-back exclusions): scorecard, awards, negotiation savings, not the lowest,
 // competition & gaps, price trends, terms & cash and one supplier. Every report is tiles + tables of plain values, so the
 // screen, the PDF and the Excel export show the same thing.
@@ -192,7 +192,7 @@ function scorecard(d: ReportData, c: Ctx): Report {
         ],
       })),
     }],
-    note: `Score out of 100 with the GM / DGM's weights: price ${w.price}, specification ${w.spec}, lead time ${w.lead}, quoting when asked ${w.response}, terms ${w.terms}. Price: every 1 % above the lowest comparable total on average takes 7 points off. Terms: credit after delivery adds, money before delivery takes off. A part with no data (e.g. no lead time needed) is left out and the others are weighted up; a supplier never compared with another quote gets no score yet. A 85+, B 72+, C 58+, D below.`,
+    note: `Score out of 100 with the DGM's weights: price ${w.price}, specification ${w.spec}, lead time ${w.lead}, quoting when asked ${w.response}, terms ${w.terms}. Price: every 1 % above the lowest comparable total on average takes 7 points off. Terms: credit after delivery adds, money before delivery takes off. A part with no data (e.g. no lead time needed) is left out and the others are weighted up; a supplier never compared with another quote gets no score yet. A 85+, B 72+, C 58+, D below.`,
   };
 }
 
@@ -371,14 +371,14 @@ function prices(d: ReportData, c: Ctx, f: RFilters): Report {
 /** Everything quoted for one item: each supplier / manufacturer's prices over time and on every job, every version, against the market */
 export function itemHistory(d: ReportData, c: Ctx, item: SqItem, from: string, to: string, focus?: string): Report {
   const pk = new Map(d.pkgs.map((p) => [p.id, p]));
-  type V = { q: SqQuote; v: number | null; dt: string; text: string; qty: number | null; unit: string | null; rate: number | null; latest: boolean; chosen: boolean };
+  type V = { q: SqQuote; v: number | null; dt: string; text: string; model: string | null; qty: number | null; unit: string | null; rate: number | null; latest: boolean; chosen: boolean };
   const vs: V[] = [];
   for (const q of d.quotes) {
     if (!c.whoOk(q.supplier_id) && q.supplier_id !== focus) continue;
     const dt = day(q.quote_date ?? q.created_at);
     if (dt < from || dt > to) continue;
     const f = discFactor(q);
-    for (const l of q.lines) if (l.item_id === item.id) vs.push({ q, v: unitLkr({ ...q, _f: f }, l), dt, text: l.text, qty: l.qty, unit: l.unit, rate: l.rate, latest: !q.superseded_by, chosen: pk.get(q.package_id)?.selected_quote_id === q.id });
+    for (const l of q.lines) if (l.item_id === item.id) vs.push({ q, v: unitLkr({ ...q, _f: f }, l), dt, text: l.text, model: l.model ?? null, qty: l.qty, unit: l.unit, rate: l.rate, latest: !q.superseded_by, chosen: pk.get(q.package_id)?.selected_quote_id === q.id });
   }
   const priced = vs.filter((x) => x.v != null) as (V & { v: number })[];
   const latestPriced = priced.filter((x) => x.latest);
@@ -391,7 +391,8 @@ export function itemHistory(d: ReportData, c: Ctx, item: SqItem, from: string, t
     const mine = priced.filter((x) => x.q.supplier_id === id).sort((a, b) => a.dt.localeCompare(b.dt) || a.q.revision - b.q.revision);
     const latest = mine.filter((x) => x.latest);
     const vals = latest.map((x) => x.v);
-    const lastText = [...vs].filter((x) => x.q.supplier_id === id).sort((a, b) => b.dt.localeCompare(a.dt))[0]?.text ?? '';
+    const lastV = [...vs].filter((x) => x.q.supplier_id === id).sort((a, b) => b.dt.localeCompare(a.dt))[0];
+    const lastText = lastV ? `${lastV.text}${lastV.model ? ` (model ${lastV.model})` : ''}` : '';
     return {
       id, n: new Set(vs.filter((x) => x.q.supplier_id === id).map((x) => x.q.package_id)).size, versions: vs.filter((x) => x.q.supplier_id === id).length,
       first: mine[0] ?? null, last: mine[mine.length - 1] ?? null, low: vals.length ? Math.min(...vals) : null, high: vals.length ? Math.max(...vals) : null, avg: avg(vals),
@@ -455,7 +456,7 @@ export function itemHistory(d: ReportData, c: Ctx, item: SqItem, from: string, t
           return {
             key: `${x.q.id}-${x.text}`, href: p ? `/supplier-quotes/${p.id}` : undefined,
             cells: [
-              { t: fmtDate(x.dt) }, { t: c.name(x.q.supplier_id), sub: x.q.quote_no ?? undefined },
+              { t: fmtDate(x.dt) }, { t: c.name(x.q.supplier_id), sub: [x.q.quote_no, x.model ? `model ${x.model}` : ''].filter(Boolean).join(' · ') || undefined },
               { t: p?.title ?? '—', sub: [p?.code, p?.project_name].filter(Boolean).join(' · ') },
               { t: `R${x.q.revision}`, sub: [STAGE_LABEL[x.q.bid_stage ?? 'pre_bid'], x.latest ? '' : 'later revised'].filter(Boolean).join(' · ') },
               { t: x.qty == null ? '—' : `${x.qty} ${x.unit ?? ''}` },

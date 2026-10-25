@@ -13,7 +13,7 @@ import { useLoad, usePeople } from '@/lib/hooks';
 import { conditionLabel, SCRAP_METHOD, SCRAP_SOURCE, SCRAP_STATUS, type ScrapDisposal, type ScrapLine, type ScrapQuote } from '@/lib/scrap';
 import { rpc, supabase } from '@/lib/supabase';
 
-/** One scrap disposal: items, photos, quotations, the SM Projects → DGM / GM approval, and the record of the disposal. */
+/** One scrap disposal: items, photos, quotations, the SM Projects → DGM approval, and the record of the disposal. */
 export default function ScrapScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const me = useMe();
@@ -98,7 +98,7 @@ export default function ScrapScreen() {
       if (!r) return;
       quote = r.q;
       reason = r.reason || null;
-    } else if (!(await dialog.confirm('Submit to SM Projects', `${d.code} – free of charge to ${d.foc_to}. SM Projects and then the DGM / GM approve it.`, { confirmLabel: 'Submit' }))) return;
+    } else if (!(await dialog.confirm('Submit to SM Projects', `${d.code} – free of charge to ${d.foc_to}. SM Projects and then the DGM approve it.`, { confirmLabel: 'Submit' }))) return;
     await dialog.run(async () => {
       await rpc('submit_scrap_disposal', { p_id: d.id, p_quote: quote, p_reason: reason });
       await reload();
@@ -106,7 +106,7 @@ export default function ScrapScreen() {
   };
   const decide = async (action: 'approve' | 'return' | 'reject') => {
     const r = await dialog.prompt({
-      title: action === 'approve' ? (d.status === 'pending_smp' ? 'Approve – send to the DGM / GM' : 'Approve the disposal') : action === 'return' ? 'Return for changes' : 'Reject',
+      title: action === 'approve' ? (d.status === 'pending_smp' ? 'Approve – send to the DGM' : 'Approve the disposal') : action === 'return' ? 'Return for changes' : 'Reject',
       fields: [{ key: 'n', label: action === 'approve' ? 'Note' : 'Reason', type: 'multiline', required: action !== 'approve' }],
       confirmLabel: action === 'approve' ? 'Approve' : action === 'return' ? 'Return' : 'Reject',
       danger: action !== 'approve',
@@ -252,7 +252,7 @@ export default function ScrapScreen() {
             right={<Pill label={d.status === 'pending_smp' ? 'Waiting' : d.smp_at && d.status !== 'returned' && d.status !== 'rejected' ? 'Approved' : '—'} tone={d.status === 'pending_smp' ? colors.amber : colors.green} />}
           />
           <ListRow
-            title="2 · DGM / GM"
+            title="2 · DGM"
             subtitle={d.dgm_at ? `${pn(d.dgm_by)} · ${fmtDateTime(d.dgm_at)}${d.dgm_note ? ` · ${d.dgm_note}` : ''}` : d.status === 'pending_dgm' ? 'Waiting' : '—'}
             right={<Pill label={d.status === 'pending_dgm' ? 'Waiting' : ['approved', 'disposed'].includes(d.status) ? 'Approved' : '—'} tone={d.status === 'pending_dgm' ? colors.amber : colors.green} />}
           />
@@ -277,7 +277,7 @@ export default function ScrapScreen() {
         {canEdit ? <Button title="Submit to SM Projects" onPress={submit} disabled={missing.length > 0} /> : null}
         {canDecide ? (
           <>
-            <Button title={d.status === 'pending_smp' ? 'Approve – to the DGM / GM' : 'Approve'} onPress={() => decide('approve')} />
+            <Button title={d.status === 'pending_smp' ? 'Approve – to the DGM' : 'Approve'} onPress={() => decide('approve')} />
             <Button variant="secondary" title="Return for changes" onPress={() => decide('return')} />
             <Button variant="danger" title="Reject" onPress={() => decide('reject')} />
           </>

@@ -220,7 +220,7 @@ export function FxShort({ board }: { board: FxBoard }) {
   );
 }
 
-/** Home dashboard card (GM / DGM, SM Projects, Estimation team, Operations Executive) – the short table */
+/** Home dashboard card (DGM, SM Projects, Estimation team, Operations Executive) – the short table */
 export function FxCard() {
   const me = useMe();
   const show = FX_SEES.includes(me.role);

@@ -40,7 +40,7 @@ export default function Admin() {
       {me.role === 'gm' && tab === 'calendar' ? (
         <Notice>You can set the monthly USD → LKR exchange rate here. Holidays are entered by the System Administrator.</Notice>
       ) : me.role !== 'sys_admin' && tab !== 'users' && tab !== 'competitors' && tab !== 'alerts' && tab !== 'cleanup' ? (
-        <Notice>Changes to SLA settings and master data are made by the System Administrator and approved by GM / DGM.</Notice>
+        <Notice>Changes to SLA settings and master data are made by the System Administrator and approved by DGM.</Notice>
       ) : null}
       {tab === 'users' ? <Users /> : null}
       {tab === 'alerts' ? <Alerts /> : null}
@@ -58,7 +58,7 @@ export default function Admin() {
 function Users() {
   const me = useMe();
   const dialog = useDialog();
-  // The System Administrator and GM / DGM add and maintain users; only the System Administrator handles System Administrator logins
+  // The System Administrator and DGM add and maintain users; only the System Administrator handles System Administrator logins
   const admin = me.role === 'sys_admin' || me.role === 'gm';
   // A temporary high level person from outside ('guest') is created only with its access period, in High level users
   const roleOptions = ROLES.filter((r2) => (me.role === 'sys_admin' || r2 !== 'sys_admin') && r2 !== 'guest').map((r2) => ({ value: r2, label: ROLE_LABELS[r2] }));
@@ -433,7 +433,7 @@ function Competitors() {
   );
 }
 
-/** Alerts: when each alert job runs and how often (Sri Lanka time), or paused – GM / DGM and the System Administrator */
+/** Alerts: when each alert job runs and how often (Sri Lanka time), or paused – DGM and the System Administrator */
 function Alerts() {
   const dialog = useDialog();
   const people = usePeople();

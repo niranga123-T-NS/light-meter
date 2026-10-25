@@ -1,5 +1,5 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
 import { Platform, useWindowDimensions, View } from 'react-native';
 import { DesignEngine } from '@/components/design-tools/DesignEngine';
 import { requestState } from '@/components/design-tools/engineBridge';
@@ -11,6 +11,7 @@ import {
   canUseDesignTools,
   DT_ACTION_LABEL,
   DT_STATUS,
+  DT_TEAM,
   dtSummaryText,
   dtTemplateLabel,
   loadDesignEngine,
@@ -33,6 +34,20 @@ import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 
 type Inq = { id: string; code: string | null; project_name: string | null };
+
+// a draft saves itself this long after the first change since the last save
+const AUTOSAVE_MS = 15 * 60 * 1000;
+
+/** Calls onDue 15 minutes after `since` (the first unsaved change); a save clears `since` and stops it */
+function Autosave({ since, onDue }: { since: number | null; onDue: () => void }) {
+  const due = useEffectEvent(onDue);
+  useEffect(() => {
+    if (since == null) return;
+    const t = setTimeout(() => due(), Math.max(5000, since + AUTOSAVE_MS - Date.now()));
+    return () => clearTimeout(t);
+  }, [since]);
+  return null;
+}
 
 /** One design: the calculation page with save, revisions, check and approval */
 /** Saves a file from the design page to the cache and opens Share (Save to Files, Mail, Print…) */
@@ -77,6 +92,9 @@ export default function DesignToolScreen() {
   const [meta, setMeta] = useState<{ title: string; inquiry: string | null } | null>(null);
   const [busy, setBusy] = useState(false);
   const [full, setFull] = useState(false);
+  // when the first unsaved change was made (autosave counts from it) and the last autosave
+  const [changedAt, setChangedAt] = useState<number | null>(null);
+  const [autoAt, setAutoAt] = useState<string | null>(null);
   const allowed = canUseDesignTools(realRole);
 
   const { data, error, reload } = useLoad(async () => {
@@ -134,7 +152,10 @@ export default function DesignToolScreen() {
   const onMessage = useCallback((m: DtOut) => {
     if (m.type === 'dt:ready') setReady(true);
     else if (m.type === 'dt:fullscreen') setFull(m.on);
-    else if (m.type === 'dt:dirty') setDirty(m.dirty);
+    else if (m.type === 'dt:dirty') {
+      setDirty(m.dirty);
+      if (m.dirty) setChangedAt((t) => t ?? Date.now());
+    }
     else if (m.type === 'dt:file' && Platform.OS !== 'web') void shareFile(m.name, m.mime, m.b64); // a sheet PDF from the page – the web view cannot download it itself
     else if (m.type === 'dt:drvSave')
       void saveDriver(m.driver, m.file).then(
@@ -156,7 +177,7 @@ export default function DesignToolScreen() {
     else if (m.type === 'dt:profDel') void deleteProfile(m.id).then(() => sendProfiles(engine.current), (e: Error) => sendProfiles(engine.current, e.message));
   }, [dialog]);
 
-  if (!allowed) return <Screen><Notice>Design Tools are for the GM / DGM, SM Projects, the design team and the project engineers.</Notice></Screen>;
+  if (!allowed) return <Screen><Notice>Design Tools are for the DGM, SM Projects, the design team and the project engineers.</Notice></Screen>;
   if (error) return <Screen><ErrorBanner message={error} /></Screen>;
   if (!data || !meta) return <Screen><Loading label="Opening Design Tools…" /></Screen>;
 
@@ -167,19 +188,61 @@ export default function DesignToolScreen() {
   const unsaved = dirty || metaChanged || isNew;
   const inq = data.inqs.find((x) => x.id === meta.inquiry);
 
-  const save = async () => {
+  const save = async (auto = false) => {
     setBusy(true);
     try {
       const { state, summary } = await requestState(engine.current);
-      const newId = await rpc<string>('design_tool_save', { p_id: f?.id ?? null, p_title: meta.title, p_inquiry: meta.inquiry, p_state: state, p_summary: summary, p_note: null, p_engine: data.eng.version });
+      const newId = await rpc<string>('design_tool_save', { p_id: f?.id ?? null, p_title: meta.title, p_inquiry: meta.inquiry, p_state: state, p_summary: summary, p_note: auto ? 'Autosave' : null, p_engine: data.eng.version });
       engine.current?.send({ type: 'dt:saved', title: meta.title });
       setDirty(false);
-      dialog.toast('Saved');
+      setChangedAt(null);
+      const at = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      if (auto) setAutoAt(at);
+      dialog.toast(auto ? `Autosaved at ${at}` : 'Saved');
       if (isNew) {
         sent.current = newId; // the page already shows this design
         setMetaFor(newId);
         router.replace({ pathname: '/design-tools/[id]', params: { id: newId } });
       } else reload();
+    } catch (e) {
+      dialog.toast(auto ? `Autosave failed – ${(e as Error).message}. Save it yourself.` : (e as Error).message, 'error');
+      if (auto) setChangedAt(Date.now()); // tries again in 15 minutes
+    } finally {
+      setBusy(false);
+    }
+  };
+  // 15 minutes after a change: drafts save themselves; a design sent for check, checked or approved waits for a person to save it
+  // (saving takes it back to draft); a new design is autosaved only once something was changed on the page
+  const autosave = () => {
+    if (!unsaved || busy || !ready || f?.archived || status !== 'draft') return;
+    void save(true);
+  };
+  /** The design as it is on the page, as a new design under another title / inquiry (the original keeps its last saved revision) */
+  const saveAs = async () => {
+    const v = await dialog.prompt({
+      title: 'Save as a new design',
+      message: unsaved ? 'The copy takes the design as it is on the page now, unsaved changes included. The original keeps its last saved revision.' : 'The copy starts as a draft at revision 1. The original is not changed.',
+      fields: [
+        { key: 'title', label: 'Title of the copy', required: true, maxLength: 200, initial: `${meta.title} – copy` },
+        { key: 'inquiry', label: 'Inquiry (optional)', type: 'select', searchable: true, initial: meta.inquiry ?? '', options: [{ value: '', label: '— none —' }, ...data.inqs.map((i) => ({ value: i.id, label: [i.code, i.project_name].filter(Boolean).join(' – ') }))] },
+      ],
+      confirmLabel: 'Save as',
+    });
+    if (!v) return;
+    setBusy(true);
+    try {
+      const { state, summary } = await requestState(engine.current);
+      const title = v.title.trim();
+      const note = f ? `Saved as a copy of ${f.title} rev ${f.revision}${dirty ? ' with unsaved changes' : ''}` : null;
+      const newId = await rpc<string>('design_tool_save', { p_id: null, p_title: title, p_inquiry: v.inquiry || null, p_state: state, p_summary: summary, p_note: note, p_engine: data.eng.version });
+      engine.current?.send({ type: 'dt:saved', title });
+      setDirty(false);
+      setChangedAt(null);
+      sent.current = newId; // the page already shows the copy
+      setMetaFor(newId);
+      setMeta({ title, inquiry: v.inquiry || null });
+      dialog.toast(`Saved as "${title}" – you are now working on the copy`);
+      router.replace({ pathname: '/design-tools/[id]', params: { id: newId } });
     } catch (e) {
       dialog.toast((e as Error).message, 'error');
     } finally {
@@ -197,6 +260,7 @@ export default function DesignToolScreen() {
     });
     if (v) {
       setMeta({ title: v.title.trim(), inquiry: v.inquiry || null });
+      setChangedAt((t) => t ?? Date.now());
       engine.current?.send({ type: 'dt:saved', title: v.title.trim() }); // the sheets' title block follows; the design itself is unchanged
     }
   };
@@ -221,17 +285,20 @@ export default function DesignToolScreen() {
     if (e) return dialog.toast(e.message, 'error');
     engine.current?.send({ type: 'dt:load', state: row.state as DtState, title: meta.title });
     setDirty(r.revision !== f?.revision);
+    if (r.revision !== f?.revision) setChangedAt((t) => t ?? Date.now());
     dialog.toast(r.revision === f?.revision ? 'Current revision' : `Revision ${r.revision} opened – save to make it the current one`);
   };
 
-  const canCheck = role === 'design_manager' && status === 'for_check' && f?.updated_by !== me.id;
+  const team = DT_TEAM[f?.team ?? 'design'];
+  const canCheck = !!role && team.checkers.includes(role) && status === 'for_check' && f?.updated_by !== me.id;
   const canApprove = (role === 'sm_projects' || role === 'gm') && status === 'checked';
-  const canReturn = (role === 'design_manager' || role === 'sm_projects' || role === 'gm') && status !== 'draft';
-  const canArchive = !!f && (f.created_by === me.id || role === 'design_manager' || role === 'sm_projects' || role === 'gm');
+  const canReturn = (!!role && team.checkers.includes(role) || role === 'sm_projects' || role === 'gm') && status !== 'draft';
+  const canArchive = !!f && (f.created_by === me.id || (!!role && team.checkers.includes(role)) || role === 'sm_projects' || role === 'gm');
 
   return (
     <Screen maxWidth={1800} flush={full}>
       <Stack.Screen options={{ title: meta.title, headerShown: !full }} />
+      <Autosave since={changedAt} onDue={autosave} />
       {full ? null : <TestingBanner what="Design Tools" show />}
       {full ? null : (
       <Card>
@@ -243,7 +310,7 @@ export default function DesignToolScreen() {
               {unsaved ? <Pill label="unsaved changes" tone="#B45309" solid /> : null}
             </Row>
             <Muted>
-              {[inq ? `Inquiry ${[inq.code, inq.project_name].filter(Boolean).join(' – ')}` : 'No inquiry linked', f ? dtTemplateLabel(f.template) : null, f ? dtSummaryText(f.summary) : null].filter(Boolean).join(' · ')}
+              {[f ? `${DT_TEAM[f.team ?? 'design'].label} – checked by ${DT_TEAM[f.team ?? 'design'].checker}` : null, inq ? `Inquiry ${[inq.code, inq.project_name].filter(Boolean).join(' – ')}` : 'No inquiry linked', f ? dtTemplateLabel(f.template) : null, f ? dtSummaryText(f.summary) : null].filter(Boolean).join(' · ')}
             </Muted>
             {f ? (
               <Muted>
@@ -253,7 +320,8 @@ export default function DesignToolScreen() {
           </View>
           <Row wrap gap={6}>
             <Button small variant="secondary" title="Title / inquiry" onPress={details} disabled={!!f?.archived} />
-            <Button small title={busy ? 'Saving…' : 'Save'} onPress={save} disabled={busy || !ready || !!f?.archived} />
+            <Button small title={busy ? 'Saving…' : 'Save'} onPress={() => save()} disabled={busy || !ready || !!f?.archived} />
+            {f ? <Button small variant="secondary" title="Save as" onPress={saveAs} disabled={busy || !ready} /> : null}
             {f && !f.archived && status === 'draft' ? <Button small variant="secondary" title="Send for check" onPress={() => decide('submit')} disabled={unsaved} /> : null}
             {canCheck ? <Button small title="Checked" onPress={() => decide('check')} disabled={unsaved} /> : null}
             {canApprove ? <Button small title="Approve" onPress={() => decide('approve')} disabled={unsaved} /> : null}
@@ -261,7 +329,8 @@ export default function DesignToolScreen() {
             {canArchive ? <Button small variant="ghost" title={f?.archived ? 'Restore' : 'Archive'} onPress={archive} /> : null}
           </Row>
         </Row>
-        {unsaved && f && status !== 'draft' ? <Muted>Saving a change makes a new revision and takes the design back to draft for checking again.</Muted> : null}
+        {unsaved && f && status !== 'draft' ? <Muted>Saving a change makes a new revision and takes the design back to draft for checking again – so it is not autosaved; save it yourself or use Save as.</Muted> : null}
+        {!f?.archived && status === 'draft' ? <Muted>{`Autosaves 15 minutes after a change${autoAt ? ` · last autosave ${autoAt}` : ''}`}</Muted> : null}
       </Card>
       )}
       {!ready ? <Loading label="Opening the calculation page…" /> : null}

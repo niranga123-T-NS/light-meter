@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { Segmented } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 
-/** Who sees the site's requests and the subcontractor invoices among the orders: Operations, SM Projects, GM / DGM and the SEE */
+/** Who sees the site's requests and the subcontractor invoices among the orders: Operations, SM Projects, DGM and the SEE */
 export const SITE_ROLES = ['operations_exec', 'sm_projects', 'gm', 'senior_elec_engineer'];
 const HREF = { requests: '/orders/site-requests', foreign: '/orders/foreign', local: '/orders/local', sub: '/orders/subcontractor' } as const;
 

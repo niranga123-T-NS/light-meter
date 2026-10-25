@@ -53,7 +53,7 @@ export default function BudgetScreen() {
   }, [fy]);
 
   // A budgeted project that has been won (or was won before the system): add it to the secured list
-  // Budget line status: active / on hold / dropped (Operations, SM Projects, GM / DGM)
+  // Budget line status: active / on hold / dropped (Operations, SM Projects, DGM)
   const setStatus = async (b: BudgetProject) => {
     const r = await dialog.prompt({
       title: `Status – ${b.project_name}`,

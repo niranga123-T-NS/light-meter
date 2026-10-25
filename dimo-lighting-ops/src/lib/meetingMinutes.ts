@@ -347,6 +347,6 @@ ${m.people
 
 <h2>${m.people.length ? 6 : 5}. Distribution</h2>
 <p>${esc(m.distribution.join(', ') || '—')}</p>
-<div class="sign"><div>Chaired by – ${esc(m.host)}${m.publishedAt ? ` · published ${esc(fmtDateTime(m.publishedAt))}` : ''}</div><div>Reviewed by – GM / DGM</div></div>
+<div class="sign"><div>Chaired by – ${esc(m.host)}${m.publishedAt ? ` · published ${esc(fmtDateTime(m.publishedAt))}` : ''}</div><div>Reviewed by – DGM</div></div>
 </body></html>`;
 }

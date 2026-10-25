@@ -208,7 +208,7 @@ export default function NewScrap() {
           )}
         </Card>
       </Section>
-      <Muted>Next: save, add photos of the scrap{f.method === 'sell' ? ' and the quotations' : ''}, then submit to SM Projects. The DGM / GM approves after SM Projects.</Muted>
+      <Muted>Next: save, add photos of the scrap{f.method === 'sell' ? ' and the quotations' : ''}, then submit to SM Projects. The DGM approves after SM Projects.</Muted>
       <Row gap={8}>
         <Button title={params.id ? 'Save changes' : 'Save as draft'} onPress={save} disabled={!f.lines.length} />
         <Button variant="secondary" title="Cancel" onPress={() => router.back()} />

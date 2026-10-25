@@ -15,7 +15,7 @@ import { loadSubcontractors, subOptions } from '@/lib/subcontractors';
 type Change = { id: string; proposed: Record<string, string>; reason: string; status: string; requested_by: string; requested_at: string; decided_by: string | null; decided_at: string | null; decision_note: string | null };
 const FIELD: Record<string, string> = { person_name: 'Name', company: 'Company', phone: 'Mobile', email: 'Email', id_no: 'ID / site pass', zones: 'Zones / packages', start_date: 'From', end_date: 'To' };
 
-/** One access request: SM Projects / DGM / GM decide; once approved the SEE (or an approver) creates the login. */
+/** One access request: SM Projects / DGM decide; once approved the SEE (or an approver) creates the login. */
 export default function AccessRequestScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const me = useMe();
@@ -123,8 +123,8 @@ export default function AccessRequestScreen() {
         {r.reason ? <KeyValue label="Reason" value={r.reason} /> : null}
         <KeyValue label="Requested" value={`${people[r.requested_by]?.full_name ?? ''} · ${fmtDateTime(r.requested_at)}`} />
         {r.smp_at ? <KeyValue label="SM Projects" value={`${people[r.smp_by ?? '']?.full_name ?? ''} · ${fmtDateTime(r.smp_at)}${r.smp_note ? ` · ${r.smp_note}` : ''}`} /> : null}
-        {r.gm_at ? <KeyValue label="DGM / GM" value={`${people[r.gm_by ?? '']?.full_name ?? ''} · ${fmtDateTime(r.gm_at)}${r.gm_note ? ` · ${r.gm_note}` : ''}`} /> : null}
-        {r.kind === 'temp_add' ? <Muted>Approval chain: SM Projects → DGM / GM, then the login is created.</Muted> : null}
+        {r.gm_at ? <KeyValue label="DGM" value={`${people[r.gm_by ?? '']?.full_name ?? ''} · ${fmtDateTime(r.gm_at)}${r.gm_note ? ` · ${r.gm_note}` : ''}`} /> : null}
+        {r.kind === 'temp_add' ? <Muted>Approval chain: SM Projects → DGM, then the login is created.</Muted> : null}
         {r.kind === 'sub_appoint' ? <Muted>The supervisor sees only their own tasks, instructions, issued drawings, own reports and HSE – never costs, rates or other subcontractors.</Muted> : null}
         <Row wrap gap={6} style={{ marginTop: 10 }}>
           {myTurn ? (

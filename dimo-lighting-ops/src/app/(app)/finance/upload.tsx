@@ -28,7 +28,7 @@ export default function OrUploadScreen() {
   if (!isFinanceDesk(me.role)) {
     return (
       <Screen>
-        <Notice>Only Operations, SM Projects or GM / DGM upload the OR file.</Notice>
+        <Notice>Only Operations, SM Projects or DGM upload the OR file.</Notice>
       </Screen>
     );
   }

@@ -127,10 +127,10 @@ export type LineChange = {
   needs_gm?: boolean;
   smp_at?: string | null;
 };
-/** Who decides a pending invoice move: SM Projects; a move to another quarter / year then also DGM / GM */
+/** Who decides a pending invoice move: SM Projects; a move to another quarter / year then also DGM */
 export const canDecideMove = (role: string, c?: Pick<LineChange, 'needs_gm' | 'smp_at'> | null) =>
   c?.needs_gm && c.smp_at ? role === 'gm' : role === 'sm_projects' || role === 'gm';
-export const moveStep = (c?: Pick<LineChange, 'needs_gm' | 'smp_at'> | null) => (c?.needs_gm && c.smp_at ? 'DGM / GM' : 'SM Projects');
+export const moveStep = (c?: Pick<LineChange, 'needs_gm' | 'smp_at'> | null) => (c?.needs_gm && c.smp_at ? 'DGM' : 'SM Projects');
 
 export type Allocation = {
   id: number;

@@ -379,7 +379,7 @@ export function BillingTab({ p, onChange }: { p: ExecProject; onChange: () => vo
           <Muted>
             Each invoice: the work trigger must be met 10 working days before the end of its month (amber within 15 working days, red when it will miss). The IPA and
             the invoice are made in SAP; when the client / consultant certifies, the SEE marks it → Operations raises the invoice in SAP. Red lines need a recovery
-            action; a later month is asked with “Check” (another quarter or year: SM Projects, then DGM / GM).
+            action; a later month is asked with “Check” (another quarter or year: SM Projects, then DGM).
           </Muted>
         </Section>
       ) : null}

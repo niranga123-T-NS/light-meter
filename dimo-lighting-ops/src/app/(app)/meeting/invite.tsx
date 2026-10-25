@@ -13,7 +13,7 @@ import { rpc, supabase } from '@/lib/supabase';
 
 type Person = { id: string; full_name: string; role: keyof typeof ROLE_LABELS };
 
-// Order of the groups on the list; GM / DGM and System Admin are never invited
+// Order of the groups on the list; DGM and System Admin are never invited
 const GROUPS: (keyof typeof ROLE_LABELS)[] = [
   'asm_building',
   'asm_infra',
@@ -140,8 +140,8 @@ export default function InviteToMeeting() {
           {isProject
             ? 'Select who is invited – the project team is selected; anyone else (sales, design, estimation, operations) is invited only after SM Projects approves. Invitees are reminded an hour before and mark attendance at the venue. Generate the project figures on the meeting page before the meeting.'
             : cfg.fixed
-            ? 'Select who is invited – anyone except GM / DGM and System Admin. Invite by Sunday 10:00; GM / DGM are told if it is not done by 15:00.'
-            : 'Select who is invited – anyone except GM / DGM and System Admin. Your team is invited at once; anyone from outside the team is invited only after SM Projects approves. Invitees are reminded an hour before and mark attendance at the venue.'}
+            ? 'Select who is invited – anyone except DGM and System Admin. Invite by Sunday 10:00; DGM are told if it is not done by 15:00.'
+            : 'Select who is invited – anyone except DGM and System Admin. Your team is invited at once; anyone from outside the team is invited only after SM Projects approves. Invitees are reminded an hour before and mark attendance at the venue.'}
         </Muted>
         <Row wrap gap={8} style={{ marginTop: 8 }}>
           <Button

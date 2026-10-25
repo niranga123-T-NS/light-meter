@@ -28,7 +28,7 @@ const MY_STATUS: Record<string, { label: string; tone: string }> = {
   excused: { label: 'On leave', tone: colors.grey },
 };
 
-/** My Day: this week's meetings – the ones I am invited to, run, or (GM / DGM, SM Projects) follow. */
+/** My Day: this week's meetings – the ones I am invited to, run, or (DGM, SM Projects) follow. */
 export function WeekMeetings({ title = "This week's meetings" }: { title?: string }) {
   const { data } = useLoad(() => rpc<WeekMeeting[]>('my_week_meetings').catch(() => [] as WeekMeeting[]));
   if (!data?.length) return null;
@@ -58,7 +58,7 @@ export function WeekMeetings({ title = "This week's meetings" }: { title?: strin
               onPress={() =>
                 m.my_part === 'invitee' || !m.meeting_id
                   ? router.push(m.meeting_id ? '/meetings' : `/meetings?team=${m.team}`)
-                  : // GM / DGM open a meeting once its host has published the pack
+                  : // DGM open a meeting once its host has published the pack
                     m.my_part !== 'host' && m.status !== 'published'
                     ? router.push(`/meetings?team=${m.team}`)
                     : router.push(`/meeting/${m.meeting_id}`)

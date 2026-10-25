@@ -27,7 +27,7 @@ export function GuestHome() {
       <Card style={{ gap: 6 }}>
         <H2>{`Welcome, ${me.full_name}`}</H2>
         <Muted>
-          You have temporary high level access (view only) to DIMO Lighting Operations, given by the GM / DGM. During the period you see everything the GM / DGM sees; you
+          You have temporary high level access (view only) to DIMO Lighting Operations, given by the DGM. During the period you see everything the DGM sees; you
           cannot change or approve anything. Outside the period there is nothing to see.
         </Muted>
       </Card>
@@ -35,7 +35,7 @@ export function GuestHome() {
         {data.length ? (
           data.map((g) => <ListRow key={g.id} title={`From ${fmtDateTime(g.starts_at)} to ${fmtDateTime(g.ends_at)}`} subtitle={g.reason} />)
         ) : (
-          <ListRow title="Your access period has ended" subtitle="Ask the GM / DGM if you need access again." />
+          <ListRow title="Your access period has ended" subtitle="Ask the DGM if you need access again." />
         )}
       </Card>
       <Muted>The view opens by itself within a few minutes of the start – or reload the page.</Muted>
