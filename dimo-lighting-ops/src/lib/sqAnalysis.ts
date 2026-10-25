@@ -1,7 +1,7 @@
 import { PALETTE, type ChartSpec } from './charts';
 import { fmtDate } from './format';
 import { supabase } from './supabase';
-import { atStage, chains, KIND_LABEL, lkrM, normQuote, originText, quoteTotals, STAGE_LABEL, type SqPackage, type SqQuote, type Supplier } from './supplierQuotes';
+import { atStage, chains, KIND_LABEL, lkrM, normQuote, originText, postBidSaving, quoteTotals, STAGE_LABEL, type SqPackage, type SqQuote, type Supplier } from './supplierQuotes';
 import type { Report, Tone } from './supplierReports';
 
 // Supplier quotes analysis on one page: the project summary (every package, who quoted, who was lowest and chosen, how far prices
@@ -68,6 +68,8 @@ export function projectReport(pkgs: SqPackage[], quotes: SqQuote[], sups: Suppli
   const chosenF = facts.filter((f) => f.chosen);
   const chosenSum = chosenF.reduce((a, f) => a + total(f.chosen!), 0);
   const prem = chosenF.reduce((a, f) => a + Math.max(0, total(f.chosen!) - (f.low ? total(f.low) : total(f.chosen!))), 0);
+  const savs = facts.map((f) => postBidSaving(f.p, quotes, name)).filter((x): x is NonNullable<typeof x> => !!x && x.saving != null);
+  const saved = savs.reduce((a, x) => a + x.saving!, 0), savBase = savs.reduce((a, x) => a + (x.basis?.value ?? 0), 0);
   const versions = facts.reduce((a, f) => a + f.all.length, 0), offers = facts.reduce((a, f) => a + f.ch.length, 0);
   // supplier × package matrix: rank of each supplier's current price on each package
   const shown = facts.slice(0, 6);
@@ -88,6 +90,7 @@ export function projectReport(pkgs: SqPackage[], quotes: SqQuote[], sups: Suppli
       { label: 'Lowest on every package now', value: `LKR ${M(lowSum)}`, sub: firstSum ? `first offers were ${M(firstSum)}` : undefined },
       { label: 'Came down from the first offers', value: firstSum ? sgn(pctCh(firstSum, lowSum)) : '—', tone: firstSum && lowSum < firstSum ? 'green' : undefined, sub: firstSum ? `LKR ${M(firstSum - lowSum)}` : undefined },
       { label: 'Chosen so far', value: `LKR ${M(chosenSum)}`, sub: chosenF.length ? (prem > 0.5 ? `${M(prem)} above the lowest` : 'all at the lowest') : 'nothing chosen yet', tone: prem > 0.5 ? 'amber' : undefined },
+      ...(savs.length ? [{ label: `Saving against Pre Bid – ${savs.length} Post Bid package(s)`, value: `LKR ${M(saved)}`, sub: savBase ? `${sgn(-(saved / savBase) * 100)} on the bid value of ${M(savBase)}` : undefined, tone: saved >= 0 ? ('green' as const) : ('red' as const) }] : []),
     ],
     charts: facts.length ? [
       { title: 'Each package – lowest first offer, lowest now and chosen (LKR M)', spec: chart('bar', facts.map((f) => short(f.p.title)), [
@@ -104,7 +107,7 @@ export function projectReport(pkgs: SqPackage[], quotes: SqQuote[], sups: Suppli
     tables: [
       {
         title: 'Packages', empty: 'No package yet – add the first one.',
-        head: [{ h: 'Package', w: 220, grow: true }, { h: 'Offers', w: 80, right: true }, { h: 'Lowest now', w: 150, right: true }, { h: 'Chosen', w: 160, right: true }, { h: 'Chosen vs lowest', w: 120, right: true }, { h: 'Came down', w: 100, right: true }],
+        head: [{ h: 'Package', w: 220, grow: true }, { h: 'Offers', w: 80, right: true }, { h: 'Lowest now', w: 150, right: true }, { h: 'Chosen', w: 160, right: true }, { h: 'Chosen vs lowest', w: 120, right: true }, { h: 'Came down', w: 100, right: true }, { h: 'Saving vs Pre Bid', w: 130, right: true }],
         rows: facts.map((f) => {
           const lt = f.low ? total(f.low) : null, ct = f.chosen ? total(f.chosen) : null;
           return {
@@ -116,6 +119,12 @@ export function projectReport(pkgs: SqPackage[], quotes: SqQuote[], sups: Suppli
               { t: M(ct), sub: f.chosen ? name(f.chosen.supplier_id) : 'not chosen' },
               { t: ct != null && lt ? sgn(pctCh(lt, ct)) : '—', tone: ct != null && lt && ct > lt + 0.5 ? 'warn' : undefined },
               { t: f.avgMove == null ? '—' : sgn(f.avgMove), sub: f.avgMove == null ? 'no revisions' : 'average from first offer', tone: moveTone(f.avgMove) },
+              (() => {
+                const v = postBidSaving(f.p, quotes, name);
+                if (!v) return { t: 'Pre Bid', sub: 'no saving yet' };
+                if (v.saving == null) return { t: '—', sub: v.basis ? 'no Post Bid price yet' : 'enter the Pre Bid value', tone: v.basis ? undefined : ('warn' as Tone) };
+                return { t: M(v.saving), sub: `${sgn(v.pct ?? 0)} on ${M(v.basis!.value)}`, tone: (v.saving >= 0 ? 'good' : 'bad') as Tone };
+              })(),
             ],
           };
         }),
@@ -167,6 +176,7 @@ export function packageReport(p: SqPackage, quotes: SqQuote[], sups: Supplier[])
   const moved = rows.filter((r) => r.c.length > 1);
   const best = moved.length ? moved.reduce((a, b) => (b.move < a.move ? b : a)) : null;
   const post = p.stage === 'post_bid' ? rows.filter((r) => r.pre && r.now && r.now.id !== r.pre.id) : [];
+  const sv = postBidSaving(p, quotes, name);
   const versions = [...f.all].sort((a, b) => (a.quote_date ?? a.created_at).localeCompare(b.quote_date ?? b.created_at) || a.revision - b.revision);
   return {
     tiles: [
@@ -174,7 +184,10 @@ export function packageReport(p: SqPackage, quotes: SqQuote[], sups: Supplier[])
       { label: 'Lowest now', value: `LKR ${M(lowT)}`, sub: f.low ? name(f.low.supplier_id) : undefined, tone: 'green' },
       { label: 'Spread – highest above lowest', value: lowT && hiT ? sgn(pctCh(lowT, hiT)) : '—', sub: hiT != null && byNow.length > 1 ? `highest ${M(hiT)} · ${name(byNow[byNow.length - 1].first.supplier_id)}` : undefined },
       { label: 'Came down on average', value: moved.length ? sgn(moved.reduce((a, r) => a + r.move, 0) / moved.length) : '—', sub: best ? `most: ${name(best.first.supplier_id)} ${sgn(best.move)}` : 'no revised quotes yet', tone: moved.length ? 'green' : undefined },
-      ...(post.length ? [{ label: 'Pre Bid → Post Bid (carried on)', value: sgn(post.reduce((a, r) => a + pctCh(total(r.pre!), total(r.now!)), 0) / post.length), sub: `${post.length} supplier(s)` }] : []),
+      ...(sv ? [
+        { label: 'Pre Bid value (our bid)', value: sv.basis ? `LKR ${M(sv.basis.value)}` : 'not entered', sub: sv.basis ? sv.basis.how : 'enter it to see the saving', tone: sv.basis ? undefined : ('amber' as const) },
+        { label: sv.chosen ? 'Saving against Pre Bid (chosen)' : 'Saving against Pre Bid (lowest now)', value: sv.saving == null ? '—' : `LKR ${M(sv.saving)}`, sub: sv.pct == null ? undefined : `${sgn(sv.pct)} · Post Bid ${M(sv.now)}`, tone: sv.saving == null ? undefined : sv.saving >= 0 ? ('green' as const) : ('red' as const) },
+      ] : []),
     ],
     charts: [
       { title: 'How each supplier moved – comparable total per version (LKR M)', spec: chart('line', Array.from({ length: maxRev }, (_, i) => (i ? `R${i}` : 'First offer')), rows.map((r) => ({ name: name(r.first.supplier_id), values: Array.from({ length: maxRev }, (_, i) => { const q = r.c.find((x) => x.revision === i); return q ? toM(total(q)) : null; }) })), 'LKR M') },

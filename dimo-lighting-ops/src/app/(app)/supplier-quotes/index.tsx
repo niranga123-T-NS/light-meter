@@ -78,7 +78,7 @@ function Projects() {
         if (qs.length) low += Math.min(...qs.map(tot));
         const c = qs.find((q) => q.id === p.selected_quote_id);
         if (c) { chosen += tot(c); nChosen++; }
-        if (qs.some((q) => q.valid_until && ((p.our_validity && q.valid_until < p.our_validity) || q.valid_until < today))) expiring.push(p.code);
+        if (qs.some((q) => q.valid_until && (((p.stage ?? 'pre_bid') === 'pre_bid' && p.our_validity && q.valid_until < p.our_validity) || q.valid_until < today))) expiring.push(p.code);
       }
       return { j, pk, low, chosen, offers, nChosen, expiring };
     });
@@ -133,7 +133,7 @@ function Projects() {
         <Button variant="secondary" small title="Excel" onPress={() => dialog.run(() => exportExcel(projMeta(), projCols, [{ rows }]))} />
       </Row>
       {rows.some((r) => r.expiring.length) ? (
-        <Notice tone={colors.amber}>{`${rows.filter((r) => r.expiring.length).length} project(s) have a supplier quote that has ended or ends before our quotation – ask the supplier to extend it.`}</Notice>
+        <Notice tone={colors.amber}>{`${rows.filter((r) => r.expiring.length).length} project(s) have a supplier quote that has ended, or (at Pre Bid) ends before our quotation – ask the supplier to extend it.`}</Notice>
       ) : null}
       <DataTable
         rows={rows}

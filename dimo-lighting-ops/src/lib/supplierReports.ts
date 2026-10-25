@@ -1,7 +1,7 @@
 import { PALETTE, type ChartSpec } from './charts';
 import { fmtDate } from './format';
 import { supabase } from './supabase';
-import { atStage, cashOf, chains, discFactor, KIND_LABEL, lkr0, lkrM, normQuote, originText, quoteTotals, stageDay, STAGE_LABEL, unitLkr, type SqItem, type SqPackage, type SqQuote, type Supplier } from './supplierQuotes';
+import { atStage, cashOf, chains, discFactor, KIND_LABEL, lkr0, lkrM, normQuote, originText, preBidBasis, quoteTotals, stageDay, STAGE_LABEL, unitLkr, type SqItem, type SqPackage, type SqQuote, type Supplier } from './supplierQuotes';
 
 // Supplier base reports for the GM / DGM, worked out from the supplier quotes on the same basis as the comparison page
 // (LKR delivered, freight, discounts and priced-back exclusions): scorecard, awards, negotiation savings, not the lowest,
@@ -226,7 +226,9 @@ function savings(d: ReportData, c: Ctx): Report {
     const ch = chains(c.byPkg.get(x.p.id) ?? []).find((k) => k.some((y) => y.id === x.q.id)) ?? [x.q];
     const upto = ch.filter((y) => y.revision <= x.q.revision);
     const pre = [...upto].reverse().find((y) => (y.bid_stage ?? 'pre_bid') === 'pre_bid');
-    return { p: x.p, q: x.q, first: c.total(upto[0]), pre: pre ? c.total(pre) : null, fin: x.t, n: upto.length };
+    // at Post Bid the saving is against our bid's value (Pre Bid choice, entered value or lowest Pre Bid)
+    const basis = x.p.stage === 'post_bid' ? preBidBasis(x.p, c.byPkg.get(x.p.id) ?? [], c.name) : null;
+    return { p: x.p, q: x.q, first: c.total(upto[0]), pre: basis ? basis.value : pre ? c.total(pre) : null, how: basis?.how, fin: x.t, n: upto.length };
   });
   const f = rows.reduce((a, r) => a + r.first, 0), fin = rows.reduce((a, r) => a + r.fin, 0);
   const post = rows.filter((r) => r.p.stage === 'post_bid' && r.pre != null);
@@ -235,7 +237,7 @@ function savings(d: ReportData, c: Ctx): Report {
     tiles: [
       { label: 'Saved from the first offers', value: `LKR ${M(f - fin)}`, tone: f - fin > 0 ? 'green' : undefined },
       { label: 'First offer → final', value: f ? sgn(((fin - f) / f) * 100) : '—' },
-      { label: 'Saved after the tender (Pre Bid → Post Bid)', value: `LKR ${M(preSum - postSum)}`, tone: preSum - postSum > 0 ? 'green' : undefined },
+      { label: 'Saved against Pre Bid (our bid value → final Post Bid)', value: `LKR ${M(preSum - postSum)}`, tone: preSum - postSum > 0 ? 'green' : undefined },
       { label: 'Pre Bid → Post Bid', value: preSum ? sgn(((postSum - preSum) / preSum) * 100) : '—' },
     ],
     tables: [{
@@ -243,11 +245,11 @@ function savings(d: ReportData, c: Ctx): Report {
       head: [{ h: 'Package', w: 240, grow: true }, { h: 'Chosen', w: 170 }, { h: 'First offer', w: 110, right: true }, { h: 'Pre Bid', w: 110, right: true }, { h: 'Final', w: 110, right: true }, { h: 'Saved', w: 110, right: true }],
       rows: rows.sort((a, b) => b.first - b.fin - (a.first - a.fin)).map((r) => ({
         key: r.p.id, href: `/supplier-quotes/${r.p.id}`,
-        cells: [{ t: r.p.title, sub: `${r.p.code} · ${STAGE_LABEL[r.p.stage ?? 'pre_bid']} · ${r.n} version(s)` }, { t: c.name(r.q.supplier_id) }, { t: M(r.first) }, { t: M(r.pre) }, { t: M(r.fin) },
+        cells: [{ t: r.p.title, sub: `${r.p.code} · ${STAGE_LABEL[r.p.stage ?? 'pre_bid']} · ${r.n} version(s)` }, { t: c.name(r.q.supplier_id) }, { t: M(r.first) }, { t: M(r.pre), sub: r.how }, { t: M(r.fin) },
           { t: M(r.first - r.fin), sub: r.first ? sgn(((r.fin - r.first) / r.first) * 100) : undefined, tone: r.first - r.fin > 0 ? 'good' : undefined }],
       })),
     }],
-    note: 'First offer is the chosen supplier\'s first version on the package; Pre Bid is its last Pre Bid version; final is the chosen version.',
+    note: 'First offer is the chosen supplier\'s first version on the package; final is the chosen version. Pre Bid is the value our bid was built on – the supplier chosen at Pre Bid, else the Pre Bid value entered (packages started at Post Bid), else the lowest Pre Bid quote; for Pre Bid packages it is the chosen supplier\'s last Pre Bid version.',
   };
 }
 
@@ -504,7 +506,7 @@ function profile(d: ReportData, c: Ctx, f: RFilters): Report {
   for (const p of mine) {
     const q = [...(c.byPkg.get(p.id) ?? [])].filter((x) => x.supplier_id === r.s.id && !x.superseded_by)[0];
     q?.exclusions.forEach((x) => excl.add(x.text));
-    if (q?.valid_until && p.our_validity && q.valid_until < p.our_validity) late.push(p.code);
+    if (q?.valid_until && (p.stage ?? 'pre_bid') === 'pre_bid' && p.our_validity && q.valid_until < p.our_validity) late.push(p.code);
   }
   const points = [
     ['Price', r.gap == null ? 'Not compared with another quote yet' : `${r.gap.toFixed(1)} % above the lowest on average · lowest ${r.low} of ${r.compared} times`],

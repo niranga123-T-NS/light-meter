@@ -9714,5 +9714,16 @@ do $$ declare pr uuid; pk uuid; begin
 end $$;
 reset role;
 
+-- Supplier quotes: Pre Bid value entered for a package started at Post Bid
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare pk uuid; begin
+  insert into public.sq_packages (title, stage) values ('Old tender', 'post_bid') returning id into pk;
+  update public.sq_packages set pre_bid_value = 1250000, pre_bid_note = 'Bid built on Alpha at 1.25 M' where id = pk;
+  assert (select pre_bid_value from public.sq_packages where id = pk) = 1250000, 'Pre Bid value kept';
+  begin update public.sq_packages set pre_bid_value = -1 where id = pk; assert false, 'no negative value'; exception when check_violation then null; end;
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

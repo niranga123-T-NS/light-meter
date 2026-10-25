@@ -21,6 +21,7 @@ export type SqPackage = {
   our_validity: string | null; needed_weeks: number | null; status: PackageStatus; selected_quote_id: string | null; selection_reason: string | null;
   selected_by: string | null; selected_at: string | null; notes: string | null; created_at: string; updated_at: string; source_kind?: 'project' | 'inquiry' | 'exec' | null; source_id?: string | null;
   project_id?: string | null;
+  pre_bid_value?: number | null; pre_bid_note?: string | null;
   stage: BidStage; post_bid_at: string | null; post_bid_by: string | null; post_bid_note: string | null; pre_bid_quote_id: string | null; pre_bid_reason: string | null;
 };
 export type PayEvent = 'order' | 'delivery' | 'after_delivery' | 'commissioning' | 'handover' | 'shipment';
@@ -334,4 +335,27 @@ export async function readQuoteFile(f: PickedFile): Promise<ReadQuote> {
   if (!lines.length) throw new Error('No priced lines found – the sheet needs Description, Qty and Rate (or Unit price) column headings');
   const text = sheets.flatMap((s) => s.data.map((r) => r.map((c) => (c == null ? '' : String(c))).join(' '))).join('\n');
   return { source: 'excel', lines, ...readTerms(text) };
+}
+
+// ---------------------------------------------------------------- savings against Pre Bid
+/** What our bid was built on: the supplier chosen at Pre Bid, else the Pre Bid value entered (packages started at Post Bid), else the lowest Pre Bid quote */
+export function preBidBasis(p: SqPackage, quotes: SqQuote[], name?: (id: string) => string) {
+  const mine = quotes.filter((q) => q.package_id === p.id);
+  const chosen = mine.find((q) => q.id === p.pre_bid_quote_id);
+  if (chosen) return { value: quoteTotals(chosen).total, how: `chosen at Pre Bid${name ? ` – ${name(chosen.supplier_id)}` : ''}` };
+  if (p.pre_bid_value != null) return { value: Number(p.pre_bid_value), how: p.pre_bid_note?.trim() || 'Pre Bid value entered' };
+  const pre = atStage(mine, 'pre_bid');
+  if (!pre.length) return null;
+  const lo = pre.reduce((a, b) => (quoteTotals(b).total < quoteTotals(a).total ? b : a));
+  return { value: quoteTotals(lo).total, how: `lowest Pre Bid${name ? ` – ${name(lo.supplier_id)}` : ''}` };
+}
+/** At Post Bid: the bid basis against the chosen Post Bid price (or the lowest while nothing is chosen) */
+export function postBidSaving(p: SqPackage, quotes: SqQuote[], name?: (id: string) => string) {
+  if ((p.stage ?? 'pre_bid') !== 'post_bid') return null;
+  const basis = preBidBasis(p, quotes, name);
+  const post = atStage(quotes.filter((q) => q.package_id === p.id), 'post_bid');
+  const chosen = post.find((q) => q.id === p.selected_quote_id);
+  const now = chosen ?? (post.length ? post.reduce((a, b) => (quoteTotals(b).total < quoteTotals(a).total ? b : a)) : null);
+  const value = now ? quoteTotals(now).total : null;
+  return { basis, now: value, chosen: !!chosen, saving: basis && value != null ? basis.value - value : null, pct: basis && value != null && basis.value ? ((value - basis.value) / basis.value) * 100 : null };
 }
