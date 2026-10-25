@@ -138,6 +138,7 @@ function baseNav(role: Role): NavItem[] {
   const approvals: NavItem = { href: '/approvals', label: 'Approvals', icon: '✓', badgeKey: 'approvals' };
   const reports: NavItem = { href: '/reports', label: 'Reports', icon: '▤' };
   const fx: NavItem = { href: '/fx', label: 'Exchange rates', icon: '$' };
+  const market: NavItem = { href: '/market', label: 'Market rates', icon: '↗' };
   const tenders: NavItem = { href: '/tenders', label: 'Offers & competition', icon: '⚑' };
   const brands: NavItem = { href: '/brands', label: 'Brands', icon: '◈' };
   const tools: NavItem = { href: '/tools', label: 'Tools', icon: '⚒' };
@@ -198,6 +199,7 @@ function baseNav(role: Role): NavItem[] {
         tools,
         tenders,
         fx,
+        market,
         reports,
         { href: '/admin', label: 'Team & lists', icon: '⚙' },
       ];
@@ -232,6 +234,7 @@ function baseNav(role: Role): NavItem[] {
         tools,
         tenders,
         fx,
+        market,
         reports,
         { href: '/admin', label: 'Users & settings', icon: '⚙' },
       ];
@@ -265,13 +268,14 @@ function baseNav(role: Role): NavItem[] {
         brands,
         tenders,
         fx,
+        market,
         reports,
       ];
     case 'am_estimation':
     case 'estimation_exec':
       return role === 'am_estimation'
-        ? [{ href: '/', label: 'My Estimates', icon: '⌂' }, { href: '/jobs', label: 'All my jobs', icon: '▣' }, brands, tenders, fx, reports]
-        : [{ href: '/', label: 'My Estimates', icon: '⌂' }, { href: '/jobs', label: 'All my jobs', icon: '▣' }, brands, fx, reports];
+        ? [{ href: '/', label: 'My Estimates', icon: '⌂' }, { href: '/jobs', label: 'All my jobs', icon: '▣' }, brands, tenders, fx, market, reports]
+        : [{ href: '/', label: 'My Estimates', icon: '⌂' }, { href: '/jobs', label: 'All my jobs', icon: '▣' }, brands, fx, market, reports];
     case 'operations_exec':
       return [
         { href: '/', label: 'Home', icon: '⌂' },
@@ -290,6 +294,7 @@ function baseNav(role: Role): NavItem[] {
         EXEC_NAV.documents,
         approvals,
         fx,
+        market,
         reports,
       ];
     case 'senior_elec_engineer':

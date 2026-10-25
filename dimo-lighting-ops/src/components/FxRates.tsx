@@ -7,6 +7,7 @@ import { useMe } from '@/lib/auth';
 import { fmtDate } from '@/lib/format';
 import { crossFromLkr, FX_CCY, FX_SEES, FX_UPLOAD, fmtCross, fmtRate, rateOf, type Ccy, type FxBoard, type FxRate } from '@/lib/fx';
 import { useLoad } from '@/lib/hooks';
+import { MarketCard } from '@/components/MarketRates';
 import { rpc } from '@/lib/supabase';
 
 const NAME: Record<Ccy, string> = { USD: 'US Dollar', EUR: 'Euro', GBP: 'Sterling Pound' };
@@ -227,6 +228,8 @@ export function FxCard() {
   const { data } = useLoad(async () => (show ? rpc<FxBoard>('fx_board', { p_days: 30 }).catch(() => null) : null), [show]);
   if (!show) return null;
   return (
+    <>
+    <MarketCard />
     <View style={{ alignSelf: 'flex-start', maxWidth: '100%' }}>
     <Section
       title="Exchange rates"
@@ -244,5 +247,6 @@ export function FxCard() {
       </Card>
     </Section>
     </View>
+    </>
   );
 }
