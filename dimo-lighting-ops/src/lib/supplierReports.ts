@@ -1,4 +1,5 @@
 import { PALETTE, type ChartSpec } from './charts';
+import { dumbbell, lollipop, priceWalk, savingSteps, waterfall, type Drawn } from './sqCharts';
 import { fmtDate } from './format';
 import { supabase } from './supabase';
 import { atStage, cashOf, chains, discFactor, KIND_LABEL, lkr0, lkrM, normQuote, notLowest, originText, postBidSaving, preBidBasis, quoteTotals, stageDay, STAGE_LABEL, unitLkr, type SqItem, type SqPackage, type SqQuote, type Supplier } from './supplierQuotes';
@@ -35,7 +36,7 @@ export type Tone = 'good' | 'warn' | 'bad';
 export type RCell = { t: string; sub?: string; tone?: Tone };
 export type RTable = { title?: string; head: { h: string; w: number; grow?: boolean; right?: boolean }[]; rows: { key: string; cells: RCell[]; href?: string }[]; empty: string };
 export type RTile = { label: string; value: string; tone?: 'green' | 'amber' | 'red'; sub?: string };
-export type RChart = { title: string; spec: ChartSpec };
+export type RChart = { title: string; why?: string; spec?: ChartSpec; draw?: Drawn };
 export type Report = { tiles: RTile[]; tables: RTable[]; charts?: RChart[]; note?: string };
 
 type Invite = { package_id: string; supplier_id: string; asked_at: string };
@@ -403,7 +404,6 @@ export function itemHistory(d: ReportData, c: Ctx, item: SqItem, from: string, t
   const others = focus ? latestPriced.filter((x) => x.q.supplier_id !== focus).map((x) => x.v).sort((a, b) => a - b) : [];
   const othersMed = others.length ? others[Math.floor((others.length - 1) / 2)] : null;
   const tr = itemPrices(d, { ...c, whoOk: (id: string) => c.whoOk(id) || id === focus }, item.id, from, to);
-  const series = focus ? [...tr.series.filter((x) => x.s === focus), ...tr.series.filter((x) => x.s !== focus)] : tr.series;
   const rows = focus ? vs.filter((x) => x.q.supplier_id === focus) : vs;
   return {
     tiles: [
@@ -419,8 +419,8 @@ export function itemHistory(d: ReportData, c: Ctx, item: SqItem, from: string, t
       { label: 'Since the first quote', value: firstAll && lastAll && firstAll !== lastAll ? sgn(((lastAll.v - firstAll.v) / firstAll.v) * 100) : '—', sub: firstAll ? `${lkr0(firstAll.v)} (${fmtDate(firstAll.dt)}) → ${lkr0(lastAll?.v)}` : undefined },
     ],
     charts: tr.pts.length ? [
-      { title: 'LKR per unit delivered – each supplier\'s latest price in the month', spec: priceChart(tr.months, series.map((x) => ({ name: c.name(x.s), values: x.values })), tr.median) },
-      { title: 'Latest price by supplier / manufacturer (LKR per unit)', spec: { type: 'hbar' as const, title: '', xLabel: '', yLabel: '', categories: bySup.filter((x) => x.last).slice(0, 10).map((x) => c.name(x.id).slice(0, 18)), legend: false, showValues: true, yMin: null, yMax: null, w: 760, h: Math.max(160, 40 + bySup.filter((x) => x.last).slice(0, 10).length * 26), series: [{ name: 'Latest', color: PALETTE[0], values: bySup.filter((x) => x.last).slice(0, 10).map((x) => Math.round(x.last!.v)) }] } },
+      { title: 'Price walk – LKR per unit delivered, every quote by date', why: 'Each step is a new quote or revision; the dashed line is the lowest latest price.', draw: priceWalk((focus ? [focus, ...sups.filter((x) => x !== focus)] : bySup.map((x) => x.id)).slice(0, 6).map((id) => ({ name: c.name(id), pts: tr.pts.filter((p) => p.s === id).sort((x, y) => x.dt.localeCompare(y.dt)).map((p) => ({ date: p.dt, v: Math.round(p.v) })) })).filter((x) => x.pts.length), 'LKR') },
+      ...(med ? [{ title: 'Latest price against the median of all suppliers', why: 'Below zero = cheaper than the typical price.', draw: lollipop(bySup.filter((x) => x.last).slice(0, 10).map((x) => ({ name: c.name(x.id), sub: `LKR ${lkr0(x.last!.v)} · ${fmtDate(x.last!.dt)}`, v: ((x.last!.v - med) / med) * 100 }))) }] : []),
     ] : undefined,
     tables: [
       {
@@ -557,7 +557,7 @@ function profile(d: ReportData, c: Ctx, f: RFilters): Report {
   const comps = [...h2h.entries()].map(([id, h]) => ({ id, ...h, diff: avg(h.diffs) })).sort((a, b) => b.met - a.met || (a.diff ?? 0) - (b.diff ?? 0));
   const meets = comps.reduce((a, x) => a + x.met, 0), wins = comps.reduce((a, x) => a + x.cheaper, 0);
   const charts = [
-    ...(comps.length ? [{ title: 'Price against each competitor – average % (below 0 = cheaper than them)', spec: { type: 'bar' as const, title: '', xLabel: '', yLabel: '%', categories: comps.slice(0, 8).map((x) => c.name(x.id).slice(0, 16)), legend: false, showValues: true, yMin: null, yMax: null, w: 760, h: 260, series: [{ name: r.s.name, color: PALETTE[0], values: comps.slice(0, 8).map((x) => (x.diff == null ? null : Math.round(x.diff * 10) / 10)) }] } }] : []),
+    ...(comps.length ? [{ title: 'Price against each competitor – average % on the same packages', why: 'Below zero = cheaper than that competitor.', draw: lollipop(comps.filter((x) => x.diff != null).slice(0, 10).map((x) => ({ name: c.name(x.id), sub: `met ${x.met} time(s) · cheaper ${x.cheaper}`, v: x.diff! }))) }] : []),
     ...(pr && own ? [{ title: `${d.items.find((i) => i.id === item)?.name ?? 'Main item'} – against the median of all quotes`, spec: priceChart(pr.months, [{ name: r.s.name, values: own.values }], pr.median) }] : []),
   ];
   return {
@@ -630,12 +630,18 @@ function projectsSummary(d: ReportData, c: Ctx): Report {
       { label: 'Above the lowest at Pre Bid (in our bids)', value: `LKR ${M(carried)}`, tone: carried > 0.5 ? 'amber' : undefined },
       { label: 'Packages with fewer than three quotes', value: String(few.length), sub: few.length ? `${few.filter((f) => !f.p.few_quotes_reason).length} without a reason` : undefined, tone: few.length ? 'amber' : 'green' },
     ],
-    charts: top.length ? [{ title: 'Each project – lowest now, chosen and Pre Bid value (LKR M)', spec: { type: 'bar' as const, title: '', xLabel: '', yLabel: 'LKR M', categories: top.map((x) => (x.j?.name ?? 'No project').slice(0, 16)), legend: true, showValues: false, yMin: null, yMax: null, w: 760, h: 280,
-      series: [
-        { name: 'Lowest now', color: PALETTE[0], values: top.map((x) => Math.round(sum(x.xs, lowNow) / 1e4) / 100) },
-        { name: 'Chosen', color: PALETTE[2], values: top.map((x) => Math.round(sum(x.xs, chosenT) / 1e4) / 100) },
-        { name: 'Pre Bid value (Post Bid packages)', color: PALETTE[3], values: top.map((x) => Math.round(sum(x.xs, (f) => (f.sv?.saving != null ? f.sv.basis?.value : null)) / 1e4) / 100) },
-      ] } }] : undefined,
+    charts: (() => {
+      const post = facts.filter((f) => f.sv?.basis && f.sv.now != null && f.low);
+      if (!post.length) return top.length ? [{ title: 'Each project – lowest now against chosen (LKR M)', why: 'Hollow dot the lowest now, solid dot the chosen total; a gap means the lowest was not chosen.', draw: dumbbell(top.filter((x) => sum(x.xs, chosenT)).map((x) => ({ name: x.j?.name ?? 'No project', sub: `${x.xs.length} package(s)`, a: Math.round(sum(x.xs.filter((f) => f.chosen), lowNow) / 1e4) / 100, b: Math.round(sum(x.xs, chosenT) / 1e4) / 100 }))) }] : undefined;
+      const per = [...new Set(post.map((f) => f.p.project_id ?? '-'))].map((id) => {
+        const xs = post.filter((f) => (f.p.project_id ?? '-') === id), b = sum(xs, (f) => f.sv!.basis!.value), n = sum(xs, (f) => f.sv!.now);
+        return { name: pj.get(id)?.name ?? 'No project', sub: `${xs.length} Post Bid package(s) · ${M(n)} vs ${M(b)}`, v: b ? ((n - b) / b) * 100 : 0 };
+      });
+      return [
+        { title: `Pre Bid value → Post Bid chosen – all projects, ${post.length} package(s) (LKR M)`, why: 'Green is what negotiation took off our bid values; red is what was added by not choosing the lowest.', draw: waterfall(savingSteps(post.map((f) => ({ basis: f.sv!.basis!.value, low: c.total(f.low!), now: f.sv!.now! })))) },
+        { title: 'Each project against its Pre Bid values', why: 'Below zero = cheaper than our bid values (a saving).', draw: lollipop(per) },
+      ];
+    })(),
     tables: [
       {
         title: 'Projects', empty: 'No project in the period.',
