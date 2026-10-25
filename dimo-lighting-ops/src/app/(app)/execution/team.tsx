@@ -47,7 +47,7 @@ export default function TeamAccess() {
     }
     const r2 = await dialog.prompt({
       title: `Delete the temporary role – ${t.full_name}`,
-      message: 'SM Projects and then DGM approve. Access ends when approved; the history stays under the name.',
+      message: 'SM Projects approves. Access ends when approved; the history stays under the name.',
       fields: [{ key: 'r', label: 'Reason', type: 'multiline', required: true }],
       confirmLabel: 'Request deletion',
       danger: true,
@@ -62,7 +62,7 @@ export default function TeamAccess() {
       onPress={() => router.push(`/execution/access/${r.id}`)}
       title={`${r.person_name}${r.company ? ` · ${r.company}` : ''}`}
       subtitle={`${r.code} · ${REQUEST_KIND[r.kind]}${r.kind !== 'sub_appoint' ? ` (${roleTypeLabel(r.role_type)})` : ''} · by ${people[r.requested_by]?.full_name ?? ''} ${fmtDateTime(r.requested_at)}`}
-      right={<Pill label={REQUEST_STATUS[r.status]} tone={r.status === 'approved' ? colors.green : r.status === 'rejected' ? colors.red : r.status === 'done' ? colors.grey : colors.amber} />}
+      right={<Pill label={REQUEST_STATUS[r.status]} tone={r.status === 'approved' ? colors.green : r.status === 'rejected' ? colors.red : r.status === 'done' || r.status === 'deleted' ? colors.grey : colors.amber} />}
     />
   );
 

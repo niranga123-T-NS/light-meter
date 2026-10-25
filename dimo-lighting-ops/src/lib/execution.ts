@@ -86,7 +86,7 @@ export type AccessRequest = {
   id: string;
   code: string;
   kind: 'temp_add' | 'temp_delete' | 'sub_appoint';
-  status: 'pending_smp' | 'pending_gm' | 'approved' | 'done' | 'rejected' | 'cancelled';
+  status: 'pending_smp' | 'pending_gm' | 'approved' | 'done' | 'rejected' | 'cancelled' | 'deleted';
   role_type: 'assistant_engineer' | 'trainee' | 'sub_supervisor';
   person_name: string;
   email: string | null;
@@ -109,11 +109,12 @@ export type AccessRequest = {
   gm_note: string | null;
   created_user_id: string | null;
   provisioned_at: string | null;
+  target_request_id?: string | null; // a deletion: the appointment it deletes
 };
 
 export const REQUEST_KIND: Record<AccessRequest['kind'], string> = {
   temp_add: 'Temporary staff',
-  temp_delete: 'Delete temporary role',
+  temp_delete: 'Delete access',
   sub_appoint: 'Subcontractor supervisor',
 };
 export const REQUEST_STATUS: Record<AccessRequest['status'], string> = {
@@ -123,6 +124,7 @@ export const REQUEST_STATUS: Record<AccessRequest['status'], string> = {
   done: 'Done',
   rejected: 'Rejected',
   cancelled: 'Cancelled',
+  deleted: 'Deleted',
 };
 export const roleTypeLabel = (r: string, temporary = true) =>
   r === 'trainee' ? 'Trainee' : r === 'sub_supervisor' ? 'Subcontractor supervisor' : temporary ? 'Temporary Assistant Engineer' : 'Assistant Engineer';

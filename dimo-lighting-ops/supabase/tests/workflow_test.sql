@@ -3556,10 +3556,42 @@ begin
 end $$;
 reset role;
 select pg_temp.act_as('sm_projects'); set role authenticated;
-select public.decide_access_request(current_setting('test.td')::uuid, true);
+do $$ begin assert public.decide_access_request(current_setting('test.td')::uuid, true) = 'deleted', 'SM Projects alone approves the deletion'; end $$;
 reset role;
-select pg_temp.act_as('gm'); set role authenticated;
-do $$ begin assert public.decide_access_request(current_setting('test.td')::uuid, true) = 'deleted', 'deleted'; end $$;
+-- An approved supervisor nomination whose login was never created: the SEE asks to delete it, SM Projects approves
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare n uuid; begin
+  n := public.nominate_supervisor(current_setting('test.ex')::uuid, jsonb_build_object('person_name', 'Ajith Silva', 'company', 'ABC Electricals', 'phone', '0771239876',
+    'id_no', '881234567V', 'start_date', current_date, 'end_date', current_date + 60));
+  perform set_config('test.nom', n::text, false);
+  begin perform public.request_access_delete(n, 'Not needed'); assert false, 'not approved yet';
+  exception when others then assert sqlerrm like 'Only an approved appointment%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+select public.decide_access_request(current_setting('test.nom')::uuid, true);
+do $$ begin
+  assert (select status from public.access_requests where id = current_setting('test.nom')::uuid) = 'approved', 'approved – login not created';
+  begin perform public.request_access_delete(current_setting('test.nom')::uuid, 'x'); assert false, 'only the SEE asks';
+  exception when others then assert sqlerrm like 'Only the Senior Electrical Engineer%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin
+  begin perform public.request_access_delete(current_setting('test.nom')::uuid, ' '); assert false, 'reason';
+  exception when others then assert sqlerrm like 'Give the reason%', sqlerrm; end;
+  perform set_config('test.del', public.request_access_delete(current_setting('test.nom')::uuid, 'Subcontractor replaced')::text, false);
+  begin perform public.request_access_delete(current_setting('test.nom')::uuid, 'again'); assert false, 'one pending';
+  exception when others then assert sqlerrm like 'A deletion request is already pending%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.notifications where entity_id = current_setting('test.del')::uuid and title = 'Delete access – approve' and recipient_id = auth.uid()), 'SM Projects asked';
+  assert public.decide_access_request(current_setting('test.del')::uuid, true) = 'deleted', 'deleted';
+  assert (select status from public.access_requests where id = current_setting('test.nom')::uuid) = 'deleted', 'the nomination is marked deleted';
+  assert (select status from public.access_requests where id = current_setting('test.del')::uuid) = 'done', 'deletion done';
+end $$;
 reset role;
 do $$ begin
   assert (select not active and revoke_pending from public.profiles where id = (select id from u where role = 'trainee')), 'login to be blocked';
