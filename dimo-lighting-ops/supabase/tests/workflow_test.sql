@@ -9660,5 +9660,44 @@ do $$ declare pk uuid; sp uuid; q uuid; begin
 end $$;
 reset role;
 
+-- Supplier quotes: suppliers from other modules' records, local / foreign
+reset role;
+insert into public.manufacturers (name, local_agent) values ('Records Test Mfr GmbH', 'Agent Lanka');
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare r record; begin
+  select * into r from public.sq_system_suppliers() where name = 'Records Test Mfr GmbH';
+  assert r.source = 'Manufacturers' and r.kind = 'manufacturer' and r.origin = 'foreign', 'manufacturer offered from the system';
+  insert into public.sq_suppliers (name, kind, origin, country, address) values ('Records Test Mfr GmbH', 'manufacturer', 'foreign', 'Germany', 'Berlin');
+  assert not exists (select 1 from public.sq_system_suppliers() where lower(name) = 'records test mfr gmbh'), 'not offered again once in the list';
+  begin insert into public.sq_suppliers (name, origin) values ('Bad origin', 'mars'); assert false, 'origin checked'; exception when check_violation then null; end;
+end $$;
+reset role;
+select pg_temp.act_as('lighting_designer'); set role authenticated;
+do $$ begin
+  begin perform public.sq_system_suppliers(); assert false, 'no access without supplier quotes'; exception when raise_exception then null; end;
+end $$;
+reset role;
+
+-- Supplier reports: weights by the GM / DGM, who was asked to quote
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ declare pk uuid; sa uuid; sb uuid; begin
+  begin perform public.sq_set_weights('{"price":40,"spec":20,"lead":15,"response":15,"terms":10}'); assert false, 'only the GM sets weights'; exception when raise_exception then null; end;
+  insert into public.sq_suppliers (name) values ('Invite A') returning id into sa;
+  insert into public.sq_suppliers (name) values ('Invite B') returning id into sb;
+  insert into public.sq_packages (title) values ('Invites test') returning id into pk;
+  insert into public.sq_package_invites (package_id, supplier_id) values (pk, sb);
+  perform public.sq_save_quote(jsonb_build_object('package_id', pk, 'supplier_id', sa, 'lines', jsonb_build_array(jsonb_build_object('text', 'x', 'qty', 1, 'rate', 5))));
+  assert (select count(*) from public.sq_package_invites where package_id = pk) = 2, 'quoting counts as asked; asked without a quote kept';
+end $$;
+reset role;
+select pg_temp.act_as('gm'); set role authenticated;
+do $$ begin
+  begin perform public.sq_set_weights('{"price":50,"spec":20,"lead":15,"response":15,"terms":10}'); assert false, 'weights make 100'; exception when raise_exception then null; end;
+  perform public.sq_set_weights('{"price":50,"spec":20,"lead":10,"response":10,"terms":10}');
+  assert (select (score_weights->>'price')::numeric from public.sq_settings) = 50, 'weights saved';
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

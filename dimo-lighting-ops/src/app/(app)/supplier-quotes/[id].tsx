@@ -11,7 +11,7 @@ import { atStage, BASIS_LABEL, type BidStage, cashOf, chains, compareRows, jobFi
 import { rpc, supabase } from '@/lib/supabase';
 
 type Cell = { t: ReactNode; tone?: 'good' | 'warn' | 'bad'; sub?: string };
-type CRow = { key: string; kind: 'sec' | 'line' | 'row' | 'total'; label: string; sub?: string | null; href?: string; cells: (Cell | null)[] };
+type CRow = { key: string; kind: 'sec' | 'line' | 'row' | 'total' | 'act'; label: string; sub?: string | null; href?: string; cells: (Cell | null)[] };
 const TONE = { good: { bg: '#E4F3EA', fg: '#1A6B41' }, warn: { bg: '#FDF0DC', fg: '#8A4B0F' }, bad: { bg: '#FBE6E4', fg: '#A1281C' } };
 
 /** A package: its quotes side by side on one basis (LKR delivered, exclusions priced back), the terms that decide, and the choice. */
@@ -21,7 +21,7 @@ export default function Package() {
   const dialog = useDialog();
   const people = usePeople();
   const [view, setView] = useState<BidStage | null>(null);
-  const { data, error, reload } = useLoad(async () => ({ ...(await loadPackage(id)), ...(await loadRefs()) }), [id]);
+  const { data, error, reload } = useLoad(async () => ({ ...(await loadPackage(id)), ...(await loadRefs()), invites: ((await supabase.from('sq_package_invites').select('supplier_id').eq('package_id', id)).data ?? []).map((x) => x.supplier_id as string) }), [id]);
   if (!sqAccess) return <Screen><Notice tone={colors.amber}>No access to supplier quotes.</Notice></Screen>;
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const { pkg, suppliers, items, costPct } = data;
@@ -49,6 +49,8 @@ export default function Package() {
 
   // ---- rows of the comparison
   const rows: CRow[] = [];
+  // actions right under each supplier's name
+  rows.push({ key: 'act', kind: 'act', label: 'Actions', cells: quotes.map(() => ({ t: '' })) });
   rows.push({ key: 's1', kind: 'sec', label: 'Priced lines – LKR per unit delivered · amount', cells: [] });
   for (const r of compareRows(quotes, items)) {
     rows.push({
@@ -88,7 +90,9 @@ export default function Package() {
   const columns: Column<CRow>[] = [
     {
       h: 'Line', w: 230, grow: true,
-      v: (r) => r.kind === 'sec'
+      v: (r) => r.kind === 'act'
+        ? <Muted>{fixed ? (past ? 'Pre Bid – kept as it was' : 'Package closed') : 'Choose, revise or edit'}</Muted>
+        : r.kind === 'sec'
         ? <Text style={{ fontSize: 11, fontWeight: '700', color: colors.muted, textTransform: 'uppercase', letterSpacing: 0.6 }}>{r.label}</Text>
         : <View>
             <Text style={{ fontWeight: r.kind === 'total' ? '800' : '600', color: colors.ink }}>{r.label}</Text>
@@ -100,6 +104,14 @@ export default function Package() {
       h: `${sup(q)}${q.quote_no ? ` · ${q.quote_no}` : ''}${q.revision ? ` · ${revLabel(q)}` : ''}`, w: 210,
       v: (r) => {
         const c = r.cells[i];
+        if (r.kind === 'act') return (
+          <Row wrap gap={6}>
+            {!fixed ? <Button small title={pkg.selected_quote_id === q.id ? 'Chosen ✓' : 'Choose'} variant={pkg.selected_quote_id === q.id ? 'primary' : 'secondary'} onPress={() => (pkg.selected_quote_id === q.id ? unselect() : select(q))} /> : null}
+            {!fixed ? <Button small variant="secondary" title="Revised / discounted quote" onPress={() => revise(q)} /> : null}
+            {past && !closed && !q.superseded_by ? <Button small variant="secondary" title="Carry into Post Bid" onPress={() => carry(q)} /> : null}
+            <Button small variant="ghost" title={fixed || q.superseded_by ? 'View' : 'Edit'} onPress={() => router.push({ pathname: '/supplier-quotes/quote', params: { pkg: pkg.id, id: q.id } })} />
+          </Row>
+        );
         if (r.kind === 'sec' || !c) return '';
         const t = c.tone ? TONE[c.tone] : null;
         return (
@@ -168,6 +180,26 @@ export default function Package() {
       router.push({ pathname: '/supplier-quotes/quote', params: { pkg: pkg.id, id: v } });
     });
   };
+  // who was asked to quote – the supplier reports measure who quotes when asked; a supplier who quotes counts as asked
+  const askedIds = new Set([...data.invites, ...data.quotes.map((q) => q.supplier_id)]);
+  const editAsked = async () => {
+    const quotedIds = new Set(data.quotes.map((q) => q.supplier_id));
+    const r = await dialog.prompt({
+      title: 'Asked to quote',
+      message: 'The suppliers and manufacturers asked for a price on this package, quoted or not. Those who quoted stay on the list.',
+      fields: [{ key: 'ids', label: 'Asked', type: 'multiselect', initial: [...askedIds].join(','), options: suppliers.filter((s) => s.active || askedIds.has(s.id)).map((s) => ({ value: s.id, label: s.name })) }],
+      confirmLabel: 'Save',
+    });
+    if (!r) return;
+    const want = new Set((r.ids ?? '').split(',').filter(Boolean));
+    await dialog.run(async () => {
+      const add = [...want].filter((x) => !data.invites.includes(x) && !quotedIds.has(x)).map((supplier_id) => ({ package_id: pkg.id, supplier_id }));
+      const drop = data.invites.filter((x) => !want.has(x) && !quotedIds.has(x));
+      if (add.length) { const { error: e } = await supabase.from('sq_package_invites').insert(add); if (e) throw new Error(e.message); }
+      if (drop.length) { const { error: e } = await supabase.from('sq_package_invites').delete().eq('package_id', pkg.id).in('supplier_id', drop); if (e) throw new Error(e.message); }
+      reload();
+    }, 'Saved');
+  };
   const del = async (q: SqQuote) => {
     if (!(await dialog.confirm(q.revision ? `Delete ${revLabel(q)} of ${sup(q)}'s quote?` : `Delete ${sup(q)}'s quote?`, q.revision ? `${revLabel({ revision: q.revision - 1 })} becomes the latest again.` : 'Its lines leave the price history too.', { danger: true, confirmLabel: 'Delete' }))) return;
     await dialog.run(async () => { const { error: e } = await supabase.from('sq_quotes').delete().eq('id', q.id); if (e) throw new Error(e.message); reload(); });
@@ -225,7 +257,7 @@ export default function Package() {
       {stage === 'post_bid' ? (
         <Row wrap gap={8} style={{ alignItems: 'center' }}>
           {preQuotes.length ? <Segmented value={shown} onChange={(v) => setView(v as BidStage)} options={[{ value: 'post_bid', label: `Post Bid (${postCount})` }, { value: 'pre_bid', label: `Pre Bid (${preQuotes.length})` }]} /> : <Pill label="Post Bid" tone={colors.blue} />}
-          <Muted>{`${preQuotes.length ? 'Moved to' : 'At'} Post Bid since ${fmtDate(pkg.post_bid_at)}${pkg.post_bid_by ? ` by ${people[pkg.post_bid_by]?.full_name ?? '—'}` : ''}${pkg.post_bid_note ? ` · ${pkg.post_bid_note}` : ''}`}</Muted>
+          <Muted>{`${preQuotes.length ? 'Moved to Post Bid on' : 'At Post Bid since'} ${fmtDate(pkg.post_bid_at)}${pkg.post_bid_by ? ` by ${people[pkg.post_bid_by]?.full_name ?? '—'}` : ''}${pkg.post_bid_note ? ` · ${pkg.post_bid_note}` : ''}`}</Muted>
         </Row>
       ) : null}
       {past ? <Notice tone={colors.blue}>{`Pre Bid prices – kept as they were for the tender.${preChoice ? ` Chosen at Pre Bid: ${sup(preChoice)}${pkg.pre_bid_reason ? ` (${pkg.pre_bid_reason})` : ''}.` : ''} Carry a supplier on to ask for a Post Bid price.`}</Notice> : null}
@@ -235,6 +267,10 @@ export default function Package() {
         <Stat label="Our quotation valid until" value={pkg.our_validity ? fmtDate(pkg.our_validity) : '—'} />
         <Stat label={past ? 'Chosen at Post Bid' : 'Chosen'} value={chosen ? sup(chosen) : '—'} tone={chosen ? 'green' : undefined} sub={chosen ? `LKR ${lkrM(quoteTotals(chosen).total)}` : undefined} />
       </Grid>
+      <Row wrap gap={8} style={{ alignItems: 'center' }}>
+        <Muted>{`Asked to quote: ${[...askedIds].map((x) => `${suppliers.find((s) => s.id === x)?.name ?? '—'}${data.quotes.some((q) => q.supplier_id === x) ? '' : ' (no quote yet)'}`).join(', ') || 'nobody recorded'}`}</Muted>
+        {!closed ? <Button small variant="ghost" title="Edit who was asked" onPress={editAsked} /> : null}
+      </Row>
       {warnings.length && !past ? <Notice tone={colors.amber}>{warnings.join('\n')}</Notice> : null}
       {!quotes.length ? (
         <Card><Empty title={shown === 'post_bid' ? 'No Post Bid quotes yet' : 'No quotes yet'} hint={shown === 'post_bid' ? 'Carry a Pre Bid supplier on (Pre Bid tab) or add a new supplier or manufacturer.' : 'Add each supplier\'s quote – upload their Excel or PDF to read the lines, or type them in.'} /></Card>

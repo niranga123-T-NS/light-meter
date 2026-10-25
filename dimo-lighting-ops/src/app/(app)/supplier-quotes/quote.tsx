@@ -8,8 +8,8 @@ import { pickDocument } from '@/lib/files';
 import { fmtDate } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import {
-  BASIS_LABEL, CCYS, EVENT_LABEL, KIND_OPTIONS, lkrM, loadPackage, loadRefs, matchItem, PAID_BY, PAY_TEMPLATES, quoteTotals, readQuoteFile, revLabel, SPEC_LABEL, STAGE_LABEL,
-  type Basis, type Ccy, type PayEvent, type SqExcl, type SqItem, type SqLine, type SqPay, type SqQuote, type Supplier,
+  BASIS_LABEL, CCYS, EVENT_LABEL, lkrM, loadPackage, loadRefs, loadSystemSuppliers, originText, supplierFields, supplierRow, matchItem, PAID_BY, PAY_TEMPLATES, quoteTotals, readQuoteFile, revLabel, SPEC_LABEL, STAGE_LABEL,
+  type Basis, type Ccy, type PayEvent, type SqExcl, type SqItem, type SqLine, type SqPay, type SqQuote, type Supplier, type SysSupplier,
 } from '@/lib/supplierQuotes';
 import { rpc, supabase } from '@/lib/supabase';
 
@@ -26,15 +26,15 @@ export default function QuoteEditor() {
   const { pkg: pkgId, id } = useLocalSearchParams<{ pkg: string; id?: string }>();
   const { sqAccess } = useAuth();
   const { data, error } = useLoad(async () => {
-    const [p, r] = await Promise.all([loadPackage(pkgId), loadRefs()]);
-    return { ...p, ...r };
+    const [p, r, sys] = await Promise.all([loadPackage(pkgId), loadRefs(), loadSystemSuppliers().catch(() => [] as SysSupplier[])]);
+    return { ...p, ...r, sys };
   }, [pkgId]);
   if (!sqAccess) return <Screen><Notice tone={colors.amber}>No access to supplier quotes.</Notice></Screen>;
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   return <Editor data={data} id={id} pkgId={pkgId} />;
 }
 
-type Loaded = Awaited<ReturnType<typeof loadPackage>> & Awaited<ReturnType<typeof loadRefs>>;
+type Loaded = Awaited<ReturnType<typeof loadPackage>> & Awaited<ReturnType<typeof loadRefs>> & { sys: SysSupplier[] };
 function Editor({ data, id, pkgId }: { data: Loaded; id?: string; pkgId: string }) {
   const dialog = useDialog();
   const [f, setF] = useState<Form | null>(() => {
@@ -44,6 +44,7 @@ function Editor({ data, id, pkgId }: { data: Loaded; id?: string; pkgId: string 
   const [readNote, setReadNote] = useState<string | null>(null);
   const [payRead, setPayRead] = useState<string | null>(null);
   const [refs, setRefs] = useState<{ suppliers: Supplier[]; items: SqItem[] }>({ suppliers: data.suppliers, items: data.items });
+  const [sys, setSys] = useState<SysSupplier[]>(data.sys);
   if (!f) return null;
 
   const set = (p: Partial<Form>) => setF((o) => (o ? { ...o, ...p } : o));
@@ -77,16 +78,24 @@ function Editor({ data, id, pkgId }: { data: Loaded; id?: string; pkgId: string 
       setReadNote(`Read ${lines.length} line(s) from ${file.name}: ${sure} matched to items, ${unsure} to check, ${lines.length - sure - unsure} not matched. The file is not stored.`);
     });
   };
-  const newSupplier = async () => {
-    const r = await dialog.prompt({ title: 'New supplier / manufacturer', fields: [{ key: 'name', label: 'Name', required: true }, { key: 'kind', label: 'Supplies', type: 'select', required: true, initial: data.pkg.kind === 'subcontract' ? 'subcontract' : 'supply', options: KIND_OPTIONS }] });
+  // a new supplier or manufacturer (local or foreign), or one already in the system's records, added to the list and picked
+  const addSupplier = async (from?: SysSupplier) => {
+    const r = await dialog.prompt({
+      title: from ? `Add ${from.name} to the supplier list` : 'New supplier / manufacturer',
+      message: from ? `From ${from.source}. Check the details – they are kept with the supplier.` : 'Local or foreign, supplier or manufacturer quoting direct.',
+      fields: supplierFields(from ? { ...from } : { kind: data.pkg.kind === 'subcontract' ? 'subcontract' : 'supply' }),
+      confirmLabel: 'Add',
+    });
     if (!r) return;
     await dialog.run(async () => {
-      const { data: s, error: e } = await supabase.from('sq_suppliers').insert({ name: r.name.trim(), kind: r.kind }).select('*').single();
+      const { data: s, error: e } = await supabase.from('sq_suppliers').insert(supplierRow(r)).select('*').single();
       if (e) throw new Error(/duplicate|unique/i.test(e.message) ? 'This supplier is already in the list' : e.message);
       setRefs((o) => ({ ...o, suppliers: [...o.suppliers, s as Supplier].sort((a, b) => a.name.localeCompare(b.name)) }));
+      setSys((o) => o.filter((x) => x.name.toLowerCase() !== (s as Supplier).name.toLowerCase()));
       set({ supplier_id: (s as Supplier).id });
     });
   };
+  const pickSupplier = (v: string) => (v.startsWith('sys:') ? addSupplier(sys[Number(v.slice(4))]) : set({ supplier_id: v }));
   const newItem = async (i: number) => {
     const l = f.lines[i];
     const r = await dialog.prompt({
@@ -116,7 +125,10 @@ function Editor({ data, id, pkgId }: { data: Loaded; id?: string; pkgId: string 
     }, 'Quote saved');
   };
 
-  const supOpts = refs.suppliers.filter((s) => s.active || s.id === f.supplier_id).map((s) => ({ value: s.id, label: s.name, hint: [s.kind === 'manufacturer' ? 'Manufacturer' : '', s.trades].filter(Boolean).join(' · ') || undefined }));
+  const supOpts = [
+    ...refs.suppliers.filter((s) => s.active || s.id === f.supplier_id).map((s) => ({ value: s.id, label: s.name, hint: [s.kind === 'manufacturer' ? 'Manufacturer' : '', originText(s), s.trades].filter(Boolean).join(' · ') })),
+    ...sys.map((s, i) => ({ value: `sys:${i}`, label: s.name, hint: `From ${s.source} – not in the supplier list yet, tap to add` })),
+  ];
   const itemOpts = [{ value: '', label: '— not matched —' }, ...refs.items.map((i) => ({ value: i.id, label: `${i.code} · ${i.name}`, hint: i.sap_code ? `SAP ${i.sap_code}` : undefined }))];
   return (
     <Screen maxWidth={1100}>
@@ -145,8 +157,8 @@ function Editor({ data, id, pkgId }: { data: Loaded; id?: string; pkgId: string 
       <Section title="2 · Quote details">
         <Card>
           <Row wrap gap={10} style={{ alignItems: 'flex-end' }}>
-            <View style={{ flexGrow: 1, minWidth: 260 }}><Select label="Supplier / manufacturer / subcontractor" required searchable value={f.supplier_id} options={supOpts} onChange={(v) => set({ supplier_id: v })} /></View>
-            <Button variant="secondary" small title="New supplier" onPress={newSupplier} />
+            <View style={{ flexGrow: 1, minWidth: 260 }}><Select label="Supplier / manufacturer / subcontractor" required searchable value={f.supplier_id} options={supOpts} onChange={pickSupplier} /></View>
+            <Button variant="secondary" small title="New supplier / manufacturer" onPress={() => addSupplier()} />
           </Row>
           <Row wrap gap={10}>
             <View style={{ minWidth: 180, flexGrow: 1 }}><Field label="Their quote no." value={f.quote_no ?? ''} onChangeText={(v) => set({ quote_no: v || null })} /></View>

@@ -8,7 +8,7 @@ import { supabase } from './supabase';
 // file on the device. The file itself is never uploaded or stored – only the values the user checks and saves.
 
 export type SqKind = 'supply' | 'subcontract' | 'both' | 'manufacturer';
-export type Supplier = { id: string; name: string; kind: SqKind; trades: string | null; contact_name: string | null; phone: string | null; email: string | null; notes: string | null; active: boolean };
+export type Supplier = { id: string; name: string; kind: SqKind; trades: string | null; contact_name: string | null; phone: string | null; email: string | null; notes: string | null; active: boolean; origin?: 'local' | 'foreign'; country?: string | null; address?: string | null };
 export type SqItem = { id: string; code: string; name: string; unit: string | null; sap_code: string | null };
 export type SqAlias = { id: string; item_id: string; alias: string; supplier_id: string | null };
 export type PackageStatus = 'open' | 'selected' | 'closed' | 'cancelled';
@@ -57,6 +57,15 @@ export const lkr0 = (v: number | null | undefined) => (v == null || !Number.isFi
 export const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
 // ---------------------------------------------------------------- loading
+/** Numbers from the database as numbers, lines and payments in their order */
+export const normQuote = (q: SqQuote): SqQuote => ({
+  ...q,
+  fx_rate: Number(q.fx_rate), freight_pct: Number(q.freight_pct), retention_pct: Number(q.retention_pct), lead_weeks: q.lead_weeks == null ? null : Number(q.lead_weeks),
+  discount_pct: Number(q.discount_pct ?? 0), discount_amt: Number(q.discount_amt ?? 0), revision: Number(q.revision ?? 0),
+  lines: [...q.lines].sort((a, b) => ((a as { seq?: number }).seq ?? 0) - ((b as { seq?: number }).seq ?? 0)).map((l) => ({ ...l, qty: l.qty == null ? null : Number(l.qty), rate: l.rate == null ? null : Number(l.rate) })),
+  payments: [...q.payments].sort((a, b) => ((a as { seq?: number }).seq ?? 0) - ((b as { seq?: number }).seq ?? 0)).map((x) => ({ ...x, pct: Number(x.pct) })),
+  exclusions: q.exclusions.map((x) => ({ ...x, add_lkr: Number(x.add_lkr) })),
+});
 export async function loadPackage(id: string) {
   const [{ data: p, error: e1 }, { data: qs, error: e2 }] = await Promise.all([
     supabase.from('sq_packages').select('*').eq('id', id).maybeSingle(),
@@ -64,14 +73,7 @@ export async function loadPackage(id: string) {
   ]);
   if (e1 || e2) throw new Error((e1 ?? e2)!.message);
   if (!p) throw new Error('Package not found');
-  const quotes = ((qs ?? []) as SqQuote[]).map((q) => ({
-    ...q,
-    fx_rate: Number(q.fx_rate), freight_pct: Number(q.freight_pct), retention_pct: Number(q.retention_pct), lead_weeks: q.lead_weeks == null ? null : Number(q.lead_weeks),
-    discount_pct: Number(q.discount_pct ?? 0), discount_amt: Number(q.discount_amt ?? 0), revision: Number(q.revision ?? 0),
-    lines: [...q.lines].sort((a, b) => ((a as { seq?: number }).seq ?? 0) - ((b as { seq?: number }).seq ?? 0)).map((l) => ({ ...l, qty: l.qty == null ? null : Number(l.qty), rate: l.rate == null ? null : Number(l.rate) })),
-    payments: [...q.payments].sort((a, b) => ((a as { seq?: number }).seq ?? 0) - ((b as { seq?: number }).seq ?? 0)).map((x) => ({ ...x, pct: Number(x.pct) })),
-    exclusions: q.exclusions.map((x) => ({ ...x, add_lkr: Number(x.add_lkr) })),
-  }));
+  const quotes = ((qs ?? []) as SqQuote[]).map(normQuote);
   return { pkg: p as SqPackage, quotes };
 }
 export async function loadRefs() {
@@ -85,6 +87,33 @@ export async function loadRefs() {
   if (err) throw new Error(err.message);
   return { suppliers: (s.data ?? []) as Supplier[], items: (i.data ?? []) as SqItem[], aliases: (a.data ?? []) as SqAlias[], costPct: Number(st.data?.cost_of_money_pct ?? 12) };
 }
+
+// ---------------------------------------------------------------- suppliers: from other modules' records or new (local / foreign)
+export type SysSupplier = { source: string; name: string; kind: SqKind; origin: 'local' | 'foreign'; country: string | null; address: string | null; contact: string | null };
+export async function loadSystemSuppliers() {
+  const { data, error } = await supabase.rpc('sq_system_suppliers');
+  if (error) throw new Error(error.message);
+  return (data ?? []) as SysSupplier[];
+}
+export const originText = (s: Pick<Supplier, 'origin' | 'country'>) => (s.origin === 'foreign' ? `Foreign${s.country ? ` · ${s.country}` : ''}` : 'Local');
+/** The supplier form: name, supplier or manufacturer, local or foreign, country and address, contact */
+export function supplierFields(s?: Partial<Supplier> & { contact?: string | null }) {
+  return [
+    { key: 'name', label: 'Name', required: true, initial: s?.name ?? '' },
+    { key: 'kind', label: 'Type', type: 'select' as const, required: true, initial: s?.kind ?? 'supply', options: KIND_OPTIONS },
+    { key: 'origin', label: 'Local or foreign', type: 'select' as const, required: true, initial: s?.origin ?? 'local', options: [{ value: 'local', label: 'Local (Sri Lanka)' }, { value: 'foreign', label: 'Foreign' }] },
+    { key: 'country', label: 'Country', initial: s?.country ?? '', hint: 'For a foreign supplier or manufacturer, e.g. Germany, China' },
+    { key: 'address', label: 'Address', type: 'multiline' as const, initial: s?.address ?? '' },
+    { key: 'trades', label: 'What they supply', initial: s?.trades ?? '', hint: 'e.g. floodlights, masts, civil works' },
+    { key: 'contact', label: 'Contact person', initial: s?.contact_name ?? s?.contact ?? '' },
+    { key: 'phone', label: 'Phone', initial: s?.phone ?? '' },
+    { key: 'email', label: 'Email', initial: s?.email ?? '' },
+  ];
+}
+export const supplierRow = (r: Record<string, string>) => ({
+  name: r.name.trim(), kind: r.kind, origin: r.origin === 'foreign' ? 'foreign' : 'local', country: r.country?.trim() || null, address: r.address?.trim() || null,
+  trades: r.trades?.trim() || null, contact_name: r.contact?.trim() || null, phone: r.phone?.trim() || null, email: r.email?.trim() || null,
+});
 
 // ---------------------------------------------------------------- the job a package is for: picked from the system or typed
 export type SqJob = { kind: 'project' | 'inquiry' | 'exec'; id: string; ref: string | null; project_name: string | null; client: string | null };
