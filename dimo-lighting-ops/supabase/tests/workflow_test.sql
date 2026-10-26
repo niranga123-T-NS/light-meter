@@ -10063,13 +10063,13 @@ do $$ begin
   assert (select count(*) from public.sq_quotes) > 0, 'reads the quotes';
 end $$;
 reset role;
-
+-- Sales Tools for the execution team and Estimation (Dacademy only before)
 -- Sales Tools for the execution team (Dacademy only before); not for Estimation
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
 do $$ begin assert app.sees_sales_tools(), 'SEE has Sales Tools'; end $$;
 reset role;
 select pg_temp.act_as('estimation_exec'); set role authenticated;
-do $$ begin assert not app.sees_sales_tools(), 'Estimation has Dacademy only'; end $$;
+do $$ begin assert app.sees_sales_tools(), 'Estimation has Sales Tools'; end $$;
 reset role;
 
 \echo 'ALL WORKFLOW TESTS PASSED'

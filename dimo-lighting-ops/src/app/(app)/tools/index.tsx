@@ -8,7 +8,6 @@ import { QuickCalcList } from '@/components/tools/QuickCalcList';
 import { References } from '@/components/tools/References';
 import { Standards } from '@/components/tools/Standards';
 import { Field, Notice, Screen, Segmented } from '@/components/ui';
-import { ACADEMY_ONLY } from '@/lib/academy';
 import { useMe } from '@/lib/auth';
 import { TOOLS_ROLES } from '@/lib/standards';
 
@@ -20,16 +19,7 @@ export default function SalesTools() {
   const params = useLocalSearchParams<{ tab?: Tab }>();
   const [tab, setTab] = useState<Tab>(params.tab ?? 'standards');
   const [search, setSearch] = useState('');
-  // Estimation has Dacademy only, not the rest of Sales Tools
-  if (ACADEMY_ONLY.includes(me.role)) {
-    return (
-      <Screen maxWidth={1100}>
-        <Stack.Screen options={{ title: 'Dacademy' }} />
-        <Academy />
-      </Screen>
-    );
-  }
-  if (!TOOLS_ROLES.includes(me.role)) return <Screen><Notice>Sales Tools are for the sales, SM Projects, DGM, Design and execution teams.</Notice></Screen>;
+  if (!TOOLS_ROLES.includes(me.role)) return <Screen><Notice>Sales Tools are for the sales, SM Projects, DGM, Design, estimation and execution teams.</Notice></Screen>;
   const android = Platform.OS === 'android';
   return (
     <Screen maxWidth={1100}>
