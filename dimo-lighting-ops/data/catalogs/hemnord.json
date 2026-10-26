@@ -1,0 +1,281 @@
+{
+ "brand": "HEMNORD (Cregini)",
+ "source": "HEMNORD_1.pdf",
+ "families": [
+  {
+   "type": "Architectural floodlight",
+   "category": "Façade / floodlight",
+   "ip": "IP66",
+   "ik": "IK08",
+   "cri": "–",
+   "surge": "10/6 kV",
+   "pf": ">0.95",
+   "temp": "-40°C to +50°C",
+   "housing": "Corrosion resistant die-cast aluminium; silver grey / dark grey / black, optional RAL",
+   "cover": "Tempered safety glass",
+   "life_h": 60000,
+   "warranty": null,
+   "beam": "8° / 12° / 24° / 36° / 60° / 10×60° / 15×64°",
+   "driver": "Built-in driver, 48 h aging test; wiring in IP68 junction box",
+   "mounting": "Bracket; single cable entry (white) / 2 cables entry (RGB / RGBW)",
+   "order_code": "Certified CE, RoHS, CB, ETL, BIS · lifetime L90B50 >60,000 h · each LED on a heat-transfer rod",
+   "cct": "1700–6500 K",
+   "control": "On/off, 0-10V, DALI, Bluetooth",
+   "family": "MAGIC-84",
+   "title": "MAGIC-84 HEM-T45 round architectural floodlight 180–300 W",
+   "voltage": "DC36V / AC220V",
+   "leds": "CREE XPE2",
+   "pages": "81-82",
+   "pdf_page": 2,
+   "variants": [
+    {
+     "code": "HEM-T45-75",
+     "w": 180,
+     "lm": null,
+     "eff": null,
+     "size": "339 × 274 × 347",
+     "note": "CREE XPE2 × 75 · 1700–6500 K, on/off / 0-10V / DALI / Bluetooth",
+     "flag": "No lumens in the catalogue (only LED power) – ask the supplier for lumens / IES"
+    },
+    {
+     "code": "HEM-T45-75(RGB)",
+     "w": 180,
+     "lm": null,
+     "eff": null,
+     "size": "339 × 274 × 347",
+     "note": "CREE XPE2 × 75 · RGB, DMX512/RDM",
+     "flag": "No lumens in the catalogue (only LED power) – ask the supplier for lumens / IES"
+    },
+    {
+     "code": "HEM-T45-120(RGB)",
+     "w": 300,
+     "lm": null,
+     "eff": null,
+     "size": "339 × 274 × 347",
+     "note": "CREE XPE2 × 120 · RGB, DMX512/RDM",
+     "flag": "No lumens in the catalogue (only LED power) – ask the supplier for lumens / IES · 120 LEDs in the same 339 × 274 × 347 body as the 75-LED model – confirm size"
+    },
+    {
+     "code": "HEM-T45-120(RGBW)",
+     "w": 300,
+     "lm": null,
+     "eff": null,
+     "size": "339 × 274 × 347",
+     "note": "CREE XPE2 × 120 · RGBW, DMX512/RDM",
+     "flag": "No lumens in the catalogue (only LED power) – ask the supplier for lumens / IES · 120 LEDs in the same body as the 75-LED model – confirm size"
+    }
+   ]
+  },
+  {
+   "type": "Architectural floodlight",
+   "category": "Façade / floodlight",
+   "ip": "IP66",
+   "ik": "IK08",
+   "cri": "–",
+   "surge": "10/6 kV",
+   "pf": ">0.95",
+   "temp": "-40°C to +50°C",
+   "housing": "Corrosion resistant die-cast aluminium; silver grey / dark grey / black, optional RAL",
+   "cover": "Tempered safety glass",
+   "life_h": 60000,
+   "warranty": null,
+   "beam": "8° / 12° / 24° / 36° / 60° / 10×60° / 15×64°",
+   "driver": "Built-in driver, 48 h aging test; wiring in IP68 junction box",
+   "mounting": "Bracket; single cable entry (white) / 2 cables entry (RGB / RGBW)",
+   "order_code": "Certified CE, RoHS, CB, ETL, BIS · lifetime L90B50 >60,000 h · each LED on a heat-transfer rod",
+   "cct": "1700–6500 K",
+   "control": "On/off, 0-10V, DALI, Bluetooth",
+   "family": "MAGIC-120",
+   "title": "MAGIC-120 HEM-T49 round architectural floodlight 280–450 W",
+   "voltage": "DC36V / AC220V",
+   "leds": "CREE XPE2",
+   "pages": "85-86",
+   "pdf_page": 4,
+   "variants": [
+    {
+     "code": "HEM-T49-120",
+     "w": 280,
+     "lm": null,
+     "eff": null,
+     "size": "408 × 400 × 366",
+     "note": "CREE XPE2 × 120 · 1700–6500 K, on/off / 0-10V / DALI / Bluetooth",
+     "flag": "No lumens in the catalogue (only LED power) – ask the supplier for lumens / IES"
+    },
+    {
+     "code": "HEM-T49-120(RGB)",
+     "w": 280,
+     "lm": null,
+     "eff": null,
+     "size": "408 × 400 × 366",
+     "note": "CREE XPE2 × 120 · RGB, DMX512/RDM",
+     "flag": "No lumens in the catalogue (only LED power) – ask the supplier for lumens / IES"
+    },
+    {
+     "code": "HEM-T49-180(RGB)",
+     "w": 450,
+     "lm": null,
+     "eff": null,
+     "size": "408 × 400 × 366",
+     "note": "CREE XPE2 × 180 · RGB, DMX512/RDM",
+     "flag": "No lumens in the catalogue (only LED power) – ask the supplier for lumens / IES"
+    },
+    {
+     "code": "HEM-T49-180(RGBW)",
+     "w": 450,
+     "lm": null,
+     "eff": null,
+     "size": "408 × 400 × 366",
+     "note": "CREE XPE2 × 180 · RGBW, DMX512/RDM",
+     "flag": "No lumens in the catalogue (only LED power) – ask the supplier for lumens / IES"
+    }
+   ]
+  },
+  {
+   "type": "Architectural floodlight",
+   "category": "Façade / floodlight",
+   "ip": "IP66",
+   "ik": "IK08",
+   "cri": "–",
+   "surge": "10/6 kV",
+   "pf": ">0.95",
+   "temp": "-40°C to +50°C",
+   "housing": "Corrosion resistant die-cast aluminium; silver grey / dark grey / black, optional RAL",
+   "cover": "Tempered safety glass",
+   "life_h": 60000,
+   "warranty": null,
+   "beam": "8° / 12° / 24° / 36° / 60° / 10×60° / 15×64°",
+   "driver": "Built-in driver, 48 h aging test; wiring in IP68 junction box",
+   "mounting": "Bracket; single cable entry (white) / 2 cables entry (RGB / RGBW)",
+   "order_code": "Certified CE, RoHS, CB, ETL, BIS · lifetime L90B50 >60,000 h · each LED on a heat-transfer rod",
+   "cct": "1700–6500 K",
+   "control": "On/off, 0-10V, DALI, Bluetooth",
+   "family": "CHRIS-24",
+   "title": "CHRIS-24 HEM-T44 square architectural floodlight 60–90 W",
+   "voltage": "DC24V / DC36V / AC220V",
+   "leds": "CREE XPE2",
+   "pages": "89-90",
+   "pdf_page": 6,
+   "variants": [
+    {
+     "code": "HEM-T44-24",
+     "w": 60,
+     "lm": null,
+     "eff": null,
+     "size": "286 × 121 × 146",
+     "note": "CREE XPE2 × 24 · 1700–6500 K, on/off / 0-10V / DALI / Bluetooth",
+     "flag": "No lumens in the catalogue (only LED power) – ask the supplier for lumens / IES"
+    },
+    {
+     "code": "HEM-T44-36(RGBW)",
+     "w": 90,
+     "lm": null,
+     "eff": null,
+     "size": "286 × 121 × 146",
+     "note": "CREE XPE2 × 36 · RGBW, DMX512/RDM",
+     "flag": "No lumens in the catalogue (only LED power) – ask the supplier for lumens / IES · the catalogue prints code HEM-T44-36 for both RGBW and RGB – (RGBW) added here to keep codes unique"
+    },
+    {
+     "code": "HEM-T44-36(RGB)",
+     "w": 90,
+     "lm": null,
+     "eff": null,
+     "size": "286 × 121 × 146",
+     "note": "CREE XPE2 × 36 · RGB, DMX512/RDM",
+     "flag": "No lumens in the catalogue (only LED power) – ask the supplier for lumens / IES · the catalogue prints code HEM-T44-36 for both RGBW and RGB – (RGB) added here"
+    }
+   ]
+  },
+  {
+   "type": "Architectural floodlight",
+   "category": "Façade / floodlight",
+   "ip": "IP66",
+   "ik": "IK08",
+   "cri": "–",
+   "surge": "10/6 kV",
+   "pf": ">0.95",
+   "temp": "-40°C to +50°C",
+   "housing": "Corrosion resistant die-cast aluminium; silver grey / dark grey / black, optional RAL",
+   "cover": "Tempered safety glass",
+   "life_h": 60000,
+   "warranty": null,
+   "beam": "8° / 12° / 24° / 36° / 60° / 10×60° / 15×64°",
+   "driver": "Built-in driver, 48 h aging test; wiring in IP68 junction box",
+   "mounting": "Bracket; single cable entry (white) / 2 cables entry (RGB / RGBW)",
+   "order_code": "Certified CE, RoHS, CB, ETL, BIS · lifetime L90B50 >60,000 h · each LED on a heat-transfer rod",
+   "cct": "1700–6500 K",
+   "control": "On/off, 0-10V, DALI, Bluetooth",
+   "family": "CHRIS-48",
+   "title": "CHRIS-48 HEM-T47 square architectural floodlight 120–150 W",
+   "voltage": "DC24V / DC36V / AC220V",
+   "leds": "CREE XPE2",
+   "pages": "93-94",
+   "pdf_page": 8,
+   "variants": [
+    {
+     "code": "HEM-T47-48",
+     "w": 120,
+     "lm": null,
+     "eff": null,
+     "size": "290 × 196 × 155",
+     "note": "CREE XPE2 × 48 · 1700–6500 K, on/off / 0-10V / DALI / Bluetooth",
+     "flag": "No lumens in the catalogue (only LED power) – ask the supplier for lumens / IES"
+    },
+    {
+     "code": "HEM-T47-48(RGBW)",
+     "w": 120,
+     "lm": null,
+     "eff": null,
+     "size": "290 × 196 × 155",
+     "note": "CREE XPE2 × 48 · RGBW, DMX512/RDM",
+     "flag": "No lumens in the catalogue (only LED power) – ask the supplier for lumens / IES · the catalogue prints code HEM-T47-48 for both the white and the RGBW version – (RGBW) added here"
+    },
+    {
+     "code": "HEM-T47-63(RGB)",
+     "w": 150,
+     "lm": null,
+     "eff": null,
+     "size": "290 × 196 × 155",
+     "note": "CREE XPE2 × 63 · RGB, DMX512/RDM",
+     "flag": "No lumens in the catalogue (only LED power) – ask the supplier for lumens / IES"
+    }
+   ]
+  },
+  {
+   "type": "Architectural floodlight",
+   "category": "Façade / floodlight",
+   "ip": "IP66",
+   "ik": "IK08",
+   "cri": "–",
+   "surge": "10/6 kV",
+   "pf": ">0.95",
+   "temp": "-40°C to +50°C",
+   "housing": "Corrosion resistant die-cast aluminium; silver grey / dark grey / black, optional RAL",
+   "cover": "Tempered safety glass",
+   "life_h": 60000,
+   "warranty": null,
+   "beam": "3° / 5° / 10° / 15×24° / 30° / 60° / 80° / 10×30° / 10×45°",
+   "driver": "Built-in driver, 48 h aging test; wiring in IP68 junction box",
+   "mounting": "Bracket; single cable entry (white) / 2 cables entry (RGB / RGBW)",
+   "order_code": "Certified CE, RoHS, CB, ETL, BIS · lifetime L90B50 >60,000 h · each LED on a heat-transfer rod",
+   "family": "GLAXXY-160",
+   "title": "GLAXXY-160 HEM-T160 high-power architectural floodlight 400 W, tunable white / RGBW",
+   "voltage": "DC24V / AC100-265V",
+   "leds": "CREE XPE2",
+   "cct": "2700–6500 K / RGBW",
+   "control": "0-10V, DALI, on/off, Triac, DMX512",
+   "pages": "97-98",
+   "pdf_page": 10,
+   "variants": [
+    {
+     "code": "HEM-T160-400",
+     "w": 400,
+     "lm": null,
+     "eff": null,
+     "size": "426 × 395 × 183",
+     "note": "CREE XPE2 × 160 · 2700–6500 K / RGBW",
+     "flag": "No lumens in the catalogue (only LED power) – ask the supplier for lumens / IES · size read from the drawing (393 front / 426 overall) – confirm"
+    }
+   ]
+  }
+ ]
+}
