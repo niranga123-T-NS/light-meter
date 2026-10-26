@@ -8,11 +8,12 @@ import {
   type Fixture, type Level, type Match, type ParamKey, type Spec,
 } from '@/lib/fixtures';
 import { useLoad } from '@/lib/hooks';
+import { PhotoSearchView } from './PhotoSearch';
 
-/** Fixture library: every model from the manufacturer catalogues – quick search, and "Find a match" for a BOQ line or a competitor datasheet */
+/** Fixture library: every model from the manufacturer catalogues – quick search, search by photo, and "Find a match" for a BOQ line or a competitor datasheet */
 export function FixtureLibrary() {
   const { data, error } = useLoad(() => loadFixtures(), []);
-  const [mode, setMode] = useState<'search' | 'match'>('search');
+  const [mode, setMode] = useState<'search' | 'photo' | 'match'>('search');
   if (!data) return error ? <ErrorBanner message={error} /> : <Loading />;
   const brands = [...new Set(data.products.map((p) => p.brand))].sort();
   return (
@@ -22,11 +23,12 @@ export function FixtureLibrary() {
         onChange={setMode}
         options={[
           { value: 'search', label: 'Search' },
+          { value: 'photo', label: 'Search by photo' },
           { value: 'match', label: 'Find a match (BOQ line / competitor datasheet)' },
         ]}
       />
       <Muted>{`${data.products.length.toLocaleString('en-US')} products · ${brands.length} brands · ${brands.join(', ')}`}</Muted>
-      {mode === 'search' ? <SearchView all={data.products} brands={brands} /> : <MatchView all={data.products} brands={brands} />}
+      {mode === 'search' ? <SearchView all={data.products} brands={brands} /> : mode === 'photo' ? <PhotoSearchView all={data.products} brands={brands} /> : <MatchView all={data.products} brands={brands} />}
     </View>
   );
 }
