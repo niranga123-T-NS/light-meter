@@ -79,82 +79,6 @@
    "image_shared_with": []
   },
   {
-   "family": "T78",
-   "title": "T78 LED roadway light – Zhaga Book 15 optics, tool-less gear access, replaceable light engine",
-   "type": "Street light",
-   "category": "Outdoor",
-   "pdf": "HPWINNER_Catalogue_202607.pdf",
-   "pages": "13",
-   "cct": "3000K / 4000K / 5000K / 5700K",
-   "cri": "Ra≥70",
-   "ip": "IP66",
-   "ik": "IK09",
-   "voltage": "100 - 277 Vac",
-   "temp": "-40℃~+50℃, 10%-90%RH",
-   "housing": "Die-cast Aluminum ADC-12",
-   "mounting": "Spigot Ø 42 - 60 mm",
-   "leds": "5050 LEDs",
-   "beam": "Roadway (IESNA Type I / II / III / IV)",
-   "control": "",
-   "extras": "Zhaga Book 15 optics · Colours: White / Black / Gray · Class I by default, II optional",
-   "variants": [
-    {
-     "code": "T78",
-     "w": 240.0,
-     "wMin": 20.0,
-     "lm": 44880,
-     "lmMin": 3000,
-     "lmEst": true,
-     "eff": 187.0,
-     "note": "Power 20–240 W · efficacy 150–187 lm/W (typical)",
-     "flag": "Lumens estimated from the catalogue power range × lm/W range (the catalogue has no per-model lumen table) – ask HPWINNER for the exact version"
-    }
-   ],
-   "image": "img/hpwinner/t78.jpg",
-   "image_covers": [
-    "T78"
-   ],
-   "image_shared_with": []
-  },
-  {
-   "family": "T88",
-   "title": "T88 LED roadway light – NEMA receptacle optional, IP68 light engine",
-   "type": "Street light",
-   "category": "Outdoor",
-   "pdf": "HPWINNER_Catalogue_202607.pdf",
-   "pages": "14",
-   "cct": "3000K / 4000K / 5000K / 5700K",
-   "cri": "Ra≥70",
-   "ip": "IP66",
-   "ik": "IK08",
-   "voltage": "100 - 277 Vac",
-   "temp": "-40℃~+50℃, 10%~90% RH",
-   "housing": "Die-cast Aluminum ADC-12",
-   "mounting": "Spigot Ø 42 - 60 mm",
-   "leds": "5050 LEDs",
-   "beam": "Roadway (IESNA Type I / II / III / IV)",
-   "control": "",
-   "extras": "Light engine IP68 · NEMA receptacle optional · Colours: White / Black / Gray",
-   "variants": [
-    {
-     "code": "T88",
-     "w": 200.0,
-     "wMin": 20.0,
-     "lm": 43200,
-     "lmMin": 3460,
-     "lmEst": true,
-     "eff": 216.0,
-     "note": "Power 20–200 W · efficacy 173–216 lm/W (typical)",
-     "flag": "Lumens estimated from the catalogue power range × lm/W range (the catalogue has no per-model lumen table) – ask HPWINNER for the exact version"
-    }
-   ],
-   "image": "img/hpwinner/t88.jpg",
-   "image_covers": [
-    "T88"
-   ],
-   "image_shared_with": []
-  },
-  {
    "family": "T1MAX",
    "title": "T1MAX LED roadway light – residential roads and alleys, sensor ready",
    "type": "Street light",
@@ -307,44 +231,6 @@
    "image_shared_with": []
   },
   {
-   "family": "T65",
-   "title": "T65 LED roadway light – IP68 light engine, tool-less access",
-   "type": "Street light",
-   "category": "Outdoor",
-   "pdf": "HPWINNER_Catalogue_202607.pdf",
-   "pages": "19",
-   "cct": "3000K / 4000K / 5000K / 5700K",
-   "cri": "Ra≥70",
-   "ip": "IP66",
-   "ik": "",
-   "voltage": "100 - 277 Vac",
-   "temp": "-40℃~+50℃, 10%~90% RH",
-   "housing": "Die-cast Aluminum ADC-12",
-   "mounting": "Spigot Ø 42 - 60 mm/ Ø 66 - 76 mm",
-   "leds": "5050 LEDs",
-   "beam": "Roadway (IESNA Type I / II / III / IV)",
-   "control": "",
-   "extras": "Light engine IP68 · Colours: White / Black / Gray",
-   "variants": [
-    {
-     "code": "T65",
-     "w": 400.0,
-     "wMin": 40.0,
-     "lm": 69200,
-     "lmMin": 5840,
-     "lmEst": true,
-     "eff": 173.0,
-     "note": "Power 40–400 W · efficacy 146–173 lm/W (typical)",
-     "flag": "Lumens estimated from the catalogue power range × lm/W range (the catalogue has no per-model lumen table) – ask HPWINNER for the exact version"
-    }
-   ],
-   "image": "img/hpwinner/t65.jpg",
-   "image_covers": [
-    "T65"
-   ],
-   "image_shared_with": []
-  },
-  {
    "family": "T67",
    "title": "T67 LED roadway light – IP68 light engine, tool-less access",
    "type": "Street light",
@@ -379,44 +265,6 @@
    "image": "img/hpwinner/t67.jpg",
    "image_covers": [
     "T67"
-   ],
-   "image_shared_with": []
-  },
-  {
-   "family": "T68",
-   "title": "T68 LED roadway light – IP68 light engine, NEMA receptacle optional",
-   "type": "Street light",
-   "category": "Outdoor",
-   "pdf": "HPWINNER_Catalogue_202607.pdf",
-   "pages": "21",
-   "cct": "3000K / 4000K / 5000K / 5700K",
-   "cri": "Ra≥70",
-   "ip": "IP66",
-   "ik": "",
-   "voltage": "100 - 277 Vac",
-   "temp": "-40℃~+50℃, 10%~90% RH",
-   "housing": "Die-cast Aluminum ADC-12",
-   "mounting": "Spigot Ø 42 - 60 mm/ Ø 66 - 76 mm",
-   "leds": "5050 LEDs",
-   "beam": "Roadway (IESNA Type I / II / III / IV)",
-   "control": "",
-   "extras": "Light engine IP68 · NEMA receptacle optional · Colours: White / Black / Gray",
-   "variants": [
-    {
-     "code": "T68",
-     "w": 400.0,
-     "wMin": 40.0,
-     "lm": 76000,
-     "lmMin": 6400,
-     "lmEst": true,
-     "eff": 190.0,
-     "note": "Power 40–400 W · efficacy 160–190 lm/W (typical)",
-     "flag": "Lumens estimated from the catalogue power range × lm/W range (the catalogue has no per-model lumen table) – ask HPWINNER for the exact version"
-    }
-   ],
-   "image": "img/hpwinner/t68.jpg",
-   "image_covers": [
-    "T68"
    ],
    "image_shared_with": []
   },
@@ -759,82 +607,6 @@
    "image": "img/hpwinner/tf69a.jpg",
    "image_covers": [
     "TF69A"
-   ],
-   "image_shared_with": []
-  },
-  {
-   "family": "FL2C",
-   "title": "FL2C LED floodlight – modular M66A light engines (aprons, ports, billboards, sports)",
-   "type": "Floodlight",
-   "category": "Outdoor",
-   "pdf": "HPWINNER_Catalogue_202607.pdf",
-   "pages": "32",
-   "cct": "3000K / 4000K / 5000K / 5700K",
-   "cri": "Ra≥70",
-   "ip": "IP67",
-   "ik": "",
-   "voltage": "100 - 277 Vac",
-   "temp": "-40℃~+45℃, 10%~90%RH",
-   "housing": "Extruded Aluminum",
-   "mounting": "",
-   "leds": "5050 LEDs",
-   "beam": "12° / 25° / 40° / 60° / 90° / Lambertian / Type I–IV / tunnel / billboard / sports (M66A optics)",
-   "control": "",
-   "extras": "Light engine IP68 · Colours: White / Black / Gray",
-   "variants": [
-    {
-     "code": "FL2C",
-     "w": 960.0,
-     "wMin": 40.0,
-     "lm": 195840,
-     "lmMin": 6680,
-     "lmEst": true,
-     "eff": 204.0,
-     "note": "Power 40–960 W · efficacy 167–204 lm/W (typical)",
-     "flag": "Lumens estimated from the catalogue power range × lm/W range (the catalogue has no per-model lumen table) – ask HPWINNER for the exact version"
-    }
-   ],
-   "image": "img/hpwinner/fl2c.jpg",
-   "image_covers": [
-    "FL2C"
-   ],
-   "image_shared_with": []
-  },
-  {
-   "family": "FL21",
-   "title": "FL21 LED floodlight – 25° to 90°, Lambertian and billboard optics",
-   "type": "Floodlight",
-   "category": "Outdoor",
-   "pdf": "HPWINNER_Catalogue_202607.pdf",
-   "pages": "33",
-   "cct": "3000K / 4000K / 5000K / 5700K",
-   "cri": "Ra≥70",
-   "ip": "IP67",
-   "ik": "IK08",
-   "voltage": "100 - 277 Vac",
-   "temp": "-40℃~+50℃, 10%~90% RH",
-   "housing": "Die-cast Aluminum ADC-12",
-   "mounting": "",
-   "leds": "5050 LEDs",
-   "beam": "25° / 40° / 60° / 90° / LAMBERTIAN / BILLBOARD LIGHTING",
-   "control": "",
-   "extras": "Light engine IP68 · Colours: White / Black / Gray",
-   "variants": [
-    {
-     "code": "FL21",
-     "w": 240.0,
-     "wMin": 30.0,
-     "lm": 46320,
-     "lmMin": 4500,
-     "lmEst": true,
-     "eff": 193.0,
-     "note": "Power 30–240 W · efficacy 150–193 lm/W (typical)",
-     "flag": "Lumens estimated from the catalogue power range × lm/W range (the catalogue has no per-model lumen table) – ask HPWINNER for the exact version"
-    }
-   ],
-   "image": "img/hpwinner/fl21.jpg",
-   "image_covers": [
-    "FL21"
    ],
    "image_shared_with": []
   },
@@ -1493,6 +1265,1266 @@
     "TF33C-150",
     "TF33D-180",
     "TF33D-200"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FL2C",
+   "title": "FL2C LED floodlight – modular, 1 to 16 IP68 M66A modules, 40 to 960 W (sports, airports, billboards, facades)",
+   "type": "Floodlight",
+   "category": "Outdoor",
+   "pdf": "HPW_Spec_Flood_Light_FL2C_V33.pdf",
+   "pages": "1-3",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "voltage": "100 ~ 277Vac",
+   "surge": "10kV line-earth",
+   "temp": "-40℃ ~ +45℃",
+   "housing": "Extruded aluminium",
+   "warranty": "",
+   "mounting": "Angled bracket",
+   "ip": "IP67",
+   "beam": "25° / 40° / 60° / 90° / Lambertian / sports (M66A optics)",
+   "extras": "Light modules IP68 · luminaire IP66 / IP67 · colours black / grey / white",
+   "image": "img/hpwinner/fl2c.jpg",
+   "variants": [
+    {
+     "code": "FL2C-1-40",
+     "w": 40,
+     "lm": 6920,
+     "eff": 173,
+     "size": "95 × 360 × 128 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 5,920 lm (148 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    },
+    {
+     "code": "FL2C-1-50",
+     "w": 50,
+     "lm": 8500,
+     "eff": 170,
+     "size": "95 × 360 × 128 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 7,150 lm (143 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    },
+    {
+     "code": "FL2C-1-60",
+     "w": 60,
+     "lm": 10020,
+     "eff": 167,
+     "size": "95 × 360 × 128 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 8,280 lm (138 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    },
+    {
+     "code": "FL2C-2-80",
+     "w": 80,
+     "lm": 14800,
+     "eff": 185,
+     "size": "175 × 360 × 128 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 12,800 lm (160 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    },
+    {
+     "code": "FL2C-2-100",
+     "w": 100,
+     "lm": 18200,
+     "eff": 182,
+     "size": "175 × 360 × 128 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 15,500 lm (155 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    },
+    {
+     "code": "FL2C-2-120",
+     "w": 120,
+     "lm": 21360,
+     "eff": 178,
+     "size": "175 × 360 × 128 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 18,000 lm (150 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    },
+    {
+     "code": "FL2C-3-120",
+     "w": 120,
+     "lm": 22200,
+     "eff": 185,
+     "size": "255 × 360 × 128 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 19,200 lm (160 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    },
+    {
+     "code": "FL2C-3-150",
+     "w": 150,
+     "lm": 27300,
+     "eff": 182,
+     "size": "255 × 360 × 128 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 23,250 lm (155 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    },
+    {
+     "code": "FL2C-3-180",
+     "w": 180,
+     "lm": 32040,
+     "eff": 178,
+     "size": "255 × 360 × 128 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 27,000 lm (150 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    },
+    {
+     "code": "FL2C-4-160",
+     "w": 160,
+     "lm": 29600,
+     "eff": 185,
+     "size": "335 × 360 × 128 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 25,600 lm (160 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    },
+    {
+     "code": "FL2C-4-200",
+     "w": 200,
+     "lm": 36400,
+     "eff": 182,
+     "size": "335 × 360 × 128 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 31,000 lm (155 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    },
+    {
+     "code": "FL2C-4-240",
+     "w": 240,
+     "lm": 42720,
+     "eff": 178,
+     "size": "335 × 360 × 128 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 36,000 lm (150 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    },
+    {
+     "code": "FL2C-5-200",
+     "w": 200,
+     "lm": 37000,
+     "eff": 185,
+     "size": "415 × 360 × 197 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 32,000 lm (160 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    },
+    {
+     "code": "FL2C-5-250",
+     "w": 250,
+     "lm": 45500,
+     "eff": 182,
+     "size": "415 × 360 × 197 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 37,200 lm (155 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    },
+    {
+     "code": "FL2C-5-300",
+     "w": 300,
+     "lm": 53400,
+     "eff": 178,
+     "size": "415 × 360 × 197 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 45,000 lm (150 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    },
+    {
+     "code": "FL2C-6-240",
+     "w": 240,
+     "lm": 44400,
+     "eff": 185,
+     "size": "495 × 360 × 197 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 38,400 lm (160 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    },
+    {
+     "code": "FL2C-6-300",
+     "w": 300,
+     "lm": 54600,
+     "eff": 182,
+     "size": "495 × 360 × 197 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 46,500 lm (155 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    },
+    {
+     "code": "FL2C-6-360",
+     "w": 360,
+     "lm": 64080,
+     "eff": 178,
+     "size": "495 × 360 × 197 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 54,000 lm (150 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    },
+    {
+     "code": "FL2C-7-280",
+     "w": 280,
+     "lm": 51800,
+     "eff": 185,
+     "size": "575 × 360 × 197 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 44,800 lm (160 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    },
+    {
+     "code": "FL2C-7-350",
+     "w": 350,
+     "lm": 63700,
+     "eff": 182,
+     "size": "575 × 360 × 197 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 55,800 lm (155 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    },
+    {
+     "code": "FL2C-7-420",
+     "w": 420,
+     "lm": 74760,
+     "eff": 178,
+     "size": "575 × 360 × 197 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 63,000 lm (150 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    },
+    {
+     "code": "FL2C-8-320",
+     "w": 320,
+     "lm": 59200,
+     "eff": 185,
+     "size": "655 × 360 × 197 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 51,200 lm (160 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    },
+    {
+     "code": "FL2C-8-400",
+     "w": 400,
+     "lm": 72800,
+     "eff": 182,
+     "size": "655 × 360 × 197 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 62,000 lm (155 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    },
+    {
+     "code": "FL2C-8-480",
+     "w": 480,
+     "lm": 85440,
+     "eff": 178,
+     "size": "655 × 360 × 197 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 72,000 lm (150 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    },
+    {
+     "code": "FL2C-10-400",
+     "w": 400,
+     "lm": 74000,
+     "eff": 185,
+     "size": "420 × 740 × 230 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 64,000 lm (160 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    },
+    {
+     "code": "FL2C-10-500",
+     "w": 500,
+     "lm": 91000,
+     "eff": 182,
+     "size": "420 × 740 × 230 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 77,500 lm (155 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    },
+    {
+     "code": "FL2C-10-600",
+     "w": 600,
+     "lm": 106800,
+     "eff": 178,
+     "size": "420 × 740 × 230 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 90,000 lm (150 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    },
+    {
+     "code": "FL2C-12-480",
+     "w": 480,
+     "lm": 88800,
+     "eff": 185,
+     "size": "500 × 740 × 230 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 76,800 lm (160 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    },
+    {
+     "code": "FL2C-12-600",
+     "w": 600,
+     "lm": 109200,
+     "eff": 182,
+     "size": "500 × 740 × 230 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 93,000 lm (155 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    },
+    {
+     "code": "FL2C-12-720",
+     "w": 720,
+     "lm": 128160,
+     "eff": 178,
+     "size": "500 × 740 × 230 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 108,000 lm (150 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    },
+    {
+     "code": "FL2C-14-560",
+     "w": 560,
+     "lm": 103600,
+     "eff": 185,
+     "size": "580 × 740 × 230 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 89,600 lm (160 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    },
+    {
+     "code": "FL2C-14-700",
+     "w": 700,
+     "lm": 127400,
+     "eff": 182,
+     "size": "580 × 740 × 230 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 108,500 lm (155 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    },
+    {
+     "code": "FL2C-14-840",
+     "w": 840,
+     "lm": 149520,
+     "eff": 178,
+     "size": "580 × 740 × 230 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 126,000 lm (150 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    },
+    {
+     "code": "FL2C-16-640",
+     "w": 640,
+     "lm": 118400,
+     "eff": 185,
+     "size": "660 × 740 × 230 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 102,400 lm (160 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    },
+    {
+     "code": "FL2C-16-800",
+     "w": 800,
+     "lm": 145600,
+     "eff": 182,
+     "size": "660 × 740 × 230 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 124,000 lm (155 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    },
+    {
+     "code": "FL2C-16-960",
+     "w": 960,
+     "lm": 170880,
+     "eff": 178,
+     "size": "660 × 740 × 230 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 3030 × 90: 144,000 lm (150 lm/W) · 3000K ≈5 % lower · 25° lens ≈8 % lower"
+    }
+   ],
+   "image_covers": [
+    "FL2C-1-40",
+    "FL2C-1-50",
+    "FL2C-1-60",
+    "FL2C-2-80",
+    "FL2C-2-100",
+    "FL2C-2-120",
+    "FL2C-3-120",
+    "FL2C-3-150",
+    "FL2C-3-180",
+    "FL2C-4-160",
+    "FL2C-4-200",
+    "FL2C-4-240",
+    "FL2C-5-200",
+    "FL2C-5-250",
+    "FL2C-5-300",
+    "FL2C-6-240",
+    "FL2C-6-300",
+    "FL2C-6-360",
+    "FL2C-7-280",
+    "FL2C-7-350",
+    "FL2C-7-420",
+    "FL2C-8-320",
+    "FL2C-8-400",
+    "FL2C-8-480",
+    "FL2C-10-400",
+    "FL2C-10-500",
+    "FL2C-10-600",
+    "FL2C-12-480",
+    "FL2C-12-600",
+    "FL2C-12-720",
+    "FL2C-14-560",
+    "FL2C-14-700",
+    "FL2C-14-840",
+    "FL2C-16-640",
+    "FL2C-16-800",
+    "FL2C-16-960"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FL21B",
+   "title": "FL21B LED floodlight – one IP68 engine, 30 to 60 W, tempered glass cover optional",
+   "type": "Floodlight",
+   "category": "Outdoor",
+   "pdf": "hpw-spec-flood-light-fl21b-series.pdf",
+   "pages": "1-3",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "voltage": "100 ~ 277Vac",
+   "surge": "10kV line-earth",
+   "temp": "-40℃ ~ +50℃",
+   "housing": "Die-cast aluminium",
+   "warranty": "5 years",
+   "mounting": "Bracket ±60°",
+   "ip": "IP67",
+   "beam": "25° / 40° / 60° / 90°",
+   "extras": "Light engine IP68, driver IP67 · IP66 with the glass cover (≈8 % less light) · colours grey / black / white / blue",
+   "image": "img/hpwinner/fl21.jpg",
+   "variants": [
+    {
+     "code": "FL21B-N1-30",
+     "w": 30,
+     "lm": 5010,
+     "eff": 167,
+     "size": "260 × 230 × 220 mm",
+     "note": "With 5050 LEDs (shown) · 3030: 4,050 lm (135 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "FL21B-N1-40",
+     "w": 40,
+     "lm": 6520,
+     "eff": 163,
+     "size": "260 × 230 × 220 mm",
+     "note": "With 5050 LEDs (shown) · 3030: 5,200 lm (130 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "FL21B-N1-50",
+     "w": 50,
+     "lm": 7850,
+     "eff": 157,
+     "size": "260 × 230 × 220 mm",
+     "note": "With 5050 LEDs (shown) · 3030: 6,250 lm (125 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "FL21B-N1-60",
+     "w": 60,
+     "lm": 9000,
+     "eff": 150,
+     "size": "260 × 230 × 220 mm",
+     "note": "With 5050 LEDs (shown) · 3030: 7,020 lm (117 lm/W) · 3000K 5 % lower"
+    }
+   ],
+   "image_covers": [
+    "FL21B-N1-30",
+    "FL21B-N1-40",
+    "FL21B-N1-50",
+    "FL21B-N1-60"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FL21",
+   "title": "FL21 LED floodlight (FL21M / C / D / E) – 1 to 4 IP68 engines, 40 to 240 W, tempered glass cover optional",
+   "type": "Floodlight",
+   "category": "Outdoor",
+   "pdf": "hpw-spec-flood-light-fl21cde-series.pdf",
+   "pages": "1-3",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "voltage": "100 ~ 277Vac",
+   "surge": "10kV line-earth",
+   "temp": "-40℃ ~ +50℃",
+   "housing": "Die-cast aluminium",
+   "warranty": "5 years",
+   "mounting": "Bracket ±60°",
+   "ip": "IP67",
+   "beam": "25° / 40° / 60° / 90° / 90×40° / Lambertian",
+   "extras": "Light engines IP68, driver IP67 · IP66 with the glass cover (≈8 % less light) · colours grey / black / white / blue",
+   "image": "img/hpwinner/fl21.jpg",
+   "variants": [
+    {
+     "code": "FL21M-N1-40",
+     "w": 40,
+     "lm": 6720,
+     "eff": 168,
+     "size": "195 × 355 × 225 mm",
+     "note": "With 5050 LEDs (shown) · 3030: 5,400 lm (135 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "FL21M-N1-50",
+     "w": 50,
+     "lm": 8150,
+     "eff": 163,
+     "size": "195 × 355 × 225 mm",
+     "note": "With 5050 LEDs (shown) · 3030: 6,500 lm (130 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "FL21M-N1-60",
+     "w": 60,
+     "lm": 9300,
+     "eff": 155,
+     "size": "195 × 355 × 225 mm",
+     "note": "With 5050 LEDs (shown) · 3030: 7,320 lm (122 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "FL21C-N2-80",
+     "w": 80,
+     "lm": 14000,
+     "eff": 175,
+     "size": "275 × 360 × 230 mm",
+     "note": "With 5050 LEDs (shown) · 3030: 11,200 lm (140 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "FL21C-N2-100",
+     "w": 100,
+     "lm": 17000,
+     "eff": 170,
+     "size": "275 × 360 × 230 mm",
+     "note": "With 5050 LEDs (shown) · 3030: 13,500 lm (135 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "FL21C-N2-120",
+     "w": 120,
+     "lm": 19560,
+     "eff": 163,
+     "size": "275 × 360 × 230 mm",
+     "note": "With 5050 LEDs (shown) · 3030: 15,240 lm (127 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "FL21D-N3-120",
+     "w": 120,
+     "lm": 21000,
+     "eff": 175,
+     "size": "375 × 385 × 250 mm",
+     "note": "With 5050 LEDs (shown) · 3030: 16,800 lm (140 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "FL21D-N3-150",
+     "w": 150,
+     "lm": 25500,
+     "eff": 170,
+     "size": "375 × 385 × 250 mm",
+     "note": "With 5050 LEDs (shown) · 3030: 20,250 lm (135 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "FL21D-N3-180",
+     "w": 180,
+     "lm": 29340,
+     "eff": 163,
+     "size": "375 × 385 × 250 mm",
+     "note": "With 5050 LEDs (shown) · 3030: 22,860 lm (127 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "FL21E-N4-180",
+     "w": 180,
+     "lm": 31500,
+     "eff": 175,
+     "size": "450 × 385 × 285 mm",
+     "note": "With 5050 LEDs (shown) · 3030: 22,400 lm (140 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "FL21E-N4-200",
+     "w": 200,
+     "lm": 34000,
+     "eff": 170,
+     "size": "450 × 385 × 285 mm",
+     "note": "With 5050 LEDs (shown) · 3030: 27,000 lm (135 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "FL21E-N4-240",
+     "w": 240,
+     "lm": 39120,
+     "eff": 163,
+     "size": "450 × 385 × 285 mm",
+     "note": "With 5050 LEDs (shown) · 3030: 30,480 lm (127 lm/W) · 3000K 5 % lower"
+    }
+   ],
+   "image_covers": [
+    "FL21M-N1-40",
+    "FL21M-N1-50",
+    "FL21M-N1-60",
+    "FL21C-N2-80",
+    "FL21C-N2-100",
+    "FL21C-N2-120",
+    "FL21D-N3-120",
+    "FL21D-N3-150",
+    "FL21D-N3-180",
+    "FL21E-N4-180",
+    "FL21E-N4-200",
+    "FL21E-N4-240"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FL18A",
+   "title": "FL18A LED high-power floodlight – 8 optical sets, 320 to 500 W, for airport aprons, stadiums and high masts",
+   "type": "Floodlight",
+   "category": "Outdoor",
+   "pdf": "hpw-spec-flood-light-fl18a-series.pdf",
+   "pages": "1-3",
+   "cct": "2300K / 3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥60 / Ra≥70",
+   "voltage": "100 ~ 277Vac",
+   "surge": "10kV line-earth",
+   "temp": "-40℃ ~ +45℃",
+   "housing": "Die-cast aluminium",
+   "warranty": "5 years",
+   "mounting": "Bracket 360° in 7.5° steps (dial), stainless steel optional",
+   "ip": "IP66",
+   "beam": "12° / 25° / sports",
+   "extras": "Light engine IP68, compartments IP66 · separate IP66 driver box · laser sight, wire mesh optional",
+   "image": "img/hpwinner/fl18a-ds.jpg",
+   "variants": [
+    {
+     "code": "FL18A-N8-320",
+     "w": 320,
+     "lm": 47040,
+     "eff": 147,
+     "size": "665 × 425 × 225 mm",
+     "note": "With Lumileds customised 5050 (shown) · Luxeon TX 3535: 38,720 lm (121 lm/W) · through tempered glass"
+    },
+    {
+     "code": "FL18A-N8-400",
+     "w": 400,
+     "lm": 56000,
+     "eff": 140,
+     "size": "665 × 425 × 225 mm",
+     "note": "With Lumileds customised 5050 (shown) · Luxeon TX 3535: 46,800 lm (117 lm/W) · through tempered glass"
+    },
+    {
+     "code": "FL18A-N8-500",
+     "w": 500,
+     "lm": 67500,
+     "eff": 135,
+     "size": "665 × 425 × 225 mm",
+     "note": "With Lumileds customised 5050 (shown) · Luxeon TX 3535: 56,000 lm (112 lm/W) · through tempered glass"
+    }
+   ],
+   "image_covers": [
+    "FL18A-N8-320",
+    "FL18A-N8-400",
+    "FL18A-N8-500"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "T78",
+   "title": "T78 LED roadway light – Zhaga Book 15 optics, tool-free gear access, tempered glass, horizontal or vertical adapter",
+   "type": "Street light",
+   "category": "Outdoor",
+   "pdf": "HPW_Specification_LED_Roadway_Light_T78_V13.pdf",
+   "pages": "1-3",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "voltage": "100 ~ 240/277Vac",
+   "surge": "10kV line-earth",
+   "temp": "-40℃ ~ +50℃",
+   "housing": "Die-cast aluminium",
+   "warranty": "",
+   "beam": "Type I / II / III / IV (Zhaga Book 15 lenses)",
+   "control": "NEMA receptacle, photocell / shorting cap optional",
+   "ip": "IP66",
+   "ik": "IK09",
+   "mounting": "Spigot Ø60 ± 3 mm, horizontal or vertical adapter, -15° ~ +15°",
+   "extras": "IK09 (T78L20 / T78E24 IK08) · NEMA 3 / 5 / 7-pin optional",
+   "image": "img/hpwinner/t78.jpg",
+   "variants": [
+    {
+     "code": "T78S03-30",
+     "w": 30,
+     "lm": 4800,
+     "eff": 160,
+     "size": "510 × 185 × 80 mm",
+     "note": "With 36 × 5050 LEDs (shown) · 96 × 3030: 4,500 lm (150 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "T78S03-50",
+     "w": 50,
+     "lm": 7750,
+     "eff": 155,
+     "size": "510 × 185 × 80 mm",
+     "note": "With 36 × 5050 LEDs (shown) · 96 × 3030: 7,000 lm (140 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "T78S03-60",
+     "w": 60,
+     "lm": 9000,
+     "eff": 150,
+     "size": "510 × 185 × 80 mm",
+     "note": "With 36 × 5050 LEDs (shown) · 96 × 3030: 8,100 lm (135 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "T78S06-40",
+     "w": 40,
+     "lm": 6400,
+     "eff": 160,
+     "size": "545 × 235 × 80 mm",
+     "note": "With 54 × 5050 LEDs (shown) · 144 × 3030: 6,000 lm (150 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "T78S06-60",
+     "w": 60,
+     "lm": 9600,
+     "eff": 160,
+     "size": "545 × 235 × 80 mm",
+     "note": "With 54 × 5050 LEDs (shown) · 144 × 3030: 8,700 lm (145 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "T78S06-90",
+     "w": 90,
+     "lm": 13950,
+     "eff": 155,
+     "size": "545 × 235 × 80 mm",
+     "note": "With 54 × 5050 LEDs (shown) · 144 × 3030: 12,600 lm (140 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "T78S06-100",
+     "w": 100,
+     "lm": 14500,
+     "eff": 145,
+     "size": "545 × 235 × 80 mm",
+     "note": "With 54 × 5050 LEDs (shown) · 144 × 3030: 13,000 lm (130 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "T78M10-80",
+     "w": 80,
+     "lm": 13200,
+     "eff": 165,
+     "size": "595 × 235 × 80 mm",
+     "note": "With 72 × 5050 LEDs (shown) · 192 × 3030: 12,000 lm (150 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "T78M10-100",
+     "w": 100,
+     "lm": 16500,
+     "eff": 165,
+     "size": "595 × 235 × 80 mm",
+     "note": "With 72 × 5050 LEDs (shown) · 192 × 3030: 15,000 lm (150 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "T78M10-110",
+     "w": 110,
+     "lm": 17600,
+     "eff": 160,
+     "size": "595 × 235 × 80 mm",
+     "note": "With 72 × 5050 LEDs (shown) · 192 × 3030: 15,950 lm (145 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "T78M10-120",
+     "w": 120,
+     "lm": 18000,
+     "eff": 150,
+     "size": "595 × 235 × 80 mm",
+     "note": "With 72 × 5050 LEDs (shown) · 192 × 3030: 16,800 lm (140 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "T78M10-150",
+     "w": 150,
+     "lm": 21750,
+     "eff": 145,
+     "size": "595 × 235 × 80 mm",
+     "note": "With 72 × 5050 LEDs (shown) · 192 × 3030: 19,500 lm (130 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "T78L15-100",
+     "w": 100,
+     "lm": 17000,
+     "eff": 170,
+     "size": "695 × 235 × 80 mm",
+     "note": "With 108 × 5050 LEDs (shown) · 288 × 3030: 15,500 lm (155 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "T78L15-120",
+     "w": 120,
+     "lm": 20400,
+     "eff": 170,
+     "size": "695 × 235 × 80 mm",
+     "note": "With 108 × 5050 LEDs (shown) · 288 × 3030: 18,600 lm (155 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "T78L15-150",
+     "w": 150,
+     "lm": 24750,
+     "eff": 165,
+     "size": "695 × 235 × 80 mm",
+     "note": "With 108 × 5050 LEDs (shown) · 288 × 3030: 22,500 lm (150 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "T78L15-180",
+     "w": 180,
+     "lm": 27900,
+     "eff": 155,
+     "size": "695 × 235 × 80 mm",
+     "note": "With 108 × 5050 LEDs (shown) · 288 × 3030: 25,200 lm (140 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "T78L15-200",
+     "w": 200,
+     "lm": 30000,
+     "eff": 150,
+     "size": "695 × 235 × 80 mm",
+     "note": "With 108 × 5050 LEDs (shown) · 288 × 3030: 27,000 lm (135 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "T78L20-150",
+     "w": 150,
+     "lm": 25500,
+     "eff": 170,
+     "size": "750 × 290 × 80 mm",
+     "note": "With 144 × 5050 LEDs (shown) · 384 × 3030: 23,250 lm (155 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "T78L20-180",
+     "w": 180,
+     "lm": 29700,
+     "eff": 165,
+     "size": "750 × 290 × 80 mm",
+     "note": "With 144 × 5050 LEDs (shown) · 384 × 3030: 27,000 lm (150 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "T78L20-200",
+     "w": 200,
+     "lm": 33000,
+     "eff": 165,
+     "size": "750 × 290 × 80 mm",
+     "note": "With 144 × 5050 LEDs (shown) · 384 × 3030: 30,000 lm (150 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "T78E24-200",
+     "w": 200,
+     "lm": 34000,
+     "eff": 170,
+     "size": "900 × 290 × 80 mm",
+     "note": "With 216 × 5050 LEDs (shown) · 576 × 3030: 30,000 lm (150 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "T78E24-240",
+     "w": 240,
+     "lm": 39600,
+     "eff": 165,
+     "size": "900 × 290 × 80 mm",
+     "note": "With 216 × 5050 LEDs (shown) · 576 × 3030: 34,800 lm (145 lm/W) · 3000K 5 % lower"
+    },
+    {
+     "code": "T78E24-250",
+     "w": 250,
+     "lm": 40000,
+     "eff": 160,
+     "size": "900 × 290 × 80 mm",
+     "note": "With 216 × 5050 LEDs (shown) · 576 × 3030: 35,000 lm (140 lm/W) · 3000K 5 % lower"
+    }
+   ],
+   "image_covers": [
+    "T78S03-30",
+    "T78S03-50",
+    "T78S03-60",
+    "T78S06-40",
+    "T78S06-60",
+    "T78S06-90",
+    "T78S06-100",
+    "T78M10-80",
+    "T78M10-100",
+    "T78M10-110",
+    "T78M10-120",
+    "T78M10-150",
+    "T78L15-100",
+    "T78L15-120",
+    "T78L15-150",
+    "T78L15-180",
+    "T78L15-200",
+    "T78L20-150",
+    "T78L20-180",
+    "T78L20-200",
+    "T78E24-200",
+    "T78E24-240",
+    "T78E24-250"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "T68",
+   "title": "T68 LED street light – 1 to 4 IP68 integral modules, tool-less latches, NEMA optional",
+   "type": "Street light",
+   "category": "Outdoor",
+   "pdf": "hpw-spec-street-light-t68-series.pdf",
+   "pages": "1-3",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "voltage": "100 ~ 277Vac",
+   "surge": "10kV line-earth",
+   "temp": "-40℃ ~ +50℃",
+   "housing": "Die-cast aluminium",
+   "warranty": "5 years",
+   "beam": "Roadway Type I / II / III (IESNA)",
+   "control": "NEMA receptacle, photocell / shorting cap optional",
+   "ip": "IP66",
+   "mounting": "Adapter L50 (Φ40–50) / L60 (Φ55–65), -15° ~ +15°",
+   "extras": "Light engine IP68 · colours grey / black / white / blue",
+   "image": "img/hpwinner/t68.jpg",
+   "variants": [
+    {
+     "code": "T68N1-60",
+     "w": 60,
+     "lm": 9600,
+     "eff": 160,
+     "size": "540 × 240 × 165 mm",
+     "note": "34 LEDs per module"
+    },
+    {
+     "code": "T68N1-100",
+     "w": 100,
+     "lm": 16000,
+     "eff": 160,
+     "size": "625 × 215 × 165 mm",
+     "note": "51 LEDs per module"
+    },
+    {
+     "code": "T68N2-120",
+     "w": 120,
+     "lm": 20040,
+     "eff": 167,
+     "size": "670 × 240 × 165 mm",
+     "note": "2 modules"
+    },
+    {
+     "code": "T68N3-180",
+     "w": 180,
+     "lm": 30060,
+     "eff": 167,
+     "size": "735 × 310 × 165 mm",
+     "note": "3 modules"
+    },
+    {
+     "code": "T68N4-240",
+     "w": 240,
+     "lm": 40080,
+     "eff": 167,
+     "size": "835 × 310 × 165 mm",
+     "note": "4 modules"
+    }
+   ],
+   "image_covers": [
+    "T68N1-60",
+    "T68N1-100",
+    "T68N2-120",
+    "T68N3-180",
+    "T68N4-240"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "T65",
+   "title": "T65 LED street light – 1 to 6 IP68 integral modules, up to 400 W, tool-less latches, NEMA optional",
+   "type": "Street light",
+   "category": "Outdoor",
+   "pdf": "hpw-spec-street-light-t65-series.pdf",
+   "pages": "1-3",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "voltage": "100 ~ 277Vac",
+   "surge": "10kV line-earth",
+   "temp": "-40℃ ~ +50℃",
+   "housing": "Die-cast aluminium",
+   "warranty": "5 years",
+   "beam": "Roadway Type I / II / III (IESNA)",
+   "control": "NEMA receptacle, photocell / shorting cap optional",
+   "ip": "IP66",
+   "ik": "IK08",
+   "mounting": "Adapter L50 (Φ40–50) / L60 (Φ55–65), -15° ~ +15° (N6: +20°)",
+   "extras": "Light engine IP68 · colours grey / black / white / blue",
+   "image": "img/hpwinner/t65.jpg",
+   "variants": [
+    {
+     "code": "T65N1-60",
+     "w": 60,
+     "lm": 8760,
+     "eff": 146,
+     "size": "540 × 240 × 165 mm",
+     "note": "34 LEDs per module"
+    },
+    {
+     "code": "T65N1-100",
+     "w": 100,
+     "lm": 14600,
+     "eff": 146,
+     "size": "625 × 215 × 165 mm",
+     "note": "51 LEDs per module"
+    },
+    {
+     "code": "T65N2-120",
+     "w": 120,
+     "lm": 18360,
+     "eff": 153,
+     "size": "670 × 240 × 165 mm",
+     "note": "2 modules"
+    },
+    {
+     "code": "T65N3-180",
+     "w": 180,
+     "lm": 27540,
+     "eff": 153,
+     "size": "735 × 310 × 165 mm",
+     "note": "3 modules"
+    },
+    {
+     "code": "T65N4-240",
+     "w": 240,
+     "lm": 36720,
+     "eff": 153,
+     "size": "835 × 310 × 165 mm",
+     "note": "4 modules"
+    },
+    {
+     "code": "T65N6-300",
+     "w": 300,
+     "lm": 46500,
+     "eff": 155,
+     "size": "1175 × 350 × 165 mm",
+     "note": "6 modules"
+    },
+    {
+     "code": "T65N6-360",
+     "w": 360,
+     "lm": 55080,
+     "eff": 153,
+     "size": "1175 × 350 × 165 mm",
+     "note": "6 modules"
+    },
+    {
+     "code": "T65N6-400",
+     "w": 400,
+     "lm": 60000,
+     "eff": 150,
+     "size": "1175 × 350 × 165 mm",
+     "note": "6 modules"
+    }
+   ],
+   "image_covers": [
+    "T65N1-60",
+    "T65N1-100",
+    "T65N2-120",
+    "T65N3-180",
+    "T65N4-240",
+    "T65N6-300",
+    "T65N6-360",
+    "T65N6-400"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "T88",
+   "title": "T88 LED street light – 4th generation IP68 light engines, up to 196 lm/W, tool-less access",
+   "type": "Street light",
+   "category": "Outdoor",
+   "pdf": "hpw-specification-led-street-light-t88-version-2.pdf",
+   "pages": "1-3",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "voltage": "200 ~ 240Vac",
+   "surge": "10kV line-earth",
+   "temp": "-40℃ ~ +50℃",
+   "housing": "Die-cast aluminium",
+   "warranty": "5 years",
+   "beam": "Roadway Type I / II / III (IESNA)",
+   "control": "NEMA receptacle, photocell / shorting cap optional",
+   "ip": "IP66",
+   "ik": "IK08",
+   "mounting": "Spigot Φ57–63 mm, -15° ~ +15°",
+   "extras": "Light engine IP68 · NEMA optional",
+   "image": "img/hpwinner/t88.jpg",
+   "variants": [
+    {
+     "code": "T88S03-20",
+     "w": 20,
+     "lm": 3600,
+     "eff": 180,
+     "size": "410 × 180 × 130 mm",
+     "note": "36 LEDs · 3000K 5 % lower"
+    },
+    {
+     "code": "T88S03-30",
+     "w": 30,
+     "lm": 5370,
+     "eff": 179,
+     "size": "410 × 180 × 130 mm",
+     "note": "36 LEDs · 3000K 5 % lower"
+    },
+    {
+     "code": "T88S03-40",
+     "w": 40,
+     "lm": 7120,
+     "eff": 178,
+     "size": "410 × 180 × 130 mm",
+     "note": "36 LEDs · 3000K 5 % lower"
+    },
+    {
+     "code": "T88S03-50",
+     "w": 50,
+     "lm": 8800,
+     "eff": 176,
+     "size": "410 × 180 × 130 mm",
+     "note": "36 LEDs · 3000K 5 % lower"
+    },
+    {
+     "code": "T88S03-60",
+     "w": 60,
+     "lm": 10380,
+     "eff": 173,
+     "size": "410 × 180 × 130 mm",
+     "note": "36 LEDs · 3000K 5 % lower"
+    },
+    {
+     "code": "T88S06-50",
+     "w": 50,
+     "lm": 9500,
+     "eff": 190,
+     "size": "530 × 180 × 130 mm",
+     "note": "72 LEDs · 3000K 5 % lower"
+    },
+    {
+     "code": "T88S06-60",
+     "w": 60,
+     "lm": 11340,
+     "eff": 189,
+     "size": "530 × 180 × 130 mm",
+     "note": "72 LEDs · 3000K 5 % lower"
+    },
+    {
+     "code": "T88S06-70",
+     "w": 70,
+     "lm": 13090,
+     "eff": 187,
+     "size": "530 × 180 × 130 mm",
+     "note": "72 LEDs · 3000K 5 % lower"
+    },
+    {
+     "code": "T88M10-80",
+     "w": 80,
+     "lm": 15280,
+     "eff": 191,
+     "size": "565 × 235 × 130 mm",
+     "note": "108 LEDs · 3000K 5 % lower"
+    },
+    {
+     "code": "T88M10-90",
+     "w": 90,
+     "lm": 17100,
+     "eff": 190,
+     "size": "565 × 235 × 130 mm",
+     "note": "108 LEDs · 3000K 5 % lower"
+    },
+    {
+     "code": "T88M10-100",
+     "w": 100,
+     "lm": 18900,
+     "eff": 189,
+     "size": "565 × 235 × 130 mm",
+     "note": "108 LEDs · 3000K 5 % lower"
+    },
+    {
+     "code": "T88M10-110",
+     "w": 110,
+     "lm": 20680,
+     "eff": 188,
+     "size": "565 × 235 × 130 mm",
+     "note": "108 LEDs · 3000K 5 % lower"
+    },
+    {
+     "code": "T88M10-120",
+     "w": 120,
+     "lm": 22320,
+     "eff": 186,
+     "size": "565 × 235 × 130 mm",
+     "note": "108 LEDs · 3000K 5 % lower"
+    },
+    {
+     "code": "T88M10-130",
+     "w": 130,
+     "lm": 23920,
+     "eff": 184,
+     "size": "565 × 235 × 130 mm",
+     "note": "108 LEDs · 3000K 5 % lower"
+    },
+    {
+     "code": "T88M10-140",
+     "w": 140,
+     "lm": 25620,
+     "eff": 183,
+     "size": "565 × 235 × 130 mm",
+     "note": "108 LEDs · 3000K 5 % lower"
+    },
+    {
+     "code": "T88M10-150",
+     "w": 150,
+     "lm": 27450,
+     "eff": 183,
+     "size": "565 × 235 × 130 mm",
+     "note": "108 LEDs · 3000K 5 % lower"
+    },
+    {
+     "code": "T88L15-110",
+     "w": 110,
+     "lm": 21560,
+     "eff": 196,
+     "size": "650 × 235 × 130 mm",
+     "note": "144 LEDs · 3000K 5 % lower"
+    },
+    {
+     "code": "T88L15-120",
+     "w": 120,
+     "lm": 23400,
+     "eff": 195,
+     "size": "650 × 235 × 130 mm",
+     "note": "144 LEDs · 3000K 5 % lower"
+    },
+    {
+     "code": "T88L15-130",
+     "w": 130,
+     "lm": 25350,
+     "eff": 195,
+     "size": "650 × 235 × 130 mm",
+     "note": "144 LEDs · 3000K 5 % lower"
+    },
+    {
+     "code": "T88L15-140",
+     "w": 140,
+     "lm": 27160,
+     "eff": 194,
+     "size": "650 × 235 × 130 mm",
+     "note": "144 LEDs · 3000K 5 % lower"
+    },
+    {
+     "code": "T88L15-150",
+     "w": 150,
+     "lm": 29100,
+     "eff": 194,
+     "size": "650 × 235 × 130 mm",
+     "note": "144 LEDs · 3000K 5 % lower"
+    },
+    {
+     "code": "T88L15-160",
+     "w": 160,
+     "lm": 30880,
+     "eff": 193,
+     "size": "650 × 235 × 130 mm",
+     "note": "144 LEDs · 3000K 5 % lower"
+    },
+    {
+     "code": "T88L15-170",
+     "w": 170,
+     "lm": 32470,
+     "eff": 191,
+     "size": "650 × 235 × 130 mm",
+     "note": "144 LEDs · 3000K 5 % lower"
+    },
+    {
+     "code": "T88L15-180",
+     "w": 180,
+     "lm": 34200,
+     "eff": 190,
+     "size": "650 × 235 × 130 mm",
+     "note": "144 LEDs · 3000K 5 % lower"
+    },
+    {
+     "code": "T88L15-190",
+     "w": 190,
+     "lm": 35720,
+     "eff": 188,
+     "size": "650 × 235 × 130 mm",
+     "note": "144 LEDs · 3000K 5 % lower"
+    },
+    {
+     "code": "T88L15-200",
+     "w": 200,
+     "lm": 37200,
+     "eff": 186,
+     "size": "650 × 235 × 130 mm",
+     "note": "144 LEDs · 3000K 5 % lower"
+    }
+   ],
+   "image_covers": [
+    "T88S03-20",
+    "T88S03-30",
+    "T88S03-40",
+    "T88S03-50",
+    "T88S03-60",
+    "T88S06-50",
+    "T88S06-60",
+    "T88S06-70",
+    "T88M10-80",
+    "T88M10-90",
+    "T88M10-100",
+    "T88M10-110",
+    "T88M10-120",
+    "T88M10-130",
+    "T88M10-140",
+    "T88M10-150",
+    "T88L15-110",
+    "T88L15-120",
+    "T88L15-130",
+    "T88L15-140",
+    "T88L15-150",
+    "T88L15-160",
+    "T88L15-170",
+    "T88L15-180",
+    "T88L15-190",
+    "T88L15-200"
    ],
    "image_shared_with": []
   }
