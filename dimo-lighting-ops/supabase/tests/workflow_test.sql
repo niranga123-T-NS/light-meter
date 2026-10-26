@@ -5021,6 +5021,51 @@ do $$ begin
     assert false, 'tender without closing';
   exception when others then assert sqlerrm = 'Give the tender closing date and time', sqlerrm; end;
 end $$;
+-- Tender fast track: SM Estimation asks, SM Projects approves → no 2-day gap before the closing
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  begin perform public.request_tender_fast_track('00000000-0000-0000-0000-0000000de001', 'Short tender'); assert false, 'sales asked';
+  exception when others then assert sqlerrm like 'Only SM Estimation%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+do $$ declare i public.inquiries := app.inq('00000000-0000-0000-0000-0000000de001'); j uuid := (select id from public.estimation_jobs where inquiry_id = '00000000-0000-0000-0000-0000000de001');
+begin
+  begin perform public.assign_estimation_job(j, (select id from u where role = 'estimation_exec'), i.tender_closes_at - interval '1 hour', 'large', 'x'); assert false, 'gap before the fast track';
+  exception when others then assert sqlerrm like '%2 working days before the tender closes%fast track%', sqlerrm; end;
+  begin perform public.request_tender_fast_track(i.id, ' '); assert false, 'no reason';
+  exception when others then assert sqlerrm = 'Give the reason for the fast track', sqlerrm; end;
+  perform public.request_tender_fast_track(i.id, 'Client gave 3 days');
+  begin perform public.request_tender_fast_track(i.id, 'Again'); assert false, 'asked twice';
+  exception when others then assert sqlerrm like 'A fast track request is already waiting%', sqlerrm; end;
+end $$;
+reset role;
+do $$ begin
+  assert (select fast_track_status from public.inquiries where id = '00000000-0000-0000-0000-0000000de001') = 'requested', 'requested';
+  assert exists (select 1 from public.approvals a join public.approval_steps s on s.approval_id = a.id
+                 where a.kind = 'tender_fast_track' and a.entity_id = '00000000-0000-0000-0000-0000000de001' and a.status = 'pending' and s.approver_role = 'sm_projects'), 'SM Projects approves';
+end $$;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+select public.decide_approval((select id from public.approvals where kind = 'tender_fast_track' and entity_id = '00000000-0000-0000-0000-0000000de001' and status = 'pending'), 'approved');
+reset role;
+do $$ declare i public.inquiries := app.inq('00000000-0000-0000-0000-0000000de001'); s jsonb := app.deadline_split(i);
+begin
+  assert i.fast_track_status = 'approved' and i.fast_track_decided_by = (select id from u where role = 'sm_projects'), 'approved by SM Projects';
+  assert (s ->> 'release_days')::int = 0 and (s ->> 'fast_track')::boolean, 'no release gap';
+  assert (s ->> 'estimation_due')::timestamptz = i.tender_closes_at, 'final pricing up to the closing time';
+  assert i.estimation_due_at = i.tender_closes_at, 'stored final pricing date moved';
+  assert exists (select 1 from public.notifications where kind = 'tender_fast_track' and recipient_id = (select id from u where role = 'sm_estimation')), 'SM Estimation told';
+end $$;
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+do $$ declare i public.inquiries := app.inq('00000000-0000-0000-0000-0000000de001'); j uuid := (select id from public.estimation_jobs where inquiry_id = '00000000-0000-0000-0000-0000000de001');
+begin
+  perform public.assign_estimation_job(j, (select id from u where role = 'estimation_exec'), i.tender_closes_at - interval '1 hour', 'large', 'Fast track');
+  begin perform public.assign_estimation_job(j, (select id from u where role = 'estimation_exec'), i.tender_closes_at + interval '1 hour', 'large', 'x'); assert false, 'after the closing';
+  exception when others then assert sqlerrm like 'Fast track: the estimation must be due by the tender closing%', sqlerrm; end;
+  begin perform public.request_tender_fast_track(i.id, 'Again'); assert false, 'already approved';
+  exception when others then assert sqlerrm = 'The fast track is already approved', sqlerrm; end;
+end $$;
+reset role;
 rollback to savepoint parallel_de;
 
 

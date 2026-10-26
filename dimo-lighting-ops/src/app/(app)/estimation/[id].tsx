@@ -32,7 +32,7 @@ export default function EstimationJobScreen() {
   const { data, error, reload } = useLoad(async () => {
     const { data: j, error: e } = await supabase
       .from('estimation_jobs')
-      .select('*, inquiries(code, project_name, inquiry_name, customer_name, customer_deadline, deadline_type, tender_closes_at, tender_ref, design_due_at, estimation_due_at, route, status, duty_status, currency, project_type, solution_level, manufacturing_origin, expectation_notes, scope_description, design_scope, estimation_scope, estimation_basis, quotation_required_by, debtor_flag, revision)')
+      .select('*, inquiries(code, project_name, inquiry_name, customer_name, customer_deadline, deadline_type, tender_closes_at, tender_ref, fast_track_status, design_due_at, estimation_due_at, route, status, duty_status, currency, project_type, solution_level, manufacturing_origin, expectation_notes, scope_description, design_scope, estimation_scope, estimation_basis, quotation_required_by, debtor_flag, revision)')
       .eq('id', id)
       .single();
     if (e) throw new Error(e.message);
@@ -459,6 +459,8 @@ export default function EstimationJobScreen() {
 
 function AssignEstimator({ job, onDone }: { job: EstimationJob; onDone: () => void }) {
   const dialog = useDialog();
+  const tenderJob = job.inquiries?.deadline_type === 'tender';
+  const fast = tenderJob && job.inquiries?.fast_track_status === 'approved';
   return (
     <Button
       variant={job.assignee_id ? 'secondary' : 'primary'}
@@ -471,7 +473,7 @@ function AssignEstimator({ job, onDone }: { job: EstimationJob; onDone: () => vo
         const currentDay = job.due_at ? fmtDateISO(job.due_at) : undefined;
         const r = await dialog.prompt({
           title: 'Assign estimator',
-          message: `Pre-selected by project type. Assigning the other estimator needs a reason. A new due date must leave 1 working day before the customer deadline${job.inquiries?.customer_deadline ? ` (${fmtDate(job.inquiries.customer_deadline)})` : ''} – keep the date to change only the estimator.`,
+          message: `Pre-selected by project type. Assigning the other estimator needs a reason. ${fast ? `Fast track tender: the due date may be up to the closing (${fmtDateTime(job.inquiries?.tender_closes_at ?? null)}).` : tenderJob ? `A new due date must leave 2 working days before the tender closes (${fmtDateTime(job.inquiries?.tender_closes_at ?? null)}) – for less, SM Estimation asks SM Projects for a fast track on the inquiry's Deadline card.` : `A new due date must leave 1 working day before the customer deadline${job.inquiries?.customer_deadline ? ` (${fmtDate(job.inquiries.customer_deadline)})` : ''}.`} Keep the date to change only the estimator.`,
           fields: [
             { key: 'a', label: 'Estimator', type: 'select', required: true, initial: job.assignee_id ?? def ?? undefined, options: (people ?? []).map((p) => ({ value: p.id, label: `${p.full_name}${p.id === def ? ' (default)' : ''}` })) },
             { key: 'd', label: 'Estimation due date', type: 'date', required: true, initial: currentDay, hint: job.due_at ? 'Keep the current date to change only the estimator' : undefined },
@@ -495,7 +497,8 @@ function AssignEstimator({ job, onDone }: { job: EstimationJob; onDone: () => vo
             await rpc('reassign_job', { p_entity_type: 'estimation_job', p_job: job.id, p_assignee: r.a, p_reason: r.r || 'Hand-over' });
           }
           // Same date as before → keep the exact due time (no new deadline check); a new date is checked against the current customer deadline
-          const due = job.due_at && r.d === currentDay && job.status !== 'revision_requested' ? job.due_at : endOfWorkDay(r.d);
+          const end = endOfWorkDay(r.d);
+          const due = job.due_at && r.d === currentDay && job.status !== 'revision_requested' ? job.due_at : fast && job.inquiries?.tender_closes_at && new Date(end) > new Date(job.inquiries.tender_closes_at) ? job.inquiries.tender_closes_at : end; // fast track: on the closing day, due at the closing time
           await rpc('assign_estimation_job', { p_job: job.id, p_assignee: r.a, p_due: due, p_value_band: r.band, p_reason: r.r || null });
           onDone();
         }, 'Assigned – estimator notified');

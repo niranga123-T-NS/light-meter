@@ -37,7 +37,7 @@ export function DeadlineCard({ inquiry: i, onChange }: { inquiry: Inquiry; onCha
       i.route === 'A' ? rpc<Split | null>('deadline_split', { p_inquiry: i.id }).catch(() => null) : Promise.resolve(null),
     ]);
     return { ext: (x.data ?? []) as DeadlineExtension[], split };
-  }, [i.id, i.customer_deadline, i.tender_closes_at, i.extension_status, i.design_due_at]);
+  }, [i.id, i.customer_deadline, i.tender_closes_at, i.extension_status, i.design_due_at, i.fast_track_status]);
   const ext = data?.ext ?? [];
   const open = ext.find((x) => x.status === 'requested');
   const isOpen = !CLOSED.includes(i.status);
@@ -116,12 +116,26 @@ export function DeadlineCard({ inquiry: i, onChange }: { inquiry: Inquiry; onCha
     }, 'Closing date moved – dates re-split and everyone told');
   };
 
+  const fastTrack = async () => {
+    const r = await dialog.prompt({
+      title: 'Ask for a tender fast track',
+      message: `A tender normally keeps 2 working days between the estimation due date and the closing (${fmtDateTime(i.tender_closes_at)}). With a fast track the gap is not applied – the estimation may be due up to the closing. SM Projects approves.`,
+      fields: [{ key: 'r', label: 'Why the tender has to be fast-tracked', type: 'multiline', required: true }],
+      confirmLabel: 'Send to SM Projects',
+    });
+    if (r) await dialog.run(async () => { await rpc('request_tender_fast_track', { p_inquiry: i.id, p_reason: r.r }); await done(); }, 'Fast track request sent to SM Projects');
+  };
+
   const split = data?.split;
+  const canFast = tender && isOpen && ['sm_estimation', 'am_estimation'].includes(me.role) && i.fast_track_status !== 'approved' && i.fast_track_status !== 'requested';
   const approved = i.route === 'A' && i.design_due_status === 'approved' && i.design_due_at;
   const buttons = !isOpen
     ? []
     : tender
-      ? salesSide ? [<Button key="tx" small variant="secondary" title="Tender extended by the client" onPress={tenderExtended} />] : []
+      ? [
+          ...(salesSide ? [<Button key="tx" small variant="secondary" title="Tender extended by the client" onPress={tenderExtended} />] : []),
+          ...(canFast ? [<Button key="ft" small variant="secondary" title="Ask for fast track" onPress={fastTrack} />] : []),
+        ]
       : open
         ? salesSide
           ? [
@@ -141,8 +155,20 @@ export function DeadlineCard({ inquiry: i, onChange }: { inquiry: Inquiry; onCha
           {i.extension_status === 'requested' ? <Pill label="Extension requested" tone={colors.amber} /> : null}
           {i.extension_status === 'refused' ? <Pill label="Extension refused" tone={colors.red} /> : null}
           {i.extension_status === 'granted' ? <Pill label="Extended" tone={colors.green} /> : null}
+          {tender && i.fast_track_status === 'approved' ? <Pill label="Fast track" tone={colors.green} solid /> : null}
+          {tender && i.fast_track_status === 'requested' ? <Pill label="Fast track requested" tone={colors.amber} /> : null}
+          {tender && i.fast_track_status === 'rejected' ? <Pill label="Fast track not approved" tone={colors.red} /> : null}
         </Row>
         {tender ? <Muted>{`Ref ${i.tender_ref || '—'} · submitted by ${submissionLabel(i.tender_submission)} · the closing moves only if the client issues an addendum`}</Muted> : null}
+        {tender && i.fast_track_status ? (
+          <Muted>
+            {i.fast_track_status === 'approved'
+              ? `Fast track approved by SM Projects – the 2-day check and release gap is not applied; the estimation may be due up to the closing. ${i.fast_track_reason ?? ''}`
+              : i.fast_track_status === 'requested'
+                ? `Fast track asked for – waiting for SM Projects (Approvals). ${i.fast_track_reason ?? ''}`
+                : 'Fast track not approved – the estimation keeps 2 working days before the closing.'}
+          </Muted>
+        ) : null}
         {open ? (
           <Muted>{`Asked to move to ${fmtDate(open.proposed_deadline)} – ${open.reason}. Everyone keeps working to ${fmtDate(i.customer_deadline)} until the client agrees.`}</Muted>
         ) : null}
@@ -157,7 +183,7 @@ export function DeadlineCard({ inquiry: i, onChange }: { inquiry: Inquiry; onCha
                 tone="#0F766E"
                 note={split ? `${split.pricing_days} working day${split.pricing_days > 1 ? 's' : ''}` : undefined}
               />
-              <Step label="Check & release" date={split ? `${split.release_days} working day${split.release_days > 1 ? 's' : ''}` : '—'} tone={colors.ink} />
+              <Step label="Check & release" date={split ? (split.release_days ? `${split.release_days} working day${split.release_days > 1 ? 's' : ''}` : 'Fast track – no gap') : '—'} tone={colors.ink} />
               <Step label={tender ? 'Tender closes' : 'Client deadline'} date={tender ? fmtDateTime(i.tender_closes_at) : fmtDate(i.customer_deadline)} tone={colors.brand} />
             </Row>
             {!approved && split?.tight ? <Muted style={{ color: colors.red }}>Too tight for the standard split – the design date has to be agreed with SM Projects, or ask the client for more time.</Muted> : null}
