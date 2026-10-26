@@ -647,7 +647,8 @@ export function Segmented<T extends string>({
   value: T;
   options: { value: T; label: string; badge?: number }[];
   onChange: (v: T) => void;
-  /** Wrap onto more lines instead of scrolling sideways – every tab stays visible on a phone */
+  /** Wrap onto more lines instead of scrolling sideways – every tab stays visible on a phone (always so on the web,
+   * where a mouse cannot drag the row sideways) */
   wrap?: boolean;
 }) {
   const tabs = options.map((o) => (
@@ -656,7 +657,7 @@ export function Segmented<T extends string>({
       {o.badge ? <Badge count={o.badge} /> : null}
     </Pressable>
   ));
-  if (wrap) return <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingVertical: 4 }}>{tabs}</View>;
+  if (wrap || Platform.OS === 'web') return <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingVertical: 4 }}>{tabs}</View>;
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingVertical: 4 }}>
       {tabs}

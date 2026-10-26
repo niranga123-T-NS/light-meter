@@ -8570,9 +8570,14 @@ do $$ declare n int; begin
   assert n = 0, 'GM cannot remove';
 end $$;
 reset role;
-select pg_temp.act_as('assistant_engineer'); set role authenticated;
+select pg_temp.act_as('sub_supervisor'); set role authenticated;
 do $$ begin
   assert not exists (select 1 from public.project_references), 'no Sales Tools – no references';
+end $$;
+reset role;
+select pg_temp.act_as('assistant_engineer'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.project_references), 'execution team sees the references';
 end $$;
 reset role;
 
@@ -9896,6 +9901,14 @@ do $$ begin
   assert public.sq_reports_me() and not public.sq_access_me(), 'estimator allowed for the reports only';
   assert (select count(*) from public.sq_quotes) > 0, 'reads the quotes';
 end $$;
+reset role;
+
+-- Sales Tools for the execution team (Dacademy only before); not for Estimation
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ begin assert app.sees_sales_tools(), 'SEE has Sales Tools'; end $$;
+reset role;
+select pg_temp.act_as('estimation_exec'); set role authenticated;
+do $$ begin assert not app.sees_sales_tools(), 'Estimation has Dacademy only'; end $$;
 reset role;
 
 \echo 'ALL WORKFLOW TESTS PASSED'

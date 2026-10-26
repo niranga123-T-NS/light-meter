@@ -20,7 +20,7 @@ export default function SalesTools() {
   const params = useLocalSearchParams<{ tab?: Tab }>();
   const [tab, setTab] = useState<Tab>(params.tab ?? 'standards');
   const [search, setSearch] = useState('');
-  // the engineers and Estimation have Dacademy only, not the rest of Sales Tools
+  // Estimation has Dacademy only, not the rest of Sales Tools
   if (ACADEMY_ONLY.includes(me.role)) {
     return (
       <Screen maxWidth={1100}>
@@ -29,7 +29,7 @@ export default function SalesTools() {
       </Screen>
     );
   }
-  if (!TOOLS_ROLES.includes(me.role)) return <Screen><Notice>Sales Tools are for the sales, SM Projects, DGM and Design teams.</Notice></Screen>;
+  if (!TOOLS_ROLES.includes(me.role)) return <Screen><Notice>Sales Tools are for the sales, SM Projects, DGM, Design and execution teams.</Notice></Screen>;
   const android = Platform.OS === 'android';
   return (
     <Screen maxWidth={1100}>

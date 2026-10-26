@@ -57,7 +57,7 @@ export const STD_COLS: Record<StdGroup, Col[]> = {
 };
 
 /** Who opens Sales Tools, and who keeps the standards */
-export const TOOLS_ROLES: Role[] = ['asm_building', 'asm_infra', 'sm_projects', 'gm', 'design_manager', 'lighting_designer', 'lighting_engineer', 'sys_admin'];
+export const TOOLS_ROLES: Role[] = ['asm_building', 'asm_infra', 'sm_projects', 'gm', 'design_manager', 'lighting_designer', 'lighting_engineer', 'sys_admin', 'senior_elec_engineer', 'assistant_engineer', 'trainee'];
 export const STD_EDITORS: Role[] = ['design_manager', 'sys_admin'];
 
 export const stdVal = (s: Standard, c: Col) => {
