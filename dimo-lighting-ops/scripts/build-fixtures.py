@@ -1,5 +1,6 @@
 # Builds public/fixtures/library.json – the fixture library the app searches – from the catalogue extracts in data/catalogs/*.json.
 # Run after adding or correcting a catalogue: python3 scripts/build-fixtures.py
+# When photos were added or changed, then also rebuild the photo-search index: node scripts/build-fixture-vision.cjs
 import json, re, glob, os
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CAT = os.path.join(ROOT, 'data', 'catalogs')

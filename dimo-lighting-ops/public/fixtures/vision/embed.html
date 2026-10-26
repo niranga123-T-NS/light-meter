@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Photo fingerprint</title>
+</head>
+<body>
+<script type="module">
+// The phone app's photo search: the app sends a picture (data URL) with window.fingerprint(id, src, crops) and gets {id, v} or {id, error} back
+import { embed, init } from './embed.mjs';
+const reply = (m) => window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify(m));
+window.fingerprint = (id, src, crops) => embed(src, crops).then((v) => reply({ id, v })).catch((e) => reply({ id, error: String(e && e.message || e) }));
+init().then(() => reply({ ready: true })).catch((e) => reply({ error: String(e && e.message || e) }));
+</script>
+</body>
+</html>

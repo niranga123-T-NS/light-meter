@@ -6,7 +6,7 @@ import { Platform } from 'react-native';
 import { rpc, supabase } from './supabase';
 import type { Attachment } from './types';
 
-export type PickedFile = { name: string; uri: string; mimeType?: string | null; size?: number | null; webFile?: Blob };
+export type PickedFile = { name: string; uri: string; mimeType?: string | null; size?: number | null; webFile?: Blob; base64?: string };
 
 const MAX_BYTES = 50 * 1024 * 1024; // 50 MB (Section 7.5)
 
@@ -27,7 +27,7 @@ export async function pickDocument(): Promise<PickedFile | null> {
   return { name: a.name, uri: a.uri, mimeType: a.mimeType, size: a.size, webFile: a.file };
 }
 
-export async function pickImage(fromCamera = false, square = false): Promise<PickedFile | null> {
+export async function pickImage(fromCamera = false, square = false, base64 = false): Promise<PickedFile | null> {
   if (fromCamera) {
     const perm = await ImagePicker.requestCameraPermissionsAsync();
     if (!perm.granted) throw new Error('Camera permission is needed to take a photo.');
@@ -37,6 +37,7 @@ export async function pickImage(fromCamera = false, square = false): Promise<Pic
     quality: 0.7,
     allowsEditing: square,
     aspect: square ? [1, 1] : undefined,
+    base64,
   };
   const res = fromCamera ? await ImagePicker.launchCameraAsync(opts) : await ImagePicker.launchImageLibraryAsync(opts);
   if (res.canceled || !res.assets?.length) return null;
@@ -47,6 +48,7 @@ export async function pickImage(fromCamera = false, square = false): Promise<Pic
     mimeType: a.mimeType ?? 'image/jpeg',
     size: a.fileSize,
     webFile: a.file ?? undefined,
+    base64: a.base64 ?? undefined,
   };
 }
 
