@@ -8,7 +8,8 @@ OUT = os.path.join(ROOT, 'public', 'fixtures', 'library.json')
 SRC = {'zc_lighting': ('ZC Lighting', 'ZC_2.pdf'), 'zc_lighting_part1': ('ZC Lighting', 'ZC_1.pdf'), 'grnled': ('GRNLED', '2026_GRNLED_Catalogue.pdf'), 'coreshine': ('CoreShine', 'Coreshine.pdf'),
        'hemnord': ('HEMNORD (Cregini)', 'HEMNORD_1.pdf'), 'hemnord_2': ('HEMNORD (Cregini)', 'HEMNORD_2 / Hem_nord_6 / Hem_nord_7.pdf'), 'hemnord_3': ('HEMNORD (Cregini)', 'HEMNORD_3 / Hem_nord_8.pdf'), 'intelight': ('Intelight', 'intelight_katalog_2026.pdf'), 'trilux': ('TRILUX', 'Trilux_1.pdf / Trilux_2.pdf (Product Portfolio 25)'), 'holux': ('Holux', 'Holux_1.pdf / Holux_2.pdf'), 'kyd': ('KYD', 'KYD_Catalog-NEW_version_1.pdf'),
        'hpwinner': ('HPWINNER', 'HPWINNER_Catalogue_202607.pdf'), 'samcom': ('SAMCOM', 'SAMCOM emergency lighting datasheets'),
-       'simes': ('SIMES', 'SIMES catalogue 2027-2028'), 'venezina': ('VENEZINA', 'VENEZINA_1.pdf / VENEZINA_2.pdf')}
+       'simes': ('SIMES', 'SIMES catalogue 2027-2028'), 'venezina': ('VENEZINA', 'VENEZINA_1.pdf / VENEZINA_2.pdf'),
+       'vellnice': ('VELLNICE', 'Vellnice_Commercial_lighting_2024-205 (Part 1–7)')}
 TYPES = [('Strip / neon', r'strip|neon'), ('Tube / lamp', r'\btube\b|\blamp\b|bulb|corn|\bgu10\b|\bpar\b|ar111|candle|mirror'),
          ('Street light', r'street|road|post.?top|courtyard|garden pole|area light|high.?mast'), ('Floodlight', r'flood|sports|stadium|tennis|padel|façade|facade|architectural'),
          ('High bay', r'high.?bay|ufo'), ('Tri-proof / batten', r'tri.?proof|waterproof light|batten|bulkhead.*linear'),
@@ -53,7 +54,7 @@ def steps(s):
     v = [x for x in nums(m.group(1))] if m else []
     return sorted(set(v)) if len(v) > 1 else None
 # catalogues whose extracts already carry the fixture type
-TYPED = {'intelight', 'hpwinner', 'samcom', 'simes', 'venezina'}
+TYPED = {'intelight', 'hpwinner', 'samcom', 'simes', 'venezina', 'vellnice'}
 out, n = [], 0
 for path in sorted(glob.glob(os.path.join(CAT, '*.json'))):
     key = os.path.basename(path)[:-5]
