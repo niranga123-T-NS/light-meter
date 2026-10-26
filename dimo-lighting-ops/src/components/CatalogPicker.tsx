@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { Button, Chip, colors, Muted, Row, styles } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 
@@ -49,7 +49,7 @@ export function CatalogPicker({ visible, areas, onClose, onPick }: { visible: bo
             placeholderTextColor={colors.faint}
             style={[styles.input, { marginBottom: 8 }]}
           />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingBottom: 6 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={Platform.OS === 'web'} contentContainerStyle={{ gap: 6, paddingBottom: 6 }}>
             <Chip label="All categories" on={!cat} onPress={() => setCat(null)} />
             {cats.map((c) => (
               <Chip key={c.category} label={`${c.suits ? '★ ' : ''}${c.category} (${c.items})`} on={cat === c.category} onPress={() => setCat(cat === c.category ? null : c.category)} />

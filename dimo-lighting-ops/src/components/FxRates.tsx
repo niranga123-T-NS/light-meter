@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Platform, ScrollView, Text, View } from 'react-native';
 import Svg, { Line, Path, Text as SvgText } from 'react-native-svg';
 import { Button, Card, colors, Muted, Pill, Row, Section } from '@/components/ui';
 import { useMe } from '@/lib/auth';
@@ -32,7 +32,7 @@ type Col = { h: string; sub: string; w: number; v: (c: Ccy) => React.ReactNode }
 
 function Table({ cols }: { cols: Col[] }) {
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+    <ScrollView horizontal showsHorizontalScrollIndicator={Platform.OS === 'web'}>
       <View>
         <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderColor: colors.line, paddingBottom: 6 }}>
           <View style={{ width: 120 }}>
@@ -193,7 +193,7 @@ export function FxShort({ board }: { board: FxBoard }) {
   const cell = { width: SHORT_COL, alignItems: 'flex-end' as const };
   const weekday = new Date(board.today).getDay() % 6 !== 0;
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+    <ScrollView horizontal showsHorizontalScrollIndicator={Platform.OS === 'web'}>
       <View style={{ gap: 2, width: SHORT_W }}>
       <View style={{ flexDirection: 'row', paddingBottom: 4, borderBottomWidth: 1, borderColor: colors.line }}>
         <View style={{ width: 48 }} />
