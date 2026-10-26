@@ -326,6 +326,8 @@ export type EstimationJob = {
   supplier_waits: { supplier: string; requested?: string; expected?: string; received?: string | null }[];
   design_version_used: string | null;
   hold_reason: string | null;
+  clar_paused_at?: string | null;
+  clar_paused_minutes?: number;
   requested_due_at: string | null;
   review_comment: string | null;
   needs_sm_projects?: boolean;

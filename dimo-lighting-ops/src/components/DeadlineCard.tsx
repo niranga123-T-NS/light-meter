@@ -32,11 +32,12 @@ export function DeadlineCard({ inquiry: i, onChange }: { inquiry: Inquiry; onCha
   const dialog = useDialog();
   const tender = isTender(i);
   const { data, reload } = useLoad(async () => {
-    const [x, split] = await Promise.all([
+    const [x, split, clar] = await Promise.all([
       supabase.from('deadline_extensions').select('*').eq('inquiry_id', i.id).order('requested_at', { ascending: false }),
       i.route === 'A' ? rpc<Split | null>('deadline_split', { p_inquiry: i.id }).catch(() => null) : Promise.resolve(null),
+      supabase.from('clarifications').select('asked_at').eq('inquiry_id', i.id).is('answered_at', null).order('asked_at'),
     ]);
-    return { ext: (x.data ?? []) as DeadlineExtension[], split };
+    return { ext: (x.data ?? []) as DeadlineExtension[], split, openClar: (clar.data ?? []) as { asked_at: string }[] };
   }, [i.id, i.customer_deadline, i.tender_closes_at, i.extension_status, i.design_due_at, i.fast_track_status]);
   const ext = data?.ext ?? [];
   const open = ext.find((x) => x.status === 'requested');
@@ -160,6 +161,11 @@ export function DeadlineCard({ inquiry: i, onChange }: { inquiry: Inquiry; onCha
           {tender && i.fast_track_status === 'rejected' ? <Pill label="Fast track not approved" tone={colors.red} /> : null}
         </Row>
         {tender ? <Muted>{`Ref ${i.tender_ref || '—'} · submitted by ${submissionLabel(i.tender_submission)} · the closing moves only if the client issues an addendum`}</Muted> : null}
+        {data?.openClar.length ? (
+          <Muted style={{ color: colors.amber, fontWeight: '600' }}>
+            {`${data.openClar.length} clarification${data.openClar.length > 1 ? 's' : ''} to Design open since ${fmtDateTime(data.openClar[0].asked_at)} – Estimation is paused. Design, Estimation and SM Projects are warned 3 working days before the ${tender ? 'closing' : 'deadline'}, daily from 2 days.`}
+          </Muted>
+        ) : null}
         {tender && i.fast_track_status ? (
           <Muted>
             {i.fast_track_status === 'approved'

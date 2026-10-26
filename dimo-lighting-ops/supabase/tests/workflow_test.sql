@@ -5021,6 +5021,88 @@ do $$ begin
     assert false, 'tender without closing';
   exception when others then assert sqlerrm = 'Give the tender closing date and time', sqlerrm; end;
 end $$;
+-- Clarifications to Design stop the estimation clock; late answers and near deadlines are escalated
+select set_config('test.closes', (select tender_closes_at::text from public.inquiries where id = '00000000-0000-0000-0000-0000000de001'), false);
+select pg_temp.act_as('estimation_exec'); set role authenticated;
+do $$ declare j public.estimation_jobs := (select e from public.estimation_jobs e where inquiry_id = '00000000-0000-0000-0000-0000000de001'); c1 uuid; c2 uuid;
+begin
+  perform set_config('test.due0', j.due_at::text, false);
+  begin perform public.ask_clarification(j.id, ' '); assert false, 'empty question';
+  exception when others then assert sqlerrm = 'Write the question', sqlerrm; end;
+  c1 := public.ask_clarification(j.id, 'Pendant height for the hall?');
+  c2 := public.ask_clarification(j.id, 'CCT for the corridor?');
+  perform set_config('test.c1', c1::text, false); perform set_config('test.c2', c2::text, false);
+end $$;
+reset role;
+do $$ declare j public.estimation_jobs := (select e from public.estimation_jobs e where inquiry_id = '00000000-0000-0000-0000-0000000de001');
+begin
+  assert j.clar_paused_at is not null, 'paused for the clarification';
+  assert not exists (select 1 from public.sla_clocks where entity_type = 'estimation_job' and entity_id = j.id and stopped_at is null and paused_at is null), 'every estimation clock stopped';
+  assert exists (select 1 from public.sla_clocks where entity_type = 'estimation_job' and entity_id = j.id and stopped_at is null and hold_reason = 'Waiting for Design clarification'), 'clock shows why';
+  assert (select answer_by > asked_at and answer_by <= app.add_work_minutes(asked_at, app.working_minutes_per_day()) from public.clarifications where id = current_setting('test.c1')::uuid), 'answer by within 1 working day';
+  assert exists (select 1 from public.notifications where kind = 'clarification' and recipient_id = (select id from u where role = 'lighting_designer')), 'designer told';
+  -- the clock has been stopped for a while
+  update public.estimation_jobs set clar_paused_at = now() - interval '7 days' where id = j.id;
+end $$;
+-- a hold resumed while a clarification is open keeps the clock stopped
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+do $$ declare j uuid := (select id from public.estimation_jobs where inquiry_id = '00000000-0000-0000-0000-0000000de001');
+begin
+  perform public.hold_job('estimation_job', j, 'Supplier price');
+  perform public.resume_job('estimation_job', j);
+  assert not exists (select 1 from public.sla_clocks where entity_type = 'estimation_job' and entity_id = j and stopped_at is null and paused_at is null), 'still stopped after the hold';
+end $$;
+reset role;
+select pg_temp.act_as('lighting_designer'); set role authenticated;
+select public.answer_clarification(current_setting('test.c1')::uuid, '3 m pendant');
+reset role;
+do $$ begin
+  assert (select clar_paused_at is not null from public.estimation_jobs where inquiry_id = '00000000-0000-0000-0000-0000000de001'), 'one still open – still paused';
+end $$;
+select pg_temp.act_as('lighting_designer'); set role authenticated;
+do $$ begin
+  perform public.answer_clarification(current_setting('test.c2')::uuid, '4000 K');
+  begin perform public.answer_clarification(current_setting('test.c2')::uuid, 'again'); assert false, 'answered twice';
+  exception when others then assert sqlerrm = 'Already answered', sqlerrm; end;
+end $$;
+reset role;
+do $$ declare j public.estimation_jobs := (select e from public.estimation_jobs e where inquiry_id = '00000000-0000-0000-0000-0000000de001');
+begin
+  assert j.clar_paused_at is null and j.clar_paused_minutes > 0, 'restarted, paused time kept';
+  assert j.due_at = app.add_work_minutes(current_setting('test.due0')::timestamptz, j.clar_paused_minutes), 'due date moved by the paused time';
+  assert not exists (select 1 from public.sla_clocks where entity_type = 'estimation_job' and entity_id = j.id and stopped_at is null and paused_at is not null), 'clock running again';
+  assert exists (select 1 from public.notifications where kind = 'clarification_answered' and recipient_id = (select id from u where role = 'estimation_exec')), 'estimator told';
+  assert exists (select 1 from public.notifications where kind = 'clarification_due_risk' and recipient_id = (select id from u where role = 'sm_estimation')), 'SM Estimation warned: due date past the release time';
+end $$;
+-- late answer: reminder, then SM Projects; deadline 3 days → warning, 2 days → Critical
+select pg_temp.act_as('estimation_exec'); set role authenticated;
+select set_config('test.c3', public.ask_clarification((select id from public.estimation_jobs where inquiry_id = '00000000-0000-0000-0000-0000000de001'), 'Mounting for the canopy?')::text, false);
+reset role;
+do $$ declare day numeric := app.working_minutes_per_day();
+begin
+  update public.clarifications set answer_by = now() - interval '1 minute' where id = current_setting('test.c3')::uuid;
+  perform public.clarification_tick();
+  assert exists (select 1 from public.notifications where kind = 'clarification_overdue' and recipient_id = (select id from u where role = 'lighting_designer')), 'designer reminded';
+  assert exists (select 1 from public.notifications where kind = 'clarification_overdue' and recipient_id = (select id from u where role = 'design_manager')), 'Design Manager reminded';
+  assert not exists (select 1 from public.notifications where kind = 'clarification_escalated'), 'not escalated yet';
+  update public.clarifications set answer_by = now() - interval '7 days' where id = current_setting('test.c3')::uuid;
+  perform public.clarification_tick();
+  assert exists (select 1 from public.notifications where kind = 'clarification_escalated' and recipient_id = (select id from u where role = 'sm_projects')), 'SM Projects after half a day';
+  perform set_config('app.workflow', '1', true);
+  update public.inquiries set tender_closes_at = app.add_work_minutes(now(), 2.5 * day) where id = '00000000-0000-0000-0000-0000000de001';
+  perform public.clarification_tick();
+  assert exists (select 1 from public.notifications where kind = 'clarification_deadline_warning' and recipient_id = (select id from u where role = 'sm_projects')), '3-day warning to SM Projects';
+  assert exists (select 1 from public.notifications where kind = 'clarification_deadline_warning' and recipient_id = (select id from u where role = 'estimation_exec')), 'and the estimator';
+  assert exists (select 1 from public.notifications where kind = 'clarification_deadline_warning' and recipient_id = (select id from u where role = 'lighting_designer')), 'and the designer';
+  update public.inquiries set tender_closes_at = app.add_work_minutes(now(), 1.5 * day) where id = '00000000-0000-0000-0000-0000000de001';
+  perform public.clarification_tick();
+  assert exists (select 1 from public.notifications where kind = 'clarification_deadline_critical' and priority = 'critical' and recipient_id = (select id from u where role = 'design_manager')), 'Critical at 2 days';
+  assert exists (select 1 from public.notifications where kind = 'clarification_deadline_critical' and recipient_id = (select id from u where role = 'sm_estimation')), 'to Estimation too';
+  update public.inquiries set tender_closes_at = current_setting('test.closes')::timestamptz where id = '00000000-0000-0000-0000-0000000de001';
+end $$;
+select pg_temp.act_as('lighting_designer'); set role authenticated;
+select public.answer_clarification(current_setting('test.c3')::uuid, 'Surface');
+reset role;
 -- Tender fast track: SM Estimation asks, SM Projects approves → no 2-day gap before the closing
 select pg_temp.act_as('asm_building'); set role authenticated;
 do $$ begin

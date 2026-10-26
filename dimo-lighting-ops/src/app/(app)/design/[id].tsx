@@ -15,7 +15,7 @@ import { useLoad, useMasters, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 import type { Attachment, BrandLine, DesignJob } from '@/lib/types';
 
-type Clarification = { id: string; question: string; asked_by: string; asked_at: string; answer: string | null; answered_at: string | null };
+type Clarification = { id: string; question: string; asked_by: string; asked_at: string; answer: string | null; answered_at: string | null; answer_by: string | null };
 
 const DELIVERABLES = [
   'Lighting layout drawings (DWG / PDF)',
@@ -286,8 +286,8 @@ export default function DesignJobScreen() {
             <ListRow
               key={c.id}
               title={c.question}
-              subtitle={c.answer ? `Answer: ${c.answer} · ${fmtDateTime(c.answered_at)}` : `Asked by ${people[c.asked_by]?.full_name ?? ''} · ${fmtDateTime(c.asked_at)}`}
-              highlight={c.answer ? undefined : colors.amber}
+              subtitle={c.answer ? `Answer: ${c.answer} · ${fmtDateTime(c.answered_at)}` : `Asked by ${people[c.asked_by]?.full_name ?? ''} · ${fmtDateTime(c.asked_at)}${c.answer_by ? ` · answer by ${fmtDateTime(c.answer_by)}${new Date(c.answer_by) < new Date() ? ' – LATE' : ''}` : ''} · Estimation is paused until you answer`}
+              highlight={c.answer ? undefined : c.answer_by && new Date(c.answer_by) < new Date() ? colors.red : colors.amber}
               right={
                 !c.answer && (mine || dm) ? (
                   <Button
