@@ -16,7 +16,7 @@ import { projectTypeLabel } from '@/lib/roles';
 import { rpc, supabase } from '@/lib/supabase';
 import type { Attachment, BrandLine, EstimationJob, Quotation } from '@/lib/types';
 
-type Clarification = { id: string; question: string; asked_at: string; answer: string | null; answered_at: string | null };
+type Clarification = { id: string; question: string; asked_at: string; answer: string | null; answered_at: string | null; answer_by: string | null; paused_minutes: number };
 
 /** Estimation job workspace (Section 7) – SM Estimation and the assigned estimator. */
 export default function EstimationJobScreen() {
@@ -178,6 +178,9 @@ export default function EstimationJobScreen() {
         ) : null}
         {j.needs_sm_projects && j.status === 'approved' ? <Notice tone={colors.green}>Approved – SM Estimation releases it to sales.</Notice> : null}
         {j.status === 'on_hold' ? <Notice tone={colors.grey}>On hold: {j.hold_reason}</Notice> : null}
+        {j.clar_paused_at ? (
+          <Notice tone={colors.amber}>{`Estimation clock stopped – waiting for Design clarification since ${fmtDateTime(j.clar_paused_at)}. When the last question is answered the clock restarts and the due date moves later by the working time paused.`}</Notice>
+        ) : null}
         {j.status === 'date_change_requested' ? <Notice tone={colors.amber}>Date change requested: {fmtDateTime(j.requested_due_at)}</Notice> : null}
 
         <Row wrap gap={8} style={{ marginTop: 8 }}>
@@ -438,8 +441,8 @@ export default function EstimationJobScreen() {
                 small
                 title="+ Ask"
                 onPress={async () => {
-                  const r = await dialog.prompt({ title: 'Clarification to the designer', fields: [{ key: 'q', label: 'Question', type: 'multiline', required: true }] });
-                  if (r) await run('ask_clarification', { p_job: j.id, p_question: r.q }, 'Sent – unanswered after 1 working day is flagged to the Design Manager');
+                  const r = await dialog.prompt({ title: 'Clarification to the designer', message: 'The estimation clock stops until the designer answers; the due date then moves later by the time paused. The client deadline does not move.', fields: [{ key: 'q', label: 'Question', type: 'multiline', required: true }] });
+                  if (r) await run('ask_clarification', { p_job: j.id, p_question: r.q }, 'Sent to the designer – the estimation clock is stopped until it is answered');
                 }}
               />
             ) : undefined
@@ -447,7 +450,7 @@ export default function EstimationJobScreen() {
         >
           <Card style={{ padding: 0, overflow: 'hidden' }}>
             {data.clarifications.map((c) => (
-              <ListRow key={c.id} title={c.question} subtitle={c.answer ? `Answer: ${c.answer} · ${fmtDateTime(c.answered_at)}` : `Waiting since ${fmtDateTime(c.asked_at)}`} highlight={c.answer ? undefined : colors.amber} />
+              <ListRow key={c.id} title={c.question} subtitle={c.answer ? `Answer: ${c.answer} · ${fmtDateTime(c.answered_at)}${c.paused_minutes ? ` · waited ${Math.round(c.paused_minutes / 6) / 10} working h` : ''}` : `Waiting since ${fmtDateTime(c.asked_at)}${c.answer_by ? ` · answer by ${fmtDateTime(c.answer_by)}${new Date(c.answer_by) < new Date() ? ' – LATE' : ''}` : ''}`} highlight={c.answer ? undefined : c.answer_by && new Date(c.answer_by) < new Date() ? colors.red : colors.amber} />
             ))}
             {!data.clarifications.length ? <Muted style={{ padding: 12 }}>None</Muted> : null}
           </Card>
