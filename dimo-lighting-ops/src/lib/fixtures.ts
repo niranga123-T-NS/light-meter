@@ -106,7 +106,7 @@ export function parseSpecText(text: string): Spec {
   put('cct', /\b(\d{4})\s*K\b/.exec(t)?.[1]);
   put('cri', /(?:CRI|Ra)\s*[>≥:]?\s*=?\s*(\d{2})/i.exec(t)?.[1]);
   put('ugr', /UGR\s*[<≤:]?\s*=?\s*(\d{2})/i.exec(t)?.[1]);
-  put('ip', /IP\s*(\d{2})/i.exec(t)?.[1]);
+  put('ip', /\bIP\s*(\d{2})\b/i.exec(t)?.[1]);
   put('ik', /IK\s*(\d{1,2})/i.exec(t)?.[1]);
   const ctrl = [/dali/i.test(t) && 'DALI', /[01]\s*-\s*10\s*V/i.test(t) && '0-10V', /dmx/i.test(t) && 'DMX', /triac/i.test(t) && 'Triac', /sensor|pir|microwave/i.test(t) && 'Sensor'].filter(Boolean).join(', ');
   put('control', ctrl);

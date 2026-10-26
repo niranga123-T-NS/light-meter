@@ -10064,12 +10064,31 @@ do $$ begin
 end $$;
 reset role;
 -- Sales Tools for the execution team and Estimation (Dacademy only before)
--- Sales Tools for the execution team (Dacademy only before); not for Estimation
 select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
 do $$ begin assert app.sees_sales_tools(), 'SEE has Sales Tools'; end $$;
 reset role;
 select pg_temp.act_as('estimation_exec'); set role authenticated;
 do $$ begin assert app.sees_sales_tools(), 'Estimation has Sales Tools'; end $$;
+reset role;
+-- BOQ match: the estimation team saves the options per BOQ line on an estimate; sales cannot
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+insert into public.boq_matches (estimation_job_id, file_name, sheet, lines)
+  values ((select id from public.estimation_jobs order by created_at limit 1), 'BOQ.xlsx', 'Lighting', '[{"item":"3.1","desc":"LED panel 600x600 36W","chosen":"holux:BP-6060-42D1"}]');
+do $$ begin
+  assert (select count(*) from public.boq_matches) = 1, 'SM Estimation saves a BOQ match';
+  assert (select inquiry_id from public.boq_matches) = (select inquiry_id from public.estimation_jobs order by created_at limit 1), 'inquiry filled in from the job';
+end $$;
+update public.boq_matches set lines = '[]';
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin assert (select count(*) from public.boq_matches) = 0, 'sales do not see the estimate BOQ match'; end $$;
+do $$ begin
+  begin
+    insert into public.boq_matches (estimation_job_id, file_name) values ((select id from public.estimation_jobs limit 1), 'x.xlsx');
+    raise exception 'sales should not save a BOQ match';
+  exception when insufficient_privilege or not_null_violation or foreign_key_violation then null;
+  end;
+end $$;
 reset role;
 
 \echo 'ALL WORKFLOW TESTS PASSED'

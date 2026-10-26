@@ -350,6 +350,10 @@ export default function EstimationJobScreen() {
         </Card>
       </Section>
 
+      <Section title="BOQ match" right={<Button small title="Open BOQ match" onPress={() => router.push(`/estimation/boq/${j.id}`)} />}>
+        <Muted>Upload the client&apos;s BOQ Excel – every light-fitting line gets the best options from the catalogue library, the estimator chooses one, and the Excel comes back with the choices and options added.</Muted>
+      </Section>
+
       <Section title={`Estimate (${cur})`}>
         <Card>
           {j.status === 'released' && cur !== inqCur ? (
