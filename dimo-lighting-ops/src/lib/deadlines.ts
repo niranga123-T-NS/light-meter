@@ -7,6 +7,7 @@ export type Split = {
   deadline: string;
   release_days: number;
   pricing_days: number;
+  fast_track?: boolean;
   design_due: string;
   design_latest: string;
   estimation_due: string;
