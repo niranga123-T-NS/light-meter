@@ -64,7 +64,16 @@
      "kg": 2.65,
      "size": "Ø350 × 168"
     }
-   ]
+   ],
+   "image": "images/zc_lighting/hb17-0.jpg",
+   "image_page": "ZC_2.pdf p.1",
+   "image_covers": [
+    "HB17-100",
+    "HB17-150",
+    "HB17-200",
+    "HB17-240"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "HB16",
@@ -118,7 +127,15 @@
      "kg": 2.1,
      "size": "Ø320 × 170"
     }
-   ]
+   ],
+   "image": "images/zc_lighting/hb16-1.jpg",
+   "image_page": "ZC_2.pdf p.2",
+   "image_covers": [
+    "HB16-100",
+    "HB16-150",
+    "HB16-200"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "HB15",
@@ -172,7 +189,15 @@
      "kg": 1.8,
      "size": "Ø280 × 145"
     }
-   ]
+   ],
+   "image": "images/zc_lighting/hb15-2.jpg",
+   "image_page": "ZC_2.pdf p.3",
+   "image_covers": [
+    "HB15-100",
+    "HB15-150",
+    "HB15-200"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "HB13",
@@ -236,7 +261,16 @@
      "kg": 2.5,
      "size": "Ø336 × 155.5"
     }
-   ]
+   ],
+   "image": "images/zc_lighting/hb13-3.jpg",
+   "image_page": "ZC_2.pdf p.4",
+   "image_covers": [
+    "HB13-100",
+    "HB13-150",
+    "HB13-200",
+    "HB13-240"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "HB12",
@@ -300,7 +334,16 @@
      "kg": 2.3,
      "size": "Ø336 × 148"
     }
-   ]
+   ],
+   "image": "images/zc_lighting/hb12-4.jpg",
+   "image_page": "ZC_2.pdf p.5",
+   "image_covers": [
+    "HB12-100",
+    "HB12-150",
+    "HB12-200",
+    "HB12-240"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "HB10",
@@ -354,7 +397,15 @@
      "kg": 1.7,
      "size": "Ø350 × 115"
     }
-   ]
+   ],
+   "image": "images/zc_lighting/hb10-5.jpg",
+   "image_page": "ZC_2.pdf p.6",
+   "image_covers": [
+    "HB10-100",
+    "HB10-150",
+    "HB10-200"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "HB09",
@@ -419,7 +470,16 @@
      "kg": 2.1,
      "size": "Ø320 × 172"
     }
-   ]
+   ],
+   "image": "images/zc_lighting/hb09-6.jpg",
+   "image_page": "ZC_2.pdf p.7",
+   "image_covers": [
+    "HB09-100",
+    "HB09-150",
+    "HB09-200",
+    "HB09-240"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "HB06",
@@ -484,7 +544,16 @@
      "kg": 4.0,
      "size": "Ø320 × 172"
     }
-   ]
+   ],
+   "image": "images/zc_lighting/hb06-7.jpg",
+   "image_page": "ZC_2.pdf p.8",
+   "image_covers": [
+    "HB06-100",
+    "HB06-150",
+    "HB06-200",
+    "HB06-240"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "HB05",
@@ -559,7 +628,17 @@
      "kg": 5.1,
      "size": "Ø336 × 198"
     }
-   ]
+   ],
+   "image": "images/zc_lighting/hb05-8.jpg",
+   "image_page": "ZC_2.pdf p.9",
+   "image_covers": [
+    "HB05-100",
+    "HB05-150",
+    "HB05-200",
+    "HB05-240",
+    "HB05-300"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "HB23",
@@ -633,7 +712,18 @@
      "kg": 8.0,
      "size": "1011 × 290 × 54"
     }
-   ]
+   ],
+   "image": "images/zc_lighting/hb23-9.jpg",
+   "image_page": "ZC_2.pdf p.10",
+   "image_covers": [
+    "HB23-100",
+    "HB23-150",
+    "HB23-200",
+    "HB23-300",
+    "HB23-300 (3 modules)",
+    "HB23-450"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "HB22",
@@ -691,7 +781,16 @@
      "size": "1120.4 × 280 × 144.5",
      "flag": "Length assumed 1120.4 mm (see HB22-300)"
     }
-   ]
+   ],
+   "image": "images/zc_lighting/hb22-10.jpg",
+   "image_page": "ZC_2.pdf p.11",
+   "image_covers": [
+    "HB22-150",
+    "HB22-300",
+    "HB22-450",
+    "HB22-600"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "HL02",
@@ -768,7 +867,17 @@
      "kg": 4.2,
      "size": "1185.6 × 137.7 × 115.6"
     }
-   ]
+   ],
+   "image": "images/zc_lighting/hl02-11.jpg",
+   "image_page": "ZC_2.pdf p.12",
+   "image_covers": [
+    "HL02-50",
+    "HL02-100",
+    "HL02-150",
+    "HL02-200",
+    "HL02-240"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "HL03",
@@ -844,7 +953,17 @@
      "kg": 3.8,
      "size": "1198 × 110.4 × 101"
     }
-   ]
+   ],
+   "image": "images/zc_lighting/hl03-12.jpg",
+   "image_page": "ZC_2.pdf p.13",
+   "image_covers": [
+    "HL03-50",
+    "HL03-100",
+    "HL03-150",
+    "HL03-200",
+    "HL03-240"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "SL05",
@@ -960,7 +1079,21 @@
      "size": "699 × 290 × 106",
      "flag": "Printed as \"4,2500 / 3,7500 lm\" – read as 42,500 / 37,500 lm"
     }
-   ]
+   ],
+   "image": "images/zc_lighting/sl05-13.jpg",
+   "image_page": "ZC_2.pdf p.15",
+   "image_covers": [
+    "SL05-30",
+    "SL05-50",
+    "SL05-60",
+    "SL05-80",
+    "SL05-100",
+    "SL05-120",
+    "SL05-150",
+    "SL05-200",
+    "SL05-250"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "SL04",
@@ -1050,7 +1183,20 @@
      "kg": 3.8,
      "size": "813 × 162 × 98"
     }
-   ]
+   ],
+   "image": "images/zc_lighting/sl04-14.jpg",
+   "image_page": "ZC_2.pdf p.16",
+   "image_covers": [
+    "SL04-50",
+    "SL04-60",
+    "SL04-80",
+    "SL04-100",
+    "SL04-120",
+    "SL04-150",
+    "SL04-180",
+    "SL04-200"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "SL03",
@@ -1166,7 +1312,21 @@
      "kg": 4.6,
      "size": "655 × 260 × 84"
     }
-   ]
+   ],
+   "image": "images/zc_lighting/sl03-15.jpg",
+   "image_page": "ZC_2.pdf p.17",
+   "image_covers": [
+    "SL03-30",
+    "SL03-50",
+    "SL03-60",
+    "SL03-80",
+    "SL03-100",
+    "SL03-120",
+    "SL03-150",
+    "SL03-180",
+    "SL03-200"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "SL02",
@@ -1215,7 +1375,15 @@
      "kg": 2.5,
      "size": "565 × 199 × 87"
     }
-   ]
+   ],
+   "image": "images/zc_lighting/sl02-16.jpg",
+   "image_page": "ZC_2.pdf p.18",
+   "image_covers": [
+    "SL02-30",
+    "SL02-60",
+    "SL02-100"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "AL03",
@@ -1312,7 +1480,19 @@
      "kg": 6.5,
      "size": "697 × 338 × 86"
     }
-   ]
+   ],
+   "image": "images/zc_lighting/al03-17.jpg",
+   "image_page": "ZC_2.pdf p.19",
+   "image_covers": [
+    "AL03-100",
+    "AL03-120",
+    "AL03-150",
+    "AL03-200",
+    "AL03-240",
+    "AL03-300",
+    "AL03-400"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "AL02",
@@ -1380,7 +1560,17 @@
      "size": "863 × 312 × 78",
      "flag": "Printed as \"AL03-400\" in the AL02 table – taken as AL02-400"
     }
-   ]
+   ],
+   "image": "images/zc_lighting/al02-18.jpg",
+   "image_page": "ZC_2.pdf p.20",
+   "image_covers": [
+    "AL02-100",
+    "AL02-150",
+    "AL02-240",
+    "AL02-300",
+    "AL02-400"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "AL01",
@@ -1447,7 +1637,17 @@
      "kg": 11.2,
      "size": "659 × 382 × 95"
     }
-   ]
+   ],
+   "image": "images/zc_lighting/al01-19.jpg",
+   "image_page": "ZC_2.pdf p.21",
+   "image_covers": [
+    "AL01-100",
+    "AL01-150",
+    "AL01-200",
+    "AL01-300",
+    "AL01-400"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "AL05",
@@ -1497,7 +1697,15 @@
      "kg": 4.5,
      "size": "Ø345 × 514 (Ø92 spigot)"
     }
-   ]
+   ],
+   "image": "images/zc_lighting/al05-20.jpg",
+   "image_page": "ZC_2.pdf p.22",
+   "image_covers": [
+    "AL05-30",
+    "AL05-50",
+    "AL05-100"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "WP01",
@@ -1554,7 +1762,16 @@
      "kg": 2.3,
      "size": "362 × 302 × 193"
     }
-   ]
+   ],
+   "image": "images/zc_lighting/wp01-21.jpg",
+   "image_page": "ZC_2.pdf p.23",
+   "image_covers": [
+    "WP01-60",
+    "WP01-80",
+    "WP01-100",
+    "WP01-120"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "FL06",
@@ -1621,7 +1838,17 @@
      "kg": 2.2,
      "size": "375 × 283 × 44"
     }
-   ]
+   ],
+   "image": "images/zc_lighting/fl06-22.jpg",
+   "image_page": "ZC_2.pdf p.25",
+   "image_covers": [
+    "FL06-30",
+    "FL06-50",
+    "FL06-100",
+    "FL06-150",
+    "FL06-200"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "FL04",
@@ -1695,7 +1922,18 @@
      "kg": 1.65,
      "size": "318 × 280 × 57"
     }
-   ]
+   ],
+   "image": "images/zc_lighting/fl04-23.jpg",
+   "image_page": "ZC_2.pdf p.26",
+   "image_covers": [
+    "FL04-10",
+    "FL04-20",
+    "FL04-30",
+    "FL04-50",
+    "FL04-80",
+    "FL04-100"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "FL03",
@@ -1778,7 +2016,19 @@
      "kg": 7.2,
      "size": "629 × 377.5 × 77"
     }
-   ]
+   ],
+   "image": "images/zc_lighting/fl03-24.jpg",
+   "image_page": "ZC_2.pdf p.27",
+   "image_covers": [
+    "FL03-50",
+    "FL03-100",
+    "FL03-150",
+    "FL03-200",
+    "FL03-240",
+    "FL03-300",
+    "FL03-400"
+   ],
+   "image_shared_with": []
   }
  ]
 }

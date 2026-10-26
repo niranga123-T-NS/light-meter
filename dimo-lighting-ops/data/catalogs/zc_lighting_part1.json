@@ -94,7 +94,20 @@
      "kg": 12.8,
      "size": "1381 × 345.7 × 123"
     }
-   ]
+   ],
+   "image": "images/zc_lighting_part1/pl08-0.jpg",
+   "image_page": "ZC_1.pdf p.7",
+   "image_covers": [
+    "PL08-240",
+    "PL08-300",
+    "PL08-400",
+    "PL08-500",
+    "PL08-320 (large)",
+    "PL08-400 (large)",
+    "PL08-500 (large)",
+    "PL08-750"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "FL09",
@@ -186,7 +199,20 @@
      "kg": 18.5,
      "size": "598 × 485 × 445"
     }
-   ]
+   ],
+   "image": "images/zc_lighting_part1/fl09-1.jpg",
+   "image_page": "ZC_1.pdf p.9",
+   "image_covers": [
+    "FL09-500",
+    "FL09-600",
+    "FL09-800",
+    "FL09-1000",
+    "FL09-1200",
+    "FL09-1500",
+    "FL09-1650",
+    "FL09-1800"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "FL18",
@@ -270,7 +296,19 @@
      "kg": 19,
      "size": "576 × 504 × 386"
     }
-   ]
+   ],
+   "image": "images/zc_lighting_part1/fl18-2.jpg",
+   "image_page": "ZC_1.pdf p.10",
+   "image_covers": [
+    "FL18-600",
+    "FL18-800",
+    "FL18-1000",
+    "FL18-1200",
+    "FL18-1500",
+    "FL18-1650",
+    "FL18-1800"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "SP02",
@@ -356,7 +394,19 @@
      "size": "Ø527 × 535 × 448",
      "flag": "196,000 lm does not match 1200 W × 155 lm/W = 186,000 lm – check"
     }
-   ]
+   ],
+   "image": "images/zc_lighting_part1/sp02-3.jpg",
+   "image_page": "ZC_1.pdf p.12",
+   "image_covers": [
+    "SP02-400",
+    "SP02-500",
+    "SP02-600",
+    "SP02-750",
+    "SP02-800",
+    "SP02-1000",
+    "SP02-1200"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "FL26",
@@ -482,7 +532,24 @@
      "kg": 30,
      "size": "518 × 947 × 274"
     }
-   ]
+   ],
+   "image": "images/zc_lighting_part1/fl26-4.jpg",
+   "image_page": "ZC_1.pdf p.14",
+   "image_covers": [
+    "FL26-300",
+    "FL26-400",
+    "FL26-500",
+    "FL26-600",
+    "FL26-600 (2 modules)",
+    "FL26-800",
+    "FL26-1000",
+    "FL26-1200",
+    "FL26-900",
+    "FL26-1200 (3 modules)",
+    "FL26-1500",
+    "FL26-1800"
+   ],
+   "image_shared_with": []
   },
   {
    "type": "Area floodlight",
@@ -526,7 +593,14 @@
      "kg": 15.5,
      "size": "477 × 458 × 273"
     }
-   ]
+   ],
+   "image": "images/zc_lighting_part1/fl20-5.jpg",
+   "image_page": "ZC_1.pdf p.15",
+   "image_covers": [
+    "FL20-400",
+    "FL20-600"
+   ],
+   "image_shared_with": []
   },
   {
    "type": "Sports floodlight",
@@ -604,7 +678,18 @@
      "kg": 25,
      "size": "634 × 741 × 388"
     }
-   ]
+   ],
+   "image": "images/zc_lighting_part1/fl19-6.jpg",
+   "image_page": "ZC_1.pdf p.16",
+   "image_covers": [
+    "FL19-600",
+    "FL19-750",
+    "FL19-1200",
+    "FL19-1500",
+    "FL19-1800",
+    "FL19-2250"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "FL16 Plus",
@@ -684,7 +769,18 @@
      "size": "565 × 828 × 173",
      "epa": "3.62 ft²"
     }
-   ]
+   ],
+   "image": "images/zc_lighting_part1/fl16-plus-7.jpg",
+   "image_page": "ZC_1.pdf p.17",
+   "image_covers": [
+    "FL16 Plus-500",
+    "FL16 Plus-600",
+    "FL16 Plus-1000",
+    "FL16 Plus-1200",
+    "FL16 Plus-1500",
+    "FL16 Plus-1800"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "FL16",
@@ -764,7 +860,18 @@
      "size": "565 × 828 × 173",
      "epa": "3.62 ft²"
     }
-   ]
+   ],
+   "image": "images/zc_lighting_part1/fl16-8.jpg",
+   "image_page": "ZC_1.pdf p.18",
+   "image_covers": [
+    "FL16-500",
+    "FL16-600",
+    "FL16-1000",
+    "FL16-1200",
+    "FL16-1500",
+    "FL16-1800"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "FL15",
@@ -863,7 +970,20 @@
      "size": "428 × 1055 × 191",
      "epa": "3.90 ft²"
     }
-   ]
+   ],
+   "image": "images/zc_lighting_part1/fl15-9.jpg",
+   "image_page": "ZC_1.pdf p.19",
+   "image_covers": [
+    "FL15-400",
+    "FL15-500",
+    "FL15-800",
+    "FL15-1000",
+    "FL15-1200",
+    "FL15-1500",
+    "FL15-1600",
+    "FL15-2000"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "FL10",
@@ -962,7 +1082,20 @@
      "size": "606 × 638 × 521",
      "epa": "2.94 ft²"
     }
-   ]
+   ],
+   "image": "images/zc_lighting_part1/fl10-10.jpg",
+   "image_page": "ZC_1.pdf p.20",
+   "image_covers": [
+    "FL10-500",
+    "FL10-600",
+    "FL10-800",
+    "FL10-1000",
+    "FL10-1000 (2 modules)",
+    "FL10-1200",
+    "FL10-1600",
+    "FL10-2000"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "FL08",
@@ -1060,6 +1193,25 @@
      "size": "491 × 838 × 130",
      "epa": "3.15 ft²"
     }
+   ],
+   "image": "images/zc_lighting_part1/fl08-11.jpg",
+   "image_page": "ZC_1.pdf p.22",
+   "image_covers": [
+    "FL08-200",
+    "FL08-250",
+    "FL08-400",
+    "FL08-500",
+    "FL08-600",
+    "FL08-750",
+    "FL08-800",
+    "FL08-1000",
+    "FL08RGBW-250",
+    "FL08RGBW-500",
+    "FL08RGBW-750",
+    "FL08RGBW-1000"
+   ],
+   "image_shared_with": [
+    "FL08RGBW"
    ]
   },
   {
@@ -1122,6 +1274,25 @@
      "size": "491 × 838 × 130",
      "epa": "3.15 ft²"
     }
+   ],
+   "image": "images/zc_lighting_part1/fl08-11.jpg",
+   "image_page": "ZC_1.pdf p.22",
+   "image_covers": [
+    "FL08-200",
+    "FL08-250",
+    "FL08-400",
+    "FL08-500",
+    "FL08-600",
+    "FL08-750",
+    "FL08-800",
+    "FL08-1000",
+    "FL08RGBW-250",
+    "FL08RGBW-500",
+    "FL08RGBW-750",
+    "FL08RGBW-1000"
+   ],
+   "image_shared_with": [
+    "FL08"
    ]
   },
   {
@@ -1238,7 +1409,20 @@
      "size": "526 × 1135 × 139",
      "epa": "3.24 / 3.99 / 4.58 ft²"
     }
-   ]
+   ],
+   "image": "images/zc_lighting_part1/fl01-13.jpg",
+   "image_page": "ZC_1.pdf p.23",
+   "image_covers": [
+    "FL01-250",
+    "FL01-300",
+    "FL01-500",
+    "FL01-600",
+    "FL01-750",
+    "FL01-900",
+    "FL01-1000",
+    "FL01-1200"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "HM01R",
@@ -1321,7 +1505,18 @@
      "epa": "1.80 ft²",
      "flag": "No drawing for 1200 W – assumed the 800/1000 W size"
     }
-   ]
+   ],
+   "image": "images/zc_lighting_part1/hm01r-14.jpg",
+   "image_page": "ZC_1.pdf p.25",
+   "image_covers": [
+    "HM01R-500",
+    "HM01R-600",
+    "HM01R-750",
+    "HM01R-800",
+    "HM01R-1000",
+    "HM01R-1200"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "HM01S",
@@ -1365,7 +1560,14 @@
      "size": "653 × 400 × 225",
      "epa": "1.58 ft²"
     }
-   ]
+   ],
+   "image": "images/zc_lighting_part1/hm01s-15.jpg",
+   "image_page": "ZC_1.pdf p.26",
+   "image_covers": [
+    "HM01S-800",
+    "HM01S-1000"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "HB21",
@@ -1422,7 +1624,15 @@
      "kg": 2.25,
      "size": "Ø335 × 126"
     }
-   ]
+   ],
+   "image": "images/zc_lighting_part1/hb21-16.jpg",
+   "image_page": "ZC_1.pdf p.28",
+   "image_covers": [
+    "HB21-100",
+    "HB21-150",
+    "HB21-200"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "HB20",
@@ -1464,7 +1674,14 @@
      "kg": 10,
      "size": "Ø378 × 244"
     }
-   ]
+   ],
+   "image": "images/zc_lighting_part1/hb20-17.jpg",
+   "image_page": "ZC_1.pdf p.29",
+   "image_covers": [
+    "HB20-300",
+    "HB20-400"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "HB19",
@@ -1514,7 +1731,15 @@
      "kg": 10,
      "size": "Ø378 × 199"
     }
-   ]
+   ],
+   "image": "images/zc_lighting_part1/hb19-18.jpg",
+   "image_page": "ZC_1.pdf p.30",
+   "image_covers": [
+    "HB19-400",
+    "HB19-500",
+    "HB19-600"
+   ],
+   "image_shared_with": []
   }
  ]
 }

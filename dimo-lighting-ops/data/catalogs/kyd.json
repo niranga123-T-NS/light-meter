@@ -51,7 +51,15 @@
      "size": "ф350 × 110",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/01-a-0.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.3",
+   "image_covers": [
+    "KYD-DL01-A-20W",
+    "KYD-DL01-A-30W",
+    "KYD-DL01-A-40W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "01-B",
@@ -102,7 +110,15 @@
      "size": "350 × 110",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/01-b-1.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.3",
+   "image_covers": [
+    "KYD-DL01-B-20W",
+    "KYD-DL01-B-30W",
+    "KYD-DL01-B-40W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "D1",
@@ -161,7 +177,16 @@
      "size": "245 × 180 × 100 [L/W/H]",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/d1-2.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.3",
+   "image_covers": [
+    "KYD-DL01-D1-9W",
+    "KYD-DL01-D1-12W",
+    "KYD-DL01-D1-15W",
+    "KYD-DL01-D1-18W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "D",
@@ -268,7 +293,22 @@
      "size": "Φ145 × 180 [D/H]",
      "note": "Two heads 2*30 W, 2*3000 lm"
     }
-   ]
+   ],
+   "image": "images/kyd/d-3.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.3",
+   "image_covers": [
+    "KYD-DL01-D-7W",
+    "KYD-DL01-D-12W",
+    "KYD-DL01-D-18W",
+    "KYD-DL01-D-24W",
+    "KYD-DL01-D-30W",
+    "KYD-DL01-D-2*7W",
+    "KYD-DL01-D-2*12W",
+    "KYD-DL01-D-2*18W",
+    "KYD-DL01-D-2*24W",
+    "KYD-DL01-D-2*30W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "RL01",
@@ -335,7 +375,17 @@
      "size": "162 × 100 × 65 [L/W/H]",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/rl01-4.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.4",
+   "image_covers": [
+    "KYD-RL01-A-7W",
+    "KYD-RL01-A-9W",
+    "KYD-RL01-A-12W",
+    "KYD-RL01-A-15W",
+    "KYD-RL01-A-18W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "DL-3W",
@@ -394,7 +444,16 @@
      "size": "ф62 × 85",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/dl-3w-5.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.4",
+   "image_covers": [
+    "KYD-DL-3W-One-Side",
+    "KYD-DL-3W-Tow-Side",
+    "KYD-DL-3W-Three-Side",
+    "KYD-DL-3W-Four-Side"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "DL01-C",
@@ -445,7 +504,15 @@
      "size": "ф145 × 60/80/100 [D/H]",
      "note": "Power selectable 12/15/20 W → 1200/1500/2000 lm"
     }
-   ]
+   ],
+   "image": "images/kyd/dl01-c-6.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.4",
+   "image_covers": [
+    "KYD-DL01-C-12W",
+    "KYD-DL01-C-15W",
+    "KYD-DL01-C-20W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "C1",
@@ -512,7 +579,17 @@
      "size": "195 × 195 × 270 [L/W/H]",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/c1-7.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.4",
+   "image_covers": [
+    "KYD-DL01-C1-7W",
+    "KYD-DL01-C1-9W",
+    "KYD-DL01-C1-12W",
+    "KYD-DL01-C1-15W",
+    "KYD-DL01-C1-18W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "DL01-E",
@@ -595,7 +672,19 @@
      "size": "Φ300 × 80 (cut-out Φ288) [D/H]",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/dl01-e-8.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.5",
+   "image_covers": [
+    "KYD-DL01-E-5W",
+    "KYD-DL01-E-7W",
+    "KYD-DL01-E-9W",
+    "KYD-DL01-E-12W",
+    "KYD-DL01-E-18W",
+    "KYD-DL01-E-24W",
+    "KYD-DL01-E-36W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "DL01-F",
@@ -646,7 +735,15 @@
      "size": "1000 × 90 × 75 [L/W/H]",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/dl01-f-9.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.5",
+   "image_covers": [
+    "KYD-DL01-F-9W",
+    "KYD-DL01-F-18W",
+    "KYD-DL01-F-24W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "DL01-H",
@@ -705,7 +802,16 @@
      "size": "Φ80 × 120",
      "note": "Power selectable 12/15/20 W → 1200/1500/2000 lm"
     }
-   ]
+   ],
+   "image": "images/kyd/dl01-h-10.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.5",
+   "image_covers": [
+    "KYD-DL01-H1",
+    "KYD-DL01-H2",
+    "KYD-DL01-H3",
+    "KYD-DL01-H4"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "DL01-K",
@@ -756,7 +862,15 @@
      "size": "335 × 250 × 160 [L/W/H]",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/dl01-k-11.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.5",
+   "image_covers": [
+    "KYD-DL01-K-60W",
+    "KYD-DL01-K-100W",
+    "KYD-DL01-K-120W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "WWL",
@@ -823,7 +937,17 @@
      "size": "1000 × 55 × 65 [L/W/H]",
      "note": "Power selectable 72/108 W → 7200/10800 lm"
     }
-   ]
+   ],
+   "image": "images/kyd/wwl-12.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.6",
+   "image_covers": [
+    "KYD-WWL3220",
+    "KYD-WWL3636",
+    "KYD-WWL4638",
+    "KYD-WWL4563",
+    "KYD-WWL5565"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "CL",
@@ -882,7 +1006,16 @@
      "size": "360 × 504 [D/H/HD]",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/cl-13.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.6",
+   "image_covers": [
+    "KYD-CL-30W",
+    "KYD-CL-60W",
+    "KYD-CL-100W",
+    "KYD-CL-150W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "S01",
@@ -941,7 +1074,16 @@
      "size": "482 × 198 × 64 [D/W/H]",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/s01-14.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.6",
+   "image_covers": [
+    "KYD-S01-50W",
+    "KYD-S01-100W",
+    "KYD-S01-150W",
+    "KYD-S01-200W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "S02",
@@ -1008,7 +1150,17 @@
      "size": "715 × 340 × 99 [L/W/H]",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/s02-15.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.6",
+   "image_covers": [
+    "KYD-S02-50W",
+    "KYD-S02-100W",
+    "KYD-S02-150W",
+    "KYD-S02-200W",
+    "KYD-S02-300W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "OSSL",
@@ -1059,7 +1211,15 @@
      "size": "1435 × 400 × 280 [L/W/H]",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/ossl-16.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.7",
+   "image_covers": [
+    "KYD-OSSL-60W",
+    "KYD-OSSL-80W",
+    "KYD-OSSL-100W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "TSSL",
@@ -1110,7 +1270,15 @@
      "size": "600 × 260 × 60 [L/W/H]",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/tssl-17.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.7",
+   "image_covers": [
+    "KYD-TSSL-60W",
+    "KYD-TSSL-80W",
+    "KYD-TSSL-100W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "FL0201",
@@ -1201,7 +1369,20 @@
      "size": "298 × 212 × 25 [D/W/H]",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/fl0201-18.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.7",
+   "image_covers": [
+    "KYD-FL0201-10W",
+    "KYD-FL0201-20W",
+    "KYD-FL0201-30W",
+    "KYD-FL0201-50W",
+    "KYD-FL0201-100W",
+    "KYD-FL0201-150W",
+    "KYD-FL0201-200W",
+    "KYD-FL0201-300W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "FL0202",
@@ -1284,7 +1465,19 @@
      "size": "490 × 520 × 65 [D/W/H]",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/fl0202-19.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.7",
+   "image_covers": [
+    "KYD-FL0202-30W",
+    "KYD-FL0202-50W",
+    "KYD-FL0202-100W",
+    "KYD-FL0202-150W",
+    "KYD-FL0202-200W",
+    "KYD-FL0202-300W",
+    "KYD-FL0202-400W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "FL0203",
@@ -1367,7 +1560,19 @@
      "size": "336 × 317 (cut-out 95) [D/H]",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/fl0203-20.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.8",
+   "image_covers": [
+    "KYD-FL0203-20W",
+    "KYD-FL0203-30W",
+    "KYD-FL0203-50W",
+    "KYD-FL0203-100W",
+    "KYD-FL0203-150W",
+    "KYD-FL0203-200W",
+    "KYD-FL0203-300W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "FL0204",
@@ -1434,7 +1639,17 @@
      "size": "972 × 680 × 100",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/fl0204-21.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.8",
+   "image_covers": [
+    "KYD-FL0204-240W",
+    "KYD-FL0204-480W",
+    "KYD-FL0204-720W",
+    "KYD-FL0204-960W",
+    "KYD-FL0204-1200W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "SL",
@@ -1494,7 +1709,16 @@
      "note": "Power selectable 12/15/20 W → 1200/1500/2000 lm"
     }
    ],
-   "family_flag": "The Solar floodlight table repeats the Outdoor spot light rows (500/700/900 lm, 5/7/9 W, Φ60/Φ80) – the real solar floodlight data is missing; ask KYD"
+   "family_flag": "The Solar floodlight table repeats the Outdoor spot light rows (500/700/900 lm, 5/7/9 W, Φ60/Φ80) – the real solar floodlight data is missing; ask KYD",
+   "image": "images/kyd/sl-22.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.8",
+   "image_covers": [
+    "KYD-SL-A",
+    "KYD-SL-A1",
+    "KYD-SL-B",
+    "KYD-SL-B1"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "HB01",
@@ -1569,7 +1793,18 @@
      "size": "Φ495 × 200",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/hb01-23.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.8",
+   "image_covers": [
+    "KYD-HB01-100W",
+    "KYD-HB01-150W",
+    "KYD-HB01-200W",
+    "KYD-HB01-300W",
+    "KYD-HB01-400W",
+    "KYD-HB01-500W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "HB02",
@@ -1620,7 +1855,15 @@
      "size": "Φ380 × 190 [D/H]",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/hb02-24.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.9",
+   "image_covers": [
+    "KYD-HB02-100W",
+    "KYD-HB02-150W",
+    "KYD-HB02-200W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "HB03",
@@ -1703,7 +1946,19 @@
      "size": "600 × 370 × 160 [L/W/H]",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/hb03-25.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.9",
+   "image_covers": [
+    "KYD-HB03-A-100W",
+    "KYD-HB03-A-150W",
+    "KYD-HB03-A-200W",
+    "KYD-HB03-A-300W",
+    "KYD-HB03-B-150W",
+    "KYD-HB03-B-200W",
+    "KYD-HB03-B-300W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "B0612-A",
@@ -1786,7 +2041,19 @@
      "size": "Φ73 × 265",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/b0612-a-26.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.9",
+   "image_covers": [
+    "KYD-B0612-A-5W",
+    "KYD--B0612-A-7W",
+    "KYD-B0612-A-9W",
+    "KYD-B0612-A-12W",
+    "KYD-B0612-A-16W",
+    "KYD-B0612-A-24W",
+    "KYD-B0612-A-32W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "B0612-B",
@@ -1845,7 +2112,16 @@
      "size": "Φ87 × 277",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/b0612-b-27.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.9",
+   "image_covers": [
+    "KYD-B0612-B-27W",
+    "KYD-B0612-B-36W",
+    "KYD-B0612-B-45W",
+    "KYD-B0612-B-54W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "B0612-C",
@@ -1928,7 +2204,19 @@
      "size": "Φ125 × 435",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/b0612-c-28.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.10",
+   "image_covers": [
+    "KYD-B0612-C-60W",
+    "KYD-B0612-C-80W",
+    "KYD-B0612-C-100W",
+    "KYD-B0612-C-120W",
+    "KYD-B0612-C-150W",
+    "KYD-B0612-C-200W",
+    "KYD-B0612-C-250W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "PL backlit",
@@ -2003,7 +2291,18 @@
      "size": "595 × 595 × 40 [L/W/H]",
      "note": "Lumens 4000/5200 · Efficacy 100/130 lm/W (standard / high version)"
     }
-   ]
+   ],
+   "image": "images/kyd/pl-backlit-29.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.10",
+   "image_covers": [
+    "KYD-PL6060-40W(Backlit)",
+    "KYD-PL12060-72W(Backlit)",
+    "KYD-PL12030-40W(Backlit)",
+    "KYD-PL6030-24W(Backlit)",
+    "KYD-PL3030-18W(Backlit)",
+    "KYD-PL6060-40W(Surface)"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "PL edgelit",
@@ -2070,7 +2369,17 @@
      "size": "295 × 295 × 10 [L/W/H]",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/pl-edgelit-30.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.10",
+   "image_covers": [
+    "KYD-PL6060-40W(Edgelit)",
+    "KYD-PL12060-72W(Edgelit)",
+    "KYD-PL12030-40W(Edgelit)",
+    "KYD-PL6030-24W(Edgelit)",
+    "KYD-PL3030-18W(Edgelit)"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "PL-A",
@@ -2153,7 +2462,19 @@
      "size": "Φ600 × 24 (cut-out Φ580) [D/H]",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/pl-a-31.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.10",
+   "image_covers": [
+    "KYD-PL7W-A",
+    "KYD-PL9W-A",
+    "KYD-PL12W-A",
+    "KYD-PL15W-A",
+    "KYD-PL18W-A",
+    "KYD-PL24W-A",
+    "KYD-PL36W-A"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "PL-B",
@@ -2236,7 +2557,19 @@
      "size": "Φ600 × 40 [D/H]",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/pl-b-32.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.11",
+   "image_covers": [
+    "KYD-PL7W-B",
+    "KYD-PL9W-B",
+    "KYD-PL12W-B",
+    "KYD-PL15W-B",
+    "KYD-PL18W-B",
+    "KYD-PL24W-B",
+    "KYD-PL36W-B"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "DL01 track",
@@ -2319,7 +2652,19 @@
      "size": "Φ106 × 195 [D/H]",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/dl01-track-33.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.11",
+   "image_covers": [
+    "KYD-DL01-15W",
+    "KYD-DL01-20W",
+    "KYD-DL01-30W",
+    "KYD-DL01-35W",
+    "KYD-DL01-40W",
+    "KYD-DL01-50W",
+    "KYD-DL01-60W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "DL02",
@@ -2387,7 +2732,17 @@
      "note": "Magnetic pendant 10/18/25 W → 1000/1800/2500 lm",
      "flag": "Code KYD-DL02-MSL is printed twice (linear spot module and pendant) – \"-P\" added to the pendant; ask KYD"
     }
-   ]
+   ],
+   "image": "images/kyd/dl02-34.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.11",
+   "image_covers": [
+    "KYD-DL02-MFL",
+    "KYD-DL02-MSL",
+    "KYD-DL02-MASL",
+    "KYD-DL02-MTL",
+    "KYD-DL02-MSL-P"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "DL03",
@@ -2470,7 +2825,19 @@
      "size": "Φ190 × 165 (cut-out Φ175) [D/H]",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/dl03-35.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.11",
+   "image_covers": [
+    "KYD-DL03-12W",
+    "KYD-DL03-15W",
+    "KYD-DL03-25W",
+    "KYD-DL03-35W",
+    "KYD-DL03-40W",
+    "KYD-DL03-50W",
+    "KYD-DL03-60W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "DL04",
@@ -2545,7 +2912,18 @@
      "size": "Φ205 × 210 [D/H]",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/dl04-36.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.12",
+   "image_covers": [
+    "KYD-DL04-20W",
+    "KYD-DL04-24W",
+    "KYD-DL04-30W",
+    "KYD-DL04-50W",
+    "KYD-DL04-60W",
+    "KYD-DL04-100W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "DL05",
@@ -2637,7 +3015,20 @@
      "size": "Φ105 × 121 (cut-out Φ95) [D/H]",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/dl05-37.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.12",
+   "image_covers": [
+    "KYD-DL05-7W",
+    "KYD-DL05-10W",
+    "KYD-DL05-10W-P12",
+    "KYD-DL05-12W",
+    "KYD-DL05-15W",
+    "KYD-DL05-20W",
+    "KYD-DL05-25W",
+    "KYD-DL05-30W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "DL06",
@@ -2704,7 +3095,17 @@
      "size": "Φ214 × 110 × Φ200",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/dl06-38.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.12",
+   "image_covers": [
+    "KYD-DL06-10W",
+    "KYD-DL06-20W",
+    "KYD-DL06-30W",
+    "KYD-DL06-40W",
+    "KYD-DL06-50W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "DL07",
@@ -2771,7 +3172,17 @@
      "size": "Φ220 × 90 (cut-out Φ200) [D/H]",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/dl07-39.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.12",
+   "image_covers": [
+    "KYD-DL07-12W",
+    "KYD-DL07-20W",
+    "KYD-DL07-25W",
+    "KYD-DL07-35W",
+    "KYD-DL07-50W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "DL08",
@@ -2838,7 +3249,17 @@
      "size": "Φ175 × 116 (cut-out Φ150) [D/H]",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/dl08-40.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.13",
+   "image_covers": [
+    "KYD-DL08-7W",
+    "KYD-DL08-12W",
+    "KYD-DL08-15W",
+    "KYD-DL08-25W",
+    "KYD-DL08-35W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "DL09",
@@ -2945,7 +3366,22 @@
      "size": "Φ230 × 72 (cut-out Φ215) [D/H]",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/dl09-41.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.13",
+   "image_covers": [
+    "KYD-DL09-SMD-15W",
+    "KYD-DL09-SMD-25W",
+    "KYD-DL09-SMD-30W",
+    "KYD-DL09-SMD-40W",
+    "KYD-DL09-SMD-50W",
+    "KYD-DL09-COB-15W",
+    "KYD-DL09-COB-25W",
+    "KYD-DL09-COB-30W",
+    "KYD-DL09-COB-40W",
+    "KYD-DL09-COB-50W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "DL10",
@@ -3020,7 +3456,18 @@
      "size": "Φ225 × 30 × Φ195",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/dl10-42.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.13",
+   "image_covers": [
+    "KYD-DL10-7W",
+    "KYD-DL10-9W",
+    "KYD-DL10-12W",
+    "KYD-DL10-15W",
+    "KYD-DL10-20W",
+    "KYD-DL10-35W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "DL11",
@@ -3079,7 +3526,16 @@
      "size": "Φ70 × 79 (cut-out Φ60) [D/H]",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/dl11-43.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.13",
+   "image_covers": [
+    "KYD-DL11-3W",
+    "KYD-DL11-5W",
+    "KYD-DL11-7W",
+    "KYD-DL11-9W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "ML",
@@ -3130,7 +3586,15 @@
      "size": "L 800",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/ml-44.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.14",
+   "image_covers": [
+    "KYD-ML50-9W",
+    "KYD-ML60-12W",
+    "KYD-ML80-15W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "T8",
@@ -3197,7 +3661,17 @@
      "size": "Φ26 × 2400 [D/L]",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/t8-45.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.14",
+   "image_covers": [
+    "KYD-T8-06-10W",
+    "KYD-T8-09-14W",
+    "KYD-T8-12-18W",
+    "KYD-T8-15-24W",
+    "KYD-T8-24-36W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "T5",
@@ -3265,7 +3739,17 @@
      "note": ""
     }
    ],
-   "family_flag": "The T5 table is identical to the T8 table (same lumens, watts and lengths 600-2400 mm) – T5 lengths are normally 549/849/1149/1449 mm; ask KYD"
+   "family_flag": "The T5 table is identical to the T8 table (same lumens, watts and lengths 600-2400 mm) – T5 lengths are normally 549/849/1149/1449 mm; ask KYD",
+   "image": "images/kyd/t5-46.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.14",
+   "image_covers": [
+    "KYD-T5-06-10W",
+    "KYD-T5-09-14W",
+    "KYD-T5-12-18W",
+    "KYD-T5-15-24W",
+    "KYD-T5-24-36W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "TI8",
@@ -3332,7 +3816,17 @@
      "size": "2400 × 22 × 30 [L/W/H]",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/ti8-47.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.14",
+   "image_covers": [
+    "KYD-TI8-06-10W",
+    "KYD-TI8-09-14W",
+    "KYD-TI8-12-18W",
+    "KYD-TI8-15-24W",
+    "KYD-TI8-24-36W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "BL",
@@ -3383,7 +3877,15 @@
      "size": "1500 × 75 × 29 [L/W/H]",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/bl-48.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.15",
+   "image_covers": [
+    "KYD-BL06-18W",
+    "KYD-BL12-36W",
+    "KYD-BL15-48W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "TPL8575",
@@ -3434,7 +3936,15 @@
      "size": "1500 × 83 × 72 [L/W/H]",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/tpl8575-49.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.15",
+   "image_covers": [
+    "KYD-TPL8575-18W",
+    "KYD-TPL8575-36W",
+    "KYD-TPL8575-48W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "TPL7560",
@@ -3485,7 +3995,15 @@
      "size": "1500 × 74 × 61",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/tpl7560-50.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.15",
+   "image_covers": [
+    "KYD-TPL7560-18W",
+    "KYD-TPL7560-36W",
+    "KYD-TPL7560-48W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "TPL6555",
@@ -3536,7 +4054,15 @@
      "size": "1500 × 65 × 55 [L/W/H]",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/tpl6555-51.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.15",
+   "image_covers": [
+    "KYD-TPL6555-18W",
+    "KYD-TPL6555-36W",
+    "KYD-TPL6555-48W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "SL101",
@@ -3587,7 +4113,15 @@
      "size": "Per metre (reel)",
      "note": "Watts and lumens per metre"
     }
-   ]
+   ],
+   "image": "images/kyd/sl101-52.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.17",
+   "image_covers": [
+    "KYD-SL101-4.8W",
+    "KYD-SL101-9.6W",
+    "KYD-SL101-14.4W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "SL201",
@@ -3638,7 +4172,15 @@
      "size": "Per metre (reel)",
      "note": "Lumens 720/1080 · Efficacy 50/80 lm/W (standard / high version) · Watts and lumens per metre"
     }
-   ]
+   ],
+   "image": "images/kyd/sl201-53.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.17",
+   "image_covers": [
+    "KYD-SL201-4.8W",
+    "KYD-SL201-9.6W",
+    "KYD-SL201-14.4W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "B0607",
@@ -3697,7 +4239,16 @@
      "size": "Φ60 × 108",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/b0607-54.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.17",
+   "image_covers": [
+    "KYD-B0607-2.8W",
+    "KYD-B0607-4.7W",
+    "KYD-B0607-5.8W",
+    "KYD-B0607-8.1W"
+   ],
+   "image_shared_with": []
   },
   {
    "family": "B0808",
@@ -3796,7 +4347,21 @@
      "size": "Φ170",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/b0808-55.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.17",
+   "image_covers": [
+    "KYD-B0808-10W",
+    "KYD-B0808-20W",
+    "KYD-B0808-30W",
+    "KYD-B0808-40W",
+    "KYD-B0808-50W",
+    "KYD-B0808-70W",
+    "KYD-B0808-100W",
+    "KYD-B0808-120W",
+    "KYD-B0808-150W"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -3847,7 +4412,15 @@
      "size": "2400 × 52 × 75",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/kyd5275-56.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.16",
+   "image_covers": [
+    "KYD5275-12-40W",
+    "KYD5275-15-50W",
+    "KYD5275-24-80W"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -3898,7 +4471,15 @@
      "size": "2400 × 65 × 35",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/kyd7535-57.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.16",
+   "image_covers": [
+    "KYD7535-40W",
+    "KYD7535-50W",
+    "KYD7535-80W"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -3944,7 +4525,14 @@
      "note": "",
      "flag": "Copied downlight data – not a candle lamp"
     }
-   ]
+   ],
+   "image": "images/kyd/candle-58.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.18",
+   "image_covers": [
+    "KYD-DL04-50W-CANDLE",
+    "KYD-DL04-60W-CANDLE"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -3987,7 +4575,14 @@
      "size": "Φ50 × 57",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/s0806-a-59.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.18",
+   "image_covers": [
+    "KYD-S0806-A-5W",
+    "KYD-S0806-A-6W"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -4030,7 +4625,14 @@
      "size": "Φ111 × 68",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/s0808-ar111-60.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.18",
+   "image_covers": [
+    "KYD-S0808-12W",
+    "KYD-S0808-15W"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -4073,7 +4675,14 @@
      "size": "Φ50 × 55",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/s0806-l-61.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.18",
+   "image_covers": [
+    "KYD-S0806-L-5W",
+    "KYD-S0806-L-6W"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -4124,7 +4733,15 @@
      "size": "Φ122 × 122",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/s0807-par-62.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.18",
+   "image_covers": [
+    "KYD-S0807-8W",
+    "KYD-S0807-12W",
+    "KYD-S0807-18W"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -4183,7 +4800,16 @@
      "size": "Φ95 × 125",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/kyd/b0608-r-63.jpg",
+   "image_page": "KYD_Catalog-NEW_version_1.pdf p.18",
+   "image_covers": [
+    "KYD-B0608-5W",
+    "KYD-B0608-7W",
+    "KYD-B0608-9W",
+    "KYD-B0608-13W"
+   ],
+   "image_shared_with": []
   }
  ],
  "accessories": [

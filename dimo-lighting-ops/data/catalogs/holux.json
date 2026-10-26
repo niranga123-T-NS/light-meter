@@ -195,7 +195,33 @@
      "size": "295 × 1195 × 30",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/holux/bp-a1-0.jpg",
+   "image_page": "Holux_1.pdf p.6",
+   "image_covers": [
+    "BP-6060-40A1",
+    "BP-6262-40A1",
+    "BP-30120-40A1",
+    "BP-3030-24A1",
+    "BP-3060-24A1",
+    "BP-6060-36A1",
+    "BP-6262-36A1",
+    "BP-30120-36A1",
+    "BP-60120-50A1",
+    "BP-6060-34A1",
+    "BP-6262-34A1",
+    "BP-30120-34A1",
+    "BP-6060-30A1",
+    "BP-6262-30A1",
+    "BP-30120-30A1",
+    "BP-6060-25A1",
+    "BP-6262-25A1",
+    "BP-30120-25A1",
+    "BP-6060-24A1",
+    "BP-6262-24A1",
+    "BP-30120-24A1"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -390,7 +416,33 @@
      "size": "295 × 1195 × 30",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/holux/bp-u1-1.jpg",
+   "image_page": "Holux_1.pdf p.7",
+   "image_covers": [
+    "BP-6060-40U1",
+    "BP-6262-40U1",
+    "BP-30120-40U1",
+    "BP-3030-24U1",
+    "BP-3060-24U1",
+    "BP-6060-36U1",
+    "BP-6262-36U1",
+    "BP-30120-36U1",
+    "BP-60120-50U1",
+    "BP-6060-34U1",
+    "BP-6262-34U1",
+    "BP-30120-34U1",
+    "BP-6060-30U1",
+    "BP-6262-30U1",
+    "BP-30120-30U1",
+    "BP-6060-25U1",
+    "BP-6262-25U1",
+    "BP-30120-25U1",
+    "BP-6060-24U1",
+    "BP-6262-24U1",
+    "BP-30120-24U1"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -505,7 +557,22 @@
      "size": "295 × 1195 × 30",
      "note": "Power selectable 24W-26W-28W-30W · lumens = W × lm/W (not printed)"
     }
-   ]
+   ],
+   "image": "images/holux/bp-a1-3cct-2.jpg",
+   "image_page": "Holux_1.pdf p.8",
+   "image_covers": [
+    "BP-6060-40A1-3CCT",
+    "BP-30120-40A1-3CCT",
+    "BP-6060-36A1-3CCT",
+    "BP-30120-36A1-3CCT",
+    "BP-6060-32A1-3CCT",
+    "BP-30120-32A1-3CCT",
+    "BP-6060-28A1-3CCT",
+    "BP-30120-28A1-3CCT",
+    "BP-6060-30A1-3CCT",
+    "BP-30120-30A1-3CCT"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -641,7 +708,25 @@
      "size": "295 × 1195 × 30",
      "note": "Power selectable 24W-26W-28W-30W · lumens = W × lm/W (not printed)"
     }
-   ]
+   ],
+   "image": "images/holux/bp-u1-3cct-3.jpg",
+   "image_page": "Holux_1.pdf p.9",
+   "image_covers": [
+    "BP-6060-40U1-3CCT",
+    "BP-6262-40U1-3CCT",
+    "BP-30120-40U1-3CCT",
+    "BP-60120-40U1-3CCT",
+    "BP-6060-36U1-3CCT",
+    "BP-6262-36U1-3CCT",
+    "BP-30120-36U1-3CCT",
+    "BP-6060-32U1-3CCT",
+    "BP-6262-32U1-3CCT",
+    "BP-30120-32U1-3CCT",
+    "BP-6060-30U1-3CCT",
+    "BP-6262-30U1-3CCT",
+    "BP-30120-30U1-3CCT"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -692,7 +777,15 @@
      "size": "295 × 1195 × 28",
      "note": "Printed code \"BP-30120-42D1 CCT\""
     }
-   ]
+   ],
+   "image": "images/holux/bp-d1-cct-4.jpg",
+   "image_page": "Holux_1.pdf p.10",
+   "image_covers": [
+    "BP-6060-42D1-CCT",
+    "BP-6262-42D1-CCT",
+    "BP-30120-42D1-CCT"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -743,7 +836,15 @@
      "size": "295 × 1195 × 27",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/holux/bp-d1-5.jpg",
+   "image_page": "Holux_1.pdf p.10",
+   "image_covers": [
+    "BP-6060-42D1",
+    "BP-6262-42D1",
+    "BP-30120-42D1"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -808,7 +909,16 @@
      "beam": "90°",
      "ugr": "<19"
     }
-   ]
+   ],
+   "image": "images/holux/spl-a1-u1-6.jpg",
+   "image_page": "Holux_1.pdf p.13",
+   "image_covers": [
+    "SPL-6060-34A1",
+    "SPL-30120-34A1",
+    "SPL-6060-34U1",
+    "SPL-30120-34U1"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -873,7 +983,16 @@
      "beam": "90°",
      "ugr": "<19"
     }
-   ]
+   ],
+   "image": "images/holux/spl-3cct-7.jpg",
+   "image_page": "Holux_1.pdf p.13",
+   "image_covers": [
+    "SPL-6060-34A1-3CCT",
+    "SPL-30120-34A1-3CCT",
+    "SPL-6060-34U1-3CCT",
+    "SPL-30120-34U1-3CCT"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -918,7 +1037,14 @@
      "note": "",
      "flag": "Printed 4,080 lm, but 40 W × 120 lm/W = 4,800 lm – check"
     }
-   ]
+   ],
+   "image": "images/holux/spl-u1-surface-8.jpg",
+   "image_page": "Holux_1.pdf p.15",
+   "image_covers": [
+    "SPL-6060-40U1",
+    "SPL-30120-40U1"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -961,7 +1087,14 @@
      "size": "300 × 1500 × 30",
      "note": "Backlit"
     }
-   ]
+   ],
+   "image": "images/holux/spl-u1-u2-quick-9.jpg",
+   "image_page": "Holux_1.pdf p.15",
+   "image_covers": [
+    "SPL-30150-40U1",
+    "SPL-30150-40U2"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -1039,7 +1172,18 @@
      "note": "MiBOXER",
      "flag": "Same code printed for both platforms – \"-MB\" added here"
     }
-   ]
+   ],
+   "image": "images/holux/rgbcw-bp-10.jpg",
+   "image_page": "Holux_1.pdf p.17",
+   "image_covers": [
+    "BP-6060-40RGBCCT",
+    "BP-30120-40RGBCCT",
+    "BP-6262-40RGBCCT",
+    "BP-6060-40RGBCCT-MB",
+    "BP-30120-40RGBCCT-MB",
+    "BP-6262-40RGBCCT-MB"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -1097,7 +1241,16 @@
      "size": "595 × 595 × 30",
      "note": "Plug-on sensor; 3000 / 4000 / 6500 K"
     }
-   ]
+   ],
+   "image": "images/holux/hcl-bp-s1-s2-11.jpg",
+   "image_page": "Holux_1.pdf p.19",
+   "image_covers": [
+    "BP-6060-40S1",
+    "BP-6060-40S1-3CCT",
+    "BP-6060-40S1-3CCTR",
+    "BP-6060-40S2"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -1182,7 +1335,18 @@
      "beam": "110°",
      "ugr": "<22"
     }
-   ]
+   ],
+   "image": "images/holux/bp-uip-aip-12.jpg",
+   "image_page": "Holux_1.pdf p.21",
+   "image_covers": [
+    "BP-6060-40UIP",
+    "BP-6262-40UIP",
+    "BP-30120-40UIP",
+    "BP-6060-40IP",
+    "BP-6262-40IP",
+    "BP-30120-40IP"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -1216,7 +1380,13 @@
      "size": "295 × 1195 × 34",
      "note": "Up 16 W / 2,240 lm (20/24/28/32 W optional) + down 34 W / 4,760 lm"
     }
-   ]
+   ],
+   "image": "images/holux/ud-bp-d2-13.jpg",
+   "image_page": "Holux_1.pdf p.23",
+   "image_covers": [
+    "BP-30120-40D2"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -1359,7 +1529,25 @@
      "note": "lumens = W × lm/W (not printed)",
      "beam": "90°"
     }
-   ]
+   ],
+   "image": "images/holux/pl-screwless-14.jpg",
+   "image_page": "Holux_1.pdf p.25",
+   "image_covers": [
+    "PL-3030-18A1",
+    "PL-3060-22A1",
+    "PL-6060-38A1",
+    "PL-30120-38A1",
+    "PL-60120-64A1",
+    "PL-6060-34U1",
+    "PL-30120-34U1",
+    "PL-6060-32U1",
+    "PL-6262-32U1",
+    "PL-6060-24A1",
+    "PL-30120-24A1",
+    "PL-6060-24U1",
+    "PL-12030-24U1"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -1494,7 +1682,23 @@
      "beam": "90°",
      "ugr": "<19"
     }
-   ]
+   ],
+   "image": "images/holux/pl-a1-u1-15.jpg",
+   "image_page": "Holux_1.pdf p.26",
+   "image_covers": [
+    "PL-6060-40A1",
+    "PL-6262-40A1",
+    "PL-12030-40A1",
+    "PL-6060-36U1",
+    "PL-6262-36U1",
+    "PL-12030-36U1",
+    "PL-6060-28U1",
+    "PL-6262-28U1",
+    "PL-12030-28U1",
+    "PL-6767-40U1",
+    "PL-30150-40U1"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -1547,7 +1751,15 @@
      "flag": "Code says 40 W but the table says 60 W – check",
      "beam": "90°"
     }
-   ]
+   ],
+   "image": "images/holux/pl-aip-16.jpg",
+   "image_page": "Holux_1.pdf p.28",
+   "image_covers": [
+    "PL-6060-40AIP",
+    "PL-30120-40AIP",
+    "PL-60120-40AIP"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -1598,7 +1810,15 @@
      "size": "295 × 1195 × 15",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/holux/rp-b2-17.jpg",
+   "image_page": "Holux_1.pdf p.30",
+   "image_covers": [
+    "RP-6060-36B2",
+    "RP-6262-36B2",
+    "RP-30120-36B2"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -1649,7 +1869,15 @@
      "size": "295 × 1195 × 28",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/holux/rp-a1-18.jpg",
+   "image_page": "Holux_1.pdf p.30",
+   "image_covers": [
+    "RP-6060-36A1",
+    "RP-6262-36A1",
+    "RP-30120-36A1"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -1741,7 +1969,20 @@
      "size": "Φ26 × 1512",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/holux/t8-a2-b2-c2-19.jpg",
+   "image_page": "Holux_1.pdf p.34",
+   "image_covers": [
+    "T8-L12-12A2",
+    "T8-L15-17A2",
+    "T8-L06-09B2",
+    "T8-L12-15B2",
+    "T8-L15-20B2",
+    "T8-L06-7.5C2",
+    "T8-L12-15C2",
+    "T8-L15-20C2"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -1815,7 +2056,18 @@
      "size": "Φ26 × 1512",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/holux/t8-d1-e1-20.jpg",
+   "image_page": "Holux_1.pdf p.34",
+   "image_covers": [
+    "T8-L06-09D1",
+    "T8-L12-18D1",
+    "T8-L15-22D1",
+    "T8-L06-09E1",
+    "T8-L12-18E1",
+    "T8-L15-22E1"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -1857,7 +2109,14 @@
      "size": "Φ26 × 1512",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/holux/t8-s1-21.jpg",
+   "image_page": "Holux_1.pdf p.35",
+   "image_covers": [
+    "T8-L12-18S1",
+    "T8-L15-24S1"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -1956,7 +2215,20 @@
      "note": "lumens = W × lm/W (not printed)",
      "flag": "\"160 lm\" read as 160 lm/W – check"
     }
-   ]
+   ],
+   "image": "images/holux/t5-a1-c1-22.jpg",
+   "image_page": "Holux_1.pdf p.37",
+   "image_covers": [
+    "T5-L06-09A1",
+    "T5-L09-12A1",
+    "T5-L12-18A1",
+    "T5-L15-22A1",
+    "T5-L06-09C1",
+    "T5-L09-12C1",
+    "T5-L12-18C1",
+    "T5-L15-22C1"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor / industrial",
@@ -2015,7 +2287,16 @@
      "size": "L1500 × W89 × H78",
      "note": "PWM dimmable + 2× 12V DC APS; versions (sensor 1), (sensor 2), (NFC), (Emergency 2 W 3 h) · Power selectable 32/40/47/55W"
     }
-   ]
+   ],
+   "image": "images/holux/tp-f2-fs-23.jpg",
+   "image_page": "Holux_1.pdf p.39",
+   "image_covers": [
+    "TP-12-36F2",
+    "TP-15-55F2",
+    "TP-12-36FS",
+    "TP-15-55FS"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor / industrial",
@@ -2097,7 +2378,19 @@
      "size": "L1500 × W85 × H80",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/holux/tp-e2-g2-24.jpg",
+   "image_page": "Holux_1.pdf p.41",
+   "image_covers": [
+    "TP-06-18E2",
+    "TP-12-36E2",
+    "TP-15-50E2",
+    "TP-18-70E2",
+    "TP-06-18G2",
+    "TP-12-36G2",
+    "TP-15-50G2"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor / industrial",
@@ -2195,7 +2488,21 @@
      "size": "L1507 × W75 × H70",
      "note": "Linkable, 3CCT · Power selectable 29/36/44/55W"
     }
-   ]
+   ],
+   "image": "images/holux/tp-b1-b2-25.jpg",
+   "image_page": "Holux_1.pdf p.43",
+   "image_covers": [
+    "TP-06-18B1",
+    "TP-12-36B1",
+    "TP-15-55B1",
+    "TP-06-18B2",
+    "TP-12-36B2",
+    "TP-15-55B2",
+    "TP-06-18B2-3CCT",
+    "TP-12-36B2-3CCT",
+    "TP-15-55B2-3CCT"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor / industrial",
@@ -2245,7 +2552,15 @@
      "size": "L1500 × W80 × H66",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/holux/tp-g3-26.jpg",
+   "image_page": "Holux_1.pdf p.45",
+   "image_covers": [
+    "TP-06-18G3",
+    "TP-12-30G3",
+    "TP-15-40G3"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor / industrial",
@@ -2295,7 +2610,15 @@
      "size": "L1460 × W69 × H56.5",
      "note": "Linkable optional"
     }
-   ]
+   ],
+   "image": "images/holux/tp-c4-27.jpg",
+   "image_page": "Holux_1.pdf p.48",
+   "image_covers": [
+    "TP-06-18C4",
+    "TP-12-36C4",
+    "TP-15-50C4"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor / industrial",
@@ -2369,7 +2692,18 @@
      "size": "L1500 × W66.2 × H59.4",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/holux/tp-c2-c3-28.jpg",
+   "image_page": "Holux_1.pdf p.50",
+   "image_covers": [
+    "TP-06-18-C2",
+    "TP-12-36-C2",
+    "TP-15-48-C2",
+    "TP-06-18-C3",
+    "TP-12-36-C3",
+    "TP-15-48-C3"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor / industrial",
@@ -2427,7 +2761,16 @@
      "size": "L1540 × W70 × H73",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/holux/tp-a4-29.jpg",
+   "image_page": "Holux_1.pdf p.52",
+   "image_covers": [
+    "TP-12-18A4",
+    "TP-12-34A4",
+    "TP-15-27A4",
+    "TP-15-55A4"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor / industrial",
@@ -2469,7 +2812,14 @@
      "size": "1440 × 160 × 61",
      "note": "Power selectable 25/30/36/42W"
     }
-   ]
+   ],
+   "image": "images/holux/bf-c1-3cct-30.jpg",
+   "image_page": "Holux_1.pdf p.56",
+   "image_covers": [
+    "BF-12-36C1-3CCT",
+    "BF-15-42C1-3CCT"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor / industrial",
@@ -2512,7 +2862,14 @@
      "size": "L1500 × W160 × H70",
      "note": "Power selectable 38-50-58W"
     }
-   ]
+   ],
+   "image": "images/holux/bf-u1-31.jpg",
+   "image_page": "Holux_1.pdf p.56",
+   "image_covers": [
+    "BF-12-36U1",
+    "BF-15-58U1"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor / outdoor",
@@ -2570,7 +2927,16 @@
      "size": "Φ350 × 55",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/holux/m-a1-32.jpg",
+   "image_page": "Holux_2.pdf p.2",
+   "image_covers": [
+    "M-200-10A1",
+    "M-200-19A1",
+    "M-260-26A1",
+    "M-350-35A1"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor / outdoor",
@@ -2628,7 +2994,16 @@
      "size": "350 × 350 × 55",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/holux/m-a2-33.jpg",
+   "image_page": "Holux_2.pdf p.2",
+   "image_covers": [
+    "M-200-10A2",
+    "M-200-19A2",
+    "M-260-26A2",
+    "M-350-35A2"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor / outdoor",
@@ -2704,7 +3079,18 @@
      "note": "Emergency · Power selectable 20/25W",
      "emergency": "Yes"
     }
-   ]
+   ],
+   "image": "images/holux/m-2cct-34.jpg",
+   "image_page": "Holux_2.pdf p.4",
+   "image_covers": [
+    "M-300-18DW-2CCT",
+    "M-300-25DW-2CCT",
+    "M-300-18SW-2CCT",
+    "M-300-25SW-2CCT",
+    "M-300-18EW-2CCT",
+    "M-300-25EW-2CCT"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor / outdoor",
@@ -2778,7 +3164,18 @@
      "size": "Φ300 × H70",
      "note": "Emergency"
     }
-   ]
+   ],
+   "image": "images/holux/m-a1-s1-e1-300-35.jpg",
+   "image_page": "Holux_2.pdf p.4",
+   "image_covers": [
+    "M-300-18A1",
+    "M-300-25A1",
+    "M-300-18S1",
+    "M-300-25S1",
+    "M-300-18E1",
+    "M-300-25E1"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor / outdoor",
@@ -2845,7 +3242,17 @@
      "size": "Φ800 × H69.5",
      "note": "56 W 6050/6600/6160 lm · 80 W 8400/9200/8800 lm"
     }
-   ]
+   ],
+   "image": "images/holux/c-bm-36.jpg",
+   "image_page": "Holux_2.pdf p.6",
+   "image_covers": [
+    "C6300-BM",
+    "C6400-BM",
+    "C6500-BM",
+    "C6600-BM",
+    "C6800-BM"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor / outdoor",
@@ -2896,7 +3303,15 @@
      "size": "Φ800 × 86",
      "note": "60 W 6300/6600/6480 lm · 80 W 8000/8400/8240 lm; catalogue says 100 lm/W"
     }
-   ]
+   ],
+   "image": "images/holux/c-am-37.jpg",
+   "image_page": "Holux_2.pdf p.8",
+   "image_covers": [
+    "C6400-AM",
+    "C6600-AM",
+    "C6800-AM"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor / outdoor",
@@ -2987,7 +3402,20 @@
      "size": "890 × 590 × 63",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/holux/cls-skyline-38.jpg",
+   "image_page": "Holux_2.pdf p.10",
+   "image_covers": [
+    "CLS-42-60A1",
+    "CLS-56-110A1",
+    "CLS-42-48A2",
+    "CLS-56-80A2",
+    "CLS-6060-110B1",
+    "CLS-9060-150B1",
+    "CLS-5959-80B2",
+    "CLS-9060-120B2"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -3073,7 +3501,18 @@
      "beam": "80°",
      "ugr": "<19"
     }
-   ]
+   ],
+   "image": "images/holux/dlu-39.jpg",
+   "image_page": "Holux_2.pdf p.12",
+   "image_covers": [
+    "DLU1-4-10CCT",
+    "DLU1-6-20CCT",
+    "DLU1-8-35CCT",
+    "DLU2-4-10CCT",
+    "DLU2-6-20CCT",
+    "DLU2-8-35CCT"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -3147,7 +3586,18 @@
      "size": "300 × 300 × 25 (cut-out 150-270)",
      "note": "Square; 18 W 1800/1890/1710 lm · 25 W 2250/2375/2125 lm · Power selectable 18/25W"
     }
-   ]
+   ],
+   "image": "images/holux/dlr-dls-40.jpg",
+   "image_page": "Holux_2.pdf p.14",
+   "image_covers": [
+    "DLR1-180-DP3C",
+    "DLR1-220-DP3C",
+    "DLR1-300-DP3C",
+    "DLS1-180-DP3C",
+    "DLS1-220-DP3C",
+    "DLS1-300-DP3C"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -3246,7 +3696,21 @@
      "size": "Φ230 × 39 (cut-out Φ220)",
      "note": "3CCT 3000 / 4000 / 6500 K; lumens 1800–3360 lm · Power selectable 15/17/19/21/22/24/26/29W"
     }
-   ]
+   ],
+   "image": "images/holux/dlh-41.jpg",
+   "image_page": "Holux_2.pdf p.16",
+   "image_covers": [
+    "DLH1-3-5W",
+    "DLH1-4-9W",
+    "DLH1-5-15W",
+    "DLH1-6-18W",
+    "DLH1-6-24W",
+    "DLH1-8-24W",
+    "DLH1-8-36W",
+    "DLH1-6-DP3C",
+    "DLH1-8-DP3C"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -3315,7 +3779,17 @@
      "note": "3CCT, black; 600 / 650 / 650 lm",
      "cct": "2700 / 3400 / 4000 K"
     }
-   ]
+   ],
+   "image": "images/holux/dlf-42.jpg",
+   "image_page": "Holux_2.pdf p.18",
+   "image_covers": [
+    "DLF1-3W-6",
+    "DLF1-4W-9",
+    "DLF1-3B-6",
+    "DLF1-4W-9D",
+    "DLF1-4B-9D"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -3385,7 +3859,17 @@
      "note": "28 W 3024/3360/3192 lm · 40 W 4320/4800/4560 lm · Power selectable 28/40W",
      "control": "DT8 DALI"
     }
-   ]
+   ],
+   "image": "images/holux/dlm-a-43.jpg",
+   "image_page": "Holux_2.pdf p.20",
+   "image_covers": [
+    "DLM1-125-14A1",
+    "DLM1-136-ADP3C",
+    "DLM1-136-ADT8",
+    "DLM1-184-ADP3C",
+    "DLM1-184-ADT8"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -3455,7 +3939,17 @@
      "note": "28 W 3024/3360/3192 lm · 40 W 4320/4800/4560 lm · Power selectable 28/40W",
      "control": "DT8 DALI"
     }
-   ]
+   ],
+   "image": "images/holux/dlm-b-44.jpg",
+   "image_page": "Holux_2.pdf p.20",
+   "image_covers": [
+    "DLM1-125-14B1",
+    "DLM1-136-BDP3C",
+    "DLM1-136-BDT8",
+    "DLM1-184-BDP3C",
+    "DLM1-184-BDT8"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -3548,7 +4042,20 @@
      "note": "",
      "cct": "3000 / 4000 / 5700 K"
     }
-   ]
+   ],
+   "image": "images/holux/dlc-45.jpg",
+   "image_page": "Holux_2.pdf p.21",
+   "image_covers": [
+    "DLC-6-12C1",
+    "DLC-8-24C1",
+    "DLC-4-7C2",
+    "DLC-5-7C2",
+    "DLC-6-15C2",
+    "DLC-8-28C2",
+    "DLC-6-15C2-3CCT",
+    "DLC-8-28C2-3CCT"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -3614,7 +4121,17 @@
      "size": "Φ195 × 74 (cut-out Φ160-185)",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/holux/dls-ip65-46.jpg",
+   "image_page": "Holux_2.pdf p.21",
+   "image_covers": [
+    "DLS-3-10W",
+    "DLS-4-15W",
+    "DLS-5-18W",
+    "DLS-6-25W",
+    "DLS-7-35W"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -3713,7 +4230,21 @@
      "size": "Φ300 × 15 (cut-out Φ280)",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/holux/pdl-round-recessed-47.jpg",
+   "image_page": "Holux_2.pdf p.23",
+   "image_covers": [
+    "DL-3-3C1",
+    "DL-4-6C1",
+    "DL-5-9C1",
+    "DL-6-12C1",
+    "DL-7-15C1",
+    "DL-8-18C1",
+    "DL-10-24C1",
+    "DL-8-18B1",
+    "DL-10-24B1"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -3812,7 +4343,21 @@
      "size": "300 × 300 × 15 (cut-out 280 × 280)",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/holux/pdl-square-recessed-48.jpg",
+   "image_page": "Holux_2.pdf p.24",
+   "image_covers": [
+    "DL-3-3C2",
+    "DL-4-6C2",
+    "DL-5-9C2",
+    "DL-6-12C2",
+    "DL-7-15C2",
+    "DL-8-18C2",
+    "DL-10-24C2",
+    "DL-8-18B2",
+    "DL-10-24B2"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -3887,7 +4432,18 @@
      "size": "Φ300 × 35",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/holux/pdl-round-surface-49.jpg",
+   "image_page": "Holux_2.pdf p.25",
+   "image_covers": [
+    "DL-4-6C3",
+    "DL-6-12C3",
+    "DL-8-18C3",
+    "DL-10-24C3",
+    "DL-8-18B3",
+    "DL-10-24B3"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -3962,7 +4518,18 @@
      "size": "300 × 300 × 35",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/holux/pdl-square-surface-50.jpg",
+   "image_page": "Holux_2.pdf p.25",
+   "image_covers": [
+    "DL-4-6C4",
+    "DL-6-12C4",
+    "DL-8-18C4",
+    "DL-10-24C4",
+    "DL-8-18B4",
+    "DL-10-24B4"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Industrial",
@@ -4044,7 +4611,18 @@
      "note": "Power selectable 80-60-50W · lumens = W × lm/W (not printed)",
      "beam": "60° / 90° / 110°"
     }
-   ]
+   ],
+   "image": "images/holux/hb-325-hb-300-w2-51.jpg",
+   "image_page": "Holux_2.pdf p.27",
+   "image_covers": [
+    "HB-325-240W2",
+    "HB-325-150W2",
+    "HB-300-200W2",
+    "HB-300-150W2",
+    "HB-300-120W2",
+    "HB-300-80W2"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Industrial",
@@ -4094,7 +4672,15 @@
      "size": "Φ300 × 169",
      "note": "lumens = W × lm/W (not printed)"
     }
-   ]
+   ],
+   "image": "images/holux/hb-b2-185-52.jpg",
+   "image_page": "Holux_2.pdf p.28",
+   "image_covers": [
+    "HB-246-100B2",
+    "HB-266-150B2",
+    "HB-300-200B2"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Industrial",
@@ -4169,7 +4755,18 @@
      "size": "Φ330 × 148",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/holux/hb-b2-3cct-53.jpg",
+   "image_page": "Holux_2.pdf p.28",
+   "image_covers": [
+    "HB-245-100B2",
+    "HB-280-150B2-UFO",
+    "HB-330-200B2",
+    "HB-245-100B2-3CCT",
+    "HB-280-150B2-3CCT",
+    "HB-330-200B2-3CCT"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Industrial",
@@ -4260,7 +4857,20 @@
      "size": "Φ320 × 157.8",
      "note": "Power selectable 240W-200W-150W · lumens = W × lm/W (not printed)"
     }
-   ]
+   ],
+   "image": "images/holux/hb-b2-w2-140-160-54.jpg",
+   "image_page": "Holux_2.pdf p.29",
+   "image_covers": [
+    "HB-240-100B2",
+    "HB-280-150B2",
+    "HB-320-200B2",
+    "HB-320-240B2",
+    "HB-240-100W2",
+    "HB-280-150W2",
+    "HB-320-200W2",
+    "HB-320-240W2"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Outdoor",
@@ -4302,7 +4912,14 @@
      "size": "333 × 302 × 59",
      "note": "15000 / 12000 / 9000 lm · Power selectable 100-80-60W"
     }
-   ]
+   ],
+   "image": "images/holux/lf-a1-3cct-55.jpg",
+   "image_page": "Holux_2.pdf p.31",
+   "image_covers": [
+    "LF-384-200A1-3CCT",
+    "LF-333-100A1-3CCT"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -4400,7 +5017,20 @@
      "cct": "3000 / 3500 / 4000 K",
      "control": "Boke DALI"
     }
-   ]
+   ],
+   "image": "images/holux/ll-u1-56.jpg",
+   "image_page": "Holux_2.pdf p.33",
+   "image_covers": [
+    "LL-12-32U1-WO-840",
+    "LL-12-32U1-BO-840",
+    "LL-12-32U1-WD-CCT",
+    "LL-12-32U1-BD-CCT",
+    "LL-15-40U1-WO-840",
+    "LL-15-40U1-BO-840",
+    "LL-15-40U1-WD-CCT",
+    "LL-15-40U1-BD-CCT"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -4442,7 +5072,14 @@
      "size": "L1500 × W50 × H72.8",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/holux/ll-a1-57.jpg",
+   "image_page": "Holux_2.pdf p.34",
+   "image_covers": [
+    "LL-12-30A1-WO-840",
+    "LL-15-40A1-WO-840"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -4485,7 +5122,14 @@
      "note": "Boke DALI",
      "control": "Boke DALI"
     }
-   ]
+   ],
+   "image": "images/holux/ll-l1-58.jpg",
+   "image_page": "Holux_2.pdf p.34",
+   "image_covers": [
+    "LL-12-24L1-BO-840",
+    "LL-12-24L1-BD-840"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -4543,7 +5187,16 @@
      "size": "L1500 × W35 × H70",
      "note": ""
     }
-   ]
+   ],
+   "image": "images/holux/ll-a2-59.jpg",
+   "image_page": "Holux_2.pdf p.35",
+   "image_covers": [
+    "LL-12-30A2-WO-840",
+    "LL-12-40A2-WO-840",
+    "LL-15-30A2-WO-840",
+    "LL-15-40A2-WO-840"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -4665,7 +5318,24 @@
      "size": "60 × 120",
      "note": "IC driver"
     }
-   ]
+   ],
+   "image": "images/holux/a60-60.jpg",
+   "image_page": "Holux_2.pdf p.37",
+   "image_covers": [
+    "A60-E27-7W-L",
+    "A60-E27-9W-L",
+    "A60-E27-12W-L",
+    "A60-E27-15W-L",
+    "A60-E27-3.4W-IC",
+    "A60-E27-5.9W-IC",
+    "A60-E27-7.8W-IC",
+    "A60-E27-11W-IC",
+    "A60-E27-2.9W-IC",
+    "A60-E27-5W-IC",
+    "A60-E27-6.6W-IC",
+    "A60-E27-9.5W-IC"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -4771,7 +5441,22 @@
      "size": "37 × 101",
      "note": "IC driver"
     }
-   ]
+   ],
+   "image": "images/holux/g45-c37-61.jpg",
+   "image_page": "Holux_2.pdf p.38",
+   "image_covers": [
+    "G45-E14E27-4.9W-L",
+    "G45-E14E27-6W-L",
+    "G45-E14E27-7W-L",
+    "G45-E14E27-2.9W-IC",
+    "G45-E14E27-4.9W-IC",
+    "C37-E14E27-4.9W-L",
+    "C37-E14E27-6W-L",
+    "C37-E14E27-7W-L",
+    "C37-E14E27-2.9W-IC",
+    "C37-E14E27-4.9W-IC"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -4863,7 +5548,20 @@
      "note": "Glass GU10-30°, IC driver",
      "beam": "30°"
     }
-   ]
+   ],
+   "image": "images/holux/gu10-62.jpg",
+   "image_page": "Holux_2.pdf p.39",
+   "image_covers": [
+    "GU10-GU10-3W-L",
+    "GU10-GU10-4W-L",
+    "GU10-GU10-5W-L",
+    "GU10-GU10-6W-L",
+    "GU10-GU10-7W-L",
+    "GU10-GU10-8W-L",
+    "GU10-38-2.9W-IC",
+    "GU10-GLASS30-8W-IC"
+   ],
+   "image_shared_with": []
   },
   {
    "category": "Indoor",
@@ -4924,7 +5622,16 @@
      "note": "",
      "beam": "100°"
     }
-   ]
+   ],
+   "image": "images/holux/ra95-lamps-63.jpg",
+   "image_page": "Holux_2.pdf p.40",
+   "image_covers": [
+    "A60-E27-7W-RA95",
+    "G45-E27-4.3W-RA95",
+    "C37-E14-4.3W-RA95",
+    "GU10-4.7W-RA95"
+   ],
+   "image_shared_with": []
   }
  ],
  "accessories": [
