@@ -125,10 +125,11 @@ export function navFor(role: Role, realRole?: Role | null, sq?: boolean, sqRepor
     const at = t >= 0 ? t + 1 : r >= 0 ? r : items.length;
     items.splice(at, 0, { href: '/design-tools', label: 'Design Tools', icon: '⌁', pilot: true });
   }
-  // Dacademy for the engineers (the Infrastructure course) and Estimation (the Lighting course) – the Tools page shows only the academy for them
+  // Sales Tools for the execution team (Dacademy with the Infrastructure course first); Dacademy only for Estimation (the Lighting course)
   if (['senior_elec_engineer', 'assistant_engineer', 'trainee', 'sm_estimation', 'am_estimation', 'estimation_exec'].includes(role) && !items.some((i) => i.href === '/tools')) {
     const at = items.findIndex((i) => i.href === '/reports');
-    items.splice(at < 0 ? items.length : at, 0, { href: '/tools', label: 'Dacademy', icon: '🎓' });
+    const exec = ['senior_elec_engineer', 'assistant_engineer', 'trainee'].includes(role);
+    items.splice(at < 0 ? items.length : at, 0, exec ? { href: '/tools', label: 'Tools', icon: '⚒' } : { href: '/tools', label: 'Dacademy', icon: '🎓' });
   }
   return [...items.slice(0, 1), meetings, ...items.slice(1)];
 }

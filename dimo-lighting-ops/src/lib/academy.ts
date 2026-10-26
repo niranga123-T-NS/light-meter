@@ -33,12 +33,12 @@ export const ACADEMY_SITE = 'https://dimo-lighting-ops.vercel.app';
 export const ACADEMY_TRAINERS: Role[] = ['sm_projects', 'gm', 'sys_admin'];
 /** Team progress: the trainers for everyone, the Design Manager for the design team, SM Estimation for the estimation team */
 export const ACADEMY_TEAM_VIEWERS: Role[] = [...ACADEMY_TRAINERS, 'design_manager', 'sm_estimation'];
-/** The engineers have Dacademy (the Infrastructure course first) but not the rest of Sales Tools */
+/** The engineers (execution team): Dacademy with the Infrastructure course first, and the rest of Sales Tools */
 export const ACADEMY_ENGINEERS: Role[] = ['senior_elec_engineer', 'assistant_engineer', 'trainee'];
 /** Estimation has Dacademy (the Lighting course) but not the rest of Sales Tools */
 export const ACADEMY_ESTIMATION: Role[] = ['sm_estimation', 'am_estimation', 'estimation_exec'];
 /** Roles whose Tools page is Dacademy only */
-export const ACADEMY_ONLY: Role[] = [...ACADEMY_ENGINEERS, ...ACADEMY_ESTIMATION];
+export const ACADEMY_ONLY: Role[] = [...ACADEMY_ESTIMATION];
 
 export type AcademyStatus = 'ahead' | 'on_track' | 'behind' | 'idle' | 'complete' | 'open';
 export type AcademyPath = { required: AcademyCourse[]; optional: AcademyCourse[]; months: number | null; start_on: string | null; target_on: string | null; items: number; pace: number; custom: boolean };
