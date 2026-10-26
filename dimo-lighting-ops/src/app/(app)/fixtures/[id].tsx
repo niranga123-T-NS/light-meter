@@ -17,7 +17,7 @@ export default function FixturePage() {
   const rows: [string, string | undefined][] = [
     ['Type', p.type],
     ['Power', p.w != null ? `${p.w} W${p.steps?.length ? ` (selectable ${p.steps.join(' / ')} W)` : ''}` : undefined],
-    ['Lumens', p.lm ? `${fmt(p.lm)} lm${p.lmEst ? ' – estimated from the catalogue lm/W' : ''}${p.lm2 ? ` (standard version ${fmt(p.lm2)} lm)` : ''}` : 'not in the catalogue'],
+    ['Lumens', p.lm ? `${p.lmMin && p.lmMin < p.lm ? `${fmt(p.lmMin)} – ` : ''}${fmt(p.lm)} lm${p.lmEst ? ' – estimated from the catalogue lm/W' : ''}${p.lm2 ? ` (standard version ${fmt(p.lm2)} lm)` : ''}` : 'not in the catalogue'],
     ['Efficacy', p.eff ? `${p.eff} lm/W` : undefined],
     ['CCT', cctText(p)],
     ['CRI', p.cri ? `${p.cri}` : undefined],
@@ -35,7 +35,9 @@ export default function FixturePage() {
     ['Operating temp.', p.temp],
     ['Warranty', p.warranty ? `${p.warranty} years` : undefined],
     ['LED life', p.life ? `${fmt(p.life)} h` : undefined],
+    ['Options', p.extras],
     ['Notes', p.note],
+    ['More information', p.url],
   ];
   return (
     <Screen maxWidth={1000}>

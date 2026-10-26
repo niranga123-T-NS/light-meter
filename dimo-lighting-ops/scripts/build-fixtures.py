@@ -5,7 +5,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CAT = os.path.join(ROOT, 'data', 'catalogs')
 OUT = os.path.join(ROOT, 'public', 'fixtures', 'library.json')
 SRC = {'zc_lighting': ('ZC Lighting', 'ZC_2.pdf'), 'zc_lighting_part1': ('ZC Lighting', 'ZC_1.pdf'), 'grnled': ('GRNLED', '2026_GRNLED_Catalogue.pdf'), 'coreshine': ('CoreShine', 'Coreshine.pdf'),
-       'hemnord': ('HEMNORD (Cregini)', 'HEMNORD_1.pdf'), 'holux': ('Holux', 'Holux_1.pdf / Holux_2.pdf'), 'kyd': ('KYD', 'KYD_Catalog-NEW_version_1.pdf')}
+       'hemnord': ('HEMNORD (Cregini)', 'HEMNORD_1.pdf'), 'hemnord_2': ('HEMNORD (Cregini)', 'HEMNORD_2 / Hem_nord_6 / Hem_nord_7.pdf'), 'trilux': ('TRILUX', 'Trilux_1.pdf / Trilux_2.pdf (Product Portfolio 25)'), 'holux': ('Holux', 'Holux_1.pdf / Holux_2.pdf'), 'kyd': ('KYD', 'KYD_Catalog-NEW_version_1.pdf')}
 TYPES = [('Strip / neon', r'strip|neon'), ('Tube / lamp', r'\btube\b|\blamp\b|bulb|corn|\bgu10\b|\bpar\b|ar111|candle|mirror'),
          ('Street light', r'street|road|post.?top|courtyard|garden pole|area light|high.?mast'), ('Floodlight', r'flood|sports|stadium|tennis|padel|façade|facade|architectural'),
          ('High bay', r'high.?bay|ufo'), ('Tri-proof / batten', r'tri.?proof|waterproof light|batten|bulkhead.*linear'),
@@ -66,7 +66,7 @@ for path in sorted(glob.glob(os.path.join(CAT, '*.json'))):
             out.append(dict(id=f'{key}:{r["code"]}', brand=brand, cat=key, src=src, page=str(r['page']), fam=r.get('family') or f.get('title') or r['title'], title=r['title'],
                 type=ttype(r['category'], r['title']), code=r['code'], w=r.get('watts'), lm=lm, eff=max(eff) if eff else None, lmEst=True,
                 cct=cct(text) if cct(text)['k'] else {'k': [3000, 4000, 6000], 'range': False, 'rgb': False}, cri=cri(r.get('cri')), ugr=ugr(r.get('ugr')), ip=ipmax(r.get('ip') or text), ik=ikmax(text),
-                beam=r.get('beam') or '', ctrl=ctrl(text), warranty=warr(r.get('warranty')), life=None, size=(r.get('size') or '') + (f" (cut-out {r['cutout']})" if r.get('cutout') else ''),
+                beam=r.get('beam') or '', ctrl=ctrl(text + ' ' + str(g.get('control') or '')), warranty=warr(r.get('warranty')), life=None, size=(r.get('size') or '') + (f" (cut-out {r['cutout']})" if r.get('cutout') else ''),
                 voltage=r.get('voltage') or '', leds=r.get('leds') or '', note=' · '.join(x for x in (r.get('remark'), r.get('features')) if x),
                 flag='Lumens estimated from the catalogue lm/W range (no lumen value printed)' + (f" · {r['note']}" if r.get('note') else ''),
                 img=f.get('image') or '', shared=len(f.get('image_covers') or [])))
@@ -77,10 +77,10 @@ for path in sorted(glob.glob(os.path.join(CAT, '*.json'))):
             g = dict(f); g.update({k: x for k, x in v.items() if k not in ('note', 'flag', 'code', 'size')})
             text = ' '.join(str(g.get(k) or '') for k in ('control', 'power_steps', 'order_code', 'driver', 'emergency'))
             note = ' · '.join(x for x in (v.get('note'), f.get('power_steps') and f"Power steps: {f['power_steps']}") if x)
-            out.append(dict(id=f'{key}:{v["code"]}', brand=brand, cat=key, src=src, page=str(f.get('pages', '')), fam=f.get('family') or '', title=f.get('title', ''),
+            out.append(dict(id=f'{key}:{v["code"]}', brand=brand, cat=key, src=f.get('pdf') or src, lmMin=v.get('lmMin'), url=f.get('url'), extras=' · '.join(x for x in (f.get('design'), f.get('extras'), f.get('atex') and f'ATEX: {f["atex"]}', f.get('point_height') and f'Light point height {f["point_height"]}') if x), page=str(f.get('pages', '')), fam=f.get('family') or '', title=f.get('title', ''),
                 type=FIX.get((key, f.get('family'))) or ttype(g.get('type'), f.get('title'), f.get('category')), code=v['code'], w=num(v.get('w')), lm=num(v.get('lm')), eff=num(v.get('eff')), lmEst=False,
                 lm2=v.get('lm2'), cct=cct(g.get('cct')), cri=cri(g.get('cri')), ugr=ugr(g.get('ugr')), ip=ipmax(g.get('ip')), ik=ikmax(g.get('ik')), beam=str(g.get('beam') or ''),
-                ctrl=ctrl(text), warranty=warr(g.get('warranty')), life=num(g.get('life_h')), size=v.get('size') or '', steps=steps(v.get('note')), voltage=str(g.get('voltage') or ''),
+                ctrl=ctrl(text + ' ' + str(g.get('control') or '')), warranty=warr(g.get('warranty')), life=num(g.get('life_h')), size=v.get('size') or '', steps=steps(v.get('note')), voltage=str(g.get('voltage') or ''),
                 leds=str(g.get('leds') or ''), housing=str(g.get('housing') or ''), cover=str(g.get('cover') or ''), mounting=str(g.get('mounting') or ''), control=str(g.get('control') or ''),
                 temp=str(g.get('temp') or ''), surge=str(g.get('surge') or ''), note=note, flag=' · '.join(x for x in (v.get('flag'), f.get('family_flag')) if x),
                 img=f.get('image') or '', shared=len(f.get('image_covers') or [])))

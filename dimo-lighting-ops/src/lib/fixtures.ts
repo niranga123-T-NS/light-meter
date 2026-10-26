@@ -10,7 +10,7 @@ const base = () => (Platform.OS === 'web' ? '' : SITE);
 
 export type Fixture = {
   id: string; brand: string; cat: string; src: string; page?: string; fam?: string; title: string; type: string; code: string;
-  w?: number; lm?: number; eff?: number; lmEst?: boolean; lm2?: number; steps?: number[];
+  w?: number; lm?: number; lmMin?: number; eff?: number; lmEst?: boolean; lm2?: number; steps?: number[]; url?: string; extras?: string;
   cct: { k: number[]; range?: boolean; rgb?: boolean }; cri?: number; ugr?: number; ip?: number; ik?: number; beam?: string;
   ctrl: { dali?: boolean; v010?: boolean; dmx?: boolean; triac?: boolean; sensor?: boolean; smart?: boolean };
   warranty?: number; life?: number; size?: string; voltage?: string; leds?: string; housing?: string; cover?: string; mounting?: string; control?: string; temp?: string; surge?: string;
@@ -47,7 +47,7 @@ export function searchFixtures(all: Fixture[], q: string, f: { type?: string; br
         const ww = +m[1];
         return p.w != null && (Math.abs(p.w - ww) <= ww * 0.05 || (p.steps ?? []).some((s) => Math.abs(s - ww) < 0.5));
       }
-      if ((m = /^(\d+)lm$/.exec(w))) return p.lm != null && Math.abs(p.lm - +m[1]) <= +m[1] * 0.1;
+      if ((m = /^(\d+)lm$/.exec(w))) return p.lm != null && (p.lmMin ? +m[1] >= p.lmMin * 0.9 && +m[1] <= p.lm * 1.1 : Math.abs(p.lm - +m[1]) <= +m[1] * 0.1);
       if ((m = /^ip(\d\d)$/.exec(w))) return (p.ip ?? 0) >= +m[1];
       if ((m = /^ik(\d\d?)$/.exec(w))) return (p.ik ?? 0) >= +m[1];
       if ((m = /^(\d{4})k$/.exec(w))) return cctOk(p, +m[1]);
@@ -167,6 +167,14 @@ export function compare(p: Fixture, spec: Spec): Partial<Record<ParamKey, Cell>>
       case 'lm': {
         const a = n('lm');
         if (!p.lm || !lmAt) { out.lm = c('na', 'not in catalogue'); break; }
+        if (p.lmMin && p.lmMin < p.lm) {
+          // a family with a luminous flux range (portfolio catalogues): inside the range meets
+          const rng = `${fmt(p.lmMin)}–${fmt(p.lm)} lm range`;
+          if (a >= p.lmMin && a <= p.lm) out.lm = c('ok', rng, 'within the range');
+          else if (a > p.lm) { const d = pct(p.lm, a); out.lm = c(d < -10 ? 'fail' : 'minor', rng, `max ${sgn(p.lm - a)} lm (${sgn(d)} %)`); }
+          else { const d = pct(p.lmMin, a); out.lm = c(d <= 20 ? 'up' : 'minor', rng, `smallest version ${sgn(p.lmMin - a)} lm (${sgn(d)} %)`); }
+          break;
+        }
         const d = pct(lmAt, a);
         const st: Status = d < -10 ? 'fail' : d < -5 ? 'minor' : d <= 20 ? (d > 2 ? 'up' : 'ok') : d <= 40 ? 'minor' : 'fail';
         out.lm = c(st, `${lmAt !== p.lm ? '≈' : ''}${fmt(lmAt)} lm${p.lmEst ? ' (est.)' : ''}${lmAt !== p.lm ? ` at ${setW} W` : ''}`, Math.abs(d) < 0.5 ? '' : `${sgn(lmAt - a)} lm (${sgn(d)} %)${d > 20 ? ' – larger than needed' : ''}`);
@@ -195,7 +203,7 @@ export function compare(p: Fixture, spec: Spec): Partial<Record<ParamKey, Cell>>
       case 'ip': {
         const a = n('ip');
         if (p.ip == null) { out.ip = c('na', '—'); break; }
-        const steps = IP_LADDER.filter((x) => (p.ip! < a ? x > p.ip! && x <= a : x > a && x <= p.ip!)).length;
+        const steps = Math.max(1, IP_LADDER.filter((x) => (p.ip! < a ? x > p.ip! && x <= a : x > a && x <= p.ip!)).length);
         out.ip = c(p.ip > a ? 'up' : p.ip === a ? 'ok' : 'fail', `IP${p.ip}`, p.ip === a ? '' : `${steps} step${steps === 1 ? '' : 's'} ${p.ip > a ? 'higher' : 'lower'}`);
         break;
       }

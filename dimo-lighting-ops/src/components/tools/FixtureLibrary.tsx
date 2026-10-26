@@ -42,7 +42,7 @@ export function Thumb({ p, size = 64, height }: { p: Pick<Fixture, 'img'>; size?
 }
 
 const spec1 = (p: Fixture) =>
-  [p.w != null && `${p.w} W`, p.lm && `${fmt(p.lm)} lm${p.lmEst ? ' (est.)' : ''}`, p.eff && `${p.eff} lm/W`, cctText(p), p.cri && `CRI ${p.cri}`, p.ugr && `UGR<${p.ugr}`, p.ip && `IP${p.ip}`, p.beam]
+  [p.w != null && `${p.w} W`, p.lm && `${p.lmMin && p.lmMin < p.lm ? `${fmt(p.lmMin)}–` : ''}${fmt(p.lm)} lm${p.lmEst ? ' (est.)' : ''}`, p.eff && `${p.eff} lm/W`, cctText(p), p.cri && `CRI ${p.cri}`, p.ugr && `UGR<${p.ugr}`, p.ip && `IP${p.ip}`, p.beam]
     .filter(Boolean)
     .join(' · ');
 
