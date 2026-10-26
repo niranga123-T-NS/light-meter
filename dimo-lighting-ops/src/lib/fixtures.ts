@@ -10,7 +10,7 @@ const base = () => (Platform.OS === 'web' ? '' : SITE);
 
 export type Fixture = {
   id: string; brand: string; cat: string; src: string; page?: string; fam?: string; title: string; type: string; code: string;
-  w?: number; lm?: number; lmMin?: number; eff?: number; lmEst?: boolean; lm2?: number; steps?: number[]; url?: string; extras?: string; aut?: number[]; emergency?: string; visibility?: string;
+  w?: number; wMin?: number; lm?: number; lmMin?: number; eff?: number; lmEst?: boolean; lm2?: number; steps?: number[]; url?: string; extras?: string; aut?: number[]; emergency?: string; visibility?: string;
   cct: { k: number[]; range?: boolean; rgb?: boolean }; cri?: number; ugr?: number; ip?: number; ik?: number; beam?: string;
   ctrl: { dali?: boolean; v010?: boolean; dmx?: boolean; triac?: boolean; sensor?: boolean; smart?: boolean };
   warranty?: number; life?: number; size?: string; voltage?: string; leds?: string; housing?: string; cover?: string; mounting?: string; control?: string; temp?: string; surge?: string;
@@ -32,6 +32,8 @@ export const fixtureImage = (f: Pick<Fixture, 'img'>) => (f.img ? `${base()}/fix
 
 export const cctText = (f: Fixture) => (f.cct.k.length ? (f.cct.range && f.cct.k.length > 1 ? `${f.cct.k[0]}–${f.cct.k[f.cct.k.length - 1]} K` : f.cct.k.map((k) => `${k}`).join(' / ') + ' K') : '') + (f.cct.rgb ? ' + RGB' : '');
 export const ctrlText = (f: Fixture) => [f.ctrl.dali && 'DALI', f.ctrl.v010 && '0/1-10V', f.ctrl.dmx && 'DMX', f.ctrl.triac && 'Triac', f.ctrl.sensor && 'Sensor', f.ctrl.smart && 'Smart / app'].filter(Boolean).join(', ') || 'On/off';
+/** Power as printed: one value, or the family's range (portfolio catalogues) */
+export const wattText = (p: Pick<Fixture, 'w' | 'wMin'>) => (p.w == null ? '' : `${p.wMin != null && p.wMin < p.w ? `${p.wMin}–` : ''}${p.w} W`);
 export const fmt = (n?: number | null, unit = '') => (n == null ? '—' : `${Math.round(n).toLocaleString('en-US')}${unit}`);
 
 /** Quick search: every word must appear somewhere; "36w", "4000lm", "ip66", "4000k", "ugr19", "dali" are read as values */
@@ -45,7 +47,7 @@ export function searchFixtures(all: Fixture[], q: string, f: { type?: string; br
       let m: RegExpExecArray | null;
       if ((m = /^(\d+(?:\.\d+)?)w$/.exec(w))) {
         const ww = +m[1];
-        return p.w != null && (Math.abs(p.w - ww) <= ww * 0.05 || (p.steps ?? []).some((s) => Math.abs(s - ww) < 0.5));
+        return p.w != null && ((p.wMin != null && ww >= p.wMin * 0.95 && ww <= p.w * 1.05) || Math.abs(p.w - ww) <= ww * 0.05 || (p.steps ?? []).some((s) => Math.abs(s - ww) < 0.5));
       }
       if ((m = /^(\d+)lm$/.exec(w))) return p.lm != null && (p.lmMin ? +m[1] >= p.lmMin * 0.9 && +m[1] <= p.lm * 1.1 : Math.abs(p.lm - +m[1]) <= +m[1] * 0.1);
       if ((m = /^ip(\d\d)$/.exec(w))) return (p.ip ?? 0) >= +m[1];
@@ -160,6 +162,13 @@ export function compare(p: Fixture, spec: Spec): Partial<Record<ParamKey, Cell>>
       case 'w': {
         const a = n('w');
         if (p.w == null) { out.w = c('na', '—'); break; }
+        if (p.wMin != null && p.wMin < p.w) {
+          // a family with a power range (portfolio catalogues): inside the range meets
+          const rng = `${wattText(p)} range`;
+          if (a >= p.wMin && a <= p.w) out.w = c('ok', rng, 'within the range');
+          else { const edge = a > p.w ? p.w : p.wMin, d = pct(edge, a); out.w = c(Math.abs(d) <= 10 ? 'ok' : Math.abs(d) <= 20 ? 'minor' : 'fail', rng, `${a > p.w ? 'max' : 'smallest version'} ${sgn(edge - a)} W (${sgn(d)} %)`); }
+          break;
+        }
         const near = [p.w, ...(p.steps ?? [])].reduce((m, x) => (Math.abs(x - a) < Math.abs(m - a) ? x : m), p.w);
         const d = pct(near, a);
         const value = p.steps?.length ? `${p.steps.join('/')} W` : `${p.w} W`;

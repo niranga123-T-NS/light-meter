@@ -4,7 +4,7 @@ import { Image, Platform, Text, View } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import { Button, Card, colors, Muted, Notice, Row, Select } from '@/components/ui';
 import { pickImage } from '@/lib/files';
-import { cctText, FIXTURE_TYPES, fmt, type Fixture } from '@/lib/fixtures';
+import { cctText, FIXTURE_TYPES, fmt, wattText, type Fixture } from '@/lib/fixtures';
 import { fingerprintWeb, likeness, loadVisionIndex, rankByPhoto, VISION_PAGE } from '@/lib/photoSearch';
 import { Thumb } from './FixtureLibrary';
 
@@ -48,7 +48,7 @@ function useFingerprinter() {
   return { run, view };
 }
 
-const line = (p: Fixture) => [p.code, p.w != null && `${p.w} W`, p.lm && `${fmt(p.lm)} lm`, cctText(p), p.ip && `IP${p.ip}`].filter(Boolean).join(' · ');
+const line = (p: Fixture) => [p.code, wattText(p), p.lm && `${fmt(p.lm)} lm`, cctText(p), p.ip && `IP${p.ip}`].filter(Boolean).join(' · ');
 
 /** Search by photo: a photo of a fitting (site, competitor brochure, client picture) → the catalogue fittings that look most like it */
 export function PhotoSearchView({ all, brands }: { all: Fixture[]; brands: string[] }) {

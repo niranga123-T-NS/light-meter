@@ -1,0 +1,250 @@
+{
+ "brand": "SAMCOM",
+ "source": "SAMCOM emergency lighting datasheets",
+ "families": [
+  {
+   "family": "EEW 115P-NM-LED-SMT",
+   "title": "EEW 115P – self-contained white LED emergency luminaire (bulkhead, IP65)",
+   "type": "Emergency",
+   "category": "Indoor",
+   "pdf": "EEW_115P-NM-LED-SMT.pdf",
+   "pages": "1",
+   "cct": "",
+   "ip": "IP65",
+   "voltage": "230Vac 50/60Hz",
+   "warranty": "1 year",
+   "temp": "ta 25 °C",
+   "extras": "Compliance: SS563:2010, SS IEC 60598-2-22",
+   "image": "img/samcom/eew-115p-nm-led-smt.jpg",
+   "variants": [
+    {
+     "code": "EEW 115P-NM-LED-SMT",
+     "w": 3,
+     "size": "355 × 120 × 75 mm",
+     "note": "1.5 W SMT white LED · 2.4 V 1.6 Ah NiCd · recharge 16–24 h · push test switch · ABS housing, acrylic diffuser",
+     "aut": [
+      3
+     ],
+     "emergency": "non-maintained",
+     "flag": "No lumen value on the datasheet"
+    }
+   ],
+   "image_covers": [
+    "EEW 115P-NM-LED-SMT"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "EHL 101-LED",
+   "title": "EHL 101 – self-contained LED emergency downlight (recessed, snap-in)",
+   "type": "Emergency",
+   "category": "Indoor",
+   "pdf": "EHL_101-LED.pdf",
+   "pages": "1",
+   "cct": "",
+   "ip": "IP20",
+   "voltage": "230Vac 50/60Hz",
+   "warranty": "1 year",
+   "temp": "ta 25 °C",
+   "extras": "Compliance: SS563-1:2010, SS563-2:2010/A1:2013, SS IEC 60598-2-22:2016",
+   "image": "img/samcom/ehl-101-led.jpg",
+   "variants": [
+    {
+     "code": "EHL 101-LED",
+     "w": 1.8,
+     "lm": 28,
+     "size": "97 × 97 × 102 mm",
+     "note": "1 W SMT Nichia white LED · 28 lm in emergency · 2.4 V 1.6 Ah NiCd · rated period > 4 h, ordering table 2 h ± 10 % · PC + UV housing",
+     "aut": [
+      2
+     ],
+     "emergency": "non-maintained"
+    }
+   ],
+   "image_covers": [
+    "EHL 101-LED"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "EHL 101M-LED",
+   "title": "EHL 101M – self-contained LED emergency downlight (recessed, snap-in, steel)",
+   "type": "Emergency",
+   "category": "Indoor",
+   "pdf": "EHL_101M-LED.pdf",
+   "pages": "1",
+   "cct": "",
+   "ip": "IP20",
+   "voltage": "230Vac 50/60Hz",
+   "warranty": "1 year",
+   "temp": "ta 25 °C",
+   "extras": "Compliance: SS563-1:2010, SS563-2:2010/A1:2013, SS IEC 60598-2-22:2016",
+   "image": "img/samcom/ehl-101m-led.jpg",
+   "variants": [
+    {
+     "code": "EHL 101M-LED",
+     "w": 1.8,
+     "lm": 27,
+     "size": "Φ123 (Φ64 body) × 75 mm",
+     "note": "4 × 0.25 W SMT Nichia white LED · 27 lm in emergency · 2.4 V 1.6 Ah NiCd · galvanised steel, epoxy powder coat",
+     "aut": [
+      4
+     ],
+     "emergency": "non-maintained"
+    }
+   ],
+   "image_covers": [
+    "EHL 101M-LED"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "ETL 201P-LED",
+   "title": "ETL 201P – self-contained LED emergency twin spot (adjustable twin heads)",
+   "type": "Emergency",
+   "category": "Indoor",
+   "pdf": "ETL_201P-LED.pdf",
+   "pages": "1",
+   "cct": "",
+   "ip": "IP20",
+   "voltage": "230Vac 50/60Hz",
+   "warranty": "1 year",
+   "temp": "ta 25 °C",
+   "extras": "Compliance: CP 19-2000, SS263 Part 2, IEC 598-2-22",
+   "image": "img/samcom/etl-201p-led.jpg",
+   "variants": [
+    {
+     "code": "ETL 201P-LED",
+     "w": 1.9,
+     "size": "305 × 95 × 136 mm",
+     "note": "2 × 6 SMT Nichia white LED · 173 lm/m² ± 10 % · 2.4 V 2.5 Ah NiCd · rated period > 2 h / 3 h, ordering table 2.5 h · ABS housing",
+     "aut": [
+      2.5
+     ],
+     "emergency": "non-maintained",
+     "flag": "No lumen value on the datasheet"
+    }
+   ],
+   "image_covers": [
+    "ETL 201P-LED"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "SLED-X2",
+   "title": "SLED-X2 – self-contained LED emergency exit sign (maintained, edge-lit, wall / ceiling / recessed / suspended)",
+   "type": "Emergency",
+   "category": "Indoor",
+   "pdf": "SLED-X2.pdf",
+   "pages": "1",
+   "ip": "IP20",
+   "voltage": "220 ~ 240Vac 50/60Hz",
+   "warranty": "1 year",
+   "temp": "ta 40 °C",
+   "visibility": "> 8 cd/m²",
+   "extras": "Compliance: CP19:2000, SS263 Part 2, IEC 60598-2-22:2014 · other signs and colours on request",
+   "image": "img/samcom/sled-x2.jpg",
+   "variants": [
+    {
+     "code": "SLED-X2-001",
+     "w": 2,
+     "size": "345 × 52 × 252 mm",
+     "aut": [
+      3
+     ],
+     "emergency": "maintained",
+     "note": "Single-face, legend EXIT · SMT white LED strip > 30,000 h · 3.6 V 0.9 Ah NiCd or 1.5 Ah LiFePO4 · galvanised steel, acrylic diffuser · wall bracket for single face",
+     "flag": "Exit sign – no lumen value (luminance > 8 cd/m²)"
+    },
+    {
+     "code": "SLED-X2-011",
+     "w": 2,
+     "size": "345 × 52 × 252 mm",
+     "aut": [
+      3
+     ],
+     "emergency": "maintained",
+     "note": "Single-face, legend ← EXIT · SMT white LED strip > 30,000 h · 3.6 V 0.9 Ah NiCd or 1.5 Ah LiFePO4 · galvanised steel, acrylic diffuser · wall bracket for single face",
+     "flag": "Exit sign – no lumen value (luminance > 8 cd/m²)"
+    },
+    {
+     "code": "SLED-X2-021",
+     "w": 2,
+     "size": "345 × 52 × 252 mm",
+     "aut": [
+      3
+     ],
+     "emergency": "maintained",
+     "note": "Single-face, legend EXIT → · SMT white LED strip > 30,000 h · 3.6 V 0.9 Ah NiCd or 1.5 Ah LiFePO4 · galvanised steel, acrylic diffuser · wall bracket for single face",
+     "flag": "Exit sign – no lumen value (luminance > 8 cd/m²)"
+    },
+    {
+     "code": "SLED-X2-031",
+     "w": 2,
+     "size": "345 × 52 × 252 mm",
+     "aut": [
+      3
+     ],
+     "emergency": "maintained",
+     "note": "Single-face, legend ← EXIT → · SMT white LED strip > 30,000 h · 3.6 V 0.9 Ah NiCd or 1.5 Ah LiFePO4 · galvanised steel, acrylic diffuser · wall bracket for single face",
+     "flag": "Exit sign – no lumen value (luminance > 8 cd/m²)"
+    },
+    {
+     "code": "SLED-X2-002",
+     "w": 2,
+     "size": "345 × 52 × 252 mm",
+     "aut": [
+      3
+     ],
+     "emergency": "maintained",
+     "note": "Double-face, legend EXIT · SMT white LED strip > 30,000 h · 3.6 V 0.9 Ah NiCd or 1.5 Ah LiFePO4 · galvanised steel, acrylic diffuser · wall bracket for single face",
+     "flag": "Exit sign – no lumen value (luminance > 8 cd/m²)"
+    },
+    {
+     "code": "SLED-X2-012",
+     "w": 2,
+     "size": "345 × 52 × 252 mm",
+     "aut": [
+      3
+     ],
+     "emergency": "maintained",
+     "note": "Double-face, legend ← EXIT · SMT white LED strip > 30,000 h · 3.6 V 0.9 Ah NiCd or 1.5 Ah LiFePO4 · galvanised steel, acrylic diffuser · wall bracket for single face",
+     "flag": "Exit sign – no lumen value (luminance > 8 cd/m²)"
+    },
+    {
+     "code": "SLED-X2-022",
+     "w": 2,
+     "size": "345 × 52 × 252 mm",
+     "aut": [
+      3
+     ],
+     "emergency": "maintained",
+     "note": "Double-face, legend EXIT → · SMT white LED strip > 30,000 h · 3.6 V 0.9 Ah NiCd or 1.5 Ah LiFePO4 · galvanised steel, acrylic diffuser · wall bracket for single face",
+     "flag": "Exit sign – no lumen value (luminance > 8 cd/m²)"
+    },
+    {
+     "code": "SLED-X2-032",
+     "w": 2,
+     "size": "345 × 52 × 252 mm",
+     "aut": [
+      3
+     ],
+     "emergency": "maintained",
+     "note": "Double-face, legend ← EXIT → · SMT white LED strip > 30,000 h · 3.6 V 0.9 Ah NiCd or 1.5 Ah LiFePO4 · galvanised steel, acrylic diffuser · wall bracket for single face",
+     "flag": "Exit sign – no lumen value (luminance > 8 cd/m²)"
+    }
+   ],
+   "image_covers": [
+    "SLED-X2-001",
+    "SLED-X2-011",
+    "SLED-X2-021",
+    "SLED-X2-031",
+    "SLED-X2-002",
+    "SLED-X2-012",
+    "SLED-X2-022",
+    "SLED-X2-032"
+   ],
+   "image_shared_with": []
+  }
+ ]
+}

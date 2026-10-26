@@ -1,0 +1,1500 @@
+{
+ "brand": "HPWINNER",
+ "source": "HPWINNER_Catalogue_202607.pdf + TF2C / TF31A / TF32 / TF33 datasheets",
+ "families": [
+  {
+   "family": "M66A-VB/CB",
+   "title": "LED module M66A-VB / M66A-CB (5050, 34 LEDs) – light engine for roadway, area, tunnel and flood lighting",
+   "type": "Other",
+   "category": "Outdoor",
+   "pdf": "HPWINNER_Catalogue_202607.pdf",
+   "pages": "11",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "ip": "IP68",
+   "ik": "IK09",
+   "voltage": "50 - 64 Vdc",
+   "temp": "-40℃~+50℃, 10%~90% RH",
+   "housing": "Die-cast Aluminum ADC-12",
+   "mounting": "",
+   "leds": "5050 LEDs",
+   "beam": "12° / 25° / 40° / 60° / 90° / Lambertian / Type I–IV / tunnel / billboard / sports (M66A optics)",
+   "control": "",
+   "extras": "",
+   "variants": [
+    {
+     "code": "M66A-VB/CB",
+     "w": 60.0,
+     "wMin": 40.0,
+     "lm": 12000,
+     "lmMin": 7720,
+     "lmEst": true,
+     "eff": 200.0,
+     "note": "Power 40–60 W · efficacy 193–200 lm/W (typical) · 34 PCS LEDs, 50 - 64 Vdc DC module",
+     "flag": "Lumens estimated from the catalogue power range × lm/W range (the catalogue has no per-model lumen table) – ask HPWINNER for the exact version"
+    }
+   ],
+   "image": "img/hpwinner/m66a-vb-cb.jpg",
+   "image_covers": [
+    "M66A-VB/CB"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "M66A-VC/CC",
+   "title": "LED module M66A-VC / M66A-CC (3030, 90 LEDs) – light engine for roadway, area, tunnel and flood lighting",
+   "type": "Other",
+   "category": "Outdoor",
+   "pdf": "HPWINNER_Catalogue_202607.pdf",
+   "pages": "12",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "ip": "IP68",
+   "ik": "IK09",
+   "voltage": "48 - 61 Vdc",
+   "temp": "-40℃~+50℃, 10%~90% RH",
+   "housing": "Die-cast Aluminum ADC-12",
+   "mounting": "",
+   "leds": "3030 LEDs",
+   "beam": "12° / 25° / 40° / 60° / 90° / Lambertian / Type I–IV / tunnel / billboard / sports (M66A optics)",
+   "control": "",
+   "extras": "",
+   "variants": [
+    {
+     "code": "M66A-VC/CC",
+     "w": 60.0,
+     "wMin": 40.0,
+     "lm": 9600,
+     "lmMin": 6000,
+     "lmEst": true,
+     "eff": 160.0,
+     "note": "Power 40–60 W · efficacy 150–160 lm/W (typical) · 90 PCS LEDs, 48 - 61 Vdc DC module",
+     "flag": "Lumens estimated from the catalogue power range × lm/W range (the catalogue has no per-model lumen table) – ask HPWINNER for the exact version"
+    }
+   ],
+   "image": "img/hpwinner/m66a-vc-cc.jpg",
+   "image_covers": [
+    "M66A-VC/CC"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "T78",
+   "title": "T78 LED roadway light – Zhaga Book 15 optics, tool-less gear access, replaceable light engine",
+   "type": "Street light",
+   "category": "Outdoor",
+   "pdf": "HPWINNER_Catalogue_202607.pdf",
+   "pages": "13",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "ip": "IP66",
+   "ik": "IK09",
+   "voltage": "100 - 277 Vac",
+   "temp": "-40℃~+50℃, 10%-90%RH",
+   "housing": "Die-cast Aluminum ADC-12",
+   "mounting": "Spigot Ø 42 - 60 mm",
+   "leds": "5050 LEDs",
+   "beam": "Roadway (IESNA Type I / II / III / IV)",
+   "control": "",
+   "extras": "Zhaga Book 15 optics · Colours: White / Black / Gray · Class I by default, II optional",
+   "variants": [
+    {
+     "code": "T78",
+     "w": 240.0,
+     "wMin": 20.0,
+     "lm": 44880,
+     "lmMin": 3000,
+     "lmEst": true,
+     "eff": 187.0,
+     "note": "Power 20–240 W · efficacy 150–187 lm/W (typical)",
+     "flag": "Lumens estimated from the catalogue power range × lm/W range (the catalogue has no per-model lumen table) – ask HPWINNER for the exact version"
+    }
+   ],
+   "image": "img/hpwinner/t78.jpg",
+   "image_covers": [
+    "T78"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "T88",
+   "title": "T88 LED roadway light – NEMA receptacle optional, IP68 light engine",
+   "type": "Street light",
+   "category": "Outdoor",
+   "pdf": "HPWINNER_Catalogue_202607.pdf",
+   "pages": "14",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "ip": "IP66",
+   "ik": "IK08",
+   "voltage": "100 - 277 Vac",
+   "temp": "-40℃~+50℃, 10%~90% RH",
+   "housing": "Die-cast Aluminum ADC-12",
+   "mounting": "Spigot Ø 42 - 60 mm",
+   "leds": "5050 LEDs",
+   "beam": "Roadway (IESNA Type I / II / III / IV)",
+   "control": "",
+   "extras": "Light engine IP68 · NEMA receptacle optional · Colours: White / Black / Gray",
+   "variants": [
+    {
+     "code": "T88",
+     "w": 200.0,
+     "wMin": 20.0,
+     "lm": 43200,
+     "lmMin": 3460,
+     "lmEst": true,
+     "eff": 216.0,
+     "note": "Power 20–200 W · efficacy 173–216 lm/W (typical)",
+     "flag": "Lumens estimated from the catalogue power range × lm/W range (the catalogue has no per-model lumen table) – ask HPWINNER for the exact version"
+    }
+   ],
+   "image": "img/hpwinner/t88.jpg",
+   "image_covers": [
+    "T88"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "T1MAX",
+   "title": "T1MAX LED roadway light – residential roads and alleys, sensor ready",
+   "type": "Street light",
+   "category": "Outdoor",
+   "pdf": "HPWINNER_Catalogue_202607.pdf",
+   "pages": "15",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "ip": "IP66",
+   "ik": "IK08",
+   "voltage": "100 - 277 Vac",
+   "temp": "-40℃~+50℃, 10%~90% RH",
+   "housing": "Die-cast Aluminum ADC-12",
+   "mounting": "Spigot Ø 42 - 60 mm",
+   "leds": "5050 LEDs",
+   "beam": "Roadway (IESNA Type I / II / III / IV)",
+   "control": "",
+   "extras": "Light engine IP68 · Sensor ready · Colours: White / Gray · Class II by default, I optional",
+   "variants": [
+    {
+     "code": "T1MAX",
+     "w": 40.0,
+     "wMin": 20.0,
+     "lm": 8160,
+     "lmMin": 3600,
+     "lmEst": true,
+     "eff": 204.0,
+     "note": "Power 20–40 W · efficacy 180–204 lm/W (typical)",
+     "flag": "Lumens estimated from the catalogue power range × lm/W range (the catalogue has no per-model lumen table) – ask HPWINNER for the exact version"
+    }
+   ],
+   "image": "img/hpwinner/t1max.jpg",
+   "image_covers": [
+    "T1MAX"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "T1QMAX",
+   "title": "T1QMAX LED roadway light – sensor ready",
+   "type": "Street light",
+   "category": "Outdoor",
+   "pdf": "HPWINNER_Catalogue_202607.pdf",
+   "pages": "16",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "ip": "IP66",
+   "ik": "IK08",
+   "voltage": "100 - 277 Vac",
+   "temp": "-40℃~+50℃, 10%~90% RH",
+   "housing": "Die-cast Aluminum ADC-12",
+   "mounting": "Spigot Ø 42 - 60 mm",
+   "leds": "5050 LEDs",
+   "beam": "Roadway (IESNA Type I / II / III / IV)",
+   "control": "",
+   "extras": "Light engine IP68 · Sensor ready · Colours: White / Gray · Class II by default, I optional",
+   "variants": [
+    {
+     "code": "T1QMAX",
+     "w": 60.0,
+     "wMin": 40.0,
+     "lm": 12540,
+     "lmMin": 6920,
+     "lmEst": true,
+     "eff": 209.0,
+     "note": "Power 40–60 W · efficacy 173–209 lm/W (typical)",
+     "flag": "Lumens estimated from the catalogue power range × lm/W range (the catalogue has no per-model lumen table) – ask HPWINNER for the exact version"
+    }
+   ],
+   "image": "img/hpwinner/t1qmax.jpg",
+   "image_covers": [
+    "T1QMAX"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "T2QMAX",
+   "title": "T2QMAX LED roadway light – sensor ready",
+   "type": "Street light",
+   "category": "Outdoor",
+   "pdf": "HPWINNER_Catalogue_202607.pdf",
+   "pages": "17",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "ip": "IP66",
+   "ik": "IK08",
+   "voltage": "100 - 277 Vac",
+   "temp": "-40℃~+50℃, 10%~90% RH",
+   "housing": "Die-cast Aluminum ADC-12",
+   "mounting": "Spigot Ø 42 - 60 mm",
+   "leds": "5050 LEDs",
+   "beam": "Roadway (IESNA Type I / II / III / IV)",
+   "control": "",
+   "extras": "Light engine IP68 · Sensor ready · Colours: White / Gray · Class II by default, I optional",
+   "variants": [
+    {
+     "code": "T2QMAX",
+     "w": 100.0,
+     "wMin": 80.0,
+     "lm": 20900,
+     "lmMin": 14800,
+     "lmEst": true,
+     "eff": 209.0,
+     "note": "Power 80–100 W · efficacy 185–209 lm/W (typical)",
+     "flag": "Lumens estimated from the catalogue power range × lm/W range (the catalogue has no per-model lumen table) – ask HPWINNER for the exact version"
+    }
+   ],
+   "image": "img/hpwinner/t2qmax.jpg",
+   "image_covers": [
+    "T2QMAX"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "T29",
+   "title": "T29 (T29A / T29B / T29C) LED roadway light – low-wattage roads, NEMA receptacle optional",
+   "type": "Street light",
+   "category": "Outdoor",
+   "pdf": "HPWINNER_Catalogue_202607.pdf",
+   "pages": "18",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "ip": "IP66",
+   "ik": "≥ IK08",
+   "voltage": "100 - 277 Vac",
+   "temp": "-40℃~+50℃, 10%~90% RH",
+   "housing": "Die-cast Aluminum ADC-12",
+   "mounting": "Spigot Ø 57 - 63 mm / Ø 55 - 61 mm",
+   "leds": "5050 LEDs",
+   "beam": "Roadway (IESNA Type I / II / III / IV)",
+   "control": "",
+   "extras": "Light engine IP68 · NEMA receptacle optional · Colours: White / Black / Gray",
+   "variants": [
+    {
+     "code": "T29",
+     "w": 120.0,
+     "wMin": 20.0,
+     "lm": 23160,
+     "lmMin": 2600,
+     "lmEst": true,
+     "eff": 193.0,
+     "note": "Power 20–120 W · efficacy 130–193 lm/W (typical)",
+     "flag": "Lumens estimated from the catalogue power range × lm/W range (the catalogue has no per-model lumen table) – ask HPWINNER for the exact version"
+    }
+   ],
+   "image": "img/hpwinner/t29.jpg",
+   "image_covers": [
+    "T29"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "T65",
+   "title": "T65 LED roadway light – IP68 light engine, tool-less access",
+   "type": "Street light",
+   "category": "Outdoor",
+   "pdf": "HPWINNER_Catalogue_202607.pdf",
+   "pages": "19",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "ip": "IP66",
+   "ik": "",
+   "voltage": "100 - 277 Vac",
+   "temp": "-40℃~+50℃, 10%~90% RH",
+   "housing": "Die-cast Aluminum ADC-12",
+   "mounting": "Spigot Ø 42 - 60 mm/ Ø 66 - 76 mm",
+   "leds": "5050 LEDs",
+   "beam": "Roadway (IESNA Type I / II / III / IV)",
+   "control": "",
+   "extras": "Light engine IP68 · Colours: White / Black / Gray",
+   "variants": [
+    {
+     "code": "T65",
+     "w": 400.0,
+     "wMin": 40.0,
+     "lm": 69200,
+     "lmMin": 5840,
+     "lmEst": true,
+     "eff": 173.0,
+     "note": "Power 40–400 W · efficacy 146–173 lm/W (typical)",
+     "flag": "Lumens estimated from the catalogue power range × lm/W range (the catalogue has no per-model lumen table) – ask HPWINNER for the exact version"
+    }
+   ],
+   "image": "img/hpwinner/t65.jpg",
+   "image_covers": [
+    "T65"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "T67",
+   "title": "T67 LED roadway light – IP68 light engine, tool-less access",
+   "type": "Street light",
+   "category": "Outdoor",
+   "pdf": "HPWINNER_Catalogue_202607.pdf",
+   "pages": "20",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "ip": "IP66",
+   "ik": "",
+   "voltage": "100 - 277 Vac",
+   "temp": "-40℃~+50℃, 10%~90% RH",
+   "housing": "Die-cast Aluminum ADC-12",
+   "mounting": "Spigot Ø 42 - 60 mm",
+   "leds": "5050 LEDs",
+   "beam": "Roadway (IESNA Type I / II / III / IV)",
+   "control": "",
+   "extras": "Light engine IP68 · Colours: White / Black / Gray",
+   "variants": [
+    {
+     "code": "T67",
+     "w": 240.0,
+     "wMin": 40.0,
+     "lm": 41520,
+     "lmMin": 5840,
+     "lmEst": true,
+     "eff": 173.0,
+     "note": "Power 40–240 W · efficacy 146–173 lm/W (typical)",
+     "flag": "Lumens estimated from the catalogue power range × lm/W range (the catalogue has no per-model lumen table) – ask HPWINNER for the exact version"
+    }
+   ],
+   "image": "img/hpwinner/t67.jpg",
+   "image_covers": [
+    "T67"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "T68",
+   "title": "T68 LED roadway light – IP68 light engine, NEMA receptacle optional",
+   "type": "Street light",
+   "category": "Outdoor",
+   "pdf": "HPWINNER_Catalogue_202607.pdf",
+   "pages": "21",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "ip": "IP66",
+   "ik": "",
+   "voltage": "100 - 277 Vac",
+   "temp": "-40℃~+50℃, 10%~90% RH",
+   "housing": "Die-cast Aluminum ADC-12",
+   "mounting": "Spigot Ø 42 - 60 mm/ Ø 66 - 76 mm",
+   "leds": "5050 LEDs",
+   "beam": "Roadway (IESNA Type I / II / III / IV)",
+   "control": "",
+   "extras": "Light engine IP68 · NEMA receptacle optional · Colours: White / Black / Gray",
+   "variants": [
+    {
+     "code": "T68",
+     "w": 400.0,
+     "wMin": 40.0,
+     "lm": 76000,
+     "lmMin": 6400,
+     "lmEst": true,
+     "eff": 190.0,
+     "note": "Power 40–400 W · efficacy 160–190 lm/W (typical)",
+     "flag": "Lumens estimated from the catalogue power range × lm/W range (the catalogue has no per-model lumen table) – ask HPWINNER for the exact version"
+    }
+   ],
+   "image": "img/hpwinner/t68.jpg",
+   "image_covers": [
+    "T68"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "T69",
+   "title": "T69 LED roadway light – modular IP68 light engines",
+   "type": "Street light",
+   "category": "Outdoor",
+   "pdf": "HPWINNER_Catalogue_202607.pdf",
+   "pages": "22",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "ip": "IP66",
+   "ik": "",
+   "voltage": "100 - 277 Vac",
+   "temp": "-40℃~+50℃, 10%~90% RH",
+   "housing": "Die-cast Aluminum ADC-12",
+   "mounting": "Spigot Ø 42 - 60 mm",
+   "leds": "5050 LEDs",
+   "beam": "Roadway (IESNA Type I / II / III / IV)",
+   "control": "",
+   "extras": "Light engine IP68 · Colours: White / Black / Gray",
+   "variants": [
+    {
+     "code": "T69",
+     "w": 240.0,
+     "wMin": 40.0,
+     "lm": 45600,
+     "lmMin": 6400,
+     "lmEst": true,
+     "eff": 190.0,
+     "note": "Power 40–240 W · efficacy 160–190 lm/W (typical)",
+     "flag": "Lumens estimated from the catalogue power range × lm/W range (the catalogue has no per-model lumen table) – ask HPWINNER for the exact version"
+    }
+   ],
+   "image": "img/hpwinner/t69.jpg",
+   "image_covers": [
+    "T69"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "T11A",
+   "title": "T11A LED roadway light – modular M66A light engines",
+   "type": "Street light",
+   "category": "Outdoor",
+   "pdf": "HPWINNER_Catalogue_202607.pdf",
+   "pages": "23",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "ip": "IP67",
+   "ik": "",
+   "voltage": "100 - 277 Vac",
+   "temp": "-40℃~+50℃, 10%-90%RH",
+   "housing": "Die-cast Aluminum ADC-12",
+   "mounting": "Spigot Ø 42 - 60 mm",
+   "leds": "5050 LEDs",
+   "beam": "Roadway (IESNA Type I / II / III / IV)",
+   "control": "",
+   "extras": "Light engine IP68 · Colours: White / Black / Gray",
+   "variants": [
+    {
+     "code": "T11A",
+     "w": 420.0,
+     "wMin": 40.0,
+     "lm": 85680,
+     "lmMin": 6680,
+     "lmEst": true,
+     "eff": 204.0,
+     "note": "Power 40–420 W · efficacy 167–204 lm/W (typical)",
+     "flag": "Lumens estimated from the catalogue power range × lm/W range (the catalogue has no per-model lumen table) – ask HPWINNER for the exact version"
+    }
+   ],
+   "image": "img/hpwinner/t11a.jpg",
+   "image_covers": [
+    "T11A"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "T19E",
+   "title": "T19E LED roadway light – modular M66A light engines, NEMA receptacle optional",
+   "type": "Street light",
+   "category": "Outdoor",
+   "pdf": "HPWINNER_Catalogue_202607.pdf",
+   "pages": "24",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "ip": "IP66",
+   "ik": "IK09",
+   "voltage": "100 - 277 Vac",
+   "temp": "-40℃~+50℃, 10%-90%RH",
+   "housing": "Die-cast Aluminum ADC-12",
+   "mounting": "Spigot Ø 42 - 60 mm/ Ø 66 - 76 mm",
+   "leds": "5050 LEDs",
+   "beam": "Roadway (IESNA Type I / II / III / IV)",
+   "control": "",
+   "extras": "Light engine IP68 · NEMA receptacle optional · Colours: White / Black / Gray",
+   "variants": [
+    {
+     "code": "T19E",
+     "w": 420.0,
+     "wMin": 40.0,
+     "lm": 85680,
+     "lmMin": 6680,
+     "lmEst": true,
+     "eff": 204.0,
+     "note": "Power 40–420 W · efficacy 167–204 lm/W (typical)",
+     "flag": "Lumens estimated from the catalogue power range × lm/W range (the catalogue has no per-model lumen table) – ask HPWINNER for the exact version"
+    }
+   ],
+   "image": "img/hpwinner/t19e.jpg",
+   "image_covers": [
+    "T19E"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "GL1A",
+   "title": "GL1A LED garden / post-top light",
+   "type": "Street light",
+   "category": "Outdoor",
+   "pdf": "HPWINNER_Catalogue_202607.pdf",
+   "pages": "25",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "ip": "IP67",
+   "ik": "",
+   "voltage": "100 - 277 Vac",
+   "temp": "-40℃~+50℃, 10%~90%RH",
+   "housing": "Die-cast Aluminum ADC-12",
+   "mounting": "Spigot Ø 60 - 70 mm standard / Ø 80 - 90 mm optional",
+   "leds": "5050 LEDs",
+   "beam": "Roadway (IESNA Type I / II / III / IV)",
+   "control": "",
+   "extras": "Light engine IP68 · Colours: White / Black / Gray",
+   "variants": [
+    {
+     "code": "GL1A",
+     "w": 60.0,
+     "wMin": 30.0,
+     "lm": 11400,
+     "lmMin": 5010,
+     "lmEst": true,
+     "eff": 190.0,
+     "note": "Power 30–60 W · efficacy 167–190 lm/W (typical)",
+     "flag": "Lumens estimated from the catalogue power range × lm/W range (the catalogue has no per-model lumen table) – ask HPWINNER for the exact version"
+    }
+   ],
+   "image": "img/hpwinner/gl1a.jpg",
+   "image_covers": [
+    "GL1A"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "GL2A",
+   "title": "GL2A LED garden / post-top light – walkways, parks, campuses, resorts",
+   "type": "Street light",
+   "category": "Outdoor",
+   "pdf": "HPWINNER_Catalogue_202607.pdf",
+   "pages": "26",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "ip": "IP67",
+   "ik": "",
+   "voltage": "100 - 277 Vac",
+   "temp": "-40℃~+45℃, 10%~90%RH",
+   "housing": "Die-cast Aluminum ADC-12",
+   "mounting": "Spigot Ø 60 ± 3 mm",
+   "leds": "5050 LEDs",
+   "beam": "Roadway (IESNA Type I / II / III / IV)",
+   "control": "",
+   "extras": "Light engine IP68 · Colours: White / Black / Gray",
+   "variants": [
+    {
+     "code": "GL2A",
+     "w": 120.0,
+     "wMin": 30.0,
+     "lm": 24480,
+     "lmMin": 5010,
+     "lmEst": true,
+     "eff": 204.0,
+     "note": "Power 30–120 W · efficacy 167–204 lm/W (typical)",
+     "flag": "Lumens estimated from the catalogue power range × lm/W range (the catalogue has no per-model lumen table) – ask HPWINNER for the exact version"
+    }
+   ],
+   "image": "img/hpwinner/gl2a.jpg",
+   "image_covers": [
+    "GL2A"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "TS26",
+   "title": "TS26 LED tunnel light – Lambertian, extruded aluminium (tunnels, underpasses)",
+   "type": "Floodlight",
+   "category": "Outdoor",
+   "pdf": "HPWINNER_Catalogue_202607.pdf",
+   "pages": "27",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "ip": "IP65",
+   "ik": "",
+   "voltage": "100 - 277 Vac",
+   "temp": "-40℃~+50℃, 10%~90% RH",
+   "housing": "Extruded Aluminum",
+   "mounting": "",
+   "leds": "3030 LEDs",
+   "beam": "Lambertian",
+   "control": "",
+   "extras": "Light engine IP65 · ",
+   "variants": [
+    {
+     "code": "TS26",
+     "w": 120.0,
+     "wMin": 20.0,
+     "lm": 14760,
+     "lmMin": 2400,
+     "lmEst": true,
+     "eff": 123.0,
+     "note": "Power 20–120 W · efficacy 120–123 lm/W (typical)",
+     "flag": "Lumens estimated from the catalogue power range × lm/W range (the catalogue has no per-model lumen table) – ask HPWINNER for the exact version"
+    }
+   ],
+   "image": "img/hpwinner/ts26.jpg",
+   "image_covers": [
+    "TS26"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "TS2C",
+   "title": "TS2C LED tunnel light – modular M66A light engines",
+   "type": "Floodlight",
+   "category": "Outdoor",
+   "pdf": "HPWINNER_Catalogue_202607.pdf",
+   "pages": "28",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "ip": "IP67",
+   "ik": "IK08",
+   "voltage": "100 - 277 Vac",
+   "temp": "-40℃~+45℃, 10%~90%RH",
+   "housing": "Extruded Aluminum",
+   "mounting": "",
+   "leds": "5050 LEDs",
+   "beam": "12° / 25° / 40° / 60° / 90° / Lambertian / Type I–IV / tunnel / billboard / sports (M66A optics)",
+   "control": "",
+   "extras": "Light engine IP68 · Colours: White / Black / Gray",
+   "variants": [
+    {
+     "code": "TS2C",
+     "w": 420.0,
+     "wMin": 40.0,
+     "lm": 85680,
+     "lmMin": 6680,
+     "lmEst": true,
+     "eff": 204.0,
+     "note": "Power 40–420 W · efficacy 167–204 lm/W (typical)",
+     "flag": "Lumens estimated from the catalogue power range × lm/W range (the catalogue has no per-model lumen table) – ask HPWINNER for the exact version"
+    }
+   ],
+   "image": "img/hpwinner/ts2c.jpg",
+   "image_covers": [
+    "TS2C"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "TS29B",
+   "title": "TS29B LED tunnel light – asymmetric tunnel optics (single-sided or centre-line), adjustable bracket",
+   "type": "Floodlight",
+   "category": "Outdoor",
+   "pdf": "HPWINNER_Catalogue_202607.pdf",
+   "pages": "29",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "ip": "IP67",
+   "ik": "",
+   "voltage": "100 - 277 Vac",
+   "temp": "-40℃~+50℃, 10%~90% RH",
+   "housing": "Extruded Aluminum",
+   "mounting": "Adjustable bracket",
+   "leds": "5050 LEDs",
+   "beam": "Asymmetric tunnel optics for single-sided or center-line mounting",
+   "control": "",
+   "extras": "Light engine IP68 · ",
+   "variants": [
+    {
+     "code": "TS29B",
+     "w": 250.0,
+     "wMin": 50.0,
+     "lm": 42750,
+     "lmMin": 7750,
+     "lmEst": true,
+     "eff": 171.0,
+     "note": "Power 50–250 W · efficacy 155–171 lm/W (typical)",
+     "flag": "Lumens estimated from the catalogue power range × lm/W range (the catalogue has no per-model lumen table) – ask HPWINNER for the exact version"
+    }
+   ],
+   "image": "img/hpwinner/ts29b.jpg",
+   "image_covers": [
+    "TS29B"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "TF69A",
+   "title": "TF69A LED high bay / canopy light – 110°, sensor ready (petrol stations, canopies)",
+   "type": "High bay",
+   "category": "Outdoor",
+   "pdf": "HPWINNER_Catalogue_202607.pdf",
+   "pages": "31",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "ip": "IP66",
+   "ik": "IK08",
+   "voltage": "100 - 277 Vac",
+   "temp": "-40℃~+50℃, 10%~90% RH",
+   "housing": "Die-cast Aluminum ADC-12",
+   "mounting": "",
+   "leds": "5050 LEDs",
+   "beam": "110°",
+   "control": "",
+   "extras": "Light engine IP68 · Sensor ready · Colours: White / Black / Gray",
+   "variants": [
+    {
+     "code": "TF69A",
+     "w": 120.0,
+     "wMin": 60.0,
+     "lm": 22440,
+     "lmMin": 9600,
+     "lmEst": true,
+     "eff": 187.0,
+     "note": "Power 60–120 W · efficacy 160–187 lm/W (typical)",
+     "flag": "Lumens estimated from the catalogue power range × lm/W range (the catalogue has no per-model lumen table) – ask HPWINNER for the exact version"
+    }
+   ],
+   "image": "img/hpwinner/tf69a.jpg",
+   "image_covers": [
+    "TF69A"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FL2C",
+   "title": "FL2C LED floodlight – modular M66A light engines (aprons, ports, billboards, sports)",
+   "type": "Floodlight",
+   "category": "Outdoor",
+   "pdf": "HPWINNER_Catalogue_202607.pdf",
+   "pages": "32",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "ip": "IP67",
+   "ik": "",
+   "voltage": "100 - 277 Vac",
+   "temp": "-40℃~+45℃, 10%~90%RH",
+   "housing": "Extruded Aluminum",
+   "mounting": "",
+   "leds": "5050 LEDs",
+   "beam": "12° / 25° / 40° / 60° / 90° / Lambertian / Type I–IV / tunnel / billboard / sports (M66A optics)",
+   "control": "",
+   "extras": "Light engine IP68 · Colours: White / Black / Gray",
+   "variants": [
+    {
+     "code": "FL2C",
+     "w": 960.0,
+     "wMin": 40.0,
+     "lm": 195840,
+     "lmMin": 6680,
+     "lmEst": true,
+     "eff": 204.0,
+     "note": "Power 40–960 W · efficacy 167–204 lm/W (typical)",
+     "flag": "Lumens estimated from the catalogue power range × lm/W range (the catalogue has no per-model lumen table) – ask HPWINNER for the exact version"
+    }
+   ],
+   "image": "img/hpwinner/fl2c.jpg",
+   "image_covers": [
+    "FL2C"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FL21",
+   "title": "FL21 LED floodlight – 25° to 90°, Lambertian and billboard optics",
+   "type": "Floodlight",
+   "category": "Outdoor",
+   "pdf": "HPWINNER_Catalogue_202607.pdf",
+   "pages": "33",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "ip": "IP67",
+   "ik": "IK08",
+   "voltage": "100 - 277 Vac",
+   "temp": "-40℃~+50℃, 10%~90% RH",
+   "housing": "Die-cast Aluminum ADC-12",
+   "mounting": "",
+   "leds": "5050 LEDs",
+   "beam": "25° / 40° / 60° / 90° / LAMBERTIAN / BILLBOARD LIGHTING",
+   "control": "",
+   "extras": "Light engine IP68 · Colours: White / Black / Gray",
+   "variants": [
+    {
+     "code": "FL21",
+     "w": 240.0,
+     "wMin": 30.0,
+     "lm": 46320,
+     "lmMin": 4500,
+     "lmEst": true,
+     "eff": 193.0,
+     "note": "Power 30–240 W · efficacy 150–193 lm/W (typical)",
+     "flag": "Lumens estimated from the catalogue power range × lm/W range (the catalogue has no per-model lumen table) – ask HPWINNER for the exact version"
+    }
+   ],
+   "image": "img/hpwinner/fl21.jpg",
+   "image_covers": [
+    "FL21"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FL40",
+   "title": "FL40 LED high-power floodlight – 300 to 1,500 W, sports and large areas",
+   "type": "Floodlight",
+   "category": "Outdoor",
+   "pdf": "HPWINNER_Catalogue_202607.pdf",
+   "pages": "34",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "ip": "IP67",
+   "ik": "",
+   "voltage": "100 - 277 Vac",
+   "temp": "-40℃~+35℃, 10%~90% RH",
+   "housing": "Die-cast Aluminum ADC-12",
+   "mounting": "",
+   "leds": "5050 LEDs",
+   "beam": "25° / 40° / 60°",
+   "control": "",
+   "extras": "Light engine IP68 · Colours: White / Black / Gray",
+   "variants": [
+    {
+     "code": "FL40",
+     "w": 1500.0,
+     "wMin": 300.0,
+     "lm": 270000,
+     "lmMin": 36300,
+     "lmEst": true,
+     "eff": 180.0,
+     "note": "Power 300–1500 W · efficacy 121–180 lm/W (typical)",
+     "flag": "Lumens estimated from the catalogue power range × lm/W range (the catalogue has no per-model lumen table) – ask HPWINNER for the exact version"
+    }
+   ],
+   "image": "img/hpwinner/fl40.jpg",
+   "image_covers": [
+    "FL40"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FL46",
+   "title": "FL46 LED floodlight – 25° to 90°, up to 960 W",
+   "type": "Floodlight",
+   "category": "Outdoor",
+   "pdf": "HPWINNER_Catalogue_202607.pdf",
+   "pages": "35",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "ip": "IP67",
+   "ik": "",
+   "voltage": "100 - 277 Vac",
+   "temp": "-40℃~+50℃, 10%~90% RH",
+   "housing": "Die-cast Aluminum ADC-12",
+   "mounting": "",
+   "leds": "5050 LEDs",
+   "beam": "25° / 40° / 60° /  90°",
+   "control": "",
+   "extras": "Light engine IP68 · Colours: White / Black / Gray",
+   "variants": [
+    {
+     "code": "FL46",
+     "w": 960.0,
+     "wMin": 40.0,
+     "lm": 186240,
+     "lmMin": 6280,
+     "lmEst": true,
+     "eff": 194.0,
+     "note": "Power 40–960 W · efficacy 157–194 lm/W (typical)",
+     "flag": "Lumens estimated from the catalogue power range × lm/W range (the catalogue has no per-model lumen table) – ask HPWINNER for the exact version"
+    }
+   ],
+   "image": "img/hpwinner/fl46.jpg",
+   "image_covers": [
+    "FL46"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "Retrofit kit",
+   "title": "HPWINNER retrofit solution – M66A IP68 light engines for upgrading existing roadway / area / tunnel / flood luminaires",
+   "type": "Other",
+   "category": "Outdoor",
+   "pdf": "HPWINNER_Catalogue_202607.pdf",
+   "pages": "36",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "ip": "IP68",
+   "voltage": "100 - 277 Vac",
+   "leds": "5050 LEDs",
+   "beam": "12° to 90°, Type I–IV, tunnel, billboard, sports (M66A optics)",
+   "extras": "Tool-less light-engine replacement · sheets and finishes made to fit the old housing",
+   "image": "img/hpwinner/retrofit.jpg",
+   "variants": [
+    {
+     "code": "Retrofit 40 W per module",
+     "w": 40,
+     "lm": 7400,
+     "eff": 185,
+     "note": "Per module (n modules = n × 40 W, n × 7,400 lm); one module alone ≈6 % less efficient",
+     "flag": "Values per module – multiply by the number of modules"
+    },
+    {
+     "code": "Retrofit 50 W per module",
+     "w": 50,
+     "lm": 9100,
+     "eff": 182,
+     "note": "Per module (n modules = n × 50 W, n × 9,100 lm); one module alone ≈6 % less efficient",
+     "flag": "Values per module – multiply by the number of modules"
+    },
+    {
+     "code": "Retrofit 60 W per module",
+     "w": 60,
+     "lm": 10680,
+     "eff": 178,
+     "note": "Per module (n modules = n × 60 W, n × 10,680 lm); one module alone ≈6 % less efficient",
+     "flag": "Values per module – multiply by the number of modules"
+    }
+   ],
+   "image_covers": [
+    "Retrofit 40 W per module",
+    "Retrofit 50 W per module",
+    "Retrofit 60 W per module"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "TF2C",
+   "title": "TF2C LED high bay / area light – modular (1 to 7 IP68 modules), ±60° adjustable bracket",
+   "type": "High bay",
+   "category": "Indoor / area",
+   "pdf": "HPW_Spec_High_Bay_Light_TF2C_V2.1.pdf",
+   "pages": "1-2",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "ip": "IP65",
+   "ik": "IK08",
+   "voltage": "100 ~ 240Vac",
+   "surge": "≥10kV line-earth",
+   "temp": "-40℃ ~ +45℃",
+   "housing": "Extruded aluminium",
+   "beam": "25° / 40° / 60° / 90° / Lambertian / sports",
+   "mounting": "Bracket, ±60° tilt",
+   "extras": "Light modules IP68 · colours: black / white / grey · drivers MOSO / Philips / Inventronics",
+   "image": "img/hpwinner/tf2c.jpg",
+   "variants": [
+    {
+     "code": "TF2C-1-40",
+     "w": 40,
+     "lm": 6920,
+     "eff": 173,
+     "size": "40 × 150 × 6000 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 5050 × 28: 6,800 lm (170 lm/W) · 3030 × 63: 6,000 lm (150 lm/W) · 3000K ≈5 % lower · 1 module"
+    },
+    {
+     "code": "TF2C-1-50",
+     "w": 50,
+     "lm": 8500,
+     "eff": 170,
+     "size": "40 × 150 × 6000 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 5050 × 28: 8,250 lm (165 lm/W) · 3030 × 63: 7,250 lm (145 lm/W) · 3000K ≈5 % lower · 1 module"
+    },
+    {
+     "code": "TF2C-1-60",
+     "w": 60,
+     "lm": 10020,
+     "eff": 167,
+     "size": "40 × 150 × 6000 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 5050 × 28: 9,480 lm (158 lm/W) · 3030 × 63: 8,220 lm (137 lm/W) · 3000K ≈5 % lower · 1 module"
+    },
+    {
+     "code": "TF2C-2-80",
+     "w": 80,
+     "lm": 14800,
+     "eff": 185,
+     "size": "80 × 155 × 12400 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 5050 × 28: 14,000 lm (175 lm/W) · 3030 × 63: 12,400 lm (155 lm/W) · 3000K ≈5 % lower · 2 modules"
+    },
+    {
+     "code": "TF2C-2-100",
+     "w": 100,
+     "lm": 18200,
+     "eff": 182,
+     "size": "80 × 155 × 12400 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 5050 × 28: 17,000 lm (170 lm/W) · 3030 × 63: 14,900 lm (149 lm/W) · 3000K ≈5 % lower · 2 modules"
+    },
+    {
+     "code": "TF2C-2-120",
+     "w": 120,
+     "lm": 21360,
+     "eff": 178,
+     "size": "80 × 155 × 12400 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 5050 × 28: 19,560 lm (163 lm/W) · 3030 × 63: 17,040 lm (142 lm/W) · 3000K ≈5 % lower · 2 modules"
+    },
+    {
+     "code": "TF2C-3-120",
+     "w": 120,
+     "lm": 22200,
+     "eff": 185,
+     "size": "120 × 155 × 18600 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 5050 × 28: 21,000 lm (175 lm/W) · 3030 × 63: 18,600 lm (155 lm/W) · 3000K ≈5 % lower · 3 modules"
+    },
+    {
+     "code": "TF2C-3-150",
+     "w": 150,
+     "lm": 27300,
+     "eff": 182,
+     "size": "120 × 155 × 18600 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 5050 × 28: 25,500 lm (170 lm/W) · 3030 × 63: 22,350 lm (149 lm/W) · 3000K ≈5 % lower · 3 modules"
+    },
+    {
+     "code": "TF2C-3-180",
+     "w": 180,
+     "lm": 32040,
+     "eff": 178,
+     "size": "120 × 155 × 18600 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 5050 × 28: 29,340 lm (163 lm/W) · 3030 × 63: 25,560 lm (142 lm/W) · 3000K ≈5 % lower · 3 modules"
+    },
+    {
+     "code": "TF2C-4-160",
+     "w": 160,
+     "lm": 29600,
+     "eff": 185,
+     "size": "160 × 155 × 24800 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 5050 × 28: 28,000 lm (175 lm/W) · 3030 × 63: 24,800 lm (155 lm/W) · 3000K ≈5 % lower · 4 modules"
+    },
+    {
+     "code": "TF2C-4-200",
+     "w": 200,
+     "lm": 36400,
+     "eff": 182,
+     "size": "160 × 155 × 24800 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 5050 × 28: 34,000 lm (170 lm/W) · 3030 × 63: 29,800 lm (149 lm/W) · 3000K ≈5 % lower · 4 modules"
+    },
+    {
+     "code": "TF2C-4-240",
+     "w": 240,
+     "lm": 42720,
+     "eff": 178,
+     "size": "160 × 155 × 24800 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 5050 × 28: 39,120 lm (163 lm/W) · 3030 × 63: 34,080 lm (142 lm/W) · 3000K ≈5 % lower · 4 modules"
+    },
+    {
+     "code": "TF2C-5-200",
+     "w": 200,
+     "lm": 37000,
+     "eff": 185,
+     "size": "200 × 155 × 31000 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 5050 × 28: 35,000 lm (175 lm/W) · 3030 × 63: 31,000 lm (155 lm/W) · 3000K ≈5 % lower · 5 modules"
+    },
+    {
+     "code": "TF2C-5-250",
+     "w": 250,
+     "lm": 45500,
+     "eff": 182,
+     "size": "200 × 155 × 31000 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 5050 × 28: 42,500 lm (170 lm/W) · 3030 × 63: 37,250 lm (149 lm/W) · 3000K ≈5 % lower · 5 modules"
+    },
+    {
+     "code": "TF2C-5-300",
+     "w": 300,
+     "lm": 53400,
+     "eff": 178,
+     "size": "200 × 155 × 31000 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 5050 × 28: 48,900 lm (163 lm/W) · 3030 × 63: 42,600 lm (142 lm/W) · 3000K ≈5 % lower · 5 modules"
+    },
+    {
+     "code": "TF2C-6-240",
+     "w": 240,
+     "lm": 44400,
+     "eff": 185,
+     "size": "240 × 155 × 37200 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 5050 × 28: 42,000 lm (175 lm/W) · 3030 × 63: 37,200 lm (155 lm/W) · 3000K ≈5 % lower · 6 modules"
+    },
+    {
+     "code": "TF2C-6-300",
+     "w": 300,
+     "lm": 54600,
+     "eff": 182,
+     "size": "240 × 155 × 37200 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 5050 × 28: 51,000 lm (170 lm/W) · 3030 × 63: 44,700 lm (149 lm/W) · 3000K ≈5 % lower · 6 modules"
+    },
+    {
+     "code": "TF2C-6-360",
+     "w": 360,
+     "lm": 64080,
+     "eff": 178,
+     "size": "240 × 155 × 37200 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 5050 × 28: 58,680 lm (163 lm/W) · 3030 × 63: 51,120 lm (142 lm/W) · 3000K ≈5 % lower · 6 modules"
+    },
+    {
+     "code": "TF2C-7-280",
+     "w": 280,
+     "lm": 51800,
+     "eff": 185,
+     "size": "280 × 155 × 43400 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 5050 × 28: 49,000 lm (175 lm/W) · 3030 × 63: 43,400 lm (155 lm/W) · 3000K ≈5 % lower · 7 modules"
+    },
+    {
+     "code": "TF2C-7-350",
+     "w": 350,
+     "lm": 63700,
+     "eff": 182,
+     "size": "280 × 155 × 43400 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 5050 × 28: 59,500 lm (170 lm/W) · 3030 × 63: 52,150 lm (149 lm/W) · 3000K ≈5 % lower · 7 modules"
+    },
+    {
+     "code": "TF2C-7-420",
+     "w": 420,
+     "lm": 74760,
+     "eff": 178,
+     "size": "280 × 155 × 43400 mm",
+     "note": "With 5050 × 34 LEDs (shown) · 5050 × 28: 68,460 lm (163 lm/W) · 3030 × 63: 59,640 lm (142 lm/W) · 3000K ≈5 % lower · 7 modules"
+    }
+   ],
+   "image_covers": [
+    "TF2C-1-40",
+    "TF2C-1-50",
+    "TF2C-1-60",
+    "TF2C-2-80",
+    "TF2C-2-100",
+    "TF2C-2-120",
+    "TF2C-3-120",
+    "TF2C-3-150",
+    "TF2C-3-180",
+    "TF2C-4-160",
+    "TF2C-4-200",
+    "TF2C-4-240",
+    "TF2C-5-200",
+    "TF2C-5-250",
+    "TF2C-5-300",
+    "TF2C-6-240",
+    "TF2C-6-300",
+    "TF2C-6-360",
+    "TF2C-7-280",
+    "TF2C-7-350",
+    "TF2C-7-420"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "TF31A",
+   "title": "TF31A LED high bay / flood light – 1 to 5 IP68 M31A modules, bracket adjustable 180° (stadiums, airports, billboards)",
+   "type": "High bay",
+   "category": "Indoor / area",
+   "pdf": "hpw-spec-high-bay-light-tf31a-series.pdf",
+   "pages": "1-2",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "ip": "IP67",
+   "extras": "Light engines IP68, driver IP67",
+   "ik": "IK09",
+   "voltage": "100 ~ 277Vac",
+   "surge": "10kV line-earth",
+   "temp": "-40℃ ~ +50℃",
+   "housing": "Extrusion, galvanised steel",
+   "warranty": "5 years",
+   "beam": "12° / 25° / 40° / 60° / 90° / Lambertian / Type V / 90×40° and more",
+   "mounting": "Bracket, 180° (TF31A-1: 360°)",
+   "image": "img/hpwinner/tf31a.jpg",
+   "variants": [
+    {
+     "code": "TF31A-1-40",
+     "w": 40,
+     "lm": 6720,
+     "eff": 168,
+     "size": "40 × 130 × 5200 mm",
+     "note": "With module M31A-VB-28 (5050, shown) · M31A-XB-18: 6,080 lm · M31A-XC-63: 5,400 lm · M31A-XA-18: 5,200 lm · 3000K ≈5 % lower"
+    },
+    {
+     "code": "TF31A-1-50",
+     "w": 50,
+     "lm": 8150,
+     "eff": 163,
+     "size": "40 × 130 × 5200 mm",
+     "note": "With module M31A-VB-28 (5050, shown) · M31A-XB-18: 7,250 lm · M31A-XC-63: 6,500 lm · M31A-XA-18: 6,100 lm · 3000K ≈5 % lower"
+    },
+    {
+     "code": "TF31A-1-60",
+     "w": 60,
+     "lm": 9300,
+     "eff": 155,
+     "size": "40 × 130 × 5200 mm",
+     "note": "With module M31A-VB-28 (5050, shown) · M31A-XB-18: 7,980 lm · M31A-XC-63: 7,320 lm · M31A-XA-18: 7,020 lm · 3000K ≈5 % lower"
+    },
+    {
+     "code": "TF31A-2-80",
+     "w": 80,
+     "lm": 14000,
+     "eff": 175,
+     "size": "80 × 137 × 10960 mm",
+     "note": "With module M31A-VB-28 (5050, shown) · M31A-XB-18: 12,800 lm · M31A-XC-63: 11,200 lm · M31A-XA-18: 10,960 lm · 3000K ≈5 % lower"
+    },
+    {
+     "code": "TF31A-2-100",
+     "w": 100,
+     "lm": 17000,
+     "eff": 170,
+     "size": "80 × 137 × 10960 mm",
+     "note": "With module M31A-VB-28 (5050, shown) · M31A-XB-18: 15,000 lm · M31A-XC-63: 13,500 lm · M31A-XA-18: 13,000 lm · 3000K ≈5 % lower"
+    },
+    {
+     "code": "TF31A-2-120",
+     "w": 120,
+     "lm": 19560,
+     "eff": 163,
+     "size": "80 × 137 × 10960 mm",
+     "note": "With module M31A-VB-28 (5050, shown) · M31A-XB-18: 16,800 lm · M31A-XC-63: 15,240 lm · M31A-XA-18: 14,640 lm · 3000K ≈5 % lower"
+    },
+    {
+     "code": "TF31A-3-120",
+     "w": 120,
+     "lm": 21000,
+     "eff": 175,
+     "size": "120 × 137 × 16440 mm",
+     "note": "With module M31A-VB-28 (5050, shown) · M31A-XB-18: 19,200 lm · M31A-XC-63: 16,800 lm · M31A-XA-18: 16,440 lm · 3000K ≈5 % lower"
+    },
+    {
+     "code": "TF31A-3-150",
+     "w": 150,
+     "lm": 25500,
+     "eff": 170,
+     "size": "120 × 137 × 16440 mm",
+     "note": "With module M31A-VB-28 (5050, shown) · M31A-XB-18: 22,500 lm · M31A-XC-63: 20,250 lm · M31A-XA-18: 19,500 lm · 3000K ≈5 % lower"
+    },
+    {
+     "code": "TF31A-3-180",
+     "w": 180,
+     "lm": 29340,
+     "eff": 163,
+     "size": "120 × 137 × 16440 mm",
+     "note": "With module M31A-VB-28 (5050, shown) · M31A-XB-18: 25,200 lm · M31A-XC-63: 22,860 lm · M31A-XA-18: 21,960 lm · 3000K ≈5 % lower"
+    },
+    {
+     "code": "TF31A-4-160",
+     "w": 160,
+     "lm": 28000,
+     "eff": 175,
+     "size": "160 × 137 × 21920 mm",
+     "note": "With module M31A-VB-28 (5050, shown) · M31A-XB-18: 25,600 lm · M31A-XC-63: 22,400 lm · M31A-XA-18: 21,920 lm · 3000K ≈5 % lower"
+    },
+    {
+     "code": "TF31A-4-200",
+     "w": 200,
+     "lm": 34000,
+     "eff": 170,
+     "size": "160 × 137 × 21920 mm",
+     "note": "With module M31A-VB-28 (5050, shown) · M31A-XB-18: 30,000 lm · M31A-XC-63: 27,000 lm · M31A-XA-18: 26,000 lm · 3000K ≈5 % lower"
+    },
+    {
+     "code": "TF31A-4-240",
+     "w": 240,
+     "lm": 39120,
+     "eff": 163,
+     "size": "160 × 137 × 21920 mm",
+     "note": "With module M31A-VB-28 (5050, shown) · M31A-XB-18: 33,600 lm · M31A-XC-63: 30,480 lm · M31A-XA-18: 29,280 lm · 3000K ≈5 % lower"
+    },
+    {
+     "code": "TF31A-5-200",
+     "w": 200,
+     "lm": 35000,
+     "eff": 175,
+     "size": "200 × 137 × 27400 mm",
+     "note": "With module M31A-VB-28 (5050, shown) · M31A-XB-18: 32,000 lm · M31A-XC-63: 28,000 lm · M31A-XA-18: 27,400 lm · 3000K ≈5 % lower"
+    },
+    {
+     "code": "TF31A-5-250",
+     "w": 250,
+     "lm": 42500,
+     "eff": 170,
+     "size": "200 × 137 × 27400 mm",
+     "note": "With module M31A-VB-28 (5050, shown) · M31A-XB-18: 37,500 lm · M31A-XC-63: 33,750 lm · M31A-XA-18: 32,500 lm · 3000K ≈5 % lower"
+    }
+   ],
+   "image_covers": [
+    "TF31A-1-40",
+    "TF31A-1-50",
+    "TF31A-1-60",
+    "TF31A-2-80",
+    "TF31A-2-100",
+    "TF31A-2-120",
+    "TF31A-3-120",
+    "TF31A-3-150",
+    "TF31A-3-180",
+    "TF31A-4-160",
+    "TF31A-4-200",
+    "TF31A-4-240",
+    "TF31A-5-200",
+    "TF31A-5-250"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "TF32",
+   "title": "TF32 LED round high bay (TF32B / TF32C / TF32D) – integrated anti-glare shade",
+   "type": "High bay",
+   "category": "Indoor",
+   "pdf": "hpw-spec-high-bay-light-tf32-series.pdf",
+   "pages": "1-2",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "ip": "IP65",
+   "voltage": "100 ~ 277Vac",
+   "surge": "6kV line-earth",
+   "temp": "-40℃ ~ +50℃",
+   "housing": "Die-cast aluminium",
+   "warranty": "5 years",
+   "beam": "60° / 90°",
+   "mounting": "Hook (M10 hoisting ring)",
+   "extras": "Colour: black / grey",
+   "image": "img/hpwinner/tf32.jpg",
+   "variants": [
+    {
+     "code": "TF32B-80",
+     "w": 80,
+     "lm": 10880,
+     "eff": 136,
+     "size": "Φ380 × 235 mm",
+     "note": "120 × 3030 LEDs"
+    },
+    {
+     "code": "TF32B-100",
+     "w": 100,
+     "lm": 12900,
+     "eff": 129,
+     "size": "Φ380 × 235 mm",
+     "note": "120 × 3030 LEDs"
+    },
+    {
+     "code": "TF32C-120",
+     "w": 120,
+     "lm": 14880,
+     "eff": 124,
+     "size": "Φ450 × 270 mm",
+     "note": "120 × 3030 LEDs"
+    },
+    {
+     "code": "TF32C-150",
+     "w": 150,
+     "lm": 20100,
+     "eff": 134,
+     "size": "Φ450 × 270 mm",
+     "note": "200 × 3030 LEDs"
+    },
+    {
+     "code": "TF32D-180",
+     "w": 180,
+     "lm": 24120,
+     "eff": 134,
+     "size": "Φ555 × 300 mm",
+     "note": "240 × 3030 LEDs"
+    },
+    {
+     "code": "TF32D-200",
+     "w": 200,
+     "lm": 25800,
+     "eff": 129,
+     "size": "Φ555 × 300 mm",
+     "note": "240 × 3030 LEDs"
+    },
+    {
+     "code": "TF32D-240",
+     "w": 240,
+     "lm": 30960,
+     "eff": 129,
+     "size": "Φ555 × 300 mm",
+     "note": "296 × 3030 LEDs"
+    }
+   ],
+   "image_covers": [
+    "TF32B-80",
+    "TF32B-100",
+    "TF32C-120",
+    "TF32C-150",
+    "TF32D-180",
+    "TF32D-200",
+    "TF32D-240"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "TF33",
+   "title": "TF33 LED round high bay (TF33C / TF33D) – 0-10V / DALI, Zigbee or microwave sensor options, optional aluminium shade",
+   "type": "High bay",
+   "category": "Indoor",
+   "pdf": "hpw-spec-high-bay-light-tf33-ver-1-0.pdf",
+   "pages": "1-3",
+   "cct": "3000K / 4000K / 5000K / 5700K",
+   "cri": "Ra≥70",
+   "ip": "IP65",
+   "voltage": "100 ~ 277Vac",
+   "surge": "6kV line-earth",
+   "temp": "-40℃ ~ +50℃",
+   "housing": "Die-cast aluminium",
+   "warranty": "5 years",
+   "beam": "60° / 90°",
+   "control": "0-10V / DALI, Zigbee, microwave sensor (Zhaga receptacle)",
+   "mounting": "Hook (M10 eye bolt)",
+   "extras": "LED engine IP66 · colour: dark grey · optional shade Φ477 / Φ501 mm",
+   "image": "img/hpwinner/tf33.jpg",
+   "variants": [
+    {
+     "code": "TF33C-80",
+     "w": 80,
+     "lm": 13600,
+     "eff": 170,
+     "size": "Φ300 × 200 mm",
+     "note": "224 × 3030 LEDs"
+    },
+    {
+     "code": "TF33C-100",
+     "w": 100,
+     "lm": 17000,
+     "eff": 170,
+     "size": "Φ300 × 200 mm",
+     "note": "264 × 3030 LEDs"
+    },
+    {
+     "code": "TF33C-120",
+     "w": 120,
+     "lm": 20400,
+     "eff": 170,
+     "size": "Φ300 × 200 mm",
+     "note": "304 × 3030 LEDs"
+    },
+    {
+     "code": "TF33C-150",
+     "w": 150,
+     "lm": 25500,
+     "eff": 170,
+     "size": "Φ300 × 200 mm",
+     "note": "380 × 3030 LEDs"
+    },
+    {
+     "code": "TF33D-180",
+     "w": 180,
+     "lm": 30600,
+     "eff": 170,
+     "size": "Φ335 × 205 mm",
+     "note": "456 × 3030 LEDs"
+    },
+    {
+     "code": "TF33D-200",
+     "w": 200,
+     "lm": 34000,
+     "eff": 170,
+     "size": "Φ335 × 205 mm",
+     "note": "490 × 3030 LEDs"
+    }
+   ],
+   "image_covers": [
+    "TF33C-80",
+    "TF33C-100",
+    "TF33C-120",
+    "TF33C-150",
+    "TF33D-180",
+    "TF33D-200"
+   ],
+   "image_shared_with": []
+  }
+ ]
+}

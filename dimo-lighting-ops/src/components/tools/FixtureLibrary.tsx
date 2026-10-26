@@ -5,7 +5,7 @@ import { Button, Card, Chip, colors, ErrorBanner, Field, Loading, Muted, Notice,
 import { pickDocument } from '@/lib/files';
 import {
   bestMatches, cctText, FIXTURE_TYPES, fixtureImage, fmt, loadFixtures, PARAMS, parseSpecText, readDatasheet, searchFixtures, STATUS_STYLE,
-  type Fixture, type Level, type Match, type ParamKey, type Spec,
+  wattText, type Fixture, type Level, type Match, type ParamKey, type Spec,
 } from '@/lib/fixtures';
 import { useLoad } from '@/lib/hooks';
 import { PhotoSearchView } from './PhotoSearch';
@@ -44,7 +44,7 @@ export function Thumb({ p, size = 64, height }: { p: Pick<Fixture, 'img'>; size?
 }
 
 const spec1 = (p: Fixture) =>
-  [p.w != null && `${p.w} W`, p.lm && `${p.lmMin && p.lmMin < p.lm ? `${fmt(p.lmMin)}–` : ''}${fmt(p.lm)} lm${p.lmEst ? ' (est.)' : ''}`, p.eff && `${p.eff} lm/W`, cctText(p), p.cri && `CRI ${p.cri}`, p.ugr && `UGR<${p.ugr}`, p.ip && `IP${p.ip}`, p.beam]
+  [wattText(p), p.lm && `${p.lmMin && p.lmMin < p.lm ? `${fmt(p.lmMin)}–` : ''}${fmt(p.lm)} lm${p.lmEst ? ' (est.)' : ''}`, p.eff && `${p.eff} lm/W`, cctText(p), p.cri && `CRI ${p.cri}`, p.ugr && `UGR<${p.ugr}`, p.ip && `IP${p.ip}`, p.beam]
     .filter(Boolean)
     .join(' · ');
 
