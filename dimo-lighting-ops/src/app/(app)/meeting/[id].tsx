@@ -166,8 +166,8 @@ export default function MeetingPack() {
     return (
       <Screen>
         <Notice tone={colors.amber}>
-          This meeting cannot be opened yet – its pack has not been published. DGM see a meeting once its host (SM Projects, SM Estimation, Design Manager or
-          the Senior Electrical Engineer) publishes it; SM Projects sees every meeting. It may also have been removed.
+          This meeting cannot be opened yet – its pack has not been published. DGM and the team&apos;s members see a meeting once its host (SM Projects, SM
+          Estimation, Design Manager or the Senior Electrical Engineer) publishes it; SM Projects sees every meeting. It may also have been removed.
         </Notice>
         <Button title="Go to Meetings" onPress={() => router.replace('/meetings')} />
       </Screen>
@@ -257,7 +257,8 @@ export default function MeetingPack() {
     if (r) await run('decide_attendance', { p_meeting: m.id, p_person: p.person_id, p_present: present, p_note: r.n || null }, 'Saved');
   };
   // Published minutes as a PDF: DGM and SM Projects
-  const canDownload = m.status === 'published' && (me.role === 'gm' || me.role === 'sm_projects' || (isProject && host));
+  const teamMember = ['design', 'estimation', 'execution'].includes(m.team) && me.role !== 'sub_supervisor' && cfg.members.includes(me.role);
+  const canDownload = m.status === 'published' && (me.role === 'gm' || me.role === 'sm_projects' || (isProject && host) || teamMember);
   // Project meeting: the project's figures are gathered here and kept with the meeting
   const generateProject = () =>
     dialog.run(async () => {

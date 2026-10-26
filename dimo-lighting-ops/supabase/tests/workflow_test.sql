@@ -2959,6 +2959,19 @@ end $$;
 select pg_temp.act_as('sm_projects'); set role authenticated;
 do $$ begin assert exists (select 1 from public.sales_meetings where id = current_setting('test.dmid')::uuid), 'SM Projects reads the published design pack'; end $$;
 reset role;
+-- the design team's members read the published minutes (notes and actions too); other teams do not
+select pg_temp.act_as('lighting_designer'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.sales_meetings where id = current_setting('test.dmid')::uuid), 'designer reads the published design minutes';
+  assert exists (select 1 from public.sales_meeting_actions where meeting_id = current_setting('test.dmid')::uuid), 'and the actions';
+end $$;
+reset role;
+select pg_temp.act_as('estimation_exec'); set role authenticated;
+do $$ begin assert not exists (select 1 from public.sales_meetings where id = current_setting('test.dmid')::uuid), 'estimation does not read design minutes'; end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where title like 'Design team meeting pack%' and recipient_id = (select id from u where role = 'lighting_designer')), 'designer told of the published minutes';
+end $$;
 select pg_temp.act_as('lighting_engineer'); set role authenticated;
 do $$ begin
   assert (select count(*) from public.my_meeting_actions()) = 1, 'engineer sees the action';
