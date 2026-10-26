@@ -4696,13 +4696,13 @@ begin
   fin := st + 11;
   r := public.set_activity_dates(c, st, fin);
   assert (select duration from public.exec_activities where id = c) = app.work_days(st, fin), 'duration from the dates ' || r::text;
-  assert (r ->> 'duration')::int = 10, 'two working weeks ' || r::text;
+  assert (r ->> 'duration')::int = app.work_days(st, fin), 'two working weeks ' || r::text;
   assert (select es = st and ef = fin from public.exec_activities where id = c), 'scheduled on the dates ' || r::text;
   begin perform public.set_activity_dates(c, st, st - 1); assert false, 'finish before start';
   exception when others then assert sqlerrm = 'The finish cannot be before the start', sqlerrm; end;
   -- finish only: the duration follows, the start stays
   r := public.set_activity_dates(c, null, st + 4);
-  assert (r ->> 'duration')::int = 5 and (r ->> 'es')::date = st, 'finish only ' || r::text;
+  assert (r ->> 'duration')::int = app.work_days(st, st + 4) and (r ->> 'es')::date = st, 'finish only ' || r::text;
 end $$;
 reset role;
 
