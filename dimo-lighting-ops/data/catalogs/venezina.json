@@ -1,0 +1,6142 @@
+{
+ "brand": "VENEZINA",
+ "source": "VENEZINA catalogue (2 PDF parts)",
+ "families": [
+  {
+   "family": "AUDA",
+   "title": "VENEZINA AUDA – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "2",
+   "image": "img/venezina/auda-1-2.jpg",
+   "variants": [
+    {
+     "code": "R6926-6W",
+     "w": 6.0,
+     "lm": 764.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "15° 24° 36° 50°",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: aluminum. die-casting Light source: COB LED with a lens of optical. IP65 is available. Control system, CCT tunable 2700-6000K. COB LED Mounting frame color: on the visible part once installed 0"
+    }
+   ],
+   "image_covers": [
+    "R6926-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "AUDA",
+   "title": "VENEZINA AUDA – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "3",
+   "image": "img/venezina/auda-1-2.jpg",
+   "variants": [
+    {
+     "code": "R6926-10W",
+     "w": 10.0,
+     "lm": 1077.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "15° 24° 36° 50°",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: aluminum. die-casting Light source: COB LED with a lens of optical. IP65 is available. Control system, CCT tunable 2700-6000K. COB LED Mounting frame color: on the visible part once installed 0"
+    },
+    {
+     "code": "R6926-15W",
+     "w": 15.0,
+     "lm": 1356.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "15° 24° 36° 50°",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: aluminum. die-casting Light source: COB LED with a lens of optical. IP65 is available. Control system, CCT tunable 2700-6000K. COB LED Mounting frame color: on the visible part once installed 0"
+    }
+   ],
+   "image_covers": [
+    "R6926-10W",
+    "R6926-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "AUDA",
+   "title": "VENEZINA AUDA – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "4",
+   "image": "img/venezina/auda-1-4.jpg",
+   "variants": [
+    {
+     "code": "R6928-6W",
+     "w": 6.0,
+     "lm": 764.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "15° 24° 36° 50°",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: aluminum. die-casting Light source: COB LED with a lens of optical. The down light tilts to a maximum of 0°-30° onto the vertical plane. IP65 is available. Control system, CCT tunable 2700-6000"
+    }
+   ],
+   "image_covers": [
+    "R6928-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "AUDA",
+   "title": "VENEZINA AUDA – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "5",
+   "image": "img/venezina/auda-1-4.jpg",
+   "variants": [
+    {
+     "code": "R6928-10W",
+     "w": 10.0,
+     "lm": 1077.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "15° 24° 36° 50°",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: aluminum. die-casting Light source: COB LED with a lens of optical. The down light tilts to a maximum of 0°-30° onto the vertical plane. IP65 is available. Control system, CCT tunable 2700-6000"
+    },
+    {
+     "code": "R6928-15W",
+     "w": 15.0,
+     "lm": 1356.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "15° 24° 36° 50°",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: aluminum. die-casting Light source: COB LED with a lens of optical. The down light tilts to a maximum of 0°-30° onto the vertical plane. IP65 is available. Control system, CCT tunable 2700-6000"
+    }
+   ],
+   "image_covers": [
+    "R6928-10W",
+    "R6928-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "AUDA",
+   "title": "VENEZINA AUDA – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "6",
+   "image": "img/venezina/auda-1-6.jpg",
+   "variants": [
+    {
+     "code": "R6972-6W",
+     "w": 6.0,
+     "lm": 718.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "15° 24° 36° 50°",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: aluminum. die-casting Light source: COB LED with a lens of optical. The down light tilts to a maximum of 0°-30° onto the vertical plane. IP65 is available. Control system, CCT tunable 2700-6000"
+    }
+   ],
+   "image_covers": [
+    "R6972-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "AUDA",
+   "title": "VENEZINA AUDA – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "7",
+   "image": "img/venezina/auda-1-6.jpg",
+   "variants": [
+    {
+     "code": "R6972-10W",
+     "w": 10.0,
+     "lm": 1022.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "15° 24° 36° 50°",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: aluminum. die-casting Light source: COB LED with a lens of optical. The down light tilts to a maximum of 0°-30° onto the vertical plane. IP65 is available. Control system, CCT tunable 2700-6000"
+    },
+    {
+     "code": "R6972-15W",
+     "w": 15.0,
+     "lm": 1321.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "15° 24° 36° 50°",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: aluminum. die-casting Light source: COB LED with a lens of optical. The down light tilts to a maximum of 0°-30° onto the vertical plane. IP65 is available. Control system, CCT tunable 2700-6000"
+    }
+   ],
+   "image_covers": [
+    "R6972-10W",
+    "R6972-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "AUDA",
+   "title": "VENEZINA AUDA – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "8",
+   "image": "img/venezina/auda-1-8.jpg",
+   "variants": [
+    {
+     "code": "R6973-6W",
+     "w": 6.0,
+     "lm": 703.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "15° 24° 36° 50°",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: aluminum. die-casting Light source: COB LED with a lens of optical. The down light tilts to a maximum of 0°-30° onto the vertical plane. IP65 is available. Control system, CCT tunable 2700-6000"
+    }
+   ],
+   "image_covers": [
+    "R6973-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "AUDA",
+   "title": "VENEZINA AUDA – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "9",
+   "image": "img/venezina/auda-1-8.jpg",
+   "variants": [
+    {
+     "code": "R6973-10W",
+     "w": 10.0,
+     "lm": 1017.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "15° 24° 36° 50°",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: aluminum. die-casting Light source: COB LED with a lens of optical. The down light tilts to a maximum of 0°-30° onto the vertical plane. IP65 is available. Control system, CCT tunable 2700-6000"
+    },
+    {
+     "code": "R6973-15W",
+     "w": 15.0,
+     "lm": 1283.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "15° 24° 36° 50°",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: aluminum. die-casting Light source: COB LED with a lens of optical. The down light tilts to a maximum of 0°-30° onto the vertical plane. IP65 is available. Control system, CCT tunable 2700-6000"
+    }
+   ],
+   "image_covers": [
+    "R6973-10W",
+    "R6973-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "AUDA",
+   "title": "VENEZINA AUDA – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "10",
+   "image": "img/venezina/auda-1-10.jpg",
+   "variants": [
+    {
+     "code": "R6974-6W",
+     "w": 6.0,
+     "lm": 743.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "15° 24° 36° 50°",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: aluminum. die-casting Light source: COB LED with a lens of optical. The down light tilts to a maximum of 0°-30° onto the vertical plane. Anti-glare reﬂector can be as an extra accessory for opt"
+    }
+   ],
+   "image_covers": [
+    "R6974-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "AUDA",
+   "title": "VENEZINA AUDA – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "11",
+   "image": "img/venezina/auda-1-10.jpg",
+   "variants": [
+    {
+     "code": "R6974-10W",
+     "w": 10.0,
+     "lm": 1110.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "15° 24° 36° 50°",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: aluminum. die-casting Light source: COB LED with a lens of optical. The down light tilts to a maximum of 0°-30° onto the vertical plane. Anti-glare reﬂector can be as an extra accessory for opt"
+    },
+    {
+     "code": "R6974-15W",
+     "w": 15.0,
+     "lm": 1342.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "15° 24° 36° 50°",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: aluminum. die-casting Light source: COB LED with a lens of optical. The down light tilts to a maximum of 0°-30° onto the vertical plane. Anti-glare reﬂector can be as an extra accessory for opt"
+    }
+   ],
+   "image_covers": [
+    "R6974-10W",
+    "R6974-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "AUDA",
+   "title": "VENEZINA AUDA – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "12",
+   "image": "img/venezina/auda-1-12.jpg",
+   "variants": [
+    {
+     "code": "R6975-6W",
+     "w": 6.0,
+     "lm": 750.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "15° 24° 36° 50°",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: aluminum. die-casting Light source: COB LED with a lens of optical. The down light tilts to a maximum of 0°-30° onto the vertical plane. IP65 is available. Control system, CCT tunable 2700-6000"
+    }
+   ],
+   "image_covers": [
+    "R6975-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "AUDA",
+   "title": "VENEZINA AUDA – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "13",
+   "image": "img/venezina/auda-1-12.jpg",
+   "variants": [
+    {
+     "code": "R6975-10W",
+     "w": 10.0,
+     "lm": 1061.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "15° 24° 36° 50°",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: aluminum. die-casting Light source: COB LED with a lens of optical. The down light tilts to a maximum of 0°-30° onto the vertical plane. IP65 is available. Control system, CCT tunable 2700-6000"
+    },
+    {
+     "code": "R6975-15W",
+     "w": 15.0,
+     "lm": 1359.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "15° 24° 36° 50°",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: aluminum. die-casting Light source: COB LED with a lens of optical. The down light tilts to a maximum of 0°-30° onto the vertical plane. IP65 is available. Control system, CCT tunable 2700-6000"
+    }
+   ],
+   "image_covers": [
+    "R6975-10W",
+    "R6975-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "ROSU",
+   "title": "VENEZINA ROSU – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "14",
+   "image": "img/venezina/rosu-1-14.jpg",
+   "variants": [
+    {
+     "code": "R6256-6W",
+     "w": 6.0,
+     "lm": 700.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing and mounting ring: die-casting aluminum. Light source: COB LED with a lens of optical. The light can be compatible with emergency battery. Control system, CCT tunable 2700-6000K. Control system: COB LED CRI≥80 IP"
+    },
+    {
+     "code": "R6256-10W",
+     "w": 10.0,
+     "lm": 1088.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing and mounting ring: die-casting aluminum. Light source: COB LED with a lens of optical. The light can be compatible with emergency battery. Control system, CCT tunable 2700-6000K. Control system: COB LED CRI≥80 IP"
+    }
+   ],
+   "image_covers": [
+    "R6256-6W",
+    "R6256-10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "ROSU",
+   "title": "VENEZINA ROSU – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "15",
+   "image": "img/venezina/rosu-1-15.jpg",
+   "variants": [
+    {
+     "code": "R6249-6W",
+     "w": 6.0,
+     "lm": 700.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Luminaire housing: die-casting aluminum. The down light tilts to a maximum of 0°-30° onto the vertical plane. Light source: COB LED with a lens of optical. The light can be compatible with emergency battery. Control syst"
+    },
+    {
+     "code": "R6249-10W",
+     "w": 10.0,
+     "lm": 1088.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Luminaire housing: die-casting aluminum. The down light tilts to a maximum of 0°-30° onto the vertical plane. Light source: COB LED with a lens of optical. The light can be compatible with emergency battery. Control syst"
+    }
+   ],
+   "image_covers": [
+    "R6249-6W",
+    "R6249-10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "ROSU",
+   "title": "VENEZINA ROSU – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "16",
+   "image": "img/venezina/rosu-1-16.jpg",
+   "variants": [
+    {
+     "code": "R6314-6W",
+     "w": 6.0,
+     "lm": 703.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing: die-casting aluminum. Light source: COB LED with a lens of optical. The light can be compatible with emergency battery. Control system, CCT tunable 2700-6000K. COB LED ROSU Mounting frame color: 80 on the visibl"
+    },
+    {
+     "code": "R6314-10W",
+     "w": 10.0,
+     "lm": 1199.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing: die-casting aluminum. Light source: COB LED with a lens of optical. The light can be compatible with emergency battery. Control system, CCT tunable 2700-6000K. COB LED ROSU Mounting frame color: 80 on the visibl"
+    }
+   ],
+   "image_covers": [
+    "R6314-6W",
+    "R6314-10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "ROSU",
+   "title": "VENEZINA ROSU – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "17",
+   "image": "img/venezina/rosu-1-17.jpg",
+   "variants": [
+    {
+     "code": "R6259-6W",
+     "w": 6.0,
+     "lm": 703.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing: die-casting aluminum. The down light tilts to a maximum of 0°-30° onto the vertical plane. Light source: COB LED with a lens of optical. The light can be compatible with emergency battery. Control system, CCT tu"
+    },
+    {
+     "code": "R6259-10W",
+     "w": 10.0,
+     "lm": 1199.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing: die-casting aluminum. The down light tilts to a maximum of 0°-30° onto the vertical plane. Light source: COB LED with a lens of optical. The light can be compatible with emergency battery. Control system, CCT tu"
+    }
+   ],
+   "image_covers": [
+    "R6259-6W",
+    "R6259-10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "ROSU",
+   "title": "VENEZINA ROSU – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "18",
+   "image": "img/venezina/rosu-1-18.jpg",
+   "variants": [
+    {
+     "code": "R6925-6W",
+     "w": 6.0,
+     "lm": 690.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: Cast aluminum. Light source: COB LED with a lens of optical. The light can be compatible with emergency battery. IP65 is available. Control system, CCT tunable 2700-6000K. on the visible part o"
+    }
+   ],
+   "image_covers": [
+    "R6925-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "ROSU",
+   "title": "VENEZINA ROSU – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "19",
+   "image": "img/venezina/rosu-1-18.jpg",
+   "variants": [
+    {
+     "code": "R6925-10W",
+     "w": 10.0,
+     "lm": 1083.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: Cast aluminum. Light source: COB LED with a lens of optical. The light can be compatible with emergency battery. IP65 is available. Control system, CCT tunable 2700-6000K. on the visible part o"
+    },
+    {
+     "code": "R6925-15W",
+     "w": 15.0,
+     "lm": 1435.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: Cast aluminum. Light source: COB LED with a lens of optical. The light can be compatible with emergency battery. IP65 is available. Control system, CCT tunable 2700-6000K. on the visible part o"
+    }
+   ],
+   "image_covers": [
+    "R6925-10W",
+    "R6925-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "ROSU",
+   "title": "VENEZINA ROSU – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "20",
+   "image": "img/venezina/rosu-1-20.jpg",
+   "variants": [
+    {
+     "code": "R6927-6W",
+     "w": 6.0,
+     "lm": 690.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: Cast aluminum. Light source: COB LED with a lens of optical. The light can be compatible with emergency battery. IP65 is available. Control system, CCT tunable 2700-6000K. on the visible part o"
+    }
+   ],
+   "image_covers": [
+    "R6927-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "ROSU",
+   "title": "VENEZINA ROSU – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "21",
+   "image": "img/venezina/rosu-1-20.jpg",
+   "variants": [
+    {
+     "code": "R6927-10W",
+     "w": 10.0,
+     "lm": 1083.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: Cast aluminum. Light source: COB LED with a lens of optical. The light can be compatible with emergency battery. IP65 is available. Control system, CCT tunable 2700-6000K. on the visible part o"
+    },
+    {
+     "code": "R6927-15W",
+     "w": 15.0,
+     "lm": 1435.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: Cast aluminum. Light source: COB LED with a lens of optical. The light can be compatible with emergency battery. IP65 is available. Control system, CCT tunable 2700-6000K. on the visible part o"
+    }
+   ],
+   "image_covers": [
+    "R6927-10W",
+    "R6927-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "ROSU",
+   "title": "VENEZINA ROSU – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "22",
+   "image": "img/venezina/rosu-1-22.jpg",
+   "variants": [
+    {
+     "code": "R6929-6W",
+     "w": 6.0,
+     "lm": 670.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: Cast aluminum. Light source: COB LED with a lens of optical. The light can be compatible with emergency battery. IP65 is available. Control system, CCT tunable 2700-6000K. on the visible part o"
+    }
+   ],
+   "image_covers": [
+    "R6929-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "ROSU",
+   "title": "VENEZINA ROSU – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "23",
+   "image": "img/venezina/rosu-1-22.jpg",
+   "variants": [
+    {
+     "code": "R6929-10W",
+     "w": 10.0,
+     "lm": 1045.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: Cast aluminum. Light source: COB LED with a lens of optical. The light can be compatible with emergency battery. IP65 is available. Control system, CCT tunable 2700-6000K. on the visible part o"
+    },
+    {
+     "code": "R6929-15W",
+     "w": 15.0,
+     "lm": 1392.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: Cast aluminum. Light source: COB LED with a lens of optical. The light can be compatible with emergency battery. IP65 is available. Control system, CCT tunable 2700-6000K. on the visible part o"
+    }
+   ],
+   "image_covers": [
+    "R6929-10W",
+    "R6929-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "ROSU",
+   "title": "VENEZINA ROSU – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "24",
+   "image": "img/venezina/rosu-1-24.jpg",
+   "variants": [
+    {
+     "code": "R6930-6W",
+     "w": 6.0,
+     "lm": 670.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: Cast aluminum. Light source: COB LED with a lens of optical. The light can be compatible with emergency battery. IP65 is available. Control system, CCT tunable 2700-6000K. on the visible part o"
+    }
+   ],
+   "image_covers": [
+    "R6930-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "ROSU",
+   "title": "VENEZINA ROSU – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "25",
+   "image": "img/venezina/rosu-1-24.jpg",
+   "variants": [
+    {
+     "code": "R6930-10W",
+     "w": 10.0,
+     "lm": 1045.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: Cast aluminum. Light source: COB LED with a lens of optical. The light can be compatible with emergency battery. IP65 is available. Control system, CCT tunable 2700-6000K. on the visible part o"
+    },
+    {
+     "code": "R6930-15W",
+     "w": 15.0,
+     "lm": 1392.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: Cast aluminum. Light source: COB LED with a lens of optical. The light can be compatible with emergency battery. IP65 is available. Control system, CCT tunable 2700-6000K. on the visible part o"
+    }
+   ],
+   "image_covers": [
+    "R6930-10W",
+    "R6930-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "ROSU",
+   "title": "VENEZINA ROSU – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "26",
+   "image": "img/venezina/rosu-1-26.jpg",
+   "variants": [
+    {
+     "code": "R6867-6W",
+     "w": 6.0,
+     "lm": 682.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing: die-casting aluminum. Light source: COB LED with a lens of optical. The light can be compatible with emergency battery. Control system, CCT tunable 2700-6000K. 553cd 1.1 2.1 3.2 4.2 249 76 40 26 60° 553 138 61 3"
+    },
+    {
+     "code": "R6867-10W",
+     "w": 10.0,
+     "lm": 1198.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing: die-casting aluminum. Light source: COB LED with a lens of optical. The light can be compatible with emergency battery. Control system, CCT tunable 2700-6000K. 553cd 1.1 2.1 3.2 4.2 249 76 40 26 60° 553 138 61 3"
+    }
+   ],
+   "image_covers": [
+    "R6867-6W",
+    "R6867-10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "ROSU",
+   "title": "VENEZINA ROSU – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "27",
+   "image": "img/venezina/rosu-1-27.jpg",
+   "variants": [
+    {
+     "code": "R6866-6W",
+     "w": 6.0,
+     "lm": 682.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing: die-casting aluminum. The down light tilts to a maximum of 0°-30° onto the vertical plane. Light source: COB LED with a lens of optical. The light can be compatible with emergency battery. Control system, CCT tu"
+    },
+    {
+     "code": "R6866-10W",
+     "w": 10.0,
+     "lm": 1198.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing: die-casting aluminum. The down light tilts to a maximum of 0°-30° onto the vertical plane. Light source: COB LED with a lens of optical. The light can be compatible with emergency battery. Control system, CCT tu"
+    }
+   ],
+   "image_covers": [
+    "R6866-6W",
+    "R6866-10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "ROSU",
+   "title": "VENEZINA ROSU – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "28",
+   "image": "img/venezina/rosu-1-28.jpg",
+   "variants": [
+    {
+     "code": "R6932-6W",
+     "w": 6.0,
+     "lm": 686.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing: die-casting aluminum. Light source: COB LED with a lens of optical. White Black 2700K 3000K 4000K COB LED ROSU Mounting frame color: on the visible part once ins Control system: The light can be compatible with "
+    }
+   ],
+   "image_covers": [
+    "R6932-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "ROSU",
+   "title": "VENEZINA ROSU – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "29",
+   "image": "img/venezina/rosu-1-28.jpg",
+   "variants": [
+    {
+     "code": "R6932-10W",
+     "w": 10.0,
+     "lm": 1052.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing: die-casting aluminum. Light source: COB LED with a lens of optical. White Black 2700K 3000K 4000K COB LED ROSU Mounting frame color: on the visible part once ins Control system: The light can be compatible with "
+    },
+    {
+     "code": "R6932-15W",
+     "w": 15.0,
+     "lm": 1385.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing: die-casting aluminum. Light source: COB LED with a lens of optical. White Black 2700K 3000K 4000K COB LED ROSU Mounting frame color: on the visible part once ins Control system: The light can be compatible with "
+    }
+   ],
+   "image_covers": [
+    "R6932-10W",
+    "R6932-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "ROSU",
+   "title": "VENEZINA ROSU – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "30",
+   "image": "img/venezina/rosu-1-30.jpg",
+   "variants": [
+    {
+     "code": "R6931-6W",
+     "w": 6.0,
+     "lm": 686.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing: die-casting aluminum. The down light tilts to a maximum of 0°-30° onto the vertical plane. Light source: COB LED with a lens of optical. COB LED ROSU Mounting frame color: Max 30° on the visible part once instal"
+    }
+   ],
+   "image_covers": [
+    "R6931-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "ROSU",
+   "title": "VENEZINA ROSU – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "31",
+   "image": "img/venezina/rosu-1-30.jpg",
+   "variants": [
+    {
+     "code": "R6931-10W",
+     "w": 10.0,
+     "lm": 1052.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing: die-casting aluminum. The down light tilts to a maximum of 0°-30° onto the vertical plane. Light source: COB LED with a lens of optical. COB LED ROSU Mounting frame color: Max 30° on the visible part once instal"
+    },
+    {
+     "code": "R6931-15W",
+     "w": 15.0,
+     "lm": 1385.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing: die-casting aluminum. The down light tilts to a maximum of 0°-30° onto the vertical plane. Light source: COB LED with a lens of optical. COB LED ROSU Mounting frame color: Max 30° on the visible part once instal"
+    }
+   ],
+   "image_covers": [
+    "R6931-10W",
+    "R6931-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "STAR",
+   "title": "VENEZINA STAR – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "32",
+   "image": "img/venezina/star-1-32.jpg",
+   "variants": [
+    {
+     "code": "R6830-1W",
+     "w": 1.0,
+     "lm": 100.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 versions · Colours: White Black · Housing and mounting ring: Aluminum alloy. Light source: High power LED with a lens of optical. 321cd 0.6 1.2 1.9 2.5 80 28 16 11 36° 321 80 36 20 0.7 1.0 1.3 279 98 56 39 15° 1117 27"
+    }
+   ],
+   "image_covers": [
+    "R6830-1W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "STAR",
+   "title": "VENEZINA STAR – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "33",
+   "image": "img/venezina/star-1-33.jpg",
+   "variants": [
+    {
+     "code": "R6831-1W",
+     "w": 1.0,
+     "lm": 90.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 versions · Colours: White Black · Housing and mounting ring: Aluminum alloy. Light source: High power LED with a lens of optical. UGR<19. 0.04kg R6831 1W 90lm 0.6 1.2 1.8 2.4 87 30 18 12 36° 348 87 39 22 0.7 1.0 1.3 257 90 51 35 15° 1030 257 114 64 1034c"
+    }
+   ],
+   "image_covers": [
+    "R6831-1W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "STAR",
+   "title": "VENEZINA STAR – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "34",
+   "image": "img/venezina/star-1-33.jpg",
+   "variants": [
+    {
+     "code": "R6831-3W",
+     "w": 3.0,
+     "lm": 180.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 versions · Colours: White Black · Housing and mounting ring: Aluminum alloy. Light source: High power LED with a lens of optical. UGR<19. 0.04kg R6831 1W 90lm 0.6 1.2 1.8 2.4 87 30 18 12 36° 348 87 39 22 0.7 1.0 1.3 257 90 51 35 15° 1030 257 114 64 1034c"
+    }
+   ],
+   "image_covers": [
+    "R6831-3W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "STAR",
+   "title": "VENEZINA STAR – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "35",
+   "image": "img/venezina/star-1-35.jpg",
+   "variants": [
+    {
+     "code": "R6853-1W",
+     "w": 1.0,
+     "lm": 98.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 versions · Colours: White Black · Housing and mounting ring: Aluminum alloy. Light source: COB LED with a lens of optical. COB LED Mounting frame color: 0.3 0.6 0.9 618 155 69 15° 1119 280 124 1119cd 138cd 1.1 2.2 3.4"
+    },
+    {
+     "code": "R6853-3W",
+     "w": 3.0,
+     "lm": 166.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 versions · Colours: White Black · Housing and mounting ring: Aluminum alloy. Light source: COB LED with a lens of optical. COB LED Mounting frame color: 0.3 0.6 0.9 618 155 69 15° 1119 280 124 1119cd 138cd 1.1 2.2 3.4"
+    }
+   ],
+   "image_covers": [
+    "R6853-1W",
+    "R6853-3W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "STAR",
+   "title": "VENEZINA STAR – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "36",
+   "image": "img/venezina/star-1-36.jpg",
+   "variants": [
+    {
+     "code": "R6855-1W",
+     "w": 1.0,
+     "lm": 98.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 versions · Colours: White Black · Housing and mounting ring: Aluminum alloy. Light source: COB LED with a lens of optical. COB LED Mounting frame color: 0.6 0.9 618 155 69 15° 1119 280 124 1119cd 136cd 1.0 2.2 3.3 84"
+    },
+    {
+     "code": "R6855-3W",
+     "w": 3.0,
+     "lm": 166.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 versions · Colours: White Black · Housing and mounting ring: Aluminum alloy. Light source: COB LED with a lens of optical. COB LED Mounting frame color: 0.6 0.9 618 155 69 15° 1119 280 124 1119cd 136cd 1.0 2.2 3.3 84"
+    }
+   ],
+   "image_covers": [
+    "R6855-1W",
+    "R6855-3W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "STAR",
+   "title": "VENEZINA STAR – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "37",
+   "image": "img/venezina/star-1-37.jpg",
+   "variants": [
+    {
+     "code": "R6854-1W",
+     "w": 1.0,
+     "lm": 99.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 versions · Colours: White Black · Housing and mounting ring: Aluminum alloy. The down light tilts to a maximum of 0°-30° onto the vertical plane. Light source: COB LED with a lens of optical. COB LED STAR Mounting frame color: Max 30° 15° 30° 60° 1.1 2.3"
+    },
+    {
+     "code": "R6854-3W",
+     "w": 3.0,
+     "lm": 166.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 versions · Colours: White Black · Housing and mounting ring: Aluminum alloy. The down light tilts to a maximum of 0°-30° onto the vertical plane. Light source: COB LED with a lens of optical. COB LED STAR Mounting frame color: Max 30° 15° 30° 60° 1.1 2.3"
+    }
+   ],
+   "image_covers": [
+    "R6854-1W",
+    "R6854-3W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "STAR",
+   "title": "VENEZINA STAR – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "38",
+   "image": "img/venezina/star-1-38.jpg",
+   "variants": [
+    {
+     "code": "R6103-6W",
+     "w": 6.0,
+     "lm": 610.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 versions · Colours: White Black · Luminaire housing: die-casting aluminum. Light source: COB LED with a high eﬃciency reﬂector of optical. Mounting ring: Pure aluminum. Control system, CCT tunable 2700-6000K. COB LED STAR Mounting frame color: on the vis"
+    }
+   ],
+   "image_covers": [
+    "R6103-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "STAR",
+   "title": "VENEZINA STAR – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "39",
+   "image": "img/venezina/star-1-39.jpg",
+   "variants": [
+    {
+     "code": "R6018-6W",
+     "w": 6.0,
+     "lm": 650.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 versions · Colours: White Black · Housing and mounting frame: die-casting aluminum. The spot light tilts to a maximum of 0°-30° onto the vertical plane and rotates by 358° onto the horizontal plane. Light source: COB LED with a high eﬃciency reﬂector of "
+    }
+   ],
+   "image_covers": [
+    "R6018-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "DEPTH",
+   "title": "VENEZINA DEPTH – recessed anti-glare",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "40",
+   "image": "img/venezina/depth-1-40.jpg",
+   "variants": [
+    {
+     "code": "R6922-6W",
+     "w": 6.0,
+     "lm": 722.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 versions · Colours: White Black · Housing and mounting : die-casting aluminum. The spot light tilts to a maximum of 0°-25° onto the vertical plane. Light source: COB LED with a lens of optical. Anti-dazzling ring: Black. Accessories:Honey comb is optiona"
+    },
+    {
+     "code": "R6922-10W",
+     "w": 10.0,
+     "lm": 1102.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 versions · Colours: White Black · Housing and mounting : die-casting aluminum. The spot light tilts to a maximum of 0°-25° onto the vertical plane. Light source: COB LED with a lens of optical. Anti-dazzling ring: Black. Accessories:Honey comb is optiona"
+    }
+   ],
+   "image_covers": [
+    "R6922-6W",
+    "R6922-10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "DEPTH",
+   "title": "VENEZINA DEPTH – recessed anti-glare",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "41",
+   "image": "img/venezina/depth-1-41.jpg",
+   "variants": [
+    {
+     "code": "R6923-6W",
+     "w": 6.0,
+     "lm": 722.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 versions · Colours: White Black · Housing and mounting : die-casting aluminum. Light source: COB LED with a lens of optical. Anti-dazzling ring: Black. Accessories:Honey comb is optional. UGR<19. The small cutout size with high lumen output to save more "
+    },
+    {
+     "code": "R6923-10W",
+     "w": 10.0,
+     "lm": 1102.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 versions · Colours: White Black · Housing and mounting : die-casting aluminum. Light source: COB LED with a lens of optical. Anti-dazzling ring: Black. Accessories:Honey comb is optional. UGR<19. The small cutout size with high lumen output to save more "
+    }
+   ],
+   "image_covers": [
+    "R6923-6W",
+    "R6923-10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "DEPTH",
+   "title": "VENEZINA DEPTH – recessed anti-glare",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "42",
+   "image": "img/venezina/depth-1-42.jpg",
+   "variants": [
+    {
+     "code": "R6913-6W",
+     "w": 6.0,
+     "lm": 596.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing and Mounting ring: die-casting aluminum. Light source: COB LED with a high efficiency reflector of optical. The light can be compatible with emergency battery. Control system, CCT tunable 2700-6000K. COB LED Moun"
+    }
+   ],
+   "image_covers": [
+    "R6913-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "DEPTH",
+   "title": "VENEZINA DEPTH – recessed anti-glare",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "43",
+   "image": "img/venezina/depth-1-42.jpg",
+   "variants": [
+    {
+     "code": "R6913-10W",
+     "w": 10.0,
+     "lm": 946.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing and Mounting ring: die-casting aluminum. Light source: COB LED with a high efficiency reflector of optical. The light can be compatible with emergency battery. Control system, CCT tunable 2700-6000K. COB LED Moun"
+    },
+    {
+     "code": "R6913-15W",
+     "w": 15.0,
+     "lm": 1255.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing and Mounting ring: die-casting aluminum. Light source: COB LED with a high efficiency reflector of optical. The light can be compatible with emergency battery. Control system, CCT tunable 2700-6000K. COB LED Moun"
+    }
+   ],
+   "image_covers": [
+    "R6913-10W",
+    "R6913-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "DEPTH",
+   "title": "VENEZINA DEPTH – recessed anti-glare",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "44",
+   "image": "img/venezina/depth-1-44.jpg",
+   "variants": [
+    {
+     "code": "R6914-6W",
+     "w": 6.0,
+     "lm": 596.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing and Mounting ring: die-casting aluminum. Light source: COB LED with a high eﬃciency reﬂector of optical. The light can be compatible with emergency battery. Control system, CCT tunable 2700-6000K. COB LED Mountin"
+    }
+   ],
+   "image_covers": [
+    "R6914-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "DEPTH",
+   "title": "VENEZINA DEPTH – recessed anti-glare",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "45",
+   "image": "img/venezina/depth-1-44.jpg",
+   "variants": [
+    {
+     "code": "R6914-10W",
+     "w": 10.0,
+     "lm": 946.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing and Mounting ring: die-casting aluminum. Light source: COB LED with a high eﬃciency reﬂector of optical. The light can be compatible with emergency battery. Control system, CCT tunable 2700-6000K. COB LED Mountin"
+    },
+    {
+     "code": "R6914-15W",
+     "w": 15.0,
+     "lm": 1255.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing and Mounting ring: die-casting aluminum. Light source: COB LED with a high eﬃciency reﬂector of optical. The light can be compatible with emergency battery. Control system, CCT tunable 2700-6000K. COB LED Mountin"
+    }
+   ],
+   "image_covers": [
+    "R6914-10W",
+    "R6914-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "DEPTH",
+   "title": "VENEZINA DEPTH – recessed anti-glare",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "46",
+   "image": "img/venezina/depth-1-46.jpg",
+   "variants": [
+    {
+     "code": "R6900-6W",
+     "w": 6.0,
+     "lm": 390.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing and Mounting ring: die-casting aluminum. Light source: COB LED with a high eﬃciency reﬂector of optical. Anti- dazzling ring: Black. Accessories: Anti-Glare Snoot and honey comb is optional. UGR<15. The light can"
+    }
+   ],
+   "image_covers": [
+    "R6900-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "DEPTH",
+   "title": "VENEZINA DEPTH – recessed anti-glare",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "47",
+   "image": "img/venezina/depth-1-46.jpg",
+   "variants": [
+    {
+     "code": "R6900-10W",
+     "w": 10.0,
+     "lm": 690.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing and Mounting ring: die-casting aluminum. Light source: COB LED with a high eﬃciency reﬂector of optical. Anti- dazzling ring: Black. Accessories: Anti-Glare Snoot and honey comb is optional. UGR<15. The light can"
+    },
+    {
+     "code": "R6900-15W",
+     "w": 15.0,
+     "lm": 895.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing and Mounting ring: die-casting aluminum. Light source: COB LED with a high eﬃciency reﬂector of optical. Anti- dazzling ring: Black. Accessories: Anti-Glare Snoot and honey comb is optional. UGR<15. The light can"
+    }
+   ],
+   "image_covers": [
+    "R6900-10W",
+    "R6900-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "DEPTH",
+   "title": "VENEZINA DEPTH – recessed anti-glare",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "48",
+   "image": "img/venezina/depth-1-48.jpg",
+   "variants": [
+    {
+     "code": "R6901-6W",
+     "w": 6.0,
+     "lm": 390.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing and Mounting ring: die-casting aluminum. The spot light tilts to a maximum of 0-30° onto the vertical plane. Light source: COB LED with a high eﬃciency reﬂector of optical. Anti- dazzling ring: Black. Accessories"
+    }
+   ],
+   "image_covers": [
+    "R6901-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "DEPTH",
+   "title": "VENEZINA DEPTH – recessed anti-glare",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "49",
+   "image": "img/venezina/depth-1-48.jpg",
+   "variants": [
+    {
+     "code": "R6901-10W",
+     "w": 10.0,
+     "lm": 690.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing and Mounting ring: die-casting aluminum. The spot light tilts to a maximum of 0-30° onto the vertical plane. Light source: COB LED with a high eﬃciency reﬂector of optical. Anti- dazzling ring: Black. Accessories"
+    },
+    {
+     "code": "R6901-15W",
+     "w": 15.0,
+     "lm": 895.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing and Mounting ring: die-casting aluminum. The spot light tilts to a maximum of 0-30° onto the vertical plane. Light source: COB LED with a high eﬃciency reﬂector of optical. Anti- dazzling ring: Black. Accessories"
+    }
+   ],
+   "image_covers": [
+    "R6901-10W",
+    "R6901-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "NAKO",
+   "title": "VENEZINA NAKO – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "50",
+   "image": "img/venezina/nako-1-50.jpg",
+   "variants": [
+    {
+     "code": "R6956-6W",
+     "w": 6.0,
+     "lm": 681.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 / IP65 versions · Housing and Mounting ring: die-casting aluminum Light source: COB LED with a lens of optical Safety chain is included,the spot light tilts to a maximum of 0°-30° IP65 can be customized NAKO integrated visible RW( white) "
+    }
+   ],
+   "image_covers": [
+    "R6956-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "NAKO",
+   "title": "VENEZINA NAKO – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "51",
+   "image": "img/venezina/nako-1-50.jpg",
+   "variants": [
+    {
+     "code": "R6956-10W",
+     "w": 10.0,
+     "lm": 1155.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 / IP65 versions · Housing and Mounting ring: die-casting aluminum Light source: COB LED with a lens of optical Safety chain is included,the spot light tilts to a maximum of 0°-30° IP65 can be customized NAKO integrated visible RW( white) "
+    }
+   ],
+   "image_covers": [
+    "R6956-10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "NAKO",
+   "title": "VENEZINA NAKO – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "52",
+   "image": "img/venezina/nako-1-52.jpg",
+   "variants": [
+    {
+     "code": "R6943-6W",
+     "w": 6.0,
+     "lm": 628.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 / IP65 versions · Housing and Mounting ring: die-casting aluminum Light source: COB LED with a lens of optical Safety chain is included,the spot light tilts to a maximum of 0°-30° RW( white) RB (black) RG (champagne gold) RD (dark chrome "
+    }
+   ],
+   "image_covers": [
+    "R6943-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "NAKO",
+   "title": "VENEZINA NAKO – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "53",
+   "image": "img/venezina/nako-1-52.jpg",
+   "variants": [
+    {
+     "code": "R6943-10W",
+     "w": 10.0,
+     "lm": 983.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 / IP65 versions · Housing and Mounting ring: die-casting aluminum Light source: COB LED with a lens of optical Safety chain is included,the spot light tilts to a maximum of 0°-30° RW( white) RB (black) RG (champagne gold) RD (dark chrome "
+    },
+    {
+     "code": "R6943-15W",
+     "w": 15.0,
+     "lm": 1275.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 / IP65 versions · Housing and Mounting ring: die-casting aluminum Light source: COB LED with a lens of optical Safety chain is included,the spot light tilts to a maximum of 0°-30° RW( white) RB (black) RG (champagne gold) RD (dark chrome "
+    }
+   ],
+   "image_covers": [
+    "R6943-10W",
+    "R6943-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "NAKO",
+   "title": "VENEZINA NAKO – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "54",
+   "image": "img/venezina/nako-1-54.jpg",
+   "variants": [
+    {
+     "code": "R6937-6W",
+     "w": 6.0,
+     "lm": 650.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: die-casting aluminum Light source: COB LED with a lens of optical Safety chain is included,the spot light tilts to a maximum of 0°-30° onto the vertical plane and rotates by 358° onto the horiz"
+    }
+   ],
+   "image_covers": [
+    "R6937-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "NAKO",
+   "title": "VENEZINA NAKO – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "55",
+   "image": "img/venezina/nako-1-54.jpg",
+   "variants": [
+    {
+     "code": "R6937-10W",
+     "w": 10.0,
+     "lm": 1022.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: die-casting aluminum Light source: COB LED with a lens of optical Safety chain is included,the spot light tilts to a maximum of 0°-30° onto the vertical plane and rotates by 358° onto the horiz"
+    },
+    {
+     "code": "R6937-15W",
+     "w": 15.0,
+     "lm": 1355.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: die-casting aluminum Light source: COB LED with a lens of optical Safety chain is included,the spot light tilts to a maximum of 0°-30° onto the vertical plane and rotates by 358° onto the horiz"
+    }
+   ],
+   "image_covers": [
+    "R6937-10W",
+    "R6937-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "NAKO",
+   "title": "VENEZINA NAKO – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "56",
+   "image": "img/venezina/nako-1-56.jpg",
+   "variants": [
+    {
+     "code": "R6938-6W",
+     "w": 6.0,
+     "lm": 628.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: die-casting aluminum Light source: COB LED with a lens of optical Safety chain is included,the spot light tilts to a maximum of 0°-30° onto the vertical plane and rotates by 358° onto the horiz"
+    }
+   ],
+   "image_covers": [
+    "R6938-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "NAKO",
+   "title": "VENEZINA NAKO – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "57",
+   "image": "img/venezina/nako-1-56.jpg",
+   "variants": [
+    {
+     "code": "R6938-10W",
+     "w": 10.0,
+     "lm": 983.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: die-casting aluminum Light source: COB LED with a lens of optical Safety chain is included,the spot light tilts to a maximum of 0°-30° onto the vertical plane and rotates by 358° onto the horiz"
+    },
+    {
+     "code": "R6938-15W",
+     "w": 15.0,
+     "lm": 1275.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 / IP65 versions · Colours: White Black · Housing and Mounting ring: die-casting aluminum Light source: COB LED with a lens of optical Safety chain is included,the spot light tilts to a maximum of 0°-30° onto the vertical plane and rotates by 358° onto the horiz"
+    }
+   ],
+   "image_covers": [
+    "R6938-10W",
+    "R6938-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FOCUS S",
+   "title": "VENEZINA FOCUS S – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "58",
+   "image": "img/venezina/focus-s-1-58.jpg",
+   "variants": [
+    {
+     "code": "R6949-6W",
+     "w": 6.0,
+     "lm": 624.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 versions · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "R6949-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FOCUS S",
+   "title": "VENEZINA FOCUS S – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "59",
+   "image": "img/venezina/focus-s-1-58.jpg",
+   "variants": [
+    {
+     "code": "R6949-10W",
+     "w": 10.0,
+     "lm": 1015.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 versions · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "R6949-10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FOCUS S",
+   "title": "VENEZINA FOCUS S – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "60",
+   "image": "img/venezina/focus-s-1-60.jpg",
+   "variants": [
+    {
+     "code": "R6946-6W",
+     "w": 6.0,
+     "lm": 624.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 versions · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "R6946-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FOCUS S",
+   "title": "VENEZINA FOCUS S – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "61",
+   "image": "img/venezina/focus-s-1-60.jpg",
+   "variants": [
+    {
+     "code": "R6946-10W",
+     "w": 10.0,
+     "lm": 1015.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 versions · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "R6946-10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FOCUS S",
+   "title": "VENEZINA FOCUS S – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "62",
+   "image": "img/venezina/focus-s-1-62.jpg",
+   "variants": [
+    {
+     "code": "R6948-6W",
+     "w": 6.0,
+     "lm": 624.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 versions · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "R6948-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FOCUS S",
+   "title": "VENEZINA FOCUS S – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "63",
+   "image": "img/venezina/focus-s-1-62.jpg",
+   "variants": [
+    {
+     "code": "R6948-10W",
+     "w": 10.0,
+     "lm": 1015.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 versions · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "R6948-10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FOCUS S",
+   "title": "VENEZINA FOCUS S – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "64",
+   "image": "img/venezina/focus-s-1-64.jpg",
+   "variants": [
+    {
+     "code": "R6947-6W",
+     "w": 6.0,
+     "lm": 624.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 versions · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "R6947-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FOCUS S",
+   "title": "VENEZINA FOCUS S – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "65",
+   "image": "img/venezina/focus-s-1-64.jpg",
+   "variants": [
+    {
+     "code": "R6947-10W",
+     "w": 10.0,
+     "lm": 1015.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 versions · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "R6947-10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FOCUS S",
+   "title": "VENEZINA FOCUS S – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "66",
+   "image": "img/venezina/focus-s-1-66.jpg",
+   "variants": [
+    {
+     "code": "R6936-6W",
+     "w": 6.0,
+     "lm": 675.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 / IP65 versions · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "R6936-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FOCUS S",
+   "title": "VENEZINA FOCUS S – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "67",
+   "image": "img/venezina/focus-s-1-66.jpg",
+   "variants": [
+    {
+     "code": "R6936-10W",
+     "w": 10.0,
+     "lm": 1046.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 / IP65 versions · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    },
+    {
+     "code": "R6936-15W",
+     "w": 15.0,
+     "lm": 1387.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 / IP65 versions · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "R6936-10W",
+    "R6936-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FOCUS S",
+   "title": "VENEZINA FOCUS S – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "68",
+   "image": "img/venezina/focus-s-1-68.jpg",
+   "variants": [
+    {
+     "code": "R6933-6W",
+     "w": 6.0,
+     "lm": 675.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 / IP65 versions · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "R6933-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FOCUS S",
+   "title": "VENEZINA FOCUS S – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "69",
+   "image": "img/venezina/focus-s-1-68.jpg",
+   "variants": [
+    {
+     "code": "R6933-10W",
+     "w": 10.0,
+     "lm": 1046.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 / IP65 versions · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    },
+    {
+     "code": "R6933-15W",
+     "w": 15.0,
+     "lm": 1387.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 / IP65 versions · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "R6933-10W",
+    "R6933-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FOCUS S",
+   "title": "VENEZINA FOCUS S – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "70",
+   "image": "img/venezina/focus-s-1-70.jpg",
+   "variants": [
+    {
+     "code": "R6935-6W",
+     "w": 6.0,
+     "lm": 675.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 / IP65 versions · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "R6935-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FOCUS S",
+   "title": "VENEZINA FOCUS S – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "71",
+   "image": "img/venezina/focus-s-1-70.jpg",
+   "variants": [
+    {
+     "code": "R6935-10W",
+     "w": 10.0,
+     "lm": 1046.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 / IP65 versions · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    },
+    {
+     "code": "R6935-15W",
+     "w": 15.0,
+     "lm": 1387.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 / IP65 versions · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "R6935-10W",
+    "R6935-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FOCUS S",
+   "title": "VENEZINA FOCUS S – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "72",
+   "image": "img/venezina/focus-s-1-72.jpg",
+   "variants": [
+    {
+     "code": "R6934-6W",
+     "w": 6.0,
+     "lm": 675.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 / IP65 versions · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "R6934-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FOCUS S",
+   "title": "VENEZINA FOCUS S – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "73",
+   "image": "img/venezina/focus-s-1-72.jpg",
+   "variants": [
+    {
+     "code": "R6934-10W",
+     "w": 10.0,
+     "lm": 1046.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 / IP65 versions · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    },
+    {
+     "code": "R6934-15W",
+     "w": 15.0,
+     "lm": 1387.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 / IP65 versions · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "R6934-10W",
+    "R6934-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FOCUS",
+   "title": "VENEZINA FOCUS – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "74",
+   "image": "img/venezina/focus-1-74.jpg",
+   "variants": [
+    {
+     "code": "R6299-15W",
+     "w": 15.0,
+     "lm": 1370.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 versions · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "R6299-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FOCUS",
+   "title": "VENEZINA FOCUS – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "75",
+   "image": "img/venezina/focus-1-74.jpg",
+   "variants": [
+    {
+     "code": "R6299-20W",
+     "w": 20.0,
+     "lm": 1839.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 versions · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "R6299-20W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FOCUS",
+   "title": "VENEZINA FOCUS – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "76",
+   "image": "img/venezina/focus-1-76.jpg",
+   "variants": [
+    {
+     "code": "R6296-15W",
+     "w": 15.0,
+     "lm": 1370.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 versions · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "R6296-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FOCUS",
+   "title": "VENEZINA FOCUS – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "77",
+   "image": "img/venezina/focus-1-76.jpg",
+   "variants": [
+    {
+     "code": "R6296-20W",
+     "w": 20.0,
+     "lm": 1839.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 versions · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "R6296-20W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FOCUS",
+   "title": "VENEZINA FOCUS – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "78",
+   "image": "img/venezina/focus-1-78.jpg",
+   "variants": [
+    {
+     "code": "R6300-15W",
+     "w": 15.0,
+     "lm": 1370.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 versions · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "R6300-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FOCUS",
+   "title": "VENEZINA FOCUS – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "79",
+   "image": "img/venezina/focus-1-78.jpg",
+   "variants": [
+    {
+     "code": "R6300-20W",
+     "w": 20.0,
+     "lm": 1839.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 versions · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "R6300-20W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FOCUS",
+   "title": "VENEZINA FOCUS – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "80",
+   "image": "img/venezina/focus-1-80.jpg",
+   "variants": [
+    {
+     "code": "R6297-15W",
+     "w": 15.0,
+     "lm": 1370.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 versions · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "R6297-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FOCUS",
+   "title": "VENEZINA FOCUS – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "81",
+   "image": "img/venezina/focus-1-80.jpg",
+   "variants": [
+    {
+     "code": "R6297-20W",
+     "w": 20.0,
+     "lm": 1839.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Also IP44 versions · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "R6297-20W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "KAKU",
+   "title": "VENEZINA KAKU – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "82",
+   "image": "img/venezina/kaku-1-82.jpg",
+   "variants": [
+    {
+     "code": "R6188-15W",
+     "w": 15.0,
+     "lm": 930.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Housing and Mounting frame: die-casting aluminum. Light source: COB LED with a lens of optical. Reﬂector: , Mirror ﬁnish, champagne-gold Dark chrome to meet diﬀerent requirements. Secondary optics bring the perfect light"
+    },
+    {
+     "code": "R6188-20W",
+     "w": 20.0,
+     "lm": 1534.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Housing and Mounting frame: die-casting aluminum. Light source: COB LED with a lens of optical. Reﬂector: , Mirror ﬁnish, champagne-gold Dark chrome to meet diﬀerent requirements. Secondary optics bring the perfect light"
+    }
+   ],
+   "image_covers": [
+    "R6188-15W",
+    "R6188-20W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "KAKU",
+   "title": "VENEZINA KAKU – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "83",
+   "image": "img/venezina/kaku-1-83.jpg",
+   "variants": [
+    {
+     "code": "R6322-25W",
+     "w": 25.0,
+     "lm": 1737.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Housing and Mounting frame: die-casting aluminum. Light source: COB LED with a lens of optical. Reﬂector: , Mirror ﬁnish, champagne-gold Dark chrome to meet diﬀerent requirements. Secondary optics bring the perfect light"
+    }
+   ],
+   "image_covers": [
+    "R6322-25W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "KAKU",
+   "title": "VENEZINA KAKU – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "84",
+   "image": "img/venezina/kaku-1-83.jpg",
+   "variants": [
+    {
+     "code": "R6322-40W",
+     "w": 40.0,
+     "lm": 4168.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Housing and Mounting frame: die-casting aluminum. Light source: COB LED with a lens of optical. Reﬂector: , Mirror ﬁnish, champagne-gold Dark chrome to meet diﬀerent requirements. Secondary optics bring the perfect light"
+    },
+    {
+     "code": "R6322-30W",
+     "w": 30.0,
+     "lm": 2894.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Housing and Mounting frame: die-casting aluminum. Light source: COB LED with a lens of optical. Reﬂector: , Mirror ﬁnish, champagne-gold Dark chrome to meet diﬀerent requirements. Secondary optics bring the perfect light"
+    }
+   ],
+   "image_covers": [
+    "R6322-40W",
+    "R6322-30W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "KAKU",
+   "title": "VENEZINA KAKU – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "85",
+   "image": "img/venezina/kaku-1-85.jpg",
+   "variants": [
+    {
+     "code": "R6338-50W",
+     "w": 50.0,
+     "lm": 5013.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Housing and Mounting frame: die-casting aluminum. Light source: COB LED with a lens of optical. Reﬂector: , Mirror ﬁnish, champagne-gold Dark chrome to meet diﬀerent requirements. Secondary optics bring the perfect light"
+    }
+   ],
+   "image_covers": [
+    "R6338-50W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "SIMP A",
+   "title": "VENEZINA SIMP A – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "86",
+   "image": "img/venezina/simp-a-1-86.jpg",
+   "variants": [
+    {
+     "code": "R6196-20W",
+     "w": 20.0,
+     "lm": 1970.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing and Mounting ring: die-casting aluminum. Light source: COB LED with a high eﬃciency reﬂector of optical and clear glass. The light can be compatible with emergency battery. 2326cd 1.8 2.8 3.7 320 168 109 582 258 "
+    },
+    {
+     "code": "R6196-25W",
+     "w": 25.0,
+     "lm": 2100.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing and Mounting ring: die-casting aluminum. Light source: COB LED with a high eﬃciency reﬂector of optical and clear glass. The light can be compatible with emergency battery. 2326cd 1.8 2.8 3.7 320 168 109 582 258 "
+    },
+    {
+     "code": "R6196-30W",
+     "w": 30.0,
+     "lm": 3169.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing and Mounting ring: die-casting aluminum. Light source: COB LED with a high eﬃciency reﬂector of optical and clear glass. The light can be compatible with emergency battery. 2326cd 1.8 2.8 3.7 320 168 109 582 258 "
+    }
+   ],
+   "image_covers": [
+    "R6196-20W",
+    "R6196-25W",
+    "R6196-30W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "SIMP A",
+   "title": "VENEZINA SIMP A – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "87",
+   "image": "img/venezina/simp-a-1-87.jpg",
+   "variants": [
+    {
+     "code": "R6195-20W",
+     "w": 20.0,
+     "lm": 1420.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing and Mounting ring: die-casting aluminum. Light source: COB LED with a high eﬃciency reﬂector of optical and acrylic diﬀuser. The light can be compatible with emergency battery. 890cd 3.1 4.6 6.2 122 64 42 222 99 "
+    },
+    {
+     "code": "R6195-25W",
+     "w": 25.0,
+     "lm": 1600.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing and Mounting ring: die-casting aluminum. Light source: COB LED with a high eﬃciency reﬂector of optical and acrylic diﬀuser. The light can be compatible with emergency battery. 890cd 3.1 4.6 6.2 122 64 42 222 99 "
+    },
+    {
+     "code": "R6195-30W",
+     "w": 30.0,
+     "lm": 2363.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing and Mounting ring: die-casting aluminum. Light source: COB LED with a high eﬃciency reﬂector of optical and acrylic diﬀuser. The light can be compatible with emergency battery. 890cd 3.1 4.6 6.2 122 64 42 222 99 "
+    }
+   ],
+   "image_covers": [
+    "R6195-20W",
+    "R6195-25W",
+    "R6195-30W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "SIMP A",
+   "title": "VENEZINA SIMP A – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "88",
+   "image": "img/venezina/simp-a-1-88.jpg",
+   "variants": [
+    {
+     "code": "R6202-20W",
+     "w": 20.0,
+     "lm": 2010.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing and Mounting ring: die-casting aluminum. Light source: COB LED with a high eﬃciency reﬂector of optical and clear glass. The light can be compatible with emergency battery. 3226cd 1.1 2.2 3.4 4.5 1936 484 215 121"
+    },
+    {
+     "code": "R6202-25W",
+     "w": 25.0,
+     "lm": 2320.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing and Mounting ring: die-casting aluminum. Light source: COB LED with a high eﬃciency reﬂector of optical and clear glass. The light can be compatible with emergency battery. 3226cd 1.1 2.2 3.4 4.5 1936 484 215 121"
+    },
+    {
+     "code": "R6202-30W",
+     "w": 30.0,
+     "lm": 3039.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing and Mounting ring: die-casting aluminum. Light source: COB LED with a high eﬃciency reﬂector of optical and clear glass. The light can be compatible with emergency battery. 3226cd 1.1 2.2 3.4 4.5 1936 484 215 121"
+    }
+   ],
+   "image_covers": [
+    "R6202-20W",
+    "R6202-25W",
+    "R6202-30W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "SIMP A",
+   "title": "VENEZINA SIMP A – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "89",
+   "image": "img/venezina/simp-a-1-89.jpg",
+   "variants": [
+    {
+     "code": "R6201-20W",
+     "w": 20.0,
+     "lm": 1690.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing and Mounting ring: die-casting aluminum. Light source: COB LED with a high eﬃciency reﬂector of optical and acrylic diﬀuser. The light can be compatible with emergency battery. 1401cd 1.6 3.2 4.8 6.3 690 172 76 4"
+    },
+    {
+     "code": "R6201-25W",
+     "w": 25.0,
+     "lm": 1950.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing and Mounting ring: die-casting aluminum. Light source: COB LED with a high eﬃciency reﬂector of optical and acrylic diﬀuser. The light can be compatible with emergency battery. 1401cd 1.6 3.2 4.8 6.3 690 172 76 4"
+    },
+    {
+     "code": "R6201-30W",
+     "w": 30.0,
+     "lm": 2650.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing and Mounting ring: die-casting aluminum. Light source: COB LED with a high eﬃciency reﬂector of optical and acrylic diﬀuser. The light can be compatible with emergency battery. 1401cd 1.6 3.2 4.8 6.3 690 172 76 4"
+    }
+   ],
+   "image_covers": [
+    "R6201-20W",
+    "R6201-25W",
+    "R6201-30W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "RONO",
+   "title": "VENEZINA RONO – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "90",
+   "image": "img/venezina/rono-1-90.jpg",
+   "variants": [
+    {
+     "code": "R6336-6W",
+     "w": 6.0,
+     "lm": 394.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing and mounting frame: die-casting aluminum. The spot light tilts to a maximum of 25° onto the vertical plane and rotates by 358° onto the horizontal plane. Anti-dazzle ring: Plastic black. Light source: COB LED wit"
+    }
+   ],
+   "image_covers": [
+    "R6336-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "RONO",
+   "title": "VENEZINA RONO – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "91",
+   "image": "img/venezina/rono-1-90.jpg",
+   "variants": [
+    {
+     "code": "R6336-10W",
+     "w": 10.0,
+     "lm": 670.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing and mounting frame: die-casting aluminum. The spot light tilts to a maximum of 25° onto the vertical plane and rotates by 358° onto the horizontal plane. Anti-dazzle ring: Plastic black. Light source: COB LED wit"
+    },
+    {
+     "code": "R6336-15W",
+     "w": 15.0,
+     "lm": 831.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing and mounting frame: die-casting aluminum. The spot light tilts to a maximum of 25° onto the vertical plane and rotates by 358° onto the horizontal plane. Anti-dazzle ring: Plastic black. Light source: COB LED wit"
+    }
+   ],
+   "image_covers": [
+    "R6336-10W",
+    "R6336-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "RONO",
+   "title": "VENEZINA RONO – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "92",
+   "image": "img/venezina/rono-1-92.jpg",
+   "variants": [
+    {
+     "code": "R6344-2x6W",
+     "w": 12.0,
+     "lm": 757.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "2x6W · Also IP44 versions · Colours: White Black · Housing and mounting frame: die-casting aluminum. The spot light tilts to a maximum of 25° onto the vertical plane and rotates by 358° onto the horizontal plane. Anti-dazzle ring: Plastic black. Light source: COB LED wit"
+    }
+   ],
+   "image_covers": [
+    "R6344-2x6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "RONO",
+   "title": "VENEZINA RONO – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "93",
+   "image": "img/venezina/rono-1-92.jpg",
+   "variants": [
+    {
+     "code": "R6344-2x10W",
+     "w": 20.0,
+     "lm": 1353.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "2x10W · Also IP44 versions · Colours: White Black · Housing and mounting frame: die-casting aluminum. The spot light tilts to a maximum of 25° onto the vertical plane and rotates by 358° onto the horizontal plane. Anti-dazzle ring: Plastic black. Light source: COB LED wit"
+    },
+    {
+     "code": "R6344-2x15W",
+     "w": 30.0,
+     "lm": 1615.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "2x15W · Also IP44 versions · Colours: White Black · Housing and mounting frame: die-casting aluminum. The spot light tilts to a maximum of 25° onto the vertical plane and rotates by 358° onto the horizontal plane. Anti-dazzle ring: Plastic black. Light source: COB LED wit"
+    }
+   ],
+   "image_covers": [
+    "R6344-2x10W",
+    "R6344-2x15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "RONO R",
+   "title": "VENEZINA RONO R – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "94",
+   "image": "img/venezina/rono-r-1-94.jpg",
+   "variants": [
+    {
+     "code": "R6329-30W",
+     "w": 30.0,
+     "lm": 3155.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing and mounting ring: Cast aluminum. The spot light tilts to a maximum of 0°-30° onto the vertical plane and rotates by 358° onto the horizontal plane. Anti-dazzle ring: Plastic black. Light source: COB LED with a h"
+    }
+   ],
+   "image_covers": [
+    "R6329-30W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "RONO R",
+   "title": "VENEZINA RONO R – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "95",
+   "image": "img/venezina/rono-r-1-94.jpg",
+   "variants": [
+    {
+     "code": "R6329-40W",
+     "w": 40.0,
+     "lm": 3517.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing and mounting ring: Cast aluminum. The spot light tilts to a maximum of 0°-30° onto the vertical plane and rotates by 358° onto the horizontal plane. Anti-dazzle ring: Plastic black. Light source: COB LED with a h"
+    }
+   ],
+   "image_covers": [
+    "R6329-40W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "RONO R",
+   "title": "VENEZINA RONO R – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "96",
+   "image": "img/venezina/rono-r-1-96.jpg",
+   "variants": [
+    {
+     "code": "R6291-40W",
+     "w": 40.0,
+     "lm": 4073.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing and mounting ring: Cast aluminum. The spot light tilts to a maximum of 0°-30° onto the vertical plane and rotates by 358° onto the horizontal plane. Anti-dazzle ring: Plastic black. Light source: COB LED with a h"
+    }
+   ],
+   "image_covers": [
+    "R6291-40W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "RONO R",
+   "title": "VENEZINA RONO R – recessed",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "97",
+   "image": "img/venezina/rono-r-1-96.jpg",
+   "variants": [
+    {
+     "code": "R6291-50W",
+     "w": 50.0,
+     "lm": 5143.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · Housing and mounting ring: Cast aluminum. The spot light tilts to a maximum of 0°-30° onto the vertical plane and rotates by 358° onto the horizontal plane. Anti-dazzle ring: Plastic black. Light source: COB LED with a h"
+    }
+   ],
+   "image_covers": [
+    "R6291-50W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "BOX",
+   "title": "VENEZINA BOX – recessed multiple",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "98",
+   "image": "img/venezina/box-1-98.jpg",
+   "variants": [
+    {
+     "code": "R6212-6W",
+     "w": 6.0,
+     "lm": 700.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · The lamp housing is made of steel sheet. Mounting frame: die-casting aluminum. Spot light source holder rings: Cast aluminum, they are positioned on adjustable gimbals and equipped with mechanical locking devices whic Li"
+    }
+   ],
+   "image_covers": [
+    "R6212-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "BOX",
+   "title": "VENEZINA BOX – recessed multiple",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "99",
+   "image": "img/venezina/box-1-98.jpg",
+   "variants": [
+    {
+     "code": "R6158-10W",
+     "w": 10.0,
+     "lm": 1190.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · The lamp housing is made of steel sheet. Mounting frame: die-casting aluminum. Spot light source holder rings: Cast aluminum, they are positioned on adjustable gimbals and equipped with mechanical locking devices whic Li"
+    }
+   ],
+   "image_covers": [
+    "R6158-10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "BOX",
+   "title": "VENEZINA BOX – recessed multiple",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "100",
+   "image": "img/venezina/box-1-100.jpg",
+   "variants": [
+    {
+     "code": "R6213-2x6W",
+     "w": 12.0,
+     "lm": 1400.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "2x6W · Also IP44 versions · Colours: White Black · The lamp housing is made of steel sheet. Mounting frame: die-casting aluminum. Spot light source holder rings: Cast aluminum, they are positioned on adjustable gimbals and equipped with mechanical locking devices whic Li"
+    }
+   ],
+   "image_covers": [
+    "R6213-2x6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "BOX",
+   "title": "VENEZINA BOX – recessed multiple",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "101",
+   "image": "img/venezina/box-1-100.jpg",
+   "variants": [
+    {
+     "code": "R6159-2x10W",
+     "w": 20.0,
+     "lm": 2380.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "2x10W · Also IP44 versions · Colours: White Black · The lamp housing is made of steel sheet. Mounting frame: die-casting aluminum. Spot light source holder rings: Cast aluminum, they are positioned on adjustable gimbals and equipped with mechanical locking devices whic Li"
+    }
+   ],
+   "image_covers": [
+    "R6159-2x10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "BOX",
+   "title": "VENEZINA BOX – recessed multiple",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "102",
+   "image": "img/venezina/box-1-102.jpg",
+   "variants": [
+    {
+     "code": "R6209-6W",
+     "w": 6.0,
+     "lm": 700.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · This ﬁxture has one outer metal bezel and a lamp housing that is made of steel sheet. Mounting ﬁxed kit: die-casting aluminum, for ﬂush-mounting installation in plasterboard ceilings. Spot light source holder rings: Cast"
+    }
+   ],
+   "image_covers": [
+    "R6209-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "BOX",
+   "title": "VENEZINA BOX – recessed multiple",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "103",
+   "image": "img/venezina/box-1-102.jpg",
+   "variants": [
+    {
+     "code": "R6155-10W",
+     "w": 10.0,
+     "lm": 1190.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "Also IP44 versions · Colours: White Black · This ﬁxture has one outer metal bezel and a lamp housing that is made of steel sheet. Mounting ﬁxed kit: die-casting aluminum, for ﬂush-mounting installation in plasterboard ceilings. Spot light source holder rings: Cast"
+    }
+   ],
+   "image_covers": [
+    "R6155-10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "BOX",
+   "title": "VENEZINA BOX – recessed multiple",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "104",
+   "image": "img/venezina/box-1-104.jpg",
+   "variants": [
+    {
+     "code": "R6210-2x6W",
+     "w": 12.0,
+     "lm": 1400.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "2x6W · Also IP44 versions · Colours: White Black · This ﬁxture has one outer metal bezel and a lamp housing that is made of steel sheet. Mounting ﬁxed kit: die-casting aluminum, for ﬂush-mounting installation in plasterboard ceilings. Spot light source holder rings: Cast"
+    }
+   ],
+   "image_covers": [
+    "R6210-2x6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "BOX",
+   "title": "VENEZINA BOX – recessed multiple",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "105",
+   "image": "img/venezina/box-1-104.jpg",
+   "variants": [
+    {
+     "code": "R6156-2x10W",
+     "w": 20.0,
+     "lm": 2380.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "control": "Emergency option",
+     "note": "2x10W · Also IP44 versions · Colours: White Black · This ﬁxture has one outer metal bezel and a lamp housing that is made of steel sheet. Mounting ﬁxed kit: die-casting aluminum, for ﬂush-mounting installation in plasterboard ceilings. Spot light source holder rings: Cast"
+    }
+   ],
+   "image_covers": [
+    "R6156-2x10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "TOPA",
+   "title": "VENEZINA TOPA – ceiling-mounted (surface cylinder)",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "106",
+   "image": "img/venezina/topa-1-106.jpg",
+   "variants": [
+    {
+     "code": "C6025-6W",
+     "w": 6.0,
+     "lm": 630.0,
+     "cct": "2700K / 3000K / 4000K",
+     "ip": "IP20",
+     "note": "Colours: White Black · Luminaire housing: Aluminum alloy. Ceiling mouted plate: die casting aluminum. Light source: COB LED with a high eﬃciency . White Black 2700K 3000K 4000K 45° 80 1160cd 1.7 2.6 3.5 522 160 83 54 45° 1160 290 128 72 1 2 3"
+    },
+    {
+     "code": "C6025-10W",
+     "w": 10.0,
+     "lm": 1120.0,
+     "cct": "2700K / 3000K / 4000K",
+     "ip": "IP20",
+     "note": "Colours: White Black · Luminaire housing: Aluminum alloy. Ceiling mouted plate: die casting aluminum. Light source: COB LED with a high eﬃciency . White Black 2700K 3000K 4000K 45° 80 1160cd 1.7 2.6 3.5 522 160 83 54 45° 1160 290 128 72 1 2 3"
+    }
+   ],
+   "image_covers": [
+    "C6025-6W",
+    "C6025-10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "TOPA",
+   "title": "VENEZINA TOPA – ceiling-mounted (surface cylinder)",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "107",
+   "image": "img/venezina/topa-1-107.jpg",
+   "variants": [
+    {
+     "code": "C6024-6W",
+     "w": 6.0,
+     "lm": 630.0,
+     "cct": "2700K / 3000K / 4000K",
+     "ip": "IP20",
+     "note": "Colours: White Black · Luminaire housing: Aluminum alloy. Ceiling mouted plate: die casting aluminum. Light source: COB LED with a high eﬃciency reﬂector of optical. White Black 2700K 3000K 4000K 45° 80 1160cd 0.9 1.7 2.6 3.5 522 160 83 54 45"
+    },
+    {
+     "code": "C6024-10W",
+     "w": 10.0,
+     "lm": 1120.0,
+     "cct": "2700K / 3000K / 4000K",
+     "ip": "IP20",
+     "note": "Colours: White Black · Luminaire housing: Aluminum alloy. Ceiling mouted plate: die casting aluminum. Light source: COB LED with a high eﬃciency reﬂector of optical. White Black 2700K 3000K 4000K 45° 80 1160cd 0.9 1.7 2.6 3.5 522 160 83 54 45"
+    }
+   ],
+   "image_covers": [
+    "C6024-6W",
+    "C6024-10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "TOPA",
+   "title": "VENEZINA TOPA – ceiling-mounted (surface cylinder)",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "108",
+   "image": "img/venezina/topa-1-108.jpg",
+   "variants": [
+    {
+     "code": "C6045-15W",
+     "w": 15.0,
+     "lm": 1600.0,
+     "cct": "2700K / 3000K / 4000K",
+     "ip": "IP20",
+     "note": "Colours: White Black · Luminaire housing: Aluminum alloy. Ceiling mouted plate: Steel sheet. Light source: COB LED with a high eﬃciency reﬂector of optical. White Black 2700K 3000K 4000K 50° 125 0.91kg C6045 20W 2200lm 1.7 2.5 3.4 94"
+    },
+    {
+     "code": "C6045-20W",
+     "w": 20.0,
+     "lm": 2200.0,
+     "cct": "2700K / 3000K / 4000K",
+     "ip": "IP20",
+     "note": "Colours: White Black · Luminaire housing: Aluminum alloy. Ceiling mouted plate: Steel sheet. Light source: COB LED with a high eﬃciency reﬂector of optical. White Black 2700K 3000K 4000K 50° 125 0.91kg C6045 20W 2200lm 1.7 2.5 3.4 94"
+    }
+   ],
+   "image_covers": [
+    "C6045-15W",
+    "C6045-20W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "TOPA",
+   "title": "VENEZINA TOPA – ceiling-mounted (surface cylinder)",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "109",
+   "image": "img/venezina/topa-1-109.jpg",
+   "variants": [
+    {
+     "code": "C6044-15W",
+     "w": 15.0,
+     "lm": 1620.0,
+     "cct": "2700K / 3000K / 4000K",
+     "ip": "IP20",
+     "note": "Colours: White Black · Luminaire housing: Aluminum alloy. Ceiling mouted plate: Steel sheet. Light source: COB LED with a high eﬃciency reﬂector of optical. White Black 2700K 3000K 4000K 50° 120 0.8 1.7 2.5 3.4 943 288 151 98 50° 209"
+    },
+    {
+     "code": "C6044-20W",
+     "w": 20.0,
+     "lm": 2220.0,
+     "cct": "2700K / 3000K / 4000K",
+     "ip": "IP20",
+     "note": "Colours: White Black · Luminaire housing: Aluminum alloy. Ceiling mouted plate: Steel sheet. Light source: COB LED with a high eﬃciency reﬂector of optical. White Black 2700K 3000K 4000K 50° 120 0.8 1.7 2.5 3.4 943 288 151 98 50° 209"
+    }
+   ],
+   "image_covers": [
+    "C6044-15W",
+    "C6044-20W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "TOPA",
+   "title": "VENEZINA TOPA – ceiling-mounted (surface cylinder)",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "110",
+   "image": "img/venezina/topa-1-110.jpg",
+   "variants": [
+    {
+     "code": "C6041-6W",
+     "w": 6.0,
+     "lm": 669.0,
+     "cct": "2700K / 3000K / 4000K",
+     "ip": "IP20",
+     "note": "Colours: White Black · Luminaire housing: Aluminum alloy. Ceiling mouted plate: Steel sheet. Light source: COB LED with a high eﬃciency reﬂector of optical. Finishing color of anti-dazzle reﬂector: black / white / golden / mirror. UGR<15. COB "
+    }
+   ],
+   "image_covers": [
+    "C6041-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "TOPA",
+   "title": "VENEZINA TOPA – ceiling-mounted (surface cylinder)",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "111",
+   "image": "img/venezina/topa-1-110.jpg",
+   "variants": [
+    {
+     "code": "C6041-10W",
+     "w": 10.0,
+     "lm": 1084.0,
+     "cct": "2700K / 3000K / 4000K",
+     "ip": "IP20",
+     "note": "Colours: White Black · Luminaire housing: Aluminum alloy. Ceiling mouted plate: Steel sheet. Light source: COB LED with a high eﬃciency reﬂector of optical. Finishing color of anti-dazzle reﬂector: black / white / golden / mirror. UGR<15. COB "
+    },
+    {
+     "code": "C6041-15W",
+     "w": 15.0,
+     "lm": 1447.0,
+     "cct": "2700K / 3000K / 4000K",
+     "ip": "IP20",
+     "note": "Colours: White Black · Luminaire housing: Aluminum alloy. Ceiling mouted plate: Steel sheet. Light source: COB LED with a high eﬃciency reﬂector of optical. Finishing color of anti-dazzle reﬂector: black / white / golden / mirror. UGR<15. COB "
+    }
+   ],
+   "image_covers": [
+    "C6041-10W",
+    "C6041-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "TOPA",
+   "title": "VENEZINA TOPA – ceiling-mounted (surface cylinder)",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "112",
+   "image": "img/venezina/topa-1-112.jpg",
+   "variants": [
+    {
+     "code": "C6042-6W",
+     "w": 6.0,
+     "lm": 669.0,
+     "cct": "2700K / 3000K / 4000K",
+     "ip": "IP20",
+     "note": "Colours: White Black · Luminaire housing: Aluminum alloy. Ceiling mouted plate: Steel sheet. Light source: COB LED with a high eﬃciency reﬂector of optical. Finishing color of anti-dazzle reﬂector: black / white / golden / mirror. UGR<15. 0.5 "
+    }
+   ],
+   "image_covers": [
+    "C6042-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "TOPA",
+   "title": "VENEZINA TOPA – ceiling-mounted (surface cylinder)",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "113",
+   "image": "img/venezina/topa-1-112.jpg",
+   "variants": [
+    {
+     "code": "C6042-10W",
+     "w": 10.0,
+     "lm": 1084.0,
+     "cct": "2700K / 3000K / 4000K",
+     "ip": "IP20",
+     "note": "Colours: White Black · Luminaire housing: Aluminum alloy. Ceiling mouted plate: Steel sheet. Light source: COB LED with a high eﬃciency reﬂector of optical. Finishing color of anti-dazzle reﬂector: black / white / golden / mirror. UGR<15. 0.5 "
+    },
+    {
+     "code": "C6042-15W",
+     "w": 15.0,
+     "lm": 1447.0,
+     "cct": "2700K / 3000K / 4000K",
+     "ip": "IP20",
+     "note": "Colours: White Black · Luminaire housing: Aluminum alloy. Ceiling mouted plate: Steel sheet. Light source: COB LED with a high eﬃciency reﬂector of optical. Finishing color of anti-dazzle reﬂector: black / white / golden / mirror. UGR<15. 0.5 "
+    }
+   ],
+   "image_covers": [
+    "C6042-10W",
+    "C6042-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "TOPA",
+   "title": "VENEZINA TOPA – ceiling-mounted (surface cylinder)",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "114",
+   "image": "img/venezina/topa-1-114.jpg",
+   "variants": [
+    {
+     "code": "C6305-15W",
+     "w": 15.0,
+     "lm": 1693.0,
+     "cct": "2700K / 3000K / 4000K",
+     "ip": "IP20",
+     "note": "Colours: White Black · Luminaire housing: Aluminum alloy. Ceiling mouted plate: Steel sheet. Light source: COB LED with a high eﬃciency reﬂector of optical. Finishing color of anti-dazzle reﬂector: black / white / golden / mirror. UGR<15. COB "
+    }
+   ],
+   "image_covers": [
+    "C6305-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "TOPA",
+   "title": "VENEZINA TOPA – ceiling-mounted (surface cylinder)",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "115",
+   "image": "img/venezina/topa-1-114.jpg",
+   "variants": [
+    {
+     "code": "C6305-20W",
+     "w": 20.0,
+     "lm": 2296.0,
+     "cct": "2700K / 3000K / 4000K",
+     "ip": "IP20",
+     "note": "Colours: White Black · Luminaire housing: Aluminum alloy. Ceiling mouted plate: Steel sheet. Light source: COB LED with a high eﬃciency reﬂector of optical. Finishing color of anti-dazzle reﬂector: black / white / golden / mirror. UGR<15. COB "
+    },
+    {
+     "code": "C6305-25W",
+     "w": 25.0,
+     "lm": 2560.0,
+     "cct": "2700K / 3000K / 4000K",
+     "ip": "IP20",
+     "note": "Colours: White Black · Luminaire housing: Aluminum alloy. Ceiling mouted plate: Steel sheet. Light source: COB LED with a high eﬃciency reﬂector of optical. Finishing color of anti-dazzle reﬂector: black / white / golden / mirror. UGR<15. COB "
+    }
+   ],
+   "image_covers": [
+    "C6305-20W",
+    "C6305-25W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "TOPA",
+   "title": "VENEZINA TOPA – ceiling-mounted (surface cylinder)",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "116",
+   "image": "img/venezina/topa-1-116.jpg",
+   "variants": [
+    {
+     "code": "C6304-15W",
+     "w": 15.0,
+     "lm": 1693.0,
+     "cct": "2700K / 3000K / 4000K",
+     "ip": "IP20",
+     "note": "Colours: White Black · Luminaire housing: Aluminum alloy. Ceiling mouted plate: Steel sheet. Light source: COB LED with a high eﬃciency reﬂector of optical. Finishing color of anti-dazzle reﬂector: black / white / golden / mirror. UGR<15. 0.8 "
+    }
+   ],
+   "image_covers": [
+    "C6304-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "TOPA",
+   "title": "VENEZINA TOPA – ceiling-mounted (surface cylinder)",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "117",
+   "image": "img/venezina/topa-1-116.jpg",
+   "variants": [
+    {
+     "code": "C6304-20W",
+     "w": 20.0,
+     "lm": 2296.0,
+     "cct": "2700K / 3000K / 4000K",
+     "ip": "IP20",
+     "note": "Colours: White Black · Luminaire housing: Aluminum alloy. Ceiling mouted plate: Steel sheet. Light source: COB LED with a high eﬃciency reﬂector of optical. Finishing color of anti-dazzle reﬂector: black / white / golden / mirror. UGR<15. 0.8 "
+    },
+    {
+     "code": "C6304-25W",
+     "w": 25.0,
+     "lm": 2560.0,
+     "cct": "2700K / 3000K / 4000K",
+     "ip": "IP20",
+     "note": "Colours: White Black · Luminaire housing: Aluminum alloy. Ceiling mouted plate: Steel sheet. Light source: COB LED with a high eﬃciency reﬂector of optical. Finishing color of anti-dazzle reﬂector: black / white / golden / mirror. UGR<15. 0.8 "
+    }
+   ],
+   "image_covers": [
+    "C6304-20W",
+    "C6304-25W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WALA",
+   "title": "VENEZINA WALA – wall-mounted",
+   "type": "Wall / bulkhead",
+   "category": "Indoor",
+   "pdf": "VENEZINA_1.pdf",
+   "pages": "119",
+   "image": "img/venezina/wala-1-119.jpg",
+   "variants": [
+    {
+     "code": "W6186-2x3W",
+     "w": 6.0,
+     "lm": 380.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "2x3W · Colours: White Black · Screwless design with magnetic mounted to make ﬁxture looks more simple and elegant. Comfortable and symmetric light performance. Light housing: Aluminum alloy. Surface mounted and no need wall-mouted plate. Light source"
+    },
+    {
+     "code": "W6187-2x3W",
+     "w": 6.0,
+     "lm": 380.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "2x3W · Colours: White Black · Screwless design with magnetic mounted to make ﬁxture looks more simple and elegant. Comfortable and symmetric light performance. Light housing: Aluminum alloy. Surface mounted and no need wall-mouted plate. Light source"
+    }
+   ],
+   "image_covers": [
+    "W6186-2x3W",
+    "W6187-2x3W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "RESE",
+   "title": "VENEZINA RESE – wall-recessed step light",
+   "type": "Wall / bulkhead",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "1",
+   "image": "img/venezina/rese-2-1.jpg",
+   "variants": [
+    {
+     "code": "W6811-1W",
+     "w": 1.0,
+     "lm": 70.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Housing: die-casting aluminum. Light source: HIGH POWER LED. Included LED driver. IP65 can be customized. Ip44 CRI≥80 HIGH POWER LED HIGH POWER 75 80 15.0KG 100PCS 47cm 47cm 22cm 0.13kg W6814 1W 17lm 55 30 55 0.13kg W681"
+    },
+    {
+     "code": "W6811-3W",
+     "w": 3.0,
+     "lm": 124.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Housing: die-casting aluminum. Light source: HIGH POWER LED. Included LED driver. IP65 can be customized. Ip44 CRI≥80 HIGH POWER LED HIGH POWER 75 80 15.0KG 100PCS 47cm 47cm 22cm 0.13kg W6814 1W 17lm 55 30 55 0.13kg W681"
+    },
+    {
+     "code": "W6814-1W",
+     "w": 1.0,
+     "lm": 17.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Housing: die-casting aluminum. Light source: HIGH POWER LED. Included LED driver. IP65 can be customized. Ip44 CRI≥80 HIGH POWER LED HIGH POWER 75 80 15.0KG 100PCS 47cm 47cm 22cm 0.13kg W6814 1W 17lm 55 30 55 0.13kg W681"
+    },
+    {
+     "code": "W6814-3W",
+     "w": 3.0,
+     "lm": 29.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Housing: die-casting aluminum. Light source: HIGH POWER LED. Included LED driver. IP65 can be customized. Ip44 CRI≥80 HIGH POWER LED HIGH POWER 75 80 15.0KG 100PCS 47cm 47cm 22cm 0.13kg W6814 1W 17lm 55 30 55 0.13kg W681"
+    }
+   ],
+   "image_covers": [
+    "W6811-1W",
+    "W6811-3W",
+    "W6814-1W",
+    "W6814-3W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "RESE",
+   "title": "VENEZINA RESE – wall-recessed step light",
+   "type": "Wall / bulkhead",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "2",
+   "image": "img/venezina/rese-2-2.jpg",
+   "variants": [
+    {
+     "code": "W6816-1W",
+     "w": 1.0,
+     "lm": 70.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP44",
+     "note": "Also IP65 versions · Colours: White Black · Housing: die-casting aluminum. Light source: HIGH POWER LED. Included LED driver. IP65 can be customized. CRI≥80 HIGH POWER LED HIGH POWER 75 80 15.0KG 100PCS 47cm 47cm 22cm 0.13kg W6819 1W 17lm 55 30 55 0.13kg W6819 3W "
+    },
+    {
+     "code": "W6816-3W",
+     "w": 3.0,
+     "lm": 124.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP44",
+     "note": "Also IP65 versions · Colours: White Black · Housing: die-casting aluminum. Light source: HIGH POWER LED. Included LED driver. IP65 can be customized. CRI≥80 HIGH POWER LED HIGH POWER 75 80 15.0KG 100PCS 47cm 47cm 22cm 0.13kg W6819 1W 17lm 55 30 55 0.13kg W6819 3W "
+    },
+    {
+     "code": "W6819-1W",
+     "w": 1.0,
+     "lm": 17.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP44",
+     "note": "Also IP65 versions · Colours: White Black · Housing: die-casting aluminum. Light source: HIGH POWER LED. Included LED driver. IP65 can be customized. CRI≥80 HIGH POWER LED HIGH POWER 75 80 15.0KG 100PCS 47cm 47cm 22cm 0.13kg W6819 1W 17lm 55 30 55 0.13kg W6819 3W "
+    },
+    {
+     "code": "W6819-3W",
+     "w": 3.0,
+     "lm": 29.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP44",
+     "note": "Also IP65 versions · Colours: White Black · Housing: die-casting aluminum. Light source: HIGH POWER LED. Included LED driver. IP65 can be customized. CRI≥80 HIGH POWER LED HIGH POWER 75 80 15.0KG 100PCS 47cm 47cm 22cm 0.13kg W6819 1W 17lm 55 30 55 0.13kg W6819 3W "
+    }
+   ],
+   "image_covers": [
+    "W6816-1W",
+    "W6816-3W",
+    "W6819-1W",
+    "W6819-3W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "RESE",
+   "title": "VENEZINA RESE – wall-recessed step light",
+   "type": "Wall / bulkhead",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "3",
+   "image": "img/venezina/rese-2-3.jpg",
+   "variants": [
+    {
+     "code": "R6803-1W",
+     "w": 1.0,
+     "lm": 49.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP44",
+     "note": "Also IP65 versions · Colours: White Silver Black · Recessed kit in brickwork: Aluminum sheet. 138 140x125 142 38 RESE White Silver Black 2700K 3000K 4000K 0.28kg R6803 1W 49lm 15.8KG 80PCS 44 Housing: die-casting aluminum. Light source: COB LED / HIGH POWER. Included LED"
+    },
+    {
+     "code": "R6803-3W",
+     "w": 3.0,
+     "lm": 190.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP44",
+     "note": "Also IP65 versions · Colours: White Silver Black · Recessed kit in brickwork: Aluminum sheet. 138 140x125 142 38 RESE White Silver Black 2700K 3000K 4000K 0.28kg R6803 1W 49lm 15.8KG 80PCS 44 Housing: die-casting aluminum. Light source: COB LED / HIGH POWER. Included LED"
+    }
+   ],
+   "image_covers": [
+    "R6803-1W",
+    "R6803-3W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "PEDA",
+   "title": "VENEZINA PEDA – pendant",
+   "type": "Ceiling light",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "5",
+   "image": "img/venezina/peda-2-5.jpg",
+   "variants": [
+    {
+     "code": "P6017-10W",
+     "w": 10.0,
+     "lm": 1150.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "note": "Luminaire housing: Aluminum alloy. Light source: COB LED with a lens of optical. 0.73kg P6017 6W 650lm 495cd 1.1 2.1 3.2 4.3 222 68 36 23 60° 494 124 55 31 1 2 3 4 878cd 2.1 3"
+    },
+    {
+     "code": "P6017-6W",
+     "w": 6.0,
+     "lm": 650.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "note": "Luminaire housing: Aluminum alloy. Light source: COB LED with a lens of optical. 0.73kg P6017 6W 650lm 495cd 1.1 2.1 3.2 4.3 222 68 36 23 60° 494 124 55 31 1 2 3 4 878cd 2.1 3"
+    }
+   ],
+   "image_covers": [
+    "P6017-10W",
+    "P6017-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "PEDA",
+   "title": "VENEZINA PEDA – pendant",
+   "type": "Ceiling light",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "6",
+   "image": "img/venezina/peda-2-6.jpg",
+   "variants": [
+    {
+     "code": "P6018-10W",
+     "w": 10.0,
+     "lm": 1150.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "note": "Luminaire housing: Aluminum alloy. Light source: COB LED with a lens of optical. 1.20kg P6018 6W 650lm 495cd 1.1 2.1 3.2 4.3 222 68 36 23 60° 494 124 55 31 1 2 3 4 878cd 2.1 3"
+    },
+    {
+     "code": "P6018-6W",
+     "w": 6.0,
+     "lm": 650.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "note": "Luminaire housing: Aluminum alloy. Light source: COB LED with a lens of optical. 1.20kg P6018 6W 650lm 495cd 1.1 2.1 3.2 4.3 222 68 36 23 60° 494 124 55 31 1 2 3 4 878cd 2.1 3"
+    }
+   ],
+   "image_covers": [
+    "P6018-10W",
+    "P6018-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "PEDA",
+   "title": "VENEZINA PEDA – pendant",
+   "type": "Ceiling light",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "7",
+   "image": "img/venezina/peda-2-7.jpg",
+   "variants": [
+    {
+     "code": "P6053-20W",
+     "w": 20.0,
+     "lm": 1990.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Colours: White Black · Housing: die-casting aluminum. Anti-dazzle ring: Black. Light source: COB LED with a lens of optical. UGR<14. 1.14kg P6053 20W 1990lm 95 105 154 1500 COB LED White Black 2700K 3000K 4000K 12° 24° 36° IP20 CRI≥80 Housing "
+    }
+   ],
+   "image_covers": [
+    "P6053-20W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "PEDA",
+   "title": "VENEZINA PEDA – pendant",
+   "type": "Ceiling light",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "8",
+   "image": "img/venezina/peda-2-7.jpg",
+   "variants": [
+    {
+     "code": "P6053-30W",
+     "w": 30.0,
+     "lm": 2800.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Colours: White Black · Housing: die-casting aluminum. Anti-dazzle ring: Black. Light source: COB LED with a lens of optical. UGR<14. 1.14kg P6053 20W 1990lm 95 105 154 1500 COB LED White Black 2700K 3000K 4000K 12° 24° 36° IP20 CRI≥80 Housing "
+    },
+    {
+     "code": "P6053-25W",
+     "w": 25.0,
+     "lm": 2350.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Colours: White Black · Housing: die-casting aluminum. Anti-dazzle ring: Black. Light source: COB LED with a lens of optical. UGR<14. 1.14kg P6053 20W 1990lm 95 105 154 1500 COB LED White Black 2700K 3000K 4000K 12° 24° 36° IP20 CRI≥80 Housing "
+    }
+   ],
+   "image_covers": [
+    "P6053-30W",
+    "P6053-25W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "PEDA",
+   "title": "VENEZINA PEDA – pendant",
+   "type": "Ceiling light",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "11",
+   "image": "img/venezina/peda-2-11.jpg",
+   "variants": [
+    {
+     "code": "P6104-45W",
+     "w": 45.0,
+     "lm": 3009.0,
+     "cct": "2700K / 3000K / 3200K / 4000K / 4500K / 6000K / 6500K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Colours: White Silver Black · The lamp body is made of aluminum alloy and is molded through extrusion and then shaped by CNC machines. Germany imported high transmittance PMMA diﬀuser specially designed for LED light sources creating a high visual co"
+    },
+    {
+     "code": "P6105-45W",
+     "w": 45.0,
+     "lm": 3009.0,
+     "cct": "2700K / 3000K / 3200K / 4000K / 4500K / 6000K / 6500K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Colours: White Silver Black · The lamp body is made of aluminum alloy and is molded through extrusion and then shaped by CNC machines. Germany imported high transmittance PMMA diﬀuser specially designed for LED light sources creating a high visual co"
+    }
+   ],
+   "image_covers": [
+    "P6104-45W",
+    "P6105-45W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "PEDA",
+   "title": "VENEZINA PEDA – pendant",
+   "type": "Ceiling light",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "12",
+   "image": "img/venezina/peda-2-12.jpg",
+   "variants": [
+    {
+     "code": "P6116-50W",
+     "w": 50.0,
+     "lm": 3750.0,
+     "cct": "2700K / 3000K / 3200K / 4000K / 4500K / 6000K / 6500K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Colours: White Silver Black · The lamp body is made of aluminum alloy and is molded through extrusion and then shaped by CNC machines. Germany imported high transmittance PMMA diﬀuser specially designed for LED light sources creating a high visual co"
+    },
+    {
+     "code": "P6117-50W",
+     "w": 50.0,
+     "lm": 3750.0,
+     "cct": "2700K / 3000K / 3200K / 4000K / 4500K / 6000K / 6500K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Colours: White Silver Black · The lamp body is made of aluminum alloy and is molded through extrusion and then shaped by CNC machines. Germany imported high transmittance PMMA diﬀuser specially designed for LED light sources creating a high visual co"
+    }
+   ],
+   "image_covers": [
+    "P6116-50W",
+    "P6117-50W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "PEDA",
+   "title": "VENEZINA PEDA – pendant",
+   "type": "Ceiling light",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "13",
+   "image": "img/venezina/peda-2-13.jpg",
+   "variants": [
+    {
+     "code": "P6140-65W",
+     "w": 65.0,
+     "lm": 4875.0,
+     "cct": "2700K / 3000K / 3200K / 4000K / 4500K / 6000K / 6500K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Colours: White Silver Black · The lamp body is made of aluminum alloy and is molded through extrusion and then shaped by CNC machines. Germany imported high transmittance PMMA diﬀuser specially designed for LED light sources creating a high visual co"
+    },
+    {
+     "code": "P6141-65W",
+     "w": 65.0,
+     "lm": 4875.0,
+     "cct": "2700K / 3000K / 3200K / 4000K / 4500K / 6000K / 6500K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Colours: White Silver Black · The lamp body is made of aluminum alloy and is molded through extrusion and then shaped by CNC machines. Germany imported high transmittance PMMA diﬀuser specially designed for LED light sources creating a high visual co"
+    }
+   ],
+   "image_covers": [
+    "P6140-65W",
+    "P6141-65W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "PEDA",
+   "title": "VENEZINA PEDA – pendant",
+   "type": "Ceiling light",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "15",
+   "image": "img/venezina/peda-2-15.jpg",
+   "variants": [
+    {
+     "code": "P6092-40W",
+     "w": 40.0,
+     "lm": 2542.0,
+     "cct": "2700K / 3000K / 3200K / 4000K / 4500K / 6000K / 6500K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Colours: White Silver Black · The lamp body is made of aluminum alloy and is molded through extrusion and then shaped by CNC machines. Germany imported high transmittance PMMA diﬀuser specially designed for LED light sources creating a high visual co"
+    },
+    {
+     "code": "P6068-35W",
+     "w": 35.0,
+     "lm": 2171.0,
+     "cct": "2700K / 3000K / 3200K / 4000K / 4500K / 6000K / 6500K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Colours: White Silver Black · The lamp body is made of aluminum alloy and is molded through extrusion and then shaped by CNC machines. Germany imported high transmittance PMMA diﬀuser specially designed for LED light sources creating a high visual co"
+    }
+   ],
+   "image_covers": [
+    "P6092-40W",
+    "P6068-35W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "PEDA",
+   "title": "VENEZINA PEDA – pendant",
+   "type": "Ceiling light",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "16",
+   "image": "img/venezina/peda-2-16.jpg",
+   "variants": [
+    {
+     "code": "P6128-60W",
+     "w": 60.0,
+     "lm": 3720.0,
+     "cct": "2700K / 3000K / 3200K / 4000K / 4500K / 6000K / 6500K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Colours: White Silver Black · The lamp body is made of aluminum alloy and is molded through extrusion and then shaped by CNC machines. Germany imported high transmittance PMMA diﬀuser specially designed for LED light sources creating a high visual co"
+    }
+   ],
+   "image_covers": [
+    "P6128-60W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "MAGNET",
+   "title": "VENEZINA MAGNET – 48V magnetic track",
+   "type": "Track / spot",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "19",
+   "image": "img/venezina/magnet-2-19.jpg",
+   "variants": [
+    {
+     "code": "TC106-10W",
+     "w": 10.0,
+     "lm": 1087.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "24°",
+     "control": "Non-dimmable / 1-10V / DALI / Triac / Zigbee",
+     "note": "Luminaire housing: Aluminum alloy. 24° BW BB Housing color: MAGNET Strip LED 219 0-10V Dimmable COB LED CRI≥80 IP20 Color temperature: Beam"
+    }
+   ],
+   "image_covers": [
+    "TC106-10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "MAGNET",
+   "title": "VENEZINA MAGNET – 48V magnetic track",
+   "type": "Track / spot",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "20",
+   "image": "img/venezina/magnet-2-20.jpg",
+   "variants": [
+    {
+     "code": "TC107-10W",
+     "w": 10.0,
+     "lm": 1021.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "24° 50°",
+     "control": "Non-dimmable / 1-10V / DALI / Triac / Zigbee",
+     "note": "Luminaire housing: Aluminum alloy. 24° 50° BW BB Housing color: 0-10V Dimmable COB LED CRI≥80 IP20 Color temperature: Beam angle: Driver gea"
+    }
+   ],
+   "image_covers": [
+    "TC107-10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "MAGNET",
+   "title": "VENEZINA MAGNET – 48V magnetic track",
+   "type": "Track / spot",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "21",
+   "image": "img/venezina/magnet-2-21.jpg",
+   "variants": [
+    {
+     "code": "TC109-20W",
+     "w": 20.0,
+     "lm": 2042.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "24° 50°",
+     "control": "Non-dimmable / 1-10V / DALI / Triac / Zigbee",
+     "note": "Luminaire housing: Aluminum alloy. 24° 50° BW BB Housing color: 0-10V Dimmable COB LED CRI≥80 IP20 Color temperature: Beam angle: Driver gea"
+    }
+   ],
+   "image_covers": [
+    "TC109-20W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "MAGNET",
+   "title": "VENEZINA MAGNET – 48V magnetic track",
+   "type": "Track / spot",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "22",
+   "image": "img/venezina/magnet-2-22.jpg",
+   "variants": [
+    {
+     "code": "TC105-10W",
+     "w": 10.0,
+     "lm": 645.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "120°",
+     "control": "Non-dimmable / 1-10V / DALI / Triac / Zigbee",
+     "note": "Luminaire housing: Aluminum alloy. 120° BW BB Housing color: 0-10V Dimmable COB LED CRI≥80 IP20 Color temperature: Beam angle: Driver gear"
+    }
+   ],
+   "image_covers": [
+    "TC105-10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "MAGNET",
+   "title": "VENEZINA MAGNET – 48V magnetic track",
+   "type": "Track / spot",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "23",
+   "image": "img/venezina/magnet-2-23.jpg",
+   "variants": [
+    {
+     "code": "TC110-20W",
+     "w": 20.0,
+     "lm": 1290.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "120°",
+     "control": "Non-dimmable / 1-10V / DALI / Triac / Zigbee",
+     "note": "Luminaire housing: Aluminum alloy. 120° BW BB Housing color: 0-10V Dimmable COB LED CRI≥80 IP20 Color temperature: Beam angle: Driver gear"
+    }
+   ],
+   "image_covers": [
+    "TC110-20W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "MAGNET",
+   "title": "VENEZINA MAGNET – 48V magnetic track",
+   "type": "Track / spot",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "26",
+   "image": "img/venezina/magnet-2-26.jpg",
+   "variants": [
+    {
+     "code": "TC108-15W",
+     "w": 15.0,
+     "lm": 1256.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "120°",
+     "control": "Non-dimmable / 1-10V / DALI / Triac / Zigbee",
+     "note": "Colours: White Black · Luminaire housing: Aluminum alloy. Light source: COB LED with a high eﬃciency reﬂector optical lens. Spot light adjustable 358° rotating around the vertical axis and 90° rotating around the horizontal axis. 15° 24° 36° 6"
+    },
+    {
+     "code": "TC108-10W",
+     "w": 10.0,
+     "lm": 1126.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "120°",
+     "control": "Non-dimmable / 1-10V / DALI / Triac / Zigbee",
+     "note": "Colours: White Black · Luminaire housing: Aluminum alloy. Light source: COB LED with a high eﬃciency reﬂector optical lens. Spot light adjustable 358° rotating around the vertical axis and 90° rotating around the horizontal axis. 15° 24° 36° 6"
+    }
+   ],
+   "image_covers": [
+    "TC108-15W",
+    "TC108-10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "MAGNET",
+   "title": "VENEZINA MAGNET – 48V magnetic track",
+   "type": "Track / spot",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "27",
+   "image": "img/venezina/magnet-2-27.jpg",
+   "variants": [
+    {
+     "code": "TC126-10W",
+     "w": 10.0,
+     "lm": 1126.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "120°",
+     "control": "Non-dimmable / 1-10V / DALI / Triac / Zigbee",
+     "note": "Colours: White Black · Luminaire housing: Aluminum alloy. Light source: COB LED with a high eﬃciency reﬂector of optical. Accessories: Anti-Glare Snoot and honey comb is optional. UGR<19. Color: Antique-Brass, Rose Gold, Champaign Gold. MAGNET"
+    },
+    {
+     "code": "TC126-15W",
+     "w": 15.0,
+     "lm": 1256.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "120°",
+     "control": "Non-dimmable / 1-10V / DALI / Triac / Zigbee",
+     "note": "Colours: White Black · Luminaire housing: Aluminum alloy. Light source: COB LED with a high eﬃciency reﬂector of optical. Accessories: Anti-Glare Snoot and honey comb is optional. UGR<19. Color: Antique-Brass, Rose Gold, Champaign Gold. MAGNET"
+    }
+   ],
+   "image_covers": [
+    "TC126-10W",
+    "TC126-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WASHER",
+   "title": "VENEZINA WASHER – track wall washer",
+   "type": "Track / spot",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "33",
+   "image": "img/venezina/washer-2-33.jpg",
+   "variants": [
+    {
+     "code": "T6043-15W",
+     "w": 15.0,
+     "lm": 877.9,
+     "cct": "2700K / 3000K / 4000K",
+     "ip": "IP20",
+     "beam": "45°-60°",
+     "note": "Colours: White Black"
+    },
+    {
+     "code": "T6043-20W",
+     "w": 20.0,
+     "lm": 1190.9,
+     "cct": "2700K / 3000K / 4000K",
+     "ip": "IP20",
+     "beam": "45°-60°",
+     "note": "Colours: White Black"
+    }
+   ],
+   "image_covers": [
+    "T6043-15W",
+    "T6043-20W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WASHER",
+   "title": "VENEZINA WASHER – track wall washer",
+   "type": "Track / spot",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "34",
+   "image": "img/venezina/washer-2-34.jpg",
+   "variants": [
+    {
+     "code": "T6044-25W",
+     "w": 25.0,
+     "lm": 1686.0,
+     "cct": "2700K / 3000K / 4000K",
+     "ip": "IP20",
+     "beam": "45°-60°",
+     "note": "Colours: White Black"
+    },
+    {
+     "code": "T6044-30W",
+     "w": 30.0,
+     "lm": 2213.0,
+     "cct": "2700K / 3000K / 4000K",
+     "ip": "IP20",
+     "beam": "45°-60°",
+     "note": "Colours: White Black"
+    }
+   ],
+   "image_covers": [
+    "T6044-25W",
+    "T6044-30W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "SOPO",
+   "title": "VENEZINA SOPO – track spotlight",
+   "type": "Track / spot",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "36",
+   "image": "img/venezina/sopo-2-36.jpg",
+   "variants": [
+    {
+     "code": "T6015-10W",
+     "w": 10.0,
+     "lm": 1126.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Colours: White Black · Track adapter with integrated driver and installation on main Spot light adjustable 358° rotating around the vertical axis and 90° fciency optical lens. Housing: Aluminum alloy.   voltage 4-wires track system for 3 or 1 "
+    }
+   ],
+   "image_covers": [
+    "T6015-10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "SOPO",
+   "title": "VENEZINA SOPO – track spotlight",
+   "type": "Track / spot",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "37",
+   "image": "img/venezina/sopo-2-36.jpg",
+   "variants": [
+    {
+     "code": "T6015-15W",
+     "w": 15.0,
+     "lm": 1256.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Colours: White Black · Track adapter with integrated driver and installation on main Spot light adjustable 358° rotating around the vertical axis and 90° fciency optical lens. Housing: Aluminum alloy.   voltage 4-wires track system for 3 or 1 "
+    }
+   ],
+   "image_covers": [
+    "T6015-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "SOPO",
+   "title": "VENEZINA SOPO – track spotlight",
+   "type": "Track / spot",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "38",
+   "image": "img/venezina/sopo-2-38.jpg",
+   "variants": [
+    {
+     "code": "T6011-20W",
+     "w": 20.0,
+     "lm": 2055.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Colours: White Black · Track adapter with integrated driver and installation on main Spot light adjustable 358° rotating around the vertical axis and 90° fciency optical lens. Housing: Aluminum alloy.   voltage 4-wires track system for 3 or 1 "
+    }
+   ],
+   "image_covers": [
+    "T6011-20W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "SOPO",
+   "title": "VENEZINA SOPO – track spotlight",
+   "type": "Track / spot",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "39",
+   "image": "img/venezina/sopo-2-39.jpg",
+   "variants": [
+    {
+     "code": "T6035-30W",
+     "w": 30.0,
+     "lm": 3625.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "note": "Colours: White Black · Track adapter with integrated driver and installation on main Spot light adjustable 358° rotating around the vertical axis and 90° fciency optical lens. Housing: Aluminum alloy.   voltage 4-wires track system for 3 or 1 "
+    }
+   ],
+   "image_covers": [
+    "T6035-30W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WATA",
+   "title": "VENEZINA WATA – bathroom (IP44/IP65) downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "44",
+   "image": "img/venezina/wata-2-44.jpg",
+   "variants": [
+    {
+     "code": "E6001-3W",
+     "w": 3.0,
+     "lm": 403.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Housing and mounting ring: die-casting aluminum. Light source: COB LED with a lens of optical. Control system, CCT tunable 2700-6000K. COB LED Mounting frame color: 457cd 1.0 2.1 3.2 268 67 29 60° 457 114 50 1 2 3 30° 60"
+    }
+   ],
+   "image_covers": [
+    "E6001-3W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WATA",
+   "title": "VENEZINA WATA – bathroom (IP44/IP65) downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "45",
+   "image": "img/venezina/wata-2-45.jpg",
+   "variants": [
+    {
+     "code": "E6021-6W",
+     "w": 6.0,
+     "lm": 635.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Housing and Mounting ring: die-casting aluminum with anti-rust powder coating process. Light source: COB LED with a high eﬃciency reﬂector of optical. Driver can be with waterproof box. Control system, CCT tunable 2700-6"
+    },
+    {
+     "code": "E6021-10W",
+     "w": 10.0,
+     "lm": 1152.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Housing and Mounting ring: die-casting aluminum with anti-rust powder coating process. Light source: COB LED with a high eﬃciency reﬂector of optical. Driver can be with waterproof box. Control system, CCT tunable 2700-6"
+    }
+   ],
+   "image_covers": [
+    "E6021-6W",
+    "E6021-10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WATA",
+   "title": "VENEZINA WATA – bathroom (IP44/IP65) downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "46",
+   "image": "img/venezina/wata-2-46.jpg",
+   "variants": [
+    {
+     "code": "E6211-15W",
+     "w": 15.0,
+     "lm": 1355.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Housing and Mounting ring: die-casting aluminum with anti-rust powder coating process. Light source: COB LED with a high eﬃciency reﬂector of optical. Driver can be with waterproof box. Control system, CCT tunable 2700-6"
+    }
+   ],
+   "image_covers": [
+    "E6211-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WATA",
+   "title": "VENEZINA WATA – bathroom (IP44/IP65) downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "47",
+   "image": "img/venezina/wata-2-47.jpg",
+   "variants": [
+    {
+     "code": "E6022-6W",
+     "w": 6.0,
+     "lm": 635.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Housing and Mounting ring: with anti-rust powder die-casting aluminum coating process. Light source: COB LED with a high eﬃciency reﬂector of optical. Driver can be with waterproof box. Control system, CCT tunable 2700-6"
+    }
+   ],
+   "image_covers": [
+    "E6022-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WATA",
+   "title": "VENEZINA WATA – bathroom (IP44/IP65) downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "48",
+   "image": "img/venezina/wata-2-47.jpg",
+   "variants": [
+    {
+     "code": "E6022-10W",
+     "w": 10.0,
+     "lm": 1152.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Housing and Mounting ring: with anti-rust powder die-casting aluminum coating process. Light source: COB LED with a high eﬃciency reﬂector of optical. Driver can be with waterproof box. Control system, CCT tunable 2700-6"
+    }
+   ],
+   "image_covers": [
+    "E6022-10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WATA",
+   "title": "VENEZINA WATA – bathroom (IP44/IP65) downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "49",
+   "image": "img/venezina/wata-2-49.jpg",
+   "variants": [
+    {
+     "code": "E6212-15W",
+     "w": 15.0,
+     "lm": 1355.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Housing and Mounting ring: with anti-rust powder die-casting aluminum coating process. Light source: COB LED with a high eﬃciency reﬂector of optical. Driver can be with waterproof box. Control system, CCT tunable 2700-6"
+    }
+   ],
+   "image_covers": [
+    "E6212-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WATA",
+   "title": "VENEZINA WATA – bathroom (IP44/IP65) downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "50",
+   "image": "img/venezina/wata-2-50.jpg",
+   "variants": [
+    {
+     "code": "E6023-10W",
+     "w": 10.0,
+     "lm": 808.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Housing and Mounting ring: with anti-rust powder die-casting aluminum coating process. Light source: COB LED with a high eﬃciency reﬂector of optical. Driver can be with waterproof box. Control system, CCT tunable 2700-6"
+    },
+    {
+     "code": "E6023-6W",
+     "w": 6.0,
+     "lm": 496.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Housing and Mounting ring: with anti-rust powder die-casting aluminum coating process. Light source: COB LED with a high eﬃciency reﬂector of optical. Driver can be with waterproof box. Control system, CCT tunable 2700-6"
+    }
+   ],
+   "image_covers": [
+    "E6023-10W",
+    "E6023-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WATA",
+   "title": "VENEZINA WATA – bathroom (IP44/IP65) downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "51",
+   "image": "img/venezina/wata-2-51.jpg",
+   "variants": [
+    {
+     "code": "E6213-15W",
+     "w": 15.0,
+     "lm": 955.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Housing and Mounting ring: with anti-rust powder die-casting aluminum coating process. Light source: COB LED with a high eﬃciency reﬂector of optical. Driver can be with waterproof box. Control system, CCT tunable 2700-6"
+    }
+   ],
+   "image_covers": [
+    "E6213-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WATA",
+   "title": "VENEZINA WATA – bathroom (IP44/IP65) downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "52",
+   "image": "img/venezina/wata-2-52.jpg",
+   "variants": [
+    {
+     "code": "E6024-6W",
+     "w": 6.0,
+     "lm": 479.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Housing and Mounting ring: with anti-rust powder die-casting aluminum coating process. Light source: COB LED with a high eﬃciency reﬂector of optical. Driver can be with waterproof box. Control system, CCT tunable 2700-6"
+    },
+    {
+     "code": "E6024-10W",
+     "w": 10.0,
+     "lm": 788.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Housing and Mounting ring: with anti-rust powder die-casting aluminum coating process. Light source: COB LED with a high eﬃciency reﬂector of optical. Driver can be with waterproof box. Control system, CCT tunable 2700-6"
+    }
+   ],
+   "image_covers": [
+    "E6024-6W",
+    "E6024-10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WATA",
+   "title": "VENEZINA WATA – bathroom (IP44/IP65) downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "53",
+   "image": "img/venezina/wata-2-53.jpg",
+   "variants": [
+    {
+     "code": "E6214-15W",
+     "w": 15.0,
+     "lm": 915.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Housing and Mounting ring: with anti-rust powder die-casting aluminum coating process. Light source: COB LED with a high eﬃciency reﬂector of optical. Driver can be with waterproof box. Control system, CCT tunable 2700-6"
+    }
+   ],
+   "image_covers": [
+    "E6214-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WATA",
+   "title": "VENEZINA WATA – bathroom (IP44/IP65) downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "54",
+   "image": "img/venezina/wata-2-54.jpg",
+   "variants": [
+    {
+     "code": "E6025-6W",
+     "w": 6.0,
+     "lm": 627.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Housing and Mounting ring: with anti-rust powder die-casting aluminum coating process. Light source: COB LED with a high eﬃciency reﬂector of optical. Driver can be with waterproof box. Anti-glare reﬂector can be as an e"
+    }
+   ],
+   "image_covers": [
+    "E6025-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WATA",
+   "title": "VENEZINA WATA – bathroom (IP44/IP65) downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "55",
+   "image": "img/venezina/wata-2-54.jpg",
+   "variants": [
+    {
+     "code": "E6025-10W",
+     "w": 10.0,
+     "lm": 1010.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Housing and Mounting ring: with anti-rust powder die-casting aluminum coating process. Light source: COB LED with a high eﬃciency reﬂector of optical. Driver can be with waterproof box. Anti-glare reﬂector can be as an e"
+    }
+   ],
+   "image_covers": [
+    "E6025-10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WATA",
+   "title": "VENEZINA WATA – bathroom (IP44/IP65) downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "56",
+   "image": "img/venezina/wata-2-56.jpg",
+   "variants": [
+    {
+     "code": "E6215-15W",
+     "w": 15.0,
+     "lm": 1232.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Housing and Mounting ring: with anti-rust powder die-casting aluminum coating process. Light source: COB LED with a high eﬃciency reﬂector of optical. Driver can be with waterproof box. Control system, CCT tunable 2700-6"
+    }
+   ],
+   "image_covers": [
+    "E6215-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WATA",
+   "title": "VENEZINA WATA – bathroom (IP44/IP65) downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "57",
+   "image": "img/venezina/wata-2-57.jpg",
+   "variants": [
+    {
+     "code": "E6026-6W",
+     "w": 6.0,
+     "lm": 627.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Housing and Mounting ring: with anti-rust powder die-casting aluminum coating process. Light source: COB LED with a high eﬃciency reﬂector of optical. Driver can be with waterproof box. Control system, CCT tunable 2700-6"
+    }
+   ],
+   "image_covers": [
+    "E6026-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WATA",
+   "title": "VENEZINA WATA – bathroom (IP44/IP65) downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "58",
+   "image": "img/venezina/wata-2-57.jpg",
+   "variants": [
+    {
+     "code": "E6026-10W",
+     "w": 10.0,
+     "lm": 1051.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Housing and Mounting ring: with anti-rust powder die-casting aluminum coating process. Light source: COB LED with a high eﬃciency reﬂector of optical. Driver can be with waterproof box. Control system, CCT tunable 2700-6"
+    }
+   ],
+   "image_covers": [
+    "E6026-10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WATA",
+   "title": "VENEZINA WATA – bathroom (IP44/IP65) downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "59",
+   "image": "img/venezina/wata-2-59.jpg",
+   "variants": [
+    {
+     "code": "E6216-15W",
+     "w": 15.0,
+     "lm": 1259.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Housing and Mounting ring: with anti-rust powder die-casting aluminum coating process. Light source: COB LED with a high eﬃciency reﬂector of optical. Driver can be with waterproof box. Control system, CCT tunable 2700-6"
+    }
+   ],
+   "image_covers": [
+    "E6216-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WATA",
+   "title": "VENEZINA WATA – bathroom (IP44/IP65) downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "60",
+   "image": "img/venezina/wata-2-60.jpg",
+   "variants": [
+    {
+     "code": "E6217-6W",
+     "w": 6.0,
+     "lm": 675.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "E6217-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WATA",
+   "title": "VENEZINA WATA – bathroom (IP44/IP65) downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "61",
+   "image": "img/venezina/wata-2-60.jpg",
+   "variants": [
+    {
+     "code": "E6217-10W",
+     "w": 10.0,
+     "lm": 1046.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    },
+    {
+     "code": "E6217-15W",
+     "w": 15.0,
+     "lm": 1387.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "E6217-10W",
+    "E6217-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WATA",
+   "title": "VENEZINA WATA – bathroom (IP44/IP65) downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "62",
+   "image": "img/venezina/wata-2-62.jpg",
+   "variants": [
+    {
+     "code": "E6218-6W",
+     "w": 6.0,
+     "lm": 675.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "E6218-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WATA",
+   "title": "VENEZINA WATA – bathroom (IP44/IP65) downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "63",
+   "image": "img/venezina/wata-2-62.jpg",
+   "variants": [
+    {
+     "code": "E6218-10W",
+     "w": 10.0,
+     "lm": 1046.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    },
+    {
+     "code": "E6218-15W",
+     "w": 15.0,
+     "lm": 1387.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "E6218-10W",
+    "E6218-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WATA",
+   "title": "VENEZINA WATA – bathroom (IP44/IP65) downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "64",
+   "image": "img/venezina/wata-2-64.jpg",
+   "variants": [
+    {
+     "code": "E6219-6W",
+     "w": 6.0,
+     "lm": 675.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "E6219-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WATA",
+   "title": "VENEZINA WATA – bathroom (IP44/IP65) downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "65",
+   "image": "img/venezina/wata-2-64.jpg",
+   "variants": [
+    {
+     "code": "E6219-10W",
+     "w": 10.0,
+     "lm": 1046.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    },
+    {
+     "code": "E6219-15W",
+     "w": 15.0,
+     "lm": 1387.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "E6219-10W",
+    "E6219-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WATA",
+   "title": "VENEZINA WATA – bathroom (IP44/IP65) downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "66",
+   "image": "img/venezina/wata-2-66.jpg",
+   "variants": [
+    {
+     "code": "E6220-6W",
+     "w": 6.0,
+     "lm": 675.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "E6220-6W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WATA",
+   "title": "VENEZINA WATA – bathroom (IP44/IP65) downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "67",
+   "image": "img/venezina/wata-2-66.jpg",
+   "variants": [
+    {
+     "code": "E6220-10W",
+     "w": 10.0,
+     "lm": 1046.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    },
+    {
+     "code": "E6220-15W",
+     "w": 15.0,
+     "lm": 1387.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "E6220-10W",
+    "E6220-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WATA",
+   "title": "VENEZINA WATA – bathroom (IP44/IP65) downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "68",
+   "image": "img/venezina/wata-2-68.jpg",
+   "variants": [
+    {
+     "code": "E6160-15W",
+     "w": 15.0,
+     "lm": 1370.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "E6160-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WATA",
+   "title": "VENEZINA WATA – bathroom (IP44/IP65) downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "69",
+   "image": "img/venezina/wata-2-68.jpg",
+   "variants": [
+    {
+     "code": "E6160-20W",
+     "w": 20.0,
+     "lm": 1839.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "E6160-20W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WATA",
+   "title": "VENEZINA WATA – bathroom (IP44/IP65) downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "70",
+   "image": "img/venezina/wata-2-70.jpg",
+   "variants": [
+    {
+     "code": "E6161-15W",
+     "w": 15.0,
+     "lm": 1370.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "E6161-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WATA",
+   "title": "VENEZINA WATA – bathroom (IP44/IP65) downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "71",
+   "image": "img/venezina/wata-2-70.jpg",
+   "variants": [
+    {
+     "code": "E6161-20W",
+     "w": 20.0,
+     "lm": 1839.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "E6161-20W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WATA",
+   "title": "VENEZINA WATA – bathroom (IP44/IP65) downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "72",
+   "image": "img/venezina/wata-2-72.jpg",
+   "variants": [
+    {
+     "code": "E6163-15W",
+     "w": 15.0,
+     "lm": 1370.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "E6163-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WATA",
+   "title": "VENEZINA WATA – bathroom (IP44/IP65) downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "73",
+   "image": "img/venezina/wata-2-72.jpg",
+   "variants": [
+    {
+     "code": "E6163-20W",
+     "w": 20.0,
+     "lm": 1839.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "E6163-20W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WATA",
+   "title": "VENEZINA WATA – bathroom (IP44/IP65) downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "74",
+   "image": "img/venezina/wata-2-74.jpg",
+   "variants": [
+    {
+     "code": "E6162-15W",
+     "w": 15.0,
+     "lm": 1370.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "E6162-15W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WATA",
+   "title": "VENEZINA WATA – bathroom (IP44/IP65) downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "75",
+   "image": "img/venezina/wata-2-74.jpg",
+   "variants": [
+    {
+     "code": "E6162-20W",
+     "w": 20.0,
+     "lm": 1839.0,
+     "cct": "2700–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Die casting process, simple and exquisite appearance, and good heat dissipation performance. The new design of narrow edge frame to blend the ceiling perfectly. Split structure and the design of frame embedded to avoid c"
+    }
+   ],
+   "image_covers": [
+    "E6162-20W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WASO",
+   "title": "VENEZINA WASO – bathroom ceiling-mounted",
+   "type": "Ceiling light",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "76",
+   "image": "img/venezina/waso-2-76.jpg",
+   "variants": [
+    {
+     "code": "E6209-6W",
+     "w": 6.0,
+     "lm": 650.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Light source: COB LED with a high eﬃciency reﬂector of optical. Ceiling mouted plate: die-casting aluminum. Driver built-in, very easy for installation. Luminaire housing: Aluminum alloy with anti-rust powder coating pro"
+    },
+    {
+     "code": "E6209-10W",
+     "w": 10.0,
+     "lm": 1062.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Light source: COB LED with a high eﬃciency reﬂector of optical. Ceiling mouted plate: die-casting aluminum. Driver built-in, very easy for installation. Luminaire housing: Aluminum alloy with anti-rust powder coating pro"
+    }
+   ],
+   "image_covers": [
+    "E6209-6W",
+    "E6209-10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WASO",
+   "title": "VENEZINA WASO – bathroom ceiling-mounted",
+   "type": "Ceiling light",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "77",
+   "image": "img/venezina/waso-2-77.jpg",
+   "variants": [
+    {
+     "code": "E6780-15W",
+     "w": 15.0,
+     "lm": 1551.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Light source: COB LED with a high eﬃciency reﬂector of optical. Ceiling mouted plate: die-casting aluminum. Driver built-in, very easy for installation. Luminaire housing: Aluminum alloy with anti-rust powder coating pro"
+    },
+    {
+     "code": "E6780-20W",
+     "w": 20.0,
+     "lm": 2209.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Light source: COB LED with a high eﬃciency reﬂector of optical. Ceiling mouted plate: die-casting aluminum. Driver built-in, very easy for installation. Luminaire housing: Aluminum alloy with anti-rust powder coating pro"
+    },
+    {
+     "code": "E6780-25W",
+     "w": 25.0,
+     "lm": 2461.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Light source: COB LED with a high eﬃciency reﬂector of optical. Ceiling mouted plate: die-casting aluminum. Driver built-in, very easy for installation. Luminaire housing: Aluminum alloy with anti-rust powder coating pro"
+    }
+   ],
+   "image_covers": [
+    "E6780-15W",
+    "E6780-20W",
+    "E6780-25W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "WATO",
+   "title": "VENEZINA WATO – bathroom wall-mounted",
+   "type": "Wall / bulkhead",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "78",
+   "image": "img/venezina/wato-2-78.jpg",
+   "variants": [
+    {
+     "code": "E6018-5W",
+     "w": 5.0,
+     "lm": 500.0,
+     "cct": "2700K / 3000K / 4000K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "note": "Colours: White Black · Luminaire housing: die-casting aluminum. Wall-mouted plate: Stainless sheet. Light source: COB LED with an optical lens and glass. Included LED driver. 80 80 86 30 COB LED Housing color: WATO IP65 COB LED CRI>80 With LED"
+    }
+   ],
+   "image_covers": [
+    "E6018-5W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "BULKHEAD",
+   "title": "VENEZINA BULKHEAD – IP65 bulkhead (wall / ceiling)",
+   "type": "Wall / bulkhead",
+   "category": "Indoor / outdoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "80",
+   "image": "img/venezina/bulkhead-2-80.jpg",
+   "variants": [
+    {
+     "code": "E6630-10W",
+     "w": 10.0,
+     "lm": 1042.0,
+     "cct": "3000–6500 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "control": "Microwave sensor / Emergency option",
+     "note": "Colours: White, Black"
+    },
+    {
+     "code": "E6630-15W",
+     "w": 15.0,
+     "lm": 1352.0,
+     "cct": "3000–6500 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "control": "Microwave sensor / Emergency option",
+     "note": "Colours: White, Black"
+    },
+    {
+     "code": "E6630-20W",
+     "w": 20.0,
+     "lm": 1916.0,
+     "cct": "3000–6500 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "control": "Microwave sensor / Emergency option",
+     "note": "Colours: White, Black"
+    }
+   ],
+   "image_covers": [
+    "E6630-10W",
+    "E6630-15W",
+    "E6630-20W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "BULKHEAD",
+   "title": "VENEZINA BULKHEAD – IP65 bulkhead (wall / ceiling)",
+   "type": "Wall / bulkhead",
+   "category": "Indoor / outdoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "81",
+   "image": "img/venezina/bulkhead-2-81.jpg",
+   "variants": [
+    {
+     "code": "E6651-20W",
+     "w": 20.0,
+     "lm": 2188.0,
+     "cct": "3000–6500 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "control": "Microwave sensor / Emergency option",
+     "note": "Colours: White, Black"
+    },
+    {
+     "code": "E6672-30W",
+     "w": 30.0,
+     "lm": 3068.0,
+     "cct": "3000–6500 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "control": "Microwave sensor / Emergency option",
+     "note": "Colours: White, Black"
+    },
+    {
+     "code": "E6687-40W",
+     "w": 40.0,
+     "lm": 3805.0,
+     "cct": "3000–6500 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "control": "Microwave sensor / Emergency option",
+     "note": "Colours: White, Black"
+    }
+   ],
+   "image_covers": [
+    "E6651-20W",
+    "E6672-30W",
+    "E6687-40W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "BULKHEAD",
+   "title": "VENEZINA BULKHEAD – IP65 bulkhead (wall / ceiling)",
+   "type": "Wall / bulkhead",
+   "category": "Indoor / outdoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "82",
+   "image": "img/venezina/bulkhead-2-82.jpg",
+   "variants": [
+    {
+     "code": "E6632-10W",
+     "w": 10.0,
+     "lm": 691.0,
+     "cct": "3000–6500 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "control": "Microwave sensor / Emergency option",
+     "note": "Colours: White, Black"
+    },
+    {
+     "code": "E6632-15W",
+     "w": 15.0,
+     "lm": 900.0,
+     "cct": "3000–6500 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "control": "Microwave sensor / Emergency option",
+     "note": "Colours: White, Black"
+    },
+    {
+     "code": "E6632-20W",
+     "w": 20.0,
+     "lm": 1247.0,
+     "cct": "3000–6500 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "control": "Microwave sensor / Emergency option",
+     "note": "Colours: White, Black"
+    }
+   ],
+   "image_covers": [
+    "E6632-10W",
+    "E6632-15W",
+    "E6632-20W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "BULKHEAD",
+   "title": "VENEZINA BULKHEAD – IP65 bulkhead (wall / ceiling)",
+   "type": "Wall / bulkhead",
+   "category": "Indoor / outdoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "83",
+   "image": "img/venezina/bulkhead-2-83.jpg",
+   "variants": [
+    {
+     "code": "E6652-20W",
+     "w": 20.0,
+     "lm": 1435.0,
+     "cct": "3000–6500 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "control": "Microwave sensor / Emergency option",
+     "note": "Colours: White, Black"
+    },
+    {
+     "code": "E6671-30W",
+     "w": 30.0,
+     "lm": 1781.0,
+     "cct": "3000–6500 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "control": "Microwave sensor / Emergency option",
+     "note": "Colours: White, Black"
+    },
+    {
+     "code": "E6686-40W",
+     "w": 40.0,
+     "lm": 2394.0,
+     "cct": "3000–6500 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "control": "Microwave sensor / Emergency option",
+     "note": "Colours: White, Black"
+    }
+   ],
+   "image_covers": [
+    "E6652-20W",
+    "E6671-30W",
+    "E6686-40W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "BULKHEAD",
+   "title": "VENEZINA BULKHEAD – IP65 bulkhead (wall / ceiling)",
+   "type": "Wall / bulkhead",
+   "category": "Indoor / outdoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "84",
+   "image": "img/venezina/bulkhead-2-84.jpg",
+   "variants": [
+    {
+     "code": "E6633-10W",
+     "w": 10.0,
+     "lm": 973.0,
+     "cct": "3000–6500 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "control": "Microwave sensor / Emergency option",
+     "note": "Colours: White, Black"
+    },
+    {
+     "code": "E6633-15W",
+     "w": 15.0,
+     "lm": 1270.0,
+     "cct": "3000–6500 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "control": "Microwave sensor / Emergency option",
+     "note": "Colours: White, Black"
+    },
+    {
+     "code": "E6633-20W",
+     "w": 20.0,
+     "lm": 1799.0,
+     "cct": "3000–6500 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "control": "Microwave sensor / Emergency option",
+     "note": "Colours: White, Black"
+    }
+   ],
+   "image_covers": [
+    "E6633-10W",
+    "E6633-15W",
+    "E6633-20W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "BULKHEAD",
+   "title": "VENEZINA BULKHEAD – IP65 bulkhead (wall / ceiling)",
+   "type": "Wall / bulkhead",
+   "category": "Indoor / outdoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "85",
+   "image": "img/venezina/bulkhead-2-85.jpg",
+   "variants": [
+    {
+     "code": "E6653-20W",
+     "w": 20.0,
+     "lm": 1868.0,
+     "cct": "3000–6500 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "control": "Microwave sensor / Emergency option",
+     "note": "Colours: White, Black"
+    }
+   ],
+   "image_covers": [
+    "E6653-20W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "BULKHEAD",
+   "title": "VENEZINA BULKHEAD – IP65 bulkhead (wall / ceiling)",
+   "type": "Wall / bulkhead",
+   "category": "Indoor / outdoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "86",
+   "image": "img/venezina/bulkhead-2-86.jpg",
+   "variants": [
+    {
+     "code": "E6634-15W",
+     "w": 15.0,
+     "lm": 1453.0,
+     "cct": "3000–6500 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "control": "Microwave sensor / Emergency option",
+     "note": "Colours: White, Black"
+    },
+    {
+     "code": "E6654-20W",
+     "w": 20.0,
+     "lm": 1930.0,
+     "cct": "3000–6500 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "control": "Microwave sensor / Emergency option",
+     "note": "Colours: White, Black"
+    }
+   ],
+   "image_covers": [
+    "E6634-15W",
+    "E6654-20W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "BULKHEAD",
+   "title": "VENEZINA BULKHEAD – IP65 bulkhead (wall / ceiling)",
+   "type": "Wall / bulkhead",
+   "category": "Indoor / outdoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "87",
+   "image": "img/venezina/bulkhead-2-87.jpg",
+   "variants": [
+    {
+     "code": "E6635-15W",
+     "w": 15.0,
+     "lm": 1025.0,
+     "cct": "3000–6500 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "control": "Microwave sensor / Emergency option",
+     "note": "Colours: White, Black"
+    },
+    {
+     "code": "E6655-20W",
+     "w": 20.0,
+     "lm": 1191.0,
+     "cct": "3000–6500 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "control": "Microwave sensor / Emergency option",
+     "note": "Colours: White, Black"
+    }
+   ],
+   "image_covers": [
+    "E6635-15W",
+    "E6655-20W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "BULKHEAD",
+   "title": "VENEZINA BULKHEAD – IP65 bulkhead (wall / ceiling)",
+   "type": "Wall / bulkhead",
+   "category": "Indoor / outdoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "88",
+   "image": "img/venezina/bulkhead-2-88.jpg",
+   "variants": [
+    {
+     "code": "E6636-15W",
+     "w": 15.0,
+     "lm": 1365.0,
+     "cct": "3000–6500 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "control": "Microwave sensor / Emergency option",
+     "note": "Colours: White, Black"
+    },
+    {
+     "code": "E6656-20W",
+     "w": 20.0,
+     "lm": 1731.0,
+     "cct": "3000–6500 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "control": "Microwave sensor / Emergency option",
+     "note": "Colours: White, Black"
+    }
+   ],
+   "image_covers": [
+    "E6636-15W",
+    "E6656-20W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "UFO",
+   "title": "VENEZINA UFO – UFO high bay",
+   "type": "High bay",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "89",
+   "image": "img/venezina/ufo-2-89.jpg",
+   "variants": [
+    {
+     "code": "E9011-100W",
+     "w": 100.0,
+     "lm": 15740.0,
+     "cct": "3000–6500 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "control": "Emergency option",
+     "note": "Colours: Black"
+    },
+    {
+     "code": "E9031-150W",
+     "w": 150.0,
+     "lm": 23365.0,
+     "cct": "3000–6500 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "control": "Emergency option",
+     "note": "Colours: Black"
+    },
+    {
+     "code": "E9051-200W",
+     "w": 200.0,
+     "lm": 30937.0,
+     "cct": "3000–6500 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "control": "Emergency option",
+     "note": "Colours: Black"
+    }
+   ],
+   "image_covers": [
+    "E9011-100W",
+    "E9031-150W",
+    "E9051-200W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "UFO",
+   "title": "VENEZINA UFO – UFO high bay",
+   "type": "High bay",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "91",
+   "image": "img/venezina/ufo-2-91.jpg",
+   "variants": [
+    {
+     "code": "E9012-100W",
+     "w": 100.0,
+     "lm": 15846.0,
+     "cct": "3000–6500 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "control": "Emergency option",
+     "note": "Colours: Black"
+    },
+    {
+     "code": "E9032-150W",
+     "w": 150.0,
+     "lm": 23595.0,
+     "cct": "3000–6500 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "control": "Emergency option",
+     "note": "Colours: Black"
+    },
+    {
+     "code": "E9052-200W",
+     "w": 200.0,
+     "lm": 31906.0,
+     "cct": "3000–6500 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "control": "Emergency option",
+     "note": "Colours: Black"
+    }
+   ],
+   "image_covers": [
+    "E9012-100W",
+    "E9032-150W",
+    "E9052-200W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "Tri-proof",
+   "title": "VENEZINA Tri-proof – tri-proof batten",
+   "type": "Tri-proof / batten",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "93",
+   "image": "img/venezina/tri-proof-2-93.jpg",
+   "variants": [
+    {
+     "code": "E8001-28W",
+     "w": 28.0,
+     "lm": 3509.0,
+     "cct": "3000–6500 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "control": "Microwave sensor / Emergency option",
+     "note": "Colours: White"
+    },
+    {
+     "code": "E8021-38W",
+     "w": 38.0,
+     "lm": 4645.0,
+     "cct": "3000–6500 K",
+     "cri": "Ra≥80",
+     "ip": "IP65",
+     "control": "Microwave sensor / Emergency option",
+     "note": "Colours: White"
+    }
+   ],
+   "image_covers": [
+    "E8001-28W",
+    "E8021-38W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "V 2835 120-24V-5mm",
+   "title": "VENEZINA V 2835 120-24V-5mm",
+   "type": "Strip / neon",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "96",
+   "image": "img/venezina/v-2835-120-24v-5mm-2-96.jpg",
+   "variants": [
+    {
+     "code": "V 2835 120-24V-5mm 7W/m",
+     "w": 7.0,
+     "lm": 922.0,
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "120°",
+     "note": "Also IP33 / IP55 versions",
+     "flag": "Values per metre (W/m and lm/m, CRI>80, 3000K)"
+    }
+   ],
+   "image_covers": [
+    "V 2835 120-24V-5mm 7W/m"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "V 2835 120-24V-8mm LED Tape Light",
+   "title": "VENEZINA V 2835 120-24V-8mm LED Tape Light",
+   "type": "Strip / neon",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "97",
+   "image": "img/venezina/v-2835-120-24v-8mm-led-tape-light-2-97.jpg",
+   "variants": [
+    {
+     "code": "V 2835 120-24V-8mm LED Tape Light 10W/m",
+     "w": 10.0,
+     "lm": 1144.0,
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "120°",
+     "note": "Also IP33 / IP55 versions",
+     "flag": "Values per metre (W/m and lm/m, CRI>80, 3000K)"
+    }
+   ],
+   "image_covers": [
+    "V 2835 120-24V-8mm LED Tape Light 10W/m"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "V 2835 120-24V-8mm LED Tape Light",
+   "title": "VENEZINA V 2835 120-24V-8mm LED Tape Light",
+   "type": "Strip / neon",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "98",
+   "image": "img/venezina/v-2835-120-24v-8mm-led-tape-light-2-98.jpg",
+   "variants": [
+    {
+     "code": "V 2835 120-24V-8mm LED Tape Light 14.4W/m",
+     "w": 14.4,
+     "lm": 1454.0,
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "120°",
+     "note": "Also IP33 / IP55 versions",
+     "flag": "Values per metre (W/m and lm/m, CRI>80, 3000K)"
+    }
+   ],
+   "image_covers": [
+    "V 2835 120-24V-8mm LED Tape Light 14.4W/m"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "V 2835 120-24V-10mm LED Tape Light",
+   "title": "VENEZINA V 2835 120-24V-10mm LED Tape Light",
+   "type": "Strip / neon",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "99",
+   "image": "img/venezina/v-2835-120-24v-10mm-led-tape-light-2-99.jpg",
+   "variants": [
+    {
+     "code": "283512024V-XXK-10-IP20 10W/m",
+     "w": 10.0,
+     "lm": 1144.0,
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "120°",
+     "flag": "Values per metre (W/m and lm/m, CRI>80, 3000K)"
+    }
+   ],
+   "image_covers": [
+    "283512024V-XXK-10-IP20 10W/m"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "V 2835 240-24V-15mm LED Tape Light",
+   "title": "VENEZINA V 2835 240-24V-15mm LED Tape Light",
+   "type": "Strip / neon",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "100",
+   "image": "img/venezina/v-2835-240-24v-15mm-led-tape-light-2-100.jpg",
+   "variants": [
+    {
+     "code": "283524024V-XXK-15-IP20 14.4W/m",
+     "w": 14.4,
+     "lm": 1900.0,
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "120°",
+     "flag": "Values per metre (W/m and lm/m, CRI>80, 3000K)"
+    }
+   ],
+   "image_covers": [
+    "283524024V-XXK-15-IP20 14.4W/m"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "V 2835 240-24V-15mm LED Tape Light",
+   "title": "VENEZINA V 2835 240-24V-15mm LED Tape Light",
+   "type": "Strip / neon",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "101",
+   "image": "img/venezina/v-2835-240-24v-15mm-led-tape-light-2-101.jpg",
+   "variants": [
+    {
+     "code": "283524024V-XXK-15-IP20 19.2W/m",
+     "w": 19.2,
+     "lm": 2246.0,
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "120°",
+     "flag": "Values per metre (W/m and lm/m, CRI>80, 3000K)"
+    }
+   ],
+   "image_covers": [
+    "283524024V-XXK-15-IP20 19.2W/m"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "-320-24V-8mm",
+   "title": "VENEZINA -320-24V-8mm",
+   "type": "Strip / neon",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "102",
+   "image": "img/venezina/-320-24v-8mm-2-102.jpg",
+   "variants": [
+    {
+     "code": "COB32024V-XXK-8-IP20 6W/m",
+     "w": 6.0,
+     "lm": 723.0,
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "120°",
+     "flag": "Values per metre (W/m and lm/m, CRI>80, 3000K)"
+    }
+   ],
+   "image_covers": [
+    "COB32024V-XXK-8-IP20 6W/m"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "V -320-24V-8mm LED Tape Light",
+   "title": "VENEZINA V -320-24V-8mm LED Tape Light",
+   "type": "Strip / neon",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "103",
+   "image": "img/venezina/v-320-24v-8mm-led-tape-light-2-103.jpg",
+   "variants": [
+    {
+     "code": "COB32024V-XXK-8-IP20 10W/m",
+     "w": 10.0,
+     "lm": 912.0,
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "120°",
+     "flag": "Values per metre (W/m and lm/m, CRI>80, 3000K)"
+    }
+   ],
+   "image_covers": [
+    "COB32024V-XXK-8-IP20 10W/m"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "V 2835 240-24V-8mm LED Tape Light",
+   "title": "VENEZINA V 2835 240-24V-8mm LED Tape Light",
+   "type": "Strip / neon",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "104",
+   "image": "img/venezina/v-2835-240-24v-8mm-led-tape-light-2-104.jpg",
+   "variants": [
+    {
+     "code": "283524024V-XXK-8-IP20 15W/m",
+     "w": 15.0,
+     "lm": 954.0,
+     "cct": "2800–6000 K",
+     "cri": "Ra≥80",
+     "ip": "IP20",
+     "beam": "120°",
+     "flag": "Values per metre (W/m and lm/m, CRI>80, 3000K)"
+    }
+   ],
+   "image_covers": [
+    "283524024V-XXK-8-IP20 15W/m"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "V N0408S LED NEON FLEX SIDE BENDING",
+   "title": "VENEZINA V N0408S LED NEON FLEX SIDE BENDING",
+   "type": "Strip / neon",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "108",
+   "image": "img/venezina/v-n0408s-led-neon-flex-side-bending-2-108.jpg",
+   "variants": [
+    {
+     "code": "V-N0408S24V-XXK-RA90-IP65 10W/m",
+     "w": 10.0,
+     "lm": 258.0,
+     "cct": "2800–6000 K",
+     "cri": "Ra≥90",
+     "ip": "IP65",
+     "beam": "120°",
+     "flag": "Values per metre (W/m and lm/m, CRI>80, 3000K)"
+    }
+   ],
+   "image_covers": [
+    "V-N0408S24V-XXK-RA90-IP65 10W/m"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "V N0612S LED NEON FLEX SIDE BENDING",
+   "title": "VENEZINA V N0612S LED NEON FLEX SIDE BENDING",
+   "type": "Strip / neon",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "109",
+   "image": "img/venezina/v-n0612s-led-neon-flex-side-bending-2-109.jpg",
+   "variants": [
+    {
+     "code": "V-N0612S24V-XXK-RA90-IP67 10W/m",
+     "w": 10.0,
+     "lm": 322.0,
+     "cct": "2800–6000 K",
+     "cri": "Ra≥90",
+     "ip": "IP67",
+     "beam": "120°",
+     "flag": "Values per metre (W/m and lm/m, CRI>80, 3000K)"
+    }
+   ],
+   "image_covers": [
+    "V-N0612S24V-XXK-RA90-IP67 10W/m"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "V N1010F LED NEON FLEX",
+   "title": "VENEZINA V N1010F LED NEON FLEX",
+   "type": "Strip / neon",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "110",
+   "image": "img/venezina/v-n1010f-led-neon-flex-2-110.jpg",
+   "variants": [
+    {
+     "code": "V-N1010F24V-XXK-RA90-IP67 10W/m",
+     "w": 10.0,
+     "lm": 566.0,
+     "cct": "2800–6000 K",
+     "cri": "Ra≥90",
+     "ip": "IP67",
+     "beam": "120°",
+     "flag": "Values per metre (W/m and lm/m, CRI>80, 3000K)"
+    }
+   ],
+   "image_covers": [
+    "V-N1010F24V-XXK-RA90-IP67 10W/m"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "V N1010U LED NEON FLEX TOP BENDING",
+   "title": "VENEZINA V N1010U LED NEON FLEX TOP BENDING",
+   "type": "Strip / neon",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "111",
+   "image": "img/venezina/v-n1010u-led-neon-flex-top-bending-2-111.jpg",
+   "variants": [
+    {
+     "code": "V-N1010U24V-XXK-RA90-IP67 10W/m",
+     "w": 10.0,
+     "lm": 640.0,
+     "cct": "2800–6000 K",
+     "cri": "Ra≥90",
+     "ip": "IP67",
+     "beam": "120°",
+     "flag": "Values per metre (W/m and lm/m, CRI>80, 3000K)"
+    }
+   ],
+   "image_covers": [
+    "V-N1010U24V-XXK-RA90-IP67 10W/m"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "V N1212F LED NEON FLEX",
+   "title": "VENEZINA V N1212F LED NEON FLEX",
+   "type": "Strip / neon",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "112",
+   "image": "img/venezina/v-n1212f-led-neon-flex-2-112.jpg",
+   "variants": [
+    {
+     "code": "V-N1212F24V-XXK-RA90-IP67 10W/m",
+     "w": 10.0,
+     "lm": 553.0,
+     "cct": "2800–6000 K",
+     "cri": "Ra≥90",
+     "ip": "IP67",
+     "beam": "120°",
+     "flag": "Values per metre (W/m and lm/m, CRI>80, 3000K)"
+    }
+   ],
+   "image_covers": [
+    "V-N1212F24V-XXK-RA90-IP67 10W/m"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "V N1212U LED NEON FLEX TOP BENDING",
+   "title": "VENEZINA V N1212U LED NEON FLEX TOP BENDING",
+   "type": "Strip / neon",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "113",
+   "image": "img/venezina/v-n1212u-led-neon-flex-top-bending-2-113.jpg",
+   "variants": [
+    {
+     "code": "V-N1212U24V-XXK-RA90-IP67 10W/m",
+     "w": 10.0,
+     "lm": 652.0,
+     "cct": "2800–6000 K",
+     "cri": "Ra≥90",
+     "ip": "IP67",
+     "beam": "120°",
+     "flag": "Values per metre (W/m and lm/m, CRI>80, 3000K)"
+    }
+   ],
+   "image_covers": [
+    "V-N1212U24V-XXK-RA90-IP67 10W/m"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "V N1212S LED NEON FLEX",
+   "title": "VENEZINA V N1212S LED NEON FLEX",
+   "type": "Strip / neon",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "114",
+   "image": "img/venezina/v-n1212s-led-neon-flex-2-114.jpg",
+   "variants": [
+    {
+     "code": "V-N1212S24V-XXK-RA90-IP67 10W/m",
+     "w": 10.0,
+     "lm": 374.0,
+     "cct": "2800–6000 K",
+     "cri": "Ra≥90",
+     "ip": "IP67",
+     "beam": "120°",
+     "flag": "Values per metre (W/m and lm/m, CRI>80, 3000K)"
+    }
+   ],
+   "image_covers": [
+    "V-N1212S24V-XXK-RA90-IP67 10W/m"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "V N1616S LED NEON FLEX",
+   "title": "VENEZINA V N1616S LED NEON FLEX",
+   "type": "Strip / neon",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "115",
+   "image": "img/venezina/v-n1616s-led-neon-flex-2-115.jpg",
+   "variants": [
+    {
+     "code": "V-N1616S24V-XXK-RA90-IP67 10W/m",
+     "w": 10.0,
+     "lm": 373.0,
+     "cct": "2800–6000 K",
+     "cri": "Ra≥90",
+     "ip": "IP67",
+     "beam": "120°",
+     "flag": "Values per metre (W/m and lm/m, CRI>80, 3000K)"
+    }
+   ],
+   "image_covers": [
+    "V-N1616S24V-XXK-RA90-IP67 10W/m"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "V N1616R LED NEON FLEX TOP BENDING",
+   "title": "VENEZINA V N1616R LED NEON FLEX TOP BENDING",
+   "type": "Strip / neon",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "116",
+   "image": "img/venezina/v-n1616r-led-neon-flex-top-bending-2-116.jpg",
+   "variants": [
+    {
+     "code": "V-N1616R24V-XXK-RA90-IP67 10W/m",
+     "w": 10.0,
+     "lm": 585.0,
+     "cct": "2800–6000 K",
+     "cri": "Ra≥90",
+     "ip": "IP67",
+     "beam": "120°",
+     "flag": "Values per metre (W/m and lm/m, CRI>80, 3000K)"
+    }
+   ],
+   "image_covers": [
+    "V-N1616R24V-XXK-RA90-IP67 10W/m"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "V N2020F LED NEON FLEX",
+   "title": "VENEZINA V N2020F LED NEON FLEX",
+   "type": "Strip / neon",
+   "category": "Indoor",
+   "pdf": "VENEZINA_2.pdf",
+   "pages": "117",
+   "image": "img/venezina/v-n2020f-led-neon-flex-2-117.jpg",
+   "variants": [
+    {
+     "code": "V-N2020F24V-XXK-RA90-IP67 10W/m",
+     "w": 10.0,
+     "lm": 439.0,
+     "cct": "2800–6000 K",
+     "cri": "Ra≥90",
+     "ip": "IP67",
+     "beam": "120°",
+     "flag": "Values per metre (W/m and lm/m, CRI>80, 3000K)"
+    }
+   ],
+   "image_covers": [
+    "V-N2020F24V-XXK-RA90-IP67 10W/m"
+   ],
+   "image_shared_with": []
+  }
+ ]
+}

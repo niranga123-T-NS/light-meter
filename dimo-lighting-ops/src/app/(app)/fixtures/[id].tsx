@@ -2,7 +2,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Image, Text, View } from 'react-native';
 import { Thumb } from '@/components/tools/FixtureLibrary';
 import { Card, colors, ErrorBanner, Loading, Muted, Notice, Row, Screen, Section } from '@/components/ui';
-import { cctText, ctrlText, fixtureImage, fmt, loadFixtures } from '@/lib/fixtures';
+import { cctText, ctrlText, fixtureImage, fmt, loadFixtures, wattText } from '@/lib/fixtures';
 import { useLoad } from '@/lib/hooks';
 
 /** One product of the fixture library: photo, full specification, catalogue page and the other models of its family */
@@ -16,7 +16,7 @@ export default function FixturePage() {
   const uri = fixtureImage(p);
   const rows: [string, string | undefined][] = [
     ['Type', p.type],
-    ['Power', p.w != null ? `${p.w} W${p.steps?.length ? ` (selectable ${p.steps.join(' / ')} W)` : ''}` : undefined],
+    ['Power', p.w != null ? `${wattText(p)}${p.wMin ? ' (range of the family)' : ''}${p.steps?.length ? ` (selectable ${p.steps.join(' / ')} W)` : ''}` : undefined],
     ['Lumens', p.lm ? `${p.lmMin && p.lmMin < p.lm ? `${fmt(p.lmMin)} – ` : ''}${fmt(p.lm)} lm${p.lmEst ? ' – estimated from the catalogue lm/W' : ''}${p.lm2 ? ` (standard version ${fmt(p.lm2)} lm)` : ''}` : 'not in the catalogue'],
     ['Efficacy', p.eff ? `${p.eff} lm/W` : undefined],
     ['CCT', cctText(p)],
@@ -72,7 +72,7 @@ export default function FixturePage() {
               <Row gap={10} style={{ alignItems: 'center' }}>
                 <Thumb p={x} size={40} />
                 <Text style={{ flex: 1, fontWeight: '600', color: colors.ink }}>{x.code}</Text>
-                <Muted>{[x.w != null && `${x.w} W`, x.lm && `${fmt(x.lm)} lm`, x.size].filter(Boolean).join(' · ')}</Muted>
+                <Muted>{[wattText(x), x.lm && `${fmt(x.lm)} lm`, x.size].filter(Boolean).join(' · ')}</Muted>
               </Row>
             </Card>
           ))}
