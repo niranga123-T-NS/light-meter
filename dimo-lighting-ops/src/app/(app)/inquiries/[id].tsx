@@ -342,7 +342,15 @@ export default function InquiryDetail() {
                   ],
                 },
                 ...(i.route !== 'B'
-                  ? [{ key: 'dscope', label: 'New design scope', type: 'select' as const, options: DESIGN_SCOPE }]
+                  ? [
+                      {
+                        key: 'route',
+                        label: 'Route (design only removes the estimate)',
+                        type: 'select' as const,
+                        options: i.route === 'A' ? [{ value: 'C', label: 'C · Design only – no estimation' }] : [{ value: 'A', label: 'A · Design + estimation' }],
+                      },
+                      { key: 'dscope', label: 'New design scope', type: 'select' as const, options: DESIGN_SCOPE },
+                    ]
                   : []),
                 ...(i.route !== 'C'
                   ? [
@@ -379,6 +387,7 @@ export default function InquiryDetail() {
                       design_scope: r.dscope || null,
                       estimation_scope: r.escope && r.escope !== (i.estimation_scope ?? []).join(',') ? r.escope.split(',') : null,
                       estimation_basis: r.ebasis && r.ebasis !== i.estimation_basis ? r.ebasis : null,
+                      route: r.route || null,
                     }
                   : r.kind === 'release_mode'
                     ? { release_mode: Number(r.mode) }

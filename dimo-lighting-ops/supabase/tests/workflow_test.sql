@@ -5148,6 +5148,27 @@ begin
   exception when others then assert sqlerrm = 'The fast track is already approved', sqlerrm; end;
 end $$;
 reset role;
+-- Route change A → C through the expectation change: the estimate is removed from Estimation
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  begin perform public.request_inquiry_change('00000000-0000-0000-0000-0000000de001', 'expectation_change', '{"route":"A"}', 'x'); assert false, 'same route';
+  exception when others then assert sqlerrm = 'The inquiry already has this route', sqlerrm; end;
+  perform public.request_inquiry_change('00000000-0000-0000-0000-0000000de001', 'expectation_change', '{"route":"C"}', 'No need estimation');
+end $$;
+reset role;
+select pg_temp.act_as('design_manager'); set role authenticated;
+select public.decide_approval((select id from public.approvals where kind = 'expectation_change' and inquiry_id = '00000000-0000-0000-0000-0000000de001' and status = 'pending'), 'approved');
+reset role;
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+select public.decide_approval((select id from public.approvals where kind = 'expectation_change' and inquiry_id = '00000000-0000-0000-0000-0000000de001' and status = 'pending'), 'approved');
+reset role;
+do $$ declare i public.inquiries := app.inq('00000000-0000-0000-0000-0000000de001');
+begin
+  assert i.route = 'C' and i.release_mode = 1, 'design only';
+  assert not exists (select 1 from public.estimation_jobs where inquiry_id = i.id), 'estimate removed';
+  assert not exists (select 1 from public.sla_clocks where inquiry_id = i.id and entity_type = 'estimation_job'), 'no estimation clocks';
+  assert exists (select 1 from public.notifications where kind = 'estimation_cancelled' and recipient_id = (select id from u where role = 'estimation_exec')), 'estimator told';
+end $$;
 rollback to savepoint parallel_de;
 
 
