@@ -95,7 +95,7 @@
      "size": "1381 × 345.7 × 123"
     }
    ],
-   "image": "images/zc_lighting_part1/pl08-0.jpg",
+   "image": "img/zc_lighting_part1/pl08-0.jpg",
    "image_page": "ZC_1.pdf p.7",
    "image_covers": [
     "PL08-240",
@@ -200,7 +200,7 @@
      "size": "598 × 485 × 445"
     }
    ],
-   "image": "images/zc_lighting_part1/fl09-1.jpg",
+   "image": "img/zc_lighting_part1/fl09-1.jpg",
    "image_page": "ZC_1.pdf p.9",
    "image_covers": [
     "FL09-500",
@@ -297,7 +297,7 @@
      "size": "576 × 504 × 386"
     }
    ],
-   "image": "images/zc_lighting_part1/fl18-2.jpg",
+   "image": "img/zc_lighting_part1/fl18-2.jpg",
    "image_page": "ZC_1.pdf p.10",
    "image_covers": [
     "FL18-600",
@@ -395,7 +395,7 @@
      "flag": "196,000 lm does not match 1200 W × 155 lm/W = 186,000 lm – check"
     }
    ],
-   "image": "images/zc_lighting_part1/sp02-3.jpg",
+   "image": "img/zc_lighting_part1/sp02-3.jpg",
    "image_page": "ZC_1.pdf p.12",
    "image_covers": [
     "SP02-400",
@@ -533,7 +533,7 @@
      "size": "518 × 947 × 274"
     }
    ],
-   "image": "images/zc_lighting_part1/fl26-4.jpg",
+   "image": "img/zc_lighting_part1/fl26-4.jpg",
    "image_page": "ZC_1.pdf p.14",
    "image_covers": [
     "FL26-300",
@@ -594,7 +594,7 @@
      "size": "477 × 458 × 273"
     }
    ],
-   "image": "images/zc_lighting_part1/fl20-5.jpg",
+   "image": "img/zc_lighting_part1/fl20-5.jpg",
    "image_page": "ZC_1.pdf p.15",
    "image_covers": [
     "FL20-400",
@@ -679,7 +679,7 @@
      "size": "634 × 741 × 388"
     }
    ],
-   "image": "images/zc_lighting_part1/fl19-6.jpg",
+   "image": "img/zc_lighting_part1/fl19-6.jpg",
    "image_page": "ZC_1.pdf p.16",
    "image_covers": [
     "FL19-600",
@@ -770,7 +770,7 @@
      "epa": "3.62 ft²"
     }
    ],
-   "image": "images/zc_lighting_part1/fl16-plus-7.jpg",
+   "image": "img/zc_lighting_part1/fl16-plus-7.jpg",
    "image_page": "ZC_1.pdf p.17",
    "image_covers": [
     "FL16 Plus-500",
@@ -861,7 +861,7 @@
      "epa": "3.62 ft²"
     }
    ],
-   "image": "images/zc_lighting_part1/fl16-8.jpg",
+   "image": "img/zc_lighting_part1/fl16-8.jpg",
    "image_page": "ZC_1.pdf p.18",
    "image_covers": [
     "FL16-500",
@@ -971,7 +971,7 @@
      "epa": "3.90 ft²"
     }
    ],
-   "image": "images/zc_lighting_part1/fl15-9.jpg",
+   "image": "img/zc_lighting_part1/fl15-9.jpg",
    "image_page": "ZC_1.pdf p.19",
    "image_covers": [
     "FL15-400",
@@ -1083,7 +1083,7 @@
      "epa": "2.94 ft²"
     }
    ],
-   "image": "images/zc_lighting_part1/fl10-10.jpg",
+   "image": "img/zc_lighting_part1/fl10-10.jpg",
    "image_page": "ZC_1.pdf p.20",
    "image_covers": [
     "FL10-500",
@@ -1194,7 +1194,7 @@
      "epa": "3.15 ft²"
     }
    ],
-   "image": "images/zc_lighting_part1/fl08-11.jpg",
+   "image": "img/zc_lighting_part1/fl08-11.jpg",
    "image_page": "ZC_1.pdf p.22",
    "image_covers": [
     "FL08-200",
@@ -1275,7 +1275,7 @@
      "epa": "3.15 ft²"
     }
    ],
-   "image": "images/zc_lighting_part1/fl08-11.jpg",
+   "image": "img/zc_lighting_part1/fl08-11.jpg",
    "image_page": "ZC_1.pdf p.22",
    "image_covers": [
     "FL08-200",
@@ -1410,7 +1410,7 @@
      "epa": "3.24 / 3.99 / 4.58 ft²"
     }
    ],
-   "image": "images/zc_lighting_part1/fl01-13.jpg",
+   "image": "img/zc_lighting_part1/fl01-13.jpg",
    "image_page": "ZC_1.pdf p.23",
    "image_covers": [
     "FL01-250",
@@ -1506,7 +1506,7 @@
      "flag": "No drawing for 1200 W – assumed the 800/1000 W size"
     }
    ],
-   "image": "images/zc_lighting_part1/hm01r-14.jpg",
+   "image": "img/zc_lighting_part1/hm01r-14.jpg",
    "image_page": "ZC_1.pdf p.25",
    "image_covers": [
     "HM01R-500",
@@ -1561,7 +1561,7 @@
      "epa": "1.58 ft²"
     }
    ],
-   "image": "images/zc_lighting_part1/hm01s-15.jpg",
+   "image": "img/zc_lighting_part1/hm01s-15.jpg",
    "image_page": "ZC_1.pdf p.26",
    "image_covers": [
     "HM01S-800",
@@ -1625,7 +1625,7 @@
      "size": "Ø335 × 126"
     }
    ],
-   "image": "images/zc_lighting_part1/hb21-16.jpg",
+   "image": "img/zc_lighting_part1/hb21-16.jpg",
    "image_page": "ZC_1.pdf p.28",
    "image_covers": [
     "HB21-100",
@@ -1675,7 +1675,7 @@
      "size": "Ø378 × 244"
     }
    ],
-   "image": "images/zc_lighting_part1/hb20-17.jpg",
+   "image": "img/zc_lighting_part1/hb20-17.jpg",
    "image_page": "ZC_1.pdf p.29",
    "image_covers": [
     "HB20-300",
@@ -1732,7 +1732,7 @@
      "size": "Ø378 × 199"
     }
    ],
-   "image": "images/zc_lighting_part1/hb19-18.jpg",
+   "image": "img/zc_lighting_part1/hb19-18.jpg",
    "image_page": "ZC_1.pdf p.30",
    "image_covers": [
     "HB19-400",

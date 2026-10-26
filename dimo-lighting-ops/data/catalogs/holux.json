@@ -196,7 +196,7 @@
      "note": ""
     }
    ],
-   "image": "images/holux/bp-a1-0.jpg",
+   "image": "img/holux/bp-a1-0.jpg",
    "image_page": "Holux_1.pdf p.6",
    "image_covers": [
     "BP-6060-40A1",
@@ -417,7 +417,7 @@
      "note": ""
     }
    ],
-   "image": "images/holux/bp-u1-1.jpg",
+   "image": "img/holux/bp-u1-1.jpg",
    "image_page": "Holux_1.pdf p.7",
    "image_covers": [
     "BP-6060-40U1",
@@ -558,7 +558,7 @@
      "note": "Power selectable 24W-26W-28W-30W · lumens = W × lm/W (not printed)"
     }
    ],
-   "image": "images/holux/bp-a1-3cct-2.jpg",
+   "image": "img/holux/bp-a1-3cct-2.jpg",
    "image_page": "Holux_1.pdf p.8",
    "image_covers": [
     "BP-6060-40A1-3CCT",
@@ -709,7 +709,7 @@
      "note": "Power selectable 24W-26W-28W-30W · lumens = W × lm/W (not printed)"
     }
    ],
-   "image": "images/holux/bp-u1-3cct-3.jpg",
+   "image": "img/holux/bp-u1-3cct-3.jpg",
    "image_page": "Holux_1.pdf p.9",
    "image_covers": [
     "BP-6060-40U1-3CCT",
@@ -778,7 +778,7 @@
      "note": "Printed code \"BP-30120-42D1 CCT\""
     }
    ],
-   "image": "images/holux/bp-d1-cct-4.jpg",
+   "image": "img/holux/bp-d1-cct-4.jpg",
    "image_page": "Holux_1.pdf p.10",
    "image_covers": [
     "BP-6060-42D1-CCT",
@@ -837,7 +837,7 @@
      "note": ""
     }
    ],
-   "image": "images/holux/bp-d1-5.jpg",
+   "image": "img/holux/bp-d1-5.jpg",
    "image_page": "Holux_1.pdf p.10",
    "image_covers": [
     "BP-6060-42D1",
@@ -910,7 +910,7 @@
      "ugr": "<19"
     }
    ],
-   "image": "images/holux/spl-a1-u1-6.jpg",
+   "image": "img/holux/spl-a1-u1-6.jpg",
    "image_page": "Holux_1.pdf p.13",
    "image_covers": [
     "SPL-6060-34A1",
@@ -984,7 +984,7 @@
      "ugr": "<19"
     }
    ],
-   "image": "images/holux/spl-3cct-7.jpg",
+   "image": "img/holux/spl-3cct-7.jpg",
    "image_page": "Holux_1.pdf p.13",
    "image_covers": [
     "SPL-6060-34A1-3CCT",
@@ -1038,7 +1038,7 @@
      "flag": "Printed 4,080 lm, but 40 W × 120 lm/W = 4,800 lm – check"
     }
    ],
-   "image": "images/holux/spl-u1-surface-8.jpg",
+   "image": "img/holux/spl-u1-surface-8.jpg",
    "image_page": "Holux_1.pdf p.15",
    "image_covers": [
     "SPL-6060-40U1",
@@ -1088,7 +1088,7 @@
      "note": "Backlit"
     }
    ],
-   "image": "images/holux/spl-u1-u2-quick-9.jpg",
+   "image": "img/holux/spl-u1-u2-quick-9.jpg",
    "image_page": "Holux_1.pdf p.15",
    "image_covers": [
     "SPL-30150-40U1",
@@ -1173,7 +1173,7 @@
      "flag": "Same code printed for both platforms – \"-MB\" added here"
     }
    ],
-   "image": "images/holux/rgbcw-bp-10.jpg",
+   "image": "img/holux/rgbcw-bp-10.jpg",
    "image_page": "Holux_1.pdf p.17",
    "image_covers": [
     "BP-6060-40RGBCCT",
@@ -1242,7 +1242,7 @@
      "note": "Plug-on sensor; 3000 / 4000 / 6500 K"
     }
    ],
-   "image": "images/holux/hcl-bp-s1-s2-11.jpg",
+   "image": "img/holux/hcl-bp-s1-s2-11.jpg",
    "image_page": "Holux_1.pdf p.19",
    "image_covers": [
     "BP-6060-40S1",
@@ -1336,7 +1336,7 @@
      "ugr": "<22"
     }
    ],
-   "image": "images/holux/bp-uip-aip-12.jpg",
+   "image": "img/holux/bp-uip-aip-12.jpg",
    "image_page": "Holux_1.pdf p.21",
    "image_covers": [
     "BP-6060-40UIP",
@@ -1381,7 +1381,7 @@
      "note": "Up 16 W / 2,240 lm (20/24/28/32 W optional) + down 34 W / 4,760 lm"
     }
    ],
-   "image": "images/holux/ud-bp-d2-13.jpg",
+   "image": "img/holux/ud-bp-d2-13.jpg",
    "image_page": "Holux_1.pdf p.23",
    "image_covers": [
     "BP-30120-40D2"
@@ -1530,7 +1530,7 @@
      "beam": "90°"
     }
    ],
-   "image": "images/holux/pl-screwless-14.jpg",
+   "image": "img/holux/pl-screwless-14.jpg",
    "image_page": "Holux_1.pdf p.25",
    "image_covers": [
     "PL-3030-18A1",
@@ -1683,7 +1683,7 @@
      "ugr": "<19"
     }
    ],
-   "image": "images/holux/pl-a1-u1-15.jpg",
+   "image": "img/holux/pl-a1-u1-15.jpg",
    "image_page": "Holux_1.pdf p.26",
    "image_covers": [
     "PL-6060-40A1",
@@ -1752,7 +1752,7 @@
      "beam": "90°"
     }
    ],
-   "image": "images/holux/pl-aip-16.jpg",
+   "image": "img/holux/pl-aip-16.jpg",
    "image_page": "Holux_1.pdf p.28",
    "image_covers": [
     "PL-6060-40AIP",
@@ -1811,7 +1811,7 @@
      "note": ""
     }
    ],
-   "image": "images/holux/rp-b2-17.jpg",
+   "image": "img/holux/rp-b2-17.jpg",
    "image_page": "Holux_1.pdf p.30",
    "image_covers": [
     "RP-6060-36B2",
@@ -1870,7 +1870,7 @@
      "note": ""
     }
    ],
-   "image": "images/holux/rp-a1-18.jpg",
+   "image": "img/holux/rp-a1-18.jpg",
    "image_page": "Holux_1.pdf p.30",
    "image_covers": [
     "RP-6060-36A1",
@@ -1970,7 +1970,7 @@
      "note": ""
     }
    ],
-   "image": "images/holux/t8-a2-b2-c2-19.jpg",
+   "image": "img/holux/t8-a2-b2-c2-19.jpg",
    "image_page": "Holux_1.pdf p.34",
    "image_covers": [
     "T8-L12-12A2",
@@ -2057,7 +2057,7 @@
      "note": ""
     }
    ],
-   "image": "images/holux/t8-d1-e1-20.jpg",
+   "image": "img/holux/t8-d1-e1-20.jpg",
    "image_page": "Holux_1.pdf p.34",
    "image_covers": [
     "T8-L06-09D1",
@@ -2110,7 +2110,7 @@
      "note": ""
     }
    ],
-   "image": "images/holux/t8-s1-21.jpg",
+   "image": "img/holux/t8-s1-21.jpg",
    "image_page": "Holux_1.pdf p.35",
    "image_covers": [
     "T8-L12-18S1",
@@ -2216,7 +2216,7 @@
      "flag": "\"160 lm\" read as 160 lm/W – check"
     }
    ],
-   "image": "images/holux/t5-a1-c1-22.jpg",
+   "image": "img/holux/t5-a1-c1-22.jpg",
    "image_page": "Holux_1.pdf p.37",
    "image_covers": [
     "T5-L06-09A1",
@@ -2288,7 +2288,7 @@
      "note": "PWM dimmable + 2× 12V DC APS; versions (sensor 1), (sensor 2), (NFC), (Emergency 2 W 3 h) · Power selectable 32/40/47/55W"
     }
    ],
-   "image": "images/holux/tp-f2-fs-23.jpg",
+   "image": "img/holux/tp-f2-fs-23.jpg",
    "image_page": "Holux_1.pdf p.39",
    "image_covers": [
     "TP-12-36F2",
@@ -2379,7 +2379,7 @@
      "note": ""
     }
    ],
-   "image": "images/holux/tp-e2-g2-24.jpg",
+   "image": "img/holux/tp-e2-g2-24.jpg",
    "image_page": "Holux_1.pdf p.41",
    "image_covers": [
     "TP-06-18E2",
@@ -2489,7 +2489,7 @@
      "note": "Linkable, 3CCT · Power selectable 29/36/44/55W"
     }
    ],
-   "image": "images/holux/tp-b1-b2-25.jpg",
+   "image": "img/holux/tp-b1-b2-25.jpg",
    "image_page": "Holux_1.pdf p.43",
    "image_covers": [
     "TP-06-18B1",
@@ -2553,7 +2553,7 @@
      "note": ""
     }
    ],
-   "image": "images/holux/tp-g3-26.jpg",
+   "image": "img/holux/tp-g3-26.jpg",
    "image_page": "Holux_1.pdf p.45",
    "image_covers": [
     "TP-06-18G3",
@@ -2611,7 +2611,7 @@
      "note": "Linkable optional"
     }
    ],
-   "image": "images/holux/tp-c4-27.jpg",
+   "image": "img/holux/tp-c4-27.jpg",
    "image_page": "Holux_1.pdf p.48",
    "image_covers": [
     "TP-06-18C4",
@@ -2693,7 +2693,7 @@
      "note": ""
     }
    ],
-   "image": "images/holux/tp-c2-c3-28.jpg",
+   "image": "img/holux/tp-c2-c3-28.jpg",
    "image_page": "Holux_1.pdf p.50",
    "image_covers": [
     "TP-06-18-C2",
@@ -2762,7 +2762,7 @@
      "note": ""
     }
    ],
-   "image": "images/holux/tp-a4-29.jpg",
+   "image": "img/holux/tp-a4-29.jpg",
    "image_page": "Holux_1.pdf p.52",
    "image_covers": [
     "TP-12-18A4",
@@ -2813,7 +2813,7 @@
      "note": "Power selectable 25/30/36/42W"
     }
    ],
-   "image": "images/holux/bf-c1-3cct-30.jpg",
+   "image": "img/holux/bf-c1-3cct-30.jpg",
    "image_page": "Holux_1.pdf p.56",
    "image_covers": [
     "BF-12-36C1-3CCT",
@@ -2863,7 +2863,7 @@
      "note": "Power selectable 38-50-58W"
     }
    ],
-   "image": "images/holux/bf-u1-31.jpg",
+   "image": "img/holux/bf-u1-31.jpg",
    "image_page": "Holux_1.pdf p.56",
    "image_covers": [
     "BF-12-36U1",
@@ -2928,7 +2928,7 @@
      "note": ""
     }
    ],
-   "image": "images/holux/m-a1-32.jpg",
+   "image": "img/holux/m-a1-32.jpg",
    "image_page": "Holux_2.pdf p.2",
    "image_covers": [
     "M-200-10A1",
@@ -2995,7 +2995,7 @@
      "note": ""
     }
    ],
-   "image": "images/holux/m-a2-33.jpg",
+   "image": "img/holux/m-a2-33.jpg",
    "image_page": "Holux_2.pdf p.2",
    "image_covers": [
     "M-200-10A2",
@@ -3080,7 +3080,7 @@
      "emergency": "Yes"
     }
    ],
-   "image": "images/holux/m-2cct-34.jpg",
+   "image": "img/holux/m-2cct-34.jpg",
    "image_page": "Holux_2.pdf p.4",
    "image_covers": [
     "M-300-18DW-2CCT",
@@ -3165,7 +3165,7 @@
      "note": "Emergency"
     }
    ],
-   "image": "images/holux/m-a1-s1-e1-300-35.jpg",
+   "image": "img/holux/m-a1-s1-e1-300-35.jpg",
    "image_page": "Holux_2.pdf p.4",
    "image_covers": [
     "M-300-18A1",
@@ -3243,7 +3243,7 @@
      "note": "56 W 6050/6600/6160 lm · 80 W 8400/9200/8800 lm"
     }
    ],
-   "image": "images/holux/c-bm-36.jpg",
+   "image": "img/holux/c-bm-36.jpg",
    "image_page": "Holux_2.pdf p.6",
    "image_covers": [
     "C6300-BM",
@@ -3304,7 +3304,7 @@
      "note": "60 W 6300/6600/6480 lm · 80 W 8000/8400/8240 lm; catalogue says 100 lm/W"
     }
    ],
-   "image": "images/holux/c-am-37.jpg",
+   "image": "img/holux/c-am-37.jpg",
    "image_page": "Holux_2.pdf p.8",
    "image_covers": [
     "C6400-AM",
@@ -3403,7 +3403,7 @@
      "note": ""
     }
    ],
-   "image": "images/holux/cls-skyline-38.jpg",
+   "image": "img/holux/cls-skyline-38.jpg",
    "image_page": "Holux_2.pdf p.10",
    "image_covers": [
     "CLS-42-60A1",
@@ -3502,7 +3502,7 @@
      "ugr": "<19"
     }
    ],
-   "image": "images/holux/dlu-39.jpg",
+   "image": "img/holux/dlu-39.jpg",
    "image_page": "Holux_2.pdf p.12",
    "image_covers": [
     "DLU1-4-10CCT",
@@ -3587,7 +3587,7 @@
      "note": "Square; 18 W 1800/1890/1710 lm · 25 W 2250/2375/2125 lm · Power selectable 18/25W"
     }
    ],
-   "image": "images/holux/dlr-dls-40.jpg",
+   "image": "img/holux/dlr-dls-40.jpg",
    "image_page": "Holux_2.pdf p.14",
    "image_covers": [
     "DLR1-180-DP3C",
@@ -3697,7 +3697,7 @@
      "note": "3CCT 3000 / 4000 / 6500 K; lumens 1800–3360 lm · Power selectable 15/17/19/21/22/24/26/29W"
     }
    ],
-   "image": "images/holux/dlh-41.jpg",
+   "image": "img/holux/dlh-41.jpg",
    "image_page": "Holux_2.pdf p.16",
    "image_covers": [
     "DLH1-3-5W",
@@ -3780,7 +3780,7 @@
      "cct": "2700 / 3400 / 4000 K"
     }
    ],
-   "image": "images/holux/dlf-42.jpg",
+   "image": "img/holux/dlf-42.jpg",
    "image_page": "Holux_2.pdf p.18",
    "image_covers": [
     "DLF1-3W-6",
@@ -3860,7 +3860,7 @@
      "control": "DT8 DALI"
     }
    ],
-   "image": "images/holux/dlm-a-43.jpg",
+   "image": "img/holux/dlm-a-43.jpg",
    "image_page": "Holux_2.pdf p.20",
    "image_covers": [
     "DLM1-125-14A1",
@@ -3940,7 +3940,7 @@
      "control": "DT8 DALI"
     }
    ],
-   "image": "images/holux/dlm-b-44.jpg",
+   "image": "img/holux/dlm-b-44.jpg",
    "image_page": "Holux_2.pdf p.20",
    "image_covers": [
     "DLM1-125-14B1",
@@ -4043,7 +4043,7 @@
      "cct": "3000 / 4000 / 5700 K"
     }
    ],
-   "image": "images/holux/dlc-45.jpg",
+   "image": "img/holux/dlc-45.jpg",
    "image_page": "Holux_2.pdf p.21",
    "image_covers": [
     "DLC-6-12C1",
@@ -4122,7 +4122,7 @@
      "note": ""
     }
    ],
-   "image": "images/holux/dls-ip65-46.jpg",
+   "image": "img/holux/dls-ip65-46.jpg",
    "image_page": "Holux_2.pdf p.21",
    "image_covers": [
     "DLS-3-10W",
@@ -4231,7 +4231,7 @@
      "note": ""
     }
    ],
-   "image": "images/holux/pdl-round-recessed-47.jpg",
+   "image": "img/holux/pdl-round-recessed-47.jpg",
    "image_page": "Holux_2.pdf p.23",
    "image_covers": [
     "DL-3-3C1",
@@ -4344,7 +4344,7 @@
      "note": ""
     }
    ],
-   "image": "images/holux/pdl-square-recessed-48.jpg",
+   "image": "img/holux/pdl-square-recessed-48.jpg",
    "image_page": "Holux_2.pdf p.24",
    "image_covers": [
     "DL-3-3C2",
@@ -4433,7 +4433,7 @@
      "note": ""
     }
    ],
-   "image": "images/holux/pdl-round-surface-49.jpg",
+   "image": "img/holux/pdl-round-surface-49.jpg",
    "image_page": "Holux_2.pdf p.25",
    "image_covers": [
     "DL-4-6C3",
@@ -4519,7 +4519,7 @@
      "note": ""
     }
    ],
-   "image": "images/holux/pdl-square-surface-50.jpg",
+   "image": "img/holux/pdl-square-surface-50.jpg",
    "image_page": "Holux_2.pdf p.25",
    "image_covers": [
     "DL-4-6C4",
@@ -4612,7 +4612,7 @@
      "beam": "60° / 90° / 110°"
     }
    ],
-   "image": "images/holux/hb-325-hb-300-w2-51.jpg",
+   "image": "img/holux/hb-325-hb-300-w2-51.jpg",
    "image_page": "Holux_2.pdf p.27",
    "image_covers": [
     "HB-325-240W2",
@@ -4673,7 +4673,7 @@
      "note": "lumens = W × lm/W (not printed)"
     }
    ],
-   "image": "images/holux/hb-b2-185-52.jpg",
+   "image": "img/holux/hb-b2-185-52.jpg",
    "image_page": "Holux_2.pdf p.28",
    "image_covers": [
     "HB-246-100B2",
@@ -4756,7 +4756,7 @@
      "note": ""
     }
    ],
-   "image": "images/holux/hb-b2-3cct-53.jpg",
+   "image": "img/holux/hb-b2-3cct-53.jpg",
    "image_page": "Holux_2.pdf p.28",
    "image_covers": [
     "HB-245-100B2",
@@ -4858,7 +4858,7 @@
      "note": "Power selectable 240W-200W-150W · lumens = W × lm/W (not printed)"
     }
    ],
-   "image": "images/holux/hb-b2-w2-140-160-54.jpg",
+   "image": "img/holux/hb-b2-w2-140-160-54.jpg",
    "image_page": "Holux_2.pdf p.29",
    "image_covers": [
     "HB-240-100B2",
@@ -4913,7 +4913,7 @@
      "note": "15000 / 12000 / 9000 lm · Power selectable 100-80-60W"
     }
    ],
-   "image": "images/holux/lf-a1-3cct-55.jpg",
+   "image": "img/holux/lf-a1-3cct-55.jpg",
    "image_page": "Holux_2.pdf p.31",
    "image_covers": [
     "LF-384-200A1-3CCT",
@@ -5018,7 +5018,7 @@
      "control": "Boke DALI"
     }
    ],
-   "image": "images/holux/ll-u1-56.jpg",
+   "image": "img/holux/ll-u1-56.jpg",
    "image_page": "Holux_2.pdf p.33",
    "image_covers": [
     "LL-12-32U1-WO-840",
@@ -5073,7 +5073,7 @@
      "note": ""
     }
    ],
-   "image": "images/holux/ll-a1-57.jpg",
+   "image": "img/holux/ll-a1-57.jpg",
    "image_page": "Holux_2.pdf p.34",
    "image_covers": [
     "LL-12-30A1-WO-840",
@@ -5123,7 +5123,7 @@
      "control": "Boke DALI"
     }
    ],
-   "image": "images/holux/ll-l1-58.jpg",
+   "image": "img/holux/ll-l1-58.jpg",
    "image_page": "Holux_2.pdf p.34",
    "image_covers": [
     "LL-12-24L1-BO-840",
@@ -5188,7 +5188,7 @@
      "note": ""
     }
    ],
-   "image": "images/holux/ll-a2-59.jpg",
+   "image": "img/holux/ll-a2-59.jpg",
    "image_page": "Holux_2.pdf p.35",
    "image_covers": [
     "LL-12-30A2-WO-840",
@@ -5319,7 +5319,7 @@
      "note": "IC driver"
     }
    ],
-   "image": "images/holux/a60-60.jpg",
+   "image": "img/holux/a60-60.jpg",
    "image_page": "Holux_2.pdf p.37",
    "image_covers": [
     "A60-E27-7W-L",
@@ -5442,7 +5442,7 @@
      "note": "IC driver"
     }
    ],
-   "image": "images/holux/g45-c37-61.jpg",
+   "image": "img/holux/g45-c37-61.jpg",
    "image_page": "Holux_2.pdf p.38",
    "image_covers": [
     "G45-E14E27-4.9W-L",
@@ -5549,7 +5549,7 @@
      "beam": "30°"
     }
    ],
-   "image": "images/holux/gu10-62.jpg",
+   "image": "img/holux/gu10-62.jpg",
    "image_page": "Holux_2.pdf p.39",
    "image_covers": [
     "GU10-GU10-3W-L",
@@ -5623,7 +5623,7 @@
      "beam": "100°"
     }
    ],
-   "image": "images/holux/ra95-lamps-63.jpg",
+   "image": "img/holux/ra95-lamps-63.jpg",
    "image_page": "Holux_2.pdf p.40",
    "image_covers": [
     "A60-E27-7W-RA95",

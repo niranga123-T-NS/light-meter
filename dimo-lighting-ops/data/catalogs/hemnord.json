@@ -65,7 +65,7 @@
      "flag": "No lumens in the catalogue (only LED power) – ask the supplier for lumens / IES · 120 LEDs in the same body as the 75-LED model – confirm size"
     }
    ],
-   "image": "images/hemnord/magic-84-0.jpg",
+   "image": "img/hemnord/magic-84-0.jpg",
    "image_page": "HEMNORD_1.pdf p.2",
    "image_covers": [
     "HEM-T45-75",
@@ -138,7 +138,7 @@
      "flag": "No lumens in the catalogue (only LED power) – ask the supplier for lumens / IES"
     }
    ],
-   "image": "images/hemnord/magic-120-1.jpg",
+   "image": "img/hemnord/magic-120-1.jpg",
    "image_page": "HEMNORD_1.pdf p.4",
    "image_covers": [
     "HEM-T49-120",
@@ -202,7 +202,7 @@
      "flag": "No lumens in the catalogue (only LED power) – ask the supplier for lumens / IES · the catalogue prints code HEM-T44-36 for both RGBW and RGB – (RGB) added here"
     }
    ],
-   "image": "images/hemnord/chris-24-2.jpg",
+   "image": "img/hemnord/chris-24-2.jpg",
    "image_page": "HEMNORD_1.pdf p.6",
    "image_covers": [
     "HEM-T44-24",
@@ -265,7 +265,7 @@
      "flag": "No lumens in the catalogue (only LED power) – ask the supplier for lumens / IES"
     }
    ],
-   "image": "images/hemnord/chris-48-3.jpg",
+   "image": "img/hemnord/chris-48-3.jpg",
    "image_page": "HEMNORD_1.pdf p.8",
    "image_covers": [
     "HEM-T47-48",
@@ -310,7 +310,7 @@
      "flag": "No lumens in the catalogue (only LED power) – ask the supplier for lumens / IES · size read from the drawing (393 front / 426 overall) – confirm"
     }
    ],
-   "image": "images/hemnord/glaxxy-160-4.jpg",
+   "image": "img/hemnord/glaxxy-160-4.jpg",
    "image_page": "HEMNORD_1.pdf p.10",
    "image_covers": [
     "HEM-T160-400"

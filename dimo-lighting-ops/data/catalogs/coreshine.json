@@ -117,7 +117,7 @@
      "flag": "Only in the order list (3000 mm, 70 W) – no spec sheet; 2400 mm is also listed without a wattage"
     }
    ],
-   "image": "images/coreshine/s-line-0.jpg",
+   "image": "img/coreshine/s-line-0.jpg",
    "image_page": "Coreshine.pdf p.16",
    "image_covers": [
     "CFLS-1535",
@@ -238,7 +238,7 @@
      "note": "0-10V, 5–100 %"
     }
    ],
-   "image": "images/coreshine/u-line-1.jpg",
+   "image": "img/coreshine/u-line-1.jpg",
    "image_page": "Coreshine.pdf p.32",
    "image_covers": [
     "CULS-1550",
@@ -296,7 +296,7 @@
      "note": "DIP 35/40/45/50 W"
     }
    ],
-   "image": "images/coreshine/t-line-k1-2.jpg",
+   "image": "img/coreshine/t-line-k1-2.jpg",
    "image_page": "Coreshine.pdf p.39",
    "image_covers": [
     "CTLS1-0620",
@@ -348,7 +348,7 @@
      "note": "DIP 35/40/45/50 W"
     }
    ],
-   "image": "images/coreshine/t-line-k2-3.jpg",
+   "image": "img/coreshine/t-line-k2-3.jpg",
    "image_page": "Coreshine.pdf p.40",
    "image_covers": [
     "CTLS2-0620",
@@ -400,7 +400,7 @@
      "note": "DIP 35/40/45/50 W"
     }
    ],
-   "image": "images/coreshine/t-line-k3-4.jpg",
+   "image": "img/coreshine/t-line-k3-4.jpg",
    "image_page": "Coreshine.pdf p.41",
    "image_covers": [
     "CTLS3-0620",
@@ -458,7 +458,7 @@
      "note": "DIP 40/50/60/70 W; -DT8 (EU) or -10 (US)"
     }
    ],
-   "image": "images/coreshine/h-line-h40-5.jpg",
+   "image": "img/coreshine/h-line-h40-5.jpg",
    "image_page": "Coreshine.pdf p.66",
    "image_covers": [
     "CHL4-1235",
@@ -526,7 +526,7 @@
      "note": "DIP 40/50/60/70 W; -DT8 (EU) or -10 (US)"
     }
    ],
-   "image": "images/coreshine/h-line-h40-5.jpg",
+   "image": "img/coreshine/h-line-h40-5.jpg",
    "image_page": "Coreshine.pdf p.66",
    "image_covers": [
     "CHL4-1235",
@@ -594,7 +594,7 @@
      "note": "DIP 40/50/60/70 W; -DT8 (EU) or -10 (US)"
     }
    ],
-   "image": "images/coreshine/h-line-h40-5.jpg",
+   "image": "img/coreshine/h-line-h40-5.jpg",
    "image_page": "Coreshine.pdf p.66",
    "image_covers": [
     "CHL4-1235",
@@ -678,7 +678,7 @@
      "size": "1416 mm"
     }
    ],
-   "image": "images/coreshine/c-line-8.jpg",
+   "image": "img/coreshine/c-line-8.jpg",
    "image_page": "Coreshine.pdf p.71",
    "image_covers": [
     "C-Line 16W",
