@@ -1,0 +1,4197 @@
+{
+ "brand": "KYD",
+ "source": "KYD_Catalog-NEW_version_1.pdf",
+ "families": [
+  {
+   "family": "01-A",
+   "title": "01-A Series LED bulkhead light (round)",
+   "type": "Bulkhead",
+   "category": "Outdoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "120°",
+   "ip": "IP65",
+   "ik": "IK08",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~50℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik08",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Balcony, Aisle, Bathroom, Outdoor Wall",
+   "pages": "3",
+   "variants": [
+    {
+     "code": "KYD-DL01-A-20W",
+     "w": 20,
+     "lm": 2000,
+     "eff": 100,
+     "size": "ф220 × 70",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL01-A-30W",
+     "w": 30,
+     "lm": 3000,
+     "eff": 100,
+     "size": "ф275 × 80",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL01-A-40W",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "ф350 × 110",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "01-B",
+   "title": "01-B Series LED bulkhead light (oval)",
+   "type": "Bulkhead",
+   "category": "Outdoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "120°",
+   "ip": "IP65",
+   "ik": "IK08",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~50℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik08",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Balcony, Aisle, Bathroom, Outdoor Wall",
+   "pages": "3",
+   "variants": [
+    {
+     "code": "KYD-DL01-B-20W",
+     "w": 20,
+     "lm": 2000,
+     "eff": 100,
+     "size": "220 × 70",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL01-B-30W",
+     "w": 30,
+     "lm": 3000,
+     "eff": 100,
+     "size": "275 × 80",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL01-B-40W",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "350 × 110",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "D1",
+   "title": "D1 Series LED wall light",
+   "type": "Wall light",
+   "category": "Outdoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "120°",
+   "ip": "IP65",
+   "ik": "IK08",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~50℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik08",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Park, Courtyard, Villa, Outdoor Trail",
+   "pages": "3",
+   "variants": [
+    {
+     "code": "KYD-DL01-D1-9W",
+     "w": 9,
+     "lm": 900,
+     "eff": 100,
+     "size": "245 × 180 × 100 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL01-D1-12W",
+     "w": 12,
+     "lm": 1200,
+     "eff": 100,
+     "size": "245 × 180 × 100 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL01-D1-15W",
+     "w": 15,
+     "lm": 1500,
+     "eff": 100,
+     "size": "245 × 180 × 100 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL01-D1-18W",
+     "w": 18,
+     "lm": 1800,
+     "eff": 100,
+     "size": "245 × 180 × 100 [L/W/H]",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "D",
+   "title": "D Series LED up / down wall light (cylinder)",
+   "type": "Wall light",
+   "category": "Outdoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "24°",
+   "ip": "IP65",
+   "ik": "IK08",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~50℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik08",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Balcony, Aisle, Outdoor Wall, Gate",
+   "pages": "3",
+   "variants": [
+    {
+     "code": "KYD-DL01-D-7W",
+     "w": 7,
+     "lm": 700,
+     "eff": 100,
+     "size": "Φ64 × 120 [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL01-D-12W",
+     "w": 12,
+     "lm": 1200,
+     "eff": 100,
+     "size": "Φ90 × 140 [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL01-D-18W",
+     "w": 18,
+     "lm": 1800,
+     "eff": 100,
+     "size": "Φ108 × 140 [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL01-D-24W",
+     "w": 24,
+     "lm": 2400,
+     "eff": 100,
+     "size": "Φ130 × 150 [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL01-D-30W",
+     "w": 30,
+     "lm": 3000,
+     "eff": 100,
+     "size": "Φ145 × 150 [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL01-D-2*7W",
+     "w": 14,
+     "lm": 1400,
+     "eff": 100,
+     "size": "Φ64 × 150 [D/H]",
+     "note": "Two heads 2*7 W, 2*700 lm"
+    },
+    {
+     "code": "KYD-DL01-D-2*12W",
+     "w": 24,
+     "lm": 2400,
+     "eff": 100,
+     "size": "Φ90 × 170 [D/H]",
+     "note": "Two heads 2*12 W, 2*1200 lm"
+    },
+    {
+     "code": "KYD-DL01-D-2*18W",
+     "w": 36,
+     "lm": 3600,
+     "eff": 100,
+     "size": "Φ108 × 170 [D/H]",
+     "note": "Two heads 2*18 W, 2*1800 lm"
+    },
+    {
+     "code": "KYD-DL01-D-2*24W",
+     "w": 48,
+     "lm": 4800,
+     "eff": 100,
+     "size": "Φ130 × 180 [D/H]",
+     "note": "Two heads 2*24 W, 2*2400 lm"
+    },
+    {
+     "code": "KYD-DL01-D-2*30W",
+     "w": 60,
+     "lm": 6000,
+     "eff": 100,
+     "size": "Φ145 × 180 [D/H]",
+     "note": "Two heads 2*30 W, 2*3000 lm"
+    }
+   ]
+  },
+  {
+   "family": "RL01",
+   "title": "LED ramp / step light",
+   "type": "Step light",
+   "category": "Outdoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "120°",
+   "ip": "IP65",
+   "ik": "IK08",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~50℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik08",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Balcony, Aisle, Bathroom, Outdoor Wall",
+   "pages": "4",
+   "variants": [
+    {
+     "code": "KYD-RL01-A-7W",
+     "w": 7,
+     "lm": 350,
+     "eff": 50,
+     "size": "162 × 100 × 65 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-RL01-A-9W",
+     "w": 9,
+     "lm": 450,
+     "eff": 50,
+     "size": "162 × 100 × 65 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-RL01-A-12W",
+     "w": 12,
+     "lm": 600,
+     "eff": 50,
+     "size": "162 × 100 × 65 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-RL01-A-15W",
+     "w": 15,
+     "lm": 750,
+     "eff": 50,
+     "size": "162 × 100 × 65 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-RL01-A-18W",
+     "w": 18,
+     "lm": 1200,
+     "eff": 50,
+     "size": "162 × 100 × 65 [L/W/H]",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "DL-3W",
+   "title": "LED floor / deck light (1-4 sides)",
+   "type": "Deck light",
+   "category": "Outdoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "120°",
+   "ip": "IP65",
+   "ik": "IK08",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.5",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~50℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik08",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Balcony, Aisle, Bathroom, Outdoor Wall",
+   "pages": "4",
+   "variants": [
+    {
+     "code": "KYD-DL-3W-One-Side",
+     "w": 3,
+     "lm": 150,
+     "eff": 50,
+     "size": "ф62 × 85",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL-3W-Tow-Side",
+     "w": 3,
+     "lm": 150,
+     "eff": 50,
+     "size": "ф62 × 85",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL-3W-Three-Side",
+     "w": 3,
+     "lm": 150,
+     "eff": 50,
+     "size": "ф62 × 85",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL-3W-Four-Side",
+     "w": 3,
+     "lm": 150,
+     "eff": 50,
+     "size": "ф62 × 85",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "DL01-C",
+   "title": "LED bollard light (3 power levels)",
+   "type": "Bollard",
+   "category": "Outdoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "120°",
+   "ip": "IP65",
+   "ik": "IK08",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~50℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik08",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Park, Courtyard, Villa, Outdoor Trail",
+   "pages": "4",
+   "variants": [
+    {
+     "code": "KYD-DL01-C-12W",
+     "w": 12,
+     "lm": 1200,
+     "eff": 100,
+     "size": "ф90 × 60/80/100 [D/H]",
+     "note": "Power selectable 7/9/12 W → 700/900/1200 lm"
+    },
+    {
+     "code": "KYD-DL01-C-15W",
+     "w": 12,
+     "lm": 1200,
+     "eff": 100,
+     "size": "ф108 × 60/80/100 [D/H]",
+     "note": "Power selectable 7/9/12 W → 700/900/1200 lm"
+    },
+    {
+     "code": "KYD-DL01-C-20W",
+     "w": 20,
+     "lm": 2000,
+     "eff": 100,
+     "size": "ф145 × 60/80/100 [D/H]",
+     "note": "Power selectable 12/15/20 W → 1200/1500/2000 lm"
+    }
+   ]
+  },
+  {
+   "family": "C1",
+   "title": "C1 Series LED bollard light (lantern, E27)",
+   "type": "Bollard",
+   "category": "Outdoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "180°",
+   "ip": "IP65",
+   "ik": "IK08",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~50℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base E27",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Balcony, Aisle, Outdoor Wall, Gate",
+   "pages": "4",
+   "variants": [
+    {
+     "code": "KYD-DL01-C1-7W",
+     "w": 7,
+     "lm": 700,
+     "eff": 100,
+     "size": "195 × 195 × 270 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL01-C1-9W",
+     "w": 9,
+     "lm": 900,
+     "eff": 100,
+     "size": "195 × 195 × 270 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL01-C1-12W",
+     "w": 12,
+     "lm": 1200,
+     "eff": 100,
+     "size": "195 × 195 × 270 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL01-C1-15W",
+     "w": 15,
+     "lm": 1500,
+     "eff": 100,
+     "size": "195 × 195 × 270 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL01-C1-18W",
+     "w": 18,
+     "lm": 1800,
+     "eff": 100,
+     "size": "195 × 195 × 270 [L/W/H]",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "DL01-E",
+   "title": "LED underground (in-ground) light",
+   "type": "In-ground uplight",
+   "category": "Outdoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "70",
+   "beam": "15/24°",
+   "ip": "IP67",
+   "ik": "IK08",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik08",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Park, Courtyard, Villa, Outdoor Trail",
+   "pages": "5",
+   "variants": [
+    {
+     "code": "KYD-DL01-E-5W",
+     "w": 5,
+     "lm": 500,
+     "eff": 100,
+     "size": "Φ100 × 50 (cut-out Φ95) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL01-E-7W",
+     "w": 7,
+     "lm": 700,
+     "eff": 100,
+     "size": "Φ130 × 50 (cut-out Φ117) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL01-E-9W",
+     "w": 9,
+     "lm": 900,
+     "eff": 100,
+     "size": "Φ150 × 60 (cut-out Φ138) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL01-E-12W",
+     "w": 12,
+     "lm": 1200,
+     "eff": 100,
+     "size": "Φ180 × 65 (cut-out Φ160) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL01-E-18W",
+     "w": 18,
+     "lm": 1800,
+     "eff": 100,
+     "size": "Φ200 × 75 (cut-out Φ188) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL01-E-24W",
+     "w": 24,
+     "lm": 2400,
+     "eff": 100,
+     "size": "Φ220 × 75 (cut-out Φ210) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL01-E-36W",
+     "w": 36,
+     "lm": 3600,
+     "eff": 100,
+     "size": "Φ300 × 80 (cut-out Φ288) [D/H]",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "DL01-F",
+   "title": "Linear LED underground light",
+   "type": "In-ground uplight",
+   "category": "Outdoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "70",
+   "beam": "15/24°",
+   "ip": "IP67",
+   "ik": "IK08",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik08",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Park, Courtyard, Villa, Outdoor Trail",
+   "pages": "5",
+   "variants": [
+    {
+     "code": "KYD-DL01-F-9W",
+     "w": 9,
+     "lm": 900,
+     "eff": 100,
+     "size": "300 × 90 × 75 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL01-F-18W",
+     "w": 18,
+     "lm": 1800,
+     "eff": 100,
+     "size": "600 × 90 × 75 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL01-F-24W",
+     "w": 24,
+     "lm": 2400,
+     "eff": 100,
+     "size": "1000 × 90 × 75 [L/W/H]",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "DL01-H",
+   "title": "Outdoor LED spike / spot light",
+   "type": "Garden spot",
+   "category": "Outdoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "24°",
+   "ip": "IP65",
+   "ik": "IK08",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik08",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Park, Courtyard, Villa, Outdoor Trail",
+   "pages": "5",
+   "variants": [
+    {
+     "code": "KYD-DL01-H1",
+     "w": 9,
+     "lm": 900,
+     "eff": 100,
+     "size": "Φ60 × 95",
+     "note": "Power selectable 5/7/9 W → 500/700/900 lm"
+    },
+    {
+     "code": "KYD-DL01-H2",
+     "w": 9,
+     "lm": 900,
+     "eff": 100,
+     "size": "Φ60 × 95",
+     "note": "Power selectable 5/7/9 W → 500/700/900 lm"
+    },
+    {
+     "code": "KYD-DL01-H3",
+     "w": 20,
+     "lm": 2000,
+     "eff": 100,
+     "size": "Φ80 × 120",
+     "note": "Power selectable 12/15/20 W → 1200/1500/2000 lm"
+    },
+    {
+     "code": "KYD-DL01-H4",
+     "w": 20,
+     "lm": 2000,
+     "eff": 100,
+     "size": "Φ80 × 120",
+     "note": "Power selectable 12/15/20 W → 1200/1500/2000 lm"
+    }
+   ]
+  },
+  {
+   "family": "DL01-K",
+   "title": "LED wall pack light",
+   "type": "Wall pack",
+   "category": "Outdoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "70",
+   "beam": "120°",
+   "ip": "IP65",
+   "ik": "IK08",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik08",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Balcony, Aisle, Outdoor Wall, Gate",
+   "pages": "5",
+   "variants": [
+    {
+     "code": "KYD-DL01-K-60W",
+     "w": 60,
+     "lm": 7800,
+     "eff": 130,
+     "size": "335 × 250 × 160 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL01-K-100W",
+     "w": 100,
+     "lm": 13000,
+     "eff": 130,
+     "size": "335 × 250 × 160 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL01-K-120W",
+     "w": 120,
+     "lm": 15600,
+     "eff": 130,
+     "size": "335 × 250 × 160 [L/W/H]",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "WWL",
+   "title": "LED wall washer",
+   "type": "Wall washer",
+   "category": "Outdoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "70",
+   "beam": "15/24°",
+   "ip": "IP67",
+   "ik": "IK08",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~50℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik08",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Park, Courtyard, Villa, Outdoor Wall",
+   "pages": "6",
+   "variants": [
+    {
+     "code": "KYD-WWL3220",
+     "w": 18,
+     "lm": 1800,
+     "eff": 100,
+     "size": "1000 × 32 × 20 [L/W/H]",
+     "note": "Power selectable 12/18 W → 1200/1800 lm"
+    },
+    {
+     "code": "KYD-WWL3636",
+     "w": 24,
+     "lm": 2400,
+     "eff": 100,
+     "size": "1000 × 36 × 36 [L/W/H]",
+     "note": "Power selectable 18/24 W → 1800/2400 lm"
+    },
+    {
+     "code": "KYD-WWL4638",
+     "w": 36,
+     "lm": 3600,
+     "eff": 100,
+     "size": "1000 × 46 × 38 [L/W/H]",
+     "note": "Power selectable 24/36 W → 2400/3600 lm"
+    },
+    {
+     "code": "KYD-WWL4563",
+     "w": 48,
+     "lm": 4800,
+     "eff": 100,
+     "size": "1000 × 45 × 63 [L/W/H]",
+     "note": "Power selectable 36/48 W → 3600/4800 lm"
+    },
+    {
+     "code": "KYD-WWL5565",
+     "w": 108,
+     "lm": 10800,
+     "eff": 100,
+     "size": "1000 × 55 × 65 [L/W/H]",
+     "note": "Power selectable 72/108 W → 7200/10800 lm"
+    }
+   ]
+  },
+  {
+   "family": "CL",
+   "title": "LED courtyard (post-top) light",
+   "type": "Post-top",
+   "category": "Outdoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "70",
+   "beam": "120°",
+   "ip": "IP67",
+   "ik": "IK08",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~50℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik08",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Park, Courtyard, Villa, Outdoor Trail",
+   "pages": "6",
+   "variants": [
+    {
+     "code": "KYD-CL-30W",
+     "w": 30,
+     "lm": 3900,
+     "eff": 130,
+     "size": "360 × 504 [D/H/HD]",
+     "note": ""
+    },
+    {
+     "code": "KYD-CL-60W",
+     "w": 60,
+     "lm": 7800,
+     "eff": 130,
+     "size": "360 × 504 [D/H/HD]",
+     "note": ""
+    },
+    {
+     "code": "KYD-CL-100W",
+     "w": 100,
+     "lm": 13000,
+     "eff": 130,
+     "size": "360 × 504 [D/H/HD]",
+     "note": ""
+    },
+    {
+     "code": "KYD-CL-150W",
+     "w": 150,
+     "lm": 19500,
+     "eff": 130,
+     "size": "360 × 504 [D/H/HD]",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "S01",
+   "title": "S01 Series LED street light",
+   "type": "Street light",
+   "category": "Outdoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "70",
+   "beam": "70*140°",
+   "ip": "IP66",
+   "ik": "IK08",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "6KV, 5KA",
+   "warranty": 3,
+   "life_h": 30000,
+   "temp": "-20~50℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Highway, Country Road, Car Park, City Road",
+   "pages": "6",
+   "variants": [
+    {
+     "code": "KYD-S01-50W",
+     "w": 50,
+     "lm": 6500,
+     "eff": 130,
+     "size": "339 × 131 × 61 [D/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-S01-100W",
+     "w": 100,
+     "lm": 13000,
+     "eff": 130,
+     "size": "415 × 151 × 61 [D/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-S01-150W",
+     "w": 150,
+     "lm": 19500,
+     "eff": 130,
+     "size": "448 × 178 × 64 [D/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-S01-200W",
+     "w": 200,
+     "lm": 26000,
+     "eff": 130,
+     "size": "482 × 198 × 64 [D/W/H]",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "S02",
+   "title": "S02 Series LED street light (T2/T3/T4/T5 optics)",
+   "type": "Street light",
+   "category": "Outdoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "70",
+   "beam": "T2/T3/T4/T5",
+   "ip": "IP66",
+   "ik": "IK08",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "6KV, 5KA",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~50℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Highway, Country Road, Car Park, City Road",
+   "pages": "6",
+   "variants": [
+    {
+     "code": "KYD-S02-50W",
+     "w": 50,
+     "lm": 7500,
+     "eff": 150,
+     "size": "560 × 196 × 99 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-S02-100W",
+     "w": 100,
+     "lm": 15000,
+     "eff": 150,
+     "size": "610 × 245 × 99 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-S02-150W",
+     "w": 150,
+     "lm": 22500,
+     "eff": 150,
+     "size": "661 × 245 × 99 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-S02-200W",
+     "w": 200,
+     "lm": 30000,
+     "eff": 150,
+     "size": "712 × 300 × 99 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-S02-300W",
+     "w": 300,
+     "lm": 45000,
+     "eff": 150,
+     "size": "715 × 340 × 99 [L/W/H]",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "OSSL",
+   "title": "All-in-one solar street light",
+   "type": "Solar street light",
+   "category": "Outdoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "–",
+   "beam": "70*140°",
+   "ip": "IP66",
+   "ik": "IK08",
+   "voltage": "–",
+   "pf": "–",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~50℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik08",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Highway, Country Road, Car Park, City Road",
+   "pages": "7",
+   "variants": [
+    {
+     "code": "KYD-OSSL-60W",
+     "w": 60,
+     "lm": 6000,
+     "eff": 100,
+     "size": "887 × 400 × 280 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-OSSL-80W",
+     "w": 80,
+     "lm": 8000,
+     "eff": 100,
+     "size": "1160 × 400 × 280 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-OSSL-100W",
+     "w": 100,
+     "lm": 10000,
+     "eff": 100,
+     "size": "1435 × 400 × 280 [L/W/H]",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "TSSL",
+   "title": "All-in-two solar street light (separate panel)",
+   "type": "Solar street light",
+   "category": "Outdoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "–",
+   "beam": "120°",
+   "ip": "IP66",
+   "ik": "IK08",
+   "voltage": "–",
+   "pf": "–",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~50℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik08",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Highway, Country Road, Car Park, City Road",
+   "pages": "7",
+   "variants": [
+    {
+     "code": "KYD-TSSL-60W",
+     "w": 60,
+     "lm": 6000,
+     "eff": 100,
+     "size": "600 × 260 × 60 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-TSSL-80W",
+     "w": 80,
+     "lm": 8000,
+     "eff": 100,
+     "size": "600 × 260 × 60 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-TSSL-100W",
+     "w": 100,
+     "lm": 10000,
+     "eff": 100,
+     "size": "600 × 260 × 60 [L/W/H]",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "FL0201",
+   "title": "FL0201 Series LED floodlight",
+   "type": "Floodlight",
+   "category": "Outdoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "70",
+   "beam": "90°",
+   "ip": "IP66",
+   "ik": "IK08",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.5",
+   "surge": "2KV, 2KA",
+   "warranty": 1,
+   "life_h": 25000,
+   "temp": "-20~50℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Car Park, Pier, Stadium, Outdoor",
+   "pages": "7",
+   "variants": [
+    {
+     "code": "KYD-FL0201-10W",
+     "w": 10,
+     "lm": 1000,
+     "eff": 100,
+     "size": "118 × 90 × 25 [D/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-FL0201-20W",
+     "w": 20,
+     "lm": 2000,
+     "eff": 100,
+     "size": "138 × 113 × 25 [D/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-FL0201-30W",
+     "w": 30,
+     "lm": 3000,
+     "eff": 100,
+     "size": "148 × 123 × 25 [D/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-FL0201-50W",
+     "w": 50,
+     "lm": 5000,
+     "eff": 100,
+     "size": "178 × 152 × 25 [D/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-FL0201-100W",
+     "w": 100,
+     "lm": 10000,
+     "eff": 100,
+     "size": "218 × 182 × 25 [D/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-FL0201-150W",
+     "w": 150,
+     "lm": 15000,
+     "eff": 100,
+     "size": "238 × 192 × 25 [D/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-FL0201-200W",
+     "w": 200,
+     "lm": 20000,
+     "eff": 100,
+     "size": "238 × 212 × 25 [D/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-FL0201-300W",
+     "w": 300,
+     "lm": 30000,
+     "eff": 100,
+     "size": "298 × 212 × 25 [D/W/H]",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "FL0202",
+   "title": "FL0202 Series LED floodlight",
+   "type": "Floodlight",
+   "category": "Outdoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "70",
+   "beam": "30/60/90/120°",
+   "ip": "IP66",
+   "ik": "IK08",
+   "voltage": "AC100-277V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "6KV, 5KA(≥100W)",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~50℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Car Park, Pier, Stadium, Outdoor",
+   "pages": "7",
+   "variants": [
+    {
+     "code": "KYD-FL0202-30W",
+     "w": 30,
+     "lm": 4500,
+     "eff": 150,
+     "size": "263 × 224 × 45 [D/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-FL0202-50W",
+     "w": 50,
+     "lm": 7500,
+     "eff": 150,
+     "size": "263 × 224 × 45 [D/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-FL0202-100W",
+     "w": 100,
+     "lm": 15000,
+     "eff": 150,
+     "size": "315 × 269 × 50 [D/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-FL0202-150W",
+     "w": 150,
+     "lm": 22500,
+     "eff": 150,
+     "size": "370 × 322 × 56 [D/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-FL0202-200W",
+     "w": 200,
+     "lm": 30000,
+     "eff": 150,
+     "size": "416 × 352 × 58 [D/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-FL0202-300W",
+     "w": 300,
+     "lm": 45000,
+     "eff": 150,
+     "size": "481 × 408 × 60 [D/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-FL0202-400W",
+     "w": 400,
+     "lm": 60000,
+     "eff": 150,
+     "size": "490 × 520 × 65 [D/W/H]",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "FL0203",
+   "title": "FL0203 Series LED floodlight",
+   "type": "Floodlight",
+   "category": "Outdoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "70",
+   "beam": "120°",
+   "ip": "IP66",
+   "ik": "IK08",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "6KV, 5KA(≥100W)",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~50℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Car Park, Pier, Stadium, Outdoor",
+   "pages": "8",
+   "variants": [
+    {
+     "code": "KYD-FL0203-20W",
+     "w": 20,
+     "lm": 2600,
+     "eff": 130,
+     "size": "128 × 120 (cut-out 43) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-FL0203-30W",
+     "w": 30,
+     "lm": 3900,
+     "eff": 130,
+     "size": "184 × 180 (cut-out 45) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-FL0203-50W",
+     "w": 50,
+     "lm": 6500,
+     "eff": 130,
+     "size": "226 × 221 (cut-out 53) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-FL0203-100W",
+     "w": 100,
+     "lm": 13000,
+     "eff": 130,
+     "size": "285 × 275 (cut-out 66) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-FL0203-150W",
+     "w": 150,
+     "lm": 19500,
+     "eff": 130,
+     "size": "293 × 293 (cut-out 90) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-FL0203-200W",
+     "w": 200,
+     "lm": 26000,
+     "eff": 130,
+     "size": "336 × 317 (cut-out 90) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-FL0203-300W",
+     "w": 300,
+     "lm": 39000,
+     "eff": 130,
+     "size": "336 × 317 (cut-out 95) [D/H]",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "FL0204",
+   "title": "FL0204 Series modular LED floodlight (stadium)",
+   "type": "Floodlight",
+   "category": "Outdoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "70",
+   "beam": "25/55/90/120°/T2/T3/T4",
+   "ip": "IP66",
+   "ik": "IK08",
+   "voltage": "AC100-277V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "6KV, 5KA",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~50℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Car Park, Pier, Stadium, Outdoor",
+   "pages": "8",
+   "variants": [
+    {
+     "code": "KYD-FL0204-240W",
+     "w": 240,
+     "lm": 36000,
+     "eff": 150,
+     "size": "336 × 350 × 97",
+     "note": ""
+    },
+    {
+     "code": "KYD-FL0204-480W",
+     "w": 480,
+     "lm": 72000,
+     "eff": 150,
+     "size": "654 × 360 × 100",
+     "note": ""
+    },
+    {
+     "code": "KYD-FL0204-720W",
+     "w": 720,
+     "lm": 108000,
+     "eff": 150,
+     "size": "970 × 360 × 100",
+     "note": ""
+    },
+    {
+     "code": "KYD-FL0204-960W",
+     "w": 960,
+     "lm": 144000,
+     "eff": 150,
+     "size": "656 × 680 × 100",
+     "note": ""
+    },
+    {
+     "code": "KYD-FL0204-1200W",
+     "w": 1200,
+     "lm": 180000,
+     "eff": 150,
+     "size": "972 × 680 × 100",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "SL",
+   "title": "Solar LED floodlight",
+   "type": "Solar floodlight",
+   "category": "Outdoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "–",
+   "beam": "120°",
+   "ip": "IP65",
+   "ik": "IK08",
+   "voltage": "–",
+   "pf": "–",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~50℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik08",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Car Park, Pier, Stadium, Outdoor",
+   "pages": "8",
+   "variants": [
+    {
+     "code": "KYD-SL-A",
+     "w": 9,
+     "lm": 900,
+     "eff": 100,
+     "size": "Φ60 × 95",
+     "note": "Power selectable 5/7/9 W → 500/700/900 lm"
+    },
+    {
+     "code": "KYD-SL-A1",
+     "w": 9,
+     "lm": 900,
+     "eff": 100,
+     "size": "Φ60 × 95",
+     "note": "Power selectable 5/7/9 W → 500/700/900 lm"
+    },
+    {
+     "code": "KYD-SL-B",
+     "w": 20,
+     "lm": 2000,
+     "eff": 100,
+     "size": "Φ80 × 120",
+     "note": "Power selectable 12/15/20 W → 1200/1500/2000 lm"
+    },
+    {
+     "code": "KYD-SL-B1",
+     "w": 20,
+     "lm": 2000,
+     "eff": 100,
+     "size": "Φ80 × 120",
+     "note": "Power selectable 12/15/20 W → 1200/1500/2000 lm"
+    }
+   ],
+   "family_flag": "The Solar floodlight table repeats the Outdoor spot light rows (500/700/900 lm, 5/7/9 W, Φ60/Φ80) – the real solar floodlight data is missing; ask KYD"
+  },
+  {
+   "family": "HB01",
+   "title": "HB01 Series UFO LED high bay",
+   "type": "High bay",
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "70",
+   "beam": "90/130°",
+   "ip": "IP65",
+   "ik": "IK08",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik08",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Gymnasium, Warehouses, Workshop, Workstations",
+   "pages": "8",
+   "variants": [
+    {
+     "code": "KYD-HB01-100W",
+     "w": 100,
+     "lm": 15000,
+     "eff": 150,
+     "size": "Φ255 × 160",
+     "note": ""
+    },
+    {
+     "code": "KYD-HB01-150W",
+     "w": 150,
+     "lm": 22500,
+     "eff": 150,
+     "size": "Φ305 × 160",
+     "note": ""
+    },
+    {
+     "code": "KYD-HB01-200W",
+     "w": 200,
+     "lm": 30000,
+     "eff": 150,
+     "size": "Φ360 × 180",
+     "note": ""
+    },
+    {
+     "code": "KYD-HB01-300W",
+     "w": 300,
+     "lm": 45000,
+     "eff": 150,
+     "size": "Φ405 × 190",
+     "note": ""
+    },
+    {
+     "code": "KYD-HB01-400W",
+     "w": 400,
+     "lm": 60000,
+     "eff": 150,
+     "size": "Φ495 × 200",
+     "note": ""
+    },
+    {
+     "code": "KYD-HB01-500W",
+     "w": 500,
+     "lm": 75000,
+     "eff": 150,
+     "size": "Φ495 × 200",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "HB02",
+   "title": "Motion-sensor LED high bay",
+   "type": "High bay",
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "70",
+   "beam": "60/90/130°",
+   "ip": "IP65",
+   "ik": "IK08",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik08",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Gymnasium, Warehouses, Workshop, Workstations",
+   "pages": "9",
+   "variants": [
+    {
+     "code": "KYD-HB02-100W",
+     "w": 100,
+     "lm": 15000,
+     "eff": 150,
+     "size": "Φ290 × 170 [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-HB02-150W",
+     "w": 150,
+     "lm": 22500,
+     "eff": 150,
+     "size": "Φ340 × 185 [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-HB02-200W",
+     "w": 200,
+     "lm": 30000,
+     "eff": 150,
+     "size": "Φ380 × 190 [D/H]",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "HB03",
+   "title": "Linear LED high bay",
+   "type": "High bay",
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "70",
+   "beam": "15/24°",
+   "ip": "IP54",
+   "ik": "IK08",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik08",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Gymnasium, Warehouses, Workshop, Workstations",
+   "pages": "9",
+   "variants": [
+    {
+     "code": "KYD-HB03-A-100W",
+     "w": 100,
+     "lm": 15000,
+     "eff": 150,
+     "size": "670 × 154 × 160 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-HB03-A-150W",
+     "w": 150,
+     "lm": 22500,
+     "eff": 150,
+     "size": "670 × 154 × 160 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-HB03-A-200W",
+     "w": 200,
+     "lm": 30000,
+     "eff": 150,
+     "size": "1290 × 154 × 160 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-HB03-A-300W",
+     "w": 300,
+     "lm": 45000,
+     "eff": 150,
+     "size": "1290 × 154 × 160 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-HB03-B-150W",
+     "w": 150,
+     "lm": 22500,
+     "eff": 150,
+     "size": "600 × 370 × 160 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-HB03-B-200W",
+     "w": 200,
+     "lm": 30000,
+     "eff": 150,
+     "size": "600 × 370 × 160 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-HB03-B-300W",
+     "w": 300,
+     "lm": 45000,
+     "eff": 150,
+     "size": "600 × 370 × 160 [L/W/H]",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "B0612-A",
+   "title": "A Series LED corn bulb (U-shape)",
+   "type": "Lamp",
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "360°",
+   "ip": "IP54",
+   "ik": "IK00",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.5",
+   "surge": "",
+   "warranty": 1,
+   "life_h": 15000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base E27",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Downlight, Street Light, Couryard Light, Workshop Light",
+   "pages": "9",
+   "variants": [
+    {
+     "code": "KYD-B0612-A-5W",
+     "w": 5,
+     "lm": 600,
+     "eff": 120,
+     "size": "Φ42 × 125",
+     "note": ""
+    },
+    {
+     "code": "KYD--B0612-A-7W",
+     "w": 7,
+     "lm": 840,
+     "eff": 120,
+     "size": "Φ42 × 135",
+     "note": ""
+    },
+    {
+     "code": "KYD-B0612-A-9W",
+     "w": 9,
+     "lm": 1080,
+     "eff": 120,
+     "size": "Φ42 × 145",
+     "note": ""
+    },
+    {
+     "code": "KYD-B0612-A-12W",
+     "w": 12,
+     "lm": 1440,
+     "eff": 120,
+     "size": "Φ51 × 170",
+     "note": ""
+    },
+    {
+     "code": "KYD-B0612-A-16W",
+     "w": 16,
+     "lm": 1920,
+     "eff": 120,
+     "size": "Φ57 × 175",
+     "note": ""
+    },
+    {
+     "code": "KYD-B0612-A-24W",
+     "w": 24,
+     "lm": 2880,
+     "eff": 120,
+     "size": "Φ73 × 225",
+     "note": ""
+    },
+    {
+     "code": "KYD-B0612-A-32W",
+     "w": 32,
+     "lm": 3840,
+     "eff": 120,
+     "size": "Φ73 × 265",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "B0612-B",
+   "title": "B Series LED corn bulb",
+   "type": "Lamp",
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "360°",
+   "ip": "IP54",
+   "ik": "IK06",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 30000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base E27/E40",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Downlight, Street Light, Couryard Light, Workshop Light",
+   "pages": "9",
+   "variants": [
+    {
+     "code": "KYD-B0612-B-27W",
+     "w": 27,
+     "lm": 3500,
+     "eff": 130,
+     "size": "Φ87 × 205",
+     "note": ""
+    },
+    {
+     "code": "KYD-B0612-B-36W",
+     "w": 36,
+     "lm": 4680,
+     "eff": 130,
+     "size": "Φ87 × 230",
+     "note": ""
+    },
+    {
+     "code": "KYD-B0612-B-45W",
+     "w": 45,
+     "lm": 5850,
+     "eff": 130,
+     "size": "Φ87 × 265",
+     "note": ""
+    },
+    {
+     "code": "KYD-B0612-B-54W",
+     "w": 54,
+     "lm": 7000,
+     "eff": 130,
+     "size": "Φ87 × 277",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "B0612-C",
+   "title": "C Series high-power LED corn bulb",
+   "type": "Lamp",
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "360°",
+   "ip": "IP54",
+   "ik": "IK06",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 30000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base E27/E40",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Downlight, Street Light, Couryard Light, Workshop Light",
+   "pages": "10",
+   "variants": [
+    {
+     "code": "KYD-B0612-C-60W",
+     "w": 60,
+     "lm": 7800,
+     "eff": 130,
+     "size": "Φ93 × 277",
+     "note": ""
+    },
+    {
+     "code": "KYD-B0612-C-80W",
+     "w": 80,
+     "lm": 10400,
+     "eff": 130,
+     "size": "Φ125 × 259",
+     "note": ""
+    },
+    {
+     "code": "KYD-B0612-C-100W",
+     "w": 100,
+     "lm": 13000,
+     "eff": 130,
+     "size": "Φ125 × 278",
+     "note": ""
+    },
+    {
+     "code": "KYD-B0612-C-120W",
+     "w": 120,
+     "lm": 15600,
+     "eff": 130,
+     "size": "Φ125 × 294",
+     "note": ""
+    },
+    {
+     "code": "KYD-B0612-C-150W",
+     "w": 150,
+     "lm": 19500,
+     "eff": 130,
+     "size": "Φ125 × 324",
+     "note": ""
+    },
+    {
+     "code": "KYD-B0612-C-200W",
+     "w": 200,
+     "lm": 26000,
+     "eff": 130,
+     "size": "Φ125 × 435",
+     "note": ""
+    },
+    {
+     "code": "KYD-B0612-C-250W",
+     "w": 250,
+     "lm": 32500,
+     "eff": 130,
+     "size": "Φ125 × 435",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "PL backlit",
+   "title": "Backlit LED panel",
+   "type": "Panel",
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "70",
+   "beam": "120°",
+   "ip": "IP44",
+   "ik": "IK04",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik04",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Office, Shoppiing Mall, Meeting Room, Hospital",
+   "pages": "10",
+   "variants": [
+    {
+     "code": "KYD-PL6060-40W(Backlit)",
+     "w": 40,
+     "lm": 5200,
+     "eff": 130,
+     "size": "595 × 595 × 30 [L/W/H]",
+     "note": "Lumens 4000/5200 · Efficacy 100/130 lm/W (standard / high version)"
+    },
+    {
+     "code": "KYD-PL12060-72W(Backlit)",
+     "w": 72,
+     "lm": 9300,
+     "eff": 130,
+     "size": "1195 × 595 × 30 [L/W/H]",
+     "note": "Lumens 7200/9300 · Efficacy 100/130 lm/W (standard / high version)"
+    },
+    {
+     "code": "KYD-PL12030-40W(Backlit)",
+     "w": 40,
+     "lm": 5200,
+     "eff": 130,
+     "size": "1195 × 295 × 30 [L/W/H]",
+     "note": "Lumens 4000/5200 · Efficacy 100/130 lm/W (standard / high version)"
+    },
+    {
+     "code": "KYD-PL6030-24W(Backlit)",
+     "w": 24,
+     "lm": 3120,
+     "eff": 130,
+     "size": "595 × 295 × 30 [L/W/H]",
+     "note": "Lumens 2400/3120 · Efficacy 100/130 lm/W (standard / high version)"
+    },
+    {
+     "code": "KYD-PL3030-18W(Backlit)",
+     "w": 18,
+     "lm": 2340,
+     "eff": 130,
+     "size": "295 × 295 × 30 [L/W/H]",
+     "note": "Lumens 1800/2340 · Efficacy 100/130 lm/W (standard / high version)"
+    },
+    {
+     "code": "KYD-PL6060-40W(Surface)",
+     "w": 40,
+     "lm": 5200,
+     "eff": 130,
+     "size": "595 × 595 × 40 [L/W/H]",
+     "note": "Lumens 4000/5200 · Efficacy 100/130 lm/W (standard / high version)"
+    }
+   ]
+  },
+  {
+   "family": "PL edgelit",
+   "title": "Edge-lit LED panel",
+   "type": "Panel",
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "120°",
+   "ip": "IP44",
+   "ik": "IK04",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik04",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Office, Shoppiing Mall, Meeting Room, Hospital",
+   "pages": "10",
+   "variants": [
+    {
+     "code": "KYD-PL6060-40W(Edgelit)",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "595 × 595 × 10 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-PL12060-72W(Edgelit)",
+     "w": 72,
+     "lm": 7200,
+     "eff": 100,
+     "size": "1195 × 595 × 10 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-PL12030-40W(Edgelit)",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "1195 × 295 × 10 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-PL6030-24W(Edgelit)",
+     "w": 24,
+     "lm": 2400,
+     "eff": 100,
+     "size": "595 × 295 × 10 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-PL3030-18W(Edgelit)",
+     "w": 18,
+     "lm": 1800,
+     "eff": 100,
+     "size": "295 × 295 × 10 [L/W/H]",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "PL-A",
+   "title": "Recessed round slim LED panel downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "120°",
+   "ip": "IP44",
+   "ik": "IK04",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 2,
+   "life_h": 25000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik04",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Office, Shoppiing Mall, Meeting Room, Hospital",
+   "pages": "10",
+   "variants": [
+    {
+     "code": "KYD-PL7W-A",
+     "w": 7,
+     "lm": 700,
+     "eff": 100,
+     "size": "Φ120 × 24 (cut-out Φ105) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-PL9W-A",
+     "w": 9,
+     "lm": 900,
+     "eff": 100,
+     "size": "Φ146 × 24 (cut-out Φ135) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-PL12W-A",
+     "w": 12,
+     "lm": 1200,
+     "eff": 100,
+     "size": "Φ174 × 24 (cut-out Φ155) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-PL15W-A",
+     "w": 15,
+     "lm": 1500,
+     "eff": 100,
+     "size": "Φ200 × 24 (cut-out Φ185) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-PL18W-A",
+     "w": 18,
+     "lm": 1800,
+     "eff": 100,
+     "size": "Φ225 × 24 (cut-out Φ205) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-PL24W-A",
+     "w": 24,
+     "lm": 2400,
+     "eff": 100,
+     "size": "Φ300 × 24 (cut-out Φ280) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-PL36W-A",
+     "w": 36,
+     "lm": 3600,
+     "eff": 100,
+     "size": "Φ600 × 24 (cut-out Φ580) [D/H]",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "PL-B",
+   "title": "Surface round LED panel downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "120°",
+   "ip": "IP54",
+   "ik": "IK06",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 2,
+   "life_h": 25000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik06",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Office, Shoppiing Mall, Meeting Room, Hospital",
+   "pages": "11",
+   "variants": [
+    {
+     "code": "KYD-PL7W-B",
+     "w": 7,
+     "lm": 700,
+     "eff": 100,
+     "size": "Φ120 × 40 [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-PL9W-B",
+     "w": 9,
+     "lm": 900,
+     "eff": 100,
+     "size": "Φ146 × 40 [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-PL12W-B",
+     "w": 12,
+     "lm": 1200,
+     "eff": 100,
+     "size": "Φ174 × 40 [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-PL15W-B",
+     "w": 15,
+     "lm": 1500,
+     "eff": 100,
+     "size": "Φ200 × 40 [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-PL18W-B",
+     "w": 18,
+     "lm": 1800,
+     "eff": 100,
+     "size": "Φ225 × 40 [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-PL24W-B",
+     "w": 24,
+     "lm": 2400,
+     "eff": 100,
+     "size": "Φ300 × 40 [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-PL36W-B",
+     "w": 36,
+     "lm": 3600,
+     "eff": 100,
+     "size": "Φ600 × 40 [D/H]",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "DL01 track",
+   "title": "LED track spotlight",
+   "type": "Track spot",
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "15/24/36°",
+   "ip": "IP44",
+   "ik": "IK04",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik04",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Office, Shoppiing Mall, Meeting Room, Hospital",
+   "pages": "11",
+   "variants": [
+    {
+     "code": "KYD-DL01-15W",
+     "w": 15,
+     "lm": 1500,
+     "eff": 100,
+     "size": "Φ50 × 115 [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL01-20W",
+     "w": 20,
+     "lm": 2000,
+     "eff": 100,
+     "size": "Φ60 × 145 [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL01-30W",
+     "w": 30,
+     "lm": 3000,
+     "eff": 100,
+     "size": "Φ70 × 155 [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL01-35W",
+     "w": 35,
+     "lm": 3500,
+     "eff": 100,
+     "size": "Φ70 × 155 [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL01-40W",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "Φ80 × 175 [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL01-50W",
+     "w": 50,
+     "lm": 5000,
+     "eff": 100,
+     "size": "Φ106 × 195 [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL01-60W",
+     "w": 60,
+     "lm": 7800,
+     "eff": 130,
+     "size": "Φ106 × 195 [D/H]",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "DL02",
+   "title": "Magnetic LED track system (48 V)",
+   "type": "Track spot",
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "24/36/120°",
+   "ip": "IP44",
+   "ik": "IK04",
+   "voltage": "DC 48V (magnetic track)",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik04",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Office, Shoppiing Mall, Meeting Room, Hospital",
+   "pages": "11",
+   "variants": [
+    {
+     "code": "KYD-DL02-MFL",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "L 300–1200 × W 22 × H 25",
+     "note": "Magnetic linear flood module 10/20/30/40 W → 1000/2000/3000/4000 lm"
+    },
+    {
+     "code": "KYD-DL02-MSL",
+     "w": 30,
+     "lm": 3000,
+     "eff": 100,
+     "size": "L 112–540 × W 22 × H 25",
+     "note": "Magnetic linear spot (grille) module 6/12/18/24/30 W → 600/1200/1800/2400/3000 lm"
+    },
+    {
+     "code": "KYD-DL02-MASL",
+     "w": 24,
+     "lm": 2400,
+     "eff": 100,
+     "size": "L 133–475 × W 22 × H 40",
+     "note": "Magnetic adjustable spot module 6/12/18/24 W → 600/1200/1800/2400 lm"
+    },
+    {
+     "code": "KYD-DL02-MTL",
+     "w": 20,
+     "lm": 2000,
+     "eff": 100,
+     "size": "Φ35–65 × H 80–140",
+     "note": "Magnetic track spotlight 7/10/15/20 W → 700/1000/1500/2000 lm"
+    },
+    {
+     "code": "KYD-DL02-MSL-P",
+     "w": 25,
+     "lm": 2500,
+     "eff": 100,
+     "size": "Φ60 × H 300–600",
+     "note": "Magnetic pendant 10/18/25 W → 1000/1800/2500 lm",
+     "flag": "Code KYD-DL02-MSL is printed twice (linear spot module and pendant) – \"-P\" added to the pendant; ask KYD"
+    }
+   ]
+  },
+  {
+   "family": "DL03",
+   "title": "Recessed adjustable (gimbal) downlight – catalogue title \"Recessed LED Panel Light\"",
+   "type": "Downlight",
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "15/24/36°",
+   "ip": "IP44",
+   "ik": "IK04",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik04",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Office, Shoppiing Mall, Meeting Room, Hospital",
+   "pages": "11",
+   "variants": [
+    {
+     "code": "KYD-DL03-12W",
+     "w": 12,
+     "lm": 1200,
+     "eff": 100,
+     "size": "Φ90 × 60 (cut-out Φ75) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL03-15W",
+     "w": 15,
+     "lm": 1500,
+     "eff": 100,
+     "size": "Φ102 × 80 (cut-out Φ95) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL03-25W",
+     "w": 25,
+     "lm": 2500,
+     "eff": 100,
+     "size": "Φ125 × 108 (cut-out Φ110) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL03-35W",
+     "w": 35,
+     "lm": 3500,
+     "eff": 100,
+     "size": "Φ140 × 115 (cut-out Φ125) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL03-40W",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "Φ160 × 135 (cut-out Φ135) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL03-50W",
+     "w": 50,
+     "lm": 5000,
+     "eff": 100,
+     "size": "Φ190 × 165 (cut-out Φ175) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL03-60W",
+     "w": 60,
+     "lm": 7800,
+     "eff": 130,
+     "size": "Φ190 × 165 (cut-out Φ175) [D/H]",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "DL04",
+   "title": "Surface cylinder LED downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "45°",
+   "ip": "IP44",
+   "ik": "IK06",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik06",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Office, Shoppiing Mall, Meeting Room, Hospital",
+   "pages": "12",
+   "variants": [
+    {
+     "code": "KYD-DL04-20W",
+     "w": 20,
+     "lm": 2000,
+     "eff": 100,
+     "size": "Φ76 × 150 [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL04-24W",
+     "w": 24,
+     "lm": 2400,
+     "eff": 100,
+     "size": "Φ96 × 150 [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL04-30W",
+     "w": 30,
+     "lm": 3000,
+     "eff": 100,
+     "size": "Φ116 × 150 [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL04-50W",
+     "w": 50,
+     "lm": 5000,
+     "eff": 100,
+     "size": "Φ140 × 160 [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL04-60W",
+     "w": 60,
+     "lm": 6000,
+     "eff": 100,
+     "size": "Φ170 × 180 [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL04-100W",
+     "w": 100,
+     "lm": 10000,
+     "eff": 100,
+     "size": "Φ205 × 210 [D/H]",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "DL05",
+   "title": "Recessed LED spotlight (tiltable)",
+   "type": "Spotlight",
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "15/24/36/55°",
+   "ip": "IP44",
+   "ik": "IK06",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik06",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Office, Shoppiing Mall, Meeting Room, Hospital",
+   "pages": "12",
+   "variants": [
+    {
+     "code": "KYD-DL05-7W",
+     "w": 7,
+     "lm": 700,
+     "eff": 100,
+     "size": "Φ65 × 78 (cut-out Φ55) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL05-10W",
+     "w": 10,
+     "lm": 1000,
+     "eff": 100,
+     "size": "Φ65 × 92 (cut-out Φ55) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL05-10W-P12",
+     "w": 10,
+     "lm": 1000,
+     "eff": 100,
+     "size": "Φ82 × 75 (cut-out Φ75) [D/H]",
+     "note": "",
+     "flag": "Code KYD-DL05-10W is printed twice on page 12 (Φ65 × 92 and Φ82 × 75 models) – \"-P12\" added to the second; ask KYD"
+    },
+    {
+     "code": "KYD-DL05-12W",
+     "w": 12,
+     "lm": 1200,
+     "eff": 100,
+     "size": "Φ82 × 96 (cut-out Φ75) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL05-15W",
+     "w": 15,
+     "lm": 1500,
+     "eff": 100,
+     "size": "Φ82 × 101 (cut-out Φ75) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL05-20W",
+     "w": 20,
+     "lm": 2000,
+     "eff": 100,
+     "size": "Φ82 × 108 (cut-out Φ75) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL05-25W",
+     "w": 25,
+     "lm": 2500,
+     "eff": 100,
+     "size": "Φ105 × 110 (cut-out Φ95) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL05-30W",
+     "w": 30,
+     "lm": 3000,
+     "eff": 130,
+     "size": "Φ105 × 121 (cut-out Φ95) [D/H]",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "DL06",
+   "title": "06 Series LED downlight (reflector)",
+   "type": "Downlight",
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "15/24/36/55°",
+   "ip": "IP44",
+   "ik": "IK06",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik06",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Office, Shoppiing Mall, Meeting Room, Hospital",
+   "pages": "12",
+   "variants": [
+    {
+     "code": "KYD-DL06-10W",
+     "w": 10,
+     "lm": 1000,
+     "eff": 100,
+     "size": "Φ86 × 55 × Φ75",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL06-20W",
+     "w": 20,
+     "lm": 2000,
+     "eff": 100,
+     "size": "Φ101 × 60 × Φ90",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL06-30W",
+     "w": 30,
+     "lm": 3000,
+     "eff": 100,
+     "size": "Φ140 × 73 × Φ125",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL06-40W",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "Φ180 × 94 × Φ165",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL06-50W",
+     "w": 50,
+     "lm": 5000,
+     "eff": 100,
+     "size": "Φ214 × 110 × Φ200",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "DL07",
+   "title": "07 Series IP65 LED downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "60°",
+   "ip": "IP65",
+   "ik": "IK06",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik06",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Office, Shoppiing Mall, Meeting Room, Hospital",
+   "pages": "12",
+   "variants": [
+    {
+     "code": "KYD-DL07-12W",
+     "w": 12,
+     "lm": 1200,
+     "eff": 100,
+     "size": "Φ90 × 47 (cut-out Φ75) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL07-20W",
+     "w": 20,
+     "lm": 2000,
+     "eff": 100,
+     "size": "Φ110 × 59 (cut-out Φ100) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL07-25W",
+     "w": 25,
+     "lm": 2500,
+     "eff": 100,
+     "size": "Φ127 × 70 (cut-out Φ110) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL07-35W",
+     "w": 35,
+     "lm": 3500,
+     "eff": 100,
+     "size": "Φ165 × 80 (cut-out Φ145) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL07-50W",
+     "w": 50,
+     "lm": 5000,
+     "eff": 100,
+     "size": "Φ220 × 90 (cut-out Φ200) [D/H]",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "DL08",
+   "title": "08 Series LED spotlight (COB, adjustable)",
+   "type": "Spotlight",
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "24/38/60°",
+   "ip": "IP44",
+   "ik": "IK06",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik06",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Office, Shoppiing Mall, Meeting Room, Hospital",
+   "pages": "13",
+   "variants": [
+    {
+     "code": "KYD-DL08-7W",
+     "w": 7,
+     "lm": 700,
+     "eff": 100,
+     "size": "Φ65 × 55 (cut-out Φ55) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL08-12W",
+     "w": 12,
+     "lm": 1200,
+     "eff": 100,
+     "size": "Φ85 × 68 (cut-out Φ75) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL08-15W",
+     "w": 15,
+     "lm": 1500,
+     "eff": 100,
+     "size": "Φ100 × 88 (cut-out Φ85) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL08-25W",
+     "w": 25,
+     "lm": 2500,
+     "eff": 100,
+     "size": "Φ140 × 102 (cut-out Φ125) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL08-35W",
+     "w": 35,
+     "lm": 3500,
+     "eff": 100,
+     "size": "Φ175 × 116 (cut-out Φ150) [D/H]",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "DL09",
+   "title": "09 Series LED downlight (SMD / COB)",
+   "type": "Downlight",
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "60/90/120°",
+   "ip": "IP44",
+   "ik": "IK06",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik06",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Office, Shoppiing Mall, Meeting Room, Hospital",
+   "pages": "13",
+   "variants": [
+    {
+     "code": "KYD-DL09-SMD-15W",
+     "w": 15,
+     "lm": 1800,
+     "eff": 120,
+     "size": "Φ115 × 48 (cut-out Φ100) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL09-SMD-25W",
+     "w": 25,
+     "lm": 3000,
+     "eff": 120,
+     "size": "Φ145 × 60 (cut-out Φ130) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL09-SMD-30W",
+     "w": 30,
+     "lm": 3600,
+     "eff": 120,
+     "size": "Φ160 × 60 (cut-out Φ145) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL09-SMD-40W",
+     "w": 40,
+     "lm": 4800,
+     "eff": 120,
+     "size": "Φ190 × 60 (cut-out Φ175) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL09-SMD-50W",
+     "w": 50,
+     "lm": 6000,
+     "eff": 120,
+     "size": "Φ230 × 72 (cut-out Φ215) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL09-COB-15W",
+     "w": 15,
+     "lm": 1500,
+     "eff": 100,
+     "size": "Φ115 × 48 (cut-out Φ100) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL09-COB-25W",
+     "w": 25,
+     "lm": 2500,
+     "eff": 100,
+     "size": "Φ145 × 60 (cut-out Φ130) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL09-COB-30W",
+     "w": 30,
+     "lm": 3000,
+     "eff": 100,
+     "size": "Φ160 × 60 (cut-out Φ145) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL09-COB-40W",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "Φ190 × 60 (cut-out Φ175) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL09-COB-50W",
+     "w": 50,
+     "lm": 5000,
+     "eff": 100,
+     "size": "Φ230 × 72 (cut-out Φ215) [D/H]",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "DL10",
+   "title": "10 Series slim LED downlight",
+   "type": "Downlight",
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "120°",
+   "ip": "IP44",
+   "ik": "IK06",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik06",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Office, Shoppiing Mall, Meeting Room, Hospital",
+   "pages": "13",
+   "variants": [
+    {
+     "code": "KYD-DL10-7W",
+     "w": 7,
+     "lm": 700,
+     "eff": 100,
+     "size": "Φ100 × 30 × Φ75",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL10-9W",
+     "w": 9,
+     "lm": 900,
+     "eff": 100,
+     "size": "Φ120 × 30 × Φ95",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL10-12W",
+     "w": 12,
+     "lm": 1200,
+     "eff": 100,
+     "size": "Φ135 × 30 × Φ115",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL10-15W",
+     "w": 15,
+     "lm": 1500,
+     "eff": 100,
+     "size": "Φ165 × 30 × Φ145",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL10-20W",
+     "w": 20,
+     "lm": 2000,
+     "eff": 100,
+     "size": "Φ195 × 30 × Φ165",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL10-35W",
+     "w": 35,
+     "lm": 3500,
+     "eff": 100,
+     "size": "Φ225 × 30 × Φ195",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "DL11",
+   "title": "Mini LED spotlight (cabinet)",
+   "type": "Spotlight",
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "24°",
+   "ip": "IP65",
+   "ik": "IK06",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.5",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik06",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Office, Cabinet, Display Cabinet, Wine Cabinet",
+   "pages": "13",
+   "variants": [
+    {
+     "code": "KYD-DL11-3W",
+     "w": 3,
+     "lm": 300,
+     "eff": 100,
+     "size": "Φ38 × 39 (cut-out Φ30) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL11-5W",
+     "w": 5,
+     "lm": 500,
+     "eff": 100,
+     "size": "Φ45 × 51 (cut-out Φ40) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL11-7W",
+     "w": 7,
+     "lm": 700,
+     "eff": 100,
+     "size": "Φ57 × 67 (cut-out Φ50) [D/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-DL11-9W",
+     "w": 9,
+     "lm": 900,
+     "eff": 100,
+     "size": "Φ70 × 79 (cut-out Φ60) [D/H]",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "ML",
+   "title": "LED mirror / picture light",
+   "type": "Mirror light",
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "120°",
+   "ip": "IP44",
+   "ik": "IK06",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 30000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik06",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Living rooms, Warehouses, Bathroom, Workstations",
+   "pages": "14",
+   "variants": [
+    {
+     "code": "KYD-ML50-9W",
+     "w": 9,
+     "lm": 900,
+     "eff": 100,
+     "size": "L 500",
+     "note": ""
+    },
+    {
+     "code": "KYD-ML60-12W",
+     "w": 12,
+     "lm": 1200,
+     "eff": 100,
+     "size": "L 600",
+     "note": ""
+    },
+    {
+     "code": "KYD-ML80-15W",
+     "w": 15,
+     "lm": 1500,
+     "eff": 100,
+     "size": "L 800",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "T8",
+   "title": "T8 LED tube",
+   "type": "Tube",
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "150°",
+   "ip": "IP20",
+   "ik": "IK06",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 30000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik06",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Office, Shoppiing Mall, Meeting Room, Hospital",
+   "pages": "14",
+   "variants": [
+    {
+     "code": "KYD-T8-06-10W",
+     "w": 10,
+     "lm": 1200,
+     "eff": 120,
+     "size": "Φ26 × 600 [D/L]",
+     "note": ""
+    },
+    {
+     "code": "KYD-T8-09-14W",
+     "w": 14,
+     "lm": 1680,
+     "eff": 120,
+     "size": "Φ26 × 900 [D/L]",
+     "note": ""
+    },
+    {
+     "code": "KYD-T8-12-18W",
+     "w": 18,
+     "lm": 2160,
+     "eff": 120,
+     "size": "Φ26 × 1200 [D/L]",
+     "note": ""
+    },
+    {
+     "code": "KYD-T8-15-24W",
+     "w": 24,
+     "lm": 2880,
+     "eff": 120,
+     "size": "Φ26 × 1500 [D/L]",
+     "note": ""
+    },
+    {
+     "code": "KYD-T8-24-36W",
+     "w": 36,
+     "lm": 4320,
+     "eff": 120,
+     "size": "Φ26 × 2400 [D/L]",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "T5",
+   "title": "T5 LED tube",
+   "type": "Tube",
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "150°",
+   "ip": "IP20",
+   "ik": "IK06",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 30000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik06",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Office, Shoppiing Mall, Meeting Room, Hospital",
+   "pages": "14",
+   "variants": [
+    {
+     "code": "KYD-T5-06-10W",
+     "w": 10,
+     "lm": 1200,
+     "eff": 120,
+     "size": "Φ22 × 600",
+     "note": ""
+    },
+    {
+     "code": "KYD-T5-09-14W",
+     "w": 14,
+     "lm": 1680,
+     "eff": 120,
+     "size": "Φ22 × 900",
+     "note": ""
+    },
+    {
+     "code": "KYD-T5-12-18W",
+     "w": 18,
+     "lm": 2160,
+     "eff": 120,
+     "size": "Φ22 × 1200",
+     "note": ""
+    },
+    {
+     "code": "KYD-T5-15-24W",
+     "w": 24,
+     "lm": 2880,
+     "eff": 120,
+     "size": "Φ22 × 1500",
+     "note": ""
+    },
+    {
+     "code": "KYD-T5-24-36W",
+     "w": 36,
+     "lm": 4320,
+     "eff": 120,
+     "size": "Φ22 × 2400",
+     "note": ""
+    }
+   ],
+   "family_flag": "The T5 table is identical to the T8 table (same lumens, watts and lengths 600-2400 mm) – T5 lengths are normally 549/849/1149/1449 mm; ask KYD"
+  },
+  {
+   "family": "TI8",
+   "title": "Integrated T8 LED tube (batten)",
+   "type": "Batten",
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "150°",
+   "ip": "IP20",
+   "ik": "IK06",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 30000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik06",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Office, Shoppiing Mall, Meeting Room, Hospital",
+   "pages": "14",
+   "variants": [
+    {
+     "code": "KYD-TI8-06-10W",
+     "w": 10,
+     "lm": 1200,
+     "eff": 120,
+     "size": "600 × 22 × 30 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-TI8-09-14W",
+     "w": 14,
+     "lm": 1680,
+     "eff": 120,
+     "size": "900 × 22 × 30 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-TI8-12-18W",
+     "w": 18,
+     "lm": 2160,
+     "eff": 120,
+     "size": "1200 × 22 × 30 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-TI8-15-24W",
+     "w": 24,
+     "lm": 2880,
+     "eff": 120,
+     "size": "1500 × 22 × 30 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-TI8-24-36W",
+     "w": 36,
+     "lm": 4320,
+     "eff": 120,
+     "size": "2400 × 22 × 30 [L/W/H]",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "BL",
+   "title": "LED batten (slim)",
+   "type": "Batten",
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "120°",
+   "ip": "IP44",
+   "ik": "IK06",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik06",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Office, Store, Workshop, Hospital",
+   "pages": "15",
+   "variants": [
+    {
+     "code": "KYD-BL06-18W",
+     "w": 18,
+     "lm": 2160,
+     "eff": 120,
+     "size": "600 × 75 × 29 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-BL12-36W",
+     "w": 36,
+     "lm": 4320,
+     "eff": 120,
+     "size": "1200 × 75 × 29 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-BL15-48W",
+     "w": 48,
+     "lm": 5760,
+     "eff": 120,
+     "size": "1500 × 75 × 29 [L/W/H]",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "TPL8575",
+   "title": "LED waterproof light",
+   "type": "Tri-proof",
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "120°",
+   "ip": "IP66",
+   "ik": "IK08",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik08",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Garage, Warehouses, Cold Storage, Workstations",
+   "pages": "15",
+   "variants": [
+    {
+     "code": "KYD-TPL8575-18W",
+     "w": 18,
+     "lm": 2160,
+     "eff": 120,
+     "size": "600 × 83 × 72 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-TPL8575-36W",
+     "w": 36,
+     "lm": 4320,
+     "eff": 120,
+     "size": "1200 × 83 × 72 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-TPL8575-48W",
+     "w": 48,
+     "lm": 5760,
+     "eff": 120,
+     "size": "1500 × 83 × 72 [L/W/H]",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "TPL7560",
+   "title": "LED tri-proof light",
+   "type": "Tri-proof",
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "120°",
+   "ip": "IP66",
+   "ik": "IK08",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik08",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Garage, Warehouses, Cold Storage, Workstations",
+   "pages": "15",
+   "variants": [
+    {
+     "code": "KYD-TPL7560-18W",
+     "w": 18,
+     "lm": 1200,
+     "eff": 120,
+     "size": "600 × 74 × 61",
+     "note": ""
+    },
+    {
+     "code": "KYD-TPL7560-36W",
+     "w": 36,
+     "lm": 1680,
+     "eff": 120,
+     "size": "1200 × 74 × 61",
+     "note": ""
+    },
+    {
+     "code": "KYD-TPL7560-48W",
+     "w": 48,
+     "lm": 2160,
+     "eff": 120,
+     "size": "1500 × 74 × 61",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "TPL6555",
+   "title": "ECO LED tri-proof light",
+   "type": "Tri-proof",
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "120°",
+   "ip": "IP66",
+   "ik": "IK08",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik08",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Garage, Warehouses, Cold Storage, Workstations",
+   "pages": "15",
+   "variants": [
+    {
+     "code": "KYD-TPL6555-18W",
+     "w": 20,
+     "lm": 2160,
+     "eff": 120,
+     "size": "600 × 65 × 55 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-TPL6555-36W",
+     "w": 36,
+     "lm": 4320,
+     "eff": 120,
+     "size": "1200 × 65 × 55 [L/W/H]",
+     "note": ""
+    },
+    {
+     "code": "KYD-TPL6555-48W",
+     "w": 48,
+     "lm": 5760,
+     "eff": 120,
+     "size": "1500 × 65 × 55 [L/W/H]",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "SL101",
+   "title": "COB LED strip (DC 12/24 V)",
+   "type": "LED strip / neon flex",
+   "category": "Indoor",
+   "cct": "2700–6500 K, R/G/B/Y/P, RGB, RGBW, RGBWW, CCT-change",
+   "cri": "80/Ra90",
+   "beam": "120°",
+   "ip": "IP20",
+   "ik": "IK06",
+   "voltage": "DC 12 / 24 V",
+   "pf": "–",
+   "surge": "",
+   "warranty": 2,
+   "life_h": 25000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik06",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Living Room, Bedroom, Bathroom, Meeting Room",
+   "pages": "17",
+   "variants": [
+    {
+     "code": "KYD-SL101-4.8W",
+     "w": 4.8,
+     "lm": 520,
+     "eff": 110,
+     "size": "Per metre (reel)",
+     "note": "Watts and lumens per metre"
+    },
+    {
+     "code": "KYD-SL101-9.6W",
+     "w": 9.6,
+     "lm": 1040,
+     "eff": 110,
+     "size": "Per metre (reel)",
+     "note": "Watts and lumens per metre"
+    },
+    {
+     "code": "KYD-SL101-14.4W",
+     "w": 14.4,
+     "lm": 1560,
+     "eff": 110,
+     "size": "Per metre (reel)",
+     "note": "Watts and lumens per metre"
+    }
+   ]
+  },
+  {
+   "family": "SL201",
+   "title": "LED neon flex (DC 12/24 V)",
+   "type": "LED strip / neon flex",
+   "category": "Indoor",
+   "cct": "2700–6500 K, R/G/B/Y/P, RGB, RGBW, RGBWW, CCT-change",
+   "cri": "80/Ra90",
+   "beam": "120°",
+   "ip": "IP67",
+   "ik": "IK06",
+   "voltage": "DC 12 / 24 V",
+   "pf": "–",
+   "surge": "",
+   "warranty": 2,
+   "life_h": 25000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base Ik06",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Living rooms, Bedroom, Bathroom, Outdoor Wall",
+   "pages": "17",
+   "variants": [
+    {
+     "code": "KYD-SL201-4.8W",
+     "w": 4.8,
+     "lm": 360,
+     "eff": 80,
+     "size": "Per metre (reel)",
+     "note": "Lumens 240/360 · Efficacy 50/80 lm/W (standard / high version) · Watts and lumens per metre"
+    },
+    {
+     "code": "KYD-SL201-9.6W",
+     "w": 9.6,
+     "lm": 720,
+     "eff": 80,
+     "size": "Per metre (reel)",
+     "note": "Lumens 480/720 · Efficacy 50/80 lm/W (standard / high version) · Watts and lumens per metre"
+    },
+    {
+     "code": "KYD-SL201-14.4W",
+     "w": 14.4,
+     "lm": 1080,
+     "eff": 80,
+     "size": "Per metre (reel)",
+     "note": "Lumens 720/1080 · Efficacy 50/80 lm/W (standard / high version) · Watts and lumens per metre"
+    }
+   ]
+  },
+  {
+   "family": "B0607",
+   "title": "A-type LED bulb (A60)",
+   "type": "Lamp",
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "180°",
+   "ip": "IP20",
+   "ik": "IK03",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.5",
+   "surge": "",
+   "warranty": 2,
+   "life_h": 25000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base E27",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Chandelier, Table Lamp, Bathroom, Downlight",
+   "pages": "17",
+   "variants": [
+    {
+     "code": "KYD-B0607-2.8W",
+     "w": 2.8,
+     "lm": 500,
+     "eff": 180,
+     "size": "Φ60 × 108",
+     "note": ""
+    },
+    {
+     "code": "KYD-B0607-4.7W",
+     "w": 4.7,
+     "lm": 850,
+     "eff": 180,
+     "size": "Φ60 × 108",
+     "note": ""
+    },
+    {
+     "code": "KYD-B0607-5.8W",
+     "w": 5.8,
+     "lm": 1050,
+     "eff": 180,
+     "size": "Φ60 × 108",
+     "note": ""
+    },
+    {
+     "code": "KYD-B0607-8.1W",
+     "w": 8.1,
+     "lm": 1450,
+     "eff": 180,
+     "size": "Φ60 × 108",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "family": "B0808",
+   "title": "High-power LED bulb (T-bulb)",
+   "type": "Lamp",
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "beam": "180°",
+   "ip": "IP66",
+   "ik": "IK08",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.5",
+   "surge": "",
+   "warranty": 2,
+   "life_h": 25000,
+   "temp": "-20~40℃",
+   "housing": "–",
+   "cover": "–",
+   "mounting": "Lamp base E27",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "order_code": "Applications: Store, Warehouses, Workshop, Workstations",
+   "pages": "17",
+   "variants": [
+    {
+     "code": "KYD-B0808-10W",
+     "w": 10,
+     "lm": 1200,
+     "eff": 120,
+     "size": "Φ70",
+     "note": ""
+    },
+    {
+     "code": "KYD-B0808-20W",
+     "w": 20,
+     "lm": 2400,
+     "eff": 120,
+     "size": "Φ80",
+     "note": ""
+    },
+    {
+     "code": "KYD-B0808-30W",
+     "w": 30,
+     "lm": 3600,
+     "eff": 120,
+     "size": "Φ100",
+     "note": ""
+    },
+    {
+     "code": "KYD-B0808-40W",
+     "w": 40,
+     "lm": 4800,
+     "eff": 120,
+     "size": "Φ120",
+     "note": ""
+    },
+    {
+     "code": "KYD-B0808-50W",
+     "w": 50,
+     "lm": 6000,
+     "eff": 120,
+     "size": "Φ140",
+     "note": ""
+    },
+    {
+     "code": "KYD-B0808-70W",
+     "w": 70,
+     "lm": 7200,
+     "eff": 120,
+     "size": "Φ140",
+     "note": ""
+    },
+    {
+     "code": "KYD-B0808-100W",
+     "w": 100,
+     "lm": 12000,
+     "eff": 120,
+     "size": "Φ150",
+     "note": ""
+    },
+    {
+     "code": "KYD-B0808-120W",
+     "w": 120,
+     "lm": 14400,
+     "eff": 120,
+     "size": "Φ160",
+     "note": ""
+    },
+    {
+     "code": "KYD-B0808-150W",
+     "w": 150,
+     "lm": 18000,
+     "eff": 120,
+     "size": "Φ170",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "life_h": 50000,
+   "temp": "-20 to 40°C",
+   "housing": "Aluminium",
+   "cover": "PC",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "mounting": "",
+   "ik": "IK06",
+   "ip": "IP44",
+   "warranty": 3,
+   "beam": "120°",
+   "family": "KYD5275",
+   "title": "Suspended / surface linear light 130 lm/W",
+   "type": "Linear",
+   "pages": "16",
+   "order_code": "Applications: Office, Shopping Mall, Meeting Room, Supermarket",
+   "variants": [
+    {
+     "code": "KYD5275-12-40W",
+     "w": 40,
+     "lm": 5200,
+     "eff": 130,
+     "size": "1200 × 52 × 75",
+     "note": ""
+    },
+    {
+     "code": "KYD5275-15-50W",
+     "w": 50,
+     "lm": 6500,
+     "eff": 130,
+     "size": "1500 × 52 × 75",
+     "note": ""
+    },
+    {
+     "code": "KYD5275-24-80W",
+     "w": 80,
+     "lm": 10400,
+     "eff": 130,
+     "size": "2400 × 52 × 75",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.9",
+   "surge": "",
+   "life_h": 50000,
+   "temp": "-20 to 40°C",
+   "housing": "Aluminium",
+   "cover": "PC",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "mounting": "",
+   "ik": "IK06",
+   "ip": "IP44",
+   "warranty": 3,
+   "beam": "120°",
+   "family": "KYD7535",
+   "title": "Recessed linear light 100 lm/W",
+   "type": "Linear",
+   "pages": "16",
+   "order_code": "Applications: Office, Shopping Mall, Meeting Room, Supermarket",
+   "variants": [
+    {
+     "code": "KYD7535-40W",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "1200 × 65 × 35",
+     "note": ""
+    },
+    {
+     "code": "KYD7535-50W",
+     "w": 50,
+     "lm": 5000,
+     "eff": 100,
+     "size": "1500 × 65 × 35",
+     "note": ""
+    },
+    {
+     "code": "KYD7535-80W",
+     "w": 80,
+     "lm": 8000,
+     "eff": 100,
+     "size": "2400 × 65 × 35",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.5",
+   "surge": "",
+   "life_h": 30000,
+   "temp": "-20 to 40°C",
+   "housing": "Aluminium / plastic",
+   "cover": "PC",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "mounting": "Lamp base E14 / E27",
+   "ik": "IK06",
+   "ip": "IP20",
+   "warranty": 2,
+   "beam": "150°",
+   "type": "Lamp",
+   "order_code": "",
+   "family": "Candle",
+   "title": "LED candle lamp E14 / E27",
+   "pages": "18",
+   "family_flag": "The candle-lamp table prints codes KYD-DL04-50W / 60W, 5000 / 6000 lm, Φ140 / Φ170 – copied from the surface downlight table (page 12); real candle-lamp data is missing, ask KYD",
+   "variants": [
+    {
+     "code": "KYD-DL04-50W-CANDLE",
+     "w": 50,
+     "lm": 5000,
+     "eff": 100,
+     "size": "Φ140 × 160",
+     "note": "",
+     "flag": "Copied downlight data – not a candle lamp"
+    },
+    {
+     "code": "KYD-DL04-60W-CANDLE",
+     "w": 60,
+     "lm": 6000,
+     "eff": 100,
+     "size": "Φ170 × 180",
+     "note": "",
+     "flag": "Copied downlight data – not a candle lamp"
+    }
+   ]
+  },
+  {
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.5",
+   "surge": "",
+   "life_h": 30000,
+   "temp": "-20 to 40°C",
+   "housing": "Aluminium / plastic",
+   "cover": "PMMA",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "mounting": "Lamp base GU10 / MR16 (GU5.3)",
+   "ik": "IK06",
+   "ip": "IP20",
+   "warranty": 2,
+   "beam": "38° / 60°",
+   "type": "Lamp",
+   "order_code": "",
+   "family": "S0806-A",
+   "title": "A Series GU10 LED bulb (COB)",
+   "pages": "18",
+   "variants": [
+    {
+     "code": "KYD-S0806-A-5W",
+     "w": 5,
+     "lm": 500,
+     "eff": 100,
+     "size": "Φ50 × 57",
+     "note": ""
+    },
+    {
+     "code": "KYD-S0806-A-6W",
+     "w": 6,
+     "lm": 600,
+     "eff": 100,
+     "size": "Φ50 × 57",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.5",
+   "surge": "",
+   "life_h": 30000,
+   "temp": "-20 to 40°C",
+   "housing": "Aluminium / plastic",
+   "cover": "PMMA",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "mounting": "Lamp base GU10 / GU53",
+   "ik": "IK06",
+   "ip": "IP20",
+   "warranty": 2,
+   "beam": "24° / 36° / 60°",
+   "type": "Lamp",
+   "order_code": "",
+   "family": "S0808 AR111",
+   "title": "AR111 LED spot lamp",
+   "pages": "18",
+   "variants": [
+    {
+     "code": "KYD-S0808-12W",
+     "w": 12,
+     "lm": 1200,
+     "eff": 100,
+     "size": "Φ111 × 68",
+     "note": ""
+    },
+    {
+     "code": "KYD-S0808-15W",
+     "w": 15,
+     "lm": 1500,
+     "eff": 100,
+     "size": "Φ111 × 68",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.5",
+   "surge": "",
+   "life_h": 30000,
+   "temp": "-20 to 40°C",
+   "housing": "Plastic + aluminium",
+   "cover": "PMMA",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "mounting": "Lamp base GU10 / MR16 (GU5.3)",
+   "ik": "IK06",
+   "ip": "IP20",
+   "warranty": 2,
+   "beam": "38°",
+   "type": "Lamp",
+   "order_code": "",
+   "family": "S0806-L",
+   "title": "L Series GU10 LED bulb",
+   "pages": "18",
+   "variants": [
+    {
+     "code": "KYD-S0806-L-5W",
+     "w": 5,
+     "lm": 500,
+     "eff": 100,
+     "size": "Φ50 × 55",
+     "note": ""
+    },
+    {
+     "code": "KYD-S0806-L-6W",
+     "w": 6,
+     "lm": 600,
+     "eff": 100,
+     "size": "Φ50 × 55",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.5",
+   "surge": "",
+   "life_h": 30000,
+   "temp": "-20 to 40°C",
+   "housing": "Plastic + aluminium",
+   "cover": "PC",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "mounting": "Lamp base E27",
+   "ik": "IK06",
+   "ip": "IP20",
+   "warranty": 2,
+   "beam": "24° / 36° / 60°",
+   "type": "Lamp",
+   "order_code": "",
+   "family": "S0807 PAR",
+   "title": "LED PAR lamp E27",
+   "pages": "18",
+   "variants": [
+    {
+     "code": "KYD-S0807-8W",
+     "w": 8,
+     "lm": 800,
+     "eff": 100,
+     "size": "Φ64 × 83",
+     "note": ""
+    },
+    {
+     "code": "KYD-S0807-12W",
+     "w": 12,
+     "lm": 1200,
+     "eff": 100,
+     "size": "Φ95 × 95",
+     "note": ""
+    },
+    {
+     "code": "KYD-S0807-18W",
+     "w": 18,
+     "lm": 1800,
+     "eff": 100,
+     "size": "Φ122 × 122",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "category": "Indoor",
+   "cct": "2700–6500 K (choose)",
+   "cri": "80",
+   "voltage": "AC220-240V 50/60Hz",
+   "pf": ">0.5",
+   "surge": "",
+   "life_h": 30000,
+   "temp": "-20 to 40°C",
+   "housing": "Plastic + aluminium",
+   "cover": "PC",
+   "control": "On/off",
+   "leds": "",
+   "driver": "",
+   "mounting": "Lamp base E27",
+   "ik": "IK06",
+   "ip": "IP20",
+   "warranty": 2,
+   "beam": "150°",
+   "type": "Lamp",
+   "order_code": "",
+   "family": "B0608 R",
+   "title": "LED R (reflector) lamp E27",
+   "pages": "18",
+   "variants": [
+    {
+     "code": "KYD-B0608-5W",
+     "w": 5,
+     "lm": 500,
+     "eff": 100,
+     "size": "Φ50 × 118",
+     "note": ""
+    },
+    {
+     "code": "KYD-B0608-7W",
+     "w": 7,
+     "lm": 700,
+     "eff": 100,
+     "size": "Φ63 × 108",
+     "note": ""
+    },
+    {
+     "code": "KYD-B0608-9W",
+     "w": 9,
+     "lm": 900,
+     "eff": 100,
+     "size": "Φ80 × 118",
+     "note": ""
+    },
+    {
+     "code": "KYD-B0608-13W",
+     "w": 13,
+     "lm": 1300,
+     "eff": 100,
+     "size": "Φ95 × 125",
+     "note": ""
+    }
+   ]
+  }
+ ],
+ "accessories": [
+  [
+   "Aluminium LED strip profiles",
+   "30 profile shapes (surface, recessed, corner, wide) with PC diffuser and end caps – no codes or lengths printed",
+   "",
+   "16"
+  ]
+ ]
+}
