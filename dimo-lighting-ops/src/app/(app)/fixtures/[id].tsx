@@ -33,6 +33,7 @@ export default function FixturePage() {
     ['Optical cover', p.cover],
     ['Mounting', p.mounting],
     ['Operating temp.', p.temp],
+    ['Emergency', [p.emergency && `Mode: ${p.emergency}`, p.aut?.length && `autonomy ${p.aut.join(' / ')} h`, p.visibility && `visibility ${p.visibility}`].filter(Boolean).join(' · ') || undefined],
     ['Warranty', p.warranty ? `${p.warranty} years` : undefined],
     ['LED life', p.life ? `${fmt(p.life)} h` : undefined],
     ['Options', p.extras],

@@ -1,0 +1,976 @@
+{
+ "brand": "HEMNORD (Cregini)",
+ "source": "HEMNORD_3.pdf, Hem_nord_8.pdf",
+ "families": [
+  {
+   "family": "BLITA",
+   "title": "BLITA HEM-A01 – LED landscape / garden light",
+   "type": "Outdoor landscape",
+   "category": "Outdoor",
+   "pdf": "Hem_nord_8.pdf",
+   "pages": "2",
+   "cct": "2700K/3000K/4000K",
+   "cri": "Ra ≥80",
+   "ip": "IP54",
+   "ik": "IK08",
+   "voltage": "AC100-277V",
+   "temp": "-15°~ 50°",
+   "housing": "Die-casting Aluminum/PC diﬀuser",
+   "colours": "Black/White/Platinum grey/Shiny grey",
+   "surge": "",
+   "pf": "",
+   "life_h": null,
+   "warranty": null,
+   "beam": "",
+   "control": "On/off",
+   "leds": "",
+   "variants": [
+    {
+     "code": "HEM-A01",
+     "w": 5.0,
+     "lm": 500,
+     "eff": 100,
+     "size": "",
+     "note": "",
+     "flag": ""
+    }
+   ],
+   "image": "img/hemnord3/blita-0.jpg",
+   "image_covers": [
+    "HEM-A01"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "DUMO-B",
+   "title": "DUMO-B HEM-B02 – LED landscape / garden light",
+   "type": "Outdoor landscape",
+   "category": "Outdoor",
+   "pdf": "Hem_nord_8.pdf",
+   "pages": "3",
+   "cct": "2700K/3000K/4000K",
+   "cri": "Ra ≥80",
+   "ip": "IP54",
+   "ik": "IK08",
+   "voltage": "AC100-277V",
+   "temp": "-15°~ 50°",
+   "housing": "Die-casting Aluminum/PC diﬀuser",
+   "colours": "Black/White/Platinum grey/Shiny grey",
+   "surge": "",
+   "pf": "",
+   "life_h": null,
+   "warranty": null,
+   "beam": "",
+   "control": "On/off",
+   "leds": "",
+   "variants": [
+    {
+     "code": "HEM-B02",
+     "w": 10.0,
+     "lm": 1000,
+     "eff": 100,
+     "size": "",
+     "note": "",
+     "flag": ""
+    }
+   ],
+   "image": "img/hemnord3/dumo-b-1.jpg",
+   "image_covers": [
+    "HEM-B02"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "GEKO-C",
+   "title": "GEKO-C HEM-C03 – LED landscape / garden light",
+   "type": "Outdoor landscape",
+   "category": "Outdoor",
+   "pdf": "Hem_nord_8.pdf",
+   "pages": "4",
+   "cct": "2700K/3000K/4000K",
+   "cri": "Ra ≥80",
+   "ip": "IP54",
+   "ik": "IK08",
+   "voltage": "AC100-277V",
+   "temp": "-15°~ 50°",
+   "housing": "Die-casting Aluminum/PC diﬀuser",
+   "colours": "Black/White/Platinum grey/Shiny grey",
+   "surge": "",
+   "pf": "",
+   "life_h": null,
+   "warranty": null,
+   "beam": "",
+   "control": "On/off",
+   "leds": "",
+   "variants": [
+    {
+     "code": "HEM-C03",
+     "w": 7.0,
+     "lm": 700,
+     "eff": 100,
+     "size": "",
+     "note": "",
+     "flag": ""
+    }
+   ],
+   "image": "img/hemnord3/geko-c-2.jpg",
+   "image_covers": [
+    "HEM-C03"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "GOCZA-D",
+   "title": "GOCZA-D HEM-D01 – LED landscape / garden light",
+   "type": "Outdoor landscape",
+   "category": "Outdoor",
+   "pdf": "Hem_nord_8.pdf",
+   "pages": "5",
+   "cct": "2700K/3000K/4000K",
+   "cri": "Ra ≥80",
+   "ip": "IP54",
+   "ik": "IK08",
+   "voltage": "AC100-277V",
+   "temp": "-15°~ 50°",
+   "housing": "Die-casting Aluminum/PC diﬀuser",
+   "colours": "Black/White/Platinum grey/Shiny grey",
+   "surge": "",
+   "pf": "",
+   "life_h": null,
+   "warranty": null,
+   "beam": "",
+   "control": "On/off",
+   "leds": "",
+   "variants": [
+    {
+     "code": "HEM-D01",
+     "w": 5.0,
+     "lm": 500,
+     "eff": 100,
+     "size": "",
+     "note": "",
+     "flag": ""
+    }
+   ],
+   "image": "img/hemnord3/gocza-d-3.jpg",
+   "image_covers": [
+    "HEM-D01"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "KOCCA-A",
+   "title": "KOCCA-A HEM-A02 – LED landscape / garden light",
+   "type": "Outdoor landscape",
+   "category": "Outdoor",
+   "pdf": "Hem_nord_8.pdf",
+   "pages": "6",
+   "cct": "2700K/3000K/4000K",
+   "cri": "Ra ≥80",
+   "ip": "IP54",
+   "ik": "IK08",
+   "voltage": "AC100-277V",
+   "temp": "-15°~ 50°",
+   "housing": "Die-casting Aluminum/PC diﬀuser",
+   "colours": "Black/White/Platinum grey/Shiny grey",
+   "surge": "",
+   "pf": "",
+   "life_h": null,
+   "warranty": null,
+   "beam": "",
+   "control": "On/off",
+   "leds": "",
+   "variants": [
+    {
+     "code": "HEM-A02",
+     "w": 10.0,
+     "lm": 1000,
+     "eff": 100,
+     "size": "",
+     "note": "",
+     "flag": ""
+    }
+   ],
+   "image": "img/hemnord3/kocca-a-4.jpg",
+   "image_covers": [
+    "HEM-A02"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "PROTON",
+   "title": "PROTON HEM-B1507 – LED landscape / garden light",
+   "type": "Outdoor landscape",
+   "category": "Outdoor",
+   "pdf": "Hem_nord_8.pdf",
+   "pages": "7",
+   "cct": "2700K/3000K/4000K",
+   "cri": "Ra ≥80",
+   "ip": "IP54",
+   "ik": "IK08",
+   "voltage": "AC100-277V",
+   "temp": "-15°~ 50°",
+   "housing": "Die-casting Aluminum/PC diﬀuser",
+   "colours": "Black/White/Platinum grey/Shiny grey",
+   "surge": "",
+   "pf": "",
+   "life_h": null,
+   "warranty": null,
+   "beam": "",
+   "control": "On/off",
+   "leds": "",
+   "variants": [
+    {
+     "code": "HEM-B1507",
+     "w": 7.0,
+     "lm": 700,
+     "eff": 100,
+     "size": "",
+     "note": "",
+     "flag": ""
+    }
+   ],
+   "image": "img/hemnord3/proton-5.jpg",
+   "image_covers": [
+    "HEM-B1507"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "PARTICLE",
+   "title": "PARTICLE HEM-B1508 – LED landscape / garden light",
+   "type": "Outdoor landscape",
+   "category": "Outdoor",
+   "pdf": "Hem_nord_8.pdf",
+   "pages": "8",
+   "cct": "2700K/3000K/4000K",
+   "cri": "Ra ≥80",
+   "ip": "IP54",
+   "ik": "IK08",
+   "voltage": "AC100-277V",
+   "temp": "-15°~ 50°",
+   "housing": "Die-casting Aluminum/PC diﬀuser",
+   "colours": "Black/White/Platinum grey/Shiny grey",
+   "surge": "",
+   "pf": "",
+   "life_h": null,
+   "warranty": null,
+   "beam": "",
+   "control": "On/off",
+   "leds": "",
+   "variants": [
+    {
+     "code": "HEM-B1508",
+     "w": 7.0,
+     "lm": 700,
+     "eff": 100,
+     "size": "",
+     "note": "",
+     "flag": ""
+    }
+   ],
+   "image": "img/hemnord3/particle-6.jpg",
+   "image_covers": [
+    "HEM-B1508"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "COLIN",
+   "title": "COLIN HEM-B1510 – LED landscape / garden light",
+   "type": "Outdoor landscape",
+   "category": "Outdoor",
+   "pdf": "Hem_nord_8.pdf",
+   "pages": "9",
+   "cct": "2700K/3000K/4000K",
+   "cri": "Ra ≥80",
+   "ip": "IP65",
+   "ik": "IK08",
+   "voltage": "AC100-277V",
+   "temp": "-15°~ 50°",
+   "housing": "Aluminum/Lens diﬀuser",
+   "colours": "Black/White/Platinum grey/Shiny grey",
+   "surge": "",
+   "pf": "",
+   "life_h": null,
+   "warranty": null,
+   "beam": "",
+   "control": "On/off",
+   "leds": "",
+   "variants": [
+    {
+     "code": "HEM-B1510",
+     "w": 3.0,
+     "lm": 300,
+     "eff": 100,
+     "size": "",
+     "note": "",
+     "flag": ""
+    }
+   ],
+   "image": "img/hemnord3/colin-7.jpg",
+   "image_covers": [
+    "HEM-B1510"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "STELLA",
+   "title": "STELLA HEM-B1514 – LED landscape / garden light",
+   "type": "Outdoor landscape",
+   "category": "Outdoor",
+   "pdf": "Hem_nord_8.pdf",
+   "pages": "10",
+   "cct": "2700K/3000K/4000K/6000K",
+   "cri": "Ra ≥80",
+   "ip": "IP65",
+   "ik": "IK08",
+   "voltage": "AC100-277V",
+   "temp": "-15°~ 50°",
+   "housing": "Aluminum/Lens diﬀuser",
+   "colours": "Black/White/Platinum grey/Shiny grey",
+   "surge": "",
+   "pf": "",
+   "life_h": null,
+   "warranty": null,
+   "beam": "",
+   "control": "On/off",
+   "leds": "",
+   "variants": [
+    {
+     "code": "HEM-B1514",
+     "w": 5.0,
+     "lm": 500,
+     "eff": 100,
+     "size": "",
+     "note": "",
+     "flag": ""
+    }
+   ],
+   "image": "img/hemnord3/stella-8.jpg",
+   "image_covers": [
+    "HEM-B1514"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "QIANT",
+   "title": "QIANT HEM-B1517 – LED landscape / garden light",
+   "type": "Outdoor landscape",
+   "category": "Outdoor",
+   "pdf": "Hem_nord_8.pdf",
+   "pages": "11",
+   "cct": "2700K/3000K/4000K/6000K",
+   "cri": "Ra ≥80",
+   "ip": "IP65",
+   "ik": "IK08",
+   "voltage": "AC100-277V",
+   "temp": "-15°~ 50°",
+   "housing": "Aluminum/Lens diﬀuser",
+   "colours": "Black/White/Platinum grey/Shiny grey",
+   "surge": "",
+   "pf": "",
+   "life_h": null,
+   "warranty": null,
+   "beam": "",
+   "control": "On/off",
+   "leds": "",
+   "variants": [
+    {
+     "code": "HEM-B1517",
+     "w": 7.0,
+     "lm": 700,
+     "eff": 100,
+     "size": "",
+     "note": "",
+     "flag": ""
+    }
+   ],
+   "image": "img/hemnord3/qiant-9.jpg",
+   "image_covers": [
+    "HEM-B1517"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "NOVA",
+   "title": "NOVA HEM-B1519 – LED landscape / garden light",
+   "type": "Outdoor landscape",
+   "category": "Outdoor",
+   "pdf": "Hem_nord_8.pdf",
+   "pages": "12",
+   "cct": "2700K/3000K/4000K/6000K",
+   "cri": "Ra ≥80",
+   "ip": "IP65",
+   "ik": "IK08",
+   "voltage": "AC100-277V",
+   "temp": "-15°~ 50°",
+   "housing": "Aluminum/PC diﬀuser",
+   "colours": "Black/White/Platinum grey/Shiny grey",
+   "surge": "",
+   "pf": "",
+   "life_h": null,
+   "warranty": null,
+   "beam": "",
+   "control": "On/off",
+   "leds": "",
+   "variants": [
+    {
+     "code": "HEM-B1519",
+     "w": 5.0,
+     "lm": 500,
+     "eff": 100,
+     "size": "",
+     "note": "",
+     "flag": ""
+    }
+   ],
+   "image": "img/hemnord3/nova-10.jpg",
+   "image_covers": [
+    "HEM-B1519"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "MATTER",
+   "title": "MATTER HEM-B1521 – LED landscape / garden light",
+   "type": "Outdoor landscape",
+   "category": "Outdoor",
+   "pdf": "Hem_nord_8.pdf",
+   "pages": "13",
+   "cct": "2700K/3000K/4000K",
+   "cri": "Ra ≥80",
+   "ip": "IP65",
+   "ik": "IK08",
+   "voltage": "AC100-277V",
+   "temp": "-15°~ 50°",
+   "housing": "Aluminum/Stainless steel/Lens",
+   "colours": "Black/White/Platinum grey/Shiny grey",
+   "surge": "",
+   "pf": "",
+   "life_h": null,
+   "warranty": null,
+   "beam": "",
+   "control": "On/off",
+   "leds": "",
+   "variants": [
+    {
+     "code": "HEM-B1521",
+     "w": 36.0,
+     "lm": 3600,
+     "eff": 100,
+     "size": "",
+     "note": "",
+     "flag": ""
+    }
+   ],
+   "image": "img/hemnord3/matter-11.jpg",
+   "image_covers": [
+    "HEM-B1521"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "CORSO-B",
+   "title": "CORSO-B HEM-BS-10W – LED landscape / garden light",
+   "type": "Outdoor landscape",
+   "category": "Outdoor",
+   "pdf": "Hem_nord_8.pdf",
+   "pages": "14",
+   "cct": "2700K/3000K/4000K",
+   "cri": "Ra ≥80",
+   "ip": "IP65",
+   "ik": "IK08",
+   "voltage": "AC100-277V",
+   "temp": "-15°~ 50°",
+   "housing": "Aluminum/Stainless steel/Lens",
+   "colours": "Black/White/Platinum grey/Shiny grey",
+   "surge": "",
+   "pf": "",
+   "life_h": null,
+   "warranty": null,
+   "beam": "",
+   "control": "On/off",
+   "leds": "",
+   "variants": [
+    {
+     "code": "HEM-BS-10W",
+     "w": 10.0,
+     "lm": 1000,
+     "eff": 100,
+     "size": "",
+     "note": "",
+     "flag": ""
+    }
+   ],
+   "image": "img/hemnord3/corso-b-12.jpg",
+   "image_covers": [
+    "HEM-BS-10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "TUTER-D",
+   "title": "TUTER-D HEM-TU-10W – LED landscape / garden light",
+   "type": "Outdoor landscape",
+   "category": "Outdoor",
+   "pdf": "Hem_nord_8.pdf",
+   "pages": "15",
+   "cct": "2700K/3000K/4000K",
+   "cri": "Ra ≥80",
+   "ip": "IP65",
+   "ik": "IK08",
+   "voltage": "AC100-277V",
+   "temp": "-15°~ 50°",
+   "housing": "Aluminum/Stainless steel/Lens",
+   "colours": "Black/White/Platinum grey/Shiny grey",
+   "surge": "",
+   "pf": "",
+   "life_h": null,
+   "warranty": null,
+   "beam": "",
+   "control": "On/off",
+   "leds": "",
+   "variants": [
+    {
+     "code": "HEM-TU-10W",
+     "w": 10.0,
+     "lm": 1000,
+     "eff": 100,
+     "size": "",
+     "note": "",
+     "flag": ""
+    }
+   ],
+   "image": "img/hemnord3/tuter-d-13.jpg",
+   "image_covers": [
+    "HEM-TU-10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "RIO-E",
+   "title": "RIO-E HEM-RT-10W – LED landscape / garden light",
+   "type": "Outdoor landscape",
+   "category": "Outdoor",
+   "pdf": "Hem_nord_8.pdf",
+   "pages": "16",
+   "cct": "2700K/3000K/4000K",
+   "cri": "Ra ≥80",
+   "ip": "IP65",
+   "ik": "IK08",
+   "voltage": "AC100-277V",
+   "temp": "-15°~ 50°",
+   "housing": "Aluminum/Stainless steel/Lens",
+   "colours": "Black/White/Platinum grey/Shiny grey",
+   "surge": "",
+   "pf": "",
+   "life_h": null,
+   "warranty": null,
+   "beam": "",
+   "control": "On/off",
+   "leds": "",
+   "variants": [
+    {
+     "code": "HEM-RT-10W",
+     "w": 10.0,
+     "lm": 1000,
+     "eff": 100,
+     "size": "",
+     "note": "",
+     "flag": ""
+    }
+   ],
+   "image": "img/hemnord3/rio-e-14.jpg",
+   "image_covers": [
+    "HEM-RT-10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "SIRI-F",
+   "title": "SIRI-F HEM-ST-10W – LED landscape / garden light",
+   "type": "Outdoor landscape",
+   "category": "Outdoor",
+   "pdf": "Hem_nord_8.pdf",
+   "pages": "17",
+   "cct": "2700K/3000K/4000K",
+   "cri": "Ra ≥80",
+   "ip": "IP65",
+   "ik": "IK08",
+   "voltage": "AC100-277V",
+   "temp": "-15°~ 50°",
+   "housing": "Aluminum/Stainless steel/Lens",
+   "colours": "Black/White/Platinum grey/Shiny grey",
+   "surge": "",
+   "pf": "",
+   "life_h": null,
+   "warranty": null,
+   "beam": "",
+   "control": "On/off",
+   "leds": "",
+   "variants": [
+    {
+     "code": "HEM-ST-10W",
+     "w": 10.0,
+     "lm": 1000,
+     "eff": 100,
+     "size": "",
+     "note": "",
+     "flag": ""
+    }
+   ],
+   "image": "img/hemnord3/siri-f-15.jpg",
+   "image_covers": [
+    "HEM-ST-10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "EURO-1",
+   "title": "EURO-1 HEM-BL-10W – LED landscape / garden light",
+   "type": "Outdoor landscape",
+   "category": "Outdoor",
+   "pdf": "Hem_nord_8.pdf",
+   "pages": "18",
+   "cct": "2700K/3000K/4000K",
+   "cri": "Ra ≥80",
+   "ip": "IP65",
+   "ik": "IK08",
+   "voltage": "AC100-277V",
+   "temp": "-15°~ 50°",
+   "housing": "Aluminum/Stainless steel/Lens",
+   "colours": "Black/White/Platinum grey/Shiny grey",
+   "surge": "",
+   "pf": "",
+   "life_h": null,
+   "warranty": null,
+   "beam": "",
+   "control": "On/off",
+   "leds": "",
+   "variants": [
+    {
+     "code": "HEM-BL-10W",
+     "w": 10.0,
+     "lm": 1000,
+     "eff": 100,
+     "size": "",
+     "note": "",
+     "flag": ""
+    }
+   ],
+   "image": "img/hemnord3/euro-1-16.jpg",
+   "image_covers": [
+    "HEM-BL-10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "EURO-2",
+   "title": "EURO-2 HEM-B2L-10W – LED landscape / garden light",
+   "type": "Outdoor landscape",
+   "category": "Outdoor",
+   "pdf": "Hem_nord_8.pdf",
+   "pages": "19",
+   "cct": "2700K/3000K/4000K",
+   "cri": "Ra ≥80",
+   "ip": "IP65",
+   "ik": "IK08",
+   "voltage": "AC100-277V",
+   "temp": "-15°~ 50°",
+   "housing": "Aluminum/Stainless steel/Lens",
+   "colours": "Black/White/Platinum grey/Shiny grey",
+   "surge": "",
+   "pf": "",
+   "life_h": null,
+   "warranty": null,
+   "beam": "",
+   "control": "On/off",
+   "leds": "",
+   "variants": [
+    {
+     "code": "HEM-B2L-10W",
+     "w": 10.0,
+     "lm": 1000,
+     "eff": 100,
+     "size": "",
+     "note": "",
+     "flag": ""
+    }
+   ],
+   "image": "img/hemnord3/euro-2-17.jpg",
+   "image_covers": [
+    "HEM-B2L-10W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "COMET",
+   "title": "COMET HEM-B1522 – LED landscape / garden light",
+   "type": "Outdoor landscape",
+   "category": "Outdoor",
+   "pdf": "Hem_nord_8.pdf",
+   "pages": "20",
+   "cct": "2700K/3000K/4000K",
+   "cri": "Ra ≥80",
+   "ip": "IP65",
+   "ik": "IK08",
+   "voltage": "AC100-277V",
+   "temp": "-15°~ 50°",
+   "housing": "Aluminum/Tempered glass",
+   "colours": "Matt black/Dark grey",
+   "surge": "",
+   "pf": "",
+   "life_h": null,
+   "warranty": null,
+   "beam": "",
+   "control": "On/off",
+   "leds": "",
+   "variants": [
+    {
+     "code": "HEM-B1522",
+     "w": 30.0,
+     "lm": null,
+     "eff": null,
+     "size": "",
+     "note": "Power 20W/30W",
+     "flag": "Lumens not printed"
+    }
+   ],
+   "image": "img/hemnord3/comet-18.jpg",
+   "image_covers": [
+    "HEM-B1522"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "CLUSTER",
+   "title": "CLUSTER HEM-B1523 – LED landscape / garden light",
+   "type": "Outdoor landscape",
+   "category": "Outdoor",
+   "pdf": "Hem_nord_8.pdf",
+   "pages": "21",
+   "cct": "3000K/6000K",
+   "cri": "Ra ≥80",
+   "ip": "IP66",
+   "ik": "IK08",
+   "voltage": "AC100-277V",
+   "temp": "-25°~60°",
+   "housing": "Aluminum/PC diﬀuser",
+   "colours": "Black/White/Platinum grey/Shiny grey",
+   "surge": "",
+   "pf": "",
+   "life_h": null,
+   "warranty": null,
+   "beam": "",
+   "control": "On/off",
+   "leds": "",
+   "variants": [
+    {
+     "code": "HEM-B1523",
+     "w": 6.0,
+     "lm": null,
+     "eff": null,
+     "size": "",
+     "note": "Power 2*3W",
+     "flag": "Lumens not printed"
+    }
+   ],
+   "image": "img/hemnord3/cluster-19.jpg",
+   "image_covers": [
+    "HEM-B1523"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "APOLLO-3",
+   "title": "APOLLO-3 HEM-AP-30W – narrow-beam architectural spotlight",
+   "type": "Floodlight",
+   "category": "Outdoor",
+   "pdf": "HEMNORD_3.pdf",
+   "pages": "2",
+   "cct": "2700K- 6500K",
+   "cri": "",
+   "ip": "IP66",
+   "ik": "IK08",
+   "voltage": "DC24V/AC100V-265V ",
+   "temp": "-40°C to +50°C",
+   "housing": "Die-cast / extruded aluminium",
+   "surge": "10/6 kV",
+   "pf": "",
+   "life_h": 50000,
+   "warranty": null,
+   "beam": "1°",
+   "control": "ON/OFF/0-10V/Triac/Dali Dimmer/DMX512 ",
+   "leds": "CREE",
+   "variants": [
+    {
+     "code": "HEM-AP-30W",
+     "w": 30.0,
+     "lm": null,
+     "eff": null,
+     "size": "",
+     "note": "",
+     "flag": "No lumens in the catalogue (only LED power) – ask the supplier for lumens / IES"
+    }
+   ],
+   "image": "img/hemnord3/apollo-3-20.jpg",
+   "image_covers": [
+    "HEM-AP-30W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "SHINYO-C-3°",
+   "title": "SHINYO-C-3° HEM-FL-SYC-3° – ultra-narrow 3° beam floodlight for high-rise / bridges",
+   "type": "Floodlight",
+   "category": "Outdoor",
+   "pdf": "HEMNORD_3.pdf",
+   "pages": "4",
+   "cct": "1700K~6000K",
+   "cri": "",
+   "ip": "IP66",
+   "ik": "IK08",
+   "voltage": "AC220V、DC36V、DC24V ",
+   "temp": "-40°C to +50°C",
+   "housing": "Die-cast / extruded aluminium",
+   "surge": "",
+   "pf": "",
+   "life_h": 50000,
+   "warranty": null,
+   "beam": "3° / 5°",
+   "control": "DMX512 (16.7 million colours)",
+   "leds": "CREE",
+   "variants": [
+    {
+     "code": "HEM-FL-SYC-3°",
+     "w": 28.0,
+     "lm": 2240,
+     "eff": 80,
+     "size": "",
+     "note": "Peak intensity 268038 cd, 55703 cd · Power 24–28 W",
+     "flag": ""
+    }
+   ],
+   "image": "img/hemnord3/shinyo-c-3-21.jpg",
+   "image_covers": [
+    "HEM-FL-SYC-3°"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "SHYNO-D-3°",
+   "title": "SHYNO-D-3° HEM-FL-SYD-3° – ultra-narrow 3° beam floodlight for high-rise / bridges",
+   "type": "Floodlight",
+   "category": "Outdoor",
+   "pdf": "HEMNORD_3.pdf",
+   "pages": "5",
+   "cct": "1700K~6000K",
+   "cri": "",
+   "ip": "IP66",
+   "ik": "IK08",
+   "voltage": "AC220V、DC36V、DC24V ",
+   "temp": "-40°C to +50°C",
+   "housing": "Die-cast / extruded aluminium",
+   "surge": "",
+   "pf": "",
+   "life_h": 50000,
+   "warranty": null,
+   "beam": "3° / 5°",
+   "control": "DMX512 (16.7 million colours)",
+   "leds": "CREE",
+   "variants": [
+    {
+     "code": "HEM-FL-SYD-3°",
+     "w": 36.0,
+     "lm": 3060,
+     "eff": 85,
+     "size": "",
+     "note": "Peak intensity 344620 cd, 71618 cd · Power 32–36 W",
+     "flag": ""
+    }
+   ],
+   "image": "img/hemnord3/shyno-d-3-22.jpg",
+   "image_covers": [
+    "HEM-FL-SYD-3°"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "Magic-36-3°",
+   "title": "Magic-36-3° HEM-FL-T51-36 – ultra-narrow 3° beam floodlight for high-rise / bridges",
+   "type": "Floodlight",
+   "category": "Outdoor",
+   "pdf": "HEMNORD_3.pdf",
+   "pages": "6",
+   "cct": "1700K~6000K",
+   "cri": "",
+   "ip": "IP66",
+   "ik": "IK08",
+   "voltage": "AC220V、DC36V、DC24V ",
+   "temp": "-40°C to +50°C",
+   "housing": "Die-cast / extruded aluminium",
+   "surge": "",
+   "pf": "",
+   "life_h": 50000,
+   "warranty": null,
+   "beam": "3° / 5°",
+   "control": "DMX512 (16.7 million colours)",
+   "leds": "CREE",
+   "variants": [
+    {
+     "code": "HEM-FL-T51-36",
+     "w": 90.0,
+     "lm": 6750,
+     "eff": 75,
+     "size": "",
+     "note": "Peak intensity 861552 cd, 179046 cd",
+     "flag": ""
+    }
+   ],
+   "image": "img/hemnord3/magic-36-3-23.jpg",
+   "image_covers": [
+    "HEM-FL-T51-36"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "Magic-60-3°",
+   "title": "Magic-60-3° HEM-FL-T51-60 – ultra-narrow 3° beam floodlight for high-rise / bridges",
+   "type": "Floodlight",
+   "category": "Outdoor",
+   "pdf": "HEMNORD_3.pdf",
+   "pages": "7",
+   "cct": "1700K~6000K",
+   "cri": "",
+   "ip": "IP66",
+   "ik": "IK08",
+   "voltage": "AC220V、DC36V、DC24V ",
+   "temp": "-40°C to +50°C",
+   "housing": "Die-cast / extruded aluminium",
+   "surge": "",
+   "pf": "",
+   "life_h": 50000,
+   "warranty": null,
+   "beam": "3° / 5°",
+   "control": "DMX512 (16.7 million colours)",
+   "leds": "CREE",
+   "variants": [
+    {
+     "code": "HEM-FL-T51-60",
+     "w": 150.0,
+     "lm": 11250,
+     "eff": 75,
+     "size": "",
+     "note": "Peak intensity 1435920 cd, 298410 cd",
+     "flag": ""
+    }
+   ],
+   "image": "img/hemnord3/magic-60-3-24.jpg",
+   "image_covers": [
+    "HEM-FL-T51-60"
+   ],
+   "image_shared_with": []
+  }
+ ]
+}

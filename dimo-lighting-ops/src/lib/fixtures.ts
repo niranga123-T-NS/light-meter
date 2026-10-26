@@ -10,13 +10,13 @@ const base = () => (Platform.OS === 'web' ? '' : SITE);
 
 export type Fixture = {
   id: string; brand: string; cat: string; src: string; page?: string; fam?: string; title: string; type: string; code: string;
-  w?: number; lm?: number; lmMin?: number; eff?: number; lmEst?: boolean; lm2?: number; steps?: number[]; url?: string; extras?: string;
+  w?: number; lm?: number; lmMin?: number; eff?: number; lmEst?: boolean; lm2?: number; steps?: number[]; url?: string; extras?: string; aut?: number[]; emergency?: string; visibility?: string;
   cct: { k: number[]; range?: boolean; rgb?: boolean }; cri?: number; ugr?: number; ip?: number; ik?: number; beam?: string;
   ctrl: { dali?: boolean; v010?: boolean; dmx?: boolean; triac?: boolean; sensor?: boolean; smart?: boolean };
   warranty?: number; life?: number; size?: string; voltage?: string; leds?: string; housing?: string; cover?: string; mounting?: string; control?: string; temp?: string; surge?: string;
   note?: string; flag?: string; img?: string; shared?: number;
 };
-export const FIXTURE_TYPES = ['Panel', 'Downlight', 'Track / spot', 'Linear', 'High bay', 'Floodlight', 'Street light', 'Tri-proof / batten', 'Ceiling light', 'Wall / bulkhead', 'Outdoor landscape', 'Tube / lamp', 'Strip / neon'];
+export const FIXTURE_TYPES = ['Emergency', 'Panel', 'Downlight', 'Track / spot', 'Linear', 'High bay', 'Floodlight', 'Street light', 'Tri-proof / batten', 'Ceiling light', 'Wall / bulkhead', 'Outdoor landscape', 'Tube / lamp', 'Strip / neon'];
 
 let lib: Promise<{ built: string; products: Fixture[] }> | null = null;
 export function loadFixtures() {
@@ -64,7 +64,7 @@ const cctOk = (p: Fixture, k: number) => p.cct.k.includes(k) || (!!p.cct.range &
 
 /* ───────── Requirement / competitor spec ───────── */
 export type Level = 'must' | 'important' | 'nice';
-export type ParamKey = 'type' | 'size' | 'w' | 'lm' | 'cct' | 'cri' | 'ugr' | 'ip' | 'ik' | 'control' | 'beam' | 'warranty' | 'life';
+export type ParamKey = 'type' | 'size' | 'w' | 'lm' | 'cct' | 'cri' | 'ugr' | 'ip' | 'ik' | 'control' | 'beam' | 'aut' | 'warranty' | 'life';
 export type SpecValue = { v: string; level: Level };
 export type Spec = Partial<Record<ParamKey, SpecValue>>;
 export const PARAMS: { key: ParamKey; label: string; hint: string; tol: string; level: Level }[] = [
@@ -79,6 +79,7 @@ export const PARAMS: { key: ParamKey; label: string; hint: string; tol: string; 
   { key: 'ik', label: 'IK (min)', hint: '08', tol: '≥ value', level: 'important' },
   { key: 'control', label: 'Control', hint: 'DALI, 0-10V, DMX…', tol: 'same or better', level: 'important' },
   { key: 'beam', label: 'Beam / optic', hint: '60°, asymmetric', tol: '±15°', level: 'nice' },
+  { key: 'aut', label: 'Emergency autonomy (h)', hint: '3', tol: '≥ value', level: 'must' },
   { key: 'warranty', label: 'Warranty (years)', hint: '5', tol: '≥ value', level: 'important' },
   { key: 'life', label: 'Life (h)', hint: '50000', tol: '≥ value', level: 'nice' },
 ];
@@ -92,7 +93,7 @@ export function parseSpecText(text: string): Spec {
     if (v != null && `${v}`.trim() && !s[k]) s[k] = { v: `${v}`, level: lv(k) };
   };
   const low = t.toLowerCase();
-  const typeRx: [string, RegExp][] = [['High bay', /high.?bay|ufo/], ['Floodlight', /flood ?light|flood|stadium|sports/], ['Street light', /street|road ?light|area light/], ['Panel', /panel|troffer/],
+  const typeRx: [string, RegExp][] = [['Emergency', /emergency|exit sign|evacuation|escape/],['High bay', /high.?bay|ufo/], ['Floodlight', /flood ?light|flood|stadium|sports/], ['Street light', /street|road ?light|area light/], ['Panel', /panel|troffer/],
     ['Downlight', /down ?light/], ['Track / spot', /track|spot ?light/], ['Tri-proof / batten', /tri.?proof|batten|waterproof linear/], ['Linear', /linear|pendant/], ['Ceiling light', /ceiling light/],
     ['Wall / bulkhead', /bulkhead|wall light|wall pack/], ['Outdoor landscape', /bollard|in.?ground|underwater|wall washer/], ['Tube / lamp', /\btube\b|bulb|lamp\b/], ['Strip / neon', /strip|neon/]];
   put('type', typeRx.find(([, rx]) => rx.test(low))?.[0]);
@@ -110,6 +111,7 @@ export function parseSpecText(text: string): Spec {
   const beam = /(asym\w*|type\s*(?:II|III|IV|V)\b|\d{1,3}\s*°\s*[x×*]\s*\d{1,3}\s*°|\d{1,3}\s*°)/i.exec(t)?.[1];
   put('beam', beam);
   put('warranty', /(\d{1,2})\s*(?:years?|yrs?)\s*(?:warranty)?/i.exec(t)?.[1]);
+  if (/emergency|autonomy|duration|evacuation/i.test(t)) put('aut', /(\d)\s*(?:h|hr|hrs|hours?)\b(?!\s*(?:life|lifetime))/i.exec(t)?.[1]);
   put('life', /(\d{2,3}[,.]?\d{3})\s*(?:h|hrs|hours)\b/i.exec(t)?.[1].replace(/[,.]/g, ''));
   return s;
 }
@@ -232,6 +234,13 @@ export function compare(p: Fixture, spec: Spec): Partial<Record<ParamKey, Cell>>
         if (!list.length) { out.beam = c('na', b); break; }
         const near = list.reduce((m, x) => (Math.abs(x - a) < Math.abs(m - a) ? x : m));
         out.beam = c(Math.abs(near - a) <= 15 ? 'ok' : Math.abs(near - a) <= 30 ? 'minor' : 'fail', b, near === a ? '' : `nearest ${near}° (${sgn(near - a)}°)`);
+        break;
+      }
+      case 'aut': {
+        const a = n('aut');
+        if (!p.aut?.length) { out.aut = c('na', p.type === 'Emergency' ? 'central battery' : 'no emergency'); break; }
+        const best = Math.max(...p.aut);
+        out.aut = c(best >= a ? (p.aut.includes(a) ? 'ok' : 'up') : 'fail', `${p.aut.join(' / ')} h`, best >= a ? '' : `${sgn(best - a)} h`);
         break;
       }
       case 'warranty': {
