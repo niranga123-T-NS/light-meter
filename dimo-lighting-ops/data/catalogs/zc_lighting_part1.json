@@ -1,0 +1,1745 @@
+{
+ "brand": "ZC Lighting",
+ "source": "ZC_1.pdf",
+ "families": [
+  {
+   "family": "PL08",
+   "title": "Tennis & padel luminaire – asymmetric, visors, UGR<19, DarkSky",
+   "pages": "9-12",
+   "pdf_page": 6,
+   "type": "Sports floodlight",
+   "category": "Sports",
+   "ip": "IP66",
+   "ik": "IK08",
+   "cct": "3000 / 4000 / 5000 / 5700 / 6500 K",
+   "cri": ">70 (80, 90 optional)",
+   "beam": "Symmetric 25° / 45° / 60° / 90°; asymmetric P45°, 40×120°, T1–T5; front / back visor",
+   "control": "0-10V, DMX512, DALI-2",
+   "voltage": "220-240VAC / 100-277VAC",
+   "surge": "10 kV (20 kV external SPD optional)",
+   "pf": ">0.95",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-30°C to +50°C",
+   "housing": "Die-cast ADC12, powder-coated, black",
+   "cover": "PC lens + tempered glass",
+   "ugr": "<19",
+   "flicker": "<1 %",
+   "mounting": "Top mounting, U-bracket (±180°)",
+   "variants": [
+    {
+     "code": "PL08-240",
+     "w": 240,
+     "lm": 39600,
+     "eff": 165,
+     "kg": 8.5,
+     "size": "914.8 × 344 × 148"
+    },
+    {
+     "code": "PL08-300",
+     "w": 300,
+     "lm": 51200,
+     "eff": 160,
+     "kg": 8.5,
+     "size": "914.8 × 344 × 148",
+     "flag": "51,200 lm does not match 300 W × 160 lm/W = 48,000 lm – check"
+    },
+    {
+     "code": "PL08-400",
+     "w": 400,
+     "lm": 62000,
+     "eff": 155,
+     "kg": 8.5,
+     "size": "914.8 × 344 × 148"
+    },
+    {
+     "code": "PL08-500",
+     "w": 500,
+     "lm": 75000,
+     "eff": 150,
+     "kg": 8.5,
+     "size": "914.8 × 344 × 148"
+    },
+    {
+     "code": "PL08-320 (large)",
+     "w": 320,
+     "lm": 52800,
+     "eff": 165,
+     "kg": 12.8,
+     "size": "1381 × 345.7 × 123"
+    },
+    {
+     "code": "PL08-400 (large)",
+     "w": 400,
+     "lm": 64000,
+     "eff": 160,
+     "kg": 12.8,
+     "size": "1381 × 345.7 × 123",
+     "flag": "The catalogue uses the code PL08-400 for both housings – the large one is marked \"(large)\" here"
+    },
+    {
+     "code": "PL08-500 (large)",
+     "w": 500,
+     "lm": 77500,
+     "eff": 155,
+     "kg": 12.8,
+     "size": "1381 × 345.7 × 123",
+     "flag": "The catalogue uses the code PL08-500 for both housings – the large one is marked \"(large)\" here"
+    },
+    {
+     "code": "PL08-750",
+     "w": 750,
+     "lm": 112500,
+     "eff": 150,
+     "kg": 12.8,
+     "size": "1381 × 345.7 × 123"
+    }
+   ],
+   "image": "img/zc_lighting_part1/pl08-0.jpg",
+   "image_page": "ZC_1.pdf p.7",
+   "image_covers": [
+    "PL08-240",
+    "PL08-300",
+    "PL08-400",
+    "PL08-500",
+    "PL08-320 (large)",
+    "PL08-400 (large)",
+    "PL08-500 (large)",
+    "PL08-750"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FL09",
+   "title": "Ares stadium floodlight 500–1800 W – 1:1 replacement for 2000 W metal halide",
+   "pages": "13-16",
+   "pdf_page": 8,
+   "type": "Sports floodlight",
+   "category": "Sports",
+   "ip": "IP66",
+   "cct": "3000 / 4000 / 5000 / 5700 / 6500 K",
+   "pf": ">0.95",
+   "warranty": 5,
+   "life_h": 50000,
+   "surge": "10 kV (20 kV external SPD optional)",
+   "flicker": "<1 %",
+   "ik": "IK08 / IK10",
+   "cri": ">70 (80, 90, TLCI 90 optional)",
+   "beam": "Symmetric 10° / 15° / 20°; asymmetric P60°; visor optional",
+   "control": "0-10V, DMX512, DALI-2, RGB / RGBW",
+   "voltage": "277-480VAC / 100-277VAC",
+   "temp": "-40°C to +50°C",
+   "housing": "Cold-forged aluminium heat sink, die-cast U-bracket, grey",
+   "cover": "PC lens (+ tempered glass optional)",
+   "epa": "2.3 ft² at 80° tilt",
+   "driver": "Remote: in distribution box, on bracket or on back",
+   "mounting": "U-bracket ±180°, 5° scale, laser sight",
+   "variants": [
+    {
+     "code": "FL09-500",
+     "w": 500,
+     "lm": 82500,
+     "eff": 165,
+     "kg": 18.5,
+     "size": "598 × 485 × 445"
+    },
+    {
+     "code": "FL09-600",
+     "w": 600,
+     "lm": 99000,
+     "eff": 165,
+     "kg": 18.5,
+     "size": "598 × 485 × 445"
+    },
+    {
+     "code": "FL09-800",
+     "w": 800,
+     "lm": 128000,
+     "eff": 160,
+     "kg": 18.5,
+     "size": "598 × 485 × 445"
+    },
+    {
+     "code": "FL09-1000",
+     "w": 1000,
+     "lm": 155000,
+     "eff": 155,
+     "kg": 18.5,
+     "size": "598 × 485 × 445"
+    },
+    {
+     "code": "FL09-1200",
+     "w": 1200,
+     "lm": 180000,
+     "eff": 150,
+     "kg": 18.5,
+     "size": "598 × 485 × 445"
+    },
+    {
+     "code": "FL09-1500",
+     "w": 1500,
+     "lm": 217500,
+     "eff": 145,
+     "kg": 18.5,
+     "size": "598 × 485 × 445"
+    },
+    {
+     "code": "FL09-1650",
+     "w": 1650,
+     "lm": 231000,
+     "eff": 140,
+     "kg": 18.5,
+     "size": "598 × 485 × 445"
+    },
+    {
+     "code": "FL09-1800",
+     "w": 1800,
+     "lm": 243000,
+     "eff": 135,
+     "kg": 18.5,
+     "size": "598 × 485 × 445"
+    }
+   ],
+   "image": "img/zc_lighting_part1/fl09-1.jpg",
+   "image_page": "ZC_1.pdf p.9",
+   "image_covers": [
+    "FL09-500",
+    "FL09-600",
+    "FL09-800",
+    "FL09-1000",
+    "FL09-1200",
+    "FL09-1500",
+    "FL09-1650",
+    "FL09-1800"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FL18",
+   "title": "GameAres cost-effective stadium floodlight 600–1800 W, up to 178 lm/W",
+   "pages": "17-18",
+   "pdf_page": 10,
+   "type": "Sports floodlight",
+   "category": "Sports",
+   "ip": "IP66",
+   "cct": "3000 / 4000 / 5000 / 5700 / 6500 K",
+   "pf": ">0.95",
+   "warranty": 5,
+   "life_h": 50000,
+   "surge": "10 kV (20 kV external SPD optional)",
+   "flicker": "<1 %",
+   "ik": "IK08 / IK10",
+   "cri": ">70 (80, 90, TLCI 90 optional)",
+   "beam": "Symmetric 10° / 15° / 20°; asymmetric P60°; visor optional",
+   "control": "0-10V, DMX512, DALI-2, RGBW (customisable)",
+   "voltage": "277-480VAC / 100-277VAC",
+   "temp": "-40°C to +50°C",
+   "housing": "Die-cast ADC12 heat sink, steel sheet U-bracket, grey",
+   "cover": "PC lens (+ tempered glass optional)",
+   "epa": "2.5 ft²",
+   "mounting": "U-bracket, 5° scale, 360° rotation, laser sight",
+   "variants": [
+    {
+     "code": "FL18-600",
+     "w": 600,
+     "lm": 106800,
+     "eff": 178,
+     "kg": 19,
+     "size": "576 × 504 × 386"
+    },
+    {
+     "code": "FL18-800",
+     "w": 800,
+     "lm": 140000,
+     "eff": 175,
+     "kg": 19,
+     "size": "576 × 504 × 386"
+    },
+    {
+     "code": "FL18-1000",
+     "w": 1000,
+     "lm": 165000,
+     "eff": 165,
+     "kg": 19,
+     "size": "576 × 504 × 386"
+    },
+    {
+     "code": "FL18-1200",
+     "w": 1200,
+     "lm": 186000,
+     "eff": 155,
+     "kg": 19,
+     "size": "576 × 504 × 386"
+    },
+    {
+     "code": "FL18-1500",
+     "w": 1500,
+     "lm": 228000,
+     "eff": 152,
+     "kg": 19,
+     "size": "576 × 504 × 386",
+     "flag": "Printed as 288,000 lm – 1500 W × 152 lm/W = 228,000 lm, taken as 228,000"
+    },
+    {
+     "code": "FL18-1650",
+     "w": 1650,
+     "lm": 247500,
+     "eff": 150,
+     "kg": 19,
+     "size": "576 × 504 × 386"
+    },
+    {
+     "code": "FL18-1800",
+     "w": 1800,
+     "lm": 261000,
+     "eff": 145,
+     "kg": 19,
+     "size": "576 × 504 × 386"
+    }
+   ],
+   "image": "img/zc_lighting_part1/fl18-2.jpg",
+   "image_page": "ZC_1.pdf p.10",
+   "image_covers": [
+    "FL18-600",
+    "FL18-800",
+    "FL18-1000",
+    "FL18-1200",
+    "FL18-1500",
+    "FL18-1650",
+    "FL18-1800"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "SP02",
+   "title": "Radial sports floodlight – DIP switch wattage & CCT, 1:1 HID replacement",
+   "pages": "19-22",
+   "pdf_page": 11,
+   "type": "Sports floodlight",
+   "category": "Sports",
+   "ip": "IP66",
+   "cct": "3000 / 4000 / 5000 / 5700 / 6500 K",
+   "pf": ">0.95",
+   "warranty": 5,
+   "life_h": 50000,
+   "surge": "10 kV (20 kV external SPD optional)",
+   "flicker": "<1 %",
+   "ik": "IK08 / IK10",
+   "cri": ">70 (80, 90, TLCI 90 optional)",
+   "beam": "Symmetric 12° / 25° / 40° / 60°; visor optional",
+   "control": "0-10V, DMX512, DALI-2, RGB / RGBW",
+   "voltage": "176-500VAC / 100-277VAC / 198-440VAC",
+   "temp": "-40°C to +50°C",
+   "housing": "Die-cast ADC12 heat sink, steel U-bracket, grey (black optional)",
+   "cover": "PC lens (+ tempered glass optional)",
+   "power_steps": "3 wattages + 3 CCTs by DIP switch (e.g. 600 W: 600/500/400 W; 1000 W: 1000/800/600 W)",
+   "driver": "Remote: on back, on bracket, on pole or in distribution box",
+   "mounting": "U-bracket or overhead inverted",
+   "variants": [
+    {
+     "code": "SP02-400",
+     "w": 400,
+     "lm": 64000,
+     "eff": 160,
+     "kg": 9,
+     "size": "Ø406 × 398 × 395",
+     "epa": "1.53 ft²"
+    },
+    {
+     "code": "SP02-500",
+     "w": 500,
+     "lm": 85000,
+     "eff": 170,
+     "kg": 9,
+     "size": "Ø406 × 398 × 395"
+    },
+    {
+     "code": "SP02-600",
+     "w": 600,
+     "lm": 96000,
+     "eff": 160,
+     "kg": 9,
+     "size": "Ø406 × 398 × 395"
+    },
+    {
+     "code": "SP02-750",
+     "w": 750,
+     "lm": 116250,
+     "eff": 155,
+     "kg": 10.5,
+     "size": "Ø406 × 398 × 395"
+    },
+    {
+     "code": "SP02-800",
+     "w": 800,
+     "lm": 120000,
+     "eff": 150,
+     "kg": 10.5,
+     "size": "Ø406 × 398 × 395"
+    },
+    {
+     "code": "SP02-1000",
+     "w": 1000,
+     "lm": 175000,
+     "eff": 175,
+     "kg": 14.5,
+     "size": "Ø527 × 535 × 448"
+    },
+    {
+     "code": "SP02-1200",
+     "w": 1200,
+     "lm": 196000,
+     "eff": 155,
+     "kg": 14.5,
+     "size": "Ø527 × 535 × 448",
+     "flag": "196,000 lm does not match 1200 W × 155 lm/W = 186,000 lm – check"
+    }
+   ],
+   "image": "img/zc_lighting_part1/sp02-3.jpg",
+   "image_page": "ZC_1.pdf p.12",
+   "image_covers": [
+    "SP02-400",
+    "SP02-500",
+    "SP02-600",
+    "SP02-750",
+    "SP02-800",
+    "SP02-1000",
+    "SP02-1200"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FL26",
+   "title": "Modular sports floodlight 1–3 modules – field-adjustable wattage & optics, RGBW",
+   "pages": "23-26",
+   "pdf_page": 13,
+   "type": "Sports floodlight",
+   "category": "Sports",
+   "ip": "IP66",
+   "cct": "3000 / 4000 / 5000 / 5700 / 6500 K",
+   "pf": ">0.95",
+   "warranty": 5,
+   "life_h": 50000,
+   "surge": "10 kV (20 kV external SPD optional)",
+   "flicker": "<1 %",
+   "ik": "IK08",
+   "cri": ">70 (80, 90, TLCI 90 optional)",
+   "beam": "Symmetric 4-in-1 (20-30-40-50°), 3-in-1 (60-70-90°) or fixed 10° / 15° / 20° / 30° / 45° / 60° / 90° / 120°; asymmetric 80×152°, 80×145°, 120×148°, 45×105°, 70×100°",
+   "control": "0-10V, DMX512, DALI-2, D4i, RGB / RGBW",
+   "voltage": "176-500VAC / 100-277VAC / 198-440VAC",
+   "temp": "-30°C to +50°C",
+   "housing": "Die-cast ADC12, steel U-bracket, grey or black",
+   "cover": "PC lens (+ tempered glass optional)",
+   "power_steps": "100 / 80 / 60 % (selectable)",
+   "epa": "1 module 0.98–1.36 ft², 2 modules 1.25–2.89 ft², 3 modules 1.52–4.46 ft² (10–90° tilt)",
+   "mounting": "U-bracket ±30° in 5° steps; visor optional",
+   "variants": [
+    {
+     "code": "FL26-300",
+     "w": 300,
+     "lm": 51000,
+     "eff": 170,
+     "kg": 11.5,
+     "size": "518 × 315 × 274"
+    },
+    {
+     "code": "FL26-400",
+     "w": 400,
+     "lm": 66000,
+     "eff": 165,
+     "kg": 11.5,
+     "size": "518 × 315 × 274"
+    },
+    {
+     "code": "FL26-500",
+     "w": 500,
+     "lm": 80000,
+     "eff": 160,
+     "kg": 11.5,
+     "size": "518 × 315 × 274"
+    },
+    {
+     "code": "FL26-600",
+     "w": 600,
+     "lm": 93000,
+     "eff": 155,
+     "kg": 11.5,
+     "size": "518 × 315 × 274"
+    },
+    {
+     "code": "FL26-600 (2 modules)",
+     "w": 600,
+     "lm": 102000,
+     "eff": 170,
+     "kg": 22,
+     "size": "518 × 685 × 274",
+     "flag": "The catalogue uses FL26-600 for both the 1- and 2-module versions"
+    },
+    {
+     "code": "FL26-800",
+     "w": 800,
+     "lm": 132000,
+     "eff": 165,
+     "kg": 22,
+     "size": "518 × 685 × 274"
+    },
+    {
+     "code": "FL26-1000",
+     "w": 1000,
+     "lm": 160000,
+     "eff": 160,
+     "kg": 22,
+     "size": "518 × 685 × 274"
+    },
+    {
+     "code": "FL26-1200",
+     "w": 1200,
+     "lm": 186000,
+     "eff": 155,
+     "kg": 22,
+     "size": "518 × 685 × 274"
+    },
+    {
+     "code": "FL26-900",
+     "w": 900,
+     "lm": 153000,
+     "eff": 170,
+     "kg": 30,
+     "size": "518 × 947 × 274"
+    },
+    {
+     "code": "FL26-1200 (3 modules)",
+     "w": 1200,
+     "lm": 198000,
+     "eff": 165,
+     "kg": 30,
+     "size": "518 × 947 × 274",
+     "flag": "The catalogue uses FL26-1200 for both the 2- and 3-module versions"
+    },
+    {
+     "code": "FL26-1500",
+     "w": 1500,
+     "lm": 240000,
+     "eff": 160,
+     "kg": 30,
+     "size": "518 × 947 × 274"
+    },
+    {
+     "code": "FL26-1800",
+     "w": 1800,
+     "lm": 279000,
+     "eff": 155,
+     "kg": 30,
+     "size": "518 × 947 × 274"
+    }
+   ],
+   "image": "img/zc_lighting_part1/fl26-4.jpg",
+   "image_page": "ZC_1.pdf p.14",
+   "image_covers": [
+    "FL26-300",
+    "FL26-400",
+    "FL26-500",
+    "FL26-600",
+    "FL26-600 (2 modules)",
+    "FL26-800",
+    "FL26-1000",
+    "FL26-1200",
+    "FL26-900",
+    "FL26-1200 (3 modules)",
+    "FL26-1500",
+    "FL26-1800"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "type": "Area floodlight",
+   "category": "High-mast & area",
+   "ip": "IP66",
+   "cct": "3000 / 4000 / 5000 / 5700 / 6500 K (3-in-1 CCT adjustable)",
+   "pf": ">0.95",
+   "warranty": 5,
+   "life_h": 50000,
+   "surge": "6 kV",
+   "flicker": "<1 %",
+   "family": "FL20",
+   "title": "Aviation-grade full-cutoff floodlight – 0 % uplight, 3G vibration (aprons, highways)",
+   "pages": "27-28",
+   "pdf_page": 15,
+   "ik": "IK08 / IK10",
+   "cri": ">70 (80, 90, TLCI 90 optional)",
+   "beam": "Symmetric 30° / 60° / 90°; asymmetric P45°, 40×130°, T1–T5",
+   "control": "0-10V, DMX512, DALI-2",
+   "voltage": "100-277VAC / 200-480VAC",
+   "temp": "-40°C to +50°C",
+   "housing": "Die-cast ADC12 heat sink and U-bracket, white",
+   "cover": "PC lens + tempered glass",
+   "epa": "1.4 ft²",
+   "mounting": "Bracket ±70° + module ±25° in 5° steps",
+   "family_flag": "Headline says 250–1200 W, but the order matrix lists only 400 W and 600 W",
+   "variants": [
+    {
+     "code": "FL20-400",
+     "w": 400,
+     "lm": 56000,
+     "eff": 140,
+     "kg": 15.5,
+     "size": "477 × 458 × 273"
+    },
+    {
+     "code": "FL20-600",
+     "w": 600,
+     "lm": 78000,
+     "eff": 130,
+     "kg": 15.5,
+     "size": "477 × 458 × 273"
+    }
+   ],
+   "image": "img/zc_lighting_part1/fl20-5.jpg",
+   "image_page": "ZC_1.pdf p.15",
+   "image_covers": [
+    "FL20-400",
+    "FL20-600"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "type": "Sports floodlight",
+   "category": "Sports",
+   "ip": "IP66",
+   "cct": "3000 / 4000 / 5000 / 5700 / 6500 K (3-in-1 CCT adjustable)",
+   "pf": ">0.95",
+   "warranty": 5,
+   "life_h": 50000,
+   "surge": "6 kV",
+   "flicker": "<1 %",
+   "family": "FL19",
+   "title": "Ultra-light stadium floodlight 600–2250 W, 5° tilted optics, DarkSky",
+   "pages": "29-30",
+   "pdf_page": 16,
+   "ik": "IK08",
+   "cri": ">70 (80, 90, TLCI 90 optional)",
+   "beam": "Symmetric 10° / 20°; asymmetric P50°; visor, wire guard",
+   "control": "0-10V, DMX512, DALI-2, RGB / RGBW",
+   "voltage": "200-480VAC / 198-440VAC / 180-528VAC",
+   "temp": "-40°C to +50°C",
+   "housing": "Die-cast ADC12 heat sink and U-bracket, grey",
+   "cover": "PC lens + tempered glass",
+   "driver": "Remote (ground or bracket)",
+   "mounting": "U-bracket ±180°, laser sight",
+   "variants": [
+    {
+     "code": "FL19-600",
+     "w": 600,
+     "lm": 102000,
+     "eff": 170,
+     "kg": 11,
+     "size": "634 × 379 × 371",
+     "epa": "2.25 ft²"
+    },
+    {
+     "code": "FL19-750",
+     "w": 750,
+     "lm": 120000,
+     "eff": 160,
+     "kg": 11,
+     "size": "634 × 379 × 371"
+    },
+    {
+     "code": "FL19-1200",
+     "w": 1200,
+     "lm": 204000,
+     "eff": 170,
+     "kg": 18,
+     "size": "634 × 501 × 388",
+     "epa": "2.98 ft²"
+    },
+    {
+     "code": "FL19-1500",
+     "w": 1500,
+     "lm": 240000,
+     "eff": 160,
+     "kg": 18,
+     "size": "634 × 501 × 388"
+    },
+    {
+     "code": "FL19-1800",
+     "w": 1800,
+     "lm": 306000,
+     "eff": 170,
+     "kg": 25,
+     "size": "634 × 741 × 388",
+     "epa": "4.11 ft²"
+    },
+    {
+     "code": "FL19-2250",
+     "w": 2250,
+     "lm": 360000,
+     "eff": 160,
+     "kg": 25,
+     "size": "634 × 741 × 388"
+    }
+   ],
+   "image": "img/zc_lighting_part1/fl19-6.jpg",
+   "image_page": "ZC_1.pdf p.16",
+   "image_covers": [
+    "FL19-600",
+    "FL19-750",
+    "FL19-1200",
+    "FL19-1500",
+    "FL19-1800",
+    "FL19-2250"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FL16 Plus",
+   "title": "Skived-fin sports floodlight 500–1800 W with tempered glass + visor (coastal / harsh)",
+   "pages": "31-32",
+   "pdf_page": 17,
+   "type": "Sports floodlight",
+   "category": "Sports",
+   "ip": "IP66",
+   "cct": "3000 / 4000 / 5000 / 5700 / 6500 K",
+   "pf": ">0.95",
+   "warranty": 5,
+   "life_h": 50000,
+   "surge": "10 kV (20 kV external SPD optional)",
+   "flicker": "<1 %",
+   "ik": "IK08",
+   "cri": ">70 (80, 90, TLCI 90 optional)",
+   "beam": "Symmetric 10° / 15° / 20° / 30° / 60°; asymmetric P50°; visor optional",
+   "control": "0-10V, DMX512, DALI-2",
+   "voltage": "100-277VAC / 198-528VAC",
+   "temp": "-40°C to +50°C",
+   "mounting": "Bracket tilt 0–30° (5° steps), module 0–180°, laser sight",
+   "housing": "Skived AL1060 heat sink, steel U-bracket, grey",
+   "cover": "PC lens + tempered glass",
+   "variants": [
+    {
+     "code": "FL16 Plus-500",
+     "w": 500,
+     "lm": 77500,
+     "eff": 155,
+     "kg": 11.5,
+     "size": "523 × 375 × 173",
+     "epa": "1.24 ft²"
+    },
+    {
+     "code": "FL16 Plus-600",
+     "w": 600,
+     "lm": 87000,
+     "eff": 145,
+     "kg": 11.5,
+     "size": "523 × 375 × 173",
+     "epa": "1.24 ft²"
+    },
+    {
+     "code": "FL16 Plus-1000",
+     "w": 1000,
+     "lm": 155000,
+     "eff": 155,
+     "kg": 22.5,
+     "size": "565 × 653 × 173",
+     "epa": "2.40 ft²"
+    },
+    {
+     "code": "FL16 Plus-1200",
+     "w": 1200,
+     "lm": 174000,
+     "eff": 145,
+     "kg": 22.5,
+     "size": "565 × 653 × 173",
+     "epa": "2.40 ft²"
+    },
+    {
+     "code": "FL16 Plus-1500",
+     "w": 1500,
+     "lm": 232500,
+     "eff": 155,
+     "kg": 35.5,
+     "size": "565 × 828 × 173",
+     "epa": "3.62 ft²"
+    },
+    {
+     "code": "FL16 Plus-1800",
+     "w": 1800,
+     "lm": 261000,
+     "eff": 145,
+     "kg": 35.5,
+     "size": "565 × 828 × 173",
+     "epa": "3.62 ft²"
+    }
+   ],
+   "image": "img/zc_lighting_part1/fl16-plus-7.jpg",
+   "image_page": "ZC_1.pdf p.17",
+   "image_covers": [
+    "FL16 Plus-500",
+    "FL16 Plus-600",
+    "FL16 Plus-1000",
+    "FL16 Plus-1200",
+    "FL16 Plus-1500",
+    "FL16 Plus-1800"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FL16",
+   "title": "Skived-fin sports floodlight 500–1800 W, PC optics (light, cost-effective)",
+   "pages": "33-34",
+   "pdf_page": 18,
+   "type": "Sports floodlight",
+   "category": "Sports",
+   "ip": "IP66",
+   "cct": "3000 / 4000 / 5000 / 5700 / 6500 K",
+   "pf": ">0.95",
+   "warranty": 5,
+   "life_h": 50000,
+   "surge": "10 kV (20 kV external SPD optional)",
+   "flicker": "<1 %",
+   "ik": "IK08",
+   "cri": ">70 (80, 90, TLCI 90 optional)",
+   "beam": "Symmetric 10° / 15° / 20° / 30° / 60°; asymmetric P50°; visor optional",
+   "control": "0-10V, DMX512, DALI-2",
+   "voltage": "100-277VAC / 198-528VAC",
+   "temp": "-40°C to +50°C",
+   "mounting": "Bracket tilt 0–30° (5° steps), module 0–180°, laser sight",
+   "housing": "Skived AL1060 heat sink, steel U-bracket, grey",
+   "cover": "PC lens (tempered glass optional = FL16 Plus)",
+   "variants": [
+    {
+     "code": "FL16-500",
+     "w": 500,
+     "lm": 85000,
+     "eff": 170,
+     "kg": 12.5,
+     "size": "523 × 375 × 173",
+     "epa": "1.24 ft²"
+    },
+    {
+     "code": "FL16-600",
+     "w": 600,
+     "lm": 96000,
+     "eff": 160,
+     "kg": 12.5,
+     "size": "523 × 375 × 173",
+     "epa": "1.24 ft²"
+    },
+    {
+     "code": "FL16-1000",
+     "w": 1000,
+     "lm": 170000,
+     "eff": 170,
+     "kg": 20,
+     "size": "565 × 653 × 173",
+     "epa": "2.40 ft²"
+    },
+    {
+     "code": "FL16-1200",
+     "w": 1200,
+     "lm": 192000,
+     "eff": 160,
+     "kg": 20,
+     "size": "565 × 653 × 173",
+     "epa": "2.40 ft²"
+    },
+    {
+     "code": "FL16-1500",
+     "w": 1500,
+     "lm": 255000,
+     "eff": 170,
+     "kg": 27,
+     "size": "565 × 828 × 173",
+     "epa": "3.62 ft²"
+    },
+    {
+     "code": "FL16-1800",
+     "w": 1800,
+     "lm": 288000,
+     "eff": 160,
+     "kg": 27,
+     "size": "565 × 828 × 173",
+     "epa": "3.62 ft²"
+    }
+   ],
+   "image": "img/zc_lighting_part1/fl16-8.jpg",
+   "image_page": "ZC_1.pdf p.18",
+   "image_covers": [
+    "FL16-500",
+    "FL16-600",
+    "FL16-1000",
+    "FL16-1200",
+    "FL16-1500",
+    "FL16-1800"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FL15",
+   "title": "Modular sports & aviation floodlight 400–2000 W (1–4 modules), SKD",
+   "pages": "35-36",
+   "pdf_page": 19,
+   "type": "Sports floodlight",
+   "category": "Sports",
+   "ip": "IP66",
+   "cct": "3000 / 4000 / 5000 / 5700 / 6500 K",
+   "pf": ">0.95",
+   "warranty": 5,
+   "life_h": 50000,
+   "surge": "6 kV",
+   "flicker": "<1 %",
+   "ik": "IK08 / IK10",
+   "cri": ">70 (80, 90 optional)",
+   "beam": "Symmetric 15° / 30° / 45° / 60° / 90° / 120°; asymmetric P45°; visor optional",
+   "control": "0-10V, RDM, DMX512, DALI-2, D4i",
+   "voltage": "100-277VAC",
+   "temp": "-30°C to +50°C",
+   "housing": "Die-cast ADC12 heat sink, SPCC steel frame, black",
+   "cover": "PC lens (+ tempered glass optional)",
+   "driver": "Bracket- or pole-mounted",
+   "mounting": "Bracket tilt 0–30° (5° steps), module 0–180°",
+   "variants": [
+    {
+     "code": "FL15-400",
+     "w": 400,
+     "lm": 58000,
+     "eff": 145,
+     "kg": 7.2,
+     "size": "430 × 345 × 165",
+     "epa": "0.89 ft²"
+    },
+    {
+     "code": "FL15-500",
+     "w": 500,
+     "lm": 75000,
+     "eff": 150,
+     "kg": 7.2,
+     "size": "430 × 345 × 165",
+     "epa": "0.89 ft²"
+    },
+    {
+     "code": "FL15-800",
+     "w": 800,
+     "lm": 116000,
+     "eff": 145,
+     "kg": 16.5,
+     "size": "428 × 575 × 191",
+     "epa": "1.87 ft²"
+    },
+    {
+     "code": "FL15-1000",
+     "w": 1000,
+     "lm": 150000,
+     "eff": 150,
+     "kg": 16.5,
+     "size": "428 × 575 × 191",
+     "epa": "1.87 ft²"
+    },
+    {
+     "code": "FL15-1200",
+     "w": 1200,
+     "lm": 174000,
+     "eff": 145,
+     "kg": 22.5,
+     "size": "428 × 815 × 191",
+     "epa": "2.88 ft²"
+    },
+    {
+     "code": "FL15-1500",
+     "w": 1500,
+     "lm": 225000,
+     "eff": 150,
+     "kg": 22.5,
+     "size": "428 × 815 × 191",
+     "epa": "2.88 ft²"
+    },
+    {
+     "code": "FL15-1600",
+     "w": 1600,
+     "lm": 232000,
+     "eff": 145,
+     "kg": 28.5,
+     "size": "428 × 1055 × 191",
+     "epa": "3.90 ft²"
+    },
+    {
+     "code": "FL15-2000",
+     "w": 2000,
+     "lm": 300000,
+     "eff": 150,
+     "kg": 28.5,
+     "size": "428 × 1055 × 191",
+     "epa": "3.90 ft²"
+    }
+   ],
+   "image": "img/zc_lighting_part1/fl15-9.jpg",
+   "image_page": "ZC_1.pdf p.19",
+   "image_covers": [
+    "FL15-400",
+    "FL15-500",
+    "FL15-800",
+    "FL15-1000",
+    "FL15-1200",
+    "FL15-1500",
+    "FL15-1600",
+    "FL15-2000"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FL10",
+   "title": "High-density modular sports floodlight 500–2000 W, up to 180 lm/W, RGBW",
+   "pages": "37-38",
+   "pdf_page": 20,
+   "type": "Sports floodlight",
+   "category": "Sports",
+   "ip": "IP66",
+   "cct": "3000 / 4000 / 5000 / 5700 / 6500 K",
+   "pf": ">0.95",
+   "warranty": 5,
+   "life_h": 50000,
+   "surge": "10 kV (20 kV external SPD optional)",
+   "flicker": "<1 %",
+   "ik": "IK08 / IK10",
+   "cri": ">70 (80 optional)",
+   "beam": "Symmetric 10° / 15° / 20° / 30° / 60°; visor optional",
+   "control": "0-10V, DMX512, DALI-2, RGB / RGBW",
+   "voltage": "100-277VAC / 200-480VAC",
+   "temp": "-30°C to +50°C",
+   "housing": "Die-cast ADC12 heat sink, steel U-bracket, grey",
+   "cover": "PC lens (+ tempered glass optional)",
+   "mounting": "U-bracket ±180°, laser sight",
+   "variants": [
+    {
+     "code": "FL10-500",
+     "w": 500,
+     "lm": 90000,
+     "eff": 180,
+     "kg": 18.5,
+     "size": "552 × 340 × 464",
+     "epa": "1.42 ft²"
+    },
+    {
+     "code": "FL10-600",
+     "w": 600,
+     "lm": 105000,
+     "eff": 175,
+     "kg": 18.5,
+     "size": "552 × 340 × 464",
+     "epa": "1.42 ft²"
+    },
+    {
+     "code": "FL10-800",
+     "w": 800,
+     "lm": 132000,
+     "eff": 165,
+     "kg": 18.5,
+     "size": "552 × 340 × 464",
+     "epa": "1.42 ft²"
+    },
+    {
+     "code": "FL10-1000",
+     "w": 1000,
+     "lm": 150000,
+     "eff": 150,
+     "kg": 18.5,
+     "size": "552 × 340 × 464",
+     "epa": "1.42 ft²"
+    },
+    {
+     "code": "FL10-1000 (2 modules)",
+     "w": 1000,
+     "lm": 180000,
+     "eff": 180,
+     "kg": 29,
+     "size": "606 × 638 × 521",
+     "epa": "2.94 ft²",
+     "flag": "The catalogue uses FL10-1000 for both the 1- and 2-module versions"
+    },
+    {
+     "code": "FL10-1200",
+     "w": 1200,
+     "lm": 210000,
+     "eff": 175,
+     "kg": 29,
+     "size": "606 × 638 × 521",
+     "epa": "2.94 ft²"
+    },
+    {
+     "code": "FL10-1600",
+     "w": 1600,
+     "lm": 264000,
+     "eff": 165,
+     "kg": 29,
+     "size": "606 × 638 × 521",
+     "epa": "2.94 ft²"
+    },
+    {
+     "code": "FL10-2000",
+     "w": 2000,
+     "lm": 300000,
+     "eff": 150,
+     "kg": 29,
+     "size": "606 × 638 × 521",
+     "epa": "2.94 ft²"
+    }
+   ],
+   "image": "img/zc_lighting_part1/fl10-10.jpg",
+   "image_page": "ZC_1.pdf p.20",
+   "image_covers": [
+    "FL10-500",
+    "FL10-600",
+    "FL10-800",
+    "FL10-1000",
+    "FL10-1000 (2 modules)",
+    "FL10-1200",
+    "FL10-1600",
+    "FL10-2000"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "FL08",
+   "title": "Modular SKD sports floodlight 200–1000 W, independent driver per module",
+   "pages": "39-42",
+   "pdf_page": 21,
+   "type": "Sports floodlight",
+   "category": "Sports",
+   "ip": "IP66",
+   "cct": "3000 / 4000 / 5000 / 5700 / 6500 K",
+   "pf": ">0.95",
+   "warranty": 5,
+   "life_h": 50000,
+   "surge": "10 kV (20 kV external SPD optional)",
+   "flicker": "<1 %",
+   "ik": "IK08 / IK10",
+   "cri": ">70 (80, 90 optional)",
+   "beam": "Symmetric 25° / 45° / 60° / 90°; asymmetric 80×145°, 120×148°, 45×105°; short / long visor",
+   "control": "0-10V, DMX512, DALI-2, RGB / RGBW",
+   "voltage": "200-480VAC / 198-440VAC / 180-528VAC",
+   "temp": "-40°C to +50°C",
+   "housing": "Die-cast ADC12 heat sink, SPCC steel U-bracket, black",
+   "cover": "PC lens + tempered glass",
+   "mounting": "U-bracket ±180°, laser sight",
+   "variants": [
+    {
+     "code": "FL08-200",
+     "w": 200,
+     "lm": 31000,
+     "eff": 155,
+     "kg": 5.0,
+     "size": "484 × 301 × 130",
+     "epa": "0.71 ft²"
+    },
+    {
+     "code": "FL08-250",
+     "w": 250,
+     "lm": 37500,
+     "eff": 150,
+     "kg": 5.0,
+     "size": "484 × 301 × 130",
+     "epa": "0.71 ft²"
+    },
+    {
+     "code": "FL08-400",
+     "w": 400,
+     "lm": 62000,
+     "eff": 155,
+     "kg": 8.0,
+     "size": "487 × 508 × 130",
+     "epa": "1.53 ft²"
+    },
+    {
+     "code": "FL08-500",
+     "w": 500,
+     "lm": 75000,
+     "eff": 150,
+     "kg": 8.0,
+     "size": "487 × 508 × 130",
+     "epa": "1.53 ft²"
+    },
+    {
+     "code": "FL08-600",
+     "w": 600,
+     "lm": 93000,
+     "eff": 155,
+     "kg": 12.5,
+     "size": "491 × 673 × 130",
+     "epa": "2.34 ft²"
+    },
+    {
+     "code": "FL08-750",
+     "w": 750,
+     "lm": 112500,
+     "eff": 150,
+     "kg": 12.5,
+     "size": "491 × 673 × 130",
+     "epa": "2.34 ft²"
+    },
+    {
+     "code": "FL08-800",
+     "w": 800,
+     "lm": 124000,
+     "eff": 155,
+     "kg": 16.5,
+     "size": "491 × 838 × 130",
+     "epa": "3.15 ft²"
+    },
+    {
+     "code": "FL08-1000",
+     "w": 1000,
+     "lm": 150000,
+     "eff": 150,
+     "kg": 16.5,
+     "size": "491 × 838 × 130",
+     "epa": "3.15 ft²"
+    }
+   ],
+   "image": "img/zc_lighting_part1/fl08-11.jpg",
+   "image_page": "ZC_1.pdf p.22",
+   "image_covers": [
+    "FL08-200",
+    "FL08-250",
+    "FL08-400",
+    "FL08-500",
+    "FL08-600",
+    "FL08-750",
+    "FL08-800",
+    "FL08-1000",
+    "FL08RGBW-250",
+    "FL08RGBW-500",
+    "FL08RGBW-750",
+    "FL08RGBW-1000"
+   ],
+   "image_shared_with": [
+    "FL08RGBW"
+   ]
+  },
+  {
+   "family": "FL08RGBW",
+   "title": "FL08 RGBW colour-changing floodlight 250–1000 W (event / façade)",
+   "pages": "41-42",
+   "pdf_page": 22,
+   "type": "Sports floodlight",
+   "category": "Sports",
+   "ip": "IP66",
+   "cct": "3000 / 4000 / 5000 / 5700 / 6500 K",
+   "pf": ">0.95",
+   "warranty": 5,
+   "life_h": 50000,
+   "surge": "10 kV (20 kV external SPD optional)",
+   "flicker": "<1 %",
+   "ik": "IK08 / IK10",
+   "cri": "–",
+   "beam": "Symmetric 30° / 60° / 90°; asymmetric 80×145°, 120×148°, 45×105°",
+   "control": "DMX512, RGB / RGBW",
+   "voltage": "100-277VAC / 220-240VAC",
+   "temp": "-30°C to +50°C",
+   "housing": "Die-cast ADC12, black",
+   "cover": "PC lens + tempered glass",
+   "family_flag": "RGBW models have no lumen values in the catalogue",
+   "variants": [
+    {
+     "code": "FL08RGBW-250",
+     "w": 250,
+     "lm": null,
+     "eff": null,
+     "kg": 5.0,
+     "size": "484 × 301 × 130",
+     "epa": "0.71 ft²"
+    },
+    {
+     "code": "FL08RGBW-500",
+     "w": 500,
+     "lm": null,
+     "eff": null,
+     "kg": 8.0,
+     "size": "487 × 508 × 130",
+     "epa": "1.53 ft²"
+    },
+    {
+     "code": "FL08RGBW-750",
+     "w": 750,
+     "lm": null,
+     "eff": null,
+     "kg": 12.5,
+     "size": "491 × 673 × 130",
+     "epa": "2.34 ft²"
+    },
+    {
+     "code": "FL08RGBW-1000",
+     "w": 1000,
+     "lm": null,
+     "eff": null,
+     "kg": 16.5,
+     "size": "491 × 838 × 130",
+     "epa": "3.15 ft²"
+    }
+   ],
+   "image": "img/zc_lighting_part1/fl08-11.jpg",
+   "image_page": "ZC_1.pdf p.22",
+   "image_covers": [
+    "FL08-200",
+    "FL08-250",
+    "FL08-400",
+    "FL08-500",
+    "FL08-600",
+    "FL08-750",
+    "FL08-800",
+    "FL08-1000",
+    "FL08RGBW-250",
+    "FL08RGBW-500",
+    "FL08RGBW-750",
+    "FL08RGBW-1000"
+   ],
+   "image_shared_with": [
+    "FL08"
+   ]
+  },
+  {
+   "family": "FL01",
+   "title": "Multi-directional modular sports light 250–1200 W – each module rotates 180°, tool-free SKD",
+   "pages": "43-44",
+   "pdf_page": 23,
+   "type": "Sports floodlight",
+   "category": "Sports",
+   "ip": "IP66",
+   "cct": "3000 / 4000 / 5000 / 5700 / 6500 K",
+   "pf": ">0.95",
+   "warranty": 5,
+   "life_h": 50000,
+   "surge": "10 kV (20 kV external SPD optional)",
+   "flicker": "<1 %",
+   "ik": "IK08 / IK10",
+   "cri": ">70 (80, 90 optional)",
+   "beam": "Symmetric 15° / 30° / 45° / 60° / 90° / 120°; asymmetric P45°",
+   "control": "0-10V, RDM, DMX512, DALI-2, D4i",
+   "voltage": "100-277VAC / 277-480VAC",
+   "temp": "-40°C to +50°C",
+   "housing": "Die-cast ADC12 heat sink, SPCC steel U-bracket, black",
+   "cover": "PC lens (+ tempered glass optional)",
+   "leds": "EMC5050 (165 / 160 lm/W) or EMC3030 (155 / 150 lm/W)",
+   "mounting": "Each module ±90° / 180°, tool-free",
+   "eff_options": "EPA at 30° / 45° / 60° tilt",
+   "variants": [
+    {
+     "code": "FL01-250",
+     "w": 250,
+     "lm": 41250,
+     "eff": 165,
+     "lm2": 38750,
+     "eff2": 155,
+     "kg": 6.2,
+     "size": "430 × 344 × 138",
+     "epa": "1.12 / 1.24 / 1.35 ft²"
+    },
+    {
+     "code": "FL01-300",
+     "w": 300,
+     "lm": 48000,
+     "eff": 160,
+     "lm2": 45000,
+     "eff2": 150,
+     "kg": 6.2,
+     "size": "430 × 344 × 138",
+     "epa": "1.12 / 1.24 / 1.35 ft²"
+    },
+    {
+     "code": "FL01-500",
+     "w": 500,
+     "lm": 82500,
+     "eff": 165,
+     "lm2": 77500,
+     "eff2": 155,
+     "kg": 20,
+     "size": "526 × 678 × 139",
+     "epa": "2.06 / 2.33 / 2.54 ft²"
+    },
+    {
+     "code": "FL01-600",
+     "w": 600,
+     "lm": 96000,
+     "eff": 160,
+     "lm2": 90000,
+     "eff2": 150,
+     "kg": 20,
+     "size": "526 × 678 × 139",
+     "epa": "2.06 / 2.33 / 2.54 ft²"
+    },
+    {
+     "code": "FL01-750",
+     "w": 750,
+     "lm": 123750,
+     "eff": 165,
+     "lm2": 116250,
+     "eff2": 155,
+     "kg": 27,
+     "size": "526 × 912 × 139",
+     "epa": "2.65 / 3.17 / 3.58 ft²"
+    },
+    {
+     "code": "FL01-900",
+     "w": 900,
+     "lm": 144000,
+     "eff": 160,
+     "lm2": 135000,
+     "eff2": 150,
+     "kg": 27,
+     "size": "526 × 912 × 139",
+     "epa": "2.65 / 3.17 / 3.58 ft²"
+    },
+    {
+     "code": "FL01-1000",
+     "w": 1000,
+     "lm": 165000,
+     "eff": 165,
+     "lm2": 155000,
+     "eff2": 155,
+     "kg": 33,
+     "size": "526 × 1135 × 139",
+     "epa": "3.24 / 3.99 / 4.58 ft²"
+    },
+    {
+     "code": "FL01-1200",
+     "w": 1200,
+     "lm": 192000,
+     "eff": 160,
+     "lm2": 180000,
+     "eff2": 150,
+     "kg": 33,
+     "size": "526 × 1135 × 139",
+     "epa": "3.24 / 3.99 / 4.58 ft²"
+    }
+   ],
+   "image": "img/zc_lighting_part1/fl01-13.jpg",
+   "image_page": "ZC_1.pdf p.23",
+   "image_covers": [
+    "FL01-250",
+    "FL01-300",
+    "FL01-500",
+    "FL01-600",
+    "FL01-750",
+    "FL01-900",
+    "FL01-1000",
+    "FL01-1200"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "HM01R",
+   "title": "High-mast luminaire 500–1200 W – 1:1 HID retrofit for 20 m+ poles (airports, ports, highways)",
+   "pages": "47-48",
+   "pdf_page": 25,
+   "type": "High-mast luminaire",
+   "category": "High-mast & area",
+   "ip": "IP66",
+   "cct": "3000 / 4000 / 5000 / 5700 / 6500 K",
+   "pf": ">0.95",
+   "warranty": 5,
+   "life_h": 50000,
+   "surge": "10 kV (20 kV external SPD optional)",
+   "flicker": "<1 %",
+   "ik": "IK08 / IK10",
+   "cri": ">70 (80, 90, TLCI 90 optional)",
+   "control": "0-10V, DALI-2; NEMA photocell",
+   "voltage": "90-305VAC / 100-277VAC",
+   "temp": "-40°C to +50°C",
+   "housing": "Die-cast ADC12 heat sink and driver box, grey (AkzoNobel / electrophoresis anti-corrosion optional)",
+   "cover": "PC lens (+ tempered glass kit optional)",
+   "mounting": "Drop-in for Ø60 / 80 / 100 mm poles; 3G vibration (5G optional)",
+   "beam": "Symmetric 12° / 25° / 40° / 60°",
+   "ugr": "<21",
+   "variants": [
+    {
+     "code": "HM01R-500",
+     "w": 500,
+     "lm": 85000,
+     "eff": 170,
+     "kg": 19.0,
+     "size": "620 × 392 × 249",
+     "epa": "1.49 ft²"
+    },
+    {
+     "code": "HM01R-600",
+     "w": 600,
+     "lm": 96000,
+     "eff": 160,
+     "kg": 20.5,
+     "size": "620 × 392 × 249",
+     "epa": "1.49 ft²"
+    },
+    {
+     "code": "HM01R-750",
+     "w": 750,
+     "lm": 116250,
+     "eff": 155,
+     "kg": 22.0,
+     "size": "681 × 502 × 246",
+     "epa": "1.65 ft²",
+     "flag": "No drawing for 750 / 800 W – assumed the 800/1000 W size"
+    },
+    {
+     "code": "HM01R-800",
+     "w": 800,
+     "lm": 120000,
+     "eff": 150,
+     "kg": 22.0,
+     "size": "681 × 502 × 246",
+     "epa": "1.65 ft²"
+    },
+    {
+     "code": "HM01R-1000",
+     "w": 1000,
+     "lm": 175000,
+     "eff": 175,
+     "kg": 28.0,
+     "size": "681 × 502 × 246",
+     "epa": "1.80 ft²"
+    },
+    {
+     "code": "HM01R-1200",
+     "w": 1200,
+     "lm": 186000,
+     "eff": 155,
+     "kg": 30.5,
+     "size": "681 × 502 × 246",
+     "epa": "1.80 ft²",
+     "flag": "No drawing for 1200 W – assumed the 800/1000 W size"
+    }
+   ],
+   "image": "img/zc_lighting_part1/hm01r-14.jpg",
+   "image_page": "ZC_1.pdf p.25",
+   "image_covers": [
+    "HM01R-500",
+    "HM01R-600",
+    "HM01R-750",
+    "HM01R-800",
+    "HM01R-1000",
+    "HM01R-1200"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "HM01S",
+   "title": "High-mast luminaire 800–1000 W with 360° rotating heads (irregular layouts)",
+   "pages": "49-50",
+   "pdf_page": 26,
+   "type": "High-mast luminaire",
+   "category": "High-mast & area",
+   "ip": "IP66",
+   "cct": "3000 / 4000 / 5000 / 5700 / 6500 K",
+   "pf": ">0.95",
+   "warranty": 5,
+   "life_h": 50000,
+   "surge": "10 kV (20 kV external SPD optional)",
+   "flicker": "<1 %",
+   "ik": "IK08 / IK10",
+   "cri": ">70 (80, 90, TLCI 90 optional)",
+   "control": "0-10V, DALI-2; NEMA photocell",
+   "voltage": "90-305VAC / 100-277VAC",
+   "temp": "-40°C to +50°C",
+   "housing": "Die-cast ADC12 heat sink and driver box, grey (AkzoNobel / electrophoresis anti-corrosion optional)",
+   "cover": "PC lens (+ tempered glass kit optional)",
+   "mounting": "Drop-in for Ø60 / 80 / 100 mm poles; 3G vibration (5G optional)",
+   "beam": "Symmetric 15° / 26° / 30° / 45° / 60° / 90° / 120°; asymmetric P45°",
+   "variants": [
+    {
+     "code": "HM01S-800",
+     "w": 800,
+     "lm": 124000,
+     "eff": 155,
+     "kg": 17.5,
+     "size": "653 × 400 × 225",
+     "epa": "1.58 ft²"
+    },
+    {
+     "code": "HM01S-1000",
+     "w": 1000,
+     "lm": 150000,
+     "eff": 150,
+     "kg": 17.5,
+     "size": "653 × 400 × 225",
+     "epa": "1.58 ft²"
+    }
+   ],
+   "image": "img/zc_lighting_part1/hm01s-15.jpg",
+   "image_page": "ZC_1.pdf p.26",
+   "image_covers": [
+    "HM01S-800",
+    "HM01S-1000"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "HB21",
+   "title": "Ultra-slim 17 mm 3-in-1 high bay – wattage, CCT and optics adjustable, UGR<19 (hygienic)",
+   "pages": "53-54",
+   "pdf_page": 28,
+   "type": "High bay",
+   "category": "Industrial",
+   "cct": "3000 / 4000 / 5000 / 5700 / 6500 K (3-in-1 tunable)",
+   "warranty": 5,
+   "life_h": 50000,
+   "pf": ">0.95",
+   "power_steps": "100 / 80 / 60 % (DIP switch or external controller)",
+   "housing": "Die-cast ADC12, powder-coated, black",
+   "ip": "IP65",
+   "ik": "IK10",
+   "cri": ">70 (80 optional)",
+   "beam": "60° / 80° / 100° symmetric (adjustable)",
+   "control": "0-10V / 1-10V, DALI-2, microwave sensor; emergency driver option",
+   "voltage": "100-277VAC",
+   "surge": "6 kV (10 kV SPD optional)",
+   "temp": "-30°C to +50°C",
+   "cover": "Polycarbonate lens",
+   "ugr": "<19",
+   "eff_options": "200 lm/W @Ra70, 190 @Ra80, 170 @Ra90",
+   "variants": [
+    {
+     "code": "HB21-100",
+     "w": 100,
+     "lm": 20000,
+     "eff": 200,
+     "lm2": 17000,
+     "eff2": 170,
+     "kg": 2.25,
+     "size": "Ø335 × 126"
+    },
+    {
+     "code": "HB21-150",
+     "w": 150,
+     "lm": 30000,
+     "eff": 200,
+     "lm2": 25500,
+     "eff2": 170,
+     "kg": 2.25,
+     "size": "Ø335 × 126"
+    },
+    {
+     "code": "HB21-200",
+     "w": 200,
+     "lm": 40000,
+     "eff": 200,
+     "lm2": 34000,
+     "eff2": 170,
+     "kg": 2.25,
+     "size": "Ø335 × 126"
+    }
+   ],
+   "image": "img/zc_lighting_part1/hb21-16.jpg",
+   "image_page": "ZC_1.pdf p.28",
+   "image_covers": [
+    "HB21-100",
+    "HB21-150",
+    "HB21-200"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "HB20",
+   "title": "70 °C high-temperature high bay 300–400 W (smelting, steel, paper mills)",
+   "pages": "55-56",
+   "pdf_page": 29,
+   "type": "High bay",
+   "category": "Industrial",
+   "cct": "3000 / 4000 / 5000 / 5700 / 6500 K (3-in-1 tunable)",
+   "warranty": 5,
+   "life_h": 50000,
+   "pf": ">0.95",
+   "power_steps": "100 / 80 / 60 % (DIP switch or external controller)",
+   "housing": "Die-cast ADC12, powder-coated, black",
+   "ip": "IP66",
+   "ik": "IK08 / IK10",
+   "cri": ">70 (80, 90 optional)",
+   "beam": "12° / 25° / 40° / 60° symmetric",
+   "control": "0-10V, DMX512, DALI-2; external PIR / controller box",
+   "voltage": "90-305VAC, 100-277VAC",
+   "surge": "6 kV",
+   "temp": "-40°C to +70°C",
+   "cover": "PC lens (+ tempered glass optional)",
+   "mounting": "Hook, chain or U-bracket ±180°",
+   "variants": [
+    {
+     "code": "HB20-300",
+     "w": 300,
+     "lm": 52500,
+     "eff": 175,
+     "kg": 9.7,
+     "size": "Ø378 × 244"
+    },
+    {
+     "code": "HB20-400",
+     "w": 400,
+     "lm": 68000,
+     "eff": 170,
+     "kg": 10,
+     "size": "Ø378 × 244"
+    }
+   ],
+   "image": "img/zc_lighting_part1/hb20-17.jpg",
+   "image_page": "ZC_1.pdf p.29",
+   "image_covers": [
+    "HB20-300",
+    "HB20-400"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "family": "HB19",
+   "title": "High-power high bay 400–600 W for 15–25 m spaces (hangars, shipyards)",
+   "pages": "57-58",
+   "pdf_page": 30,
+   "type": "High bay",
+   "category": "Industrial",
+   "cct": "3000 / 4000 / 5000 / 5700 / 6500 K (3-in-1 tunable)",
+   "warranty": 5,
+   "life_h": 50000,
+   "pf": ">0.95",
+   "power_steps": "100 / 80 / 60 % (DIP switch or external controller)",
+   "housing": "Die-cast ADC12, powder-coated, black",
+   "ip": "IP65 / IP66",
+   "ik": "IK08 / IK10",
+   "cri": ">70 (80, 90 optional)",
+   "beam": "12° / 25° / 40° / 60° symmetric",
+   "control": "0-10V, DMX512, DALI-2; external PIR / controller box",
+   "voltage": "90-305VAC, 100-277VAC",
+   "surge": "6 kV",
+   "temp": "-40°C to +50°C",
+   "cover": "PC lens (+ tempered glass optional)",
+   "mounting": "Hook, chain or U-bracket 360°",
+   "variants": [
+    {
+     "code": "HB19-400",
+     "w": 400,
+     "lm": 70000,
+     "eff": 175,
+     "kg": 6.5,
+     "size": "Ø378 × 185"
+    },
+    {
+     "code": "HB19-500",
+     "w": 500,
+     "lm": 85000,
+     "eff": 170,
+     "kg": 6.5,
+     "size": "Ø378 × 185"
+    },
+    {
+     "code": "HB19-600",
+     "w": 600,
+     "lm": 96000,
+     "eff": 160,
+     "kg": 10,
+     "size": "Ø378 × 199"
+    }
+   ],
+   "image": "img/zc_lighting_part1/hb19-18.jpg",
+   "image_page": "ZC_1.pdf p.30",
+   "image_covers": [
+    "HB19-400",
+    "HB19-500",
+    "HB19-600"
+   ],
+   "image_shared_with": []
+  }
+ ]
+}

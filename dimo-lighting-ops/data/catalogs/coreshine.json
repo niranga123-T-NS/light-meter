@@ -1,0 +1,744 @@
+{
+ "brand": "CoreShine",
+ "source": "Coreshine.pdf",
+ "families": [
+  {
+   "ik": "–",
+   "category": "Linear trunking",
+   "cct": "2700 / 3000 / 3500 / 4000 / 5000 / 5700 / 6500 K",
+   "cri": "80 (R9 >0, SDCM <3)",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +40°C",
+   "flicker": "≤5 % (Pst LM ≤1.0, SVM ≤0.4)",
+   "pf": "0.9",
+   "type": "Linear trunking luminaire",
+   "ip": "IP20",
+   "voltage": "220-240VAC",
+   "housing": "Steel, white / black / silver",
+   "beam": "SP 30°, NR 60°, WD 90°, FD 120°, LS / RS asymmetric, DS double asymmetric, FF flat frosted, FT transparent",
+   "control": "On/off, DALI DT6 (-DA), 1-10V (-10); DIP switch power selection",
+   "power_steps": "DIP switch: 35/40/45/50 W or 55/60/65/70 W",
+   "mounting": "CFT steel trunking rail 5 / 8 / 12 wires (3-phase pre-selection); pendant, surface",
+   "emergency": "E1 6 W / E2 12 W emergency supply; B1 1800 mAh / B2 3600 mAh battery",
+   "order_code": "CFL-[length 12/15/24/30][power][CCT][beam]-[wires 05/08/12][colour WH/BK/SV]-[E1/E2][B1/B2][DA/10]  e.g. CFL-1550-40NR-08WH-DA",
+   "family": "S-Line",
+   "title": "S-Line steel trunking linear luminaire 1500 mm, 160 / 180 lm/W",
+   "pages": "3-19",
+   "pdf_page": 16,
+   "variants": [
+    {
+     "code": "CFLS-1535",
+     "w": 35,
+     "lm": 6300,
+     "eff": 180,
+     "lm2": 5600,
+     "eff2": 160,
+     "size": "1500 × 76 × 70"
+    },
+    {
+     "code": "CFLS-1550",
+     "w": 50,
+     "lm": 9000,
+     "eff": 180,
+     "lm2": 8000,
+     "eff2": 160,
+     "size": "1500 × 76 × 70"
+    },
+    {
+     "code": "CFLS-1570",
+     "w": 70,
+     "lm": 12600,
+     "eff": 180,
+     "lm2": 11200,
+     "eff2": 160,
+     "size": "1500 × 76 × 70"
+    },
+    {
+     "code": "CFLS-1535-DA",
+     "w": 35,
+     "lm": 6300,
+     "eff": 180,
+     "lm2": 5600,
+     "eff2": 160,
+     "size": "1500 × 76 × 70",
+     "note": "DALI DT6, 1–100 %"
+    },
+    {
+     "code": "CFLS-1550-DA",
+     "w": 50,
+     "lm": 9000,
+     "eff": 180,
+     "lm2": 8000,
+     "eff2": 160,
+     "size": "1500 × 76 × 70",
+     "note": "DALI DT6, 1–100 %"
+    },
+    {
+     "code": "CFLS-1570-DA",
+     "w": 70,
+     "lm": 12600,
+     "eff": 180,
+     "lm2": 11200,
+     "eff2": 160,
+     "size": "1500 × 76 × 70",
+     "note": "DALI DT6, 1–100 %"
+    },
+    {
+     "code": "CFL-1230",
+     "w": 30,
+     "lm": null,
+     "eff": null,
+     "size": "1200 mm",
+     "flag": "Only in the order list (1200 mm, 30 / 40 / 60 W) – no spec sheet; ask CoreShine for lumens"
+    },
+    {
+     "code": "CFL-1240",
+     "w": 40,
+     "lm": null,
+     "eff": null,
+     "size": "1200 mm",
+     "flag": "Only in the order list – no spec sheet"
+    },
+    {
+     "code": "CFL-1260",
+     "w": 60,
+     "lm": null,
+     "eff": null,
+     "size": "1200 mm",
+     "flag": "Only in the order list – no spec sheet"
+    },
+    {
+     "code": "CFL-3070",
+     "w": 70,
+     "lm": null,
+     "eff": null,
+     "size": "3000 mm",
+     "flag": "Only in the order list (3000 mm, 70 W) – no spec sheet; 2400 mm is also listed without a wattage"
+    }
+   ],
+   "image": "img/coreshine/s-line-0.jpg",
+   "image_page": "Coreshine.pdf p.16",
+   "image_covers": [
+    "CFLS-1535",
+    "CFLS-1550",
+    "CFLS-1570",
+    "CFLS-1535-DA",
+    "CFLS-1550-DA",
+    "CFLS-1570-DA",
+    "CFL-1230",
+    "CFL-1240",
+    "CFL-1260",
+    "CFL-3070"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "ik": "–",
+   "category": "Linear trunking",
+   "cct": "2700 / 3000 / 3500 / 4000 / 5000 / 5700 / 6500 K",
+   "cri": "80 (R9 >0, SDCM <3)",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +40°C",
+   "flicker": "≤5 % (Pst LM ≤1.0, SVM ≤0.4)",
+   "pf": "0.9",
+   "type": "Linear trunking luminaire (up / down light)",
+   "ip": "IP20",
+   "voltage": "220-240VAC (DALI) / 100-277VAC (0-10V)",
+   "housing": "Steel, white / black / silver",
+   "beam": "NR narrow, FD flood, NU narrow + uplight, FU flood + uplight (about 10 % up / 90 % down)",
+   "control": "On/off, DALI DT6 (-DA), 0-10V (-10); daylight / motion sensor modules",
+   "mounting": "Steel trunking rail 5 / 8 / 12 wires, L / T / X node connectors; pendant",
+   "emergency": "E1 / E2 emergency supply; B1 / B2 battery",
+   "order_code": "CUL-[length 12/15/24][power][CCT][beam NR/FD/NU/FU]-[wires][colour]-[E1/E2][B1/B2][DA/10]",
+   "family": "U-Line",
+   "title": "U-Line indirect / direct trunking linear luminaire 30–120 W, 135 / 150 lm/W",
+   "pages": "20-34",
+   "pdf_page": 31,
+   "variants": [
+    {
+     "code": "CULS-1550",
+     "w": 50,
+     "lm": 7500,
+     "eff": 150,
+     "lm2": 6750,
+     "eff2": 135,
+     "size": "1500 × 183 × 236",
+     "note": "DIP 35/40/45/50 W; -DA = DALI"
+    },
+    {
+     "code": "CULS-1570",
+     "w": 70,
+     "lm": 10500,
+     "eff": 150,
+     "lm2": 9450,
+     "eff2": 135,
+     "size": "1500 × 183 × 236",
+     "note": "DIP 55/60/65/70 W; -DA = DALI"
+    },
+    {
+     "code": "CULS-1230-10",
+     "w": 30,
+     "lm": 4500,
+     "eff": 150,
+     "lm2": 4050,
+     "eff2": 135,
+     "size": "1200 × 183 × 236",
+     "note": "0-10V, 5–100 %"
+    },
+    {
+     "code": "CULS-1245-10",
+     "w": 45,
+     "lm": 6750,
+     "eff": 150,
+     "lm2": 6075,
+     "eff2": 135,
+     "size": "1200 × 183 × 236",
+     "note": "0-10V, 5–100 %"
+    },
+    {
+     "code": "CULS-1260-10",
+     "w": 60,
+     "lm": 9000,
+     "eff": 150,
+     "lm2": 8100,
+     "eff2": 135,
+     "size": "1200 × 183 × 236",
+     "note": "0-10V, 5–100 %"
+    },
+    {
+     "code": "CULS-2460-10",
+     "w": 60,
+     "lm": 9000,
+     "eff": 150,
+     "lm2": 8100,
+     "eff2": 135,
+     "size": "2400 × 183 × 236",
+     "note": "0-10V, 5–100 %"
+    },
+    {
+     "code": "CULS-2490-10",
+     "w": 90,
+     "lm": 13500,
+     "eff": 150,
+     "lm2": 12150,
+     "eff2": 135,
+     "size": "2400 × 183 × 236",
+     "note": "0-10V, 5–100 %"
+    },
+    {
+     "code": "CULS-24120-10",
+     "w": 120,
+     "lm": 18000,
+     "eff": 150,
+     "lm2": 16200,
+     "eff2": 135,
+     "size": "2400 × 183 × 236",
+     "note": "0-10V, 5–100 %"
+    }
+   ],
+   "image": "img/coreshine/u-line-1.jpg",
+   "image_page": "Coreshine.pdf p.32",
+   "image_covers": [
+    "CULS-1550",
+    "CULS-1570",
+    "CULS-1230-10",
+    "CULS-1245-10",
+    "CULS-1260-10",
+    "CULS-2460-10",
+    "CULS-2490-10",
+    "CULS-24120-10"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "ik": "–",
+   "category": "Linear trunking",
+   "cct": "2700 / 3000 / 3500 / 4000 / 5000 / 5700 / 6500 K",
+   "cri": "80 (R9 >0, SDCM <3)",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +40°C",
+   "flicker": "≤5 % (Pst LM ≤1.0, SVM ≤0.4)",
+   "pf": "0.9",
+   "type": "Track linear luminaire (tiltable)",
+   "ip": "IP20",
+   "voltage": "220-240VAC",
+   "housing": "Aluminium, white / black",
+   "beam": "SP sharp 30°, NR narrow 60°, WD wide 90°, DS double asymmetric, SW 30×90°, FD flood 120°, FF flat frosted 120°",
+   "control": "On/off, DALI DT6 (-DT6); DIP switch power selection",
+   "mounting": "3 / 4 / 6-wire track rail (Eutrac, Global, Nordic etc.); combines with track spotlights",
+   "order_code": "CTLS[type 1/2/3]-[length 06/12/15][power 20/50][CCT][wires 03/04/06][beam][colour]-[DT6]  e.g. CTLS3-1550-50NR-06WH-DT6",
+   "family": "T-Line K1",
+   "title": "T-Line track linear – K1 single tilting panel (0–30°), 30×30° optic, 160 / 180 lm/W",
+   "pages": "35-48",
+   "pdf_page": 47,
+   "variants": [
+    {
+     "code": "CTLS1-0620",
+     "w": 20,
+     "lm": 3600,
+     "eff": 180,
+     "lm2": 3200,
+     "eff2": 160,
+     "size": "600 × 60",
+     "note": "DIP 14/16/18/20 W"
+    },
+    {
+     "code": "CTLS1-1550",
+     "w": 50,
+     "lm": 9000,
+     "eff": 180,
+     "lm2": 8000,
+     "eff2": 160,
+     "size": "1493 × 60",
+     "note": "DIP 35/40/45/50 W"
+    }
+   ],
+   "image": "img/coreshine/t-line-k1-2.jpg",
+   "image_page": "Coreshine.pdf p.39",
+   "image_covers": [
+    "CTLS1-0620",
+    "CTLS1-1550"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "ik": "–",
+   "category": "Linear trunking",
+   "cct": "2700 / 3000 / 3500 / 4000 / 5000 / 5700 / 6500 K",
+   "cri": "80 (R9 >0, SDCM <3)",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +40°C",
+   "flicker": "≤5 % (Pst LM ≤1.0, SVM ≤0.4)",
+   "pf": "0.9",
+   "type": "Track linear luminaire (tiltable)",
+   "ip": "IP20",
+   "voltage": "220-240VAC",
+   "housing": "Aluminium, white / black",
+   "beam": "SP sharp 30°, NR narrow 60°, WD wide 90°, DS double asymmetric, SW 30×90°, FD flood 120°, FF flat frosted 120°",
+   "control": "On/off, DALI DT6 (-DT6); DIP switch power selection",
+   "mounting": "3 / 4 / 6-wire track rail (Eutrac, Global, Nordic etc.); combines with track spotlights",
+   "order_code": "CTLS[type 1/2/3]-[length 06/12/15][power 20/50][CCT][wires 03/04/06][beam][colour]-[DT6]  e.g. CTLS3-1550-50NR-06WH-DT6",
+   "family": "T-Line K2",
+   "title": "T-Line track linear – K2 twin wings tilting (30×90° asymmetric, shelf lighting), 160 / 180 lm/W",
+   "pages": "35-48",
+   "pdf_page": 47,
+   "variants": [
+    {
+     "code": "CTLS2-0620",
+     "w": 20,
+     "lm": 3600,
+     "eff": 180,
+     "lm2": 3200,
+     "eff2": 160,
+     "size": "600 × 60",
+     "note": "DIP 14/16/18/20 W"
+    },
+    {
+     "code": "CTLS2-1550",
+     "w": 50,
+     "lm": 9000,
+     "eff": 180,
+     "lm2": 8000,
+     "eff2": 160,
+     "size": "1493 × 60",
+     "note": "DIP 35/40/45/50 W"
+    }
+   ],
+   "image": "img/coreshine/t-line-k2-3.jpg",
+   "image_page": "Coreshine.pdf p.40",
+   "image_covers": [
+    "CTLS2-0620",
+    "CTLS2-1550"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "ik": "–",
+   "category": "Linear trunking",
+   "cct": "2700 / 3000 / 3500 / 4000 / 5000 / 5700 / 6500 K",
+   "cri": "80 (R9 >0, SDCM <3)",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +40°C",
+   "flicker": "≤5 % (Pst LM ≤1.0, SVM ≤0.4)",
+   "pf": "0.9",
+   "type": "Track linear luminaire (tiltable)",
+   "ip": "IP20",
+   "voltage": "220-240VAC",
+   "housing": "Aluminium, white / black",
+   "beam": "SP sharp 30°, NR narrow 60°, WD wide 90°, DS double asymmetric, SW 30×90°, FD flood 120°, FF flat frosted 120°",
+   "control": "On/off, DALI DT6 (-DT6); DIP switch power selection",
+   "mounting": "3 / 4 / 6-wire track rail (Eutrac, Global, Nordic etc.); combines with track spotlights",
+   "order_code": "CTLS[type 1/2/3]-[length 06/12/15][power 20/50][CCT][wires 03/04/06][beam][colour]-[DT6]  e.g. CTLS3-1550-50NR-06WH-DT6",
+   "family": "T-Line K3",
+   "title": "T-Line track linear – K3 central linear + twin tilting wings, 160 / 180 lm/W",
+   "pages": "35-48",
+   "pdf_page": 47,
+   "variants": [
+    {
+     "code": "CTLS3-0620",
+     "w": 20,
+     "lm": 3600,
+     "eff": 180,
+     "lm2": 3200,
+     "eff2": 160,
+     "size": "600 × 60",
+     "note": "DIP 14/16/18/20 W"
+    },
+    {
+     "code": "CTLS3-1550",
+     "w": 50,
+     "lm": 9000,
+     "eff": 180,
+     "lm2": 8000,
+     "eff2": 160,
+     "size": "1493 × 60",
+     "note": "DIP 35/40/45/50 W"
+    }
+   ],
+   "image": "img/coreshine/t-line-k3-4.jpg",
+   "image_page": "Coreshine.pdf p.41",
+   "image_covers": [
+    "CTLS3-0620",
+    "CTLS3-1550"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "ik": "–",
+   "category": "Linear trunking",
+   "cct": "2700–6500 K tunable",
+   "cri": "80 (R9 >0, SDCM <3)",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +40°C",
+   "flicker": "≤5 % (Pst LM ≤1.0, SVM ≤0.4)",
+   "pf": "0.9",
+   "type": "Linear trunking luminaire (UGR<19, tunable white)",
+   "ip": "IP40",
+   "ugr": "<19",
+   "voltage": "220-240VAC (DT8) / 100-277VAC (0-10V)",
+   "housing": "Aluminium, white / black / silver",
+   "beam": "45° / 50° / 60°; optional uplight module 20–50 % (CHU)",
+   "control": "DALI-2 DT8 / DT1 / D4i (-DT8) or 0-10V (-10); daylight / motion sensor",
+   "mounting": "11-wire trunking rail H40 / H60 / H90; pendant, surface or recessed; L / T / X connectors",
+   "emergency": "DC emergency / built-in battery / central supply",
+   "order_code": "CHL[4/6/9]-[length 12/15/24][power 35/70]-[colour]-DT8  e.g. CHL6-1235-WH-DT8",
+   "family": "H-Line H40",
+   "title": "H-Line H40 seamless linear, tunable white, UGR<19, 142 lm/W",
+   "pages": "49-69",
+   "pdf_page": 66,
+   "variants": [
+    {
+     "code": "CHL4-1235",
+     "w": 35,
+     "lm": 5000,
+     "eff": 142,
+     "size": "1200 × 100 × 40",
+     "note": "DIP 20/25/30/35 W; -DT8 (EU) or -10 (US)"
+    },
+    {
+     "code": "CHL4-1535",
+     "w": 35,
+     "lm": 5000,
+     "eff": 142,
+     "size": "1500 × 100 × 40",
+     "note": "DIP 20/25/30/35 W; DT8"
+    },
+    {
+     "code": "CHL4-2470",
+     "w": 70,
+     "lm": 10000,
+     "eff": 142,
+     "size": "2400 × 100 × 40",
+     "note": "DIP 40/50/60/70 W; -DT8 (EU) or -10 (US)"
+    }
+   ],
+   "image": "img/coreshine/h-line-h40-5.jpg",
+   "image_page": "Coreshine.pdf p.66",
+   "image_covers": [
+    "CHL4-1235",
+    "CHL4-1535",
+    "CHL4-2470",
+    "CHL6-1235",
+    "CHL6-1535",
+    "CHL6-2470",
+    "CHL9-1235",
+    "CHL9-1535",
+    "CHL9-2470"
+   ],
+   "image_shared_with": [
+    "H-Line H60",
+    "H-Line H90"
+   ]
+  },
+  {
+   "ik": "–",
+   "category": "Linear trunking",
+   "cct": "2700–6500 K tunable",
+   "cri": "80 (R9 >0, SDCM <3)",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +40°C",
+   "flicker": "≤5 % (Pst LM ≤1.0, SVM ≤0.4)",
+   "pf": "0.9",
+   "type": "Linear trunking luminaire (UGR<19, tunable white)",
+   "ip": "IP40",
+   "ugr": "<19",
+   "voltage": "220-240VAC (DT8) / 100-277VAC (0-10V)",
+   "housing": "Aluminium, white / black / silver",
+   "beam": "45° / 50° / 60°; optional uplight module 20–50 % (CHU)",
+   "control": "DALI-2 DT8 / DT1 / D4i (-DT8) or 0-10V (-10); daylight / motion sensor",
+   "mounting": "11-wire trunking rail H40 / H60 / H90; pendant, surface or recessed; L / T / X connectors",
+   "emergency": "DC emergency / built-in battery / central supply",
+   "order_code": "CHL[4/6/9]-[length 12/15/24][power 35/70]-[colour]-DT8  e.g. CHL6-1235-WH-DT8",
+   "family": "H-Line H60",
+   "title": "H-Line H60 seamless linear, tunable white, UGR<19, 142 lm/W",
+   "pages": "49-69",
+   "pdf_page": 66,
+   "variants": [
+    {
+     "code": "CHL6-1235",
+     "w": 35,
+     "lm": 5000,
+     "eff": 142,
+     "size": "1200 × 100 × 60",
+     "note": "DIP 20/25/30/35 W; -DT8 (EU) or -10 (US)"
+    },
+    {
+     "code": "CHL6-1535",
+     "w": 35,
+     "lm": 5000,
+     "eff": 142,
+     "size": "1500 × 100 × 60",
+     "note": "DIP 20/25/30/35 W; DT8"
+    },
+    {
+     "code": "CHL6-2470",
+     "w": 70,
+     "lm": 10000,
+     "eff": 142,
+     "size": "2400 × 100 × 60",
+     "note": "DIP 40/50/60/70 W; -DT8 (EU) or -10 (US)"
+    }
+   ],
+   "image": "img/coreshine/h-line-h40-5.jpg",
+   "image_page": "Coreshine.pdf p.66",
+   "image_covers": [
+    "CHL4-1235",
+    "CHL4-1535",
+    "CHL4-2470",
+    "CHL6-1235",
+    "CHL6-1535",
+    "CHL6-2470",
+    "CHL9-1235",
+    "CHL9-1535",
+    "CHL9-2470"
+   ],
+   "image_shared_with": [
+    "H-Line H40",
+    "H-Line H90"
+   ]
+  },
+  {
+   "ik": "–",
+   "category": "Linear trunking",
+   "cct": "2700–6500 K tunable",
+   "cri": "80 (R9 >0, SDCM <3)",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +40°C",
+   "flicker": "≤5 % (Pst LM ≤1.0, SVM ≤0.4)",
+   "pf": "0.9",
+   "type": "Linear trunking luminaire (UGR<19, tunable white)",
+   "ip": "IP40",
+   "ugr": "<19",
+   "voltage": "220-240VAC (DT8) / 100-277VAC (0-10V)",
+   "housing": "Aluminium, white / black / silver",
+   "beam": "45° / 50° / 60°; optional uplight module 20–50 % (CHU)",
+   "control": "DALI-2 DT8 / DT1 / D4i (-DT8) or 0-10V (-10); daylight / motion sensor",
+   "mounting": "11-wire trunking rail H40 / H60 / H90; pendant, surface or recessed; L / T / X connectors",
+   "emergency": "DC emergency / built-in battery / central supply",
+   "order_code": "CHL[4/6/9]-[length 12/15/24][power 35/70]-[colour]-DT8  e.g. CHL6-1235-WH-DT8",
+   "family": "H-Line H90",
+   "title": "H-Line H90 seamless linear, tunable white, UGR<19, 142 lm/W",
+   "pages": "49-69",
+   "pdf_page": 66,
+   "variants": [
+    {
+     "code": "CHL9-1235",
+     "w": 35,
+     "lm": 5000,
+     "eff": 142,
+     "size": "1200 × 100 × 90",
+     "note": "DIP 20/25/30/35 W; -DT8 (EU) or -10 (US)"
+    },
+    {
+     "code": "CHL9-1535",
+     "w": 35,
+     "lm": 5000,
+     "eff": 142,
+     "size": "1500 × 100 × 90",
+     "note": "DIP 20/25/30/35 W; DT8"
+    },
+    {
+     "code": "CHL9-2470",
+     "w": 70,
+     "lm": 10000,
+     "eff": 142,
+     "size": "2400 × 100 × 90",
+     "note": "DIP 40/50/60/70 W; -DT8 (EU) or -10 (US)"
+    }
+   ],
+   "image": "img/coreshine/h-line-h40-5.jpg",
+   "image_page": "Coreshine.pdf p.66",
+   "image_covers": [
+    "CHL4-1235",
+    "CHL4-1535",
+    "CHL4-2470",
+    "CHL6-1235",
+    "CHL6-1535",
+    "CHL6-2470",
+    "CHL9-1235",
+    "CHL9-1535",
+    "CHL9-2470"
+   ],
+   "image_shared_with": [
+    "H-Line H40",
+    "H-Line H60"
+   ]
+  },
+  {
+   "ik": "–",
+   "category": "Linear trunking",
+   "cct": "2700 / 3000 / 3500 / 4000 / 5000 / 5700 / 6500 K",
+   "cri": "80 (R9 >0, SDCM <3)",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +40°C",
+   "flicker": "≤5 % (Pst LM ≤1.0, SVM ≤0.4)",
+   "pf": "0.9",
+   "family": "C-Line",
+   "title": "C-Line linear system 16–80 W, 570 / 1416 mm, 160 / 180 lm/W",
+   "pages": "70-71",
+   "pdf_page": 71,
+   "type": "Linear trunking luminaire",
+   "ip": "–",
+   "voltage": "–",
+   "beam": "Sharp / narrow / wide / flat / asymmetric / double asymmetric",
+   "control": "DALI, DIM switch, 1-10V",
+   "mounting": "5 / 7 / 11-wire trunking rail; cord, chain, rod, surface, clip",
+   "emergency": "DC emergency / central / built-in battery",
+   "family_flag": "Overview page only – no order codes or spec sheet; ask CoreShine for the C-Line datasheet",
+   "variants": [
+    {
+     "code": "C-Line 16W",
+     "w": 16,
+     "lm": null,
+     "eff": null,
+     "size": "570 mm"
+    },
+    {
+     "code": "C-Line 26W",
+     "w": 26,
+     "lm": null,
+     "eff": null,
+     "size": "570 mm"
+    },
+    {
+     "code": "C-Line 32W",
+     "w": 32,
+     "lm": null,
+     "eff": null,
+     "size": "570 mm"
+    },
+    {
+     "code": "C-Line 40W",
+     "w": 40,
+     "lm": null,
+     "eff": null,
+     "size": "1416 mm"
+    },
+    {
+     "code": "C-Line 65W",
+     "w": 65,
+     "lm": null,
+     "eff": null,
+     "size": "1416 mm"
+    },
+    {
+     "code": "C-Line 80W",
+     "w": 80,
+     "lm": null,
+     "eff": null,
+     "size": "1416 mm"
+    }
+   ],
+   "image": "img/coreshine/c-line-8.jpg",
+   "image_page": "Coreshine.pdf p.71",
+   "image_covers": [
+    "C-Line 16W",
+    "C-Line 26W",
+    "C-Line 32W",
+    "C-Line 40W",
+    "C-Line 65W",
+    "C-Line 80W"
+   ],
+   "image_shared_with": []
+  }
+ ],
+ "accessories": [
+  [
+   "S / U-Line trunking rail",
+   "CFT-[length 06/09/12/15/24/30/36/45][N normal / F feed-in / T terminal]-[wires 05/08/12][WH/BK/SV]",
+   "CFT-15F-05WH = 1.5 m feed-in rail, 5 wires, white",
+   11
+  ],
+  [
+   "S / U-Line feed-in box",
+   "CFN-BF-[wires 05/08/12][WH/BK/SV]",
+   "CFN-BF-05WH",
+   15
+  ],
+  [
+   "S / U-Line L / T / X node connector",
+   "CFN-[L/T/X][OI/IO/IOO/OIO/OOI/IOOO]-[wires][colour]",
+   "CFN-LOI-05WH = L connector, in left / out right, 5 wires, white",
+   15
+  ],
+  [
+   "H-Line trunking rail H40 / H60 / H90",
+   "CHT[4/6/9]-[length 09/12/15/24][N/F/T/S supplementary]-[WH/BK/SV]",
+   "CHT6-15N-WH",
+   63
+  ],
+  [
+   "H-Line feed-in box",
+   "CHN[4/6/9]-BF-[WH/BK/SV]",
+   "CHN6-BF-WH",
+   65
+  ],
+  [
+   "H-Line L / T / X node connector",
+   "CHN[4/6/9]-[L/T/X][OI/IO/IOO/OIO/OOI/IOOO]-[colour]",
+   "CHN6-XIOOO-WH",
+   65
+  ],
+  [
+   "H-Line uplight module",
+   "CHU-[12/15]-[ULOR 2 = 20–30 %, 3 = 30–40 %, 4 = 40–50 %]",
+   "CHU-12-4",
+   64
+  ],
+  [
+   "Function modules (all lines)",
+   "Spotlight module, sensor module, exit-sign module, wireless sensor, blank cover, end cap, suspension cord / rod / chain, surface kit, mounting clip",
+   "–",
+   10
+  ]
+ ]
+}

@@ -1,0 +1,5711 @@
+{
+ "brand": "Holux",
+ "source": "Holux_1.pdf + Holux_2.pdf",
+ "families": [
+  {
+   "category": "Indoor",
+   "type": "LED panel",
+   "ip": "IP20",
+   "ik": "IK02",
+   "cct": "3000 / 4000 / 6000 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium frame",
+   "cover": "PMMA light guide / PS diffuser",
+   "control": "On/off; DALI option",
+   "mounting": "Recessed (frames / spring clips / hanging kit as accessories)",
+   "order_code": "Certificates: CE, RoHS, ErP, UKCA, ENEC; flicker-free, yellow-free",
+   "family": "BP-A1",
+   "title": "Slim backlit panel UGR<22, 100–200 lm/W",
+   "pages": "01-02",
+   "beam": "110°",
+   "ugr": "<22",
+   "variants": [
+    {
+     "code": "BP-6060-40A1",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "595 × 595 × 28",
+     "note": ""
+    },
+    {
+     "code": "BP-6262-40A1",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "620 × 620 × 30",
+     "note": ""
+    },
+    {
+     "code": "BP-30120-40A1",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "295 × 1195 × 30",
+     "note": ""
+    },
+    {
+     "code": "BP-3030-24A1",
+     "w": 24,
+     "lm": 2800,
+     "eff": 120,
+     "size": "295 × 295 × 32",
+     "note": ""
+    },
+    {
+     "code": "BP-3060-24A1",
+     "w": 24,
+     "lm": 2800,
+     "eff": 120,
+     "size": "295 × 595 × 32",
+     "note": ""
+    },
+    {
+     "code": "BP-6060-36A1",
+     "w": 36,
+     "lm": 4320,
+     "eff": 120,
+     "size": "595 × 595 × 28",
+     "note": ""
+    },
+    {
+     "code": "BP-6262-36A1",
+     "w": 36,
+     "lm": 4320,
+     "eff": 120,
+     "size": "620 × 620 × 30",
+     "note": ""
+    },
+    {
+     "code": "BP-30120-36A1",
+     "w": 36,
+     "lm": 4320,
+     "eff": 120,
+     "size": "295 × 1195 × 30",
+     "note": ""
+    },
+    {
+     "code": "BP-60120-50A1",
+     "w": 50,
+     "lm": 6000,
+     "eff": 120,
+     "size": "595 × 1195 × 32",
+     "note": ""
+    },
+    {
+     "code": "BP-6060-34A1",
+     "w": 34,
+     "lm": 4760,
+     "eff": 140,
+     "size": "595 × 595 × 28",
+     "note": ""
+    },
+    {
+     "code": "BP-6262-34A1",
+     "w": 34,
+     "lm": 4760,
+     "eff": 140,
+     "size": "620 × 620 × 30",
+     "note": ""
+    },
+    {
+     "code": "BP-30120-34A1",
+     "w": 34,
+     "lm": 4760,
+     "eff": 140,
+     "size": "295 × 1195 × 30",
+     "note": ""
+    },
+    {
+     "code": "BP-6060-30A1",
+     "w": 30,
+     "lm": 4800,
+     "eff": 160,
+     "size": "595 × 595 × 28",
+     "note": ""
+    },
+    {
+     "code": "BP-6262-30A1",
+     "w": 30,
+     "lm": 4800,
+     "eff": 160,
+     "size": "620 × 620 × 30",
+     "note": ""
+    },
+    {
+     "code": "BP-30120-30A1",
+     "w": 30,
+     "lm": 4800,
+     "eff": 160,
+     "size": "295 × 1195 × 30",
+     "note": ""
+    },
+    {
+     "code": "BP-6060-25A1",
+     "w": 25,
+     "lm": 4500,
+     "eff": 180,
+     "size": "595 × 595 × 28",
+     "note": ""
+    },
+    {
+     "code": "BP-6262-25A1",
+     "w": 25,
+     "lm": 4500,
+     "eff": 180,
+     "size": "620 × 620 × 30",
+     "note": ""
+    },
+    {
+     "code": "BP-30120-25A1",
+     "w": 25,
+     "lm": 4500,
+     "eff": 180,
+     "size": "295 × 1195 × 30",
+     "note": ""
+    },
+    {
+     "code": "BP-6060-24A1",
+     "w": 24,
+     "lm": 4800,
+     "eff": 200,
+     "size": "595 × 595 × 30",
+     "note": ""
+    },
+    {
+     "code": "BP-6262-24A1",
+     "w": 24,
+     "lm": 4800,
+     "eff": 200,
+     "size": "620 × 620 × 30",
+     "note": ""
+    },
+    {
+     "code": "BP-30120-24A1",
+     "w": 24,
+     "lm": 4800,
+     "eff": 200,
+     "size": "295 × 1195 × 30",
+     "note": ""
+    }
+   ],
+   "image": "img/holux/bp-a1-0.jpg",
+   "image_page": "Holux_1.pdf p.6",
+   "image_covers": [
+    "BP-6060-40A1",
+    "BP-6262-40A1",
+    "BP-30120-40A1",
+    "BP-3030-24A1",
+    "BP-3060-24A1",
+    "BP-6060-36A1",
+    "BP-6262-36A1",
+    "BP-30120-36A1",
+    "BP-60120-50A1",
+    "BP-6060-34A1",
+    "BP-6262-34A1",
+    "BP-30120-34A1",
+    "BP-6060-30A1",
+    "BP-6262-30A1",
+    "BP-30120-30A1",
+    "BP-6060-25A1",
+    "BP-6262-25A1",
+    "BP-30120-25A1",
+    "BP-6060-24A1",
+    "BP-6262-24A1",
+    "BP-30120-24A1"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED panel",
+   "ip": "IP20",
+   "ik": "IK02",
+   "cct": "3000 / 4000 / 6000 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium frame",
+   "cover": "PMMA light guide / PS diffuser",
+   "control": "On/off; DALI option",
+   "mounting": "Recessed (frames / spring clips / hanging kit as accessories)",
+   "order_code": "Certificates: CE, RoHS, ErP, UKCA, ENEC; flicker-free, yellow-free",
+   "family": "BP-U1",
+   "title": "Slim backlit panel UGR<19, 100–200 lm/W",
+   "pages": "03",
+   "beam": "90°",
+   "ugr": "<19",
+   "variants": [
+    {
+     "code": "BP-6060-40U1",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "595 × 595 × 28",
+     "note": ""
+    },
+    {
+     "code": "BP-6262-40U1",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "620 × 620 × 30",
+     "note": ""
+    },
+    {
+     "code": "BP-30120-40U1",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "295 × 1195 × 30",
+     "note": ""
+    },
+    {
+     "code": "BP-3030-24U1",
+     "w": 24,
+     "lm": 2800,
+     "eff": 120,
+     "size": "295 × 295 × 32",
+     "note": ""
+    },
+    {
+     "code": "BP-3060-24U1",
+     "w": 24,
+     "lm": 2800,
+     "eff": 120,
+     "size": "295 × 595 × 32",
+     "note": ""
+    },
+    {
+     "code": "BP-6060-36U1",
+     "w": 36,
+     "lm": 4320,
+     "eff": 120,
+     "size": "595 × 595 × 28",
+     "note": ""
+    },
+    {
+     "code": "BP-6262-36U1",
+     "w": 36,
+     "lm": 4320,
+     "eff": 120,
+     "size": "620 × 620 × 30",
+     "note": ""
+    },
+    {
+     "code": "BP-30120-36U1",
+     "w": 36,
+     "lm": 4320,
+     "eff": 120,
+     "size": "295 × 1195 × 30",
+     "note": ""
+    },
+    {
+     "code": "BP-60120-50U1",
+     "w": 50,
+     "lm": 6000,
+     "eff": 120,
+     "size": "595 × 1195 × 32",
+     "note": ""
+    },
+    {
+     "code": "BP-6060-34U1",
+     "w": 34,
+     "lm": 4760,
+     "eff": 140,
+     "size": "595 × 595 × 28",
+     "note": ""
+    },
+    {
+     "code": "BP-6262-34U1",
+     "w": 34,
+     "lm": 4760,
+     "eff": 140,
+     "size": "620 × 620 × 30",
+     "note": ""
+    },
+    {
+     "code": "BP-30120-34U1",
+     "w": 34,
+     "lm": 4760,
+     "eff": 140,
+     "size": "295 × 1195 × 30",
+     "note": ""
+    },
+    {
+     "code": "BP-6060-30U1",
+     "w": 30,
+     "lm": 4800,
+     "eff": 160,
+     "size": "595 × 595 × 28",
+     "note": ""
+    },
+    {
+     "code": "BP-6262-30U1",
+     "w": 30,
+     "lm": 4800,
+     "eff": 160,
+     "size": "620 × 620 × 30",
+     "note": ""
+    },
+    {
+     "code": "BP-30120-30U1",
+     "w": 30,
+     "lm": 4800,
+     "eff": 160,
+     "size": "295 × 1195 × 30",
+     "note": ""
+    },
+    {
+     "code": "BP-6060-25U1",
+     "w": 25,
+     "lm": 4500,
+     "eff": 180,
+     "size": "595 × 595 × 28",
+     "note": ""
+    },
+    {
+     "code": "BP-6262-25U1",
+     "w": 25,
+     "lm": 4500,
+     "eff": 180,
+     "size": "620 × 620 × 30",
+     "note": ""
+    },
+    {
+     "code": "BP-30120-25U1",
+     "w": 25,
+     "lm": 4500,
+     "eff": 180,
+     "size": "295 × 1195 × 30",
+     "note": ""
+    },
+    {
+     "code": "BP-6060-24U1",
+     "w": 24,
+     "lm": 4800,
+     "eff": 200,
+     "size": "595 × 595 × 30",
+     "note": ""
+    },
+    {
+     "code": "BP-6262-24U1",
+     "w": 24,
+     "lm": 4800,
+     "eff": 200,
+     "size": "620 × 620 × 30",
+     "note": ""
+    },
+    {
+     "code": "BP-30120-24U1",
+     "w": 24,
+     "lm": 4800,
+     "eff": 200,
+     "size": "295 × 1195 × 30",
+     "note": ""
+    }
+   ],
+   "image": "img/holux/bp-u1-1.jpg",
+   "image_page": "Holux_1.pdf p.7",
+   "image_covers": [
+    "BP-6060-40U1",
+    "BP-6262-40U1",
+    "BP-30120-40U1",
+    "BP-3030-24U1",
+    "BP-3060-24U1",
+    "BP-6060-36U1",
+    "BP-6262-36U1",
+    "BP-30120-36U1",
+    "BP-60120-50U1",
+    "BP-6060-34U1",
+    "BP-6262-34U1",
+    "BP-30120-34U1",
+    "BP-6060-30U1",
+    "BP-6262-30U1",
+    "BP-30120-30U1",
+    "BP-6060-25U1",
+    "BP-6262-25U1",
+    "BP-30120-25U1",
+    "BP-6060-24U1",
+    "BP-6262-24U1",
+    "BP-30120-24U1"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED panel",
+   "ip": "IP20",
+   "ik": "IK02",
+   "cct": "3000 / 4000 / 6500 K (DIP switch)",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium frame",
+   "cover": "PMMA light guide / PS diffuser",
+   "control": "On/off; DALI option",
+   "mounting": "Recessed (frames / spring clips / hanging kit as accessories)",
+   "order_code": "Certificates: CE, RoHS, ErP, UKCA, ENEC; flicker-free, yellow-free",
+   "family": "BP-A1 3CCT",
+   "title": "3CCT + 4-step power panel UGR<22 (DIP switch 3000 / 4000 / 6500 K)",
+   "pages": "04",
+   "beam": "110°",
+   "ugr": "<22",
+   "variants": [
+    {
+     "code": "BP-6060-40A1-3CCT",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "595 × 595 × 28",
+     "note": "Power selectable 36W-38W-40W · lumens = W × lm/W (not printed)"
+    },
+    {
+     "code": "BP-30120-40A1-3CCT",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "295 × 1195 × 30",
+     "note": "Power selectable 36W-38W-40W · lumens = W × lm/W (not printed)"
+    },
+    {
+     "code": "BP-6060-36A1-3CCT",
+     "w": 40,
+     "lm": 4800,
+     "eff": 120,
+     "size": "595 × 595 × 28",
+     "note": "Power selectable 28W-32W-36W-40W · lumens = W × lm/W (not printed)",
+     "flag": "Code says 36 W but the wattage column lists 28/32/36/40 W – check",
+     "cri": ">90"
+    },
+    {
+     "code": "BP-30120-36A1-3CCT",
+     "w": 40,
+     "lm": 4800,
+     "eff": 120,
+     "size": "295 × 1195 × 30",
+     "note": "Power selectable 28W-32W-36W-40W · lumens = W × lm/W (not printed)",
+     "flag": "Code says 36 W but the wattage column lists 28/32/36/40 W – check",
+     "cri": ">90"
+    },
+    {
+     "code": "BP-6060-32A1-3CCT",
+     "w": 36,
+     "lm": 5040,
+     "eff": 140,
+     "size": "595 × 595 × 28",
+     "note": "Power selectable 24W-28W-32W-36W · lumens = W × lm/W (not printed)",
+     "flag": "Code says 32 W but the wattage column goes to 36 W – check"
+    },
+    {
+     "code": "BP-30120-32A1-3CCT",
+     "w": 36,
+     "lm": 5040,
+     "eff": 140,
+     "size": "295 × 1195 × 30",
+     "note": "Power selectable 24W-28W-32W-36W · lumens = W × lm/W (not printed)",
+     "flag": "Code says 32 W but the wattage column goes to 36 W – check"
+    },
+    {
+     "code": "BP-6060-28A1-3CCT",
+     "w": 32,
+     "lm": 5120,
+     "eff": 160,
+     "size": "595 × 595 × 28",
+     "note": "Power selectable 20W-24W-28W-32W · lumens = W × lm/W (not printed)",
+     "flag": "Code says 28 W but the wattage column goes to 32 W – check"
+    },
+    {
+     "code": "BP-30120-28A1-3CCT",
+     "w": 32,
+     "lm": 5120,
+     "eff": 160,
+     "size": "295 × 1195 × 30",
+     "note": "Power selectable 20W-24W-28W-32W · lumens = W × lm/W (not printed)",
+     "flag": "Code says 28 W but the wattage column goes to 32 W – check"
+    },
+    {
+     "code": "BP-6060-30A1-3CCT",
+     "w": 30,
+     "lm": 5400,
+     "eff": 180,
+     "size": "595 × 595 × 28",
+     "note": "Power selectable 24W-26W-28W-30W · lumens = W × lm/W (not printed)"
+    },
+    {
+     "code": "BP-30120-30A1-3CCT",
+     "w": 30,
+     "lm": 5400,
+     "eff": 180,
+     "size": "295 × 1195 × 30",
+     "note": "Power selectable 24W-26W-28W-30W · lumens = W × lm/W (not printed)"
+    }
+   ],
+   "image": "img/holux/bp-a1-3cct-2.jpg",
+   "image_page": "Holux_1.pdf p.8",
+   "image_covers": [
+    "BP-6060-40A1-3CCT",
+    "BP-30120-40A1-3CCT",
+    "BP-6060-36A1-3CCT",
+    "BP-30120-36A1-3CCT",
+    "BP-6060-32A1-3CCT",
+    "BP-30120-32A1-3CCT",
+    "BP-6060-28A1-3CCT",
+    "BP-30120-28A1-3CCT",
+    "BP-6060-30A1-3CCT",
+    "BP-30120-30A1-3CCT"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED panel",
+   "ip": "IP20",
+   "ik": "IK02",
+   "cct": "3000 / 4000 / 6500 K (DIP switch)",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium frame",
+   "cover": "PMMA light guide / PS diffuser",
+   "control": "On/off; DALI option",
+   "mounting": "Recessed (frames / spring clips / hanging kit as accessories)",
+   "order_code": "Certificates: CE, RoHS, ErP, UKCA, ENEC; flicker-free, yellow-free",
+   "family": "BP-U1 3CCT",
+   "title": "3CCT + 4-step power panel UGR<19 (DIP switch 3000 / 4000 / 6500 K)",
+   "pages": "05",
+   "beam": "90°",
+   "ugr": "<19",
+   "variants": [
+    {
+     "code": "BP-6060-40U1-3CCT",
+     "w": 40,
+     "lm": 4800,
+     "eff": 120,
+     "size": "595 × 595 × 28",
+     "note": "Power selectable 28W-32W-36W-40W · lumens = W × lm/W (not printed)",
+     "cri": ">90"
+    },
+    {
+     "code": "BP-6262-40U1-3CCT",
+     "w": 40,
+     "lm": 4800,
+     "eff": 120,
+     "size": "620 × 620 × 32",
+     "note": "Power selectable 28W-32W-36W-40W · lumens = W × lm/W (not printed)",
+     "cri": ">90"
+    },
+    {
+     "code": "BP-30120-40U1-3CCT",
+     "w": 40,
+     "lm": 4800,
+     "eff": 120,
+     "size": "295 × 1195 × 30",
+     "note": "Power selectable 28W-32W-36W-40W · lumens = W × lm/W (not printed)",
+     "cri": ">90"
+    },
+    {
+     "code": "BP-60120-40U1-3CCT",
+     "w": 50,
+     "lm": 6000,
+     "eff": 120,
+     "size": "595 × 1195 × 32",
+     "note": "Power selectable 38W-42W-46W-50W · lumens = W × lm/W (not printed)",
+     "flag": "Code says 40 W but the wattage column lists 38/42/46/50 W – check",
+     "cri": ">90"
+    },
+    {
+     "code": "BP-6060-36U1-3CCT",
+     "w": 36,
+     "lm": 5040,
+     "eff": 140,
+     "size": "595 × 595 × 28",
+     "note": "Power selectable 24W-28W-32W-36W · lumens = W × lm/W (not printed)"
+    },
+    {
+     "code": "BP-6262-36U1-3CCT",
+     "w": 36,
+     "lm": 5040,
+     "eff": 140,
+     "size": "620 × 620 × 32",
+     "note": "Power selectable 24W-28W-32W-36W · lumens = W × lm/W (not printed)"
+    },
+    {
+     "code": "BP-30120-36U1-3CCT",
+     "w": 36,
+     "lm": 5040,
+     "eff": 140,
+     "size": "295 × 1195 × 30",
+     "note": "Power selectable 24W-28W-32W-36W · lumens = W × lm/W (not printed)"
+    },
+    {
+     "code": "BP-6060-32U1-3CCT",
+     "w": 32,
+     "lm": 5120,
+     "eff": 160,
+     "size": "595 × 595 × 28",
+     "note": "Power selectable 20W-24W-28W-32W · lumens = W × lm/W (not printed)"
+    },
+    {
+     "code": "BP-6262-32U1-3CCT",
+     "w": 32,
+     "lm": 5120,
+     "eff": 160,
+     "size": "620 × 620 × 32",
+     "note": "Power selectable 20W-24W-28W-32W · lumens = W × lm/W (not printed)"
+    },
+    {
+     "code": "BP-30120-32U1-3CCT",
+     "w": 32,
+     "lm": 5120,
+     "eff": 160,
+     "size": "295 × 1195 × 30",
+     "note": "Power selectable 20W-24W-28W-32W · lumens = W × lm/W (not printed)"
+    },
+    {
+     "code": "BP-6060-30U1-3CCT",
+     "w": 30,
+     "lm": 5400,
+     "eff": 180,
+     "size": "595 × 595 × 28",
+     "note": "Power selectable 24W-26W-28W-30W · lumens = W × lm/W (not printed)"
+    },
+    {
+     "code": "BP-6262-30U1-3CCT",
+     "w": 30,
+     "lm": 5400,
+     "eff": 180,
+     "size": "620 × 620 × 32",
+     "note": "Power selectable 24W-26W-28W-30W · lumens = W × lm/W (not printed)"
+    },
+    {
+     "code": "BP-30120-30U1-3CCT",
+     "w": 30,
+     "lm": 5400,
+     "eff": 180,
+     "size": "295 × 1195 × 30",
+     "note": "Power selectable 24W-26W-28W-30W · lumens = W × lm/W (not printed)"
+    }
+   ],
+   "image": "img/holux/bp-u1-3cct-3.jpg",
+   "image_page": "Holux_1.pdf p.9",
+   "image_covers": [
+    "BP-6060-40U1-3CCT",
+    "BP-6262-40U1-3CCT",
+    "BP-30120-40U1-3CCT",
+    "BP-60120-40U1-3CCT",
+    "BP-6060-36U1-3CCT",
+    "BP-6262-36U1-3CCT",
+    "BP-30120-36U1-3CCT",
+    "BP-6060-32U1-3CCT",
+    "BP-6262-32U1-3CCT",
+    "BP-30120-32U1-3CCT",
+    "BP-6060-30U1-3CCT",
+    "BP-6262-30U1-3CCT",
+    "BP-30120-30U1-3CCT"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED panel",
+   "ip": "IP40",
+   "ik": "IK02",
+   "cct": "3000 / 4000 / 5000 / 6500 K",
+   "cri": "97 typical (R1–R15 >90)",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium frame",
+   "cover": "PMMA light guide / PS diffuser",
+   "control": "On/off; DALI option",
+   "mounting": "Recessed (frames / spring clips / hanging kit as accessories)",
+   "order_code": "Certificates: CE, RoHS, ErP, UKCA, ENEC; flicker-free, yellow-free",
+   "beam": "90°",
+   "ugr": "<19",
+   "family": "BP-D1 CCT",
+   "title": "4CCT adjustable full-spectrum panel, CRI 97 (3000 / 4000 / 5000 / 6500 K)",
+   "pages": "06",
+   "variants": [
+    {
+     "code": "BP-6060-42D1-CCT",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "595 × 595 × 28",
+     "note": "Printed code \"BP-6060-42D1 CCT\""
+    },
+    {
+     "code": "BP-6262-42D1-CCT",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "620 × 620 × 28",
+     "note": "Printed code \"BP-6262-42D1 CCT\""
+    },
+    {
+     "code": "BP-30120-42D1-CCT",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "295 × 1195 × 28",
+     "note": "Printed code \"BP-30120-42D1 CCT\""
+    }
+   ],
+   "image": "img/holux/bp-d1-cct-4.jpg",
+   "image_page": "Holux_1.pdf p.10",
+   "image_covers": [
+    "BP-6060-42D1-CCT",
+    "BP-6262-42D1-CCT",
+    "BP-30120-42D1-CCT"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED panel",
+   "ip": "IP40",
+   "ik": "IK02",
+   "cct": "4000 K",
+   "cri": "97 typical (R1–R15 >90)",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium frame",
+   "cover": "PMMA light guide / PS diffuser",
+   "control": "On/off; DALI option",
+   "mounting": "Recessed (frames / spring clips / hanging kit as accessories)",
+   "order_code": "Certificates: CE, RoHS, ErP, UKCA, ENEC; flicker-free, yellow-free",
+   "beam": "90°",
+   "ugr": "<19",
+   "family": "BP-D1",
+   "title": "Human-centric / less blue light full-spectrum panel, CRI 97, 4000 K",
+   "pages": "06",
+   "variants": [
+    {
+     "code": "BP-6060-42D1",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "595 × 595 × 25",
+     "note": ""
+    },
+    {
+     "code": "BP-6262-42D1",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "620 × 620 × 32",
+     "note": ""
+    },
+    {
+     "code": "BP-30120-42D1",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "295 × 1195 × 27",
+     "note": ""
+    }
+   ],
+   "image": "img/holux/bp-d1-5.jpg",
+   "image_page": "Holux_1.pdf p.10",
+   "image_covers": [
+    "BP-6060-42D1",
+    "BP-6262-42D1",
+    "BP-30120-42D1"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED panel (all-in-one, surface / recessed)",
+   "ip": "IP20",
+   "ik": "IK03",
+   "cct": "4000 K",
+   "cri": "≥90",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium frame, driver built in",
+   "cover": "PMMA light guide / PS diffuser",
+   "control": "On/off",
+   "mounting": "Recessed (frames / spring clips / hanging kit as accessories)",
+   "order_code": "Certificates: CE, RoHS, ErP, UKCA, ENEC; flicker-free, yellow-free",
+   "family": "SPL-A1/U1",
+   "title": "All-in-one panel light, CRI ≥90, 4000 K",
+   "pages": "09",
+   "variants": [
+    {
+     "code": "SPL-6060-34A1",
+     "w": 34,
+     "lm": 4080,
+     "eff": 120,
+     "size": "595 × 595 × 40",
+     "note": "",
+     "beam": "110°",
+     "ugr": "<22"
+    },
+    {
+     "code": "SPL-30120-34A1",
+     "w": 34,
+     "lm": 4080,
+     "eff": 120,
+     "size": "295 × 1195 × 40",
+     "note": "",
+     "beam": "110°",
+     "ugr": "<22"
+    },
+    {
+     "code": "SPL-6060-34U1",
+     "w": 34,
+     "lm": 4080,
+     "eff": 120,
+     "size": "595 × 595 × 40",
+     "note": "",
+     "beam": "90°",
+     "ugr": "<19"
+    },
+    {
+     "code": "SPL-30120-34U1",
+     "w": 34,
+     "lm": 4080,
+     "eff": 120,
+     "size": "295 × 1195 × 40",
+     "note": "",
+     "beam": "90°",
+     "ugr": "<19"
+    }
+   ],
+   "image": "img/holux/spl-a1-u1-6.jpg",
+   "image_page": "Holux_1.pdf p.13",
+   "image_covers": [
+    "SPL-6060-34A1",
+    "SPL-30120-34A1",
+    "SPL-6060-34U1",
+    "SPL-30120-34U1"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED panel (all-in-one, surface / recessed)",
+   "ip": "IP20",
+   "ik": "IK03",
+   "cct": "3000 / 4000 / 6000 K",
+   "cri": "≥90",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium frame, driver built in",
+   "cover": "PMMA light guide / PS diffuser",
+   "control": "On/off",
+   "mounting": "Recessed (frames / spring clips / hanging kit as accessories)",
+   "order_code": "Certificates: CE, RoHS, ErP, UKCA, ENEC; flicker-free, yellow-free",
+   "family": "SPL-3CCT",
+   "title": "3CCT all-in-one panel light, CRI ≥90, power 30/34/38 W selectable",
+   "pages": "09",
+   "variants": [
+    {
+     "code": "SPL-6060-34A1-3CCT",
+     "w": 38,
+     "lm": 4560,
+     "eff": 120,
+     "size": "595 × 595 × 40",
+     "note": "Power selectable 30/34/38W",
+     "beam": "110°",
+     "ugr": "<22"
+    },
+    {
+     "code": "SPL-30120-34A1-3CCT",
+     "w": 38,
+     "lm": 4560,
+     "eff": 120,
+     "size": "295 × 1195 × 40",
+     "note": "Power selectable 30/34/38W",
+     "beam": "110°",
+     "ugr": "<22"
+    },
+    {
+     "code": "SPL-6060-34U1-3CCT",
+     "w": 38,
+     "lm": 4560,
+     "eff": 120,
+     "size": "595 × 595 × 40",
+     "note": "Power selectable 30/34/38W",
+     "beam": "90°",
+     "ugr": "<19"
+    },
+    {
+     "code": "SPL-30120-34U1-3CCT",
+     "w": 38,
+     "lm": 4560,
+     "eff": 120,
+     "size": "295 × 1195 × 40",
+     "note": "Power selectable 30/34/38W",
+     "beam": "90°",
+     "ugr": "<19"
+    }
+   ],
+   "image": "img/holux/spl-3cct-7.jpg",
+   "image_page": "Holux_1.pdf p.13",
+   "image_covers": [
+    "SPL-6060-34A1-3CCT",
+    "SPL-30120-34A1-3CCT",
+    "SPL-6060-34U1-3CCT",
+    "SPL-30120-34U1-3CCT"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED panel (all-in-one, surface / recessed)",
+   "ip": "IP20",
+   "ik": "IK03",
+   "cct": "4000 / 6500 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium frame, driver built in",
+   "cover": "PMMA light guide / PS diffuser",
+   "control": "On/off",
+   "mounting": "Recessed (frames / spring clips / hanging kit as accessories)",
+   "order_code": "Certificates: CE, RoHS, ErP, UKCA, ENEC; flicker-free, yellow-free",
+   "family": "SPL-U1 surface",
+   "title": "Surface panel light UGR<19, 4000 / 6500 K",
+   "pages": "11",
+   "beam": "90°",
+   "ugr": "<19",
+   "variants": [
+    {
+     "code": "SPL-6060-40U1",
+     "w": 40,
+     "lm": 4080,
+     "eff": 120,
+     "size": "600 × 600 × 38",
+     "note": "",
+     "flag": "Printed 4,080 lm, but 40 W × 120 lm/W = 4,800 lm – check"
+    },
+    {
+     "code": "SPL-30120-40U1",
+     "w": 40,
+     "lm": 4080,
+     "eff": 120,
+     "size": "1200 × 300 × 38",
+     "note": "",
+     "flag": "Printed 4,080 lm, but 40 W × 120 lm/W = 4,800 lm – check"
+    }
+   ],
+   "image": "img/holux/spl-u1-surface-8.jpg",
+   "image_page": "Holux_1.pdf p.15",
+   "image_covers": [
+    "SPL-6060-40U1",
+    "SPL-30120-40U1"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED panel (all-in-one, surface / recessed)",
+   "ip": "IP20",
+   "ik": "IK02",
+   "cct": "4000 / 6500 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium frame, driver built in",
+   "cover": "PMMA light guide / PS diffuser",
+   "control": "On/off",
+   "mounting": "Recessed (frames / spring clips / hanging kit as accessories)",
+   "order_code": "Certificates: CE, RoHS, ErP, UKCA, ENEC; flicker-free, yellow-free",
+   "family": "SPL-U1/U2 quick",
+   "title": "Quick-installation surface panel 300 × 1500, 100 lm/W",
+   "pages": "11",
+   "beam": "90°",
+   "ugr": "<19",
+   "variants": [
+    {
+     "code": "SPL-30150-40U1",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "300 × 1500 × 30",
+     "note": "Side-emitting"
+    },
+    {
+     "code": "SPL-30150-40U2",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "300 × 1500 × 30",
+     "note": "Backlit"
+    }
+   ],
+   "image": "img/holux/spl-u1-u2-quick-9.jpg",
+   "image_page": "Holux_1.pdf p.15",
+   "image_covers": [
+    "SPL-30150-40U1",
+    "SPL-30150-40U2"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED panel",
+   "ip": "IP40",
+   "ik": "IK02",
+   "cct": "3000–6500 K + RGB",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium frame",
+   "cover": "PMMA light guide / PS diffuser",
+   "control": "Smart app / BLE (TIGIDIGITAL or MiBOXER platform)",
+   "mounting": "Recessed (frames / spring clips / hanging kit as accessories)",
+   "order_code": "Certificates: CE, RoHS, ErP, UKCA, ENEC; flicker-free, yellow-free",
+   "family": "RGBCW BP",
+   "title": "RGBCW full-colour panel (app + BLE), RGB 8 W + CCT 40 W",
+   "pages": "13",
+   "ugr": "<22",
+   "variants": [
+    {
+     "code": "BP-6060-40RGBCCT",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "595 × 595 × 28",
+     "note": "TIGIDIGITAL; RGB 8 W + CCT 40 W",
+     "platform": "TIGIDIGITAL"
+    },
+    {
+     "code": "BP-30120-40RGBCCT",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "295 × 1195 × 28",
+     "note": "TIGIDIGITAL; RGB 8 W + CCT 40 W"
+    },
+    {
+     "code": "BP-6262-40RGBCCT",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "620 × 620 × 28",
+     "note": "TIGIDIGITAL; RGB 8 W + CCT 40 W"
+    },
+    {
+     "code": "BP-6060-40RGBCCT-MB",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "595 × 595 × 28",
+     "note": "MiBOXER; RGB 8 W + CCT 40 W",
+     "flag": "Same code BP-6060-40RGBCCT printed for TIGIDIGITAL and MiBOXER – \"-MB\" added here; ask Holux for the real code"
+    },
+    {
+     "code": "BP-30120-40RGBCCT-MB",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "295 × 1195 × 28",
+     "note": "MiBOXER",
+     "flag": "Same code printed for both platforms – \"-MB\" added here"
+    },
+    {
+     "code": "BP-6262-40RGBCCT-MB",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "620 × 620 × 28",
+     "note": "MiBOXER",
+     "flag": "Same code printed for both platforms – \"-MB\" added here"
+    }
+   ],
+   "image": "img/holux/rgbcw-bp-10.jpg",
+   "image_page": "Holux_1.pdf p.17",
+   "image_covers": [
+    "BP-6060-40RGBCCT",
+    "BP-30120-40RGBCCT",
+    "BP-6262-40RGBCCT",
+    "BP-6060-40RGBCCT-MB",
+    "BP-30120-40RGBCCT-MB",
+    "BP-6262-40RGBCCT-MB"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED panel",
+   "ip": "IP20",
+   "ik": "IK02",
+   "cct": "3000 / 4000 / 6000 K",
+   "cri": "≥90",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium frame",
+   "cover": "PMMA light guide / PS diffuser",
+   "control": "0-10V driver; Bluetooth (Tuya, GEBC, Silvair, Casambi), PIR + daylight sensor",
+   "mounting": "Recessed (frames / spring clips / hanging kit as accessories)",
+   "order_code": "Certificates: CE, RoHS, ErP, UKCA, ENEC; flicker-free, yellow-free",
+   "family": "HCL BP-S1/S2",
+   "title": "HCL panel with sensor (Bluetooth / PIR / daylight), 0-10V driver, 120 lm/W",
+   "pages": "15",
+   "ugr": "<19",
+   "variants": [
+    {
+     "code": "BP-6060-40S1",
+     "w": 40,
+     "lm": 4800,
+     "eff": 120,
+     "size": "595 × 595 × 30",
+     "note": "Embedded sensor; 3000 / 4000 / 6500 K"
+    },
+    {
+     "code": "BP-6060-40S1-3CCT",
+     "w": 40,
+     "lm": 4800,
+     "eff": 120,
+     "size": "595 × 595 × 30",
+     "note": "Embedded sensor; 3000–6500 K tunable"
+    },
+    {
+     "code": "BP-6060-40S1-3CCTR",
+     "w": 40,
+     "lm": 4800,
+     "eff": 120,
+     "size": "595 × 595 × 30",
+     "note": "PIR + daylight sensor, remote control; 3000–6500 K"
+    },
+    {
+     "code": "BP-6060-40S2",
+     "w": 40,
+     "lm": 4800,
+     "eff": 120,
+     "size": "595 × 595 × 30",
+     "note": "Plug-on sensor; 3000 / 4000 / 6500 K"
+    }
+   ],
+   "image": "img/holux/hcl-bp-s1-s2-11.jpg",
+   "image_page": "Holux_1.pdf p.19",
+   "image_covers": [
+    "BP-6060-40S1",
+    "BP-6060-40S1-3CCT",
+    "BP-6060-40S1-3CCTR",
+    "BP-6060-40S2"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED panel",
+   "ip": "IP65",
+   "ik": "IK03",
+   "cct": "4000 K",
+   "cri": "90",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium frame",
+   "cover": "PMMA light guide / PS diffuser",
+   "control": "On/off; DALI option",
+   "mounting": "Recessed (frames / spring clips / hanging kit as accessories)",
+   "order_code": "Certificates: CE, RoHS, ErP, UKCA, ENEC; flicker-free, yellow-free",
+   "family": "BP-UIP/AIP",
+   "title": "IP65 waterproof backlit panel (breathing valve), 120 lm/W",
+   "pages": "17",
+   "variants": [
+    {
+     "code": "BP-6060-40UIP",
+     "w": 40,
+     "lm": 4800,
+     "eff": 120,
+     "size": "595 × 595 × 32",
+     "note": "",
+     "beam": "90°",
+     "ugr": "<19"
+    },
+    {
+     "code": "BP-6262-40UIP",
+     "w": 40,
+     "lm": 4800,
+     "eff": 120,
+     "size": "620 × 620 × 32",
+     "note": "",
+     "beam": "90°",
+     "ugr": "<19"
+    },
+    {
+     "code": "BP-30120-40UIP",
+     "w": 40,
+     "lm": 4800,
+     "eff": 120,
+     "size": "295 × 1195 × 32",
+     "note": "",
+     "beam": "90°",
+     "ugr": "<19"
+    },
+    {
+     "code": "BP-6060-40IP",
+     "w": 40,
+     "lm": 4800,
+     "eff": 120,
+     "size": "595 × 595 × 32",
+     "note": "",
+     "beam": "110°",
+     "ugr": "<22"
+    },
+    {
+     "code": "BP-6262-40IP",
+     "w": 40,
+     "lm": 4800,
+     "eff": 120,
+     "size": "620 × 620 × 32",
+     "note": "",
+     "beam": "110°",
+     "ugr": "<22"
+    },
+    {
+     "code": "BP-30120-40IP",
+     "w": 40,
+     "lm": 4800,
+     "eff": 120,
+     "size": "295 × 1195 × 32",
+     "note": "",
+     "beam": "110°",
+     "ugr": "<22"
+    }
+   ],
+   "image": "img/holux/bp-uip-aip-12.jpg",
+   "image_page": "Holux_1.pdf p.21",
+   "image_covers": [
+    "BP-6060-40UIP",
+    "BP-6262-40UIP",
+    "BP-30120-40UIP",
+    "BP-6060-40IP",
+    "BP-6262-40IP",
+    "BP-30120-40IP"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED panel (suspended up / down)",
+   "ip": "IP20",
+   "ik": "IK02",
+   "cct": "3000 / 4000 / 6000 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium frame",
+   "cover": "PMMA light guide / PS diffuser",
+   "control": "On/off; DALI option",
+   "mounting": "Recessed (frames / spring clips / hanging kit as accessories)",
+   "order_code": "Certificates: CE, RoHS, ErP, UKCA, ENEC; flicker-free, yellow-free",
+   "family": "UD BP-D2",
+   "title": "Up-down backlit suspended panel (up 16 W + down 34 W), 2 external SELV Eaglerise drivers",
+   "pages": "19",
+   "ugr": "<19",
+   "variants": [
+    {
+     "code": "BP-30120-40D2",
+     "w": 50,
+     "lm": 7000,
+     "eff": 140,
+     "size": "295 × 1195 × 34",
+     "note": "Up 16 W / 2,240 lm (20/24/28/32 W optional) + down 34 W / 4,760 lm"
+    }
+   ],
+   "image": "img/holux/ud-bp-d2-13.jpg",
+   "image_page": "Holux_1.pdf p.23",
+   "image_covers": [
+    "BP-30120-40D2"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED panel (side-emitting)",
+   "ip": "IP20",
+   "ik": "IK02",
+   "cct": "3000 / 4000 / 6000 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium frame",
+   "cover": "Light guide plate",
+   "control": "On/off",
+   "mounting": "Recessed (frames / spring clips / hanging kit as accessories)",
+   "order_code": "Certificates: CE, RoHS, ErP, UKCA, ENEC; flicker-free, yellow-free",
+   "family": "PL screwless",
+   "title": "Screwless side-emitting panel, 100–150 lm/W",
+   "pages": "21-22",
+   "ugr": "–",
+   "variants": [
+    {
+     "code": "PL-3030-18A1",
+     "w": 18,
+     "lm": 1800,
+     "eff": 100,
+     "size": "295 × 295 × 10",
+     "note": "lumens = W × lm/W (not printed)",
+     "beam": "110°"
+    },
+    {
+     "code": "PL-3060-22A1",
+     "w": 22,
+     "lm": 2200,
+     "eff": 100,
+     "size": "595 × 295 × 10",
+     "note": "lumens = W × lm/W (not printed)",
+     "beam": "110°"
+    },
+    {
+     "code": "PL-6060-38A1",
+     "w": 38,
+     "lm": 3800,
+     "eff": 100,
+     "size": "595 × 595 × 9",
+     "note": "lumens = W × lm/W (not printed)",
+     "beam": "110°"
+    },
+    {
+     "code": "PL-30120-38A1",
+     "w": 38,
+     "lm": 3800,
+     "eff": 100,
+     "size": "1195 × 295 × 9",
+     "note": "lumens = W × lm/W (not printed)",
+     "beam": "110°"
+    },
+    {
+     "code": "PL-60120-64A1",
+     "w": 64,
+     "lm": 6400,
+     "eff": 100,
+     "size": "1195 × 595 × 10",
+     "note": "lumens = W × lm/W (not printed)",
+     "beam": "110°"
+    },
+    {
+     "code": "PL-6060-34U1",
+     "w": 34,
+     "lm": 3910,
+     "eff": 115,
+     "size": "595 × 595 × 9",
+     "note": "lumens = W × lm/W (not printed)",
+     "beam": "90°"
+    },
+    {
+     "code": "PL-30120-34U1",
+     "w": 34,
+     "lm": 3910,
+     "eff": 115,
+     "size": "1195 × 295 × 9",
+     "note": "lumens = W × lm/W (not printed)",
+     "beam": "90°"
+    },
+    {
+     "code": "PL-6060-32U1",
+     "w": 32,
+     "lm": 3840,
+     "eff": 120,
+     "size": "595 × 595 × 10",
+     "note": "lumens = W × lm/W (not printed)",
+     "beam": "90°"
+    },
+    {
+     "code": "PL-6262-32U1",
+     "w": 32,
+     "lm": 3840,
+     "eff": 120,
+     "size": "620 × 620 × 10",
+     "note": "lumens = W × lm/W (not printed)",
+     "beam": "90°"
+    },
+    {
+     "code": "PL-6060-24A1",
+     "w": 24,
+     "lm": 3600,
+     "eff": 150,
+     "size": "595 × 595 × 9",
+     "note": "lumens = W × lm/W (not printed)",
+     "beam": "110°"
+    },
+    {
+     "code": "PL-30120-24A1",
+     "w": 24,
+     "lm": 3600,
+     "eff": 150,
+     "size": "1195 × 295 × 9",
+     "note": "lumens = W × lm/W (not printed)",
+     "beam": "110°"
+    },
+    {
+     "code": "PL-6060-24U1",
+     "w": 24,
+     "lm": 3480,
+     "eff": 145,
+     "size": "595 × 595 × 9",
+     "note": "lumens = W × lm/W (not printed)",
+     "beam": "90°"
+    },
+    {
+     "code": "PL-12030-24U1",
+     "w": 24,
+     "lm": 3480,
+     "eff": 145,
+     "size": "1195 × 295 × 9",
+     "note": "lumens = W × lm/W (not printed)",
+     "beam": "90°"
+    }
+   ],
+   "image": "img/holux/pl-screwless-14.jpg",
+   "image_page": "Holux_1.pdf p.25",
+   "image_covers": [
+    "PL-3030-18A1",
+    "PL-3060-22A1",
+    "PL-6060-38A1",
+    "PL-30120-38A1",
+    "PL-60120-64A1",
+    "PL-6060-34U1",
+    "PL-30120-34U1",
+    "PL-6060-32U1",
+    "PL-6262-32U1",
+    "PL-6060-24A1",
+    "PL-30120-24A1",
+    "PL-6060-24U1",
+    "PL-12030-24U1"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED panel (side-emitting)",
+   "ip": "IP20",
+   "ik": "IK02",
+   "cct": "3000 / 4000 / 6000 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium frame",
+   "cover": "Light guide plate",
+   "control": "On/off",
+   "mounting": "Recessed (frames / spring clips / hanging kit as accessories)",
+   "order_code": "Certificates: CE, RoHS, ErP, UKCA, ENEC; flicker-free, yellow-free",
+   "family": "PL-A1/U1",
+   "title": "Side-emitting panel, 100–150 lm/W",
+   "pages": "22",
+   "variants": [
+    {
+     "code": "PL-6060-40A1",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "595 × 595 × 9",
+     "note": "lumens = W × lm/W (not printed)",
+     "beam": "110°",
+     "ugr": "<22"
+    },
+    {
+     "code": "PL-6262-40A1",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "620 × 620 × 9",
+     "note": "lumens = W × lm/W (not printed)",
+     "beam": "110°",
+     "ugr": "<22"
+    },
+    {
+     "code": "PL-12030-40A1",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "1195 × 295 × 9",
+     "note": "lumens = W × lm/W (not printed)",
+     "beam": "110°",
+     "ugr": "<22"
+    },
+    {
+     "code": "PL-6060-36U1",
+     "w": 36,
+     "lm": 4320,
+     "eff": 120,
+     "size": "595 × 595 × 9",
+     "note": "lumens = W × lm/W (not printed)",
+     "beam": "90°",
+     "ugr": "<19"
+    },
+    {
+     "code": "PL-6262-36U1",
+     "w": 36,
+     "lm": 4320,
+     "eff": 120,
+     "size": "620 × 620 × 9",
+     "note": "lumens = W × lm/W (not printed)",
+     "beam": "90°",
+     "ugr": "<19"
+    },
+    {
+     "code": "PL-12030-36U1",
+     "w": 36,
+     "lm": 4320,
+     "eff": 120,
+     "size": "1195 × 295 × 9",
+     "note": "lumens = W × lm/W (not printed)",
+     "beam": "90°",
+     "ugr": "<19"
+    },
+    {
+     "code": "PL-6060-28U1",
+     "w": 28,
+     "lm": 4200,
+     "eff": 150,
+     "size": "595 × 595 × 9",
+     "note": "lumens = W × lm/W (not printed)",
+     "beam": "90°",
+     "ugr": "<19"
+    },
+    {
+     "code": "PL-6262-28U1",
+     "w": 28,
+     "lm": 4200,
+     "eff": 150,
+     "size": "620 × 620 × 9",
+     "note": "lumens = W × lm/W (not printed)",
+     "beam": "90°",
+     "ugr": "<19"
+    },
+    {
+     "code": "PL-12030-28U1",
+     "w": 28,
+     "lm": 4200,
+     "eff": 150,
+     "size": "1195 × 295 × 9",
+     "note": "lumens = W × lm/W (not printed)",
+     "beam": "90°",
+     "ugr": "<19"
+    },
+    {
+     "code": "PL-6767-40U1",
+     "w": 40,
+     "lm": 4800,
+     "eff": 120,
+     "size": "670 × 670 × 9",
+     "note": "lumens = W × lm/W (not printed)",
+     "beam": "90°",
+     "ugr": "<19"
+    },
+    {
+     "code": "PL-30150-40U1",
+     "w": 40,
+     "lm": 4800,
+     "eff": 120,
+     "size": "1495 × 295 × 9",
+     "note": "lumens = W × lm/W (not printed)",
+     "beam": "90°",
+     "ugr": "<19"
+    }
+   ],
+   "image": "img/holux/pl-a1-u1-15.jpg",
+   "image_page": "Holux_1.pdf p.26",
+   "image_covers": [
+    "PL-6060-40A1",
+    "PL-6262-40A1",
+    "PL-12030-40A1",
+    "PL-6060-36U1",
+    "PL-6262-36U1",
+    "PL-12030-36U1",
+    "PL-6060-28U1",
+    "PL-6262-28U1",
+    "PL-12030-28U1",
+    "PL-6767-40U1",
+    "PL-30150-40U1"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED panel (side-emitting)",
+   "ip": "IP65",
+   "ik": "IK03",
+   "cct": "4000 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium frame",
+   "cover": "Light guide plate",
+   "control": "On/off",
+   "mounting": "Recessed (frames / spring clips / hanging kit as accessories)",
+   "order_code": "Certificates: CE, RoHS, ErP, UKCA, ENEC; flicker-free, yellow-free",
+   "family": "PL-AIP",
+   "title": "IP65 side-emitting screwless panel, 100 lm/W",
+   "pages": "24",
+   "variants": [
+    {
+     "code": "PL-6060-40AIP",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "595 × 595 × 13",
+     "note": "lumens = W × lm/W (not printed)",
+     "beam": "90°"
+    },
+    {
+     "code": "PL-30120-40AIP",
+     "w": 40,
+     "lm": 4000,
+     "eff": 100,
+     "size": "1195 × 295 × 13",
+     "note": "lumens = W × lm/W (not printed)",
+     "beam": "90°"
+    },
+    {
+     "code": "PL-60120-40AIP",
+     "w": 60,
+     "lm": 6000,
+     "eff": 100,
+     "size": "1195 × 595 × 13",
+     "note": "lumens = W × lm/W (not printed)",
+     "flag": "Code says 40 W but the table says 60 W – check",
+     "beam": "90°"
+    }
+   ],
+   "image": "img/holux/pl-aip-16.jpg",
+   "image_page": "Holux_1.pdf p.28",
+   "image_covers": [
+    "PL-6060-40AIP",
+    "PL-30120-40AIP",
+    "PL-60120-40AIP"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED reflection panel (louvre modules)",
+   "ip": "IP20",
+   "ik": "IK02",
+   "cct": "4000 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium frame",
+   "cover": "Reflector cups (white / black / bright / silver)",
+   "control": "On/off; DALI option",
+   "mounting": "Recessed (frames / spring clips / hanging kit as accessories)",
+   "order_code": "Certificates: CE, RoHS, ErP, UKCA, ENEC; flicker-free, yellow-free",
+   "ugr": "<13",
+   "family": "RP-B2",
+   "title": "Reflection panel up to 200 lm/W, UGR<13",
+   "pages": "25",
+   "beam": "80°",
+   "variants": [
+    {
+     "code": "RP-6060-36B2",
+     "w": 28,
+     "lm": 5600,
+     "eff": 200,
+     "size": "595 × 595 × 15",
+     "note": ""
+    },
+    {
+     "code": "RP-6262-36B2",
+     "w": 28,
+     "lm": 5600,
+     "eff": 200,
+     "size": "620 × 620 × 15",
+     "note": ""
+    },
+    {
+     "code": "RP-30120-36B2",
+     "w": 28,
+     "lm": 5600,
+     "eff": 200,
+     "size": "295 × 1195 × 15",
+     "note": ""
+    }
+   ],
+   "image": "img/holux/rp-b2-17.jpg",
+   "image_page": "Holux_1.pdf p.30",
+   "image_covers": [
+    "RP-6060-36B2",
+    "RP-6262-36B2",
+    "RP-30120-36B2"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED reflection panel (louvre modules)",
+   "ip": "IP20",
+   "ik": "IK02",
+   "cct": "4000 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium frame",
+   "cover": "Reflector cups (white / black / bright / silver)",
+   "control": "On/off; DALI option",
+   "mounting": "Recessed (frames / spring clips / hanging kit as accessories)",
+   "order_code": "Certificates: CE, RoHS, ErP, UKCA, ENEC; flicker-free, yellow-free",
+   "ugr": "<13",
+   "family": "RP-A1",
+   "title": "Bat-wing reflection panel 140 lm/W, UGR<13 (reflector cup options)",
+   "pages": "26",
+   "beam": "90°",
+   "variants": [
+    {
+     "code": "RP-6060-36A1",
+     "w": 28,
+     "lm": 3920,
+     "eff": 140,
+     "size": "595 × 595 × 28",
+     "note": ""
+    },
+    {
+     "code": "RP-6262-36A1",
+     "w": 28,
+     "lm": 3920,
+     "eff": 140,
+     "size": "620 × 620 × 28",
+     "note": ""
+    },
+    {
+     "code": "RP-30120-36A1",
+     "w": 28,
+     "lm": 3920,
+     "eff": 140,
+     "size": "295 × 1195 × 28",
+     "note": ""
+    }
+   ],
+   "image": "img/holux/rp-a1-18.jpg",
+   "image_page": "Holux_1.pdf p.30",
+   "image_covers": [
+    "RP-6060-36A1",
+    "RP-6262-36A1",
+    "RP-30120-36A1"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED tube T8 (glass)",
+   "ip": "IP20",
+   "ik": "–",
+   "cct": "3000 / 4000 / 6500 K",
+   "cri": "80",
+   "voltage": "220-240V AC (85-265V, single end feed)",
+   "pf": ">0.9",
+   "warranty": 3,
+   "life_h": 30000,
+   "temp": "–",
+   "flicker": "–",
+   "leds": "SMD 2835",
+   "housing": "Glass tube, G13",
+   "cover": "Glass",
+   "beam": "220°",
+   "control": "On/off",
+   "mounting": "G13 lamp holder (single power end)",
+   "order_code": "–",
+   "family": "T8-A2/B2/C2",
+   "title": "T8 LED glass tube 160–210 lm/W",
+   "pages": "29-30",
+   "variants": [
+    {
+     "code": "T8-L12-12A2",
+     "w": 12,
+     "lm": 2520,
+     "eff": 210,
+     "size": "Φ26 × 1212",
+     "note": ""
+    },
+    {
+     "code": "T8-L15-17A2",
+     "w": 16,
+     "lm": 3360,
+     "eff": 210,
+     "size": "Φ26 × 1512",
+     "note": "",
+     "flag": "Code says 17 W but the table says 16 W – check"
+    },
+    {
+     "code": "T8-L06-09B2",
+     "w": 9,
+     "lm": 1575,
+     "eff": 175,
+     "size": "Φ26 × 602",
+     "note": ""
+    },
+    {
+     "code": "T8-L12-15B2",
+     "w": 15,
+     "lm": 2775,
+     "eff": 185,
+     "size": "Φ26 × 1212",
+     "note": ""
+    },
+    {
+     "code": "T8-L15-20B2",
+     "w": 20,
+     "lm": 3700,
+     "eff": 185,
+     "size": "Φ26 × 1512",
+     "note": ""
+    },
+    {
+     "code": "T8-L06-7.5C2",
+     "w": 9,
+     "lm": 1440,
+     "eff": 160,
+     "size": "Φ26 × 602",
+     "note": "",
+     "flag": "Code says 7.5 W but the table says 9 W – check"
+    },
+    {
+     "code": "T8-L12-15C2",
+     "w": 15,
+     "lm": 2400,
+     "eff": 160,
+     "size": "Φ26 × 1212",
+     "note": ""
+    },
+    {
+     "code": "T8-L15-20C2",
+     "w": 20,
+     "lm": 3200,
+     "eff": 160,
+     "size": "Φ26 × 1512",
+     "note": ""
+    }
+   ],
+   "image": "img/holux/t8-a2-b2-c2-19.jpg",
+   "image_page": "Holux_1.pdf p.34",
+   "image_covers": [
+    "T8-L12-12A2",
+    "T8-L15-17A2",
+    "T8-L06-09B2",
+    "T8-L12-15B2",
+    "T8-L15-20B2",
+    "T8-L06-7.5C2",
+    "T8-L12-15C2",
+    "T8-L15-20C2"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED tube T8 (glass)",
+   "ip": "IP20",
+   "ik": "–",
+   "cct": "3000 / 4000 / 6500 K",
+   "cri": "80",
+   "voltage": "220-240V AC (85-265V, single end feed)",
+   "pf": ">0.5",
+   "warranty": 3,
+   "life_h": 30000,
+   "temp": "–",
+   "flicker": "–",
+   "leds": "SMD 2835",
+   "housing": "Glass tube, G13",
+   "cover": "Glass",
+   "beam": "220°",
+   "control": "On/off",
+   "mounting": "G13 lamp holder (single power end)",
+   "order_code": "–",
+   "family": "T8-D1/E1",
+   "title": "T8 LED glass tube 110–135 lm/W (PF >0.5)",
+   "pages": "30",
+   "variants": [
+    {
+     "code": "T8-L06-09D1",
+     "w": 9,
+     "lm": 1215,
+     "eff": 135,
+     "size": "Φ26 × 602",
+     "note": ""
+    },
+    {
+     "code": "T8-L12-18D1",
+     "w": 18,
+     "lm": 2430,
+     "eff": 135,
+     "size": "Φ26 × 1212",
+     "note": ""
+    },
+    {
+     "code": "T8-L15-22D1",
+     "w": 22,
+     "lm": 2970,
+     "eff": 135,
+     "size": "Φ26 × 1512",
+     "note": ""
+    },
+    {
+     "code": "T8-L06-09E1",
+     "w": 9,
+     "lm": 990,
+     "eff": 110,
+     "size": "Φ26 × 602",
+     "note": ""
+    },
+    {
+     "code": "T8-L12-18E1",
+     "w": 18,
+     "lm": 1980,
+     "eff": 110,
+     "size": "Φ26 × 1212",
+     "note": ""
+    },
+    {
+     "code": "T8-L15-22E1",
+     "w": 22,
+     "lm": 2420,
+     "eff": 110,
+     "size": "Φ26 × 1512",
+     "note": ""
+    }
+   ],
+   "image": "img/holux/t8-d1-e1-20.jpg",
+   "image_page": "Holux_1.pdf p.34",
+   "image_covers": [
+    "T8-L06-09D1",
+    "T8-L12-18D1",
+    "T8-L15-22D1",
+    "T8-L06-09E1",
+    "T8-L12-18E1",
+    "T8-L15-22E1"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED tube T8 (glass)",
+   "ip": "IP20",
+   "ik": "–",
+   "cct": "4000 K",
+   "cri": "80",
+   "voltage": "220-240V AC (85-265V, single end feed)",
+   "pf": ">0.9",
+   "warranty": 3,
+   "life_h": 30000,
+   "temp": "–",
+   "flicker": "–",
+   "leds": "SMD 2835",
+   "housing": "Glass tube, G13",
+   "cover": "Glass",
+   "beam": "220°",
+   "control": "Radar 5.8 GHz sensor + networking",
+   "mounting": "G13 lamp holder (single power end)",
+   "order_code": "–",
+   "family": "T8-S1",
+   "title": "T8 LED glass tube with 5.8 GHz radar sensor + networking module, 160 lm/W",
+   "pages": "31",
+   "variants": [
+    {
+     "code": "T8-L12-18S1",
+     "w": 18,
+     "lm": 2880,
+     "eff": 160,
+     "size": "Φ26 × 1212",
+     "note": ""
+    },
+    {
+     "code": "T8-L15-24S1",
+     "w": 24,
+     "lm": 3840,
+     "eff": 160,
+     "size": "Φ26 × 1512",
+     "note": ""
+    }
+   ],
+   "image": "img/holux/t8-s1-21.jpg",
+   "image_page": "Holux_1.pdf p.35",
+   "image_covers": [
+    "T8-L12-18S1",
+    "T8-L15-24S1"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED tube T5 (glass)",
+   "ip": "IP20",
+   "ik": "–",
+   "cct": "3000 / 4000 / 5000 K",
+   "cri": "80",
+   "voltage": "220-240V AC (85-265V, single end feed)",
+   "pf": ">0.9",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "–",
+   "flicker": "–",
+   "leds": "SMD 2835",
+   "housing": "Glass tube, G13",
+   "cover": "Glass",
+   "beam": "–",
+   "control": "On/off",
+   "mounting": "G5 lamp holder",
+   "order_code": "–",
+   "family": "T5-A1/C1",
+   "title": "T5 LED glass tube",
+   "pages": "33",
+   "variants": [
+    {
+     "code": "T5-L06-09A1",
+     "w": 9,
+     "lm": 900,
+     "eff": 100,
+     "size": "Φ18 × 549",
+     "note": "lumens = W × lm/W (not printed)",
+     "flag": "The \"Luminous\" column prints \"100 lm\" – read here as 100 lm/W; check",
+     "pf": ">0.5"
+    },
+    {
+     "code": "T5-L09-12A1",
+     "w": 12,
+     "lm": 1200,
+     "eff": 100,
+     "size": "Φ18 × 849",
+     "note": "lumens = W × lm/W (not printed)",
+     "flag": "\"100 lm\" read as 100 lm/W – check"
+    },
+    {
+     "code": "T5-L12-18A1",
+     "w": 18,
+     "lm": 1800,
+     "eff": 100,
+     "size": "Φ18 × 1148",
+     "note": "lumens = W × lm/W (not printed)",
+     "flag": "\"100 lm\" read as 100 lm/W – check"
+    },
+    {
+     "code": "T5-L15-22A1",
+     "w": 22,
+     "lm": 2200,
+     "eff": 100,
+     "size": "Φ18 × 1449",
+     "note": "lumens = W × lm/W (not printed)",
+     "flag": "\"100 lm\" read as 100 lm/W – check"
+    },
+    {
+     "code": "T5-L06-09C1",
+     "w": 9,
+     "lm": 1440,
+     "eff": 160,
+     "size": "Φ18 × 549",
+     "note": "lumens = W × lm/W (not printed)",
+     "flag": "\"160 lm\" read as 160 lm/W – check"
+    },
+    {
+     "code": "T5-L09-12C1",
+     "w": 12,
+     "lm": 1920,
+     "eff": 160,
+     "size": "Φ18 × 849",
+     "note": "lumens = W × lm/W (not printed)",
+     "flag": "\"160 lm\" read as 160 lm/W – check"
+    },
+    {
+     "code": "T5-L12-18C1",
+     "w": 18,
+     "lm": 2880,
+     "eff": 160,
+     "size": "Φ18 × 1148",
+     "note": "lumens = W × lm/W (not printed)",
+     "flag": "\"160 lm\" read as 160 lm/W – check"
+    },
+    {
+     "code": "T5-L15-22C1",
+     "w": 22,
+     "lm": 3520,
+     "eff": 160,
+     "size": "Φ18 × 1449",
+     "note": "lumens = W × lm/W (not printed)",
+     "flag": "\"160 lm\" read as 160 lm/W – check"
+    }
+   ],
+   "image": "img/holux/t5-a1-c1-22.jpg",
+   "image_page": "Holux_1.pdf p.37",
+   "image_covers": [
+    "T5-L06-09A1",
+    "T5-L09-12A1",
+    "T5-L12-18A1",
+    "T5-L15-22A1",
+    "T5-L06-09C1",
+    "T5-L09-12C1",
+    "T5-L12-18C1",
+    "T5-L15-22C1"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor / industrial",
+   "type": "Tri-proof (waterproof) linear",
+   "ip": "IP66",
+   "ik": "IK08",
+   "cct": "4000 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "PC housing",
+   "cover": "PC diffuser",
+   "beam": "120°",
+   "control": "On/off",
+   "mounting": "Surface / suspended, through-wiring linkable",
+   "order_code": "Certificates: CE, RoHS, CB, ENEC 05",
+   "family": "TP-F2/FS",
+   "title": "180 lm/W IP66 tri-proof (Tridonic on/off, or PWM dimmable with sensor / NFC / emergency), power selectable",
+   "pages": "35",
+   "variants": [
+    {
+     "code": "TP-12-36F2",
+     "w": 36,
+     "lm": 6480,
+     "eff": 180,
+     "size": "L1200 × W89 × H78",
+     "note": "Tridonic on/off; fixing centres 690-990 mm · Power selectable 20/26/31/36W"
+    },
+    {
+     "code": "TP-15-55F2",
+     "w": 55,
+     "lm": 9900,
+     "eff": 180,
+     "size": "L1500 × W89 × H78",
+     "note": "Tridonic on/off; fixing centres 950-1290 mm · Power selectable 30/38/47/55W"
+    },
+    {
+     "code": "TP-12-36FS",
+     "w": 36,
+     "lm": 6480,
+     "eff": 180,
+     "size": "L1200 × W89 × H78",
+     "note": "PWM dimmable + 2× 12V DC APS; versions (sensor 1), (sensor 2), (NFC), (Emergency 2 W 3 h) · Power selectable 17/23/29/36W",
+     "flag": "Lumen steps printed 1360 / 1840 / 5220 / 6480 lm – 17 W × 180 = 3,060 and 23 W × 180 = 4,140 lm; check the first two"
+    },
+    {
+     "code": "TP-15-55FS",
+     "w": 55,
+     "lm": 9900,
+     "eff": 180,
+     "size": "L1500 × W89 × H78",
+     "note": "PWM dimmable + 2× 12V DC APS; versions (sensor 1), (sensor 2), (NFC), (Emergency 2 W 3 h) · Power selectable 32/40/47/55W"
+    }
+   ],
+   "image": "img/holux/tp-f2-fs-23.jpg",
+   "image_page": "Holux_1.pdf p.39",
+   "image_covers": [
+    "TP-12-36F2",
+    "TP-15-55F2",
+    "TP-12-36FS",
+    "TP-15-55FS"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor / industrial",
+   "type": "Tri-proof (waterproof) linear",
+   "ip": "IP66",
+   "ik": "IK08",
+   "cct": "4000 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 100000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "PC housing",
+   "cover": "PC diffuser",
+   "beam": "120°",
+   "control": "On/off",
+   "mounting": "Surface / suspended, through-wiring linkable",
+   "order_code": "Certificates: CE, RoHS, CB, ENEC 05",
+   "family": "TP-E2/G2",
+   "title": "IP66 tri-proof with hoverable buckles, linkable (microwave sensor / emergency options), 160–200 lm/W",
+   "pages": "37",
+   "variants": [
+    {
+     "code": "TP-06-18E2",
+     "w": 18,
+     "lm": 2880,
+     "eff": 160,
+     "size": "L580 × W80 × H81",
+     "note": "Power selectable 10-12-15-18W"
+    },
+    {
+     "code": "TP-12-36E2",
+     "w": 36,
+     "lm": 5760,
+     "eff": 160,
+     "size": "L1180 × W80 × H81",
+     "note": "Power selectable 21-26-31-36W"
+    },
+    {
+     "code": "TP-15-50E2",
+     "w": 50,
+     "lm": 8000,
+     "eff": 160,
+     "size": "L1480 × W80 × H81",
+     "note": "Power selectable 28-36-42-50W"
+    },
+    {
+     "code": "TP-18-70E2",
+     "w": 70,
+     "lm": 11200,
+     "eff": 160,
+     "size": "L1780 × W80 × H81",
+     "note": "Power selectable 40-50-60-70W"
+    },
+    {
+     "code": "TP-06-18G2",
+     "w": 18,
+     "lm": 3600,
+     "eff": 200,
+     "size": "L600 × W85 × H80",
+     "note": ""
+    },
+    {
+     "code": "TP-12-36G2",
+     "w": 36,
+     "lm": 7200,
+     "eff": 200,
+     "size": "L1200 × W85 × H80",
+     "note": ""
+    },
+    {
+     "code": "TP-15-50G2",
+     "w": 50,
+     "lm": 10000,
+     "eff": 200,
+     "size": "L1500 × W85 × H80",
+     "note": ""
+    }
+   ],
+   "image": "img/holux/tp-e2-g2-24.jpg",
+   "image_page": "Holux_1.pdf p.41",
+   "image_covers": [
+    "TP-06-18E2",
+    "TP-12-36E2",
+    "TP-15-50E2",
+    "TP-18-70E2",
+    "TP-06-18G2",
+    "TP-12-36G2",
+    "TP-15-50G2"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor / industrial",
+   "type": "Tri-proof (waterproof) linear",
+   "ip": "IP66",
+   "ik": "IK10",
+   "cct": "3000 / 4000 / 6500 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 100000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "PC housing",
+   "cover": "PC diffuser",
+   "beam": "120°",
+   "control": "On/off",
+   "mounting": "Surface / suspended, through-wiring linkable",
+   "order_code": "Certificates: CE, RoHS, CB, ENEC 05",
+   "family": "TP-B1/B2",
+   "title": "Anti-glare IP66 IK10 tri-proof (Philips driver), low UGR, 160 lm/W",
+   "pages": "39",
+   "variants": [
+    {
+     "code": "TP-06-18B1",
+     "w": 18,
+     "lm": 2880,
+     "eff": 160,
+     "size": "L607 × W75 × H70",
+     "note": "Not linkable; fixing 290 mm"
+    },
+    {
+     "code": "TP-12-36B1",
+     "w": 36,
+     "lm": 5760,
+     "eff": 160,
+     "size": "L1207 × W75 × H70",
+     "note": "Not linkable; fixing 800 mm · Power selectable 20/25/30/36W"
+    },
+    {
+     "code": "TP-15-55B1",
+     "w": 55,
+     "lm": 8800,
+     "eff": 160,
+     "size": "L1507 × W75 × H70",
+     "note": "Not linkable; fixing 1060 mm · Power selectable 29/36/44/55W"
+    },
+    {
+     "code": "TP-06-18B2",
+     "w": 18,
+     "lm": 2700,
+     "eff": 160,
+     "size": "L607 × W75 × H70",
+     "note": "Linkable"
+    },
+    {
+     "code": "TP-12-36B2",
+     "w": 36,
+     "lm": 5760,
+     "eff": 160,
+     "size": "L1207 × W75 × H70",
+     "note": "Linkable · Power selectable 20/25/30/36W"
+    },
+    {
+     "code": "TP-15-55B2",
+     "w": 55,
+     "lm": 8800,
+     "eff": 160,
+     "size": "L1507 × W75 × H70",
+     "note": "Linkable · Power selectable 29/36/44/55W"
+    },
+    {
+     "code": "TP-06-18B2-3CCT",
+     "w": 18,
+     "lm": 2700,
+     "eff": 160,
+     "size": "L607 × W75 × H70",
+     "note": "Linkable, 3CCT"
+    },
+    {
+     "code": "TP-12-36B2-3CCT",
+     "w": 36,
+     "lm": 5760,
+     "eff": 160,
+     "size": "L1207 × W75 × H70",
+     "note": "Linkable, 3CCT · Power selectable 20/25/30/36W"
+    },
+    {
+     "code": "TP-15-55B2-3CCT",
+     "w": 55,
+     "lm": 8800,
+     "eff": 160,
+     "size": "L1507 × W75 × H70",
+     "note": "Linkable, 3CCT · Power selectable 29/36/44/55W"
+    }
+   ],
+   "image": "img/holux/tp-b1-b2-25.jpg",
+   "image_page": "Holux_1.pdf p.43",
+   "image_covers": [
+    "TP-06-18B1",
+    "TP-12-36B1",
+    "TP-15-55B1",
+    "TP-06-18B2",
+    "TP-12-36B2",
+    "TP-15-55B2",
+    "TP-06-18B2-3CCT",
+    "TP-12-36B2-3CCT",
+    "TP-15-55B2-3CCT"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor / industrial",
+   "type": "Tri-proof (waterproof) linear",
+   "ip": "IP65",
+   "ik": "IK08",
+   "cct": "3000 / 4000 / 6500 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 100000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "PC housing",
+   "cover": "PC diffuser",
+   "beam": "120°",
+   "control": "On/off",
+   "mounting": "Surface / suspended, through-wiring linkable",
+   "order_code": "Certificates: CE, RoHS, CB, ENEC 05",
+   "family": "TP-G3",
+   "title": "Transparent-base IP65 tri-proof (5 % up / 95 % down), 160 lm/W",
+   "pages": "41",
+   "variants": [
+    {
+     "code": "TP-06-18G3",
+     "w": 18,
+     "lm": 2880,
+     "eff": 160,
+     "size": "L600 × W70 × H66",
+     "note": ""
+    },
+    {
+     "code": "TP-12-30G3",
+     "w": 30,
+     "lm": 4800,
+     "eff": 160,
+     "size": "L1200 × W70 × H66",
+     "note": ""
+    },
+    {
+     "code": "TP-15-40G3",
+     "w": 40,
+     "lm": 6400,
+     "eff": 160,
+     "size": "L1500 × W80 × H66",
+     "note": ""
+    }
+   ],
+   "image": "img/holux/tp-g3-26.jpg",
+   "image_page": "Holux_1.pdf p.45",
+   "image_covers": [
+    "TP-06-18G3",
+    "TP-12-30G3",
+    "TP-15-40G3"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor / industrial",
+   "type": "Tri-proof (waterproof) linear",
+   "ip": "IP65",
+   "ik": "IK06",
+   "cct": "3000 / 4000 / 6500 K (3CCT)",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 100000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "PC housing",
+   "cover": "PC diffuser",
+   "beam": "140°",
+   "control": "On/off",
+   "mounting": "Surface / suspended, through-wiring linkable",
+   "order_code": "Certificates: CE, RoHS, CB, ENEC 05",
+   "family": "TP-C4",
+   "title": "IP65 slim waterproof batten 3CCT, 140 lm/W",
+   "pages": "44",
+   "variants": [
+    {
+     "code": "TP-06-18C4",
+     "w": 18,
+     "lm": 2520,
+     "eff": 140,
+     "size": "L600 × W69 × H56.5",
+     "note": "Linkable optional"
+    },
+    {
+     "code": "TP-12-36C4",
+     "w": 36,
+     "lm": 5040,
+     "eff": 140,
+     "size": "L1160 × W69 × H56.5",
+     "note": "Linkable optional"
+    },
+    {
+     "code": "TP-15-50C4",
+     "w": 50,
+     "lm": 7000,
+     "eff": 140,
+     "size": "L1460 × W69 × H56.5",
+     "note": "Linkable optional"
+    }
+   ],
+   "image": "img/holux/tp-c4-27.jpg",
+   "image_page": "Holux_1.pdf p.48",
+   "image_covers": [
+    "TP-06-18C4",
+    "TP-12-36C4",
+    "TP-15-50C4"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor / industrial",
+   "type": "Tri-proof (waterproof) linear",
+   "ip": "IP65",
+   "ik": "IK08",
+   "cct": "4000 / 6500 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 3,
+   "life_h": 100000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "PC housing",
+   "cover": "PC diffuser",
+   "beam": "120°",
+   "control": "On/off",
+   "mounting": "Surface / suspended, through-wiring linkable",
+   "order_code": "Certificates: CE, RoHS, CB, ENEC 05",
+   "family": "TP-C2/C3",
+   "title": "IP65 waterproof light 120 / 160 lm/W",
+   "pages": "46",
+   "variants": [
+    {
+     "code": "TP-06-18-C2",
+     "w": 18,
+     "lm": 2160,
+     "eff": 120,
+     "size": "L600 × W66.2 × H59.4",
+     "note": ""
+    },
+    {
+     "code": "TP-12-36-C2",
+     "w": 36,
+     "lm": 4320,
+     "eff": 120,
+     "size": "L1200 × W66.2 × H59.4",
+     "note": ""
+    },
+    {
+     "code": "TP-15-48-C2",
+     "w": 48,
+     "lm": 5760,
+     "eff": 120,
+     "size": "L1500 × W66.2 × H59.4",
+     "note": ""
+    },
+    {
+     "code": "TP-06-18-C3",
+     "w": 18,
+     "lm": 2880,
+     "eff": 160,
+     "size": "L600 × W66.2 × H59.4",
+     "note": ""
+    },
+    {
+     "code": "TP-12-36-C3",
+     "w": 36,
+     "lm": 5760,
+     "eff": 160,
+     "size": "L1200 × W66.2 × H59.4",
+     "note": ""
+    },
+    {
+     "code": "TP-15-48-C3",
+     "w": 48,
+     "lm": 7680,
+     "eff": 160,
+     "size": "L1500 × W66.2 × H59.4",
+     "note": ""
+    }
+   ],
+   "image": "img/holux/tp-c2-c3-28.jpg",
+   "image_page": "Holux_1.pdf p.50",
+   "image_covers": [
+    "TP-06-18-C2",
+    "TP-12-36-C2",
+    "TP-15-48-C2",
+    "TP-06-18-C3",
+    "TP-12-36-C3",
+    "TP-15-48-C3"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor / industrial",
+   "type": "Tri-proof (waterproof) linear",
+   "ip": "IP65",
+   "ik": "IK08",
+   "cct": "4000 / 6500 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 3,
+   "life_h": 100000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "PC housing",
+   "cover": "PC diffuser",
+   "beam": "120°",
+   "control": "On/off",
+   "mounting": "Surface / suspended, through-wiring linkable",
+   "order_code": "Certificates: CE, RoHS, CB, ENEC 05",
+   "family": "TP-A4",
+   "title": "IP65 waterproof light 160 lm/W, replaceable LED (microwave sensor / emergency options)",
+   "pages": "48",
+   "variants": [
+    {
+     "code": "TP-12-18A4",
+     "w": 18,
+     "lm": 2880,
+     "eff": 160,
+     "size": "L1240 × W70 × H73",
+     "note": ""
+    },
+    {
+     "code": "TP-12-34A4",
+     "w": 34,
+     "lm": 5440,
+     "eff": 160,
+     "size": "L1240 × W70 × H73",
+     "note": ""
+    },
+    {
+     "code": "TP-15-27A4",
+     "w": 27,
+     "lm": 4320,
+     "eff": 160,
+     "size": "L1540 × W70 × H73",
+     "note": ""
+    },
+    {
+     "code": "TP-15-55A4",
+     "w": 55,
+     "lm": 8800,
+     "eff": 160,
+     "size": "L1540 × W70 × H73",
+     "note": ""
+    }
+   ],
+   "image": "img/holux/tp-a4-29.jpg",
+   "image_page": "Holux_1.pdf p.52",
+   "image_covers": [
+    "TP-12-18A4",
+    "TP-12-34A4",
+    "TP-15-27A4",
+    "TP-15-55A4"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor / industrial",
+   "type": "LED batten",
+   "ip": "IP44",
+   "ik": "IK06",
+   "cct": "3000 / 3500 / 4000 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 100000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "PC housing",
+   "cover": "PC",
+   "beam": "120°",
+   "control": "On/off",
+   "mounting": "Surface / suspended, through-wiring linkable",
+   "order_code": "Certificates: CE, RoHS, CB, ENEC 05",
+   "family": "BF-C1 3CCT",
+   "title": "IP44 LED batten, 3CCT 3000 / 3500 / 4000 K, power selectable, 160 lm/W",
+   "pages": "52",
+   "variants": [
+    {
+     "code": "BF-12-36C1-3CCT",
+     "w": 36,
+     "lm": 5760,
+     "eff": 160,
+     "size": "1160 × 160 × 61",
+     "note": "Power selectable 21/26/32/36W"
+    },
+    {
+     "code": "BF-15-42C1-3CCT",
+     "w": 42,
+     "lm": 6720,
+     "eff": 160,
+     "size": "1440 × 160 × 61",
+     "note": "Power selectable 25/30/36/42W"
+    }
+   ],
+   "image": "img/holux/bf-c1-3cct-30.jpg",
+   "image_page": "Holux_1.pdf p.56",
+   "image_covers": [
+    "BF-12-36C1-3CCT",
+    "BF-15-42C1-3CCT"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor / industrial",
+   "type": "LED batten",
+   "ip": "IP44",
+   "ik": "IK06",
+   "cct": "4000 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 100000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "PC housing",
+   "cover": "PC",
+   "beam": "120°",
+   "control": "On/off",
+   "mounting": "Surface / suspended, through-wiring linkable",
+   "order_code": "Certificates: CE, RoHS, CB, ENEC 05",
+   "family": "BF-U1",
+   "title": "UGR<19 IP44 LED batten 140 lm/W (emergency option), power selectable",
+   "pages": "52",
+   "ugr": "<19",
+   "variants": [
+    {
+     "code": "BF-12-36U1",
+     "w": 36,
+     "lm": 5040,
+     "eff": 140,
+     "size": "L1200 × W160 × H70",
+     "note": "Power selectable 22-29-36W"
+    },
+    {
+     "code": "BF-15-58U1",
+     "w": 58,
+     "lm": 8120,
+     "eff": 140,
+     "size": "L1500 × W160 × H70",
+     "note": "Power selectable 38-50-58W"
+    }
+   ],
+   "image": "img/holux/bf-u1-31.jpg",
+   "image_page": "Holux_1.pdf p.56",
+   "image_covers": [
+    "BF-12-36U1",
+    "BF-15-58U1"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor / outdoor",
+   "type": "LED ceiling light (bulkhead)",
+   "ip": "IP65",
+   "ik": "IK10",
+   "cct": "3000 / 4000 / 6000 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "PC",
+   "cover": "PC opal",
+   "beam": "120°",
+   "control": "On/off; microwave sensor option",
+   "mounting": "Surface ceiling / wall",
+   "order_code": "Certificates: CE, CB, ErP, RoHS",
+   "family": "M-A1",
+   "title": "IP65 IK10 round ceiling light 120 lm/W (microwave sensor option)",
+   "pages": "53-54",
+   "variants": [
+    {
+     "code": "M-200-10A1",
+     "w": 10,
+     "lm": 1200,
+     "eff": 120,
+     "size": "Φ200 × 55",
+     "note": ""
+    },
+    {
+     "code": "M-200-19A1",
+     "w": 19,
+     "lm": 2280,
+     "eff": 120,
+     "size": "Φ200 × 55",
+     "note": ""
+    },
+    {
+     "code": "M-260-26A1",
+     "w": 26,
+     "lm": 3120,
+     "eff": 120,
+     "size": "Φ260 × 55",
+     "note": ""
+    },
+    {
+     "code": "M-350-35A1",
+     "w": 35,
+     "lm": 4200,
+     "eff": 120,
+     "size": "Φ350 × 55",
+     "note": ""
+    }
+   ],
+   "image": "img/holux/m-a1-32.jpg",
+   "image_page": "Holux_2.pdf p.2",
+   "image_covers": [
+    "M-200-10A1",
+    "M-200-19A1",
+    "M-260-26A1",
+    "M-350-35A1"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor / outdoor",
+   "type": "LED ceiling light (bulkhead)",
+   "ip": "IP65",
+   "ik": "IK10",
+   "cct": "3000 / 4000 / 6000 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "PC",
+   "cover": "PC opal",
+   "beam": "120°",
+   "control": "On/off; microwave sensor option",
+   "mounting": "Surface ceiling / wall",
+   "order_code": "Certificates: CE, CB, ErP, RoHS",
+   "family": "M-A2",
+   "title": "IP65 IK10 square ceiling light 120 lm/W (microwave sensor option)",
+   "pages": "54",
+   "variants": [
+    {
+     "code": "M-200-10A2",
+     "w": 10,
+     "lm": 1200,
+     "eff": 120,
+     "size": "200 × 200 × 55",
+     "note": ""
+    },
+    {
+     "code": "M-200-19A2",
+     "w": 19,
+     "lm": 2280,
+     "eff": 120,
+     "size": "200 × 200 × 55",
+     "note": ""
+    },
+    {
+     "code": "M-260-26A2",
+     "w": 26,
+     "lm": 3120,
+     "eff": 120,
+     "size": "260 × 260 × 55",
+     "note": ""
+    },
+    {
+     "code": "M-350-35A2",
+     "w": 35,
+     "lm": 4200,
+     "eff": 120,
+     "size": "350 × 350 × 55",
+     "note": ""
+    }
+   ],
+   "image": "img/holux/m-a2-33.jpg",
+   "image_page": "Holux_2.pdf p.2",
+   "image_covers": [
+    "M-200-10A2",
+    "M-200-19A2",
+    "M-260-26A2",
+    "M-350-35A2"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor / outdoor",
+   "type": "LED ceiling light (bulkhead)",
+   "ip": "IP65",
+   "ik": "IK10",
+   "cct": "3000 / 4000 K (switch)",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "PC",
+   "cover": "PC opal",
+   "beam": "120°",
+   "control": "On/off; microwave sensor option",
+   "mounting": "Surface ceiling / wall",
+   "order_code": "Certificates: CE, CB, ErP, RoHS",
+   "family": "M-2CCT",
+   "title": "IP65 IK10 round ceiling light Φ300, 2CCT 3000 / 4000 K, power selectable (on/off, sensor, emergency)",
+   "pages": "55-56",
+   "variants": [
+    {
+     "code": "M-300-18DW-2CCT",
+     "w": 18,
+     "lm": 2160,
+     "eff": 120,
+     "size": "Φ300 × H70",
+     "note": "On/off · Power selectable 12/15/18W"
+    },
+    {
+     "code": "M-300-25DW-2CCT",
+     "w": 25,
+     "lm": 3000,
+     "eff": 120,
+     "size": "Φ300 × H70",
+     "note": "On/off · Power selectable 20/25W"
+    },
+    {
+     "code": "M-300-18SW-2CCT",
+     "w": 18,
+     "lm": 2160,
+     "eff": 120,
+     "size": "Φ300 × H70",
+     "note": "Sensor · Power selectable 12/15/18W"
+    },
+    {
+     "code": "M-300-25SW-2CCT",
+     "w": 25,
+     "lm": 3000,
+     "eff": 120,
+     "size": "Φ300 × H70",
+     "note": "Sensor · Power selectable 20/25W"
+    },
+    {
+     "code": "M-300-18EW-2CCT",
+     "w": 18,
+     "lm": 2160,
+     "eff": 120,
+     "size": "Φ300 × H70",
+     "note": "Emergency · Power selectable 12/15/18W",
+     "emergency": "Yes"
+    },
+    {
+     "code": "M-300-25EW-2CCT",
+     "w": 25,
+     "lm": 3000,
+     "eff": 120,
+     "size": "Φ300 × H70",
+     "note": "Emergency · Power selectable 20/25W",
+     "emergency": "Yes"
+    }
+   ],
+   "image": "img/holux/m-2cct-34.jpg",
+   "image_page": "Holux_2.pdf p.4",
+   "image_covers": [
+    "M-300-18DW-2CCT",
+    "M-300-25DW-2CCT",
+    "M-300-18SW-2CCT",
+    "M-300-25SW-2CCT",
+    "M-300-18EW-2CCT",
+    "M-300-25EW-2CCT"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor / outdoor",
+   "type": "LED ceiling light (bulkhead)",
+   "ip": "IP65",
+   "ik": "IK10",
+   "cct": "4000 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "PC",
+   "cover": "PC opal",
+   "beam": "120°",
+   "control": "On/off; microwave sensor option",
+   "mounting": "Surface ceiling / wall",
+   "order_code": "Certificates: CE, CB, ErP, RoHS",
+   "family": "M-A1/S1/E1 300",
+   "title": "IP65 IK10 round ceiling light Φ300, 4000 K (on/off, sensor, emergency)",
+   "pages": "56",
+   "variants": [
+    {
+     "code": "M-300-18A1",
+     "w": 18,
+     "lm": 2160,
+     "eff": 120,
+     "size": "Φ300 × H70",
+     "note": "On/off"
+    },
+    {
+     "code": "M-300-25A1",
+     "w": 25,
+     "lm": 3000,
+     "eff": 120,
+     "size": "Φ300 × H70",
+     "note": "On/off"
+    },
+    {
+     "code": "M-300-18S1",
+     "w": 18,
+     "lm": 2160,
+     "eff": 120,
+     "size": "Φ300 × H70",
+     "note": "Sensor"
+    },
+    {
+     "code": "M-300-25S1",
+     "w": 25,
+     "lm": 3000,
+     "eff": 120,
+     "size": "Φ300 × H70",
+     "note": "Sensor"
+    },
+    {
+     "code": "M-300-18E1",
+     "w": 18,
+     "lm": 2160,
+     "eff": 120,
+     "size": "Φ300 × H70",
+     "note": "Emergency"
+    },
+    {
+     "code": "M-300-25E1",
+     "w": 25,
+     "lm": 3000,
+     "eff": 120,
+     "size": "Φ300 × H70",
+     "note": "Emergency"
+    }
+   ],
+   "image": "img/holux/m-a1-s1-e1-300-35.jpg",
+   "image_page": "Holux_2.pdf p.4",
+   "image_covers": [
+    "M-300-18A1",
+    "M-300-25A1",
+    "M-300-18S1",
+    "M-300-25S1",
+    "M-300-18E1",
+    "M-300-25E1"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor / outdoor",
+   "type": "LED ceiling light (round, suspended / surface / recessed / wall)",
+   "ip": "IP20",
+   "ik": "IK03",
+   "cct": "3000 / 4000 / 5700 K (DIP switch 3-in-1)",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium, white / black / gold",
+   "cover": "PC opal",
+   "beam": "90°",
+   "control": "On/off, DALI; options microwave, emergency, WiFi, Bluetooth, ZigBee, Tuya, Casambi, AC 100-277V",
+   "mounting": "Suspended (wire rope / metal bar), surface, recessed, wall",
+   "order_code": "Certificates: CE, CB, ErP, RoHS",
+   "ugr": "<19",
+   "family": "C-BM",
+   "title": "Round LED ceiling light H69.5, two power levels, 3CCT, UGR<19",
+   "pages": "57-58",
+   "variants": [
+    {
+     "code": "C6300-BM",
+     "w": 18,
+     "lm": 1800,
+     "eff": 100,
+     "size": "Φ300 × H69.5",
+     "note": "12 W 1150/1260/1200 lm · 18 W 1620/1800/1710 lm (3000/4000/5700 K)"
+    },
+    {
+     "code": "C6400-BM",
+     "w": 30,
+     "lm": 3000,
+     "eff": 100,
+     "size": "Φ400 × H69.5",
+     "note": "20 W 1900/2100/2000 lm · 30 W 2700/3000/2850 lm"
+    },
+    {
+     "code": "C6500-BM",
+     "w": 40,
+     "lm": 4500,
+     "eff": 112,
+     "size": "Φ500 × H69.5",
+     "note": "28 W 3000/3220/3080 lm · 40 W 4300/4500/4400 lm"
+    },
+    {
+     "code": "C6600-BM",
+     "w": 60,
+     "lm": 6600,
+     "eff": 110,
+     "size": "Φ600 × H69.5",
+     "note": "42 W 4410/4830/4620 lm · 60 W 6000/6600/6300 lm"
+    },
+    {
+     "code": "C6800-BM",
+     "w": 80,
+     "lm": 9200,
+     "eff": 115,
+     "size": "Φ800 × H69.5",
+     "note": "56 W 6050/6600/6160 lm · 80 W 8400/9200/8800 lm"
+    }
+   ],
+   "image": "img/holux/c-bm-36.jpg",
+   "image_page": "Holux_2.pdf p.6",
+   "image_covers": [
+    "C6300-BM",
+    "C6400-BM",
+    "C6500-BM",
+    "C6600-BM",
+    "C6800-BM"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor / outdoor",
+   "type": "LED ceiling light (round, suspended / surface / recessed / wall)",
+   "ip": "IP20",
+   "ik": "IK03",
+   "cct": "3000 / 4000 / 5700 K (DIP switch 3-in-1)",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium, white / black / gold",
+   "cover": "PC opal",
+   "beam": "90°",
+   "control": "On/off, DALI; options microwave, emergency, WiFi, Bluetooth, ZigBee, Tuya, Casambi, AC 100-277V",
+   "mounting": "Suspended (wire rope / metal bar), surface, recessed, wall",
+   "order_code": "Certificates: CE, CB, ErP, RoHS",
+   "ugr": "<19",
+   "family": "C-AM",
+   "title": "Round LED ceiling light H86 (up-light ring), two power levels, 3CCT, UGR<19",
+   "pages": "59-60",
+   "variants": [
+    {
+     "code": "C6400-AM",
+     "w": 40,
+     "lm": 4200,
+     "eff": 105,
+     "size": "Φ400 × 86",
+     "note": "30 W 3150/3300/3240 lm · 40 W 4000/4200/4120 lm (3000/4000/5700 K); catalogue says 100 lm/W"
+    },
+    {
+     "code": "C6600-AM",
+     "w": 60,
+     "lm": 6300,
+     "eff": 105,
+     "size": "Φ600 × 86",
+     "note": "40 W 4200/4600/4400 lm · 60 W 6000/6300/6180 lm; catalogue says 100 lm/W"
+    },
+    {
+     "code": "C6800-AM",
+     "w": 80,
+     "lm": 8400,
+     "eff": 105,
+     "size": "Φ800 × 86",
+     "note": "60 W 6300/6600/6480 lm · 80 W 8000/8400/8240 lm; catalogue says 100 lm/W"
+    }
+   ],
+   "image": "img/holux/c-am-37.jpg",
+   "image_page": "Holux_2.pdf p.8",
+   "image_covers": [
+    "C6400-AM",
+    "C6600-AM",
+    "C6800-AM"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor / outdoor",
+   "type": "LED ceiling light (round, suspended / surface / recessed / wall)",
+   "ip": "IP40",
+   "ik": "–",
+   "cct": "1800–12000 K + RGB",
+   "cri": "97 typical",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 3,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium, white / black / gold",
+   "cover": "PC opal",
+   "beam": "110°",
+   "control": "Remote control",
+   "mounting": "Suspended (wire rope / metal bar), surface, recessed, wall",
+   "order_code": "Certificates: CE, CB, ErP, RoHS",
+   "ugr": "–",
+   "family": "CLS Skyline",
+   "title": "Skyline ceiling light – natural full-spectrum 1800–12000 K + RGB, CRI 97 (remote)",
+   "pages": "61-62",
+   "variants": [
+    {
+     "code": "CLS-42-60A1",
+     "w": 60,
+     "lm": 3000,
+     "eff": 50,
+     "size": "Φ420 × 86",
+     "note": "Skyline effect"
+    },
+    {
+     "code": "CLS-56-110A1",
+     "w": 110,
+     "lm": 5500,
+     "eff": 50,
+     "size": "Φ560 × 86",
+     "note": "Skyline effect"
+    },
+    {
+     "code": "CLS-42-48A2",
+     "w": 48,
+     "lm": 2400,
+     "eff": 50,
+     "size": "Φ420 × 63",
+     "note": ""
+    },
+    {
+     "code": "CLS-56-80A2",
+     "w": 80,
+     "lm": 4000,
+     "eff": 50,
+     "size": "Φ560 × 63",
+     "note": ""
+    },
+    {
+     "code": "CLS-6060-110B1",
+     "w": 110,
+     "lm": 5500,
+     "eff": 50,
+     "size": "600 × 600 × 85",
+     "note": "Skyline effect"
+    },
+    {
+     "code": "CLS-9060-150B1",
+     "w": 150,
+     "lm": 7500,
+     "eff": 50,
+     "size": "900 × 600 × 85",
+     "note": "Skyline effect"
+    },
+    {
+     "code": "CLS-5959-80B2",
+     "w": 80,
+     "lm": 4000,
+     "eff": 50,
+     "size": "590 × 590 × 63",
+     "note": ""
+    },
+    {
+     "code": "CLS-9060-120B2",
+     "w": 120,
+     "lm": 6000,
+     "eff": 50,
+     "size": "890 × 590 × 63",
+     "note": ""
+    }
+   ],
+   "image": "img/holux/cls-skyline-38.jpg",
+   "image_page": "Holux_2.pdf p.10",
+   "image_covers": [
+    "CLS-42-60A1",
+    "CLS-56-110A1",
+    "CLS-42-48A2",
+    "CLS-56-80A2",
+    "CLS-6060-110B1",
+    "CLS-9060-150B1",
+    "CLS-5959-80B2",
+    "CLS-9060-120B2"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED downlight",
+   "ip": "IP64",
+   "ik": "IK06",
+   "cct": "3000 / 4000 / 5700 K (DIP switch)",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium / PC",
+   "cover": "Reflector (UGR<24) or opal (UGR<19)",
+   "beam": "120°",
+   "control": "On/off, Triac, 0-10V, DALI",
+   "mounting": "Recessed; square / round trims, glass cover, surface can accessory",
+   "order_code": "Certificates: CE, CB, ErP, RoHS",
+   "family": "DLU",
+   "title": "All-in-one LED downlight, 3CCT DIP switch, Triac / 0-10V / DALI, reflector + trims / surface can",
+   "pages": "63-64",
+   "variants": [
+    {
+     "code": "DLU1-4-10CCT",
+     "w": 10,
+     "lm": 1200,
+     "eff": 120,
+     "size": "Φ114 × 66 (cut-out Φ90-102)",
+     "note": "",
+     "beam": "60°",
+     "ugr": "<24"
+    },
+    {
+     "code": "DLU1-6-20CCT",
+     "w": 20,
+     "lm": 2400,
+     "eff": 120,
+     "size": "Φ174 × 87 (cut-out Φ145-155)",
+     "note": "",
+     "beam": "60°",
+     "ugr": "<24"
+    },
+    {
+     "code": "DLU1-8-35CCT",
+     "w": 35,
+     "lm": 4200,
+     "eff": 120,
+     "size": "Φ232 × 110 (cut-out Φ195-210)",
+     "note": "",
+     "beam": "60°",
+     "ugr": "<24"
+    },
+    {
+     "code": "DLU2-4-10CCT",
+     "w": 10,
+     "lm": 1000,
+     "eff": 100,
+     "size": "Φ114 × 66 (cut-out Φ90-102)",
+     "note": "",
+     "beam": "80°",
+     "ugr": "<19"
+    },
+    {
+     "code": "DLU2-6-20CCT",
+     "w": 20,
+     "lm": 2000,
+     "eff": 100,
+     "size": "Φ174 × 87 (cut-out Φ145-155)",
+     "note": "",
+     "beam": "80°",
+     "ugr": "<19"
+    },
+    {
+     "code": "DLU2-8-35CCT",
+     "w": 35,
+     "lm": 3500,
+     "eff": 100,
+     "size": "Φ232 × 110 (cut-out Φ195-210)",
+     "note": "",
+     "beam": "80°",
+     "ugr": "<19"
+    }
+   ],
+   "image": "img/holux/dlu-39.jpg",
+   "image_page": "Holux_2.pdf p.12",
+   "image_covers": [
+    "DLU1-4-10CCT",
+    "DLU1-6-20CCT",
+    "DLU1-8-35CCT",
+    "DLU2-4-10CCT",
+    "DLU2-6-20CCT",
+    "DLU2-8-35CCT"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED downlight",
+   "ip": "IP44",
+   "ik": "–",
+   "cct": "3000 / 4000 / 6000 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium / PC",
+   "cover": "PC diffuser",
+   "beam": "120°",
+   "control": "On/off; microwave sensor option",
+   "mounting": "Recessed",
+   "order_code": "Certificates: CE, CB, ErP, RoHS",
+   "family": "DLR/DLS",
+   "title": "Multi-function slim ceiling downlight (adjustable cut-out), 2 power levels, 3CCT",
+   "pages": "65-66",
+   "variants": [
+    {
+     "code": "DLR1-180-DP3C",
+     "w": 12,
+     "lm": 960,
+     "eff": 80,
+     "size": "Φ180 × 20.5 (cut-out Φ80-160)",
+     "note": "Round; 8 W 640/680/600 lm · 12 W 900/960/840 lm · Power selectable 8/12W"
+    },
+    {
+     "code": "DLR1-220-DP3C",
+     "w": 18,
+     "lm": 1710,
+     "eff": 95,
+     "size": "Φ220 × 21.5 (cut-out Φ120-200)",
+     "note": "Round; 12 W 1140/1200/1080 lm · 18 W 1530/1710/1440 lm · Power selectable 12/18W"
+    },
+    {
+     "code": "DLR1-300-DP3C",
+     "w": 25,
+     "lm": 2375,
+     "eff": 95,
+     "size": "Φ300 × 25 (cut-out Φ150-270)",
+     "note": "Round; 18 W 1800/1890/1710 lm · 25 W 2250/2375/2125 lm · Power selectable 18/25W"
+    },
+    {
+     "code": "DLS1-180-DP3C",
+     "w": 12,
+     "lm": 960,
+     "eff": 80,
+     "size": "180 × 180 × 20.5 (cut-out 80-160)",
+     "note": "Square; 8 W 640/680/600 lm · 12 W 900/960/840 lm · Power selectable 8/12W"
+    },
+    {
+     "code": "DLS1-220-DP3C",
+     "w": 18,
+     "lm": 1710,
+     "eff": 95,
+     "size": "220 × 220 × 21.5 (cut-out 120-200)",
+     "note": "Square; 12 W 1140/1200/1080 lm · 18 W 1530/1710/1440 lm · Power selectable 12/18W"
+    },
+    {
+     "code": "DLS1-300-DP3C",
+     "w": 25,
+     "lm": 2375,
+     "eff": 95,
+     "size": "300 × 300 × 25 (cut-out 150-270)",
+     "note": "Square; 18 W 1800/1890/1710 lm · 25 W 2250/2375/2125 lm · Power selectable 18/25W"
+    }
+   ],
+   "image": "img/holux/dlr-dls-40.jpg",
+   "image_page": "Holux_2.pdf p.14",
+   "image_covers": [
+    "DLR1-180-DP3C",
+    "DLR1-220-DP3C",
+    "DLR1-300-DP3C",
+    "DLS1-180-DP3C",
+    "DLS1-220-DP3C",
+    "DLS1-300-DP3C"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED downlight",
+   "ip": "IP44",
+   "ik": "–",
+   "cct": "3000–6500 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9 (5–15 W: >0.5)",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium / PC",
+   "cover": "PC diffuser",
+   "beam": "120°",
+   "control": "On/off; microwave sensor option",
+   "mounting": "Recessed",
+   "order_code": "Certificates: CE, CB, ErP, RoHS",
+   "family": "DLH",
+   "title": "LED downlight 100–125 lm/W, 3000–6500 K",
+   "pages": "67-68",
+   "variants": [
+    {
+     "code": "DLH1-3-5W",
+     "w": 5,
+     "lm": 500,
+     "eff": 100,
+     "size": "Φ90 × 35 (cut-out Φ75)",
+     "note": "",
+     "pf": ">0.5"
+    },
+    {
+     "code": "DLH1-4-9W",
+     "w": 9,
+     "lm": 900,
+     "eff": 100,
+     "size": "Φ135 × 35 (cut-out Φ120)",
+     "note": ""
+    },
+    {
+     "code": "DLH1-5-15W",
+     "w": 15,
+     "lm": 1500,
+     "eff": 100,
+     "size": "Φ165 × 35 (cut-out Φ150)",
+     "note": ""
+    },
+    {
+     "code": "DLH1-6-18W",
+     "w": 18,
+     "lm": 2250,
+     "eff": 125,
+     "size": "Φ185 × 36 (cut-out Φ170)",
+     "note": ""
+    },
+    {
+     "code": "DLH1-6-24W",
+     "w": 24,
+     "lm": 3000,
+     "eff": 125,
+     "size": "Φ185 × 36 (cut-out Φ170)",
+     "note": ""
+    },
+    {
+     "code": "DLH1-8-24W",
+     "w": 24,
+     "lm": 3000,
+     "eff": 125,
+     "size": "Φ230 × 39 (cut-out Φ220)",
+     "note": ""
+    },
+    {
+     "code": "DLH1-8-36W",
+     "w": 36,
+     "lm": 4500,
+     "eff": 125,
+     "size": "Φ230 × 39 (cut-out Φ220)",
+     "note": ""
+    },
+    {
+     "code": "DLH1-6-DP3C",
+     "w": 29,
+     "lm": 3360,
+     "eff": 120,
+     "size": "Φ185 × 36 (cut-out Φ170)",
+     "note": "3CCT 3000 / 4000 / 6500 K; lumens 1800–3360 lm · Power selectable 15/17/19/21/22/24/26/29W"
+    },
+    {
+     "code": "DLH1-8-DP3C",
+     "w": 29,
+     "lm": 3360,
+     "eff": 120,
+     "size": "Φ230 × 39 (cut-out Φ220)",
+     "note": "3CCT 3000 / 4000 / 6500 K; lumens 1800–3360 lm · Power selectable 15/17/19/21/22/24/26/29W"
+    }
+   ],
+   "image": "img/holux/dlh-41.jpg",
+   "image_page": "Holux_2.pdf p.16",
+   "image_covers": [
+    "DLH1-3-5W",
+    "DLH1-4-9W",
+    "DLH1-5-15W",
+    "DLH1-6-18W",
+    "DLH1-6-24W",
+    "DLH1-8-24W",
+    "DLH1-8-36W",
+    "DLH1-6-DP3C",
+    "DLH1-8-DP3C"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED downlight",
+   "ip": "IP44",
+   "ik": "–",
+   "cct": "3000 / 4000 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "White / black",
+   "cover": "PC diffuser",
+   "beam": "40°",
+   "control": "Triac",
+   "mounting": "Recessed",
+   "order_code": "Certificates: CE, CB, ErP, RoHS",
+   "family": "DLF",
+   "title": "UGR<19 anti-glare LED spot downlight, Triac dimmable",
+   "pages": "69-70",
+   "ugr": "<19",
+   "variants": [
+    {
+     "code": "DLF1-3W-6",
+     "w": 6,
+     "lm": 480,
+     "eff": 80,
+     "size": "Φ81 × 78.7 (cut-out Φ68-73)",
+     "note": "White; 3000 K 400 lm / 4000 K 480 lm"
+    },
+    {
+     "code": "DLF1-4W-9",
+     "w": 9,
+     "lm": 650,
+     "eff": 72,
+     "size": "Φ103 × 90.7 (cut-out Φ90-95)",
+     "note": "White; 3000 K 600 lm / 4000 K 650 lm"
+    },
+    {
+     "code": "DLF1-3B-6",
+     "w": 6,
+     "lm": 480,
+     "eff": 80,
+     "size": "Φ81 × 78.7 (cut-out Φ68-73)",
+     "note": "Black; 3000 K 400 lm / 4000 K 480 lm"
+    },
+    {
+     "code": "DLF1-4W-9D",
+     "w": 9,
+     "lm": 900,
+     "eff": 100,
+     "size": "Φ103 × 90.7 (cut-out Φ90-95)",
+     "note": "3CCT, white; 850 / 900 / 880 lm",
+     "cct": "2700 / 3400 / 4000 K"
+    },
+    {
+     "code": "DLF1-4B-9D",
+     "w": 9,
+     "lm": 650,
+     "eff": 72,
+     "size": "Φ103 × 90.7 (cut-out Φ90-95)",
+     "note": "3CCT, black; 600 / 650 / 650 lm",
+     "cct": "2700 / 3400 / 4000 K"
+    }
+   ],
+   "image": "img/holux/dlf-42.jpg",
+   "image_page": "Holux_2.pdf p.18",
+   "image_covers": [
+    "DLF1-3W-6",
+    "DLF1-4W-9",
+    "DLF1-3B-6",
+    "DLF1-4W-9D",
+    "DLF1-4B-9D"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED downlight (surface cylinder)",
+   "ip": "IP65",
+   "ik": "–",
+   "cct": "3000 / 4000 / 5700 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium, white / black",
+   "cover": "PC diffuser",
+   "beam": "60°",
+   "control": "On/off; microwave sensor option",
+   "mounting": "Surface",
+   "order_code": "Certificates: CE, CB, ErP, RoHS",
+   "ugr": "<19",
+   "family": "DLM A",
+   "title": "Surface-mounted cylinder downlight 120 lm/W (reflector), on/off or DT8 DALI",
+   "pages": "71-72",
+   "variants": [
+    {
+     "code": "DLM1-125-14A1",
+     "w": 14,
+     "lm": 1680,
+     "eff": 120,
+     "size": "Φ86 × 125",
+     "note": "On/off; 1512 / 1680 / 1596 lm"
+    },
+    {
+     "code": "DLM1-136-ADP3C",
+     "w": 20,
+     "lm": 2400,
+     "eff": 120,
+     "size": "Φ136 × 150",
+     "note": "On/off; 14 W 1512/1680/1596 lm · 20 W 2160/2400/2280 lm · Power selectable 14/20W"
+    },
+    {
+     "code": "DLM1-136-ADT8",
+     "w": 40,
+     "lm": 4800,
+     "eff": 120,
+     "size": "Φ184 × 164",
+     "note": "28 W 3024/3360/3192 lm · 40 W 4320/4800/4560 lm · Power selectable 28/40W",
+     "flag": "Code says 136 (Φ136) but the row prints Φ184 × 164 and 28/40 W – probably a copy of the 184 row; check",
+     "control": "DT8 DALI"
+    },
+    {
+     "code": "DLM1-184-ADP3C",
+     "w": 40,
+     "lm": 4800,
+     "eff": 120,
+     "size": "Φ184 × 164",
+     "note": "On/off; 28 W 3024/3360/3192 lm · 40 W 4320/4800/4560 lm · Power selectable 28/40W"
+    },
+    {
+     "code": "DLM1-184-ADT8",
+     "w": 40,
+     "lm": 4800,
+     "eff": 120,
+     "size": "Φ184 × 164",
+     "note": "28 W 3024/3360/3192 lm · 40 W 4320/4800/4560 lm · Power selectable 28/40W",
+     "control": "DT8 DALI"
+    }
+   ],
+   "image": "img/holux/dlm-a-43.jpg",
+   "image_page": "Holux_2.pdf p.20",
+   "image_covers": [
+    "DLM1-125-14A1",
+    "DLM1-136-ADP3C",
+    "DLM1-136-ADT8",
+    "DLM1-184-ADP3C",
+    "DLM1-184-ADT8"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED downlight (surface cylinder)",
+   "ip": "IP65",
+   "ik": "–",
+   "cct": "3000 / 4000 / 5700 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium, white / black",
+   "cover": "PC diffuser",
+   "beam": "60°",
+   "control": "On/off; microwave sensor option",
+   "mounting": "Surface",
+   "order_code": "Certificates: CE, CB, ErP, RoHS",
+   "ugr": "<19",
+   "family": "DLM B",
+   "title": "Surface-mounted cylinder downlight 120 lm/W (opal), on/off or DT8 DALI",
+   "pages": "72",
+   "variants": [
+    {
+     "code": "DLM1-125-14B1",
+     "w": 20,
+     "lm": 2400,
+     "eff": 120,
+     "size": "Φ86 × 105",
+     "note": "On/off; 14 W 1512/1680/1596 lm · 20 W 2160/2400/2280 lm · Power selectable 14/20W",
+     "flag": "Code says 14 W but two power levels 14 / 20 W are printed – check"
+    },
+    {
+     "code": "DLM1-136-BDP3C",
+     "w": 20,
+     "lm": 2400,
+     "eff": 120,
+     "size": "Φ136 × 120",
+     "note": "On/off; 14 W 1512/1680/1596 lm · 20 W 2160/2400/2280 lm · Power selectable 14/20W"
+    },
+    {
+     "code": "DLM1-136-BDT8",
+     "w": 20,
+     "lm": 2400,
+     "eff": 120,
+     "size": "Φ136 × 120",
+     "note": "14 W 1512/1680/1596 lm · 20 W 2160/2400/2280 lm · Power selectable 14/20W",
+     "control": "DT8 DALI"
+    },
+    {
+     "code": "DLM1-184-BDP3C",
+     "w": 40,
+     "lm": 4800,
+     "eff": 120,
+     "size": "Φ184 × 130",
+     "note": "On/off; 28 W 3024/3360/3192 lm · 40 W 4320/4800/4560 lm · Power selectable 28/40W"
+    },
+    {
+     "code": "DLM1-184-BDT8",
+     "w": 40,
+     "lm": 4800,
+     "eff": 120,
+     "size": "Φ184 × 130",
+     "note": "28 W 3024/3360/3192 lm · 40 W 4320/4800/4560 lm · Power selectable 28/40W",
+     "control": "DT8 DALI"
+    }
+   ],
+   "image": "img/holux/dlm-b-44.jpg",
+   "image_page": "Holux_2.pdf p.20",
+   "image_covers": [
+    "DLM1-125-14B1",
+    "DLM1-136-BDP3C",
+    "DLM1-136-BDT8",
+    "DLM1-184-BDP3C",
+    "DLM1-184-BDT8"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED downlight",
+   "ip": "IP54",
+   "ik": "–",
+   "cct": "4000 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium / PC",
+   "cover": "PC diffuser",
+   "beam": "60°",
+   "control": "On/off; microwave sensor option",
+   "mounting": "Recessed",
+   "order_code": "Certificates: CE, CB, ErP, RoHS",
+   "family": "DLC",
+   "title": "LED downlight with heat sink, UGR<19, 110–150 lm/W",
+   "pages": "73",
+   "ugr": "<19",
+   "variants": [
+    {
+     "code": "DLC-6-12C1",
+     "w": 12,
+     "lm": 1800,
+     "eff": 150,
+     "size": "Φ165 × 60",
+     "note": ""
+    },
+    {
+     "code": "DLC-8-24C1",
+     "w": 24,
+     "lm": 3600,
+     "eff": 150,
+     "size": "Φ220 × 66.5",
+     "note": ""
+    },
+    {
+     "code": "DLC-4-7C2",
+     "w": 7,
+     "lm": 770,
+     "eff": 110,
+     "size": "Φ110 × 50",
+     "note": ""
+    },
+    {
+     "code": "DLC-5-7C2",
+     "w": 7,
+     "lm": 840,
+     "eff": 120,
+     "size": "Φ140 × 55",
+     "note": ""
+    },
+    {
+     "code": "DLC-6-15C2",
+     "w": 15,
+     "lm": 1800,
+     "eff": 120,
+     "size": "Φ165 × 60",
+     "note": ""
+    },
+    {
+     "code": "DLC-8-28C2",
+     "w": 28,
+     "lm": 3360,
+     "eff": 120,
+     "size": "Φ220 × 66.5",
+     "note": ""
+    },
+    {
+     "code": "DLC-6-15C2-3CCT",
+     "w": 15,
+     "lm": 1800,
+     "eff": 120,
+     "size": "Φ165 × 60",
+     "note": "",
+     "cct": "3000 / 4000 / 5700 K"
+    },
+    {
+     "code": "DLC-8-28C2-3CCT",
+     "w": 28,
+     "lm": 3360,
+     "eff": 120,
+     "size": "Φ220 × 66.5",
+     "note": "",
+     "cct": "3000 / 4000 / 5700 K"
+    }
+   ],
+   "image": "img/holux/dlc-45.jpg",
+   "image_page": "Holux_2.pdf p.21",
+   "image_covers": [
+    "DLC-6-12C1",
+    "DLC-8-24C1",
+    "DLC-4-7C2",
+    "DLC-5-7C2",
+    "DLC-6-15C2",
+    "DLC-8-28C2",
+    "DLC-6-15C2-3CCT",
+    "DLC-8-28C2-3CCT"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED downlight",
+   "ip": "IP65",
+   "ik": "–",
+   "cct": "4000 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium / PC",
+   "cover": "PC diffuser",
+   "beam": "70°",
+   "control": "On/off; microwave sensor option",
+   "mounting": "Recessed",
+   "order_code": "Certificates: CE, CB, ErP, RoHS",
+   "family": "DLS IP65",
+   "title": "IP65 waterproof high-efficiency downlight 140–160 lm/W",
+   "pages": "73",
+   "variants": [
+    {
+     "code": "DLS-3-10W",
+     "w": 10,
+     "lm": 1400,
+     "eff": 140,
+     "size": "Φ95 × 48 (cut-out Φ75-85)",
+     "note": ""
+    },
+    {
+     "code": "DLS-4-15W",
+     "w": 15,
+     "lm": 2100,
+     "eff": 140,
+     "size": "Φ110 × 53.5 (cut-out Φ90-100)",
+     "note": ""
+    },
+    {
+     "code": "DLS-5-18W",
+     "w": 18,
+     "lm": 2880,
+     "eff": 160,
+     "size": "Φ135 × 61 (cut-out Φ110-125)",
+     "note": ""
+    },
+    {
+     "code": "DLS-6-25W",
+     "w": 25,
+     "lm": 4000,
+     "eff": 160,
+     "size": "Φ175 × 69.5 (cut-out Φ140-165)",
+     "note": ""
+    },
+    {
+     "code": "DLS-7-35W",
+     "w": 35,
+     "lm": 5600,
+     "eff": 160,
+     "size": "Φ195 × 74 (cut-out Φ160-185)",
+     "note": ""
+    }
+   ],
+   "image": "img/holux/dls-ip65-46.jpg",
+   "image_page": "Holux_2.pdf p.21",
+   "image_covers": [
+    "DLS-3-10W",
+    "DLS-4-15W",
+    "DLS-5-18W",
+    "DLS-6-25W",
+    "DLS-7-35W"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED slim panel downlight",
+   "ip": "IP20 / IP44",
+   "ik": "–",
+   "cct": "4000 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.5",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium / PC",
+   "cover": "PC diffuser",
+   "beam": "110°",
+   "control": "On/off; microwave sensor option",
+   "mounting": "Recessed",
+   "order_code": "Certificates: CE, CB, ErP, RoHS",
+   "ugr": "<22 / <19",
+   "family": "PDL round recessed",
+   "title": "Round embedded slim panel downlight 80–140 lm/W",
+   "pages": "75",
+   "variants": [
+    {
+     "code": "DL-3-3C1",
+     "w": 3,
+     "lm": 240,
+     "eff": 80,
+     "size": "Φ85 × 15 (cut-out Φ75)",
+     "note": ""
+    },
+    {
+     "code": "DL-4-6C1",
+     "w": 6,
+     "lm": 480,
+     "eff": 80,
+     "size": "Φ120 × 15 (cut-out Φ105)",
+     "note": ""
+    },
+    {
+     "code": "DL-5-9C1",
+     "w": 9,
+     "lm": 720,
+     "eff": 80,
+     "size": "Φ145 × 15 (cut-out Φ130)",
+     "note": ""
+    },
+    {
+     "code": "DL-6-12C1",
+     "w": 12,
+     "lm": 1200,
+     "eff": 100,
+     "size": "Φ170 × 15 (cut-out Φ155)",
+     "note": ""
+    },
+    {
+     "code": "DL-7-15C1",
+     "w": 15,
+     "lm": 1500,
+     "eff": 100,
+     "size": "Φ200 × 15 (cut-out Φ175)",
+     "note": ""
+    },
+    {
+     "code": "DL-8-18C1",
+     "w": 18,
+     "lm": 2160,
+     "eff": 120,
+     "size": "Φ225 × 15 (cut-out Φ210)",
+     "note": ""
+    },
+    {
+     "code": "DL-10-24C1",
+     "w": 24,
+     "lm": 2880,
+     "eff": 120,
+     "size": "Φ300 × 15 (cut-out Φ280)",
+     "note": ""
+    },
+    {
+     "code": "DL-8-18B1",
+     "w": 18,
+     "lm": 2520,
+     "eff": 140,
+     "size": "Φ225 × 15 (cut-out Φ210)",
+     "note": ""
+    },
+    {
+     "code": "DL-10-24B1",
+     "w": 24,
+     "lm": 3360,
+     "eff": 140,
+     "size": "Φ300 × 15 (cut-out Φ280)",
+     "note": ""
+    }
+   ],
+   "image": "img/holux/pdl-round-recessed-47.jpg",
+   "image_page": "Holux_2.pdf p.23",
+   "image_covers": [
+    "DL-3-3C1",
+    "DL-4-6C1",
+    "DL-5-9C1",
+    "DL-6-12C1",
+    "DL-7-15C1",
+    "DL-8-18C1",
+    "DL-10-24C1",
+    "DL-8-18B1",
+    "DL-10-24B1"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED slim panel downlight",
+   "ip": "IP20 / IP44",
+   "ik": "–",
+   "cct": "4000 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.5",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium / PC",
+   "cover": "PC diffuser",
+   "beam": "110°",
+   "control": "On/off; microwave sensor option",
+   "mounting": "Recessed",
+   "order_code": "Certificates: CE, CB, ErP, RoHS",
+   "ugr": "<22 / <19",
+   "family": "PDL square recessed",
+   "title": "Square embedded slim panel downlight 80–140 lm/W",
+   "pages": "76",
+   "variants": [
+    {
+     "code": "DL-3-3C2",
+     "w": 3,
+     "lm": 240,
+     "eff": 80,
+     "size": "85 × 85 × 15 (cut-out 75 × 75)",
+     "note": ""
+    },
+    {
+     "code": "DL-4-6C2",
+     "w": 6,
+     "lm": 480,
+     "eff": 80,
+     "size": "120 × 120 × 15 (cut-out 105 × 105)",
+     "note": ""
+    },
+    {
+     "code": "DL-5-9C2",
+     "w": 9,
+     "lm": 720,
+     "eff": 80,
+     "size": "145 × 145 × 15 (cut-out 130 × 130)",
+     "note": ""
+    },
+    {
+     "code": "DL-6-12C2",
+     "w": 12,
+     "lm": 1200,
+     "eff": 100,
+     "size": "170 × 170 × 15 (cut-out 155 × 155)",
+     "note": ""
+    },
+    {
+     "code": "DL-7-15C2",
+     "w": 15,
+     "lm": 1500,
+     "eff": 100,
+     "size": "200 × 200 × 15 (cut-out 175 × 175)",
+     "note": ""
+    },
+    {
+     "code": "DL-8-18C2",
+     "w": 18,
+     "lm": 2160,
+     "eff": 120,
+     "size": "225 × 225 × 15 (cut-out 210 × 210)",
+     "note": ""
+    },
+    {
+     "code": "DL-10-24C2",
+     "w": 24,
+     "lm": 2880,
+     "eff": 120,
+     "size": "300 × 300 × 15 (cut-out 280 × 280)",
+     "note": ""
+    },
+    {
+     "code": "DL-8-18B2",
+     "w": 18,
+     "lm": 2520,
+     "eff": 140,
+     "size": "225 × 225 × 15 (cut-out 210 × 210)",
+     "note": ""
+    },
+    {
+     "code": "DL-10-24B2",
+     "w": 24,
+     "lm": 3360,
+     "eff": 140,
+     "size": "300 × 300 × 15 (cut-out 280 × 280)",
+     "note": ""
+    }
+   ],
+   "image": "img/holux/pdl-square-recessed-48.jpg",
+   "image_page": "Holux_2.pdf p.24",
+   "image_covers": [
+    "DL-3-3C2",
+    "DL-4-6C2",
+    "DL-5-9C2",
+    "DL-6-12C2",
+    "DL-7-15C2",
+    "DL-8-18C2",
+    "DL-10-24C2",
+    "DL-8-18B2",
+    "DL-10-24B2"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED slim panel downlight",
+   "ip": "IP20 / IP44",
+   "ik": "–",
+   "cct": "4000 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.5",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium / PC",
+   "cover": "PC diffuser",
+   "beam": "110°",
+   "control": "On/off; microwave sensor option",
+   "mounting": "Surface",
+   "order_code": "Certificates: CE, CB, ErP, RoHS",
+   "ugr": "<22 / <19",
+   "family": "PDL round surface",
+   "title": "Round surface-mounted slim panel downlight 80–140 lm/W",
+   "pages": "77",
+   "variants": [
+    {
+     "code": "DL-4-6C3",
+     "w": 6,
+     "lm": 480,
+     "eff": 80,
+     "size": "Φ122 × 35",
+     "note": ""
+    },
+    {
+     "code": "DL-6-12C3",
+     "w": 12,
+     "lm": 1200,
+     "eff": 100,
+     "size": "Φ169 × 35",
+     "note": ""
+    },
+    {
+     "code": "DL-8-18C3",
+     "w": 18,
+     "lm": 2160,
+     "eff": 120,
+     "size": "Φ223 × 35",
+     "note": ""
+    },
+    {
+     "code": "DL-10-24C3",
+     "w": 24,
+     "lm": 2880,
+     "eff": 120,
+     "size": "Φ300 × 35",
+     "note": ""
+    },
+    {
+     "code": "DL-8-18B3",
+     "w": 18,
+     "lm": 2520,
+     "eff": 140,
+     "size": "Φ223 × 35",
+     "note": ""
+    },
+    {
+     "code": "DL-10-24B3",
+     "w": 24,
+     "lm": 3360,
+     "eff": 140,
+     "size": "Φ300 × 35",
+     "note": ""
+    }
+   ],
+   "image": "img/holux/pdl-round-surface-49.jpg",
+   "image_page": "Holux_2.pdf p.25",
+   "image_covers": [
+    "DL-4-6C3",
+    "DL-6-12C3",
+    "DL-8-18C3",
+    "DL-10-24C3",
+    "DL-8-18B3",
+    "DL-10-24B3"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED slim panel downlight",
+   "ip": "IP20 / IP44",
+   "ik": "–",
+   "cct": "4000 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.5",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium / PC",
+   "cover": "PC diffuser",
+   "beam": "110°",
+   "control": "On/off; microwave sensor option",
+   "mounting": "Surface",
+   "order_code": "Certificates: CE, CB, ErP, RoHS",
+   "ugr": "<22 / <19",
+   "family": "PDL square surface",
+   "title": "Square surface-mounted slim panel downlight 80–140 lm/W",
+   "pages": "77",
+   "variants": [
+    {
+     "code": "DL-4-6C4",
+     "w": 6,
+     "lm": 480,
+     "eff": 80,
+     "size": "122 × 122 × 35",
+     "note": ""
+    },
+    {
+     "code": "DL-6-12C4",
+     "w": 12,
+     "lm": 1200,
+     "eff": 100,
+     "size": "167 × 167 × 35",
+     "note": ""
+    },
+    {
+     "code": "DL-8-18C4",
+     "w": 18,
+     "lm": 2160,
+     "eff": 120,
+     "size": "221 × 221 × 35",
+     "note": ""
+    },
+    {
+     "code": "DL-10-24C4",
+     "w": 24,
+     "lm": 2880,
+     "eff": 120,
+     "size": "300 × 300 × 35",
+     "note": ""
+    },
+    {
+     "code": "DL-8-18B4",
+     "w": 18,
+     "lm": 2520,
+     "eff": 140,
+     "size": "221 × 221 × 35",
+     "note": ""
+    },
+    {
+     "code": "DL-10-24B4",
+     "w": 24,
+     "lm": 3360,
+     "eff": 140,
+     "size": "300 × 300 × 35",
+     "note": ""
+    }
+   ],
+   "image": "img/holux/pdl-square-surface-50.jpg",
+   "image_page": "Holux_2.pdf p.25",
+   "image_covers": [
+    "DL-4-6C4",
+    "DL-6-12C4",
+    "DL-8-18C4",
+    "DL-10-24C4",
+    "DL-8-18B4",
+    "DL-10-24B4"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Industrial",
+   "type": "LED high bay (UFO)",
+   "ip": "IP65",
+   "ik": "IK08",
+   "cct": "4000 / 5000 / 6500 K",
+   "cri": "80",
+   "voltage": "120-277V AC",
+   "pf": ">0.95",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Die-cast aluminium, black",
+   "cover": "PC lens",
+   "control": "On/off (power selectable)",
+   "mounting": "Hook / bracket",
+   "order_code": "Certificates: CE, CB, RoHS, ENEC 05; Sosen / LiteOn / Lifud drivers",
+   "family": "HB-325 / HB-300 W2",
+   "title": "200 lm/W UFO high bay (LiteOn LEDs, Sosen driver), 277V / 120V, power selectable",
+   "pages": "79",
+   "variants": [
+    {
+     "code": "HB-325-240W2",
+     "w": 200,
+     "lm": 40000,
+     "eff": 200,
+     "size": "Φ390 × 68",
+     "note": "Power selectable 200-180-160-140-120-100W · lumens = W × lm/W (not printed)",
+     "flag": "Code says 240 W but the power steps stop at 200 W – check",
+     "ip": "IP66",
+     "beam": "60° / 90°"
+    },
+    {
+     "code": "HB-325-150W2",
+     "w": 150,
+     "lm": 30000,
+     "eff": 200,
+     "size": "Φ390 × 68",
+     "note": "Power selectable 150-135-120-105-90-75W · lumens = W × lm/W (not printed)",
+     "ip": "IP66",
+     "beam": "60° / 90°"
+    },
+    {
+     "code": "HB-300-200W2",
+     "w": 200,
+     "lm": 40000,
+     "eff": 200,
+     "size": "Φ280 × 160",
+     "note": "Power selectable 200-150-120W · lumens = W × lm/W (not printed)",
+     "beam": "60° / 90° / 110°"
+    },
+    {
+     "code": "HB-300-150W2",
+     "w": 150,
+     "lm": 30000,
+     "eff": 200,
+     "size": "Φ280 × 160",
+     "note": "Power selectable 150-120-100W · lumens = W × lm/W (not printed)",
+     "beam": "60° / 90° / 110°"
+    },
+    {
+     "code": "HB-300-120W2",
+     "w": 120,
+     "lm": 24000,
+     "eff": 200,
+     "size": "Φ280 × 160",
+     "note": "Power selectable 120-100-80W · lumens = W × lm/W (not printed)",
+     "beam": "60° / 90° / 110°"
+    },
+    {
+     "code": "HB-300-80W2",
+     "w": 80,
+     "lm": 16000,
+     "eff": 200,
+     "size": "Φ280 × 160",
+     "note": "Power selectable 80-60-50W · lumens = W × lm/W (not printed)",
+     "beam": "60° / 90° / 110°"
+    }
+   ],
+   "image": "img/holux/hb-325-hb-300-w2-51.jpg",
+   "image_page": "Holux_2.pdf p.27",
+   "image_covers": [
+    "HB-325-240W2",
+    "HB-325-150W2",
+    "HB-300-200W2",
+    "HB-300-150W2",
+    "HB-300-120W2",
+    "HB-300-80W2"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Industrial",
+   "type": "LED high bay (UFO)",
+   "ip": "IP65",
+   "ik": "IK08",
+   "cct": "4000 / 5000 / 5700 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.95",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Die-cast aluminium, black",
+   "cover": "PC lens",
+   "control": "On/off (power selectable)",
+   "mounting": "Hook / bracket",
+   "order_code": "Certificates: CE, CB, RoHS, ENEC 05; Sosen / LiteOn / Lifud drivers",
+   "family": "HB-B2 185",
+   "title": "185 lm/W UFO high bay (LiteOn LEDs, Sosen driver)",
+   "pages": "80",
+   "beam": "60° / 90° / 110°",
+   "variants": [
+    {
+     "code": "HB-246-100B2",
+     "w": 100,
+     "lm": 18500,
+     "eff": 185,
+     "size": "Φ246 × 155",
+     "note": "lumens = W × lm/W (not printed)"
+    },
+    {
+     "code": "HB-266-150B2",
+     "w": 150,
+     "lm": 27750,
+     "eff": 185,
+     "size": "Φ266 × 160",
+     "note": "lumens = W × lm/W (not printed)"
+    },
+    {
+     "code": "HB-300-200B2",
+     "w": 200,
+     "lm": 37000,
+     "eff": 185,
+     "size": "Φ300 × 169",
+     "note": "lumens = W × lm/W (not printed)"
+    }
+   ],
+   "image": "img/holux/hb-b2-185-52.jpg",
+   "image_page": "Holux_2.pdf p.28",
+   "image_covers": [
+    "HB-246-100B2",
+    "HB-266-150B2",
+    "HB-300-200B2"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Industrial",
+   "type": "LED high bay (UFO)",
+   "ip": "IP65",
+   "ik": "IK08",
+   "cct": "4000 K or 3CCT",
+   "cri": "70",
+   "voltage": "220-240V AC",
+   "pf": ">0.95",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Die-cast aluminium, black",
+   "cover": "PC lens",
+   "control": "On/off (power selectable)",
+   "mounting": "Hook / bracket",
+   "order_code": "Certificates: CE, CB, RoHS, ENEC 05; Sosen / LiteOn / Lifud drivers",
+   "family": "HB-B2 3CCT",
+   "title": "UFO high bay 160 lm/W (Lumileds 2835, Lifud driver), 4000 K or 3CCT",
+   "pages": "80",
+   "beam": "60° / 90° / 120°",
+   "variants": [
+    {
+     "code": "HB-245-100B2",
+     "w": 100,
+     "lm": 16000,
+     "eff": 160,
+     "size": "Φ246 × 148",
+     "note": ""
+    },
+    {
+     "code": "HB-280-150B2-UFO",
+     "w": 150,
+     "lm": 24000,
+     "eff": 160,
+     "size": "Φ280 × 148",
+     "note": "",
+     "flag": "Code HB-280-150B2 is also used on page 81 for a different 140 lm/W model – \"-UFO\" added here; check the real code"
+    },
+    {
+     "code": "HB-330-200B2",
+     "w": 200,
+     "lm": 32000,
+     "eff": 160,
+     "size": "Φ330 × 148",
+     "note": ""
+    },
+    {
+     "code": "HB-245-100B2-3CCT",
+     "w": 100,
+     "lm": 16000,
+     "eff": 160,
+     "size": "Φ246 × 148",
+     "note": ""
+    },
+    {
+     "code": "HB-280-150B2-3CCT",
+     "w": 150,
+     "lm": 24000,
+     "eff": 160,
+     "size": "Φ280 × 148",
+     "note": ""
+    },
+    {
+     "code": "HB-330-200B2-3CCT",
+     "w": 200,
+     "lm": 32000,
+     "eff": 160,
+     "size": "Φ330 × 148",
+     "note": ""
+    }
+   ],
+   "image": "img/holux/hb-b2-3cct-53.jpg",
+   "image_page": "Holux_2.pdf p.28",
+   "image_covers": [
+    "HB-245-100B2",
+    "HB-280-150B2-UFO",
+    "HB-330-200B2",
+    "HB-245-100B2-3CCT",
+    "HB-280-150B2-3CCT",
+    "HB-330-200B2-3CCT"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Industrial",
+   "type": "LED high bay (UFO)",
+   "ip": "IP65",
+   "ik": "IK08",
+   "cct": "4000 / 5000 / 6500 K",
+   "cri": "80",
+   "voltage": "100-240V AC",
+   "pf": ">0.95",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Die-cast aluminium, black",
+   "cover": "PC lens",
+   "control": "On/off (power selectable)",
+   "mounting": "Hook / bracket",
+   "order_code": "Certificates: CE, CB, RoHS, ENEC 05; Sosen / LiteOn / Lifud drivers",
+   "family": "HB-B2/W2 140/160",
+   "title": "UFO high bay 140 / 160 lm/W (BMTC 2835, Lifud driver), power selectable, 100-240V",
+   "pages": "81",
+   "beam": "90° / 120°",
+   "variants": [
+    {
+     "code": "HB-240-100B2",
+     "w": 100,
+     "lm": 14000,
+     "eff": 140,
+     "size": "Φ240 × 157.8",
+     "note": "Power selectable 100W-80W-60W · lumens = W × lm/W (not printed)"
+    },
+    {
+     "code": "HB-280-150B2",
+     "w": 150,
+     "lm": 21000,
+     "eff": 140,
+     "size": "Φ280 × 157.8",
+     "note": "Power selectable 150W-100W-80W · lumens = W × lm/W (not printed)",
+     "flag": "Same code HB-280-150B2 is on page 80 for a 160 lm/W Φ280 × 148 model – check"
+    },
+    {
+     "code": "HB-320-200B2",
+     "w": 200,
+     "lm": 28000,
+     "eff": 140,
+     "size": "Φ320 × 157.8",
+     "note": "Power selectable 200W-150W-100W · lumens = W × lm/W (not printed)"
+    },
+    {
+     "code": "HB-320-240B2",
+     "w": 240,
+     "lm": 33600,
+     "eff": 140,
+     "size": "Φ320 × 157.8",
+     "note": "Power selectable 240W-200W-150W · lumens = W × lm/W (not printed)"
+    },
+    {
+     "code": "HB-240-100W2",
+     "w": 100,
+     "lm": 16000,
+     "eff": 160,
+     "size": "Φ240 × 157.8",
+     "note": "Power selectable 100W-80W-60W · lumens = W × lm/W (not printed)"
+    },
+    {
+     "code": "HB-280-150W2",
+     "w": 150,
+     "lm": 24000,
+     "eff": 160,
+     "size": "Φ280 × 157.8",
+     "note": "Power selectable 150W-100W-80W · lumens = W × lm/W (not printed)"
+    },
+    {
+     "code": "HB-320-200W2",
+     "w": 200,
+     "lm": 32000,
+     "eff": 160,
+     "size": "Φ320 × 157.8",
+     "note": "Power selectable 200W-150W-100W · lumens = W × lm/W (not printed)"
+    },
+    {
+     "code": "HB-320-240W2",
+     "w": 240,
+     "lm": 38400,
+     "eff": 160,
+     "size": "Φ320 × 157.8",
+     "note": "Power selectable 240W-200W-150W · lumens = W × lm/W (not printed)"
+    }
+   ],
+   "image": "img/holux/hb-b2-w2-140-160-54.jpg",
+   "image_page": "Holux_2.pdf p.29",
+   "image_covers": [
+    "HB-240-100B2",
+    "HB-280-150B2",
+    "HB-320-200B2",
+    "HB-320-240B2",
+    "HB-240-100W2",
+    "HB-280-150W2",
+    "HB-320-200W2",
+    "HB-320-240W2"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Outdoor",
+   "type": "LED floodlight",
+   "ip": "IP65",
+   "ik": "IK08",
+   "cct": "4000 / 5000 / 6500 K (3CCT)",
+   "cri": "80",
+   "voltage": "120-277V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 30000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Die-cast aluminium",
+   "cover": "PC lens",
+   "control": "On/off (power selectable)",
+   "mounting": "U-bracket",
+   "order_code": "Certificates: CE, CB, RoHS, ENEC 05; Sosen / LiteOn / Lifud drivers",
+   "family": "LF-A1 3CCT",
+   "title": "3CCT floodlight 150 lm/W with high-efficiency lens (Lumileds 2835, Sosen driver), power selectable",
+   "pages": "82-83",
+   "beam": "30° / 60° / 90° / 120°, Type II / III / IV / V",
+   "variants": [
+    {
+     "code": "LF-384-200A1-3CCT",
+     "w": 200,
+     "lm": 30000,
+     "eff": 150,
+     "size": "384 × 353 × 59",
+     "note": "30000 / 22500 / 18000 lm · Power selectable 200-150-120W"
+    },
+    {
+     "code": "LF-333-100A1-3CCT",
+     "w": 100,
+     "lm": 15000,
+     "eff": 150,
+     "size": "333 × 302 × 59",
+     "note": "15000 / 12000 / 9000 lm · Power selectable 100-80-60W"
+    }
+   ],
+   "image": "img/holux/lf-a1-3cct-55.jpg",
+   "image_page": "Holux_2.pdf p.31",
+   "image_covers": [
+    "LF-384-200A1-3CCT",
+    "LF-333-100A1-3CCT"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED linear (suspended / surface)",
+   "ip": "IP20",
+   "ik": "–",
+   "cct": "4000 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium profile 50 × 72.8",
+   "control": "Boke on/off or DALI",
+   "mounting": "Suspended / surface, linkable",
+   "order_code": "-WO white on/off · -BO black on/off · -WD / -BD DALI 3CCT",
+   "family": "LL-U1",
+   "title": "U1 linear light 125 lm/W, micro-prism, UGR low, 75°",
+   "pages": "84-85",
+   "beam": "75°",
+   "cover": "Micro-prism",
+   "variants": [
+    {
+     "code": "LL-12-32U1-WO-840",
+     "w": 32,
+     "lm": 4000,
+     "eff": 125,
+     "size": "L1200 × W50 × H72.8",
+     "note": "White, Boke on/off"
+    },
+    {
+     "code": "LL-12-32U1-BO-840",
+     "w": 32,
+     "lm": 4000,
+     "eff": 125,
+     "size": "L1200 × W50 × H72.8",
+     "note": "Black, Boke on/off"
+    },
+    {
+     "code": "LL-12-32U1-WD-CCT",
+     "w": 32,
+     "lm": 4000,
+     "eff": 125,
+     "size": "L1200 × W50 × H72.8",
+     "note": "White, DALI",
+     "cct": "3000 / 3500 / 4000 K",
+     "control": "Boke DALI"
+    },
+    {
+     "code": "LL-12-32U1-BD-CCT",
+     "w": 32,
+     "lm": 4000,
+     "eff": 125,
+     "size": "L1200 × W50 × H72.8",
+     "note": "Black, DALI",
+     "cct": "3000 / 3500 / 4000 K",
+     "control": "Boke DALI"
+    },
+    {
+     "code": "LL-15-40U1-WO-840",
+     "w": 40,
+     "lm": 5000,
+     "eff": 125,
+     "size": "L1500 × W50 × H72.8",
+     "note": "White, Boke on/off"
+    },
+    {
+     "code": "LL-15-40U1-BO-840",
+     "w": 40,
+     "lm": 5000,
+     "eff": 125,
+     "size": "L1500 × W50 × H72.8",
+     "note": "Black, Boke on/off"
+    },
+    {
+     "code": "LL-15-40U1-WD-CCT",
+     "w": 40,
+     "lm": 5000,
+     "eff": 125,
+     "size": "L1500 × W50 × H72.8",
+     "note": "White, DALI",
+     "cct": "3000 / 3500 / 4000 K",
+     "control": "Boke DALI"
+    },
+    {
+     "code": "LL-15-40U1-BD-CCT",
+     "w": 40,
+     "lm": 5000,
+     "eff": 125,
+     "size": "L1500 × W50 × H72.8",
+     "note": "Black, DALI",
+     "cct": "3000 / 3500 / 4000 K",
+     "control": "Boke DALI"
+    }
+   ],
+   "image": "img/holux/ll-u1-56.jpg",
+   "image_page": "Holux_2.pdf p.33",
+   "image_covers": [
+    "LL-12-32U1-WO-840",
+    "LL-12-32U1-BO-840",
+    "LL-12-32U1-WD-CCT",
+    "LL-12-32U1-BD-CCT",
+    "LL-15-40U1-WO-840",
+    "LL-15-40U1-BO-840",
+    "LL-15-40U1-WD-CCT",
+    "LL-15-40U1-BD-CCT"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED linear (suspended / surface)",
+   "ip": "IP20",
+   "ik": "–",
+   "cct": "4000 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium profile 50 × 72.8",
+   "control": "Boke on/off or DALI",
+   "mounting": "Suspended / surface, linkable",
+   "order_code": "-WO white on/off · -BO black on/off · -WD / -BD DALI 3CCT",
+   "family": "LL-A1",
+   "title": "A1 linear light 120 lm/W, haze diffuser, 100°",
+   "pages": "86",
+   "beam": "100°",
+   "cover": "Haze diffuser",
+   "variants": [
+    {
+     "code": "LL-12-30A1-WO-840",
+     "w": 30,
+     "lm": 3600,
+     "eff": 120,
+     "size": "L1200 × W50 × H72.8",
+     "note": ""
+    },
+    {
+     "code": "LL-15-40A1-WO-840",
+     "w": 40,
+     "lm": 4800,
+     "eff": 120,
+     "size": "L1500 × W50 × H72.8",
+     "note": ""
+    }
+   ],
+   "image": "img/holux/ll-a1-57.jpg",
+   "image_page": "Holux_2.pdf p.34",
+   "image_covers": [
+    "LL-12-30A1-WO-840",
+    "LL-15-40A1-WO-840"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED linear (suspended / surface)",
+   "ip": "IP20",
+   "ik": "–",
+   "cct": "4000 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium profile, black",
+   "control": "Boke on/off or DALI",
+   "mounting": "Suspended / surface, linkable",
+   "order_code": "-WO white on/off · -BO black on/off · -WD / -BD DALI 3CCT",
+   "family": "LL-L1",
+   "title": "L1 linear light 160 lm/W, black louvre lens, 80°",
+   "pages": "86",
+   "beam": "80°",
+   "cover": "Black cover + lens",
+   "variants": [
+    {
+     "code": "LL-12-24L1-BO-840",
+     "w": 24,
+     "lm": 3840,
+     "eff": 160,
+     "size": "L1147 × W50 × H72.8",
+     "note": "Boke on/off"
+    },
+    {
+     "code": "LL-12-24L1-BD-840",
+     "w": 24,
+     "lm": 3840,
+     "eff": 160,
+     "size": "L1147 × W50 × H72.8",
+     "note": "Boke DALI",
+     "control": "Boke DALI"
+    }
+   ],
+   "image": "img/holux/ll-l1-58.jpg",
+   "image_page": "Holux_2.pdf p.34",
+   "image_covers": [
+    "LL-12-24L1-BO-840",
+    "LL-12-24L1-BD-840"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED linear (suspended / surface)",
+   "ip": "IP20",
+   "ik": "IK06",
+   "cct": "4000 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.9",
+   "warranty": 5,
+   "life_h": 50000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "Aluminium profile 35 × 70",
+   "control": "Boke on/off or DALI",
+   "mounting": "Suspended / surface, linkable",
+   "order_code": "-WO white on/off · -BO black on/off · -WD / -BD DALI 3CCT",
+   "family": "LL-A2",
+   "title": "A2 slim linear light 120 lm/W, haze diffuser, 110°",
+   "pages": "87",
+   "beam": "110°",
+   "cover": "Haze diffuser",
+   "variants": [
+    {
+     "code": "LL-12-30A2-WO-840",
+     "w": 30,
+     "lm": 3600,
+     "eff": 120,
+     "size": "L1200 × W35 × H70",
+     "note": ""
+    },
+    {
+     "code": "LL-12-40A2-WO-840",
+     "w": 40,
+     "lm": 4800,
+     "eff": 120,
+     "size": "L1200 × W35 × H70",
+     "note": ""
+    },
+    {
+     "code": "LL-15-30A2-WO-840",
+     "w": 30,
+     "lm": 3600,
+     "eff": 120,
+     "size": "L1500 × W35 × H70",
+     "note": ""
+    },
+    {
+     "code": "LL-15-40A2-WO-840",
+     "w": 40,
+     "lm": 4800,
+     "eff": 120,
+     "size": "L1500 × W35 × H70",
+     "note": ""
+    }
+   ],
+   "image": "img/holux/ll-a2-59.jpg",
+   "image_page": "Holux_2.pdf p.35",
+   "image_covers": [
+    "LL-12-30A2-WO-840",
+    "LL-12-40A2-WO-840",
+    "LL-15-30A2-WO-840",
+    "LL-15-40A2-WO-840"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED lamp",
+   "ip": "IP20",
+   "ik": "–",
+   "cct": "3000 / 4000 / 6000 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.5",
+   "warranty": null,
+   "life_h": null,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "PC / aluminium",
+   "control": "Non-dimmable",
+   "mounting": "Lamp holder",
+   "order_code": "–",
+   "family_flag": "The catalogue gives no order codes for lamps (only \"A60\", \"G45\" …) – codes here are made up as shape-base-watts-driver; ask Holux for order codes",
+   "family": "A60",
+   "title": "A60 E27 LED bulb 85–160 lm/W",
+   "pages": "88-89",
+   "beam": "180°",
+   "variants": [
+    {
+     "code": "A60-E27-7W-L",
+     "w": 7,
+     "lm": 600,
+     "eff": 85,
+     "size": "60 × 108",
+     "note": "linear driver"
+    },
+    {
+     "code": "A60-E27-9W-L",
+     "w": 9,
+     "lm": 820,
+     "eff": 90,
+     "size": "60 × 108",
+     "note": "linear driver"
+    },
+    {
+     "code": "A60-E27-12W-L",
+     "w": 12,
+     "lm": 1050,
+     "eff": 90,
+     "size": "60 × 112",
+     "note": "linear driver"
+    },
+    {
+     "code": "A60-E27-15W-L",
+     "w": 15,
+     "lm": 1500,
+     "eff": 100,
+     "size": "60 × 124",
+     "note": "linear driver"
+    },
+    {
+     "code": "A60-E27-3.4W-IC",
+     "w": 3.4,
+     "lm": 470,
+     "eff": 135,
+     "size": "60 × 108",
+     "note": "IC driver"
+    },
+    {
+     "code": "A60-E27-5.9W-IC",
+     "w": 5.9,
+     "lm": 806,
+     "eff": 135,
+     "size": "60 × 108",
+     "note": "IC driver"
+    },
+    {
+     "code": "A60-E27-7.8W-IC",
+     "w": 7.8,
+     "lm": 1060,
+     "eff": 135,
+     "size": "60 × 108",
+     "note": "IC driver"
+    },
+    {
+     "code": "A60-E27-11W-IC",
+     "w": 11,
+     "lm": 1520,
+     "eff": 135,
+     "size": "60 × 120",
+     "note": "IC driver"
+    },
+    {
+     "code": "A60-E27-2.9W-IC",
+     "w": 2.9,
+     "lm": 470,
+     "eff": 160,
+     "size": "60 × 108",
+     "note": "IC driver"
+    },
+    {
+     "code": "A60-E27-5W-IC",
+     "w": 5,
+     "lm": 806,
+     "eff": 160,
+     "size": "60 × 108",
+     "note": "IC driver"
+    },
+    {
+     "code": "A60-E27-6.6W-IC",
+     "w": 6.6,
+     "lm": 1060,
+     "eff": 160,
+     "size": "60 × 108",
+     "note": "IC driver"
+    },
+    {
+     "code": "A60-E27-9.5W-IC",
+     "w": 9.5,
+     "lm": 1520,
+     "eff": 160,
+     "size": "60 × 120",
+     "note": "IC driver"
+    }
+   ],
+   "image": "img/holux/a60-60.jpg",
+   "image_page": "Holux_2.pdf p.37",
+   "image_covers": [
+    "A60-E27-7W-L",
+    "A60-E27-9W-L",
+    "A60-E27-12W-L",
+    "A60-E27-15W-L",
+    "A60-E27-3.4W-IC",
+    "A60-E27-5.9W-IC",
+    "A60-E27-7.8W-IC",
+    "A60-E27-11W-IC",
+    "A60-E27-2.9W-IC",
+    "A60-E27-5W-IC",
+    "A60-E27-6.6W-IC",
+    "A60-E27-9.5W-IC"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED lamp",
+   "ip": "IP20",
+   "ik": "–",
+   "cct": "3000 / 4000 / 6000 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.5",
+   "warranty": null,
+   "life_h": null,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "PC / aluminium",
+   "control": "Non-dimmable",
+   "mounting": "Lamp holder",
+   "order_code": "–",
+   "family_flag": "The catalogue gives no order codes for lamps (only \"A60\", \"G45\" …) – codes here are made up as shape-base-watts-driver; ask Holux for order codes",
+   "family": "G45 / C37",
+   "title": "G45 golf ball and C37 candle LED bulbs E14 / E27",
+   "pages": "90",
+   "beam": "180°",
+   "variants": [
+    {
+     "code": "G45-E14E27-4.9W-L",
+     "w": 4.9,
+     "lm": 425,
+     "eff": 85,
+     "size": "45 × 90",
+     "note": "linear driver"
+    },
+    {
+     "code": "G45-E14E27-6W-L",
+     "w": 6,
+     "lm": 510,
+     "eff": 85,
+     "size": "45 × 90",
+     "note": "linear driver"
+    },
+    {
+     "code": "G45-E14E27-7W-L",
+     "w": 7,
+     "lm": 600,
+     "eff": 85,
+     "size": "45 × 90",
+     "note": "linear driver"
+    },
+    {
+     "code": "G45-E14E27-2.9W-IC",
+     "w": 2.9,
+     "lm": 464,
+     "eff": 160,
+     "size": "45 × 90",
+     "note": "IC driver"
+    },
+    {
+     "code": "G45-E14E27-4.9W-IC",
+     "w": 4.9,
+     "lm": 784,
+     "eff": 160,
+     "size": "45 × 90",
+     "note": "IC driver"
+    },
+    {
+     "code": "C37-E14E27-4.9W-L",
+     "w": 4.9,
+     "lm": 425,
+     "eff": 85,
+     "size": "37 × 101",
+     "note": "linear driver"
+    },
+    {
+     "code": "C37-E14E27-6W-L",
+     "w": 6,
+     "lm": 510,
+     "eff": 85,
+     "size": "37 × 101",
+     "note": "linear driver"
+    },
+    {
+     "code": "C37-E14E27-7W-L",
+     "w": 7,
+     "lm": 600,
+     "eff": 85,
+     "size": "37 × 101",
+     "note": "linear driver"
+    },
+    {
+     "code": "C37-E14E27-2.9W-IC",
+     "w": 2.9,
+     "lm": 464,
+     "eff": 160,
+     "size": "37 × 101",
+     "note": "IC driver"
+    },
+    {
+     "code": "C37-E14E27-4.9W-IC",
+     "w": 4.9,
+     "lm": 784,
+     "eff": 160,
+     "size": "37 × 101",
+     "note": "IC driver"
+    }
+   ],
+   "image": "img/holux/g45-c37-61.jpg",
+   "image_page": "Holux_2.pdf p.38",
+   "image_covers": [
+    "G45-E14E27-4.9W-L",
+    "G45-E14E27-6W-L",
+    "G45-E14E27-7W-L",
+    "G45-E14E27-2.9W-IC",
+    "G45-E14E27-4.9W-IC",
+    "C37-E14E27-4.9W-L",
+    "C37-E14E27-6W-L",
+    "C37-E14E27-7W-L",
+    "C37-E14E27-2.9W-IC",
+    "C37-E14E27-4.9W-IC"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED lamp",
+   "ip": "IP20",
+   "ik": "–",
+   "cct": "3000 / 4000 / 6000 K",
+   "cri": "80",
+   "voltage": "220-240V AC",
+   "pf": ">0.5",
+   "warranty": null,
+   "life_h": null,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "PC / aluminium",
+   "control": "Non-dimmable",
+   "mounting": "Lamp holder",
+   "order_code": "–",
+   "family_flag": "The catalogue gives no order codes for lamps (only \"A60\", \"G45\" …) – codes here are made up as shape-base-watts-driver; ask Holux for order codes",
+   "family": "GU10",
+   "title": "GU10 LED spot lamp 85–160 lm/W",
+   "pages": "91",
+   "beam": "100°",
+   "variants": [
+    {
+     "code": "GU10-GU10-3W-L",
+     "w": 3,
+     "lm": 255,
+     "eff": 85,
+     "size": "50 × 54",
+     "note": "linear driver"
+    },
+    {
+     "code": "GU10-GU10-4W-L",
+     "w": 4,
+     "lm": 345,
+     "eff": 85,
+     "size": "50 × 54",
+     "note": "linear driver"
+    },
+    {
+     "code": "GU10-GU10-5W-L",
+     "w": 5,
+     "lm": 452,
+     "eff": 90,
+     "size": "50 × 54",
+     "note": "linear driver"
+    },
+    {
+     "code": "GU10-GU10-6W-L",
+     "w": 6,
+     "lm": 510,
+     "eff": 85,
+     "size": "50 × 54",
+     "note": "linear driver"
+    },
+    {
+     "code": "GU10-GU10-7W-L",
+     "w": 7,
+     "lm": 595,
+     "eff": 85,
+     "size": "50 × 54",
+     "note": "linear driver"
+    },
+    {
+     "code": "GU10-GU10-8W-L",
+     "w": 8,
+     "lm": 680,
+     "eff": 85,
+     "size": "50 × 54",
+     "note": "linear driver"
+    },
+    {
+     "code": "GU10-38-2.9W-IC",
+     "w": 2.9,
+     "lm": 464,
+     "eff": 160,
+     "size": "50 × 54",
+     "note": "GU10-38° lens, IC driver",
+     "beam": "38°"
+    },
+    {
+     "code": "GU10-GLASS30-8W-IC",
+     "w": 8,
+     "lm": 1280,
+     "eff": 160,
+     "size": "50 × 54",
+     "note": "Glass GU10-30°, IC driver",
+     "beam": "30°"
+    }
+   ],
+   "image": "img/holux/gu10-62.jpg",
+   "image_page": "Holux_2.pdf p.39",
+   "image_covers": [
+    "GU10-GU10-3W-L",
+    "GU10-GU10-4W-L",
+    "GU10-GU10-5W-L",
+    "GU10-GU10-6W-L",
+    "GU10-GU10-7W-L",
+    "GU10-GU10-8W-L",
+    "GU10-38-2.9W-IC",
+    "GU10-GLASS30-8W-IC"
+   ],
+   "image_shared_with": []
+  },
+  {
+   "category": "Indoor",
+   "type": "LED lamp",
+   "ip": "IP20",
+   "ik": "–",
+   "cct": "4000 K",
+   "cri": "≥95",
+   "voltage": "220-240V AC",
+   "pf": ">0.5",
+   "warranty": 5,
+   "life_h": 40000,
+   "temp": "-25°C to +45°C",
+   "flicker": "Flicker-free",
+   "leds": "SMD 2835",
+   "housing": "PC / aluminium",
+   "control": "Non-dimmable",
+   "mounting": "Lamp holder",
+   "order_code": "–",
+   "family_flag": "The catalogue gives no order codes for lamps (only \"A60\", \"G45\" …) – codes here are made up as shape-base-watts-driver; ask Holux for order codes",
+   "family": "Ra95 lamps",
+   "title": "Less blue light / full-spectrum Ra ≥95 lamps, 4000 K",
+   "pages": "92-93",
+   "variants": [
+    {
+     "code": "A60-E27-7W-RA95",
+     "w": 7,
+     "lm": 806,
+     "eff": 115,
+     "size": "60 × 112",
+     "note": "",
+     "beam": "180°"
+    },
+    {
+     "code": "G45-E27-4.3W-RA95",
+     "w": 4.3,
+     "lm": 470,
+     "eff": 110,
+     "size": "45 × 77",
+     "note": "",
+     "beam": "180°"
+    },
+    {
+     "code": "C37-E14-4.3W-RA95",
+     "w": 4.3,
+     "lm": 470,
+     "eff": 110,
+     "size": "35 × 103",
+     "note": "",
+     "beam": "180°"
+    },
+    {
+     "code": "GU10-4.7W-RA95",
+     "w": 4.7,
+     "lm": 470,
+     "eff": 100,
+     "size": "50 × 57",
+     "note": "",
+     "beam": "100°"
+    }
+   ],
+   "image": "img/holux/ra95-lamps-63.jpg",
+   "image_page": "Holux_2.pdf p.40",
+   "image_covers": [
+    "A60-E27-7W-RA95",
+    "G45-E27-4.3W-RA95",
+    "C37-E14-4.3W-RA95",
+    "GU10-4.7W-RA95"
+   ],
+   "image_shared_with": []
+  }
+ ],
+ "accessories": [
+  [
+   "Surface aluminium frame (iron corner)",
+   "MF-6060-63A 600×600×63 · MF-6262-63A 625×625×63 · MF-30120-63A 300×1200×63",
+   "Panel surface mounting",
+   "27"
+  ],
+  [
+   "Surface aluminium frame (magnetic)",
+   "SMF-6060-Pro 600×600×76 · SMF-6262-Pro 625×625×76 · SMF-30120-Pro 300×1200×76",
+   "Panel surface mounting",
+   "27"
+  ],
+  [
+   "Recessed mount frame",
+   "RMF-6060-25A 610×610×25 · RMF-6262-25A 635×635×25 · RMF-30120-25A 310×1210×25",
+   "Panel recessed in plaster ceiling",
+   "27"
+  ],
+  [
+   "LED drivers on/off",
+   "Philips, Lifud, Starsense, Eaglerise",
+   "",
+   "28"
+  ],
+  [
+   "LED drivers DALI",
+   "Eaglerise FLS-42-1050 DALI-2 LD PRO; Boke BK-DEL030-0800Ad",
+   "",
+   "28"
+  ],
+  [
+   "LED drivers 0-10V",
+   "Lifud LF-GSD040YC; Boke BK-DEL030-B0800Ad",
+   "",
+   "28"
+  ],
+  [
+   "LED drivers dimming + tuning",
+   "MicroMile MM-2092C-0750-BMP4N0; Eaglerise FLS-38-900 CCT LS ADV",
+   "",
+   "28"
+  ],
+  [
+   "Emergency packs",
+   "Streamer IFR18650-1500; Merrytek KE026 HB series",
+   "",
+   "28"
+  ],
+  [
+   "Panel mounting parts",
+   "Spring buckle; Y-shaped hanging rope",
+   "",
+   "28"
+  ],
+  [
+   "Tri-proof fixture for T8 tubes (PC base)",
+   "TP-118K 650×82×86 · TP-136K 1260×82×86 · TP-158K 1560×82×86 · TP-218K / TP-236K / TP-258K (2 tubes, W127)",
+   "IP65 IK08, G13, PC base + cover, linkable, no lamp",
+   "42"
+  ],
+  [
+   "Tri-proof fixture for T8 tubes (ABS base, 0.63 m drop test)",
+   "TP-118XL 655×65×57 · TP-136XL 1265×65×57 · TP-158XL 1565×65×57 · TP-218XL / TP-236XL / TP-258XL (2 tubes, W103)",
+   "IP65 IK08, G13, linkable, no lamp",
+   "42"
+  ],
+  [
+   "T8 batten fixture (2 tubes)",
+   "BF-218 L655×W112×H99 · BF-236 L1255 · BF-258 L1555",
+   "Steel + PC, G13, for 0.6 / 1.2 / 1.5 m T8 tubes, no lamp",
+   "50"
+  ]
+ ]
+}

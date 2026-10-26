@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { DataTable } from '@/components/DataTable';
+import { FixtureLibrary } from '@/components/tools/FixtureLibrary';
 import { Button, Card, colors, ErrorBanner, Field, Grid, Loading, Muted, Row, Segmented, Select } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { CATALOG_KEEPERS, efficacy, LUM_FAMILIES, openLink, type Brand, type BrandCatalog, type Luminaire } from '@/lib/catalog';
@@ -13,7 +14,7 @@ import { supabase } from '@/lib/supabase';
 export function Catalogs() {
   const me = useMe();
   const keeper = CATALOG_KEEPERS.includes(me.role);
-  const [sub, setSub] = useState<'brands' | 'luminaires'>('brands');
+  const [sub, setSub] = useState<'brands' | 'luminaires' | 'library'>('brands');
   const [q, setQ] = useState('');
   const [family, setFamily] = useState('');
   const [brandF, setBrandF] = useState('');
@@ -44,10 +45,12 @@ export function Catalogs() {
         options={[
           { value: 'brands', label: `Brands (${data.brands.length})` },
           { value: 'luminaires', label: `Luminaires – IES & data sheets (${data.lums.length})` },
+          { value: 'library', label: 'Fixture library & finder' },
         ]}
       />
-      <Field label="Search" value={q} onChangeText={setQ} placeholder={sub === 'brands' ? 'Brand or manufacturer' : 'Luminaire, code or brand'} />
-      {sub === 'brands' ? (
+      {sub === 'library' ? <FixtureLibrary /> : null}
+      {sub === 'library' ? null : <Field label="Search" value={q} onChangeText={setQ} placeholder={sub === 'brands' ? 'Brand or manufacturer' : 'Luminaire, code or brand'} />}
+      {sub === 'library' ? null : sub === 'brands' ? (
         <>
           <Muted>Choose a brand to open the manufacturer’s own online catalogue and downloads, or the catalogues added here – opened in a viewer and shared with clients with the DIMO watermark.</Muted>
           <Grid min={260} max={3}>
