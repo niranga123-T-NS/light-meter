@@ -1,0 +1,14 @@
+name: DIMO – PDF service probe (temporary)
+on:
+  push:
+    branches: [claude/dimo-finance]
+    paths: [.github/workflows/dimo-pdf-probe.yml]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          code=$(curl -s -o body.txt -w '%{http_code}' -X POST https://dimo-lighting-ops.vercel.app/api/pdf -H 'content-type: application/json' -d '{"html":"<p>x</p>"}')
+          echo "::notice::POST /api/pdf without sign-in -> $code $(head -c 200 body.txt)"
+          code=$(curl -s -o body2.txt -w '%{http_code}' https://dimo-lighting-ops.vercel.app/fx)
+          echo "::notice::GET /fx -> $code $(head -c 60 body2.txt)"
