@@ -7,8 +7,8 @@ import { Thumb } from '@/components/tools/FixtureLibrary';
 import { Button, Card, Chip, colors, ErrorBanner, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section, Select, Toggle, useWide } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import {
-  boqLines, DEFAULT_SETTINGS, readSettings, detectColumns, exportBoqExcel, lineSpec, lineStatus, loadBoqMatches, matchLine, previousLines, readBoqFile, recompare, saveBoqMatch,
-  type BoqColumns, type BoqLine, type BoqMatchRow, type BoqSettings, type BoqSheet, type LineResult,
+  BOQ_PROJECT_KIND, boqLines, DEFAULT_SETTINGS, readSettings, detectColumns, exportBoqExcel, lineSpec, lineStatus, loadBoqMatches, matchLine, previousLines, readBoqFile, recompare, saveBoqMatch,
+  type BoqColumns, type BoqProject, type BoqLine, type BoqMatchRow, type BoqSettings, type BoqSheet, type LineResult,
 } from '@/lib/boqMatch';
 import { pickDocument } from '@/lib/files';
 import { cctText, loadCatalog, PARAMS, STATUS_STYLE, wattText, type Fixture, type Level, type Match, type ParamKey, type Spec } from '@/lib/fixtures';
@@ -32,21 +32,29 @@ const colLetter = (i: number) => (i < 0 ? '' : String.fromCharCode(65 + (i % 26)
 
 /** BOQ match: upload the client's BOQ Excel, check what was read, pick the best catalogue option per line, save and export */
 export default function BoqMatchScreen() {
-  const { id, m } = useLocalSearchParams<{ id: string; m?: string }>();
+  // ?c=1: an inquiry not in the system (boq_projects) instead of an estimation job
+  const { id, m, c } = useLocalSearchParams<{ id: string; m?: string; c?: string }>();
+  const custom = c === '1';
+  const where = custom ? 'inquiry' : 'estimate';
   const me = useMe();
   const dialog = useDialog();
   const wide = useWide();
   const canEdit = EDIT_ROLES.includes(me.role);
 
   const { data, error, reload } = useLoad(async () => {
-    const [{ data: job, error: e }, saved, lib] = await Promise.all([
-      supabase.from('estimation_jobs').select('id, inquiry_id, source, revision, inquiries(code, project_name)').eq('id', id).single(),
-      loadBoqMatches(id),
+    const [{ data: row, error: e }, saved, lib] = await Promise.all([
+      custom
+        ? supabase.from('boq_projects').select('*').eq('id', id).single()
+        : supabase.from('estimation_jobs').select('id, inquiry_id, source, revision, inquiries(code, project_name)').eq('id', id).single(),
+      loadBoqMatches(custom ? { custom: id } : { job: id }),
       loadCatalog(),
     ]);
     if (e) throw new Error(e.message);
-    return { job: job as unknown as { id: string; inquiry_id: string; source: string; revision: number; inquiries: { code: string; project_name: string } | null }, saved, all: lib.products, regions: lib.regions };
-  }, [id]);
+    type Job = { id: string; inquiry_id: string | null; source: string; revision: number; inquiries: { code: string; project_name: string } | null; kind?: BoqProject['kind'] };
+    const p = row as unknown as BoqProject;
+    const job: Job = custom ? { id: p.id, inquiry_id: null, source: 'custom', revision: 0, inquiries: { code: p.ref, project_name: p.project_name }, kind: p.kind } : (row as unknown as Job);
+    return { job, saved, all: lib.products, regions: lib.regions };
+  }, [id, custom]);
 
   const [step, setStep] = useState<Step>('upload');
   const [matchId, setMatchId] = useState<string | null>(null);
@@ -98,7 +106,7 @@ export default function BoqMatchScreen() {
   const read = async () => {
     if (!sheet || !cols) return;
     if (cols.desc < 0) return dialog.alert('Choose the description column');
-    const prev = await previousLines(job.inquiry_id).catch(() => []);
+    const prev = await previousLines(custom ? { custom: job.id } : { inquiry: job.inquiry_id! }).catch(() => []);
     setLines(boqLines(sheet.rows, cols, prev));
     setStep('check');
   };
@@ -123,10 +131,10 @@ export default function BoqMatchScreen() {
 
   const save = () =>
     dialog.run(async () => {
-      const sid = await saveBoqMatch({ id: matchId, estimation_job_id: job.id, file_name: fileName, sheet: sheet?.name ?? saved.find((s) => s.id === matchId)?.sheet ?? '', options: n, settings, lines });
+      const sid = await saveBoqMatch({ id: matchId, target: custom ? { custom: job.id } : { job: job.id }, file_name: fileName, sheet: sheet?.name ?? saved.find((s) => s.id === matchId)?.sheet ?? '', options: n, settings, lines });
       setMatchId(sid);
       await reload();
-    }, 'Saved to this estimate');
+    }, custom ? 'Saved to this inquiry' : 'Saved to this estimate');
 
   const noMatch = fit.filter((l) => l.noMatch);
   const askDesign = async () => {
@@ -152,18 +160,19 @@ export default function BoqMatchScreen() {
       <Row gap={8} wrap style={{ justifyContent: 'space-between' }}>
         <View style={{ gap: 2, flexShrink: 1 }}>
           <Text style={{ fontSize: 17, fontWeight: '800', color: colors.ink }}>{`${job.inquiries?.code ?? ''} · ${job.inquiries?.project_name ?? ''}`}</Text>
+          {job.kind ? <Pill label={`${BOQ_PROJECT_KIND[job.kind]} – BOQ match only`} tone={colors.amber} /> : null}
           <Muted>{fileName ? `BOQ match › ${fileName}${sheet ? ` › ${sheet.name}` : ''}` : 'BOQ match – the best catalogue options for every line of the client\'s BOQ'}</Muted>
         </View>
         <Row gap={6}>
           <Button small variant="ghost" title="All BOQ matches" onPress={() => router.push('/estimating/boq')} />
-          <Button small variant="ghost" title="Back to the estimate" onPress={() => router.push(`/estimation/${job.id}`)} />
+          {custom ? null : <Button small variant="ghost" title="Back to the estimate" onPress={() => router.push(`/estimation/${job.id}`)} />}
         </Row>
       </Row>
       <View style={{ marginTop: 10 }}>{header}</View>
 
       {step === 'upload' ? (
         <UploadStep
-          {...{ canEdit, saved, fileName, sheets, sheetIdx, cols, n, setN, setCols, chooseSheet, pick, read, openSaved }}
+          {...{ where, canEdit, saved, fileName, sheets, sheetIdx, cols, n, setN, setCols, chooseSheet, pick, read, openSaved }}
         />
       ) : null}
 
@@ -234,7 +243,7 @@ export default function BoqMatchScreen() {
             <Muted>{`"${fileName.replace(/\.[^.]+$/, '')} – DIMO options.xlsx": the client's Item, Description, Unit and Qty unchanged, then Chosen, the deviations of the chosen product${allOptions ? ` and Options 1–${n}` : ''}. A second sheet lists the chosen products with their data and catalogue page.`}</Muted>
             <Toggle label={`Include all ${n} options (off = the chosen product only)`} value={allOptions} onChange={setAllOptions} />
             <Row gap={8} wrap>
-              {canEdit ? <Button title={matchId ? 'Save changes' : 'Save to this estimate'} onPress={save} /> : null}
+              {canEdit ? <Button title={matchId ? 'Save changes' : `Save to this ${where}`} onPress={save} /> : null}
               <Button variant="secondary" title="Download Excel" onPress={() => dialog.run(() => exportBoqExcel(fileName, all, lines, settings, n, allOptions))} />
               {canEdit && noMatch.length && job.source === 'design' ? <Button variant="secondary" title={`Ask Design about ${noMatch.length} line${noMatch.length > 1 ? 's' : ''}`} onPress={askDesign} /> : null}
             </Row>
@@ -247,7 +256,7 @@ export default function BoqMatchScreen() {
 }
 
 function UploadStep(p: {
-  canEdit: boolean; saved: BoqMatchRow[]; fileName: string; sheets: BoqSheet[]; sheetIdx: number; cols: BoqColumns | null; n: number;
+  where: string; canEdit: boolean; saved: BoqMatchRow[]; fileName: string; sheets: BoqSheet[]; sheetIdx: number; cols: BoqColumns | null; n: number;
   setN: (n: number) => void; setCols: (c: BoqColumns) => void; chooseSheet: (i: number) => void; pick: () => void; read: () => void; openSaved: (s: BoqMatchRow) => void;
 }) {
   const wide = useWide();
@@ -262,7 +271,7 @@ function UploadStep(p: {
   return (
     <View style={{ gap: 12, marginTop: 12 }}>
       {p.saved.length ? (
-        <Section title="Saved BOQ matches of this estimate">
+        <Section title={`Saved BOQ matches of this ${p.where}`}>
           <Card style={{ padding: 0, overflow: 'hidden' }}>
             {p.saved.map((s) => (
               <ListRow key={s.id} title={`${s.file_name}${s.sheet ? ` › ${s.sheet}` : ''}`} subtitle={`${s.lines.filter((l) => l.kind === 'fitting').length} lines · ${s.lines.filter((l) => l.chosen).length} chosen · saved ${fmtDateTime(s.updated_at)}`} right={<Button small variant="secondary" title="Open" onPress={() => p.openSaved(s)} />} />
@@ -324,7 +333,7 @@ function UploadStep(p: {
           ) : null}
         </View>
       ) : !p.saved.length ? (
-        <Notice>No BOQ match saved on this estimate yet. The estimation team uploads the BOQ.</Notice>
+        <Notice>{`No BOQ match saved on this ${p.where} yet. The estimation team uploads the BOQ.`}</Notice>
       ) : null}
     </View>
   );

@@ -20,7 +20,7 @@ export type BoqLine = {
   options: string[]; chosen: string | null; noMatch: boolean; note?: string;
 };
 export type BoqSettings = { levels: Partial<Record<ParamKey, Level>>; brands: string[]; priceLevels: PriceLevel[]; preferExact: boolean };
-export type BoqMatchRow = { id: string; estimation_job_id: string; inquiry_id: string; file_name: string; sheet: string; options: number; settings: BoqSettings; lines: BoqLine[]; created_at: string; updated_at: string };
+export type BoqMatchRow = { id: string; estimation_job_id: string | null; boq_project_id: string | null; inquiry_id: string | null; file_name: string; sheet: string; options: number; settings: BoqSettings; lines: BoqLine[]; created_at: string; updated_at: string };
 
 const cell = (v: unknown) => (v == null ? '' : v instanceof Date ? v.toISOString().slice(0, 10) : String(v).replace(/\s+/g, ' ').trim());
 
@@ -138,17 +138,40 @@ export const devText = (spec: Spec, m: Match) =>
     .map((p) => { const c = m.cells[p.key]!; return `${p.label}: ${c.value}${c.dev ? ` (${c.dev})` : ''}`; })
     .join('; ') || 'Meets every value';
 
-export async function loadBoqMatches(jobId: string) {
-  const { data, error } = await supabase.from('boq_matches').select('*').eq('estimation_job_id', jobId).order('created_at', { ascending: false });
+/** What a BOQ match belongs to: an estimation job, or an inquiry not in the system (boq_projects) */
+export type BoqTarget = { job: string } | { custom: string };
+const targetCol = (t: BoqTarget) => ('job' in t ? (['estimation_job_id', t.job] as const) : (['boq_project_id', t.custom] as const));
+
+/** An inquiry that is not in the system: from before the system, or never registered in it */
+export type BoqProject = { id: string; kind: 'pre_system' | 'unregistered'; ref: string; project_name: string; customer_name: string | null; inquiry_date: string | null; notes: string | null; created_at: string };
+export const BOQ_PROJECT_KIND: Record<BoqProject['kind'], string> = { pre_system: 'Before the system', unregistered: 'Not registered in the system' };
+
+export async function loadBoqMatches(t: BoqTarget) {
+  const [col, id] = targetCol(t);
+  const { data, error } = await supabase.from('boq_matches').select('*').eq(col, id).order('created_at', { ascending: false });
   if (error) throw new Error(error.message);
   return (data ?? []) as BoqMatchRow[];
 }
-export async function previousLines(inquiryId: string): Promise<BoqLine[]> {
-  const { data } = await supabase.from('boq_matches').select('lines').eq('inquiry_id', inquiryId).order('updated_at', { ascending: false }).limit(3);
+/** The lines of the last saves for the same inquiry (a revised BOQ keeps the choices of unchanged lines) */
+export async function previousLines(t: { inquiry: string } | { custom: string }): Promise<BoqLine[]> {
+  const q = supabase.from('boq_matches').select('lines');
+  const { data } = await ('inquiry' in t ? q.eq('inquiry_id', t.inquiry) : q.eq('boq_project_id', t.custom)).order('updated_at', { ascending: false }).limit(3);
   return (data ?? []).flatMap((r) => (r as { lines: BoqLine[] }).lines);
 }
-export async function saveBoqMatch(row: { id?: string | null; estimation_job_id: string; file_name: string; sheet: string; options: number; settings: BoqSettings; lines: BoqLine[] }) {
-  const body = { estimation_job_id: row.estimation_job_id, file_name: row.file_name, sheet: row.sheet, options: row.options, settings: row.settings, lines: row.lines };
+export async function saveBoqProject(p: Partial<BoqProject>) {
+  const body = { kind: p.kind, ref: p.ref, project_name: p.project_name, customer_name: p.customer_name || null, inquiry_date: p.inquiry_date || null, notes: p.notes || null };
+  const q = p.id ? supabase.from('boq_projects').update(body).eq('id', p.id).select('id').single() : supabase.from('boq_projects').insert(body).select('id').single();
+  const { data, error } = await q;
+  if (error) throw new Error(error.message);
+  return (data as { id: string }).id;
+}
+export async function deleteBoqProject(id: string) {
+  const { error } = await supabase.from('boq_projects').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+}
+export async function saveBoqMatch(row: { id?: string | null; target: BoqTarget; file_name: string; sheet: string; options: number; settings: BoqSettings; lines: BoqLine[] }) {
+  const [col, tid] = targetCol(row.target);
+  const body = { [col]: tid, file_name: row.file_name, sheet: row.sheet, options: row.options, settings: row.settings, lines: row.lines };
   const q = row.id ? supabase.from('boq_matches').update(body).eq('id', row.id).select('id').single() : supabase.from('boq_matches').insert(body).select('id').single();
   const { data, error } = await q;
   if (error) throw new Error(error.message);
