@@ -1,17 +1,17 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Image, Platform, Pressable, Text, View } from 'react-native';
+import { useMemo, useRef, useState } from 'react';
+import { Image, Modal, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
-import { BrandFilter, PriceFilter, PriceTag } from '@/components/tools/BrandFilter';
+import { BrandFilter, PriceFilter, PriceTag, WarningTags } from '@/components/tools/BrandFilter';
 import { Thumb } from '@/components/tools/FixtureLibrary';
-import { Button, Card, Chip, colors, ErrorBanner, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section, Select, Toggle, useWide } from '@/components/ui';
+import { Button, Card, Chip, colors, ErrorBanner, Field, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section, Select, Toggle, useWide } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import {
-  BOQ_PROJECT_KIND, boqLines, DEFAULT_SETTINGS, linePictures, readSettings, detectColumns, exportBoqExcel, lineSpec, lineStatus, loadBoqMatches, matchLine, previousLines, readBoqFile, recompare, saveBoqMatch,
+  BOQ_PROJECT_KIND, boqLines, certList, CERTS, CHIP_BRANDS, DEFAULT_SETTINGS, DRIVER_BRANDS, linePictures, MAKER_DEFAULT, readSettings, refillLine, detectColumns, exportBoqExcel, lineSpec, lineStatus, loadBoqMatches, matchLine, previousLines, readBoqFile, recompare, saveBoqMatch,
   type BoqColumns, type BoqPic, type BoqProject, type BoqLine, type BoqMatchRow, type BoqSettings, type BoqSheet, type LineResult,
 } from '@/lib/boqMatch';
 import { pickDocument } from '@/lib/files';
-import { cctText, loadCatalog, PARAMS, STATUS_STYLE, wattText, type Fixture, type Level, type Match, type ParamKey, type Spec } from '@/lib/fixtures';
+import { cctText, loadCatalog, PARAMS, searchFixtures, STATUS_STYLE, wattText, type Fixture, type Level, type Match, type ParamKey, type Spec } from '@/lib/fixtures';
 import { fmtDateTime } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import { fingerprintWeb, likeness, loadVisionIndex, rankByPhoto } from '@/lib/photoSearch';
@@ -66,6 +66,9 @@ export default function BoqMatchScreen() {
   const [lines, setLines] = useState<BoqLine[]>([]);
   const [pics, setPics] = useState<Record<number, BoqPic>>({});
   const [busy, setBusy] = useState<string | null>(null);
+  const [manualFor, setManualFor] = useState<BoqLine | null>(null);
+  // the picture likeness of each line from the last Find (used again when dropped options are replaced)
+  const photoCache = useRef(new Map<number, Map<string, number>>());
   const [n, setN] = useState(3);
   const [settings, setSettings] = useState<BoqSettings>(DEFAULT_SETTINGS);
   const [filter, setFilter] = useState<'all' | 'ready' | 'check' | 'skip'>('all');
@@ -135,8 +138,11 @@ export default function BoqMatchScreen() {
         setBusy(null);
       }
     }
+    photoCache.current = photos;
     const next = lines.map((l) => {
       if (l.kind !== 'fitting') return { ...l, options: [], look: undefined };
+      // options dropped earlier stay out; products picked by hand stay in
+      if (l.dropped?.length || l.manual?.length) return { ...l, ...refillLine(all, { ...l, options: l.manual ?? [] }, settings, n, photos.get(l.row)) };
       const r = matchLine(all, l, settings, n, photos.get(l.row));
       return { ...l, options: r.matches.map((x) => x.p.id), look: r.look };
     });
@@ -144,6 +150,37 @@ export default function BoqMatchScreen() {
   };
 
   const setLine = (row: number, patch: Partial<BoqLine>) => setLines((ls) => ls.map((l) => (l.row === row ? { ...l, ...patch } : l)));
+
+  // choosing a fitting: what it must come with – driver and LED chip brand, test certificates (for this line or the whole BOQ)
+  const askReq = async (l: BoqLine, p: Fixture, choose: boolean) => {
+    const r0 = l.req;
+    const warn = (p.warnings ?? []).map((w) => `⚠ ${w.text}`).join('   ');
+    const r = await dialog.prompt({
+      title: `${p.brand} ${p.code} – line ${l.item || l.row + 1}`,
+      message: `${warn ? `${warn}\n\n` : ''}What must this fitting come with? "${MAKER_DEFAULT}" = as the manufacturer supplies it.`,
+      fields: [
+        { key: 'driver', label: '1 · Driver brand', type: 'select', required: true, initial: r0?.driver ?? MAKER_DEFAULT, options: [MAKER_DEFAULT, ...DRIVER_BRANDS].map((v) => ({ value: v, label: v })) },
+        { key: 'chip', label: '2 · LED chip brand', type: 'select', required: true, initial: r0?.chip ?? MAKER_DEFAULT, options: [MAKER_DEFAULT, ...CHIP_BRANDS].map((v) => ({ value: v, label: v })) },
+        { key: 'certs', label: '3 · Test certificates needed (none, one or many)', type: 'multiselect', initial: r0?.certs.join(',') ?? '', options: [...CERTS, 'Other'].map((v) => ({ value: v, label: v })) },
+        { key: 'other', label: 'Other certificates – one per line, with a description', type: 'multiline', initial: r0?.other.join('\n') ?? '', hint: 'e.g. IK10 impact test – independent lab report' },
+        { key: 'scope', label: 'Use the same for', type: 'select', initial: 'line', options: [{ value: 'line', label: 'This line only' }, { value: 'all', label: 'Every line of this BOQ' }] },
+      ],
+      confirmLabel: choose ? 'Choose this fitting' : 'Save',
+    });
+    if (!r) return;
+    const req = { driver: r.driver, chip: r.chip, certs: r.certs ? r.certs.split(',').filter(Boolean) : [], other: r.other.split('\n').map((x) => x.trim()).filter(Boolean) };
+    setLines((ls) => ls.map((x) => (x.row === l.row ? { ...x, req, ...(choose ? { chosen: p.id, noMatch: false } : {}) } : r.scope === 'all' && x.kind === 'fitting' ? { ...x, req } : x)));
+  };
+  const choose = (l: BoqLine, p: Fixture) => (l.chosen === p.id ? setLine(l.row, { chosen: null }) : askReq(l, p, true));
+  // the dropped options are replaced by the next best; the others stay
+  const refill = (l: BoqLine, drop: string[]) => setLine(l.row, refillLine(all, { ...l, dropped: [...(l.dropped ?? []), ...drop] }, settings, n, photoCache.current.get(l.row)));
+  // a product picked by hand from the catalogue (when the automatic options do not fit)
+  const pickManual = (l: BoqLine, p: Fixture) => {
+    setManualFor(null);
+    const ids = [p.id, ...l.options.filter((id) => id !== p.id)];
+    setLine(l.row, { options: ids, manual: [...new Set([...(l.manual ?? []), p.id])], dropped: (l.dropped ?? []).filter((id) => id !== p.id), look: undefined });
+    askReq({ ...l, options: ids }, p, true);
+  };
   const correct = async (l: BoqLine) => {
     const pic = pics[l.row];
     const r = await dialog.prompt({
@@ -252,7 +289,8 @@ export default function BoqMatchScreen() {
         </View>
       ) : null}
 
-      {step === 'results' ? <ResultsStep {...{ all, lines, pics, specs, settings, n, cur, setCur, setLine, canEdit, wide, correct, toSave: () => setStep('save') }} /> : null}
+      {step === 'results' ? <ResultsStep {...{ all, lines, pics, specs, settings, n, cur, setCur, setLine, canEdit, wide, correct, choose, refill, editReq: (l: BoqLine, p: Fixture) => askReq(l, p, false), manual: setManualFor, toSave: () => setStep('save') }} /> : null}
+      {manualFor ? <ManualPick all={all} line={manualFor} onPick={(p) => pickManual(manualFor, p)} onClose={() => setManualFor(null)} /> : null}
 
       {step === 'save' ? (
         <View style={{ gap: 12, marginTop: 12 }}>
@@ -272,7 +310,7 @@ export default function BoqMatchScreen() {
           </Row>
           <Card style={{ gap: 10 }}>
             <Text style={{ fontWeight: '700', color: colors.ink }}>Excel that comes out</Text>
-            <Muted>{`"${fileName.replace(/\.[^.]+$/, '')} – DIMO options.xlsx": the client's Item, Description, Unit and Qty unchanged${Object.keys(pics).length ? ' with the client\'s pictures' : ''}, then Chosen with the product photo, the deviations of the chosen product${allOptions ? ` and Options 1–${n}` : ''}. A second sheet lists the chosen products with their data and catalogue page.`}</Muted>
+            <Muted>{`"${fileName.replace(/\.[^.]+$/, '')} – DIMO options.xlsx": the client's Item, Description, Unit and Qty unchanged${Object.keys(pics).length ? ' with the client\'s pictures' : ''}, then Chosen with the product photo, the deviations, the driver, LED chip, test certificates and warnings of the chosen product${allOptions ? ` and Options 1–${n}` : ''}. A second sheet lists the chosen products with their data and catalogue page.`}</Muted>
             <Toggle label={`Include all ${n} options (off = the chosen product only)`} value={allOptions} onChange={setAllOptions} />
             <Row gap={8} wrap>
               {canEdit ? <Button title={matchId ? 'Save changes' : `Save to this ${where}`} onPress={save} /> : null}
@@ -413,9 +451,11 @@ function CheckRow({ l, pic, spec, onPress }: { l: BoqLine; pic?: BoqPic; spec: S
 function ResultsStep(p: {
   all: Fixture[]; lines: BoqLine[]; pics: Record<number, BoqPic>; specs: Map<number, Spec>; settings: BoqSettings; n: number; cur: number; setCur: (i: number) => void;
   setLine: (row: number, patch: Partial<BoqLine>) => void; canEdit: boolean; wide: boolean; correct: (l: BoqLine) => void; toSave: () => void;
+  choose: (l: BoqLine, p: Fixture) => void; refill: (l: BoqLine, drop: string[]) => void; editReq: (l: BoqLine, p: Fixture) => void; manual: (l: BoqLine) => void;
 }) {
   const fit = p.lines.filter((l) => l.kind === 'fitting');
   const [view, setView] = useState<'all' | 'all_' | 'close' | 'none' | 'chosen'>('all');
+  const [drops, setDrops] = useState<{ row: number; ids: string[] }>({ row: -1, ids: [] });
   const grades = useMemo(() => new Map(fit.map((l) => [l.row, gradeOf(p.all, l, p.specs.get(l.row)!)])), [fit, p.all, p.specs]);
   if (!fit.length) return <Notice>No light fittings to match – go back and check the lines.</Notice>;
   const tag = (l: BoqLine) => (l.noMatch ? 'nomatch' : l.chosen ? 'chosen' : grades.get(l.row)!);
@@ -424,6 +464,7 @@ function ResultsStep(p: {
   const l = fit[i];
   const spec = p.specs.get(l.row)!;
   const opts = l.options.map((id) => p.all.find((x) => x.id === id)).filter(Boolean).map((x) => recompare(p.all, x!.id, spec)!);
+  const drop = drops.row === l.row ? drops.ids : [];
   const counts = { all_: fit.filter((x) => tag(x) === 'all').length, close: fit.filter((x) => tag(x) === 'close' || tag(x) === 'few').length, none: fit.filter((x) => tag(x) === 'none' || tag(x) === 'nomatch').length, chosen: fit.filter((x) => x.chosen).length };
 
   const list = (
@@ -478,12 +519,23 @@ function ResultsStep(p: {
             </Row>
           </Row>
         </Card>
-        {!opts.length ? <Notice tone={colors.amber}>No values could be read from this line – tap Change values and type them, then press Find again on step 2.</Notice> : null}
+        {!opts.length ? <Notice tone={colors.amber}>No options for this line – pick a product by hand, or tap Change values, type the values and press Find again on step 2.</Notice> : null}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
           {opts.map((o, k) => (
-            <OptionCard key={o.p.id} k={k} o={o} look={l.options.indexOf(o.p.id) >= 0 ? l.look?.[l.options.indexOf(o.p.id)] : undefined} spec={spec} chosen={l.chosen === o.p.id} canEdit={p.canEdit} onChoose={() => p.setLine(l.row, { chosen: l.chosen === o.p.id ? null : o.p.id, noMatch: false })} />
+            <OptionCard
+              key={o.p.id} k={k} o={o} look={l.look?.[l.options.indexOf(o.p.id)]} spec={spec} chosen={l.chosen === o.p.id} canEdit={p.canEdit}
+              manual={!!l.manual?.includes(o.p.id)} req={l.chosen === o.p.id ? l.req : undefined} dropping={drop.includes(o.p.id)}
+              onChoose={() => p.choose(l, o.p)} onReq={() => p.editReq(l, o.p)} onDrop={() => setDrops({ row: l.row, ids: drop.includes(o.p.id) ? drop.filter((x) => x !== o.p.id) : [...drop, o.p.id] })}
+            />
           ))}
         </View>
+        {p.canEdit ? (
+          <Row gap={8} wrap style={{ alignItems: 'center' }}>
+            {drop.length ? <Button small title={`Find the next ${drop.length} instead of the dropped →`} onPress={() => { p.refill(l, drop); setDrops({ row: l.row, ids: [] }); }} /> : <Muted style={{ fontSize: 12 }}>Not suitable? Tap Drop on the options to replace them with the next best – the others stay.</Muted>}
+            <Button small variant="secondary" title="Pick a product by hand" onPress={() => p.manual(l)} />
+            {l.dropped?.length ? <Muted style={{ fontSize: 12 }}>{`${l.dropped.length} dropped – not offered again for this line`}</Muted> : null}
+          </Row>
+        ) : null}
         <Row gap={8} wrap>
           {(['ok', 'up', 'minor', 'fail'] as const).map((s) => <Pill key={s} label={`${STATUS_STYLE[s].icon} ${STATUS_STYLE[s].label}`} tone={STATUS_STYLE[s].fg} />)}
           <View style={{ flex: 1 }} />
@@ -505,7 +557,11 @@ function gradeOf(all: Fixture[], l: BoqLine, spec: Spec): LineResult['grade'] {
   return st.some((x) => x.s === 'fail' || x.s === 'minor') ? 'close' : 'all';
 }
 
-function OptionCard({ k, o, look, spec, chosen, canEdit, onChoose }: { k: number; o: Match; look?: number; spec: Spec; chosen: boolean; canEdit: boolean; onChoose: () => void }) {
+function OptionCard(props: {
+  k: number; o: Match; look?: number; spec: Spec; chosen: boolean; canEdit: boolean; manual: boolean; req?: BoqLine['req']; dropping: boolean;
+  onChoose: () => void; onReq: () => void; onDrop: () => void;
+}) {
+  const { k, o, look, spec, chosen, canEdit, onChoose } = props;
   const keys = PARAMS.filter((p) => spec[p.key]?.v.trim() && o.cells[p.key]);
   return (
     <Card style={{ flexGrow: 1, flexBasis: 260, maxWidth: 420, gap: 8, borderWidth: 2, borderColor: chosen ? colors.blue : colors.line }}>
@@ -518,6 +574,8 @@ function OptionCard({ k, o, look, spec, chosen, canEdit, onChoose }: { k: number
         <Text style={{ fontWeight: '800', color: colors.ink }}>{`${o.p.brand} · ${o.p.code}`}</Text>
         <Muted numberOfLines={2}>{o.p.title}</Muted>
         <PriceTag level={o.p.priceLevel} />
+        <WarningTags warnings={o.p.warnings} />
+        {props.manual ? <Pill label="Picked by hand" tone={colors.blue} /> : null}
         {look ? <Text style={{ fontSize: 12, fontWeight: '700', color: look >= 0.58 ? colors.green : look >= 0.48 ? colors.amber : colors.muted }}>{`Picture: ${likeness(look)} (${Math.round(look * 100)} %)`}</Text> : null}
         <Muted style={{ fontSize: 12 }}>{[wattText(o.p), o.p.lm ? `${o.p.lm.toLocaleString('en-US')} lm${o.p.lmEst ? ' (est.)' : ''}` : '', cctText(o.p)].filter(Boolean).join(' · ')}</Muted>
       </View>
@@ -532,7 +590,54 @@ function OptionCard({ k, o, look, spec, chosen, canEdit, onChoose }: { k: number
         );
       })}
       {o.p.flag ? <Text style={{ fontSize: 11, color: colors.amber }}>{`⚠ ${o.p.flag}`}</Text> : null}
-      {canEdit ? <Button variant={chosen ? 'primary' : 'secondary'} title={chosen ? 'Chosen ✓' : 'Choose this'} onPress={onChoose} /> : chosen ? <Pill label="Chosen" tone={colors.blue} /> : null}
+      {chosen && props.req ? (
+        <View style={{ backgroundColor: '#EFF6FF', borderRadius: 6, padding: 6, gap: 2 }}>
+          <Text style={{ fontSize: 11, color: '#1E3A8A' }}>{`Driver: ${props.req.driver}`}</Text>
+          <Text style={{ fontSize: 11, color: '#1E3A8A' }}>{`LED chip: ${props.req.chip}`}</Text>
+          <Text style={{ fontSize: 11, color: '#1E3A8A' }}>{`Certificates: ${certList(props.req).join(', ') || 'not required'}`}</Text>
+          {canEdit ? <Text onPress={props.onReq} style={{ fontSize: 11, fontWeight: '700', color: colors.blue }}>Change driver / chip / certificates</Text> : null}
+        </View>
+      ) : null}
+      {props.dropping ? <Text style={{ fontSize: 12, fontWeight: '700', color: colors.red }}>Dropped – press Find the next below</Text> : null}
+      {canEdit ? (
+        <Row gap={6}>
+          <View style={{ flex: 1 }}><Button variant={chosen ? 'primary' : 'secondary'} title={chosen ? 'Chosen ✓' : 'Choose this'} onPress={onChoose} /></View>
+          {chosen ? null : <Button variant={props.dropping ? 'danger' : 'ghost'} title={props.dropping ? 'Undo' : 'Drop'} onPress={props.onDrop} />}
+        </Row>
+      ) : chosen ? <Pill label="Chosen" tone={colors.blue} /> : null}
     </Card>
+  );
+}
+
+/** Picking a product by hand: search the whole catalogue for a line the automatic options do not fit */
+function ManualPick({ all, line, onPick, onClose }: { all: Fixture[]; line: BoqLine; onPick: (p: Fixture) => void; onClose: () => void }) {
+  const [q, setQ] = useState('');
+  const hits = useMemo(() => (q.trim() ? searchFixtures(all, q, {}).slice(0, 40) : []), [all, q]);
+  return (
+    <Modal transparent animationType="fade" onRequestClose={onClose}>
+      <View style={{ flex: 1, backgroundColor: 'rgba(17,24,39,0.45)', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+        <Card style={{ width: '100%', maxWidth: 760, maxHeight: '92%', gap: 8 }}>
+          <Text style={{ fontSize: 16, fontWeight: '800', color: colors.ink }}>{`Pick a product by hand – line ${line.item || line.row + 1}`}</Text>
+          <Muted numberOfLines={2}>{line.desc}</Muted>
+          <Field label="Search the catalogue" value={q} onChangeText={setQ} placeholder="Code, name or values – e.g. BP-6060, pendant 20w 3000k" autoCapitalize="none" />
+          <ScrollView style={{ maxHeight: 460 }}>
+            {q.trim() && !hits.length ? <Muted>Nothing found – try fewer words.</Muted> : null}
+            {hits.map((p) => (
+              <Pressable key={p.id} onPress={() => onPick(p)} style={{ flexDirection: 'row', gap: 10, alignItems: 'center', paddingVertical: 6, borderBottomWidth: 1, borderColor: colors.line }}>
+                <Thumb p={p} size={52} />
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={{ fontWeight: '700', color: colors.ink }}>{`${p.brand} ${p.code}`}</Text>
+                  <Muted numberOfLines={1}>{`${p.type} · ${p.title}`}</Muted>
+                  <Text style={{ fontSize: 12, color: colors.text }}>{[wattText(p), p.lm ? `${p.lm.toLocaleString('en-US')} lm` : '', cctText(p), p.ip ? `IP${p.ip}` : ''].filter(Boolean).join(' · ')}</Text>
+                  <WarningTags warnings={p.warnings} still />
+                </View>
+                <PriceTag level={p.priceLevel} />
+              </Pressable>
+            ))}
+          </ScrollView>
+          <Button variant="secondary" title="Close" onPress={onClose} />
+        </Card>
+      </View>
+    </Modal>
   );
 }

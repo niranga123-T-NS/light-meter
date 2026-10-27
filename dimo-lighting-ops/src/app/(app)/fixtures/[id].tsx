@@ -1,5 +1,6 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Image, Text, View } from 'react-native';
+import { WarningTags } from '@/components/tools/BrandFilter';
 import { Thumb } from '@/components/tools/FixtureLibrary';
 import { Card, colors, ErrorBanner, Loading, Muted, Notice, Row, Screen, Section } from '@/components/ui';
 import { useMe } from '@/lib/auth';
@@ -57,6 +58,7 @@ export default function FixturePage() {
           <Text style={{ fontSize: 15, color: colors.text }}>{p.title}</Text>
           <Muted>{`${p.src}${p.page ? ` · catalogue page ${p.page}` : ''}`}</Muted>
           {(p.shared ?? 0) > 1 ? <Muted>{`The photo is the family photo – it represents ${p.shared} models (all sizes and wattages of ${p.fam || 'this family'}).`}</Muted> : null}
+          <WarningTags warnings={p.warnings} />
           {removed ? <Notice tone={colors.red}>Removed from the catalog – restore it under Estimation › Catalog › supervisor mode › Removed.</Notice> : null}
           {p.edited && sup ? <Notice tone={colors.blue}>Data corrected in the catalog supervisor mode.</Notice> : null}
           {p.flag ? <Notice tone={colors.amber}>{`To check: ${p.flag}`}</Notice> : null}

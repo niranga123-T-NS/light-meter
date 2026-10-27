@@ -7,15 +7,15 @@ import { useMe } from '@/lib/auth';
 import { pickDocument } from '@/lib/files';
 import {
   bestMatches, buildPatch, CATALOG_SUPERVISORS, cctText, EDIT_FIELDS, editText, FIXTURE_TYPES, fixtureImage, fmt, loadCatalog, missingData, PARAMS, parseSpecText, readDatasheet, REGIONS,
-  brandLevelFollowUp, clearLevelReview, PRICE_LEVELS, priceLabel, saveFixtureEdit, searchFixtures, setBrandPriceLevel, setBrandRegion, setProductPriceLevel, STATUS_STYLE, wattText, type Catalog, type Fixture, type Level, type Match, type ParamKey, type PriceLevel, type Region, type Spec,
+  brandLevelFollowUp, clearLevelReview, PRICE_LEVELS, priceLabel, saveFixtureEdit, searchFixtures, setBrandPriceLevel, setBrandRegion, setBrandWarnings, setProductPriceLevel, setProductWarnings, WARNING_PRESETS, STATUS_STYLE, wattText, type Catalog, type Fixture, type Level, type Match, type ParamKey, type PriceLevel, type Region, type Spec,
 } from '@/lib/fixtures';
 import { fmtDateTime } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
-import { BrandFilter, PriceFilter, PriceTag } from './BrandFilter';
+import { BrandFilter, PriceFilter, PriceTag, WarningTags } from './BrandFilter';
 import { PhotoSearchView } from './PhotoSearch';
 
 /** What a supervisor can do from a search result */
-type Sup = { edit: (p: Fixture) => void; remove: (p: Fixture) => void; restore: (p: Fixture) => void; reset: (p: Fixture) => void; level: (p: Fixture, l: PriceLevel | null) => void; seen: (p: Fixture) => void; cat: Catalog };
+type Sup = { edit: (p: Fixture) => void; remove: (p: Fixture) => void; restore: (p: Fixture) => void; reset: (p: Fixture) => void; level: (p: Fixture, l: PriceLevel | null) => void; seen: (p: Fixture) => void; warn: (p: Fixture, remove?: string) => void; cat: Catalog };
 
 /** Fixture library: every model from the manufacturer catalogues – quick search, search by photo, and "Find a match" for a BOQ line or a competitor datasheet.
  *  The DGM and SM Estimation get the catalog supervisor mode: brand categories, correct missing data, remove / restore products. */
@@ -51,7 +51,32 @@ export function FixtureLibrary() {
     },
     level: (p, l) => void dialog.run(async () => { await setProductPriceLevel(p.id, l); await refresh(); }),
     seen: (p) => void dialog.run(async () => { await clearLevelReview(p.id); await refresh(); }),
+    warn: async (p, remove) => {
+      const own = data.edits[p.id]?.warnings ?? [];
+      const text = remove ?? (await askWarning(`Warning on ${p.brand} ${p.code}`));
+      if (text) await dialog.run(async () => { await setProductWarnings(p.id, remove ? own.filter((w) => w !== remove) : [...own.filter((w) => w !== text), text]); await refresh(); });
+    },
   } : null;
+  // a warning: one of the usual ones (with a detail, e.g. MOQ 500 pcs) or a text of its own
+  const askWarning = async (title: string) => {
+    const r = await dialog.prompt({
+      title,
+      message: 'Shown to everyone as a small blinking tag on the product (and in the BOQ match Excel).',
+      fields: [
+        { key: 'kind', label: 'Warning', type: 'select', required: true, initial: WARNING_PRESETS[0], options: [...WARNING_PRESETS.map((w) => ({ value: w, label: w })), { value: 'other', label: 'Other – type it below' }] },
+        { key: 'detail', label: 'Detail', hint: 'e.g. 500 pcs, 12 weeks – or the whole warning for Other' },
+      ],
+      confirmLabel: 'Add warning',
+    });
+    if (!r) return null;
+    const t = r.kind === 'other' ? r.detail.trim() : `${r.kind}${r.detail.trim() ? ` ${r.detail.trim()}` : ''}`;
+    return t || null;
+  };
+  const brandWarn = async (brand: string, remove?: string) => {
+    const cur = data.brandWarnings[brand] ?? [];
+    const text = remove ?? (await askWarning(`Warning on all ${brand} products`));
+    if (text) await dialog.run(async () => { await setBrandWarnings(brand, remove ? cur.filter((w) => w !== remove) : [...cur.filter((w) => w !== text), text]); await refresh(); });
+  };
   // brand price level: the products with their own level change with it (Yes) or keep theirs (No)
   const setBrandLevel = async (brand: string, level: PriceLevel | null) => {
     const own = Object.values(data.edits)
@@ -77,7 +102,7 @@ export function FixtureLibrary() {
           {supOn ? <Muted>Only the DGM and SM Estimation see this: brand categories, correct or delete product data, remove products from the catalog.</Muted> : null}
         </Row>
       ) : null}
-      {sup ? <BrandCategories brands={brands} cat={data} onSet={(b, r) => dialog.run(async () => { await setBrandRegion(b, r); await refresh(); })} onLevel={(b, l) => setBrandLevel(b, l)} /> : null}
+      {sup ? <BrandCategories brands={brands} cat={data} onSet={(b, r) => dialog.run(async () => { await setBrandRegion(b, r); await refresh(); })} onLevel={(b, l) => setBrandLevel(b, l)} onWarn={brandWarn} /> : null}
       <Segmented
         value={mode}
         onChange={setMode}
@@ -94,11 +119,11 @@ export function FixtureLibrary() {
 }
 
 /** Supervisor: each brand under European, China, Local or Other */
-function BrandCategories({ brands, cat, onSet, onLevel }: { brands: string[]; cat: Catalog; onSet: (brand: string, r: Region | null) => void; onLevel: (brand: string, l: PriceLevel | null) => void }) {
+function BrandCategories({ brands, cat, onSet, onLevel, onWarn }: { brands: string[]; cat: Catalog; onSet: (brand: string, r: Region | null) => void; onLevel: (brand: string, l: PriceLevel | null) => void; onWarn: (brand: string, remove?: string) => void }) {
   const all = [...cat.products, ...cat.hidden];
   return (
     <Card style={{ gap: 6 }}>
-      <Text style={{ fontWeight: '700', color: colors.ink }}>Brand categories and price levels</Text>
+      <Text style={{ fontWeight: '700', color: colors.ink }}>Brand categories, price levels and warnings</Text>
       <Muted>Category: used by everyone to search in a group of brands (e.g. European only). Price level: the brand&apos;s level is the default for its products; a product can have its own level (set it on the product below).</Muted>
       {brands.map((b) => {
         const ps = all.filter((p) => p.brand === b);
@@ -116,6 +141,11 @@ function BrandCategories({ brands, cat, onSet, onLevel }: { brands: string[]; ca
               <Text style={{ fontSize: 12, fontWeight: '700', color: colors.muted }}>Price level</Text>
               {PRICE_LEVELS.map((l) => <Chip key={l.v} label={l.label} tone={cat.brandLevels[b] === l.v ? colors.green : undefined} on={cat.brandLevels[b] === l.v} onPress={() => onLevel(b, cat.brandLevels[b] === l.v ? null : l.v)} />)}
               <Text style={{ fontSize: 12, color: levels.length ? colors.text : colors.amber }}>{levels.length ? `Levels in its products: ${levels.map((l) => l.label).join(' · ')}${own ? ` · ${own} with their own level` : ''}` : 'not set'}</Text>
+            </Row>
+            <Row gap={6} wrap style={{ alignItems: 'center', paddingLeft: 268 }}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: colors.muted }}>Warnings</Text>
+              <WarningTags still warnings={(cat.brandWarnings[b] ?? []).map((text) => ({ text, brand: false }))} onRemove={(t) => onWarn(b, t)} />
+              <Text onPress={() => onWarn(b)} style={{ fontSize: 12, fontWeight: '700', color: colors.blue }}>+ Add warning</Text>
             </Row>
           </View>
         );
@@ -144,6 +174,11 @@ function ProductLevel({ p, sup }: { p: Fixture; sup: Sup }) {
           <Text onPress={() => sup.seen(p)} style={{ fontSize: 12, fontWeight: '700', color: colors.blue }}>OK, checked</Text>
         </Row>
       ) : null}
+      <Row gap={6} wrap style={{ alignItems: 'center' }}>
+        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.muted }}>Warnings</Text>
+        <WarningTags still warnings={p.warnings} onRemove={(t, brand) => (brand ? null : sup.warn(p, t))} />
+        <Text onPress={() => sup.warn(p)} style={{ fontSize: 12, fontWeight: '700', color: colors.blue }}>+ Add warning</Text>
+      </Row>
     </View>
   );
 }
@@ -201,6 +236,7 @@ function SearchView({ all, brands, regions, sup }: { all: Fixture[]; brands: str
                 <Text style={{ fontWeight: '700', color: colors.ink }}>{`${p.brand} ${p.code}`}</Text>
                 {sup ? null : <PriceTag level={p.priceLevel} />}
               </Row>
+              {sup ? null : <WarningTags warnings={p.warnings} />}
               <Muted numberOfLines={1}>{`${p.type} · ${p.title}`}</Muted>
               <Text style={{ fontSize: 13, color: colors.text }}>{spec1(p)}</Text>
               {p.flag ? <Text style={{ fontSize: 12, color: colors.amber }} numberOfLines={1}>{`⚠ ${p.flag}`}</Text> : null}
@@ -372,6 +408,7 @@ function CompareTable({ spec, results, devOnly }: { spec: Spec; results: Match[]
               <Text style={{ fontWeight: '800', color: colors.ink }}>{`${m.p.brand} ${m.p.code}`}</Text>
               <Text style={{ fontSize: 11, color: colors.muted }} numberOfLines={2}>{m.p.title}</Text>
               <PriceTag level={m.p.priceLevel} />
+              <WarningTags warnings={m.p.warnings} />
               <Text style={{ fontSize: 11, fontWeight: '700', color: m.fails ? colors.red : m.minors ? colors.amber : colors.green }}>{summary(m)}</Text>
               {(m.p.shared ?? 0) > 1 ? <Text style={{ fontSize: 10, color: colors.faint }}>{`family photo · ${m.p.shared} models`}</Text> : null}
             </Pressable>
@@ -418,6 +455,7 @@ function MatchCards({ spec, results }: { spec: Spec; results: Match[] }) {
               <Text style={{ fontWeight: '700', color: colors.ink }}>{`${m.p.brand} ${m.p.code}`}</Text>
               <Muted numberOfLines={1}>{m.p.title}</Muted>
               <PriceTag level={m.p.priceLevel} />
+              <WarningTags warnings={m.p.warnings} />
               <Row gap={4} wrap>
                 {PARAMS.filter((p) => spec[p.key]?.v.trim() && m.cells[p.key] && m.cells[p.key]!.status !== 'ok').map((p) => {
                   const c = m.cells[p.key]!;

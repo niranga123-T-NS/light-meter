@@ -22,7 +22,19 @@ export type BoqLine = {
   options: string[]; chosen: string | null; noMatch: boolean; note?: string;
   /** how much each option looks like the client's picture (0–1 fingerprint likeness), when the line has a picture */
   look?: number[];
+  /** options the estimator dropped (never offered again for this line) and products picked by hand */
+  dropped?: string[]; manual?: string[];
+  /** what the chosen fitting must come with: driver and LED chip brand, test certificates */
+  req?: LineReq;
 };
+export type LineReq = { driver: string; chip: string; certs: string[]; other: string[] };
+export const MAKER_DEFAULT = 'Manufacturer default';
+export const DRIVER_BRANDS = ['Lifud', 'Euchips', 'Mean Well', 'Boke', 'Inventronics', 'MOSO', 'Tridonic', 'Osram', 'Philips', 'TCL'];
+export const CHIP_BRANDS = ['Osram', 'Lumileds', 'Bridgelux', 'Seoul', 'Epistar', "San'an", 'Cree', 'Samsung', 'LG'];
+export const CERTS = ['LM-79', 'LM-80', 'Salt spray test', 'Material test certificates', 'EMC', 'UL', 'VDE'];
+/** The certificates of a line as one list (the named ones, then the other ones with their description) */
+export const certList = (r?: LineReq) => (r ? [...r.certs.filter((c) => c !== 'Other'), ...r.other] : []);
+export const reqText = (r?: LineReq) => (r ? [`Driver: ${r.driver}`, `LED chip: ${r.chip}`, certList(r).length ? `Certificates: ${certList(r).join(', ')}` : 'No test certificates'].join(' · ') : '');
 export type BoqSettings = { levels: Partial<Record<ParamKey, Level>>; brands: string[]; priceLevels: PriceLevel[]; preferExact: boolean };
 export type BoqMatchRow = { id: string; estimation_job_id: string | null; boq_project_id: string | null; inquiry_id: string | null; file_name: string; sheet: string; options: number; settings: BoqSettings; lines: BoqLine[]; images: Record<string, BoqPic> | null; created_at: string; updated_at: string };
 
@@ -173,6 +185,16 @@ export function matchLine(all: Fixture[], l: BoqLine, s: BoqSettings, n: number,
   return { matches, grade: b.mustFails ? 'none' : few ? 'few' : b.fails || b.minors ? 'close' : 'all', look: matches.map(sim) };
 }
 
+/** The options of a line after the estimator dropped some: the ones kept stay, the dropped ones are replaced by the next best (never a dropped one again) */
+export function refillLine(all: Fixture[], l: BoqLine, s: BoqSettings, n: number, photo?: Map<string, number>): Pick<BoqLine, 'options' | 'look' | 'dropped' | 'chosen'> {
+  const dropped = l.dropped ?? [];
+  const kept = l.options.filter((id) => !dropped.includes(id));
+  const more = matchLine(all, l, s, n + kept.length + dropped.length + 10, photo).matches.map((m) => m.p.id).filter((id) => !kept.includes(id) && !dropped.includes(id));
+  const options = [...kept, ...more].slice(0, Math.max(n, kept.length));
+  const img = (id: string) => all.find((x) => x.id === id)?.img;
+  return { options, dropped, chosen: l.chosen && dropped.includes(l.chosen) ? null : l.chosen, look: photo ? options.map((id) => photo.get(img(id) ?? '') ?? 0) : undefined };
+}
+
 /** A saved option, re-compared with the line (the library may have been updated since) */
 export function recompare(all: Fixture[], id: string, spec: Spec): Match | null {
   const p = all.find((x) => x.id === id);
@@ -256,6 +278,7 @@ export async function exportBoqExcel(fileName: string, all: Fixture[], lines: Bo
   const cols: { h: string; w: number }[] = [
     { h: 'Item', w: 7 }, { h: 'Description (client)', w: 55 }, ...(anyPic ? [{ h: 'Client picture', w: 15 }] : []), { h: 'Unit', w: 6 }, { h: 'Qty', w: 8 },
     { h: 'Chosen', w: 30 }, { h: 'Chosen product', w: 15 }, { h: 'Deviations of the chosen', w: 42 },
+    { h: 'Driver', w: 16 }, { h: 'LED chip', w: 14 }, { h: 'Test certificates', w: 30 }, { h: 'Warnings', w: 24 },
     ...(allOptions ? Array.from({ length: n }, (_, i) => ({ h: `Option ${i + 1}`, w: 26 })) : []),
   ];
   const widths = cols.map((c) => c.w);
@@ -292,17 +315,20 @@ export async function exportBoqExcel(fileName: string, all: Fixture[], lines: Bo
       l.noMatch ? X('No suitable option – to Design', { textColor: '#B91C1C', fontWeight: 'bold' }) : X(ch ? `${prodText(ch.p)}\n${ch.p.title}` : '', { fontWeight: ch ? 'bold' : undefined }),
       X(''),
       X(ch ? devText(spec, ch).split('; ').join('\n') : l.note ?? ''),
+      X(ch ? l.req?.driver ?? MAKER_DEFAULT : ''), X(ch ? l.req?.chip ?? MAKER_DEFAULT : ''),
+      X(ch ? certList(l.req).join('\n') || 'Not required' : ''),
+      X(ch ? (ch.p.warnings ?? []).map((w) => `⚠ ${w.text}`).join('\n') : '', { textColor: '#B91C1C', fontWeight: 'bold' }),
       ...(allOptions ? Array.from({ length: n }, (_, i) => opt(i)) : []),
     ], widths, pic || photo ? PIC_BOX * 0.75 + 8 : LINE_PT));
   }
   const prods = [...chosenIds].map((id) => all.find((x) => x.id === id)!).filter(Boolean);
   const cols2: { h: string; w: number }[] = [
     { h: 'Brand', w: 14 }, { h: 'Code', w: 22 }, { h: 'Description', w: 42 }, { h: 'Type', w: 16 }, { h: 'Price level', w: 11 }, { h: 'Power', w: 10 }, { h: 'Lumens', w: 13 },
-    { h: 'CCT', w: 18 }, { h: 'CRI', w: 6 }, { h: 'IP', w: 7 }, { h: 'Beam', w: 16 }, { h: 'Size', w: 22 }, { h: 'Catalogue', w: 30 }, { h: 'Page', w: 6 },
+    { h: 'CCT', w: 18 }, { h: 'CRI', w: 6 }, { h: 'IP', w: 7 }, { h: 'Beam', w: 16 }, { h: 'Size', w: 22 }, { h: 'Catalogue', w: 30 }, { h: 'Page', w: 6 }, { h: 'Warnings', w: 24 },
   ];
   const widths2 = cols2.map((c) => c.w);
   const sheet2: XCell[][] = [fitRow(cols2.map((c) => head(c.h)), widths2, 22),
-    ...prods.map((p) => fitRow([p.brand, p.code, p.title, p.type, p.priceLevel ? priceLabel(p.priceLevel) : '', wattText(p), p.lm ? `${p.lmMin && p.lmMin < p.lm ? `${fmt(p.lmMin)}–` : ''}${fmt(p.lm)}${p.lmEst ? ' (est.)' : ''}` : '', cctText(p), p.cri ? `${p.cri}` : '', p.ip ? `IP${p.ip}` : '', p.beam ?? '', p.size ?? '', p.src, p.page ?? ''].map((v) => X(v)), widths2))];
+    ...prods.map((p) => fitRow([p.brand, p.code, p.title, p.type, p.priceLevel ? priceLabel(p.priceLevel) : '', wattText(p), p.lm ? `${p.lmMin && p.lmMin < p.lm ? `${fmt(p.lmMin)}–` : ''}${fmt(p.lm)}${p.lmEst ? ' (est.)' : ''}` : '', cctText(p), p.cri ? `${p.cri}` : '', p.ip ? `IP${p.ip}` : '', p.beam ?? '', p.size ?? '', p.src, p.page ?? '', (p.warnings ?? []).map((w) => `⚠ ${w.text}`).join('\n')].map((v) => X(v)), widths2))];
   const blob = await writeXlsxFile([
     { sheet: 'BOQ with options', data, images, columns: cols.map((c) => ({ width: c.w })), stickyRowsCount: 1 },
     { sheet: 'Chosen products', data: sheet2, columns: cols2.map((c) => ({ width: c.w })), stickyRowsCount: 1 },
