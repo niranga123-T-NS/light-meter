@@ -235,20 +235,41 @@ async function excelImage(p: BoqPic, row: number, column: number) {
   return { content: await picBlob(p), contentType: p.src.slice(5, p.src.indexOf(';')) || 'image/jpeg', width: Math.round(p.w * k), height: Math.round(p.h * k), dpi: 96, anchor: { row, column }, offsetX: 3, offsetY: 3 };
 }
 
+/* ───────── Excel layout: wrapped text, rows as tall as their text, a frozen header ───────── */
+type XCell = { value?: string | number; fontWeight?: 'bold'; height?: number; wrap?: boolean; alignVertical?: 'top' | 'center'; align?: 'left' | 'right' | 'center'; textColor?: string; backgroundColor?: string; borderColor?: string; borderStyle?: string };
+const LINE_PT = 15;
+/** Lines a text needs in a column of this width (Excel width ≈ characters of the default font) */
+const linesIn = (v: unknown, width: number) => String(v ?? '').split('\n').reduce((n, p) => n + Math.max(1, Math.ceil(p.length / Math.max(4, width - 1.5))), 0);
+const X = (value: string | number | undefined, o: Partial<XCell> = {}): XCell => ({ value, wrap: true, alignVertical: 'top', borderColor: '#D1D5DB', borderStyle: 'thin', ...o });
+const head = (v: string) => X(v, { fontWeight: 'bold', textColor: '#FFFFFF', backgroundColor: '#1F2937', alignVertical: 'center' });
+/** A row's height from its longest wrapped cell (and its picture) */
+function fitRow(row: XCell[], widths: number[], minPt = LINE_PT) {
+  const lines = Math.max(1, ...row.map((c, i) => (c?.value == null || c.value === '' ? 1 : linesIn(c.value, widths[i] ?? 10))));
+  row[0] = { ...row[0], height: Math.max(minPt, lines * LINE_PT + 4) };
+  return row;
+}
+
 /** The client's BOQ columns unchanged + the client's picture, the chosen product with its photo and deviations, and the options; a second sheet with the chosen products' data */
 export async function exportBoqExcel(fileName: string, all: Fixture[], lines: BoqLine[], s: BoqSettings, n: number, allOptions: boolean, pics: Record<number, BoqPic> = {}) {
-  const B = (v: string) => ({ value: v, fontWeight: 'bold' as const });
   const anyPic = Object.keys(pics).length > 0;
-  // columns: Item, Description, [Client picture], Unit, Qty, Chosen, Chosen picture, Deviations, Options
-  const head = ['Item', 'Description (client)', ...(anyPic ? ['Client picture'] : []), 'Unit', 'Qty', 'Chosen', 'Chosen product', 'Deviations of the chosen', ...(allOptions ? Array.from({ length: n }, (_, i) => `Option ${i + 1}`) : [])];
+  // columns: Item, Description, [Client picture], Unit, Qty, Chosen, Chosen product photo, Deviations, Options
+  const cols: { h: string; w: number }[] = [
+    { h: 'Item', w: 7 }, { h: 'Description (client)', w: 55 }, ...(anyPic ? [{ h: 'Client picture', w: 15 }] : []), { h: 'Unit', w: 6 }, { h: 'Qty', w: 8 },
+    { h: 'Chosen', w: 30 }, { h: 'Chosen product', w: 15 }, { h: 'Deviations of the chosen', w: 42 },
+    ...(allOptions ? Array.from({ length: n }, (_, i) => ({ h: `Option ${i + 1}`, w: 26 })) : []),
+  ];
+  const widths = cols.map((c) => c.w);
   const cClient = 3, cChosenPic = anyPic ? 7 : 6;
-  const data: ({ value?: string | number; fontWeight?: 'bold'; height?: number; wrap?: boolean } | null)[][] = [head.map(B)];
+  const data: XCell[][] = [fitRow(cols.map((c) => head(c.h)), widths, 22)];
   const images: Awaited<ReturnType<typeof excelImage>>[] = [];
   const photos = new Map<string, BoqPic | null>();
   const chosenIds = new Set<string>();
   for (const l of lines) {
     if (l.kind === 'skip') continue;
-    if (l.kind === 'heading') { data.push([{ value: l.item }, B(l.desc)]); continue; }
+    if (l.kind === 'heading') {
+      data.push(fitRow(cols.map((_, i) => X(i === 0 ? l.item : i === 1 ? l.desc : '', { fontWeight: 'bold', backgroundColor: '#E5E7EB' })), widths));
+      continue;
+    }
     const spec = lineSpec(l, s);
     const ch = l.chosen ? recompare(all, l.chosen, spec) : null;
     if (ch) chosenIds.add(ch.p.id);
@@ -262,20 +283,29 @@ export async function exportBoqExcel(fileName: string, all: Fixture[], lines: Bo
     }
     if (pic) images.push(await excelImage(pic, rowNo, cClient));
     if (photo) images.push(await excelImage(photo, rowNo, cChosenPic));
-    data.push([
-      { value: l.item, ...(pic || photo ? { height: 74 } : {}) }, { value: l.desc, wrap: true }, ...(anyPic ? [{ value: '' }] : []), { value: l.unit }, { value: Number.isFinite(qn) && l.qty !== '' ? qn : l.qty },
-      { value: l.noMatch ? 'No suitable option – to Design' : ch ? prodText(ch.p) : '', wrap: true },
-      { value: '' },
-      { value: ch ? devText(spec, ch) : l.note ?? '', wrap: true },
-      ...(allOptions ? Array.from({ length: n }, (_, i) => ({ value: l.options[i] ? prodText(all.find((x) => x.id === l.options[i]) ?? ({ brand: '', code: l.options[i] } as Fixture)) : '' })) : []),
-    ]);
+    const opt = (i: number) => {
+      const p = l.options[i] ? all.find((x) => x.id === l.options[i]) : undefined;
+      return l.options[i] ? X(p ? `${prodText(p)}\n${p.title}` : l.options[i], { textColor: l.options[i] === l.chosen ? '#1D4ED8' : undefined }) : X('');
+    };
+    data.push(fitRow([
+      X(l.item), X(l.desc), ...(anyPic ? [X('')] : []), X(l.unit, { align: 'center' }), X(Number.isFinite(qn) && l.qty !== '' ? qn : l.qty, { align: 'right' }),
+      l.noMatch ? X('No suitable option – to Design', { textColor: '#B91C1C', fontWeight: 'bold' }) : X(ch ? `${prodText(ch.p)}\n${ch.p.title}` : '', { fontWeight: ch ? 'bold' : undefined }),
+      X(''),
+      X(ch ? devText(spec, ch).split('; ').join('\n') : l.note ?? ''),
+      ...(allOptions ? Array.from({ length: n }, (_, i) => opt(i)) : []),
+    ], widths, pic || photo ? PIC_BOX * 0.75 + 8 : LINE_PT));
   }
   const prods = [...chosenIds].map((id) => all.find((x) => x.id === id)!).filter(Boolean);
-  const sheet2: typeof data = [['Brand', 'Code', 'Description', 'Type', 'Price level', 'Power', 'Lumens', 'CCT', 'CRI', 'IP', 'Beam', 'Size', 'Catalogue', 'Page'].map(B),
-    ...prods.map((p) => [p.brand, p.code, p.title, p.type, p.priceLevel ? priceLabel(p.priceLevel) : '', wattText(p), p.lm ? `${p.lmMin && p.lmMin < p.lm ? `${fmt(p.lmMin)}–` : ''}${fmt(p.lm)}${p.lmEst ? ' (est.)' : ''}` : '', cctText(p), p.cri ? `${p.cri}` : '', p.ip ? `IP${p.ip}` : '', p.beam ?? '', p.size ?? '', p.src, p.page ?? ''].map((v) => ({ value: v })))];
+  const cols2: { h: string; w: number }[] = [
+    { h: 'Brand', w: 14 }, { h: 'Code', w: 22 }, { h: 'Description', w: 42 }, { h: 'Type', w: 16 }, { h: 'Price level', w: 11 }, { h: 'Power', w: 10 }, { h: 'Lumens', w: 13 },
+    { h: 'CCT', w: 18 }, { h: 'CRI', w: 6 }, { h: 'IP', w: 7 }, { h: 'Beam', w: 16 }, { h: 'Size', w: 22 }, { h: 'Catalogue', w: 30 }, { h: 'Page', w: 6 },
+  ];
+  const widths2 = cols2.map((c) => c.w);
+  const sheet2: XCell[][] = [fitRow(cols2.map((c) => head(c.h)), widths2, 22),
+    ...prods.map((p) => fitRow([p.brand, p.code, p.title, p.type, p.priceLevel ? priceLabel(p.priceLevel) : '', wattText(p), p.lm ? `${p.lmMin && p.lmMin < p.lm ? `${fmt(p.lmMin)}–` : ''}${fmt(p.lm)}${p.lmEst ? ' (est.)' : ''}` : '', cctText(p), p.cri ? `${p.cri}` : '', p.ip ? `IP${p.ip}` : '', p.beam ?? '', p.size ?? '', p.src, p.page ?? ''].map((v) => X(v)), widths2))];
   const blob = await writeXlsxFile([
-    { sheet: 'BOQ with options', data, images, columns: [{ width: 8 }, { width: 60 }, ...(anyPic ? [{ width: 15 }] : []), { width: 6 }, { width: 8 }, { width: 28 }, { width: 15 }, { width: 50 }, ...(allOptions ? Array.from({ length: n }, () => ({ width: 26 })) : [])] },
-    { sheet: 'Chosen products', data: sheet2, columns: Array.from({ length: 14 }, () => ({ width: 18 })) },
+    { sheet: 'BOQ with options', data, images, columns: cols.map((c) => ({ width: c.w })), stickyRowsCount: 1 },
+    { sheet: 'Chosen products', data: sheet2, columns: cols2.map((c) => ({ width: c.w })), stickyRowsCount: 1 },
   ] as never).toBlob();
   const name = `${fileName.replace(/\.[^.]+$/, '')} – DIMO options.xlsx`;
   if (Platform.OS === 'web') {
