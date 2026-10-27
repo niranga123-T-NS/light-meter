@@ -1,19 +1,20 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Image, Platform, Pressable, Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { BrandFilter, PriceFilter, PriceTag } from '@/components/tools/BrandFilter';
 import { Thumb } from '@/components/tools/FixtureLibrary';
 import { Button, Card, Chip, colors, ErrorBanner, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section, Select, Toggle, useWide } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import {
-  BOQ_PROJECT_KIND, boqLines, DEFAULT_SETTINGS, readSettings, detectColumns, exportBoqExcel, lineSpec, lineStatus, loadBoqMatches, matchLine, previousLines, readBoqFile, recompare, saveBoqMatch,
-  type BoqColumns, type BoqProject, type BoqLine, type BoqMatchRow, type BoqSettings, type BoqSheet, type LineResult,
+  BOQ_PROJECT_KIND, boqLines, DEFAULT_SETTINGS, linePictures, readSettings, detectColumns, exportBoqExcel, lineSpec, lineStatus, loadBoqMatches, matchLine, previousLines, readBoqFile, recompare, saveBoqMatch,
+  type BoqColumns, type BoqPic, type BoqProject, type BoqLine, type BoqMatchRow, type BoqSettings, type BoqSheet, type LineResult,
 } from '@/lib/boqMatch';
 import { pickDocument } from '@/lib/files';
 import { cctText, loadCatalog, PARAMS, STATUS_STYLE, wattText, type Fixture, type Level, type Match, type ParamKey, type Spec } from '@/lib/fixtures';
 import { fmtDateTime } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
+import { fingerprintWeb, likeness, loadVisionIndex, rankByPhoto } from '@/lib/photoSearch';
 import { rpc, supabase } from '@/lib/supabase';
 
 type Step = 'upload' | 'check' | 'results' | 'save';
@@ -63,6 +64,8 @@ export default function BoqMatchScreen() {
   const [sheetIdx, setSheetIdx] = useState(0);
   const [cols, setCols] = useState<BoqColumns | null>(null);
   const [lines, setLines] = useState<BoqLine[]>([]);
+  const [pics, setPics] = useState<Record<number, BoqPic>>({});
+  const [busy, setBusy] = useState<string | null>(null);
   const [n, setN] = useState(3);
   const [settings, setSettings] = useState<BoqSettings>(DEFAULT_SETTINGS);
   const [filter, setFilter] = useState<'all' | 'ready' | 'check' | 'skip'>('all');
@@ -82,7 +85,7 @@ export default function BoqMatchScreen() {
 
   // open a saved match (from the list, or ?m= in the link)
   const openSaved = (s: BoqMatchRow) => {
-    setMatchId(s.id); setFileName(s.file_name); setSheets([]); setLines(s.lines); setN(s.options); setSettings(readSettings(s.settings)); setCur(0); setStep('results'); setOpened(s.id);
+    setMatchId(s.id); setFileName(s.file_name); setSheets([]); setLines(s.lines); setPics(s.images ?? {}); setN(s.options); setSettings(readSettings(s.settings)); setCur(0); setStep('results'); setOpened(s.id);
   };
   if (m && opened !== m) {
     const s = saved.find((x) => x.id === m);
@@ -98,7 +101,7 @@ export default function BoqMatchScreen() {
       // the sheet with the most lighting words first
       const score = (s: BoqSheet) => s.rows.filter((r) => /light|luminaire|downlight|led/i.test(r.join(' '))).length;
       const best = sh.reduce((b, s, i) => (score(s) > score(sh[b]) ? i : b), 0);
-      setFileName(f.name); setSheets(sh); setSheetIdx(best); setCols(detectColumns(sh[best].rows)); setMatchId(null); setLines([]);
+      setFileName(f.name); setSheets(sh); setSheetIdx(best); setCols(detectColumns(sh[best].rows)); setMatchId(null); setLines([]); setPics({});
     });
   };
   const chooseSheet = (i: number) => { setSheetIdx(i); setCols(detectColumns(sheets[i].rows)); };
@@ -107,31 +110,59 @@ export default function BoqMatchScreen() {
     if (!sheet || !cols) return;
     if (cols.desc < 0) return dialog.alert('Choose the description column');
     const prev = await previousLines(custom ? { custom: job.id } : { inquiry: job.inquiry_id! }).catch(() => []);
-    setLines(boqLines(sheet.rows, cols, prev));
+    const ls = boqLines(sheet.rows, cols, prev);
+    setLines(ls);
+    setPics(linePictures(ls, sheet.pics));
     setStep('check');
   };
 
-  const find = () => {
-    const next = lines.map((l) => (l.kind === 'fitting' ? { ...l, options: matchLine(all, l, settings, n).matches.map((x) => x.p.id) } : { ...l, options: [] }));
+  // lines with the client's picture are also compared by how the products look (website: the same photo reader as Search by photo)
+  const find = async () => {
+    const withPic = Platform.OS === 'web' ? lines.filter((l) => l.kind === 'fitting' && pics[l.row]) : [];
+    const photos = new Map<number, Map<string, number>>();
+    if (withPic.length) {
+      try {
+        setBusy('Loading the photo reader (about 18 MB, the first time only)…');
+        const ix = await loadVisionIndex();
+        for (const [k, l] of withPic.entries()) {
+          setBusy(`Comparing the pictures… ${k + 1} of ${withPic.length}`);
+          const q = await fingerprintWeb(pics[l.row].src, ix.query);
+          photos.set(l.row, new Map(rankByPhoto(ix, all, q, {}, 100000).map((h) => [h.img, h.score])));
+        }
+      } catch (e) {
+        dialog.toast(`Pictures not compared: ${e instanceof Error ? e.message : String(e)} – matched on the text`, 'error');
+      } finally {
+        setBusy(null);
+      }
+    }
+    const next = lines.map((l) => {
+      if (l.kind !== 'fitting') return { ...l, options: [], look: undefined };
+      const r = matchLine(all, l, settings, n, photos.get(l.row));
+      return { ...l, options: r.matches.map((x) => x.p.id), look: r.look };
+    });
     setLines(next); setCur(0); setStep('results');
   };
 
   const setLine = (row: number, patch: Partial<BoqLine>) => setLines((ls) => ls.map((l) => (l.row === row ? { ...l, ...patch } : l)));
   const correct = async (l: BoqLine) => {
+    const pic = pics[l.row];
     const r = await dialog.prompt({
       title: `Line ${l.item || l.row + 1}`,
       message: 'Correct or add values the way they would be written in a BOQ (e.g. "downlight 10W 900lm 3000K IP44 DALI"). The client\'s description in the export is not changed.',
       fields: [
         { key: 'text', label: 'Text to read the values from', type: 'multiline', initial: l.text },
         { key: 'kind', label: 'This line is', type: 'select', initial: l.kind, options: [{ value: 'fitting', label: 'A light fitting – match it' }, { value: 'skip', label: 'Not a light fitting – skip' }, { value: 'heading', label: 'A section heading' }] },
+        ...(pic ? [{ key: 'pic', label: 'The picture beside this line', type: 'select' as const, initial: 'keep', options: [{ value: 'keep', label: 'Is this fitting – use it' }, { value: 'drop', label: 'Is not this fitting – remove it' }] }] : []),
       ],
     });
-    if (r) setLine(l.row, { text: r.text || l.desc, kind: r.kind as BoqLine['kind'] });
+    if (!r) return;
+    setLine(l.row, { text: r.text || l.desc, kind: r.kind as BoqLine['kind'] });
+    if (r.pic === 'drop') setPics((ps) => { const x = { ...ps }; delete x[l.row]; return x; });
   };
 
   const save = () =>
     dialog.run(async () => {
-      const sid = await saveBoqMatch({ id: matchId, target: custom ? { custom: job.id } : { job: job.id }, file_name: fileName, sheet: sheet?.name ?? saved.find((s) => s.id === matchId)?.sheet ?? '', options: n, settings, lines });
+      const sid = await saveBoqMatch({ id: matchId, target: custom ? { custom: job.id } : { job: job.id }, file_name: fileName, sheet: sheet?.name ?? saved.find((s) => s.id === matchId)?.sheet ?? '', options: n, settings, lines, images: pics });
       setMatchId(sid);
       await reload();
     }, custom ? 'Saved to this inquiry' : 'Saved to this estimate');
@@ -188,7 +219,7 @@ export default function BoqMatchScreen() {
               </Row>
               <Card style={{ padding: 0, overflow: 'hidden' }}>
                 {lines.filter((l) => l.kind !== 'heading' && (filter === 'all' || lineStatus(l, specs.get(l.row)!) === filter)).map((l) => (
-                  <CheckRow key={l.row} l={l} spec={specs.get(l.row)!} onPress={canEdit ? () => correct(l) : undefined} />
+                  <CheckRow key={l.row} l={l} pic={pics[l.row]} spec={specs.get(l.row)!} onPress={canEdit ? () => correct(l) : undefined} />
                 ))}
               </Card>
               <Muted>Tap a line to correct the text the values are read from, or to mark it as a fitting / not a fitting. Dashed = not found; the line still matches on the other values.</Muted>
@@ -213,14 +244,15 @@ export default function BoqMatchScreen() {
                 <BrandFilter brands={brands} regions={regions} value={settings.brands} onChange={(v) => setSettings((s) => ({ ...s, brands: v }))} />
                 <PriceFilter value={settings.priceLevels} onChange={(v) => setSettings((s) => ({ ...s, priceLevels: v }))} />
               </Card>
-              <Button title={`Find ${n} option${n > 1 ? 's' : ''} for ${fit.length} lines →`} onPress={find} disabled={!fit.length} />
+              <Button title={busy ?? `Find ${n} option${n > 1 ? 's' : ''} for ${fit.length} lines →`} onPress={find} disabled={!fit.length || !!busy} />
+              {Object.keys(pics).length ? <Muted style={{ textAlign: 'center' }}>{Platform.OS === 'web' ? `${Object.keys(pics).length} lines have the client's picture – compared with the catalogue photos too` : 'The pictures are compared with the catalogue on the website; here the lines are matched on the text'}</Muted> : null}
               <Muted style={{ textAlign: 'center' }}>In the app, from the catalogue library – no internet search, no AI</Muted>
             </View>
           </View>
         </View>
       ) : null}
 
-      {step === 'results' ? <ResultsStep {...{ all, lines, specs, settings, n, cur, setCur, setLine, canEdit, wide, correct, toSave: () => setStep('save') }} /> : null}
+      {step === 'results' ? <ResultsStep {...{ all, lines, pics, specs, settings, n, cur, setCur, setLine, canEdit, wide, correct, toSave: () => setStep('save') }} /> : null}
 
       {step === 'save' ? (
         <View style={{ gap: 12, marginTop: 12 }}>
@@ -240,11 +272,11 @@ export default function BoqMatchScreen() {
           </Row>
           <Card style={{ gap: 10 }}>
             <Text style={{ fontWeight: '700', color: colors.ink }}>Excel that comes out</Text>
-            <Muted>{`"${fileName.replace(/\.[^.]+$/, '')} – DIMO options.xlsx": the client's Item, Description, Unit and Qty unchanged, then Chosen, the deviations of the chosen product${allOptions ? ` and Options 1–${n}` : ''}. A second sheet lists the chosen products with their data and catalogue page.`}</Muted>
+            <Muted>{`"${fileName.replace(/\.[^.]+$/, '')} – DIMO options.xlsx": the client's Item, Description, Unit and Qty unchanged${Object.keys(pics).length ? ' with the client\'s pictures' : ''}, then Chosen with the product photo, the deviations of the chosen product${allOptions ? ` and Options 1–${n}` : ''}. A second sheet lists the chosen products with their data and catalogue page.`}</Muted>
             <Toggle label={`Include all ${n} options (off = the chosen product only)`} value={allOptions} onChange={setAllOptions} />
             <Row gap={8} wrap>
               {canEdit ? <Button title={matchId ? 'Save changes' : `Save to this ${where}`} onPress={save} /> : null}
-              <Button variant="secondary" title="Download Excel" onPress={() => dialog.run(() => exportBoqExcel(fileName, all, lines, settings, n, allOptions))} />
+              <Button variant="secondary" title="Download Excel" onPress={() => dialog.run(() => exportBoqExcel(fileName, all, lines, settings, n, allOptions, pics))} />
               {canEdit && noMatch.length && job.source === 'design' ? <Button variant="secondary" title={`Ask Design about ${noMatch.length} line${noMatch.length > 1 ? 's' : ''}`} onPress={askDesign} /> : null}
             </Row>
             {noMatch.length && job.source !== 'design' ? <Muted>{`${noMatch.length} line${noMatch.length > 1 ? 's have' : ' has'} no suitable option – listed as "No suitable option – to Design" in the Excel.`}</Muted> : null}
@@ -285,7 +317,7 @@ function UploadStep(p: {
             <Card style={{ gap: 8 }}>
               <Text style={{ fontWeight: '700', color: colors.ink }}>BOQ file</Text>
               {p.fileName ? <Text style={{ fontWeight: '700', color: colors.ink }}>{p.fileName}</Text> : <Muted>Excel (.xlsx) or CSV. Read in the app from the cells – no internet search, no AI.</Muted>}
-              <Button title={p.fileName ? 'Choose another file' : 'Upload BOQ Excel'} variant={p.fileName ? 'secondary' : 'primary'} onPress={p.pick} />
+              <Button title={p.fileName ? 'Choose another file' : 'Upload BOQ (Excel, CSV or PDF)'} variant={p.fileName ? 'secondary' : 'primary'} onPress={p.pick} />
             </Card>
             {p.sheets.length > 1 ? (
               <Card style={{ gap: 8 }}>
@@ -315,7 +347,7 @@ function UploadStep(p: {
               <Card style={{ padding: 0, overflow: 'hidden' }}>
                 <View style={{ padding: 10, borderBottomWidth: 1, borderColor: colors.line }}>
                   <Text style={{ fontWeight: '800', color: colors.ink }}>{`Preview – sheet "${sheet.name}"`}</Text>
-                  <Muted>{`${sheet.rows.length} rows · ${nLines} look like light fittings · coloured columns are read`}</Muted>
+                  <Muted>{`${sheet.rows.length} rows · ${nLines} look like light fittings${sheet.pics && Object.keys(sheet.pics).length ? ` · ${Object.keys(sheet.pics).length} pictures` : ''} · coloured columns are read`}</Muted>
                 </View>
                 {preview.map((r, ri) => (
                   <View key={ri} style={{ flexDirection: 'row', borderBottomWidth: 1, borderColor: colors.line }}>
@@ -342,13 +374,20 @@ function UploadStep(p: {
 const CHIP_KEYS: ParamKey[] = ['type', 'size', 'w', 'lm', 'cct', 'cri', 'ugr', 'ip', 'beam', 'control', 'aut'];
 const UNIT: Partial<Record<ParamKey, (v: string) => string>> = { w: (v) => `${v} W`, lm: (v) => `${v} lm`, cct: (v) => `${v} K`, cri: (v) => `CRI ${v}`, ugr: (v) => `UGR<${v}`, ip: (v) => `IP${v}`, aut: (v) => `${v} h` };
 
-function CheckRow({ l, spec, onPress }: { l: BoqLine; spec: Spec; onPress?: () => void }) {
+/** The client's picture of a line */
+function ClientPic({ pic, size }: { pic?: BoqPic; size: number }) {
+  if (!pic) return null;
+  return <Image source={{ uri: pic.src }} style={{ width: size, height: size, borderRadius: 6, backgroundColor: colors.soft }} resizeMode="contain" />;
+}
+
+function CheckRow({ l, pic, spec, onPress }: { l: BoqLine; pic?: BoqPic; spec: Spec; onPress?: () => void }) {
   const st = lineStatus(l, spec);
   const tone = st === 'ready' ? colors.green : st === 'check' ? colors.amber : colors.grey;
   return (
     <Pressable onPress={onPress} style={{ padding: 10, borderBottomWidth: 1, borderColor: colors.line, gap: 6, backgroundColor: l.kind === 'skip' ? '#FAFAFA' : '#fff' }}>
       <Row gap={8} style={{ alignItems: 'flex-start' }}>
         <Text style={{ width: 40, fontWeight: '700', color: colors.ink, fontSize: 13 }}>{l.item}</Text>
+        <ClientPic pic={pic} size={48} />
         <Text style={{ flex: 1, fontSize: 13, color: l.kind === 'skip' ? colors.muted : colors.text }}>{l.text !== l.desc ? `${l.desc}\n→ read as: ${l.text}` : l.desc}</Text>
         <Text style={{ width: 70, fontSize: 12, color: colors.muted, textAlign: 'right' }}>{[l.qty, l.unit].filter(Boolean).join(' ')}</Text>
         <Pill label={st === 'ready' ? 'Ready' : st === 'check' ? 'Check' : 'Not a fitting'} tone={tone} />
@@ -372,7 +411,7 @@ function CheckRow({ l, spec, onPress }: { l: BoqLine; spec: Spec; onPress?: () =
 }
 
 function ResultsStep(p: {
-  all: Fixture[]; lines: BoqLine[]; specs: Map<number, Spec>; settings: BoqSettings; n: number; cur: number; setCur: (i: number) => void;
+  all: Fixture[]; lines: BoqLine[]; pics: Record<number, BoqPic>; specs: Map<number, Spec>; settings: BoqSettings; n: number; cur: number; setCur: (i: number) => void;
   setLine: (row: number, patch: Partial<BoqLine>) => void; canEdit: boolean; wide: boolean; correct: (l: BoqLine) => void; toSave: () => void;
 }) {
   const fit = p.lines.filter((l) => l.kind === 'fitting');
@@ -425,10 +464,12 @@ function ResultsStep(p: {
       <View style={{ flex: 1, gap: 10, width: '100%' }}>
         <Card style={{ gap: 6 }}>
           <Row gap={8} wrap style={{ justifyContent: 'space-between' }}>
+            <ClientPic pic={p.pics[l.row]} size={110} />
             <View style={{ flex: 1, minWidth: 220, gap: 2 }}>
               <Muted>{`Line ${l.item || l.row + 1} · ${[l.qty, l.unit].filter(Boolean).join(' ')} · ${i + 1} of ${fit.length}`}</Muted>
               <Text style={{ fontSize: 15, fontWeight: '800', color: colors.ink }}>{l.desc}</Text>
               {l.text !== l.desc ? <Muted>{`Read as: ${l.text}`}</Muted> : null}
+              {p.pics[l.row] ? <Muted style={{ fontSize: 12 }}>{l.look?.length ? "The client's picture – the options are also ranked by how alike they look" : "The client's picture – press Find again on step 2 to compare it (website)"}</Muted> : null}
             </View>
             <Row gap={6}>
               {p.canEdit ? <Button small variant="secondary" title="Change values" onPress={() => p.correct(l)} /> : null}
@@ -440,7 +481,7 @@ function ResultsStep(p: {
         {!opts.length ? <Notice tone={colors.amber}>No values could be read from this line – tap Change values and type them, then press Find again on step 2.</Notice> : null}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
           {opts.map((o, k) => (
-            <OptionCard key={o.p.id} k={k} o={o} spec={spec} chosen={l.chosen === o.p.id} canEdit={p.canEdit} onChoose={() => p.setLine(l.row, { chosen: l.chosen === o.p.id ? null : o.p.id, noMatch: false })} />
+            <OptionCard key={o.p.id} k={k} o={o} look={l.options.indexOf(o.p.id) >= 0 ? l.look?.[l.options.indexOf(o.p.id)] : undefined} spec={spec} chosen={l.chosen === o.p.id} canEdit={p.canEdit} onChoose={() => p.setLine(l.row, { chosen: l.chosen === o.p.id ? null : o.p.id, noMatch: false })} />
           ))}
         </View>
         <Row gap={8} wrap>
@@ -464,7 +505,7 @@ function gradeOf(all: Fixture[], l: BoqLine, spec: Spec): LineResult['grade'] {
   return st.some((x) => x.s === 'fail' || x.s === 'minor') ? 'close' : 'all';
 }
 
-function OptionCard({ k, o, spec, chosen, canEdit, onChoose }: { k: number; o: Match; spec: Spec; chosen: boolean; canEdit: boolean; onChoose: () => void }) {
+function OptionCard({ k, o, look, spec, chosen, canEdit, onChoose }: { k: number; o: Match; look?: number; spec: Spec; chosen: boolean; canEdit: boolean; onChoose: () => void }) {
   const keys = PARAMS.filter((p) => spec[p.key]?.v.trim() && o.cells[p.key]);
   return (
     <Card style={{ flexGrow: 1, flexBasis: 260, maxWidth: 420, gap: 8, borderWidth: 2, borderColor: chosen ? colors.blue : colors.line }}>
@@ -477,6 +518,7 @@ function OptionCard({ k, o, spec, chosen, canEdit, onChoose }: { k: number; o: M
         <Text style={{ fontWeight: '800', color: colors.ink }}>{`${o.p.brand} · ${o.p.code}`}</Text>
         <Muted numberOfLines={2}>{o.p.title}</Muted>
         <PriceTag level={o.p.priceLevel} />
+        {look ? <Text style={{ fontSize: 12, fontWeight: '700', color: look >= 0.58 ? colors.green : look >= 0.48 ? colors.amber : colors.muted }}>{`Picture: ${likeness(look)} (${Math.round(look * 100)} %)`}</Text> : null}
         <Muted style={{ fontSize: 12 }}>{[wattText(o.p), o.p.lm ? `${o.p.lm.toLocaleString('en-US')} lm${o.p.lmEst ? ' (est.)' : ''}` : '', cctText(o.p)].filter(Boolean).join(' · ')}</Muted>
       </View>
       {keys.map((p) => {

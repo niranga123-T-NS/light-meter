@@ -10123,10 +10123,11 @@ reset role;
 -- BOQ match for an inquiry not in the system (before the system / never registered): the estimation team only
 select pg_temp.act_as('estimation_exec'); set role authenticated;
 insert into public.boq_projects (kind, ref, project_name, customer_name, inquiry_date) values ('pre_system', 'INQ-2024-0815', 'Old hotel refurbishment', 'Galle Hotels', '2024-03-01');
-insert into public.boq_matches (boq_project_id, file_name, lines) values ((select id from public.boq_projects where ref = 'INQ-2024-0815'), 'Old BOQ.xlsx', '[]');
+insert into public.boq_matches (boq_project_id, file_name, lines, images) values ((select id from public.boq_projects where ref = 'INQ-2024-0815'), 'Old BOQ.xlsx', '[]', '{"7": {"src": "data:image/jpeg;base64,AA==", "w": 10, "h": 10}}');
 do $$ begin
   assert (select count(*) from public.boq_matches where boq_project_id is not null) = 1, 'estimation exec saves a BOQ match for a pre-system inquiry';
   assert (select inquiry_id is null from public.boq_matches where boq_project_id is not null), 'no system inquiry';
+  assert (select images ? '7' from public.boq_matches where boq_project_id is not null), 'the client pictures are kept with the match';
   begin
     insert into public.boq_matches (file_name) values ('none.xlsx');
     raise exception 'a BOQ match needs an estimate or a custom inquiry';
