@@ -2,7 +2,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
-import { BrandFilter } from '@/components/tools/BrandFilter';
+import { BrandFilter, PriceFilter, PriceTag } from '@/components/tools/BrandFilter';
 import { Thumb } from '@/components/tools/FixtureLibrary';
 import { Button, Card, Chip, colors, ErrorBanner, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section, Select, Toggle, useWide } from '@/components/ui';
 import { useMe } from '@/lib/auth';
@@ -202,6 +202,7 @@ export default function BoqMatchScreen() {
               </Card>
               <Card style={{ gap: 6 }}>
                 <BrandFilter brands={brands} regions={regions} value={settings.brands} onChange={(v) => setSettings((s) => ({ ...s, brands: v }))} />
+                <PriceFilter value={settings.priceLevels} onChange={(v) => setSettings((s) => ({ ...s, priceLevels: v }))} />
               </Card>
               <Button title={`Find ${n} option${n > 1 ? 's' : ''} for ${fit.length} lines →`} onPress={find} disabled={!fit.length} />
               <Muted style={{ textAlign: 'center' }}>In the app, from the catalogue library – no internet search, no AI</Muted>
@@ -466,6 +467,7 @@ function OptionCard({ k, o, spec, chosen, canEdit, onChoose }: { k: number; o: M
       <View style={{ gap: 2 }}>
         <Text style={{ fontWeight: '800', color: colors.ink }}>{`${o.p.brand} · ${o.p.code}`}</Text>
         <Muted numberOfLines={2}>{o.p.title}</Muted>
+        <PriceTag level={o.p.priceLevel} />
         <Muted style={{ fontSize: 12 }}>{[wattText(o.p), o.p.lm ? `${o.p.lm.toLocaleString('en-US')} lm${o.p.lmEst ? ' (est.)' : ''}` : '', cctText(o.p)].filter(Boolean).join(' · ')}</Muted>
       </View>
       {keys.map((p) => {

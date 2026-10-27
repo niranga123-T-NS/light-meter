@@ -4,9 +4,9 @@ import { Image, Platform, Text, View } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import { Button, Card, colors, Muted, Notice, Row, Select } from '@/components/ui';
 import { pickImage } from '@/lib/files';
-import { cctText, FIXTURE_TYPES, fmt, wattText, type Fixture, type Region } from '@/lib/fixtures';
+import { cctText, FIXTURE_TYPES, fmt, levelOk, wattText, type Fixture, type PriceLevel, type Region } from '@/lib/fixtures';
 import { fingerprintWeb, likeness, loadVisionIndex, rankByPhoto, VISION_PAGE } from '@/lib/photoSearch';
-import { BrandFilter } from './BrandFilter';
+import { BrandFilter, PriceFilter } from './BrandFilter';
 import { Thumb } from './FixtureLibrary';
 
 type Job = { ok: (v: number[][]) => void; bad: (e: Error) => void };
@@ -60,10 +60,12 @@ export function PhotoSearchView({ all, brands, regions }: { all: Fixture[]; bran
   const [err, setErr] = useState<string | null>(null);
   const [type, setType] = useState('');
   const [brandSel, setBrandSel] = useState<string[]>([]);
+  const [levelSel, setLevelSel] = useState<PriceLevel[]>([]);
+  const pool = useMemo(() => (levelSel.length ? all.filter((p) => levelOk(levelSel, p)) : all), [all, levelSel]);
   const [limit, setLimit] = useState(12);
   const [open, setOpen] = useState<string | null>(null);
   const [ix, setIx] = useState<Awaited<ReturnType<typeof loadVisionIndex>> | null>(null);
-  const hits = useMemo(() => (ix && query ? rankByPhoto(ix, all, query, { type, brands: brandSel }, limit) : []), [ix, all, query, type, brandSel, limit]);
+  const hits = useMemo(() => (ix && query ? rankByPhoto(ix, pool, query, { type, brands: brandSel }, limit) : []), [ix, pool, query, type, brandSel, limit]);
 
   const pick = async (camera: boolean) => {
     setErr(null);
@@ -104,6 +106,7 @@ export function PhotoSearchView({ all, brands, regions }: { all: Fixture[]; bran
           <Select label="Type" value={type} onChange={setType} options={[{ value: '', label: 'All types' }, ...FIXTURE_TYPES.map((x) => ({ value: x, label: x }))]} />
         </Row>
         <BrandFilter brands={brands} regions={regions} value={brandSel} onChange={setBrandSel} />
+        <PriceFilter value={levelSel} onChange={setLevelSel} />
         {busy ? <Notice>{busy}</Notice> : null}
         {err ? <Notice tone={colors.amber}>{err}</Notice> : null}
       </Card>

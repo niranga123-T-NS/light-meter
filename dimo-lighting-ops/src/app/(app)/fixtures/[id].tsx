@@ -3,7 +3,7 @@ import { Image, Text, View } from 'react-native';
 import { Thumb } from '@/components/tools/FixtureLibrary';
 import { Card, colors, ErrorBanner, Loading, Muted, Notice, Row, Screen, Section } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { CATALOG_SUPERVISORS, cctText, ctrlText, fixtureImage, fmt, loadCatalog, wattText } from '@/lib/fixtures';
+import { CATALOG_SUPERVISORS, cctText, priceLabel, ctrlText, fixtureImage, fmt, loadCatalog, wattText } from '@/lib/fixtures';
 import { useLoad } from '@/lib/hooks';
 
 /** One product of the fixture library: photo, full specification, catalogue page and the other models of its family */
@@ -20,6 +20,7 @@ export default function FixturePage() {
   const uri = fixtureImage(p);
   const rows: [string, string | undefined][] = [
     ['Type', p.type],
+    ['Price level', p.priceLevel ? `${priceLabel(p.priceLevel)}${p.priceOwn ? '' : ' (brand level)'}` : undefined],
     ['Power', p.w != null ? `${wattText(p)}${p.wMin ? ' (range of the family)' : ''}${p.steps?.length ? ` (selectable ${p.steps.join(' / ')} W)` : ''}` : undefined],
     ['Lumens', p.lm ? `${p.lmMin && p.lmMin < p.lm ? `${fmt(p.lmMin)} – ` : ''}${fmt(p.lm)} lm${p.lmEst ? ' – estimated from the catalogue lm/W' : ''}${p.lm2 ? ` (standard version ${fmt(p.lm2)} lm)` : ''}` : 'not in the catalogue'],
     ['Efficacy', p.eff ? `${p.eff} lm/W` : undefined],

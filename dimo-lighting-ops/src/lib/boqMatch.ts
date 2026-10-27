@@ -4,7 +4,7 @@ import writeXlsxFile from 'write-excel-file/universal';
 import { File as FsFile, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { readBytes, type PickedFile } from './files';
-import { bestMatches, cctText, compare, fmt, parseSpecText, PARAMS, wattText, type Fixture, type Level, type Match, type ParamKey, type Spec } from './fixtures';
+import { bestMatches, cctText, compare, fmt, parseSpecText, PARAMS, priceLabel, wattText, type Fixture, type Level, type Match, type ParamKey, type PriceLevel, type Spec } from './fixtures';
 import { supabase } from './supabase';
 
 /** BOQ match: a client BOQ (Excel / CSV) read line by line in the app and matched against the fixture library – no AI, no internet search.
@@ -19,7 +19,7 @@ export type BoqLine = {
   text: string; kind: LineKind;
   options: string[]; chosen: string | null; noMatch: boolean; note?: string;
 };
-export type BoqSettings = { levels: Partial<Record<ParamKey, Level>>; brands: string[]; preferExact: boolean };
+export type BoqSettings = { levels: Partial<Record<ParamKey, Level>>; brands: string[]; priceLevels: PriceLevel[]; preferExact: boolean };
 export type BoqMatchRow = { id: string; estimation_job_id: string; inquiry_id: string; file_name: string; sheet: string; options: number; settings: BoqSettings; lines: BoqLine[]; created_at: string; updated_at: string };
 
 const cell = (v: unknown) => (v == null ? '' : v instanceof Date ? v.toISOString().slice(0, 10) : String(v).replace(/\s+/g, ' ').trim());
@@ -99,9 +99,9 @@ export function boqLines(rows: string[][], cols: BoqColumns, previous: BoqLine[]
 }
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
-export const DEFAULT_SETTINGS: BoqSettings = { levels: {}, brands: [], preferExact: true };
+export const DEFAULT_SETTINGS: BoqSettings = { levels: {}, brands: [], priceLevels: [], preferExact: true };
 /** Saved settings; the first saves had one brand */
-export const readSettings = (s: Partial<BoqSettings> & { brand?: string }): BoqSettings => ({ ...DEFAULT_SETTINGS, ...s, brands: s.brands ?? (s.brand ? [s.brand] : []) });
+export const readSettings = (s: Partial<BoqSettings> & { brand?: string }): BoqSettings => ({ ...DEFAULT_SETTINGS, ...s, brands: s.brands ?? (s.brand ? [s.brand] : []), priceLevels: s.priceLevels ?? [] });
 
 /** The values read from a line, with the estimator's strictness for all lines */
 export function lineSpec(l: BoqLine, s: BoqSettings): Spec {
@@ -119,7 +119,7 @@ export function lineStatus(l: BoqLine, spec: Spec): 'ready' | 'check' | 'skip' |
 export type LineResult = { matches: Match[]; grade: 'all' | 'close' | 'few' | 'none' | 'empty' };
 export function matchLine(all: Fixture[], l: BoqLine, s: BoqSettings, n: number): LineResult {
   const spec = lineSpec(l, s);
-  const matches = bestMatches(all, spec, n, s.brands);
+  const matches = bestMatches(all, spec, n, s.brands, s.priceLevels);
   if (!matches.length) return { matches, grade: 'empty' };
   const b = matches[0];
   return { matches, grade: b.mustFails ? 'none' : !spec.w?.v.trim() && !spec.lm?.v.trim() ? 'few' : b.fails || b.minors ? 'close' : 'all' };
@@ -178,11 +178,11 @@ export async function exportBoqExcel(fileName: string, all: Fixture[], lines: Bo
     ]);
   }
   const prods = [...chosenIds].map((id) => all.find((x) => x.id === id)!).filter(Boolean);
-  const sheet2: typeof data = [['Brand', 'Code', 'Description', 'Type', 'Power', 'Lumens', 'CCT', 'CRI', 'IP', 'Beam', 'Size', 'Catalogue', 'Page'].map(B),
-    ...prods.map((p) => [p.brand, p.code, p.title, p.type, wattText(p), p.lm ? `${p.lmMin && p.lmMin < p.lm ? `${fmt(p.lmMin)}–` : ''}${fmt(p.lm)}${p.lmEst ? ' (est.)' : ''}` : '', cctText(p), p.cri ? `${p.cri}` : '', p.ip ? `IP${p.ip}` : '', p.beam ?? '', p.size ?? '', p.src, p.page ?? ''].map((v) => ({ value: v })))];
+  const sheet2: typeof data = [['Brand', 'Code', 'Description', 'Type', 'Price level', 'Power', 'Lumens', 'CCT', 'CRI', 'IP', 'Beam', 'Size', 'Catalogue', 'Page'].map(B),
+    ...prods.map((p) => [p.brand, p.code, p.title, p.type, p.priceLevel ? priceLabel(p.priceLevel) : '', wattText(p), p.lm ? `${p.lmMin && p.lmMin < p.lm ? `${fmt(p.lmMin)}–` : ''}${fmt(p.lm)}${p.lmEst ? ' (est.)' : ''}` : '', cctText(p), p.cri ? `${p.cri}` : '', p.ip ? `IP${p.ip}` : '', p.beam ?? '', p.size ?? '', p.src, p.page ?? ''].map((v) => ({ value: v })))];
   const blob = await writeXlsxFile([
     { sheet: 'BOQ with options', data, columns: [{ width: 8 }, { width: 60 }, { width: 6 }, { width: 8 }, { width: 28 }, { width: 50 }, ...(allOptions ? Array.from({ length: n }, () => ({ width: 26 })) : [])] },
-    { sheet: 'Chosen products', data: sheet2, columns: Array.from({ length: 13 }, () => ({ width: 18 })) },
+    { sheet: 'Chosen products', data: sheet2, columns: Array.from({ length: 14 }, () => ({ width: 18 })) },
   ] as never).toBlob();
   const name = `${fileName.replace(/\.[^.]+$/, '')} – DIMO options.xlsx`;
   if (Platform.OS === 'web') {

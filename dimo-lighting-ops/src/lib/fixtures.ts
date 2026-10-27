@@ -184,6 +184,9 @@ export async function clearLevelReview(id: string) {
 /** Values a product has no data for (shown to the supervisors as "Missing") */
 export const missingData = (p: Fixture) => [p.w == null && 'power', p.lm == null && 'lumens', !p.cct.k.length && !p.cct.rgb && 'CCT', p.ip == null && 'IP', !p.img && 'photo'].filter(Boolean) as string[];
 
+/** No price levels chosen = all products; otherwise only products with one of the levels */
+export const levelOk = (levels: PriceLevel[] | undefined, p: Pick<Fixture, 'priceLevel'>) => !levels?.length || (!!p.priceLevel && levels.includes(p.priceLevel));
+
 /** No brands chosen = all brands */
 export const brandOk = (brands: string[] | undefined, p: Pick<Fixture, 'brand'>) => !brands?.length || brands.includes(p.brand);
 
@@ -196,11 +199,11 @@ export const wattText = (p: Pick<Fixture, 'w' | 'wMin'>) => (p.w == null ? '' : 
 export const fmt = (n?: number | null, unit = '') => (n == null ? '—' : `${Math.round(n).toLocaleString('en-US')}${unit}`);
 
 /** Quick search: every word must appear somewhere; "36w", "4000lm", "ip66", "4000k", "ugr19", "dali" are read as values */
-export function searchFixtures(all: Fixture[], q: string, f: { type?: string; brands?: string[] }) {
+export function searchFixtures(all: Fixture[], q: string, f: { type?: string; brands?: string[]; levels?: PriceLevel[] }) {
   const words = q.toLowerCase().split(/[\s,]+/).filter(Boolean);
   return all.filter((p) => {
     if (f.type && p.type !== f.type) return false;
-    if (!brandOk(f.brands, p)) return false;
+    if (!brandOk(f.brands, p) || !levelOk(f.levels, p)) return false;
     const hay = `${p.code} ${p.fam ?? ''} ${p.title} ${p.brand} ${p.type} ${p.beam ?? ''} ${p.size ?? ''} ${p.control ?? ''} ${p.note ?? ''}`.toLowerCase();
     return words.every((w) => {
       let m: RegExpExecArray | null;
@@ -433,12 +436,12 @@ const PTS: Record<Status, number> = { ok: 1, up: 1, minor: 0.6, na: 0.4, fail: 0
 export type Match = { p: Fixture; cells: Partial<Record<ParamKey, Cell>>; score: number; mustFails: number; fails: number; minors: number };
 
 /** Best options for the spec: a failed Must ranks an option down; then the weighted match %. Never empty – the closest are always shown. */
-export function bestMatches(all: Fixture[], spec: Spec, n: number, brands?: string[]): Match[] {
+export function bestMatches(all: Fixture[], spec: Spec, n: number, brands?: string[], levels?: PriceLevel[]): Match[] {
   const keys = (Object.keys(spec) as ParamKey[]).filter((k) => spec[k]?.v.trim());
   if (!keys.length) return [];
   const res: Match[] = [];
   for (const p of all) {
-    if (!brandOk(brands, p)) continue;
+    if (!brandOk(brands, p) || !levelOk(levels, p)) continue;
     const cells = compare(p, spec);
     let tot = 0, got = 0, mustFails = 0, fails = 0, minors = 0;
     for (const k of keys) {

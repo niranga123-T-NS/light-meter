@@ -11,7 +11,7 @@ import {
 } from '@/lib/fixtures';
 import { fmtDateTime } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
-import { BrandFilter } from './BrandFilter';
+import { BrandFilter, PriceFilter, PriceTag } from './BrandFilter';
 import { PhotoSearchView } from './PhotoSearch';
 
 /** What a supervisor can do from a search result */
@@ -168,11 +168,12 @@ function SearchView({ all, brands, regions, sup }: { all: Fixture[]; brands: str
   const [q, setQ] = useState('');
   const [type, setType] = useState('');
   const [brandSel, setBrandSel] = useState<string[]>([]);
+  const [levelSel, setLevelSel] = useState<PriceLevel[]>([]);
   const [show, setShow] = useState<'all' | 'missing' | 'edited' | 'levels' | 'removed'>('all');
   const [limit, setLimit] = useState(60);
   const view = sup ? show : 'all';
   const src = useMemo(() => (view === 'removed' ? sup!.cat.hidden : view === 'missing' ? all.filter((p) => missingData(p).length) : view === 'edited' ? all.filter((p) => p.edited) : view === 'levels' ? all.filter((p) => p.levelReview) : all), [all, sup, view]);
-  const hits = useMemo(() => searchFixtures(src, q, { type, brands: brandSel }), [src, q, type, brandSel]);
+  const hits = useMemo(() => searchFixtures(src, q, { type, brands: brandSel, levels: levelSel }), [src, q, type, brandSel, levelSel]);
   return (
     <View style={{ gap: 8 }}>
       <Field label="Search" value={q} onChangeText={(t) => { setQ(t); setLimit(60); }} placeholder="Code, name or values – e.g. BP-6060, panel 36w ugr19 dali, flood 200w ip66 4000k" autoCapitalize="none" />
@@ -180,6 +181,7 @@ function SearchView({ all, brands, regions, sup }: { all: Fixture[]; brands: str
         <Select label="Type" value={type} onChange={setType} options={[{ value: '', label: 'All types' }, ...FIXTURE_TYPES.map((x) => ({ value: x, label: x }))]} />
       </Row>
       <BrandFilter brands={brands} regions={regions} value={brandSel} onChange={setBrandSel} />
+      <PriceFilter value={levelSel} onChange={setLevelSel} />
       {sup ? (
         <Row gap={6} wrap>
           <Chip label="In the catalog" on={show === 'all'} onPress={() => setShow('all')} />
@@ -195,7 +197,10 @@ function SearchView({ all, brands, regions, sup }: { all: Fixture[]; brands: str
           <Row gap={12} style={{ alignItems: 'center' }}>
             <Thumb p={p} />
             <View style={{ flex: 1, gap: 2 }}>
-              <Text style={{ fontWeight: '700', color: colors.ink }}>{`${p.brand} ${p.code}`}</Text>
+              <Row gap={8} style={{ alignItems: 'center' }}>
+                <Text style={{ fontWeight: '700', color: colors.ink }}>{`${p.brand} ${p.code}`}</Text>
+                {sup ? null : <PriceTag level={p.priceLevel} />}
+              </Row>
               <Muted numberOfLines={1}>{`${p.type} · ${p.title}`}</Muted>
               <Text style={{ fontSize: 13, color: colors.text }}>{spec1(p)}</Text>
               {p.flag ? <Text style={{ fontSize: 12, color: colors.amber }} numberOfLines={1}>{`⚠ ${p.flag}`}</Text> : null}
@@ -233,11 +238,12 @@ function MatchView({ all, brands, regions }: { all: Fixture[]; brands: string[];
   const [spec, setSpec] = useState<Spec>({});
   const [n, setN] = useState(3);
   const [brandSel, setBrandSel] = useState<string[]>([]);
+  const [levelSel, setLevelSel] = useState<PriceLevel[]>([]);
   const [view, setView] = useState<'compare' | 'cards'>('compare');
   const [devOnly, setDevOnly] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [ran, setRan] = useState<Spec | null>(null);
-  const results = useMemo(() => (ran ? bestMatches(all, ran, n, brandSel) : []), [all, ran, n, brandSel]);
+  const results = useMemo(() => (ran ? bestMatches(all, ran, n, brandSel, levelSel) : []), [all, ran, n, brandSel, levelSel]);
 
   const read = (t: string) => {
     const s = parseSpecText(t);
@@ -301,6 +307,7 @@ function MatchView({ all, brands, regions }: { all: Fixture[]; brands: string[];
           );
         })}
         <BrandFilter brands={brands} regions={regions} value={brandSel} onChange={setBrandSel} label="Brands to choose from" />
+        <PriceFilter value={levelSel} onChange={setLevelSel} />
         <Row gap={8} wrap style={{ alignItems: 'flex-end', marginTop: 6 }}>
           <View>
             <Text style={{ fontSize: 13, color: colors.muted, marginBottom: 4 }}>Options to show</Text>
@@ -364,6 +371,7 @@ function CompareTable({ spec, results, devOnly }: { spec: Spec; results: Match[]
               </Row>
               <Text style={{ fontWeight: '800', color: colors.ink }}>{`${m.p.brand} ${m.p.code}`}</Text>
               <Text style={{ fontSize: 11, color: colors.muted }} numberOfLines={2}>{m.p.title}</Text>
+              <PriceTag level={m.p.priceLevel} />
               <Text style={{ fontSize: 11, fontWeight: '700', color: m.fails ? colors.red : m.minors ? colors.amber : colors.green }}>{summary(m)}</Text>
               {(m.p.shared ?? 0) > 1 ? <Text style={{ fontSize: 10, color: colors.faint }}>{`family photo · ${m.p.shared} models`}</Text> : null}
             </Pressable>
@@ -409,6 +417,7 @@ function MatchCards({ spec, results }: { spec: Spec; results: Match[] }) {
             <View style={{ flex: 1, gap: 3 }}>
               <Text style={{ fontWeight: '700', color: colors.ink }}>{`${m.p.brand} ${m.p.code}`}</Text>
               <Muted numberOfLines={1}>{m.p.title}</Muted>
+              <PriceTag level={m.p.priceLevel} />
               <Row gap={4} wrap>
                 {PARAMS.filter((p) => spec[p.key]?.v.trim() && m.cells[p.key] && m.cells[p.key]!.status !== 'ok').map((p) => {
                   const c = m.cells[p.key]!;

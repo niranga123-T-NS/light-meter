@@ -1,6 +1,6 @@
 import { Text, View } from 'react-native';
 import { Chip, colors, Row } from '@/components/ui';
-import { REGIONS, type Region } from '@/lib/fixtures';
+import { PRICE_LEVELS, REGIONS, type PriceLevel, type Region } from '@/lib/fixtures';
 
 /** Brands to search in: all, a category (European / China / Local / Other, set by the DGM or SM Estimation) or any few brands */
 export function BrandFilter({ brands, regions, value, onChange, label = 'Brands' }: { brands: string[]; regions: Record<string, Region>; value: string[]; onChange: (v: string[]) => void; label?: string }) {
@@ -20,6 +20,32 @@ export function BrandFilter({ brands, regions, value, onChange, label = 'Brands'
       <Row gap={6} wrap>
         {brands.map((b) => <Chip key={b} label={b} on={value.includes(b)} onPress={() => toggle(b)} />)}
       </Row>
+    </View>
+  );
+}
+
+/** Price levels to search in: all, or any of Budget / Mid / Upper Mid / High / Top (products without a level drop out once one is chosen) */
+export function PriceFilter({ value, onChange }: { value: PriceLevel[]; onChange: (v: PriceLevel[]) => void }) {
+  return (
+    <View style={{ gap: 6 }}>
+      <Text style={{ fontSize: 13, color: colors.muted }}>{value.length ? `Price levels – ${value.length} chosen (products without a level are left out)` : 'Price levels – all'}</Text>
+      <Row gap={6} wrap>
+        <Chip label="All levels" on={!value.length} onPress={() => onChange([])} />
+        {PRICE_LEVELS.map((l) => {
+          const on = value.includes(l.v);
+          return <Chip key={l.v} label={l.label} tone={on ? colors.green : undefined} on={on} onPress={() => onChange(on ? value.filter((x) => x !== l.v) : [...value, l.v])} />;
+        })}
+      </Row>
+    </View>
+  );
+}
+
+/** A product's price level, shown to everyone */
+export function PriceTag({ level }: { level?: PriceLevel }) {
+  if (!level) return null;
+  return (
+    <View style={{ alignSelf: 'flex-start', borderRadius: 999, borderWidth: 1, borderColor: colors.green, paddingHorizontal: 7, paddingVertical: 1 }}>
+      <Text style={{ fontSize: 11, fontWeight: '700', color: colors.green }}>{PRICE_LEVELS.find((x) => x.v === level)?.label}</Text>
     </View>
   );
 }
