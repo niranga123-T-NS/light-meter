@@ -10096,16 +10096,22 @@ select pg_temp.act_as('sm_estimation'); set role authenticated;
 insert into public.fixture_brands (brand, region) values ('Holux', 'china');
 insert into public.fixture_edits (product_id, patch, hidden) values ('holux:BP-6060-42D1', '{"lm": 4200, "ugr": null}', false), ('kyd:X-1', '{}', true);
 update public.fixture_brands set region = 'european' where brand = 'Holux';
+update public.fixture_brands set price_level = 'upper_mid' where brand = 'Holux';
+update public.fixture_edits set price_level = 'high' where product_id = 'holux:BP-6060-42D1';
+update public.fixture_edits set price_level = null, level_review = 'changed', level_prev = 'high', level_review_at = now() where product_id = 'holux:BP-6060-42D1';
+insert into public.fixture_brands (brand, price_level) values ('KYD', 'budget');
 do $$ begin
   assert (select region from public.fixture_brands where brand = 'Holux') = 'european', 'brand category changed';
   assert (select updated_by from public.fixture_edits where product_id = 'kyd:X-1') = auth.uid(), 'who changed it';
+  assert (select level_review from public.fixture_edits where product_id = 'holux:BP-6060-42D1') = 'changed', 'product level changed with the brand';
+  assert (select region is null and price_level = 'budget' from public.fixture_brands where brand = 'KYD'), 'a price level without a category';
 end $$;
 reset role;
 select pg_temp.act_as('asm_building'); set role authenticated;
 do $$ begin
   assert (select count(*) from public.fixture_edits) = 2, 'sales read the corrections and removals';
   begin
-    insert into public.fixture_brands (brand, region) values ('KYD', 'china');
+    insert into public.fixture_brands (brand, region) values ('ZC Lighting', 'china');
     raise exception 'sales should not set brand categories';
   exception when insufficient_privilege then null;
   end;

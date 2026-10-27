@@ -14,7 +14,7 @@ export function BrandFilter({ brands, regions, value, onChange, label = 'Brands'
           const inR = brands.filter((b) => regions[b] === r.v);
           if (!inR.length) return null;
           const on = inR.every((b) => value.includes(b));
-          return <Chip key={r.v} label={`${r.label} (${inR.length})`} tone={colors.blue} on={on} onPress={() => onChange(on ? value.filter((b) => !inR.includes(b)) : [...new Set([...value, ...inR])])} />;
+          return <Chip key={r.v} label={`${r.label} (${inR.length})`} tone={on ? colors.blue : undefined} on={on} onPress={() => onChange(on ? value.filter((b) => !inR.includes(b)) : [...new Set([...value, ...inR])])} />;
         })}
       </Row>
       <Row gap={6} wrap>

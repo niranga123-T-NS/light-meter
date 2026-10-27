@@ -18,6 +18,10 @@ export type Fixture = {
   note?: string; flag?: string; img?: string; shared?: number;
   /** data corrected in the catalog supervisor mode */
   edited?: boolean;
+  /** price level: the product's own, else the brand's */
+  priceLevel?: PriceLevel; priceOwn?: boolean;
+  /** what happened to the product's own level at the last brand level change */
+  levelReview?: { kind: 'changed' | 'kept'; prev: PriceLevel | null; at: string | null };
 };
 export const FIXTURE_TYPES = ['Emergency', 'Panel', 'Downlight', 'Track / spot', 'Linear', 'High bay', 'Floodlight', 'Street light', 'Tri-proof / batten', 'Ceiling light', 'Wall / bulkhead', 'Outdoor landscape', 'Tube / lamp', 'Strip / neon'];
 
@@ -36,26 +40,35 @@ export type Region = 'european' | 'china' | 'local' | 'other';
 export const REGIONS: { v: Region; label: string }[] = [{ v: 'european', label: 'European' }, { v: 'china', label: 'China' }, { v: 'local', label: 'Local' }, { v: 'other', label: 'Other' }];
 /** Who works in the catalog supervisor mode: the DGM and SM Estimation */
 export const CATALOG_SUPERVISORS = ['gm', 'sm_estimation'];
-export type FixtureEdit = { product_id: string; patch: Record<string, unknown>; hidden: boolean; updated_by: string | null; updated_at: string };
-export type Catalog = { built: string; products: Fixture[]; hidden: Fixture[]; regions: Record<string, Region>; edits: Record<string, FixtureEdit>; raw: Record<string, Fixture> };
+export type PriceLevel = 'budget' | 'mid' | 'upper_mid' | 'high' | 'top';
+export const PRICE_LEVELS: { v: PriceLevel; label: string }[] = [{ v: 'budget', label: 'Budget' }, { v: 'mid', label: 'Mid' }, { v: 'upper_mid', label: 'Upper Mid' }, { v: 'high', label: 'High' }, { v: 'top', label: 'Top' }];
+export const priceLabel = (l?: PriceLevel | null) => PRICE_LEVELS.find((x) => x.v === l)?.label ?? 'not set';
+export type FixtureEdit = { product_id: string; patch: Record<string, unknown>; hidden: boolean; price_level: PriceLevel | null; level_review: 'changed' | 'kept' | null; level_prev: PriceLevel | null; level_review_at: string | null; updated_by: string | null; updated_at: string };
+export type Catalog = { built: string; products: Fixture[]; hidden: Fixture[]; regions: Record<string, Region>; brandLevels: Record<string, PriceLevel>; edits: Record<string, FixtureEdit>; raw: Record<string, Fixture> };
 
 let cat: Promise<Catalog> | null = null;
 /** The library with the supervisor corrections laid over it; removed products are kept apart in `hidden` */
 export function loadCatalog(fresh = false) {
   if (!cat || fresh)
-    cat = Promise.all([loadFixtures(), supabase.from('fixture_brands').select('brand, region'), supabase.from('fixture_edits').select('*')]).then(([lib, b, e]) => {
-      const regions: Record<string, Region> = {};
-      for (const r of (b.data ?? []) as { brand: string; region: Region }[]) regions[r.brand] = r.region;
+    cat = Promise.all([loadFixtures(), supabase.from('fixture_brands').select('brand, region, price_level'), supabase.from('fixture_edits').select('*')]).then(([lib, b, e]) => {
+      const regions: Record<string, Region> = {}, brandLevels: Record<string, PriceLevel> = {};
+      for (const r of (b.data ?? []) as { brand: string; region: Region | null; price_level: PriceLevel | null }[]) {
+        if (r.region) regions[r.brand] = r.region;
+        if (r.price_level) brandLevels[r.brand] = r.price_level;
+      }
       const edits: Record<string, FixtureEdit> = {};
       for (const r of (e.data ?? []) as FixtureEdit[]) edits[r.product_id] = r;
       const raw: Record<string, Fixture> = {}, products: Fixture[] = [], hidden: Fixture[] = [];
       for (const p0 of lib.products) {
         raw[p0.id] = p0;
         const ed = edits[p0.id];
-        const p = ed && Object.keys(ed.patch).length ? applyPatch(p0, ed.patch) : p0;
+        let p = ed && Object.keys(ed.patch ?? {}).length ? applyPatch(p0, ed.patch) : p0;
+        const level = ed?.price_level ?? brandLevels[p0.brand];
+        if (level || ed?.level_review)
+          p = { ...p, priceLevel: level, priceOwn: !!ed?.price_level, levelReview: ed?.level_review ? { kind: ed.level_review, prev: ed.level_prev, at: ed.level_review_at } : undefined };
         (ed?.hidden ? hidden : products).push(p);
       }
-      return { built: lib.built, products, hidden, regions, edits, raw };
+      return { built: lib.built, products, hidden, regions, brandLevels, edits, raw };
     });
   cat.catch(() => (cat = null));
   return cat;
@@ -138,13 +151,35 @@ export function buildPatch(raw: Fixture, form: Record<string, string>) {
   return patch;
 }
 
-export async function saveFixtureEdit(id: string, row: { patch?: Record<string, unknown>; hidden?: boolean }) {
+export async function saveFixtureEdit(id: string, row: { patch?: Record<string, unknown>; hidden?: boolean; price_level?: PriceLevel | null; level_review?: 'changed' | 'kept' | null; level_prev?: PriceLevel | null; level_review_at?: string | null }) {
   const { error } = await supabase.from('fixture_edits').upsert({ product_id: id, ...row }, { onConflict: 'product_id' });
   if (error) throw new Error(error.message);
 }
 export async function setBrandRegion(brand: string, region: Region | null) {
-  const { error } = region ? await supabase.from('fixture_brands').upsert({ brand, region }, { onConflict: 'brand' }) : await supabase.from('fixture_brands').delete().eq('brand', brand);
+  const { error } = await supabase.from('fixture_brands').upsert({ brand, region }, { onConflict: 'brand' });
   if (error) throw new Error(error.message);
+}
+export async function setBrandPriceLevel(brand: string, level: PriceLevel | null) {
+  const { error } = await supabase.from('fixture_brands').upsert({ brand, price_level: level }, { onConflict: 'brand' });
+  if (error) throw new Error(error.message);
+}
+/** A product's own price level (null = follows the brand); clears the brand-change highlight */
+export async function setProductPriceLevel(id: string, level: PriceLevel | null) {
+  await saveFixtureEdit(id, { price_level: level, level_review: null, level_prev: null, level_review_at: null });
+}
+/** After a brand level change: the products with their own level either take the brand level ('changed') or keep theirs ('kept') */
+export async function brandLevelFollowUp(own: { id: string; level: PriceLevel }[], change: boolean, same: string[] = []) {
+  const at = new Date().toISOString();
+  const rows: Record<string, unknown>[] = own.map((o) => (change ? { product_id: o.id, price_level: null, level_review: 'changed', level_prev: o.level, level_review_at: at } : { product_id: o.id, level_review: 'kept', level_prev: null, level_review_at: at }));
+  // own level already the same as the new brand level: nothing to highlight
+  const clear: Record<string, unknown>[] = same.map((id) => ({ product_id: id, level_review: null, level_prev: null, level_review_at: null }));
+  for (const batch of [rows, clear].filter((x) => x.length)) {
+    const { error } = await supabase.from('fixture_edits').upsert(batch, { onConflict: 'product_id' });
+    if (error) throw new Error(error.message);
+  }
+}
+export async function clearLevelReview(id: string) {
+  await saveFixtureEdit(id, { level_review: null, level_prev: null, level_review_at: null });
 }
 /** Values a product has no data for (shown to the supervisors as "Missing") */
 export const missingData = (p: Fixture) => [p.w == null && 'power', p.lm == null && 'lumens', !p.cct.k.length && !p.cct.rgb && 'CCT', p.ip == null && 'IP', !p.img && 'photo'].filter(Boolean) as string[];

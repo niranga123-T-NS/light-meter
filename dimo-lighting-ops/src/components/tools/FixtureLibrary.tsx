@@ -7,14 +7,15 @@ import { useMe } from '@/lib/auth';
 import { pickDocument } from '@/lib/files';
 import {
   bestMatches, buildPatch, CATALOG_SUPERVISORS, cctText, EDIT_FIELDS, editText, FIXTURE_TYPES, fixtureImage, fmt, loadCatalog, missingData, PARAMS, parseSpecText, readDatasheet, REGIONS,
-  saveFixtureEdit, searchFixtures, setBrandRegion, STATUS_STYLE, wattText, type Catalog, type Fixture, type Level, type Match, type ParamKey, type Region, type Spec,
+  brandLevelFollowUp, clearLevelReview, PRICE_LEVELS, priceLabel, saveFixtureEdit, searchFixtures, setBrandPriceLevel, setBrandRegion, setProductPriceLevel, STATUS_STYLE, wattText, type Catalog, type Fixture, type Level, type Match, type ParamKey, type PriceLevel, type Region, type Spec,
 } from '@/lib/fixtures';
+import { fmtDateTime } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import { BrandFilter } from './BrandFilter';
 import { PhotoSearchView } from './PhotoSearch';
 
 /** What a supervisor can do from a search result */
-type Sup = { edit: (p: Fixture) => void; remove: (p: Fixture) => void; restore: (p: Fixture) => void; reset: (p: Fixture) => void; cat: Catalog };
+type Sup = { edit: (p: Fixture) => void; remove: (p: Fixture) => void; restore: (p: Fixture) => void; reset: (p: Fixture) => void; level: (p: Fixture, l: PriceLevel | null) => void; seen: (p: Fixture) => void; cat: Catalog };
 
 /** Fixture library: every model from the manufacturer catalogues – quick search, search by photo, and "Find a match" for a BOQ line or a competitor datasheet.
  *  The DGM and SM Estimation get the catalog supervisor mode: brand categories, correct missing data, remove / restore products. */
@@ -48,7 +49,26 @@ export function FixtureLibrary() {
       if (await dialog.confirm(`Back to the catalogue data for ${p.brand} ${p.code}?`, 'Your corrections to this product are deleted.', { confirmLabel: 'Put back', danger: true }))
         await dialog.run(async () => { await saveFixtureEdit(p.id, { patch: {} }); await refresh(); }, 'Catalogue data put back');
     },
+    level: (p, l) => void dialog.run(async () => { await setProductPriceLevel(p.id, l); await refresh(); }),
+    seen: (p) => void dialog.run(async () => { await clearLevelReview(p.id); await refresh(); }),
   } : null;
+  // brand price level: the products with their own level change with it (Yes) or keep theirs (No)
+  const setBrandLevel = async (brand: string, level: PriceLevel | null) => {
+    const own = Object.values(data.edits)
+      .filter((e) => e.price_level && e.price_level !== level && data.raw[e.product_id]?.brand === brand)
+      .map((e) => ({ id: e.product_id, level: e.price_level! }));
+    const same = Object.values(data.edits).filter((e) => e.level_review && e.price_level === level && data.raw[e.product_id]?.brand === brand).map((e) => e.product_id);
+    let change = false;
+    if (own.length) {
+      const list = own.slice(0, 6).map((o) => `${data.raw[o.id]?.code} (${priceLabel(o.level)})`).join(', ') + (own.length > 6 ? ` and ${own.length - 6} more` : '');
+      change = await dialog.confirm(
+        'Product price levels will be changed',
+        `${own.length} product${own.length > 1 ? 's' : ''} of ${brand} ${own.length > 1 ? 'have' : 'has'} their own price level: ${list}.\n\nChange ${own.length > 1 ? 'them' : 'it'} to ${priceLabel(level)} too?\n\nYes – the brand and these products change.\nNo – these keep their own level; the rest of ${brand} follows the brand.`,
+        { confirmLabel: 'Yes', cancelLabel: 'No' },
+      );
+    }
+    await dialog.run(async () => { await setBrandPriceLevel(brand, level); await brandLevelFollowUp(own, change, same); await refresh(); }, own.length ? (change ? `${brand} and ${own.length} product level${own.length > 1 ? 's' : ''} changed` : `${brand} changed – ${own.length} product level${own.length > 1 ? 's' : ''} kept`) : `${brand}: ${priceLabel(level)}`);
+  };
   return (
     <View style={{ gap: 10 }}>
       {canSup ? (
@@ -57,7 +77,7 @@ export function FixtureLibrary() {
           {supOn ? <Muted>Only the DGM and SM Estimation see this: brand categories, correct or delete product data, remove products from the catalog.</Muted> : null}
         </Row>
       ) : null}
-      {sup ? <BrandCategories brands={brands} cat={data} onSet={(b, r) => dialog.run(async () => { await setBrandRegion(b, r); await refresh(); })} /> : null}
+      {sup ? <BrandCategories brands={brands} cat={data} onSet={(b, r) => dialog.run(async () => { await setBrandRegion(b, r); await refresh(); })} onLevel={(b, l) => setBrandLevel(b, l)} /> : null}
       <Segmented
         value={mode}
         onChange={setMode}
@@ -74,21 +94,57 @@ export function FixtureLibrary() {
 }
 
 /** Supervisor: each brand under European, China, Local or Other */
-function BrandCategories({ brands, cat, onSet }: { brands: string[]; cat: Catalog; onSet: (brand: string, r: Region | null) => void }) {
-  const count = (b: string) => cat.products.filter((p) => p.brand === b).length;
+function BrandCategories({ brands, cat, onSet, onLevel }: { brands: string[]; cat: Catalog; onSet: (brand: string, r: Region | null) => void; onLevel: (brand: string, l: PriceLevel | null) => void }) {
+  const all = [...cat.products, ...cat.hidden];
   return (
     <Card style={{ gap: 6 }}>
-      <Text style={{ fontWeight: '700', color: colors.ink }}>Brand categories</Text>
-      <Muted>Used by everyone to search in a group of brands (e.g. European only). Tap a category to set it.</Muted>
-      {brands.map((b) => (
-        <Row key={b} gap={8} wrap style={{ alignItems: 'center', paddingVertical: 2, borderBottomWidth: 1, borderColor: '#F3F4F6' }}>
-          <Text style={{ width: 170, fontWeight: '700', color: colors.ink }}>{b}</Text>
-          <Muted style={{ width: 90, fontSize: 12 }}>{`${count(b)} products`}</Muted>
-          {REGIONS.map((r) => <Chip key={r.v} label={r.label} on={cat.regions[b] === r.v} onPress={() => onSet(b, cat.regions[b] === r.v ? null : r.v)} />)}
-          {!cat.regions[b] ? <Text style={{ fontSize: 12, color: colors.amber }}>not set</Text> : null}
-        </Row>
-      ))}
+      <Text style={{ fontWeight: '700', color: colors.ink }}>Brand categories and price levels</Text>
+      <Muted>Category: used by everyone to search in a group of brands (e.g. European only). Price level: the brand&apos;s level is the default for its products; a product can have its own level (set it on the product below).</Muted>
+      {brands.map((b) => {
+        const ps = all.filter((p) => p.brand === b);
+        const levels = PRICE_LEVELS.filter((l) => ps.some((p) => p.priceLevel === l.v));
+        const own = ps.filter((p) => p.priceOwn).length;
+        return (
+          <View key={b} style={{ gap: 4, paddingVertical: 6, borderBottomWidth: 1, borderColor: '#F3F4F6' }}>
+            <Row gap={8} wrap style={{ alignItems: 'center' }}>
+              <Text style={{ width: 170, fontWeight: '700', color: colors.ink }}>{b}</Text>
+              <Muted style={{ width: 90, fontSize: 12 }}>{`${ps.length} products`}</Muted>
+              {REGIONS.map((r) => <Chip key={r.v} label={r.label} on={cat.regions[b] === r.v} onPress={() => onSet(b, cat.regions[b] === r.v ? null : r.v)} />)}
+              {!cat.regions[b] ? <Text style={{ fontSize: 12, color: colors.amber }}>not set</Text> : null}
+            </Row>
+            <Row gap={6} wrap style={{ alignItems: 'center', paddingLeft: 268 }}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: colors.muted }}>Price level</Text>
+              {PRICE_LEVELS.map((l) => <Chip key={l.v} label={l.label} tone={cat.brandLevels[b] === l.v ? colors.green : undefined} on={cat.brandLevels[b] === l.v} onPress={() => onLevel(b, cat.brandLevels[b] === l.v ? null : l.v)} />)}
+              <Text style={{ fontSize: 12, color: levels.length ? colors.text : colors.amber }}>{levels.length ? `Levels in its products: ${levels.map((l) => l.label).join(' · ')}${own ? ` · ${own} with their own level` : ''}` : 'not set'}</Text>
+            </Row>
+          </View>
+        );
+      })}
     </Card>
+  );
+}
+
+/** Supervisor: a product's price level and what the last brand level change did to it */
+function ProductLevel({ p, sup }: { p: Fixture; sup: Sup }) {
+  const brandL = sup.cat.brandLevels[p.brand];
+  const r = p.levelReview;
+  return (
+    <View style={{ gap: 4, marginTop: 4 }}>
+      <Row gap={4} wrap style={{ alignItems: 'center' }}>
+        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.muted }}>Price level</Text>
+        {PRICE_LEVELS.map((l) => <Chip key={l.v} label={l.label} tone={p.priceLevel === l.v ? (p.priceOwn ? colors.blue : colors.green) : undefined} on={p.priceLevel === l.v} onPress={() => sup.level(p, l.v === brandL || (p.priceOwn && p.priceLevel === l.v) ? null : l.v)} />)}
+        <Text style={{ fontSize: 12, color: p.priceOwn ? colors.blue : colors.muted }}>{p.priceOwn ? `own level (brand: ${priceLabel(brandL)})` : brandL ? 'from the brand' : 'not set'}</Text>
+      </Row>
+      {r ? (
+        <Row gap={8} wrap style={{ alignItems: 'center', backgroundColor: r.kind === 'changed' ? '#FEF3C7' : '#DBEAFE', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 }}>
+          <Text style={{ fontSize: 12, fontWeight: '700', color: r.kind === 'changed' ? '#78350F' : '#1E3A8A' }}>
+            {r.kind === 'changed' ? `Changed with the brand: ${priceLabel(r.prev)} → ${priceLabel(p.priceLevel)}` : `Own level kept: ${priceLabel(p.priceLevel)} (brand now ${priceLabel(brandL)})`}
+            {r.at ? ` · ${fmtDateTime(r.at)}` : ''}
+          </Text>
+          <Text onPress={() => sup.seen(p)} style={{ fontSize: 12, fontWeight: '700', color: colors.blue }}>OK, checked</Text>
+        </Row>
+      ) : null}
+    </View>
   );
 }
 
@@ -112,10 +168,10 @@ function SearchView({ all, brands, regions, sup }: { all: Fixture[]; brands: str
   const [q, setQ] = useState('');
   const [type, setType] = useState('');
   const [brandSel, setBrandSel] = useState<string[]>([]);
-  const [show, setShow] = useState<'all' | 'missing' | 'edited' | 'removed'>('all');
+  const [show, setShow] = useState<'all' | 'missing' | 'edited' | 'levels' | 'removed'>('all');
   const [limit, setLimit] = useState(60);
   const view = sup ? show : 'all';
-  const src = useMemo(() => (view === 'removed' ? sup!.cat.hidden : view === 'missing' ? all.filter((p) => missingData(p).length) : view === 'edited' ? all.filter((p) => p.edited) : all), [all, sup, view]);
+  const src = useMemo(() => (view === 'removed' ? sup!.cat.hidden : view === 'missing' ? all.filter((p) => missingData(p).length) : view === 'edited' ? all.filter((p) => p.edited) : view === 'levels' ? all.filter((p) => p.levelReview) : all), [all, sup, view]);
   const hits = useMemo(() => searchFixtures(src, q, { type, brands: brandSel }), [src, q, type, brandSel]);
   return (
     <View style={{ gap: 8 }}>
@@ -127,9 +183,10 @@ function SearchView({ all, brands, regions, sup }: { all: Fixture[]; brands: str
       {sup ? (
         <Row gap={6} wrap>
           <Chip label="In the catalog" on={show === 'all'} onPress={() => setShow('all')} />
-          <Chip label={`Missing data (${all.filter((p) => missingData(p).length).length})`} tone={colors.amber} on={show === 'missing'} onPress={() => setShow('missing')} />
-          <Chip label={`Corrected (${all.filter((p) => p.edited).length})`} tone={colors.blue} on={show === 'edited'} onPress={() => setShow('edited')} />
-          <Chip label={`Removed (${sup.cat.hidden.length})`} tone={colors.red} on={show === 'removed'} onPress={() => setShow('removed')} />
+          <Chip label={`Missing data (${all.filter((p) => missingData(p).length).length})`} tone={show === 'missing' ? colors.amber : undefined} on={show === 'missing'} onPress={() => setShow('missing')} />
+          <Chip label={`Corrected (${all.filter((p) => p.edited).length})`} tone={show === 'edited' ? colors.blue : undefined} on={show === 'edited'} onPress={() => setShow('edited')} />
+          <Chip label={`Price level changes (${all.filter((p) => p.levelReview).length})`} tone={show === 'levels' ? colors.green : undefined} on={show === 'levels'} onPress={() => setShow('levels')} />
+          <Chip label={`Removed (${sup.cat.hidden.length})`} tone={show === 'removed' ? colors.red : undefined} on={show === 'removed'} onPress={() => setShow('removed')} />
         </Row>
       ) : null}
       <Muted>{`${hits.length.toLocaleString('en-US')} found${q ? '' : ' – type to narrow down'}. Values: 36w · 4000lm · 4000k · ip65 · ik08 · ugr19 · cri90 · dali`}</Muted>
@@ -143,6 +200,7 @@ function SearchView({ all, brands, regions, sup }: { all: Fixture[]; brands: str
               <Text style={{ fontSize: 13, color: colors.text }}>{spec1(p)}</Text>
               {p.flag ? <Text style={{ fontSize: 12, color: colors.amber }} numberOfLines={1}>{`⚠ ${p.flag}`}</Text> : null}
               {sup && missingData(p).length ? <Text style={{ fontSize: 12, color: colors.amber }}>{`Missing: ${missingData(p).join(', ')}`}</Text> : null}
+              {sup && view !== 'removed' ? <ProductLevel p={p} sup={sup} /> : null}
             </View>
             {sup ? (
               <View style={{ gap: 6, alignItems: 'flex-end' }}>
