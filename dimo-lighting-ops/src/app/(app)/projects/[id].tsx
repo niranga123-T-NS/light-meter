@@ -1,7 +1,8 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
-import { InquiryCard } from '@/components/InquiryBits';
+import { CLOSED_INQUIRY, InquiryCard } from '@/components/InquiryBits';
 import { Button, Card, colors, ErrorBanner, KeyValue, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section, Toggle } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { MILESTONES } from '@/lib/constants';
@@ -19,6 +20,7 @@ import { ProjectTeam } from '@/components/ProjectTeam';
 export default function ProjectDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const me = useMe();
+  const [showClosed, setShowClosed] = useState(false);
   const people = usePeople();
   const masters = useMasters();
   const dialog = useDialog();
@@ -388,10 +390,17 @@ export default function ProjectDetail() {
 
       <Section title={`Inquiries (${inquiries.length})`} right={isSales(me.role) || manager ? <Button small title="+ Inquiry" onPress={() => router.push(`/inquiries/new?project=${p.id}`)} /> : undefined}>
         <View style={{ gap: 8 }}>
-          {inquiries.map((i) => (
+          {inquiries.filter((i) => !CLOSED_INQUIRY.includes(i.status)).map((i) => (
             <InquiryCard key={i.id} inquiry={i} />
           ))}
           {!inquiries.length ? <Muted>No inquiries yet</Muted> : null}
+          {/* won, lost, cancelled and rejected ones below the open ones, folded */}
+          {inquiries.some((i) => CLOSED_INQUIRY.includes(i.status)) ? (
+            <Text onPress={() => setShowClosed(!showClosed)} style={{ fontSize: 13, fontWeight: '700', color: colors.blue, paddingVertical: 4 }}>
+              {`${showClosed ? '▾' : '▸'} Closed inquiries (${inquiries.filter((i) => CLOSED_INQUIRY.includes(i.status)).length}) – won, lost, cancelled`}
+            </Text>
+          ) : null}
+          {showClosed ? inquiries.filter((i) => CLOSED_INQUIRY.includes(i.status)).map((i) => <InquiryCard key={i.id} inquiry={i} />) : null}
         </View>
         {quotations.length ? (
           <Card style={{ marginTop: 8 }}>

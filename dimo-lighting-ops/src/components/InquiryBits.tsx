@@ -42,9 +42,30 @@ export function deadlineNote(i: Pick<Inquiry, 'status' | 'customer_deadline' | '
 }
 
 /** Progress-tracker card: stage, %, dates, colour – what Sales sees (Section 5.4). */
+/** Inquiries that are finished: no SLA colour, no progress, shown greyed */
+export const CLOSED_INQUIRY = ['won', 'lost', 'cancelled', 'rejected'];
+const CLOSED_TONE: Record<string, string> = { won: colors.green, lost: colors.red, cancelled: colors.grey, rejected: colors.grey };
+
 export function InquiryCard({ inquiry, ownerName }: { inquiry: Inquiry; ownerName?: string }) {
   const dn = deadlineNote(inquiry);
-  const colour = inquiryColour(inquiry, colourSide(useMe().role));
+  const live = inquiryColour(inquiry, colourSide(useMe().role));
+  const closed = CLOSED_INQUIRY.includes(inquiry.status);
+  if (closed) {
+    return (
+      <Card onPress={() => router.push(`/inquiries/${inquiry.id}`)} style={{ borderLeftWidth: 4, borderLeftColor: colors.line, backgroundColor: '#FAFAFA' }}>
+        <Row style={{ justifyContent: 'space-between' }}>
+          <Row gap={6}>
+            <Text style={{ fontWeight: '700', color: colors.muted }}>{`${inquiry.code}${inquiry.revision ? `-R${inquiry.revision}` : ''}`}</Text>
+            <Pill label={`Route ${inquiry.route}`} />
+          </Row>
+          <Pill label={INQUIRY_STATUS_LABEL[inquiry.status] ?? inquiry.status} tone={CLOSED_TONE[inquiry.status] ?? colors.grey} solid={inquiry.status === 'cancelled'} />
+        </Row>
+        <Text style={{ marginTop: 6, fontWeight: '600', color: colors.muted }} numberOfLines={1}>{inquiryTitle(inquiry)}</Text>
+        <Muted>{`${inquiry.customer_name ?? ''}${ownerName ? ` · ${ownerName}` : ''}`}</Muted>
+      </Card>
+    );
+  }
+  const colour = live;
   return (
     <Card onPress={() => router.push(`/inquiries/${inquiry.id}`)} style={{ borderLeftWidth: 4, borderLeftColor: STAGE_COLOUR[colour] }}>
       <Row style={{ justifyContent: 'space-between' }}>
