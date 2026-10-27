@@ -16,7 +16,7 @@ import { useLoad } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 
 type Step = 'upload' | 'check' | 'results' | 'save';
-const EDIT_ROLES = ['gm', 'sm_estimation', 'am_estimation', 'estimation_exec'];
+const EDIT_ROLES = ['gm', 'sm_projects', 'sm_estimation', 'am_estimation', 'estimation_exec'];
 const LEVEL_TONE: Record<Level, string> = { must: colors.brand, important: colors.ink, nice: colors.muted };
 const GRADE: Record<LineResult['grade'] | 'chosen' | 'nomatch', { label: string; tone: string }> = {
   all: { label: 'Meets all values', tone: colors.green },
@@ -152,7 +152,10 @@ export default function BoqMatchScreen() {
           <Text style={{ fontSize: 17, fontWeight: '800', color: colors.ink }}>{`${job.inquiries?.code ?? ''} · ${job.inquiries?.project_name ?? ''}`}</Text>
           <Muted>{fileName ? `BOQ match › ${fileName}${sheet ? ` › ${sheet.name}` : ''}` : 'BOQ match – the best catalogue options for every line of the client\'s BOQ'}</Muted>
         </View>
-        <Button small variant="ghost" title="Back to the estimate" onPress={() => router.push(`/estimation/${job.id}`)} />
+        <Row gap={6}>
+          <Button small variant="ghost" title="All BOQ matches" onPress={() => router.push('/estimating/boq')} />
+          <Button small variant="ghost" title="Back to the estimate" onPress={() => router.push(`/estimation/${job.id}`)} />
+        </Row>
       </Row>
       <View style={{ marginTop: 10 }}>{header}</View>
 
