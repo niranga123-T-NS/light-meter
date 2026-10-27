@@ -10152,7 +10152,7 @@ end $$;
 reset role;
 
 -- An estimator's hold request goes to SM Estimation (it failed with 'column reference "code" is ambiguous')
-select set_config('test.hold_job', (select id::text from public.estimation_jobs where status not in ('released', 'cancelled') order by created_at limit 1), false);
+select set_config('test.hold_job', (select id::text from public.estimation_jobs order by created_at limit 1), false);
 update public.estimation_jobs set assignee_id = (select id from u where role = 'estimation_exec') where id = current_setting('test.hold_job')::uuid;
 select pg_temp.act_as('estimation_exec'); set role authenticated;
 select public.hold_job('estimation_job', current_setting('test.hold_job')::uuid, 'Waiting for the supplier price list');
