@@ -10151,5 +10151,14 @@ do $$ begin
 end $$;
 reset role;
 
+-- An estimator's hold request goes to SM Estimation (it failed with 'column reference "code" is ambiguous')
+update public.estimation_jobs set assignee_id = (select id from u where role = 'estimation_exec') where inquiry_id = '00000000-0000-0000-0000-0000000de001';
+select pg_temp.act_as('estimation_exec'); set role authenticated;
+select public.hold_job('estimation_job', (select id from public.estimation_jobs where inquiry_id = '00000000-0000-0000-0000-0000000de001'), 'Waiting for the supplier price list');
+reset role;
+do $$ begin
+  assert exists (select 1 from public.approvals where kind = 'estimation_hold' and entity_id = (select id from public.estimation_jobs where inquiry_id = '00000000-0000-0000-0000-0000000de001') and status = 'pending'), 'hold request waits for SM Estimation';
+end $$;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
