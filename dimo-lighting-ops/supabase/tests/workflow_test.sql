@@ -8985,6 +8985,15 @@ insert into public.inquiries (id, project_id, organization_id, unit_id, route, d
 values ('00000000-0000-0000-0000-00000000d9d1', '00000000-0000-0000-0000-00000000b001', '00000000-0000-0000-0000-00000000a001', '00000000-0000-0000-0000-00000000a002',
         'A', 'duty_paid', 'lighting', current_date + 30, current_date + 12, current_date + 25, 'Raised twice by mistake – same lobby package', 'high', 'european');
 reset role;
+-- an estimator has already started on it
+insert into public.estimation_jobs (inquiry_id, source, status, assignee_id, due_at)
+  values ('00000000-0000-0000-0000-00000000d9d1', 'direct', 'in_progress', (select id from u where role = 'estimation_exec'), now() + interval '3 days');
+-- and a saved estimation meeting pack lists it as overdue
+insert into public.sales_meetings (team, meeting_date, ends_at, pack)
+  select 'estimation', date '2031-03-03', time '10:00', jsonb_build_object('team', jsonb_build_object('overdue_n', 2, 'overdue',
+    jsonb_build_array(jsonb_build_object('code', code, 'days', 1), jsonb_build_object('code', 'INQ-KEEP', 'days', 2)), 'at_risk_n', 1, 'at_risk', jsonb_build_array(jsonb_build_object('code', code))),
+    'people', jsonb_build_array(jsonb_build_object('name', 'Est', 'in_hand_n', 3, 'overdue', jsonb_build_array(jsonb_build_object('code', code)), 'due_soon', '[]'::jsonb)))
+  from public.inquiries where id = '00000000-0000-0000-0000-00000000d9d1';
 select pg_temp.act_as('asm_infra'); set role authenticated;
 do $$ begin
   begin perform public.discard_inquiry('00000000-0000-0000-0000-00000000d9d1', 'Not my inquiry at all'); assert false, 'only the sales person who raised it'; exception when raise_exception then null; end;
@@ -9001,6 +9010,13 @@ do $$ declare i public.inquiries; begin
   begin perform public.discard_inquiry(i.id, 'Second time should not work'); assert false, 'already closed'; exception when raise_exception then null; end;
 end $$;
 reset role;
+do $$ begin
+  assert (select status from public.estimation_jobs where inquiry_id = '00000000-0000-0000-0000-00000000d9d1') = 'cancelled', 'the started estimation job is cancelled, not left in progress';
+  assert (select pack->'team'->'overdue' = '[{"code": "INQ-KEEP", "days": 2}]' and pack->'team'->>'overdue_n' = '1' and pack->'team'->'at_risk' = '[]'
+            and pack->'team'->>'at_risk_n' = '0' and pack->'people'->0->'overdue' = '[]' and pack->'people'->0->>'in_hand_n' = '2'
+            from public.sales_meetings where team = 'estimation' and meeting_date = date '2031-03-03'), 'the saved meeting pack no longer shows the cancelled inquiry';
+  delete from public.sales_meetings where team = 'estimation' and meeting_date = date '2031-03-03';
+end $$;
 
 -- CSI survey: started by the sales person, filled by the customer through the link (no login)
 select pg_temp.act_as('asm_building'); set role authenticated;

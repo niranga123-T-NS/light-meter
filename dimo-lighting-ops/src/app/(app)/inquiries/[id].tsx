@@ -6,7 +6,7 @@ import { DeadlineCard } from '@/components/DeadlineCard';
 import { DesignNotes } from '@/components/DesignNotes';
 import { ProjectTeam } from '@/components/ProjectTeam';
 import { useDialog } from '@/components/dialog';
-import { deadlineCounting, deadlineNote, InquiryTimeline, REVISION_FLAG_AFTER, RevisionFlag, STAGE_COLOUR } from '@/components/InquiryBits';
+import { CLOSED_INQUIRY, deadlineCounting, deadlineNote, InquiryTimeline, REVISION_FLAG_AFTER, RevisionFlag, STAGE_COLOUR } from '@/components/InquiryBits';
 import { PersonPicker } from '@/components/pickers';
 import { DESIGN_SCOPE, designScopeText, ESTIMATION_BASIS, ESTIMATION_SCOPE, estimationScopeText } from '@/lib/constants';
 import { Button, Card, colors, DateField, ErrorBanner, KeyValue, ListRow, Loading, Muted, Notice, Pill, Progress, Row, Screen, Section, Select, SlaDot } from '@/components/ui';
@@ -99,6 +99,7 @@ export default function InquiryDetail() {
   const openOthers = group.filter((g) => g.id !== i.id && !['won', 'lost', 'cancelled', 'rejected'].includes(g.status));
   const mineAsSales = i.sales_person_id === me.id || me.role === 'sm_projects' || me.role === 'gm';
   const side = colourSide(me.role), colour = inquiryColour(i, side);
+  const closed = CLOSED_INQUIRY.includes(i.status);
   const ownLate = late.filter((st) => side === 'all' || st.side === side), otherLate = side === 'all' ? [] : late.filter((st) => st.side !== side);
   // The countdown runs only while the team still works towards the deadline; after the quotation it shows when it went
   const dn = deadlineNote(i);
@@ -529,8 +530,8 @@ export default function InquiryDetail() {
             </Muted>
           </View>
           <Row gap={6} wrap>
-            <SlaDot colour={colour} size={14} />
-            <Pill label={INQUIRY_STATUS_LABEL[i.status]} tone={STAGE_COLOUR[colour]} solid />
+            {closed ? null : <SlaDot colour={colour} size={14} />}
+            <Pill label={INQUIRY_STATUS_LABEL[i.status]} tone={closed ? (i.status === 'won' ? colors.green : i.status === 'lost' ? colors.red : colors.grey) : STAGE_COLOUR[colour]} solid />
             <Pill label={`Route ${i.route}`} />
             {i.release_mode ? <Pill label={`Mode ${i.release_mode}${i.release_mode_confirmed ? '' : ' (to confirm)'}`} tone={i.release_mode_confirmed ? colors.green : colors.amber} /> : null}
             {i.duty_status ? <Pill label={`${i.duty_status === 'duty_free' ? 'Duty Free' : 'Duty Paid'} · ${i.currency}`} tone={colors.blue} solid /> : null}
@@ -539,13 +540,16 @@ export default function InquiryDetail() {
             <RevisionFlag revision={i.revision} />
           </Row>
         </Row>
-        <View style={{ marginVertical: 10 }}>
-          <Progress pct={i.progress_pct} colour={STAGE_COLOUR[colour]} />
-          <Muted>{i.progress_pct}% complete</Muted>
-        </View>
+        {/* a closed inquiry (won, lost, cancelled, rejected) has no progress, owner or due date any more */}
+        {closed ? null : (
+          <View style={{ marginVertical: 10 }}>
+            <Progress pct={i.progress_pct} colour={STAGE_COLOUR[colour]} />
+            <Muted>{i.progress_pct}% complete</Muted>
+          </View>
+        )}
         <Row wrap>
-          <KeyValue label="Current owner" value={people[i.current_owner_id ?? '']?.full_name ?? '—'} />
-          <KeyValue label="Current due" value={fmtDateTime(i.current_due_at)} />
+          {closed ? null : <KeyValue label="Current owner" value={people[i.current_owner_id ?? '']?.full_name ?? '—'} />}
+          {closed ? null : <KeyValue label="Current due" value={fmtDateTime(i.current_due_at)} />}
           <KeyValue
             label={isTender(i) ? 'Tender closes (fixed)' : 'Client deadline'}
             value={`${isTender(i) ? fmtDateTime(i.tender_closes_at) : counting ? fmtDate(i.customer_deadline) : dn.text.replace('Customer deadline ', '')}${daysLeft != null ? ` (${daysLeft} days)` : ''}${i.extension_status === 'requested' ? ' · extension asked' : ''}`}
