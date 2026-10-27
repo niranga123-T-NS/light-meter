@@ -23,7 +23,7 @@ export default function EstimationBoq() {
   const { data, error, loading, reload } = useLoad(async () => {
     const [{ data: jobs, error: e }, { data: saved, error: e2 }, { data: custom, error: e3 }] = await Promise.all([
       supabase.from('estimation_jobs').select('id, revision, source, status, created_at, inquiries(code, project_name, customer_name)').order('created_at', { ascending: false }).limit(300),
-      supabase.from('boq_matches').select('id, estimation_job_id, boq_project_id, file_name, sheet, lines, updated_at, estimation_jobs(revision, inquiries(code, project_name)), boq_projects(ref, project_name)').order('updated_at', { ascending: false }).limit(30),
+      supabase.from('boq_matches').select('id, estimation_job_id, boq_project_id, file_name, sheet, lines, updated_at, estimation_jobs(revision, inquiries(code, project_name)), boq_projects(ref, project_name)').order('updated_at', { ascending: false }).limit(100),
       supabase.from('boq_projects').select('*').order('created_at', { ascending: false }),
     ]);
     if (e || e2 || e3) throw new Error((e ?? e2 ?? e3)!.message);
@@ -36,9 +36,9 @@ export default function EstimationBoq() {
   }, [data]);
   const shown = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const jobs = data?.jobs ?? [];
+    const jobs = (data?.jobs ?? []).filter((j) => !savedCount.has(j.id));
     return (q ? jobs.filter((j) => `${j.inquiries?.code} ${j.inquiries?.project_name} ${j.inquiries?.customer_name}`.toLowerCase().includes(q)) : jobs).slice(0, 40);
-  }, [data, search]);
+  }, [data, search, savedCount]);
   const customShown = useMemo(() => {
     const q = search.trim().toLowerCase();
     return (data?.custom ?? []).filter((p) => !q || `${p.ref} ${p.project_name} ${p.customer_name ?? ''}`.toLowerCase().includes(q));
@@ -69,6 +69,17 @@ export default function EstimationBoq() {
     if (await dialog.confirm(`Delete ${p.ref}?`, n ? `Its ${n} saved BOQ match${n > 1 ? 'es are' : ' is'} deleted too.` : undefined, { confirmLabel: 'Delete', danger: true }))
       await dialog.run(async () => { await deleteBoqProject(p.id); await reload(); }, 'Deleted');
   };
+  // deleting a saved match puts its estimate back in the list to choose from
+  const removeSaved = async (s: Saved) => {
+    const name = s.boq_projects ? s.boq_projects.ref : s.estimation_jobs?.inquiries?.code ?? 'this BOQ match';
+    if (!(await dialog.confirm(`Delete the saved BOQ match of ${name}?`, `${s.file_name} and the choices made in it are deleted. This cannot be undone.`, { confirmLabel: 'Delete', danger: true }))) return;
+    await dialog.run(async () => {
+      const { data: gone, error: de } = await supabase.from('boq_matches').delete().eq('id', s.id).select('id');
+      if (de) throw new Error(de.message);
+      if (!gone?.length) throw new Error('You cannot delete this BOQ match');
+      await reload();
+    }, 'Deleted');
+  };
   return (
     <Screen maxWidth={1100}>
       <Stack.Screen options={{ title: 'Estimation' }} />
@@ -86,7 +97,12 @@ export default function EstimationBoq() {
                   key={s.id}
                   title={s.boq_projects ? `${s.boq_projects.ref} · ${s.boq_projects.project_name} · not in the system` : `${s.estimation_jobs?.inquiries?.code ?? '—'} · ${s.estimation_jobs?.inquiries?.project_name ?? ''} · R${s.estimation_jobs?.revision ?? 0}`}
                   subtitle={`${s.file_name}${s.sheet ? ` › ${s.sheet}` : ''} · ${fit.length} lines · ${fit.filter((l) => l.chosen).length} chosen · ${fit.filter((l) => l.noMatch).length} no match · saved ${fmtDateTime(s.updated_at)}`}
-                  right={<Button small variant="secondary" title="Open" onPress={() => open(s)} />}
+                  right={
+                    <Row gap={6} style={{ alignItems: 'center' }}>
+                      <Button small variant="ghost" title="Delete" onPress={() => removeSaved(s)} />
+                      <Button small variant="secondary" title="Open" onPress={() => open(s)} />
+                    </Row>
+                  }
                 />
               );
             })}
@@ -121,12 +137,13 @@ export default function EstimationBoq() {
       ) : null}
       {data ? (
         <Section title="Start a BOQ match – choose the estimate">
+          <Muted>Estimates with a saved BOQ match are under Recently saved – delete the saved match to start again from here.</Muted>
           <Card style={{ padding: 0, overflow: 'hidden' }}>
             {shown.length ? shown.map((j) => (
               <ListRow
                 key={j.id}
                 title={`${j.inquiries?.code ?? '—'} · ${j.inquiries?.project_name ?? ''} · R${j.revision}`}
-                subtitle={`${j.inquiries?.customer_name ?? '—'} · ${human(j.status)} · source ${j.source}${savedCount.get(j.id) ? ` · ${savedCount.get(j.id)} saved match${savedCount.get(j.id)! > 1 ? 'es' : ''}` : ''}`}
+                subtitle={`${j.inquiries?.customer_name ?? '—'} · ${human(j.status)} · source ${j.source}`}
                 onPress={() => router.push(`/estimation/boq/${j.id}`)}
                 right={<Button small title="BOQ match" onPress={() => router.push(`/estimation/boq/${j.id}`)} />}
               />
