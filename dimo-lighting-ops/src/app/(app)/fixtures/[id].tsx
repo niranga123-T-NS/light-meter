@@ -2,20 +2,25 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Image, Text, View } from 'react-native';
 import { Thumb } from '@/components/tools/FixtureLibrary';
 import { Card, colors, ErrorBanner, Loading, Muted, Notice, Row, Screen, Section } from '@/components/ui';
-import { cctText, ctrlText, fixtureImage, fmt, loadFixtures, wattText } from '@/lib/fixtures';
+import { useMe } from '@/lib/auth';
+import { CATALOG_SUPERVISORS, cctText, priceLabel, ctrlText, fixtureImage, fmt, loadCatalog, wattText } from '@/lib/fixtures';
 import { useLoad } from '@/lib/hooks';
 
 /** One product of the fixture library: photo, full specification, catalogue page and the other models of its family */
 export default function FixturePage() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { data, error } = useLoad(() => loadFixtures(), []);
+  const me = useMe();
+  const { data, error } = useLoad(() => loadCatalog(), []);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
-  const p = data.products.find((x) => x.id === decodeURIComponent(id));
-  if (!p) return <Screen><Notice>Product not found.</Notice></Screen>;
+  const sup = CATALOG_SUPERVISORS.includes(me.role);
+  const removed = sup ? data.hidden.find((x) => x.id === decodeURIComponent(id)) : undefined;
+  const p = data.products.find((x) => x.id === decodeURIComponent(id)) ?? removed;
+  if (!p) return <Screen><Notice>Product not found – it may have been removed from the catalog.</Notice></Screen>;
   const family = data.products.filter((x) => x.cat === p.cat && (x.fam ?? x.title) === (p.fam ?? p.title));
   const uri = fixtureImage(p);
   const rows: [string, string | undefined][] = [
     ['Type', p.type],
+    ['Price level', p.priceLevel ? `${priceLabel(p.priceLevel)}${p.priceOwn ? '' : ' (brand level)'}` : undefined],
     ['Power', p.w != null ? `${wattText(p)}${p.wMin ? ' (range of the family)' : ''}${p.steps?.length ? ` (selectable ${p.steps.join(' / ')} W)` : ''}` : undefined],
     ['Lumens', p.lm ? `${p.lmMin && p.lmMin < p.lm ? `${fmt(p.lmMin)} – ` : ''}${fmt(p.lm)} lm${p.lmEst ? ' – estimated from the catalogue lm/W' : ''}${p.lm2 ? ` (standard version ${fmt(p.lm2)} lm)` : ''}` : 'not in the catalogue'],
     ['Efficacy', p.eff ? `${p.eff} lm/W` : undefined],
@@ -52,6 +57,8 @@ export default function FixturePage() {
           <Text style={{ fontSize: 15, color: colors.text }}>{p.title}</Text>
           <Muted>{`${p.src}${p.page ? ` · catalogue page ${p.page}` : ''}`}</Muted>
           {(p.shared ?? 0) > 1 ? <Muted>{`The photo is the family photo – it represents ${p.shared} models (all sizes and wattages of ${p.fam || 'this family'}).`}</Muted> : null}
+          {removed ? <Notice tone={colors.red}>Removed from the catalog – restore it under Estimation › Catalog › supervisor mode › Removed.</Notice> : null}
+          {p.edited && sup ? <Notice tone={colors.blue}>Data corrected in the catalog supervisor mode.</Notice> : null}
           {p.flag ? <Notice tone={colors.amber}>{`To check: ${p.flag}`}</Notice> : null}
         </View>
       </Row>

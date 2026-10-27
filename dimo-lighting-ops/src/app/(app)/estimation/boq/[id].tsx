@@ -2,21 +2,22 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
+import { BrandFilter, PriceFilter, PriceTag } from '@/components/tools/BrandFilter';
 import { Thumb } from '@/components/tools/FixtureLibrary';
 import { Button, Card, Chip, colors, ErrorBanner, ListRow, Loading, Muted, Notice, Pill, Row, Screen, Section, Select, Toggle, useWide } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import {
-  boqLines, DEFAULT_SETTINGS, detectColumns, exportBoqExcel, lineSpec, lineStatus, loadBoqMatches, matchLine, previousLines, readBoqFile, recompare, saveBoqMatch,
+  boqLines, DEFAULT_SETTINGS, readSettings, detectColumns, exportBoqExcel, lineSpec, lineStatus, loadBoqMatches, matchLine, previousLines, readBoqFile, recompare, saveBoqMatch,
   type BoqColumns, type BoqLine, type BoqMatchRow, type BoqSettings, type BoqSheet, type LineResult,
 } from '@/lib/boqMatch';
 import { pickDocument } from '@/lib/files';
-import { cctText, loadFixtures, PARAMS, STATUS_STYLE, wattText, type Fixture, type Level, type Match, type ParamKey, type Spec } from '@/lib/fixtures';
+import { cctText, loadCatalog, PARAMS, STATUS_STYLE, wattText, type Fixture, type Level, type Match, type ParamKey, type Spec } from '@/lib/fixtures';
 import { fmtDateTime } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
 
 type Step = 'upload' | 'check' | 'results' | 'save';
-const EDIT_ROLES = ['gm', 'sm_estimation', 'am_estimation', 'estimation_exec'];
+const EDIT_ROLES = ['gm', 'sm_projects', 'sm_estimation', 'am_estimation', 'estimation_exec'];
 const LEVEL_TONE: Record<Level, string> = { must: colors.brand, important: colors.ink, nice: colors.muted };
 const GRADE: Record<LineResult['grade'] | 'chosen' | 'nomatch', { label: string; tone: string }> = {
   all: { label: 'Meets all values', tone: colors.green },
@@ -41,10 +42,10 @@ export default function BoqMatchScreen() {
     const [{ data: job, error: e }, saved, lib] = await Promise.all([
       supabase.from('estimation_jobs').select('id, inquiry_id, source, revision, inquiries(code, project_name)').eq('id', id).single(),
       loadBoqMatches(id),
-      loadFixtures(),
+      loadCatalog(),
     ]);
     if (e) throw new Error(e.message);
-    return { job: job as unknown as { id: string; inquiry_id: string; source: string; revision: number; inquiries: { code: string; project_name: string } | null }, saved, all: lib.products };
+    return { job: job as unknown as { id: string; inquiry_id: string; source: string; revision: number; inquiries: { code: string; project_name: string } | null }, saved, all: lib.products, regions: lib.regions };
   }, [id]);
 
   const [step, setStep] = useState<Step>('upload');
@@ -63,6 +64,7 @@ export default function BoqMatchScreen() {
 
   const all = useMemo(() => data?.all ?? [], [data]);
   const brands = useMemo(() => [...new Set(all.map((p) => p.brand))].sort(), [all]);
+  const regions = data?.regions ?? {};
   const fit = useMemo(() => lines.filter((l) => l.kind === 'fitting'), [lines]);
   const specs = useMemo(() => new Map(lines.map((l) => [l.row, lineSpec(l, settings)])), [lines, settings]);
 
@@ -72,7 +74,7 @@ export default function BoqMatchScreen() {
 
   // open a saved match (from the list, or ?m= in the link)
   const openSaved = (s: BoqMatchRow) => {
-    setMatchId(s.id); setFileName(s.file_name); setSheets([]); setLines(s.lines); setN(s.options); setSettings({ ...DEFAULT_SETTINGS, ...s.settings }); setCur(0); setStep('results'); setOpened(s.id);
+    setMatchId(s.id); setFileName(s.file_name); setSheets([]); setLines(s.lines); setN(s.options); setSettings(readSettings(s.settings)); setCur(0); setStep('results'); setOpened(s.id);
   };
   if (m && opened !== m) {
     const s = saved.find((x) => x.id === m);
@@ -152,7 +154,10 @@ export default function BoqMatchScreen() {
           <Text style={{ fontSize: 17, fontWeight: '800', color: colors.ink }}>{`${job.inquiries?.code ?? ''} · ${job.inquiries?.project_name ?? ''}`}</Text>
           <Muted>{fileName ? `BOQ match › ${fileName}${sheet ? ` › ${sheet.name}` : ''}` : 'BOQ match – the best catalogue options for every line of the client\'s BOQ'}</Muted>
         </View>
-        <Button small variant="ghost" title="Back to the estimate" onPress={() => router.push(`/estimation/${job.id}`)} />
+        <Row gap={6}>
+          <Button small variant="ghost" title="All BOQ matches" onPress={() => router.push('/estimating/boq')} />
+          <Button small variant="ghost" title="Back to the estimate" onPress={() => router.push(`/estimation/${job.id}`)} />
+        </Row>
       </Row>
       <View style={{ marginTop: 10 }}>{header}</View>
 
@@ -196,7 +201,8 @@ export default function BoqMatchScreen() {
                 })}
               </Card>
               <Card style={{ gap: 6 }}>
-                <Select label="Brands" value={settings.brand} onChange={(v) => setSettings((s) => ({ ...s, brand: v }))} options={[{ value: '', label: `All ${brands.length} brands` }, ...brands.map((b) => ({ value: b, label: b }))]} />
+                <BrandFilter brands={brands} regions={regions} value={settings.brands} onChange={(v) => setSettings((s) => ({ ...s, brands: v }))} />
+                <PriceFilter value={settings.priceLevels} onChange={(v) => setSettings((s) => ({ ...s, priceLevels: v }))} />
               </Card>
               <Button title={`Find ${n} option${n > 1 ? 's' : ''} for ${fit.length} lines →`} onPress={find} disabled={!fit.length} />
               <Muted style={{ textAlign: 'center' }}>In the app, from the catalogue library – no internet search, no AI</Muted>
@@ -461,6 +467,7 @@ function OptionCard({ k, o, spec, chosen, canEdit, onChoose }: { k: number; o: M
       <View style={{ gap: 2 }}>
         <Text style={{ fontWeight: '800', color: colors.ink }}>{`${o.p.brand} · ${o.p.code}`}</Text>
         <Muted numberOfLines={2}>{o.p.title}</Muted>
+        <PriceTag level={o.p.priceLevel} />
         <Muted style={{ fontSize: 12 }}>{[wattText(o.p), o.p.lm ? `${o.p.lm.toLocaleString('en-US')} lm${o.p.lmEst ? ' (est.)' : ''}` : '', cctText(o.p)].filter(Boolean).join(' · ')}</Muted>
       </View>
       {keys.map((p) => {

@@ -84,6 +84,9 @@ export const EXEC_NAV = {
 /** Who uses the fixture finder: Estimation, Sales, Design, Operations, the project engineers, SM Projects and the DGM */
 export const FIXTURE_ROLES: Role[] = ['sm_estimation', 'am_estimation', 'estimation_exec', 'asm_building', 'asm_infra', 'sm_projects', 'gm', 'design_manager', 'lighting_designer', 'lighting_engineer', 'senior_elec_engineer', 'assistant_engineer', 'operations_exec', 'sys_admin'];
 
+/** The Estimation tab (Catalog and BOQ match): the DGM, SM Projects and the estimation team */
+export const ESTIMATION_TAB_ROLES: Role[] = ['gm', 'sm_projects', 'sm_estimation', 'am_estimation', 'estimation_exec'];
+
 /** Navigation per role (Section 2 visibility rule and Section 10.2 dashboards). Everyone gets Meetings: the sales,
  * estimation and design meetings in one place (invitations, attendance, leave, packs and actions). */
 export function navFor(role: Role, realRole?: Role | null, sq?: boolean, sqReports?: boolean): NavItem[] {
@@ -128,16 +131,21 @@ export function navFor(role: Role, realRole?: Role | null, sq?: boolean, sqRepor
     const at = t >= 0 ? t + 1 : r >= 0 ? r : items.length;
     items.splice(at, 0, { href: '/design-tools', label: 'Design Tools', icon: '⌁', pilot: true });
   }
-  // Fixture finder (testing): the catalogue products with BOQ-line and competitor matching – after Tools / Dacademy, or before Reports
-  if (FIXTURE_ROLES.includes(role) && role !== 'trainee' && role !== 'sys_admin') {
-    const t = items.findIndex((i) => i.href === '/design-tools'), u = items.findIndex((i) => i.href === '/tools'), r = items.findIndex((i) => i.href === '/reports');
-    const at = t >= 0 ? t + 1 : u >= 0 ? u + 1 : r >= 0 ? r : items.length;
-    items.splice(at, 0, { href: '/fixtures', label: 'Fixture finder', icon: '◎', pilot: true });
+  // Estimation tab (testing): Catalog (the fixture library and finder) and BOQ match – DGM, SM Projects and the estimation team, after Jobs
+  if (ESTIMATION_TAB_ROLES.includes(role)) {
+    const j = items.findIndex((i) => i.href === '/jobs'), q = items.findIndex((i) => i.href === '/inquiries');
+    const at = j >= 0 ? j + 1 : q >= 0 ? q + 1 : 1;
+    items.splice(at, 0, { href: '/estimating', label: 'Estimation', icon: '◎', pilot: true });
   }
   // Sales Tools for the execution team (Dacademy with the Infrastructure course first) and Estimation (the Lighting course)
   if (['senior_elec_engineer', 'assistant_engineer', 'trainee', 'sm_estimation', 'am_estimation', 'estimation_exec'].includes(role) && !items.some((i) => i.href === '/tools')) {
     const at = items.findIndex((i) => i.href === '/reports');
     items.splice(at < 0 ? items.length : at, 0, { href: '/tools', label: 'Tools', icon: '⚒' });
+  }
+  // Everyone else with the fixture finder has it under Tools; a role without Tools keeps it in the menu
+  if (!ESTIMATION_TAB_ROLES.includes(role) && FIXTURE_ROLES.includes(role) && role !== 'sys_admin' && !items.some((i) => i.href === '/tools')) {
+    const r = items.findIndex((i) => i.href === '/reports');
+    items.splice(r < 0 ? items.length : r, 0, { href: '/fixtures', label: 'Fixture finder', icon: '◎', pilot: true });
   }
   return [...items.slice(0, 1), meetings, ...items.slice(1)];
 }
