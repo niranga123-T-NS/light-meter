@@ -38,6 +38,7 @@ begin
   update public.inquiries set result = 'cancelled', lost_reason = 'Discarded: ' || why, discard_reason = why, discarded_at = now(), discarded_by = auth.uid()
    where id = i.id;
   perform app.set_inquiry_status(i.id, 'cancelled', 'Discarded by the sales person: ' || why);
+  update public.sales_meetings m set pack = app.drop_codes_from_pack(m.pack, array[i.code]) where m.team in ('estimation', 'design') and m.pack is not null;
   perform set_config('app.reason', 'Inquiry ' || i.code || ' discarded: ' || why, true);
   if cardinality(people) > 0 then
     perform app.notify_many(people, 'inquiry', 'Inquiry discarded by sales', format('%s · %s – stop work on it. Reason: %s', i.code, coalesce(i.inquiry_name, i.project_name), why),
@@ -206,5 +207,43 @@ begin
   update public.estimation_jobs e set status = 'cancelled' from public.inquiries i
    where i.id = e.inquiry_id and i.status = 'cancelled' and e.status not in ('approved', 'released', 'cancelled');
 end $$;
+
+
+-- A saved meeting pack is a snapshot: drop the jobs of cancelled inquiries from its lists (and their counts)
+create or replace function app.drop_codes_from_pack(p jsonb, codes text[]) returns jsonb
+language plpgsql immutable set search_path = public as $$
+declare k text; n int; arr jsonb; ppl jsonb := '[]'; x jsonb;
+begin
+  if p is null or p->'team' is null or cardinality(codes) = 0 then return p; end if;
+  foreach k in array array['overdue', 'at_risk', 'due_soon', 'on_hold', 'returned', 'waiting_info', 'waiting_design'] loop
+    if jsonb_typeof(p->'team'->k) = 'array' then
+      select coalesce(jsonb_agg(e), '[]') into arr from jsonb_array_elements(p->'team'->k) e where not coalesce(e->>'code' = any (codes), false);
+      n := jsonb_array_length(p->'team'->k) - jsonb_array_length(arr);
+      p := jsonb_set(p, array['team', k], arr);
+      if n > 0 and p->'team' ? (k || '_n') then
+        p := jsonb_set(p, array['team', k || '_n'], to_jsonb(greatest(0, (p->'team'->>(k || '_n'))::int - n)));
+      end if;
+    end if;
+  end loop;
+  if jsonb_typeof(p->'people') = 'array' then
+    for x in select * from jsonb_array_elements(p->'people') loop
+      n := 0;
+      foreach k in array array['overdue', 'due_soon'] loop
+        if jsonb_typeof(x->k) = 'array' then
+          select coalesce(jsonb_agg(e), '[]') into arr from jsonb_array_elements(x->k) e where not coalesce(e->>'code' = any (codes), false);
+          n := n + jsonb_array_length(x->k) - jsonb_array_length(arr);
+          x := jsonb_set(x, array[k], arr);
+        end if;
+      end loop;
+      if n > 0 and x ? 'in_hand_n' then x := jsonb_set(x, '{in_hand_n}', to_jsonb(greatest(0, (x->>'in_hand_n')::int - n))); end if;
+      ppl := ppl || jsonb_build_array(x);
+    end loop;
+    p := jsonb_set(p, '{people}', ppl);
+  end if;
+  return p;
+end $$;
+
+update public.sales_meetings m set pack = app.drop_codes_from_pack(m.pack, array(select code from public.inquiries where status = 'cancelled' and code is not null))
+ where m.team in ('estimation', 'design') and m.pack is not null;
 
 select app.fix_function_owners();
