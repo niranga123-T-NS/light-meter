@@ -19,7 +19,7 @@ export type BoqLine = {
   text: string; kind: LineKind;
   options: string[]; chosen: string | null; noMatch: boolean; note?: string;
 };
-export type BoqSettings = { levels: Partial<Record<ParamKey, Level>>; brand: string; preferExact: boolean };
+export type BoqSettings = { levels: Partial<Record<ParamKey, Level>>; brands: string[]; preferExact: boolean };
 export type BoqMatchRow = { id: string; estimation_job_id: string; inquiry_id: string; file_name: string; sheet: string; options: number; settings: BoqSettings; lines: BoqLine[]; created_at: string; updated_at: string };
 
 const cell = (v: unknown) => (v == null ? '' : v instanceof Date ? v.toISOString().slice(0, 10) : String(v).replace(/\s+/g, ' ').trim());
@@ -99,7 +99,9 @@ export function boqLines(rows: string[][], cols: BoqColumns, previous: BoqLine[]
 }
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
-export const DEFAULT_SETTINGS: BoqSettings = { levels: {}, brand: '', preferExact: true };
+export const DEFAULT_SETTINGS: BoqSettings = { levels: {}, brands: [], preferExact: true };
+/** Saved settings; the first saves had one brand */
+export const readSettings = (s: Partial<BoqSettings> & { brand?: string }): BoqSettings => ({ ...DEFAULT_SETTINGS, ...s, brands: s.brands ?? (s.brand ? [s.brand] : []) });
 
 /** The values read from a line, with the estimator's strictness for all lines */
 export function lineSpec(l: BoqLine, s: BoqSettings): Spec {
@@ -117,7 +119,7 @@ export function lineStatus(l: BoqLine, spec: Spec): 'ready' | 'check' | 'skip' |
 export type LineResult = { matches: Match[]; grade: 'all' | 'close' | 'few' | 'none' | 'empty' };
 export function matchLine(all: Fixture[], l: BoqLine, s: BoqSettings, n: number): LineResult {
   const spec = lineSpec(l, s);
-  const matches = bestMatches(all, spec, n, s.brand || undefined);
+  const matches = bestMatches(all, spec, n, s.brands);
   if (!matches.length) return { matches, grade: 'empty' };
   const b = matches[0];
   return { matches, grade: b.mustFails ? 'none' : !spec.w?.v.trim() && !spec.lm?.v.trim() ? 'few' : b.fails || b.minors ? 'close' : 'all' };

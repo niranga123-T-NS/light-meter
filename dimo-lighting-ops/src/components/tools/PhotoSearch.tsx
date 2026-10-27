@@ -4,8 +4,9 @@ import { Image, Platform, Text, View } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import { Button, Card, colors, Muted, Notice, Row, Select } from '@/components/ui';
 import { pickImage } from '@/lib/files';
-import { cctText, FIXTURE_TYPES, fmt, wattText, type Fixture } from '@/lib/fixtures';
+import { cctText, FIXTURE_TYPES, fmt, wattText, type Fixture, type Region } from '@/lib/fixtures';
 import { fingerprintWeb, likeness, loadVisionIndex, rankByPhoto, VISION_PAGE } from '@/lib/photoSearch';
+import { BrandFilter } from './BrandFilter';
 import { Thumb } from './FixtureLibrary';
 
 type Job = { ok: (v: number[][]) => void; bad: (e: Error) => void };
@@ -51,18 +52,18 @@ function useFingerprinter() {
 const line = (p: Fixture) => [p.code, wattText(p), p.lm && `${fmt(p.lm)} lm`, cctText(p), p.ip && `IP${p.ip}`].filter(Boolean).join(' · ');
 
 /** Search by photo: a photo of a fitting (site, competitor brochure, client picture) → the catalogue fittings that look most like it */
-export function PhotoSearchView({ all, brands }: { all: Fixture[]; brands: string[] }) {
+export function PhotoSearchView({ all, brands, regions }: { all: Fixture[]; brands: string[]; regions: Record<string, Region> }) {
   const { run, view } = useFingerprinter();
   const [photo, setPhoto] = useState<string | null>(null);
   const [query, setQuery] = useState<number[][] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [type, setType] = useState('');
-  const [brand, setBrand] = useState('');
+  const [brandSel, setBrandSel] = useState<string[]>([]);
   const [limit, setLimit] = useState(12);
   const [open, setOpen] = useState<string | null>(null);
   const [ix, setIx] = useState<Awaited<ReturnType<typeof loadVisionIndex>> | null>(null);
-  const hits = useMemo(() => (ix && query ? rankByPhoto(ix, all, query, { type, brand }, limit) : []), [ix, all, query, type, brand, limit]);
+  const hits = useMemo(() => (ix && query ? rankByPhoto(ix, all, query, { type, brands: brandSel }, limit) : []), [ix, all, query, type, brandSel, limit]);
 
   const pick = async (camera: boolean) => {
     setErr(null);
@@ -101,8 +102,8 @@ export function PhotoSearchView({ all, brands }: { all: Fixture[]; brands: strin
         </Row>
         <Row gap={8} wrap style={{ alignItems: 'flex-end' }}>
           <Select label="Type" value={type} onChange={setType} options={[{ value: '', label: 'All types' }, ...FIXTURE_TYPES.map((x) => ({ value: x, label: x }))]} />
-          <Select label="Brand" value={brand} onChange={setBrand} options={[{ value: '', label: 'All brands' }, ...brands.map((x) => ({ value: x, label: x }))]} />
         </Row>
+        <BrandFilter brands={brands} regions={regions} value={brandSel} onChange={setBrandSel} />
         {busy ? <Notice>{busy}</Notice> : null}
         {err ? <Notice tone={colors.amber}>{err}</Notice> : null}
       </Card>

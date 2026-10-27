@@ -10091,5 +10091,28 @@ do $$ begin
 end $$;
 reset role;
 
+-- Fixture catalog supervisor mode: the DGM / SM Estimation set brand categories, correct data and remove products; sales only read
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+insert into public.fixture_brands (brand, region) values ('Holux', 'china');
+insert into public.fixture_edits (product_id, patch, hidden) values ('holux:BP-6060-42D1', '{"lm": 4200, "ugr": null}', false), ('kyd:X-1', '{}', true);
+update public.fixture_brands set region = 'european' where brand = 'Holux';
+do $$ begin
+  assert (select region from public.fixture_brands where brand = 'Holux') = 'european', 'brand category changed';
+  assert (select updated_by from public.fixture_edits where product_id = 'kyd:X-1') = auth.uid(), 'who changed it';
+end $$;
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  assert (select count(*) from public.fixture_edits) = 2, 'sales read the corrections and removals';
+  begin
+    insert into public.fixture_brands (brand, region) values ('KYD', 'china');
+    raise exception 'sales should not set brand categories';
+  exception when insufficient_privilege then null;
+  end;
+  update public.fixture_edits set hidden = false;
+  assert (select count(*) from public.fixture_edits where hidden) = 1, 'sales cannot restore a removed product';
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

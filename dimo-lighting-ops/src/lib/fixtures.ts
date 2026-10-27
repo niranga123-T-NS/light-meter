@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 import { pdfText } from './pdfText';
 import { readBytes, type PickedFile } from './files';
+import { supabase } from './supabase';
 
 /** The fixture library: every model from the manufacturer catalogues (data/catalogs → public/fixtures/library.json, built by scripts/build-fixtures.py).
  *  Searched in the app – no AI and no manufacturer website needed. */
@@ -15,6 +16,8 @@ export type Fixture = {
   ctrl: { dali?: boolean; v010?: boolean; dmx?: boolean; triac?: boolean; sensor?: boolean; smart?: boolean };
   warranty?: number; life?: number; size?: string; voltage?: string; leds?: string; housing?: string; cover?: string; mounting?: string; control?: string; temp?: string; surge?: string;
   note?: string; flag?: string; img?: string; shared?: number;
+  /** data corrected in the catalog supervisor mode */
+  edited?: boolean;
 };
 export const FIXTURE_TYPES = ['Emergency', 'Panel', 'Downlight', 'Track / spot', 'Linear', 'High bay', 'Floodlight', 'Street light', 'Tri-proof / batten', 'Ceiling light', 'Wall / bulkhead', 'Outdoor landscape', 'Tube / lamp', 'Strip / neon'];
 
@@ -28,6 +31,127 @@ export function loadFixtures() {
   lib.catch(() => (lib = null));
   return lib;
 }
+/* ───────── Catalog supervisor mode: brand categories, corrected data, removed products (fixture_brands, fixture_edits) ───────── */
+export type Region = 'european' | 'china' | 'local' | 'other';
+export const REGIONS: { v: Region; label: string }[] = [{ v: 'european', label: 'European' }, { v: 'china', label: 'China' }, { v: 'local', label: 'Local' }, { v: 'other', label: 'Other' }];
+/** Who works in the catalog supervisor mode: the DGM and SM Estimation */
+export const CATALOG_SUPERVISORS = ['gm', 'sm_estimation'];
+export type FixtureEdit = { product_id: string; patch: Record<string, unknown>; hidden: boolean; updated_by: string | null; updated_at: string };
+export type Catalog = { built: string; products: Fixture[]; hidden: Fixture[]; regions: Record<string, Region>; edits: Record<string, FixtureEdit>; raw: Record<string, Fixture> };
+
+let cat: Promise<Catalog> | null = null;
+/** The library with the supervisor corrections laid over it; removed products are kept apart in `hidden` */
+export function loadCatalog(fresh = false) {
+  if (!cat || fresh)
+    cat = Promise.all([loadFixtures(), supabase.from('fixture_brands').select('brand, region'), supabase.from('fixture_edits').select('*')]).then(([lib, b, e]) => {
+      const regions: Record<string, Region> = {};
+      for (const r of (b.data ?? []) as { brand: string; region: Region }[]) regions[r.brand] = r.region;
+      const edits: Record<string, FixtureEdit> = {};
+      for (const r of (e.data ?? []) as FixtureEdit[]) edits[r.product_id] = r;
+      const raw: Record<string, Fixture> = {}, products: Fixture[] = [], hidden: Fixture[] = [];
+      for (const p0 of lib.products) {
+        raw[p0.id] = p0;
+        const ed = edits[p0.id];
+        const p = ed && Object.keys(ed.patch).length ? applyPatch(p0, ed.patch) : p0;
+        (ed?.hidden ? hidden : products).push(p);
+      }
+      return { built: lib.built, products, hidden, regions, edits, raw };
+    });
+  cat.catch(() => (cat = null));
+  return cat;
+}
+
+function applyPatch(p0: Fixture, patch: Record<string, unknown>): Fixture {
+  const p = { ...p0, edited: true } as Record<string, unknown>;
+  for (const [k, v] of Object.entries(patch)) {
+    if (v === null) {
+      if (k === 'cct') p.cct = { k: [] };
+      else if (k === 'ctrl') p.ctrl = {};
+      else delete p[k];
+    } else p[k] = v;
+  }
+  if ('lm' in patch) { p.lmEst = false; delete p.lmMin; }
+  if ('lm' in patch || 'w' in patch) p.eff = typeof p.lm === 'number' && typeof p.w === 'number' && p.w > 0 ? Math.round(p.lm / p.w) : undefined;
+  return p as unknown as Fixture;
+}
+
+/** Fields a supervisor can correct: shown as text, read back into the product's values */
+export const EDIT_FIELDS: { key: string; label: string; hint?: string; select?: boolean }[] = [
+  { key: 'title', label: 'Description' },
+  { key: 'type', label: 'Type', select: true },
+  { key: 'w', label: 'Power (W)', hint: '36' },
+  { key: 'wMin', label: 'Power from (W) – a range family only', hint: '20' },
+  { key: 'lm', label: 'Lumens (lm)', hint: '4000' },
+  { key: 'cct', label: 'CCT (K)', hint: '3000 / 4000, or 2700-6500 for a tunable range, + RGB' },
+  { key: 'cri', label: 'CRI', hint: '80' },
+  { key: 'ugr', label: 'UGR (max)', hint: '19' },
+  { key: 'ip', label: 'IP', hint: '65' },
+  { key: 'ik', label: 'IK', hint: '08' },
+  { key: 'beam', label: 'Beam / optic', hint: '24° / 36°' },
+  { key: 'ctrl', label: 'Control', hint: 'DALI, 0-10V, DMX, Triac, Sensor, Smart – empty = On/off' },
+  { key: 'size', label: 'Size (mm)', hint: '595 × 595 × 25' },
+  { key: 'voltage', label: 'Input voltage', hint: '220-240 V AC' },
+  { key: 'mounting', label: 'Mounting' },
+  { key: 'housing', label: 'Housing' },
+  { key: 'warranty', label: 'Warranty (years)', hint: '5' },
+  { key: 'life', label: 'Life (hours)', hint: '50000' },
+  { key: 'note', label: 'Note' },
+];
+const NUM_FIELDS = ['w', 'wMin', 'lm', 'cri', 'ugr', 'ip', 'ik', 'warranty', 'life'];
+
+/** The product's value as the editor shows it */
+export function editText(p: Fixture, key: string): string {
+  if (key === 'cct') return p.cct.k.length ? (p.cct.range && p.cct.k.length > 1 ? `${p.cct.k[0]}-${p.cct.k[p.cct.k.length - 1]}` : p.cct.k.join(' / ')) + (p.cct.rgb ? ' + RGB' : '') : p.cct.rgb ? 'RGB' : '';
+  if (key === 'ctrl') return Object.values(p.ctrl).some(Boolean) ? ctrlText(p) : '';
+  const v = (p as unknown as Record<string, unknown>)[key];
+  return v == null ? '' : String(v);
+}
+
+function editValue(key: string, t: string): unknown {
+  t = t.trim();
+  if (!t) return null;
+  if (NUM_FIELDS.includes(key)) {
+    const n = Number(t.replace(/,/g, '').replace(/[^\d.]/g, ''));
+    if (!Number.isFinite(n) || !t.match(/\d/)) throw new Error(`Not a number: ${t}`);
+    return n;
+  }
+  if (key === 'cct') {
+    const k = (t.match(/\d{4}/g) ?? []).map(Number);
+    return { k, ...(/\d{4}\s*[-–~]\s*\d{4}/.test(t) && k.length === 2 ? { range: true } : {}), ...(/rgb/i.test(t) ? { rgb: true } : {}) };
+  }
+  if (key === 'ctrl') {
+    const x = t.toLowerCase();
+    return { ...(x.includes('dali') && { dali: true }), ...(/(0|1)\s*[-/]?\s*10\s*v/.test(x) && { v010: true }), ...(x.includes('dmx') && { dmx: true }), ...(x.includes('triac') && { triac: true }), ...(x.includes('sensor') && { sensor: true }), ...(/smart|app|zigbee|bluetooth|wifi/.test(x) && { smart: true }) };
+  }
+  return t;
+}
+
+/** The patch against the catalogue data from the editor's values (only what differs from the catalogue is kept) */
+export function buildPatch(raw: Fixture, form: Record<string, string>) {
+  const patch: Record<string, unknown> = {};
+  for (const f of EDIT_FIELDS) {
+    if (!(f.key in form)) continue;
+    const before = editText(raw, f.key);
+    if (form[f.key].trim() === before.trim()) continue;
+    patch[f.key] = editValue(f.key, form[f.key]);
+  }
+  return patch;
+}
+
+export async function saveFixtureEdit(id: string, row: { patch?: Record<string, unknown>; hidden?: boolean }) {
+  const { error } = await supabase.from('fixture_edits').upsert({ product_id: id, ...row }, { onConflict: 'product_id' });
+  if (error) throw new Error(error.message);
+}
+export async function setBrandRegion(brand: string, region: Region | null) {
+  const { error } = region ? await supabase.from('fixture_brands').upsert({ brand, region }, { onConflict: 'brand' }) : await supabase.from('fixture_brands').delete().eq('brand', brand);
+  if (error) throw new Error(error.message);
+}
+/** Values a product has no data for (shown to the supervisors as "Missing") */
+export const missingData = (p: Fixture) => [p.w == null && 'power', p.lm == null && 'lumens', !p.cct.k.length && !p.cct.rgb && 'CCT', p.ip == null && 'IP', !p.img && 'photo'].filter(Boolean) as string[];
+
+/** No brands chosen = all brands */
+export const brandOk = (brands: string[] | undefined, p: Pick<Fixture, 'brand'>) => !brands?.length || brands.includes(p.brand);
+
 export const fixtureImage = (f: Pick<Fixture, 'img'>) => (f.img ? `${base()}/fixtures/${f.img}` : null);
 
 export const cctText = (f: Fixture) => (f.cct.k.length ? (f.cct.range && f.cct.k.length > 1 ? `${f.cct.k[0]}–${f.cct.k[f.cct.k.length - 1]} K` : f.cct.k.map((k) => `${k}`).join(' / ') + ' K') : '') + (f.cct.rgb ? ' + RGB' : '');
@@ -37,11 +161,11 @@ export const wattText = (p: Pick<Fixture, 'w' | 'wMin'>) => (p.w == null ? '' : 
 export const fmt = (n?: number | null, unit = '') => (n == null ? '—' : `${Math.round(n).toLocaleString('en-US')}${unit}`);
 
 /** Quick search: every word must appear somewhere; "36w", "4000lm", "ip66", "4000k", "ugr19", "dali" are read as values */
-export function searchFixtures(all: Fixture[], q: string, f: { type?: string; brand?: string }) {
+export function searchFixtures(all: Fixture[], q: string, f: { type?: string; brands?: string[] }) {
   const words = q.toLowerCase().split(/[\s,]+/).filter(Boolean);
   return all.filter((p) => {
     if (f.type && p.type !== f.type) return false;
-    if (f.brand && p.brand !== f.brand) return false;
+    if (!brandOk(f.brands, p)) return false;
     const hay = `${p.code} ${p.fam ?? ''} ${p.title} ${p.brand} ${p.type} ${p.beam ?? ''} ${p.size ?? ''} ${p.control ?? ''} ${p.note ?? ''}`.toLowerCase();
     return words.every((w) => {
       let m: RegExpExecArray | null;
@@ -274,12 +398,12 @@ const PTS: Record<Status, number> = { ok: 1, up: 1, minor: 0.6, na: 0.4, fail: 0
 export type Match = { p: Fixture; cells: Partial<Record<ParamKey, Cell>>; score: number; mustFails: number; fails: number; minors: number };
 
 /** Best options for the spec: a failed Must ranks an option down; then the weighted match %. Never empty – the closest are always shown. */
-export function bestMatches(all: Fixture[], spec: Spec, n: number, brand?: string): Match[] {
+export function bestMatches(all: Fixture[], spec: Spec, n: number, brands?: string[]): Match[] {
   const keys = (Object.keys(spec) as ParamKey[]).filter((k) => spec[k]?.v.trim());
   if (!keys.length) return [];
   const res: Match[] = [];
   for (const p of all) {
-    if (brand && p.brand !== brand) continue;
+    if (!brandOk(brands, p)) continue;
     const cells = compare(p, spec);
     let tot = 0, got = 0, mustFails = 0, fails = 0, minors = 0;
     for (const k of keys) {

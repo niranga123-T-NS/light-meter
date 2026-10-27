@@ -35,9 +35,9 @@ export function fingerprintWeb(src: string, crops: number[]) {
 export type PhotoHit = { img: string; score: number; products: Fixture[] };
 
 /** The catalogue photos that look most like the photo – each with the products it shows (one photo often stands for a whole family) */
-export function rankByPhoto(ix: VisionIndex, all: Fixture[], query: number[][], f: { type?: string; brand?: string }, n = 12): PhotoHit[] {
+export function rankByPhoto(ix: VisionIndex, all: Fixture[], query: number[][], f: { type?: string; brands?: string[] }, n = 12): PhotoHit[] {
   const by = new Map<string, Fixture[]>();
-  for (const p of all) if (p.img && (!f.type || p.type === f.type) && (!f.brand || p.brand === f.brand)) by.set(p.img, [...(by.get(p.img) ?? []), p]);
+  for (const p of all) if (p.img && (!f.type || p.type === f.type) && (!f.brands?.length || f.brands.includes(p.brand))) by.set(p.img, [...(by.get(p.img) ?? []), p]);
   const per = ix.crops.length, d = ix.dim, hits: PhotoHit[] = [];
   ix.imgs.forEach((img, i) => {
     const products = by.get(img);

@@ -93,6 +93,12 @@ for path in sorted(glob.glob(os.path.join(CAT, '*.json'))):
             n += 1
 for o in out:
     for k in [k for k, x in o.items() if x in (None, '', [], False) and k not in ('lmEst',)]: del o[k]
+# a code printed twice in one catalogue (e.g. round and square versions): the later ones get #2, #3 so every id is unique
+seen = {}
+for p in out:
+    n = seen[p['id']] = seen.get(p['id'], 0) + 1
+    if n > 1:
+        p['id'] = f"{p['id']}#{n}"
 json.dump({'built': __import__('datetime').date.today().isoformat(), 'count': len(out), 'products': out}, open(OUT, 'w'), ensure_ascii=False, separators=(',', ':'))
 from collections import Counter
 print(len(out), 'products →', OUT, os.path.getsize(OUT) // 1024, 'KB'); print(Counter(o['type'] for o in out).most_common())
