@@ -8985,6 +8985,9 @@ insert into public.inquiries (id, project_id, organization_id, unit_id, route, d
 values ('00000000-0000-0000-0000-00000000d9d1', '00000000-0000-0000-0000-00000000b001', '00000000-0000-0000-0000-00000000a001', '00000000-0000-0000-0000-00000000a002',
         'A', 'duty_paid', 'lighting', current_date + 30, current_date + 12, current_date + 25, 'Raised twice by mistake – same lobby package', 'high', 'european');
 reset role;
+-- an estimator has already started on it
+insert into public.estimation_jobs (inquiry_id, source, status, assignee_id, due_at)
+  values ('00000000-0000-0000-0000-00000000d9d1', 'direct', 'in_progress', (select id from u where role = 'estimation_exec'), now() + interval '3 days');
 select pg_temp.act_as('asm_infra'); set role authenticated;
 do $$ begin
   begin perform public.discard_inquiry('00000000-0000-0000-0000-00000000d9d1', 'Not my inquiry at all'); assert false, 'only the sales person who raised it'; exception when raise_exception then null; end;
@@ -9001,6 +9004,9 @@ do $$ declare i public.inquiries; begin
   begin perform public.discard_inquiry(i.id, 'Second time should not work'); assert false, 'already closed'; exception when raise_exception then null; end;
 end $$;
 reset role;
+do $$ begin
+  assert (select status from public.estimation_jobs where inquiry_id = '00000000-0000-0000-0000-00000000d9d1') = 'cancelled', 'the started estimation job is cancelled, not left in progress';
+end $$;
 
 -- CSI survey: started by the sales person, filled by the customer through the link (no login)
 select pg_temp.act_as('asm_building'); set role authenticated;
