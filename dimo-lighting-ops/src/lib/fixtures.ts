@@ -20,6 +20,8 @@ export type Fixture = {
   edited?: boolean;
   /** price level: the product's own, else the brand's */
   priceLevel?: PriceLevel; priceOwn?: boolean;
+  /** warnings set in the supervisor mode: the brand's and the product's own (MOQ, not for coastal areas …) */
+  warnings?: { text: string; brand: boolean }[];
   /** what happened to the product's own level at the last brand level change */
   levelReview?: { kind: 'changed' | 'kept'; prev: PriceLevel | null; at: string | null };
 };
@@ -43,18 +45,19 @@ export const CATALOG_SUPERVISORS = ['gm', 'sm_estimation'];
 export type PriceLevel = 'budget' | 'mid' | 'upper_mid' | 'high' | 'top';
 export const PRICE_LEVELS: { v: PriceLevel; label: string }[] = [{ v: 'budget', label: 'Budget' }, { v: 'mid', label: 'Mid' }, { v: 'upper_mid', label: 'Upper Mid' }, { v: 'high', label: 'High' }, { v: 'top', label: 'Top' }];
 export const priceLabel = (l?: PriceLevel | null) => PRICE_LEVELS.find((x) => x.v === l)?.label ?? 'not set';
-export type FixtureEdit = { product_id: string; patch: Record<string, unknown>; hidden: boolean; price_level: PriceLevel | null; level_review: 'changed' | 'kept' | null; level_prev: PriceLevel | null; level_review_at: string | null; updated_by: string | null; updated_at: string };
-export type Catalog = { built: string; products: Fixture[]; hidden: Fixture[]; regions: Record<string, Region>; brandLevels: Record<string, PriceLevel>; edits: Record<string, FixtureEdit>; raw: Record<string, Fixture> };
+export type FixtureEdit = { product_id: string; patch: Record<string, unknown>; hidden: boolean; price_level: PriceLevel | null; warnings: string[] | null; level_review: 'changed' | 'kept' | null; level_prev: PriceLevel | null; level_review_at: string | null; updated_by: string | null; updated_at: string };
+export type Catalog = { built: string; products: Fixture[]; hidden: Fixture[]; regions: Record<string, Region>; brandLevels: Record<string, PriceLevel>; brandWarnings: Record<string, string[]>; edits: Record<string, FixtureEdit>; raw: Record<string, Fixture> };
 
 let cat: Promise<Catalog> | null = null;
 /** The library with the supervisor corrections laid over it; removed products are kept apart in `hidden` */
 export function loadCatalog(fresh = false) {
   if (!cat || fresh)
-    cat = Promise.all([loadFixtures(), supabase.from('fixture_brands').select('brand, region, price_level'), supabase.from('fixture_edits').select('*')]).then(([lib, b, e]) => {
-      const regions: Record<string, Region> = {}, brandLevels: Record<string, PriceLevel> = {};
-      for (const r of (b.data ?? []) as { brand: string; region: Region | null; price_level: PriceLevel | null }[]) {
+    cat = Promise.all([loadFixtures(), supabase.from('fixture_brands').select('brand, region, price_level, warnings'), supabase.from('fixture_edits').select('*')]).then(([lib, b, e]) => {
+      const regions: Record<string, Region> = {}, brandLevels: Record<string, PriceLevel> = {}, brandWarnings: Record<string, string[]> = {};
+      for (const r of (b.data ?? []) as { brand: string; region: Region | null; price_level: PriceLevel | null; warnings: string[] | null }[]) {
         if (r.region) regions[r.brand] = r.region;
         if (r.price_level) brandLevels[r.brand] = r.price_level;
+        if (r.warnings?.length) brandWarnings[r.brand] = r.warnings;
       }
       const edits: Record<string, FixtureEdit> = {};
       for (const r of (e.data ?? []) as FixtureEdit[]) edits[r.product_id] = r;
@@ -66,9 +69,11 @@ export function loadCatalog(fresh = false) {
         const level = ed?.price_level ?? brandLevels[p0.brand];
         if (level || ed?.level_review)
           p = { ...p, priceLevel: level, priceOwn: !!ed?.price_level, levelReview: ed?.level_review ? { kind: ed.level_review, prev: ed.level_prev, at: ed.level_review_at } : undefined };
+        const warns = [...(brandWarnings[p0.brand] ?? []).map((text) => ({ text, brand: true })), ...(ed?.warnings ?? []).map((text) => ({ text, brand: false }))];
+        if (warns.length) p = { ...p, warnings: warns };
         (ed?.hidden ? hidden : products).push(p);
       }
-      return { built: lib.built, products, hidden, regions, brandLevels, edits, raw };
+      return { built: lib.built, products, hidden, regions, brandLevels, brandWarnings, edits, raw };
     });
   cat.catch(() => (cat = null));
   return cat;
@@ -151,13 +156,22 @@ export function buildPatch(raw: Fixture, form: Record<string, string>) {
   return patch;
 }
 
-export async function saveFixtureEdit(id: string, row: { patch?: Record<string, unknown>; hidden?: boolean; price_level?: PriceLevel | null; level_review?: 'changed' | 'kept' | null; level_prev?: PriceLevel | null; level_review_at?: string | null }) {
+export async function saveFixtureEdit(id: string, row: { patch?: Record<string, unknown>; hidden?: boolean; price_level?: PriceLevel | null; level_review?: 'changed' | 'kept' | null; level_prev?: PriceLevel | null; level_review_at?: string | null; warnings?: string[] }) {
   const { error } = await supabase.from('fixture_edits').upsert({ product_id: id, ...row }, { onConflict: 'product_id' });
   if (error) throw new Error(error.message);
 }
 export async function setBrandRegion(brand: string, region: Region | null) {
   const { error } = await supabase.from('fixture_brands').upsert({ brand, region }, { onConflict: 'brand' });
   if (error) throw new Error(error.message);
+}
+/** Warnings offered first; any other text can be typed */
+export const WARNING_PRESETS = ['MOQ', 'Not suitable for coastal areas', 'Long lead time', 'Indoor use only', 'Discontinued soon', 'Price on request', 'Sample needed before order'];
+export async function setBrandWarnings(brand: string, warnings: string[]) {
+  const { error } = await supabase.from('fixture_brands').upsert({ brand, warnings }, { onConflict: 'brand' });
+  if (error) throw new Error(error.message);
+}
+export async function setProductWarnings(id: string, warnings: string[]) {
+  await saveFixtureEdit(id, { warnings });
 }
 export async function setBrandPriceLevel(brand: string, level: PriceLevel | null) {
   const { error } = await supabase.from('fixture_brands').upsert({ brand, price_level: level }, { onConflict: 'brand' });

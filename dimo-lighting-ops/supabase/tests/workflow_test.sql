@@ -10100,11 +10100,15 @@ update public.fixture_brands set price_level = 'upper_mid' where brand = 'Holux'
 update public.fixture_edits set price_level = 'high' where product_id = 'holux:BP-6060-42D1';
 update public.fixture_edits set price_level = null, level_review = 'changed', level_prev = 'high', level_review_at = now() where product_id = 'holux:BP-6060-42D1';
 insert into public.fixture_brands (brand, price_level) values ('KYD', 'budget');
+update public.fixture_brands set warnings = '["MOQ 500 pcs"]' where brand = 'KYD';
+update public.fixture_edits set warnings = '["Not suitable for coastal areas"]' where product_id = 'holux:BP-6060-42D1';
 do $$ begin
   assert (select region from public.fixture_brands where brand = 'Holux') = 'european', 'brand category changed';
   assert (select updated_by from public.fixture_edits where product_id = 'kyd:X-1') = auth.uid(), 'who changed it';
   assert (select level_review from public.fixture_edits where product_id = 'holux:BP-6060-42D1') = 'changed', 'product level changed with the brand';
   assert (select region is null and price_level = 'budget' from public.fixture_brands where brand = 'KYD'), 'a price level without a category';
+  assert (select warnings ->> 0 from public.fixture_brands where brand = 'KYD') = 'MOQ 500 pcs', 'brand warning';
+  assert (select jsonb_array_length(warnings) from public.fixture_edits where product_id = 'holux:BP-6060-42D1') = 1, 'product warning';
 end $$;
 reset role;
 select pg_temp.act_as('asm_building'); set role authenticated;
