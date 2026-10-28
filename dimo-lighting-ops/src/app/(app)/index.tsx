@@ -7,6 +7,7 @@ import { DesignBoard, EstimationBoard } from '@/components/home/JobBoards';
 import { SalesHome } from '@/components/home/SalesHome';
 import { MyDayMeetings } from '@/components/WeekMeetings';
 import { GuestHome } from '@/components/home/GuestHome';
+import { SupplyOrdersCard } from '@/components/SupplyOrders';
 import { useMe } from '@/lib/auth';
 
 /** Each role opens to its own dashboard (Section 9). */
@@ -37,6 +38,7 @@ export default function Home() {
           header={
             <>
               <MyDayMeetings />
+              {me.role === 'sm_estimation' ? <SupplyOrdersCard href="/estimating/supply" /> : null}
               <FxCard />
               <AcademyCard />
             </>

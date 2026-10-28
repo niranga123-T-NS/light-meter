@@ -2,6 +2,7 @@ import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Text, View } from "react-native";
 import { DataTable } from "@/components/DataTable";
+import { ProjectTypeRow } from "@/components/ProjectTypeRow";
 import { useDialog } from "@/components/dialog";
 import { SCHEDULE_LABEL, SCHEDULE_TONE } from "@/components/financeTones";
 import {
@@ -123,7 +124,7 @@ export default function SecuredDetail() {
     error: loadErr,
     reload,
   } = useLoad(async () => {
-    const [s, l, a, lg, vr, rq] = await Promise.all([
+    const [s, l, a, lg, vr, rq, so] = await Promise.all([
       supabase.from("secured_projects").select("*").eq("id", id).single(),
       supabase
         .from("invoice_line_status")
@@ -151,6 +152,7 @@ export default function SecuredDetail() {
         .eq("secured_id", id)
         .eq("status", "pending")
         .order("requested_at"),
+      supabase.from("supply_orders").select("id, code").eq("secured_id", id).maybeSingle(),
     ]);
     if (s.error) throw new Error(s.error.message);
     const lines = (l.data ?? []) as InvoiceLine[];
@@ -188,6 +190,7 @@ export default function SecuredDetail() {
       log: (lg.data ?? []) as LogRow[],
       variations: (vr.data ?? []) as Variation[],
       requests: (rq.data ?? []) as InvoiceRequest[],
+      supplyOrder: (so.data ?? null) as { id: string; code: string } | null,
     };
   }, [id]);
   if (!data)
@@ -983,6 +986,7 @@ export default function SecuredDetail() {
             />
           ) : null}
         </Grid>
+        <ProjectTypeRow s={s} canSet={canEdit} supplyOrder={data.supplyOrder} onChange={reload} />
         {s.review_note && s.schedule_status === "missing" ? (
           <Notice
             tone={colors.red}

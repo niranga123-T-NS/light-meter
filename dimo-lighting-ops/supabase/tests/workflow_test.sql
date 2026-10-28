@@ -670,6 +670,58 @@ reset role;
 select pg_temp.act_as('asm_building'); set role authenticated;
 rollback to savepoint quote_rev;
 select pg_temp.act_as('asm_building'); set role authenticated;
+-- Validity extension (Request a change): new valid-until date → SM Estimation as a quotation revision → estimator → release
+savepoint validity_ext;
+do $$ begin
+  begin perform public.request_validity_extension('00000000-0000-0000-0000-00000000d001', current_date + 60, current_date + 5, ' '); assert false, 'reason needed';
+  exception when others then assert sqlerrm = 'A reason is required', sqlerrm; end;
+  begin perform public.request_validity_extension('00000000-0000-0000-0000-00000000d001', current_date + 4, current_date + 5, 'Client delayed'); assert false, 'after needed-by';
+  exception when others then assert sqlerrm like 'The new validity must be after%', sqlerrm; end;
+end $$;
+reset role;
+do $$ begin
+  update public.inquiries set route = 'C' where id = '00000000-0000-0000-0000-00000000d001';
+end $$;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  begin perform public.request_validity_extension('00000000-0000-0000-0000-00000000d001', current_date + 90, current_date + 5, 'Client delayed'); assert false, 'design only refused';
+  exception when others then assert sqlerrm like 'A validity extension applies to%', sqlerrm; end;
+end $$;
+reset role;
+do $$ begin
+  update public.inquiries set route = 'A' where id = '00000000-0000-0000-0000-00000000d001';
+end $$;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ declare jid uuid;
+begin
+  jid := public.request_validity_extension('00000000-0000-0000-0000-00000000d001', current_date + 90, current_date + 5, 'Client board meets next quarter');
+  perform set_config('test.vjid', jid::text, false);
+end $$;
+reset role;
+do $$ declare jid uuid := current_setting('test.vjid')::uuid;
+begin
+  assert (select status from public.inquiries where id = '00000000-0000-0000-0000-00000000d001') = 'in_estimation', 'with Estimation';
+  assert (select revision_kind from public.inquiries where id = '00000000-0000-0000-0000-00000000d001') = 'validity', 'kind validity';
+  assert (select status from public.estimation_jobs where id = jid) = 'accepted', 'waits for SM Estimation to assign';
+  assert (select validity_extension and validity_until = current_date + 90 from public.estimation_jobs where id = jid), 'new validity carried';
+  assert (select revision_request from public.estimation_jobs where id = jid) like 'Validity extension to %: Client board meets next quarter', 'request on the job';
+  assert (select customer_deadline from public.inquiries where id = '00000000-0000-0000-0000-00000000d001') = current_date + 5, 'needed-by date';
+  assert exists (select 1 from public.notifications where kind = 'validity_extension' and title like 'Validity extension requested: %-R1'
+                 and recipient_id = (select id from u where role = 'sm_estimation')), 'SM Estimation told';
+end $$;
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+select public.assign_estimation_job(current_setting('test.vjid')::uuid, (select id from u where role = 'am_estimation'), now() + interval '2 days', 'small', 'Re-check prices');
+reset role;
+do $$ begin
+  assert (select assignee_id from public.estimation_jobs where id = current_setting('test.vjid')::uuid) = (select id from u where role = 'am_estimation'), 'estimator assigned';
+end $$;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  begin perform public.request_validity_extension('00000000-0000-0000-0000-00000000d001', current_date + 120, current_date + 5, 'again'); assert false, 'one at a time';
+  exception when others then assert sqlerrm like 'A revision can be requested only after%', sqlerrm; end;
+end $$;
+rollback to savepoint validity_ext;
+select pg_temp.act_as('asm_building'); set role authenticated;
 -- Revision kinds: revised quotation with a deadline → SM Estimation; revised design (and quotation) → Design Manager,
 -- designers the usual way, then the released design goes to SM Estimation for the quotation
 savepoint rev_kinds;
@@ -2516,6 +2568,11 @@ do $$ declare sid uuid;
 begin
   sid := public.add_secured_project(jsonb_build_object('project_name', 'Galadari Hotel lighting supply', 'business_line', 'LMS',
     'sales_person_id', (select id from u where role = 'asm_building'), 'won_on', current_date::text, 'order_value', '8,600,000.00'));
+  begin
+    perform public.save_invoice_schedule(sid, '{}', jsonb_build_array(jsonb_build_object('kind', 'progress', 'amount', '8600000', 'month', current_date::text)), true);
+    assert false, 'the plan needs the project type';
+  exception when others then assert sqlerrm like 'Choose the project type%', sqlerrm; end;
+  perform public.set_project_type(sid, 'supply');
   perform public.save_invoice_schedule(sid, '{}', jsonb_build_array(
     jsonb_build_object('kind', 'progress', 'description', 'IPC', 'amount', '1610000', 'month', current_date::text),
     jsonb_build_object('kind', 'retention', 'description', 'Final retention', 'amount', '6990000', 'month', current_date::text)), true);
@@ -10255,6 +10312,90 @@ do $$ begin
   assert not exists (select 1 from public.win_wizard_log where project_id = '00000000-0000-0000-0000-00000000b455'), 'other sales cannot see the log';
   assert not exists (select 1 from public.win_followups where project_id = '00000000-0000-0000-0000-00000000b455'), 'nor the follow-ups';
 end $$;
+reset role;
+
+-- Supply orders: the supply-only plan approved earlier (Galadari) opened SO- for SM Estimation; manufacturers and PIs step by step;
+-- Operations sets each PI's status; a supply-only project cannot go to execution
+do $$ begin
+  assert exists (select 1 from public.supply_orders where secured_id = current_setting('test.gal')::uuid), 'supply order opened on approval';
+  assert exists (select 1 from public.notifications where kind = 'supply_order' and recipient_id = (select id from u where role = 'sm_estimation')), 'SM Estimation told';
+  perform set_config('test.so', (select id::text from public.supply_orders where secured_id = current_setting('test.gal')::uuid), false);
+end $$;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  assert jsonb_array_length(public.so_list()) = 1, 'the sales person sees their supply order';
+  begin perform public.set_project_type(current_setting('test.gal')::uuid, 'supply_install'); assert false, 'type locked once with SM Estimation';
+  exception when others then assert sqlerrm like 'The supply order is already%', sqlerrm; end;
+  begin perform public.so_set_count(current_setting('test.so')::uuid, 2); assert false, 'sales do not edit the order';
+  exception when others then assert sqlerrm like 'SM Estimation sets%', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+do $$ declare a uuid; b uuid; so uuid := current_setting('test.so')::uuid; l jsonb;
+begin
+  perform public.so_set_count(so, 2);
+  a := public.so_save_pi(null, so, '{"manufacturer":"Disano","country":"Italy","notes":"PI asked 27 Oct"}');
+  b := public.so_save_pi(null, so, '{"manufacturer":"GRNLED","country":"China"}');
+  begin perform public.so_save_pi(null, so, '{"manufacturer":"Third"}'); assert false, 'only as many as set';
+  exception when others then assert sqlerrm like 'All 2 manufacturers are entered%', sqlerrm; end;
+  begin perform public.so_submit(array[a]); assert false, 'PI details needed';
+  exception when others then assert sqlerrm like 'Disano: enter the PI number%', sqlerrm; end;
+  perform public.so_save_pi(a, null, '{"manufacturer":"Disano","country":"Italy","pi_no":"2026/1182","pi_date":"2026-10-14","pi_value":"21400","currency":"eur"}');
+  begin perform public.so_submit(array[a]); assert false, 'PI file needed';
+  exception when others then assert sqlerrm like 'Disano: attach the PI%', sqlerrm; end;
+  insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('supply_pi', a, 'supply_pi', 'supply_pi/' || a || '/pi.pdf', 'pi.pdf');
+  assert public.so_submit(array[a]) = 1, 'one submitted';
+  assert (select ops_status = 'pending' and currency = 'EUR' from public.supply_pis where id = a), 'with Operations';
+  begin perform public.so_save_pi(a, null, '{"manufacturer":"Disano"}'); assert false, 'submitted PI locked';
+  exception when others then assert sqlerrm like 'This PI is submitted%', sqlerrm; end;
+  l := public.so_list() -> 0;
+  assert (l ->> 'submitted')::int = 1 and (l ->> 'mfr_count')::int = 2, 'pending PIs 1 of 2';
+  begin perform public.so_set_count(so, 1); assert false, 'cannot go below the entered ones';
+  exception when others then assert sqlerrm like 'There are more manufacturers%', sqlerrm; end;
+  perform set_config('test.pi_a', a::text, false);
+  perform set_config('test.pi_b', b::text, false);
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'supply_pi' and recipient_id = (select id from u where role = 'operations_exec')), 'Operations told';
+end $$;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ begin
+  begin perform public.so_set_status(current_setting('test.pi_b')::uuid, 'ok'); assert false, 'not submitted';
+  exception when others then assert sqlerrm like 'The PI is not submitted%', sqlerrm; end;
+  begin perform public.so_set_status(current_setting('test.pi_a')::uuid, 'revision'); assert false, 'note needed';
+  exception when others then assert sqlerrm like 'Write what is needed%', sqlerrm; end;
+  perform public.so_set_status(current_setting('test.pi_a')::uuid, 'revision', 'Unit price of HB-150 differs from the costing');
+end $$;
+reset role;
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+do $$ declare a uuid := current_setting('test.pi_a')::uuid; begin
+  perform public.so_save_pi(a, null, '{"manufacturer":"Disano","country":"Italy","pi_no":"2026/1182-R1","pi_date":"2026-10-20","pi_value":"20900","currency":"EUR"}');
+  perform public.so_submit(array[a]);
+  assert (select revision = 1 and ops_status = 'pending' and pi_no = '2026/1182-R1' from public.supply_pis where id = a), 'revised PI back with Operations';
+end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+select public.so_set_status(current_setting('test.pi_a')::uuid, 'ok');
+reset role;
+-- nothing for 5 working days: the missing manufacturer is flagged once
+update public.supply_orders set created_at = now() - interval '10 days' where id = current_setting('test.so')::uuid;
+update public.supply_pis set updated_at = now() - interval '10 days' where order_id = current_setting('test.so')::uuid;
+do $$ begin
+  assert public.so_tick() = 1, 'pending PIs flagged';
+  assert public.so_tick() = 0, 'once';
+end $$;
+-- a supply-only project does not go to execution
+do $$ declare pid uuid; begin
+  select project_id into pid from public.secured_projects where project_id is not null limit 1;
+  update public.secured_projects set project_type = 'supply' where project_id = pid;
+  begin
+    insert into public.exec_requests (code, kind, project_id, name, areas) values ('XR-T', 'won', pid, 'x', '{road}');
+    assert false, 'supply-only project refused';
+  exception when others then assert sqlerrm like 'This is a supply-only project%', sqlerrm; end;
+end $$;
+select pg_temp.act_as('asm_infra'); set role authenticated;
+do $$ begin assert jsonb_array_length(public.so_list()) = 0, 'other sales do not see it'; end $$;
 reset role;
 
 \echo 'ALL WORKFLOW TESTS PASSED'

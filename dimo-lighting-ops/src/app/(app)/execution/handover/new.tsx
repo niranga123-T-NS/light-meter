@@ -41,6 +41,7 @@ export default function NewHandover() {
     letter_sign_name: '',
     letter_sign_designation: '',
     letter_sign_phone: '',
+    project_type: '' as '' | 'supply' | 'supply_install',
   });
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((s) => ({ ...s, [k]: v }));
   const { data: won } = useLoad(async () => {
@@ -64,11 +65,13 @@ export default function NewHandover() {
     setError(null);
     if (!legacy && !f.project_id) return setError('Choose the won project');
     if (legacy && (!f.name.trim() || !f.client_name.trim())) return setError('Enter the project name and the client');
+    if (legacy && !f.project_type) return setError('Choose the project type');
+    if (legacy && f.project_type === 'supply') return setError('A supply-only project does not go to execution – the sales person records it in the order book and it goes to SM Estimation for the manufacturers’ PIs');
     if (legacy && !f.areas.length) return setError('Choose at least one project area');
     if (!f.letter_sign_name.trim() || !f.letter_sign_designation.trim()) return setError('Enter the signing authority of the project letters (name and designation)');
     await dialog.run(async () => {
       const id = await rpc<string>('request_execution', {
-        p: { ...f, kind, contract_value: f.contract_value ?? '', start_date: f.start_date ?? '', end_date: f.end_date ?? '', see_id: f.see_id ?? '' },
+        p: { ...f, project_type: undefined, kind, contract_value: f.contract_value ?? '', start_date: f.start_date ?? '', end_date: f.end_date ?? '', see_id: f.see_id ?? '' },
       });
       for (const x of files) await uploadAttachment('exec_request', id, 'handover_doc', x);
       router.replace(`/execution/handover/${id}`);
@@ -88,7 +91,14 @@ export default function NewHandover() {
               <Field label="Client" required value={f.client_name} onChangeText={(v) => set('client_name', v)} />
               <NumberField label="Contract value (LKR)" value={f.contract_value} onChange={(v) => set('contract_value', v)} />
               <Field label="Contract / PO reference" value={f.contract_ref} onChangeText={(v) => set('contract_ref', v)} />
-              <Muted>Projects entered here have no sales record: variations are priced at contract rates.</Muted>
+              <Select
+                label="Project type"
+                required
+                value={f.project_type}
+                onChange={(v) => set('project_type', v as typeof f.project_type)}
+                options={[{ value: 'supply_install', label: 'Supply & installation' }, { value: 'supply', label: 'Supply only – does not go to execution' }]}
+              />
+              <Muted>Projects entered here have no sales record: variations are priced at contract rates. Only supply &amp; installation projects go to execution.</Muted>
             </>
           ) : (
             <>

@@ -293,6 +293,7 @@ export default function InquiryDetail() {
       buttons.push(<Button key="copy" variant="secondary" title="Quote to another contractor" onPress={() => router.push({ pathname: '/inquiries/copy', params: { from: i.id } })} />);
     }
     if (!['draft', 'won', 'lost', 'cancelled', 'rejected'].includes(i.status)) {
+      const canExtend = i.route !== 'C' && !!quotations.length && ['quotation_released', 'submitted_to_client', 'awaiting_client_approval', 'client_approved'].includes(i.status);
       buttons.push(
         <Button
           key="chg"
@@ -314,8 +315,15 @@ export default function InquiryDetail() {
                     { value: 'expectation_change', label: 'Client expectation or scope – level, origin, design / estimation scope (Design Manager + SM Estimation)' },
                     { value: 'release_mode', label: 'Release mode (SM Projects)' },
                     ...(i.release_mode === 3 ? [{ value: 'early_design_release', label: 'Early design release (Design Manager → SM Projects)' }] : []),
+                    ...(canExtend ? [{ value: 'validity_extension', label: 'Quotation validity extension (SM Estimation assigns an estimator)' }] : []),
                   ],
                 },
+                ...(canExtend
+                  ? [
+                      { key: 'vuntil', label: `New valid-until date (now ${fmtDate(quotations[0].validity_date)})`, type: 'date' as const, when: { key: 'kind', in: ['validity_extension'] } },
+                      { key: 'vneed', label: 'Extended quotation needed by', type: 'date' as const, when: { key: 'kind', in: ['validity_extension'] }, hint: 'The estimator re-checks the prices and re-releases the quotation by this date' },
+                    ]
+                  : []),
                 {
                   key: 'duty',
                   label: 'New duty status (for a duty change)',
@@ -377,6 +385,10 @@ export default function InquiryDetail() {
               ],
             });
             if (!r) return;
+            if (r.kind === 'validity_extension') {
+              if (!r.vuntil || !r.vneed) return dialog.toast('Enter the new valid-until date and the date it is needed by', 'error');
+              return act('request_validity_extension', { p_inquiry: i.id, p_until: r.vuntil, p_needed_by: r.vneed, p_reason: r.reason }, 'Sent to SM Estimation');
+            }
             if (r.kind === 'duty_change' && !r.duty) return dialog.toast('Choose the new duty status', 'error');
             if (r.kind === 'duty_change' && r.duty === i.duty_status) return dialog.toast('The inquiry already has this duty status', 'error');
             if (r.kind === 'release_mode' && !r.mode) return dialog.toast('Choose the new release mode', 'error');
@@ -612,7 +624,7 @@ export default function InquiryDetail() {
           <Notice>{`Under evaluation by the client${i.evaluation_until ? ` – decision expected by ${fmtDate(i.evaluation_until)}` : ''}${i.evaluation_note ? ` · ${i.evaluation_note}` : ''}`}</Notice>
         ) : null}
         {i.revision_request && i.revision_kind && ['accepted', 'in_design', 'design_review', 'design_approved', 'in_estimation'].includes(i.status) ? (
-          <Notice tone={colors.amber}>{`Client revision R${i.revision} – ${i.revision_request}`}</Notice>
+          <Notice tone={colors.amber}>{i.revision_kind === 'validity' ? `Validity extension R${i.revision} – ${i.revision_request}` : `Client revision R${i.revision} – ${i.revision_request}`}</Notice>
         ) : null}
         {i.status === 'returned_for_info' ? <Notice tone={colors.amber}>Returned for more information – edit and resubmit. See the timeline for the reason.</Notice> : null}
         {i.checklist_incomplete && i.status !== 'draft' ? <Notice tone={colors.amber}>Document checklist incomplete.</Notice> : null}

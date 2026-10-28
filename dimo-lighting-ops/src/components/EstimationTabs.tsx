@@ -3,7 +3,7 @@ import { Notice, Screen, Segmented } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { ESTIMATION_TAB_ROLES } from '@/lib/roles';
 
-const HREF = { catalog: '/estimating/catalog', boq: '/estimating/boq' } as const;
+const HREF = { catalog: '/estimating/catalog', boq: '/estimating/boq', supply: '/estimating/supply' } as const;
 
 /** The sub-tabs of the Estimation tab */
 export function EstimationTabs({ value }: { value: keyof typeof HREF }) {
@@ -14,6 +14,7 @@ export function EstimationTabs({ value }: { value: keyof typeof HREF }) {
       options={[
         { value: 'catalog' as const, label: 'Catalog' },
         { value: 'boq' as const, label: 'BOQ match' },
+        { value: 'supply' as const, label: 'Supply orders' },
       ]}
     />
   );

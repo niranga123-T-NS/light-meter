@@ -2,6 +2,7 @@ import { FxCard } from '@/components/FxRates';
 import { router, Stack } from 'expo-router';
 import { Text, View } from 'react-native';
 import { MeetingActions } from '@/components/MeetingActions';
+import { SupplyOrdersCard } from '@/components/SupplyOrders';
 import { WeekMeetings } from '@/components/WeekMeetings';
 import { useMe } from '@/lib/auth';
 import { fmtDate, fmtMoney } from '@/lib/format';
@@ -48,6 +49,7 @@ export function OpsHome() {
         <Button title="Samples queue" variant="secondary" onPress={() => router.push('/samples')} />
       </Row>
       <FxCard />
+      <SupplyOrdersCard href="/orders/supply" />
       <WeekMeetings />
       <MeetingActions />
       {data?.passed.length ? (

@@ -35,15 +35,21 @@ type Usage = {
 
 const daysSince = (iso: string | null) => (iso ? Math.floor((Date.now() - new Date(iso).getTime()) / 86400000) : null);
 
-/** A small tablet that blinks until its item is updated (steady outline when the phone asks for reduced motion) */
-export function BlinkTablet({ label, tone = colors.red, onPress, small }: { label: string; tone?: string; onPress?: () => void; small?: boolean }) {
+const TABLET_BG: Record<string, string> = { [colors.red]: '#FEF2F2', [colors.green]: '#F0FDF4', [colors.blue]: '#EFF6FF', [colors.grey]: '#F9FAFB' };
+const TABLET_TEXT: Record<string, string> = { [colors.red]: colors.red, [colors.green]: '#166534', [colors.blue]: colors.blue, [colors.grey]: colors.muted };
+
+/** A small tablet that blinks until its item is updated (steady when `still`, or when the phone asks for reduced motion) */
+export function BlinkTablet({ label, tone = colors.red, onPress, small, still: steady }: { label: string; tone?: string; onPress?: () => void; small?: boolean; still?: boolean }) {
   const [a] = useState(() => new Animated.Value(1));
   const [still, setStill] = useState(false);
   useEffect(() => {
     AccessibilityInfo.isReduceMotionEnabled().then(setStill).catch(() => null);
   }, []);
   useEffect(() => {
-    if (still) return;
+    if (still || steady) {
+      a.setValue(1);
+      return;
+    }
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(a, { toValue: 0.35, duration: 550, useNativeDriver: true }),
@@ -52,9 +58,9 @@ export function BlinkTablet({ label, tone = colors.red, onPress, small }: { labe
     );
     loop.start();
     return () => loop.stop();
-  }, [a, still]);
+  }, [a, still, steady]);
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`${label} – update the win probability`}>
+    <Pressable onPress={onPress} disabled={!onPress} accessibilityRole={onPress ? 'button' : 'text'} accessibilityLabel={label}>
       <Animated.View
         style={{
           opacity: a,
@@ -63,14 +69,14 @@ export function BlinkTablet({ label, tone = colors.red, onPress, small }: { labe
           gap: 6,
           borderWidth: 1.5,
           borderColor: tone,
-          backgroundColor: tone === colors.red ? '#FEF2F2' : '#FFFBEB',
+          backgroundColor: TABLET_BG[tone] ?? '#FFFBEB',
           borderRadius: 99,
           paddingHorizontal: small ? 8 : 10,
           paddingVertical: small ? 3 : 5,
         }}
       >
         <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: tone }} />
-        <Text style={{ color: tone === colors.red ? colors.red : '#92400E', fontWeight: '700', fontSize: small ? 11 : 12 }}>{label}</Text>
+        <Text style={{ color: TABLET_TEXT[tone] ?? '#92400E', fontWeight: '700', fontSize: small ? 11 : 12 }}>{label}</Text>
       </Animated.View>
     </Pressable>
   );

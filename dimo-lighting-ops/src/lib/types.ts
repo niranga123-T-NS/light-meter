@@ -222,7 +222,7 @@ export type Inquiry = {
   extension_status?: 'requested' | 'granted' | 'refused' | null;
   fast_track_status?: 'requested' | 'approved' | 'rejected' | null;
   fast_track_reason?: string | null;
-  revision_kind?: 'quotation' | 'design' | 'both' | null;
+  revision_kind?: 'quotation' | 'design' | 'both' | 'validity' | null;
   revision_request?: string | null;
   design_required_by: string | null;
   design_due_proposed_at: string | null;
@@ -335,6 +335,7 @@ export type EstimationJob = {
   previous_job_id?: string | null;
   copied_from_job_id?: string | null;
   revision_request?: string | null;
+  validity_extension?: boolean;
   sm_projects_revisions?: number;
   submitted_at: string | null;
   released_at: string | null;
