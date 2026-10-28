@@ -65,11 +65,10 @@ export default function VisitDetail() {
         fields: open.map((x) => ({ key: x.id, label: `${x.code}${x.inquiry_name ? ` · ${x.inquiry_name}` : ''} – win %`, required: true, initial: String(x.win_probability ?? project.win_probability) })),
       });
       if (!res) return;
-      const changed = open.filter((x) => Number(res[x.id]) !== (x.win_probability ?? project.win_probability));
-      if (changed.some((x) => !(Number(res[x.id]) >= 0 && Number(res[x.id]) <= 100))) return dialog.toast('Win probability is 0 – 100', 'error');
-      if (!changed.length) return;
+      if (open.some((x) => !(Number(res[x.id]) >= 0 && Number(res[x.id]) <= 100))) return dialog.toast('Win probability is 0 – 100', 'error');
+      // Saving confirms every inquiry's % after the visit (a kept % counts too), so their "update" tablets stop
       await dialog.run(async () => {
-        for (const x of changed) await rpc('set_inquiry_probability', { p_inquiry: x.id, p_pct: Number(res[x.id]) });
+        for (const x of open) await rpc('set_inquiry_probability', { p_inquiry: x.id, p_pct: Number(res[x.id]) });
       }, 'Updated – the project’s % follows its inquiries');
       return;
     }

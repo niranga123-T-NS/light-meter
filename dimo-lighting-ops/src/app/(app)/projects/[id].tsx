@@ -15,6 +15,7 @@ import { rpc, supabase } from '@/lib/supabase';
 import type { Inquiry, Project, Quotation, Visit } from '@/lib/types';
 import { isWarrantyDesk } from '@/lib/warranty';
 import { ProjectTeam } from '@/components/ProjectTeam';
+import { PageTablets, useWizardNudge } from '@/components/WinUse';
 
 
 export default function ProjectDetail() {
@@ -61,6 +62,7 @@ export default function ProjectDetail() {
       warranties: (war.data ?? []) as { id: string; code: string; invoice_no: string | null; contract_no: string | null; start_date: string; status: string }[],
     };
   }, [id]);
+  useWizardNudge(isSales(me.role) ? id : null);
 
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const { project: p, inquiries, visits, log, quotations, tenders, warranties, changeRequests, customers } = data;
@@ -217,6 +219,7 @@ export default function ProjectDetail() {
   return (
     <Screen maxWidth={1100}>
       <Stack.Screen options={{ title: p.code }} />
+      <PageTablets projectId={p.id} />
       <Card>
         <Row wrap style={{ justifyContent: 'space-between' }}>
           <View style={{ flex: 1, minWidth: 240 }}>

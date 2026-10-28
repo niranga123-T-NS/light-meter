@@ -35,6 +35,16 @@ export default function Reports() {
           />
         </Card>
       ) : null}
+      {me.role === 'gm' || me.role === 'sm_projects' ? (
+        <Card style={{ padding: 0, overflow: 'hidden' }}>
+          <ListRow
+            title="Win Predictor use"
+            subtitle="How each sales person uses the Win Probability Wizard – on what, how many times, and visits followed by an update"
+            right={<Pill label="Sales" tone={colors.blue} />}
+            onPress={() => router.push('/reports/win-usage')}
+          />
+        </Card>
+      ) : null}
       {nodeReports(me.role).length ? (
         <Section title="Node reports – where the time goes">
           <Card style={{ padding: 0, overflow: 'hidden' }}>
