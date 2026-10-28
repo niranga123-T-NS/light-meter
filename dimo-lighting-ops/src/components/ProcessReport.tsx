@@ -113,24 +113,27 @@ export function ProcessReport(p: ProcessReportProps) {
         {
           title: `By ${p.personLabel.toLowerCase()}`,
           head: [p.personLabel, plural(p.itemWord), ...workNodes.map((n) => n.name), hn.name, 'Returned', 'On time', 'Open now'],
-          right: Array.from({ length: workNodes.length + 6 }, (_, k) => k + 1),
+          right: Array.from({ length: workNodes.length + 5 }, (_, k) => k + 1),
+          widths: [16, ...Array.from({ length: workNodes.length + 5 }, () => 84 / (workNodes.length + 5))],
           rows: rep.people.map((r) => [p.personName(r.person), r.items, ...workNodes.map((n) => (r.items ? d1(r.byNode[n.key]) : '—')), r.items ? d1(r.byNode[p.hiddenKey]) : '—', r.returned, r.onTime == null ? '—' : `${Math.round(r.onTime * 100)} %`, r.holding]),
         },
         {
           title: `Waiting longest – who to chase (${rep.waiting.length})`,
-          head: [p.itemWord, 'Category', 'Project', 'With', 'Since', 'Days', 'Due', 'Last step we saw', 'Now'],
-          right: [5],
-          rows: rep.waiting.map((r) => [r.it.code, r.it.cat, r.it.project, nn(r.s.node, !!r.s.est), fmtDate(r.s.start), r.s.days, fmtDate(r.it.due), r.last ? `${r.last.label} (${fmtDate(r.last.end)})` : '—', r.s.label]),
+          head: [p.itemWord, 'Project', 'With', 'Since', 'Days', 'Due', 'Last step we saw', 'Now'],
+          right: [4],
+          widths: [12, 17, 13, 8, 5, 8, 20, 17],
+          rows: rep.waiting.map((r) => [{ text: r.it.code, sub: r.it.cat }, r.it.project, nn(r.s.node, !!r.s.est), fmtDate(r.s.start), r.s.days, fmtDate(r.it.due), r.last ? `${r.last.label} (${fmtDate(r.last.end)})` : '—', r.s.label]),
           late: rep.waiting.map((r) => r.late),
           note: 'Red: past the due date.',
           empty: 'Nothing open.',
         },
-        { title: 'Average working days per slice, month by month', head: ['Node', ...rep.months.map(pdfMonth), 'Change'], right: [1, 2, 3, 4, 5, 6, 7], rows: trendRows(rep.trend) },
+        { title: 'Average working days per slice, month by month', head: ['Node', ...rep.months.map(pdfMonth), 'Change'], right: [1, 2, 3, 4, 5, 6, 7], widths: [22, 11, 11, 11, 11, 11, 11, 12], rows: trendRows(rep.trend) },
         ...(chosen
           ? [{
               title: `One ${p.itemWord.toLowerCase()} through the nodes: ${chosen.code} · ${chosen.title}`,
               head: ['From', 'To', 'Node', 'What', 'Days'],
               right: [4],
+              widths: [11, 11, 18, 52, 8],
               rows: [...chosen.segs].sort((x, y) => (x.start < y.start ? -1 : 1)).map((s): PdfCell[] => [fmtDate(s.start), s.end ? fmtDate(s.end) : 'now', nn(s.node, !!s.est), s.label, `${s.days}${s.end ? '' : '+'}`]),
             }]
           : []),
