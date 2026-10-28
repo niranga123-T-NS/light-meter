@@ -27,13 +27,21 @@ export function nodeOf(owner: string): NodeKey {
   return 'ext';
 }
 
-/** The fill of a node's bar – Finance striped on the web */
-export function nodeFill(k: NodeKey): object {
+/** The fill of a node's bar – Finance striped on the web; 'finx' is Finance time whose start or end we did not see (lighter stripes) */
+export function nodeFill(k: NodeKey | 'finx'): object {
+  if (k === 'finx') return Platform.OS === 'web' ? { backgroundImage: 'repeating-linear-gradient(135deg, #94A3B8 0 3px, #EEF1F5 3px 8px)' } : { backgroundColor: '#CBD5E1' };
   if (k !== 'fin') return { backgroundColor: nodeInfo(k).colour };
   return Platform.OS === 'web' ? { backgroundImage: 'repeating-linear-gradient(135deg, #64748B 0 4px, #CBD2DC 4px 8px)' } : { backgroundColor: '#94A3B8' };
 }
 
-export type NodeLine = { node: NodeKey; owner: string; label: string; start: string | null; end: string | null; days: number | null; sla: number | null; late: boolean; open: boolean };
+/**
+ * est: Finance time we could not see exactly.
+ *  'end' – the Finance step (TT sent, LC transmitted …) was not recorded; Finance's work only shows when the next step happens
+ *          (Procurement shares the TT / LC with the manufacturer, the manufacturer accepts the LC …). The whole gap counts as
+ *          Finance, and it includes that next team's hand-on.
+ *  'start' – the hand-over to Finance was not recorded; the Finance time runs from the step before it, so it includes Procurement's preparation.
+ */
+export type NodeLine = { node: NodeKey; owner: string; label: string; start: string | null; end: string | null; days: number | null; sla: number | null; late: boolean; open: boolean; est?: 'end' | 'start'; via?: string };
 export type NodeItem = {
   key: string;
   kind: 'import' | 'local';
@@ -46,11 +54,43 @@ export type NodeItem = {
   lines: NodeLine[];
 };
 
-const toLine = (l: { def: { node: string; label: string; sla_days: number | null; optional?: boolean }; done: { done_on: string } | null; ready: boolean; start: string | null; days: number | null; late: boolean }): NodeLine | null => {
+type RouteLine = { def: { key: string; after: string[]; node: string; label: string; sla_days: number | null; optional?: boolean }; done: { done_on: string } | null; ready: boolean; start: string | null; days: number | null; late: boolean };
+const toLine = (l: RouteLine): NodeLine | null => {
   if (!l.done && !(l.ready && !l.def.optional)) return null;
   return { node: nodeOf(l.def.node), owner: l.def.node, label: l.def.label, start: l.start, end: l.done?.done_on ?? null, days: l.days, sla: l.def.sla_days, late: l.late, open: !l.done };
 };
-const lines = (ls: Parameters<typeof toLine>[0][]) => ls.map(toLine).filter((x): x is NodeLine => !!x);
+/** The optional steps not recorded that a step jumps over (it is then timed from the steps before them) */
+function skipped(l: RouteLine, by: Map<string, RouteLine>) {
+  const out: RouteLine[] = [];
+  const seen = new Set<string>();
+  const todo = [...l.def.after];
+  while (todo.length) {
+    const k = todo.shift()!;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    const a = by.get(k);
+    if (!a || a.done || !a.def.optional) continue;
+    out.push(a);
+    todo.push(...a.def.after);
+  }
+  return out;
+}
+function lines(ls: RouteLine[]) {
+  const by = new Map(ls.map((l) => [l.def.key, l]));
+  const out: NodeLine[] = [];
+  for (const l of ls) {
+    const x = toLine(l);
+    if (!x) continue;
+    const sk = skipped(l, by);
+    const fin = sk.filter((a) => nodeOf(a.def.node) === 'fin');
+    if (fin.length && x.node !== 'fin') {
+      const sla = fin[0].def.sla_days != null && l.def.sla_days != null ? fin[0].def.sla_days + l.def.sla_days : null;
+      Object.assign(x, { node: 'fin', est: 'end', via: fin.map((a) => a.def.label).join(', '), sla, late: sla != null && (x.days ?? 0) > sla });
+    } else if (x.node === 'fin' && sk.length) Object.assign(x, { est: 'start', via: sk.map((a) => a.def.label).join(', ') });
+    out.push(x);
+  }
+  return out;
+}
 
 /** One item per import order (or import request still without orders) */
 export function foreignItems(hos: Handover[], orders: FoOrder[], steps: Step[], defs: StepDef[], holidays: Set<string>): NodeItem[] {
@@ -97,7 +137,9 @@ export function nodeReport(items: NodeItem[], from: string, today: string) {
   const perItem = items.map((it) => {
     const sums = new Map<NodeKey, number>();
     for (const l of it.lines) if (doneIn(l)) sums.set(l.node, (sums.get(l.node) ?? 0) + (l.days ?? 0));
-    return { it, sums };
+    const xs = new Map<NodeKey | 'finx', number>();
+    for (const l of it.lines) if (doneIn(l)) { const k = l.est ? 'finx' : l.node; xs.set(k, (xs.get(k) ?? 0) + (l.days ?? 0)); }
+    return { it, sums, xs };
   });
   const nodes = NODES.map((n) => {
     const waiting = items.filter((it) => it.open).map((it) => ({ it, ls: it.lines.filter((l) => l.open && l.node === n.key) })).filter((x) => x.ls.length);
@@ -111,21 +153,28 @@ export function nodeReport(items: NodeItem[], from: string, today: string) {
       avg: avg(passes),
       orders: passes.length,
       onTime: withSla.length ? withSla.filter((l) => (l.days ?? 0) <= l.sla!).length / withSla.length : null,
+      est: timed.filter((l) => l.est).length,
+      passesN: timed.length,
     };
   });
   const bars = CATS.map((cat) => {
     const ps = perItem.filter((p) => p.it.cat === cat && p.sums.size);
-    const parts = NODES.map((n) => ({ node: n.key, days: ps.length ? ps.reduce((t, p) => t + (p.sums.get(n.key) ?? 0), 0) / ps.length : 0 }));
+    const keys: (NodeKey | 'finx')[] = ['lt', 'dir', 'fbp', 'pro', 'fin', 'finx', 'log', 'ext'];
+    const parts = keys.map((k) => ({ node: k, days: ps.length ? ps.reduce((t, p) => t + (p.xs.get(k) ?? 0), 0) / ps.length : 0 }));
     return { cat, orders: ps.length, parts, total: parts.reduce((t, p) => t + p.days, 0) };
   });
   const fin = items.flatMap((it) => it.lines.filter((l) => doneIn(l) && l.node === 'fin').map((l) => ({ l, it })));
   const finDays = fin.map((f) => f.l.days ?? 0);
-  const finSteps = [...new Set(fin.map((f) => f.l.label))].map((label) => { const ds = fin.filter((f) => f.l.label === label).map((f) => f.l.days ?? 0); return { label, n: ds.length, median: median(ds) }; });
+  const finName = (l: NodeLine) => (l.est === 'end' ? `${l.via} – not seen, ended at “${l.label}”` : l.est === 'start' ? `${l.label} – hand-over to Finance not seen` : l.label);
+  const finSteps = [...new Set(fin.map((f) => finName(f.l)))].map((label) => { const ds = fin.filter((f) => finName(f.l) === label).map((f) => f.l.days ?? 0); return { label, n: ds.length, median: median(ds), est: fin.some((f) => finName(f.l) === label && !!f.l.est) }; });
+  const exact = fin.filter((f) => !f.l.est).map((f) => f.l.days ?? 0), guess = fin.filter((f) => f.l.est).map((f) => f.l.days ?? 0);
   const finance = {
     passes: fin.length,
     median: median(finDays),
     over: fin.filter((f) => f.l.sla != null && (f.l.days ?? 0) > f.l.sla).length,
-    bins: FIN_BINS.map(([label, a, b]) => ({ label, n: finDays.filter((d) => d >= a && d <= b).length })),
+    exact: { n: exact.length, median: median(exact) },
+    guess: { n: guess.length, median: median(guess) },
+    bins: FIN_BINS.map(([label, a, b]) => ({ label, n: exact.filter((d) => d >= a && d <= b).length, m: guess.filter((d) => d >= a && d <= b).length })),
     steps: finSteps,
     open: items.filter((it) => it.open && it.lines.some((l) => l.open && l.node === 'fin')).length,
   };

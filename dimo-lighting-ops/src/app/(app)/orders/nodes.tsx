@@ -7,19 +7,20 @@ import { monthsAgo, todayIso, type FoOrder, type Handover, type Step, type StepD
 import { fmtDate } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import type { LoOrder, LoRequest, LoStep, LoStepDef } from '@/lib/localOrders';
-import { foreignItems, localItems, nodeFill, nodeInfo, nodeReport, NODES, type NodeItem, type NodeKey } from '@/lib/orderNodes';
+import { foreignItems, localItems, nodeFill, nodeInfo, nodeReport, NODES, type NodeItem, type NodeKey, type NodeLine } from '@/lib/orderNodes';
 import { supabase } from '@/lib/supabase';
 
 type Kind = 'both' | 'import' | 'local';
 type Period = '3' | '6' | '12' | 'all';
 
-const Dot = ({ k, size = 10 }: { k: NodeKey; size?: number }) => <View style={[{ width: size, height: size, borderRadius: 3 }, nodeFill(k)]} />;
-const NodeName = ({ k }: { k: NodeKey }) => (
+const Dot = ({ k, size = 10 }: { k: NodeKey | 'finx'; size?: number }) => <View style={[{ width: size, height: size, borderRadius: 3 }, nodeFill(k)]} />;
+const NodeName = ({ k, est }: { k: NodeKey | 'finx'; est?: 'end' | 'start' }) => (
   <Row gap={6} style={{ alignItems: 'center' }}>
-    <Dot k={k} />
-    <Text style={{ color: colors.text }}>{nodeInfo(k).name}</Text>
+    <Dot k={est ? 'finx' : k} />
+    <Text style={{ color: colors.text }}>{k === 'finx' ? 'Finance – start or end not seen' : nodeInfo(k).name}{est ? ' (not seen)' : ''}</Text>
   </Row>
 );
+const waitingFor = (l: NodeLine) => (l.est === 'end' ? `Finance: ${l.via} – we see it only when “${l.label}” is done` : l.label);
 const d1 = (n: number) => (Math.round(n * 10) / 10).toFixed(1);
 const monthName = (m: string) => new Date(`${m}-01T00:00:00Z`).toLocaleString('en-GB', { month: 'short', timeZone: 'UTC' });
 
@@ -65,12 +66,12 @@ export default function OrderNodes() {
   const openCount = items.filter((it) => it.open).length;
   const chosen = items.find((it) => it.key === pick) ?? rep.waiting[0]?.it ?? null;
   const maxBar = Math.max(1, ...rep.bars.map((b) => b.total));
-  const maxBin = Math.max(1, ...rep.finance.bins.map((b) => b.n));
+  const maxBin = Math.max(1, ...rep.finance.bins.map((b) => b.n + b.m));
 
   return (
     <Screen maxWidth={1300}>
       <Stack.Screen options={{ title: 'Node report' }} />
-      <Muted>Where import and local orders spend their time. Each step recorded in Foreign and Local orders belongs to the team that does it; its working days (from the step it follows) count for that node. Finance is hidden – we only see an order go in (the TT / LC / payment request) and come out (TT sent, LC opened, advance or duty paid), so the time in between shows as one block.</Muted>
+      <Muted>Where import and local orders spend their time. Each step recorded in Foreign and Local orders belongs to the team that does it; its working days (from the step it follows) count for that node. Finance is hidden – we only see an order go in (the TT / LC / payment request) and come out (TT sent, LC opened, advance or duty paid), so the time in between shows as one block. When the Finance step itself was not recorded, the time until the next step we saw still counts as Finance, marked “not seen”.</Muted>
       <Row wrap gap={8} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
         <Segmented value={kind} onChange={setKind} options={[{ value: 'both', label: 'Import + local' }, { value: 'import', label: 'Import orders' }, { value: 'local', label: 'Local orders' }]} />
         <Segmented value={period} onChange={setPeriod} options={[{ value: '3', label: '3 months' }, { value: '6', label: '6 months' }, { value: '12', label: '12 months' }, { value: 'all', label: 'All' }]} />
@@ -89,6 +90,7 @@ export default function OrderNodes() {
               <Text style={{ color: colors.text, fontSize: 13 }}>Avg {n.orders ? d1(n.avg) : '—'} days an order</Text>
               <Text style={{ color: n.onTime == null ? colors.muted : n.onTime < 0.65 ? colors.red : colors.green, fontSize: 13 }}>On time {n.onTime == null ? '— (no SLA)' : `${Math.round(n.onTime * 100)} %`}</Text>
               <Text style={{ color: colors.text, fontSize: 13 }}>Oldest waiting {n.holding ? `${n.oldest} d` : '—'}</Text>
+              {n.key === 'fin' && n.est ? <Text style={{ color: colors.amber, fontSize: 12 }}>{n.est} of {n.passesN} passes not seen exactly – see below</Text> : null}
               <Muted style={{ fontSize: 11 }}>{n.who}</Muted>
             </Card>
           ))}
@@ -96,6 +98,10 @@ export default function OrderNodes() {
         <Row gap={8} style={{ alignItems: 'center' }}>
           <View style={[{ width: 22, height: 12, borderRadius: 3 }, nodeFill('fin')]} />
           <Muted>Hidden node – the days between going in and coming out are one block. An order with two steps open at once counts at both nodes.</Muted>
+        </Row>
+        <Row gap={8} style={{ alignItems: 'center' }}>
+          <View style={[{ width: 22, height: 12, borderRadius: 3 }, nodeFill('finx')]} />
+          <Muted>Finance not seen – when the TT / LC step was not recorded, Finance&apos;s work only shows when the next step happens (Procurement shares the TT or LC with the manufacturer, or the manufacturer accepts the LC). That whole gap counts as Finance, but it also holds the next team&apos;s hand-on, so it is shown apart and never mixed into Procurement or the manufacturer.</Muted>
         </Row>
       </Section>
 
@@ -112,7 +118,7 @@ export default function OrderNodes() {
                   <View style={{ flexDirection: 'row', height: 24, borderRadius: 5, overflow: 'hidden', backgroundColor: colors.bg, width: `${Math.max(2, (b.total / maxBar) * 100)}%` }}>
                     {b.parts.filter((p) => p.days > 0).map((p) => (
                       <View key={p.node} style={[{ flexGrow: p.days, flexBasis: 0, justifyContent: 'center', alignItems: 'center' }, nodeFill(p.node)]}>
-                        {p.days / (b.total || 1) > 0.08 ? <Text style={{ fontSize: 11, fontWeight: '700', color: p.node === 'fin' ? colors.ink : '#fff' }}>{d1(p.days)}</Text> : null}
+                        {p.days / (b.total || 1) > 0.08 ? <Text style={{ fontSize: 11, fontWeight: '700', color: p.node === 'fin' || p.node === 'finx' ? colors.ink : '#fff' }}>{d1(p.days)}</Text> : null}
                       </View>
                     ))}
                   </View>
@@ -120,6 +126,7 @@ export default function OrderNodes() {
               ))}
               <Row wrap gap={12}>
                 {NODES.map((n) => <NodeName key={n.key} k={n.key} />)}
+                <NodeName k="finx" />
               </Row>
             </Card>
           </Section>
@@ -128,12 +135,15 @@ export default function OrderNodes() {
           <Section title="Inside Finance (hidden)">
             <Card style={{ gap: 10 }}>
               <Muted>Goes in: the TT / LC application or payment request sent to Finance. Comes out: TT sent, draft LC or LC opened, advance or duty paid.</Muted>
-              <Text style={{ color: colors.text }}>{rep.finance.passes} passes in this period · median {d1(rep.finance.median)} days · {rep.finance.over} over SLA · {rep.finance.open} with Finance now</Text>
+              <Text style={{ color: colors.text }}>{rep.finance.passes} passes in this period · {rep.finance.over} over SLA · {rep.finance.open} with Finance now</Text>
+              <Row gap={6} style={{ alignItems: 'center' }}><Dot k="fin" /><Text style={{ color: colors.text, fontSize: 13 }}>Seen going in and out: {rep.finance.exact.n} · median {d1(rep.finance.exact.median)} d</Text></Row>
+              <Row gap={6} style={{ alignItems: 'center' }}><Dot k="finx" /><Text style={{ color: colors.text, fontSize: 13 }}>Start or end not seen: {rep.finance.guess.n} · median {d1(rep.finance.guess.median)} d (includes the next or previous team&apos;s hand-on)</Text></Row>
               <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 6, height: 110, borderBottomWidth: 1, borderBottomColor: colors.line }}>
                 {rep.finance.bins.map((b) => (
                   <View key={b.label} style={{ flex: 1, alignItems: 'center', gap: 2 }}>
-                    <Text style={{ fontSize: 11, color: colors.text }}>{b.n}</Text>
-                    <View style={[{ width: '100%', height: Math.max(2, (b.n / maxBin) * 84), borderTopLeftRadius: 4, borderTopRightRadius: 4 }, nodeFill('fin')]} />
+                    <Text style={{ fontSize: 11, color: colors.text }}>{b.n + b.m}</Text>
+                    {b.m ? <View style={[{ width: '100%', height: (b.m / maxBin) * 84, borderTopLeftRadius: 4, borderTopRightRadius: 4 }, nodeFill('finx')]} /> : null}
+                    <View style={[{ width: '100%', height: Math.max(2, (b.n / maxBin) * 84) }, b.m ? null : { borderTopLeftRadius: 4, borderTopRightRadius: 4 }, nodeFill('fin')]} />
                   </View>
                 ))}
               </View>
@@ -141,7 +151,7 @@ export default function OrderNodes() {
                 {rep.finance.bins.map((b) => <Text key={b.label} style={{ flex: 1, textAlign: 'center', fontSize: 11, color: colors.muted }}>{b.label}</Text>)}
               </View>
               <Muted>Working days inside Finance</Muted>
-              {rep.finance.steps.map((s) => <Text key={s.label} style={{ fontSize: 13, color: colors.text }}>{s.label}: median {d1(s.median)} d ({s.n})</Text>)}
+              {rep.finance.steps.map((s) => <Text key={s.label} style={{ fontSize: 13, color: s.est ? colors.muted : colors.text }}>{s.label}: median {d1(s.median)} d ({s.n})</Text>)}
             </Card>
           </Section>
         </View>
@@ -157,12 +167,12 @@ export default function OrderNodes() {
           columns={[
             { h: 'Order', w: 170, v: (r) => <View><Text style={{ fontWeight: '700', color: colors.ink }}>{r.it.code}</Text><Muted>{r.it.cat}</Muted></View> },
             { h: 'Project', w: 200, grow: true, v: (r) => r.it.project },
-            { h: 'With', w: 140, v: (r) => <NodeName k={r.l.node} /> },
+            { h: 'With', w: 170, v: (r) => <NodeName k={r.l.node} est={r.l.est} /> },
             { h: 'Since', w: 100, v: (r) => fmtDate(r.l.start) },
             { h: 'Days', w: 60, right: true, bold: true, tone: (r) => (r.l.late ? colors.red : undefined), v: (r) => String(r.l.days ?? '—') },
             { h: 'SLA', w: 60, right: true, v: (r) => (r.l.sla != null ? String(r.l.sla) : '—') },
             { h: 'Last step we saw', w: 240, v: (r) => (r.last ? `${r.last.label} (${fmtDate(r.last.end)})` : '—') },
-            { h: 'Waiting for', w: 240, v: (r) => r.l.label },
+            { h: 'Waiting for', w: 280, v: (r) => waitingFor(r.l) },
           ]}
         />
       </Section>
@@ -225,13 +235,13 @@ function Timeline({ it, today }: { it: NodeItem; today: string }) {
             <View style={{ flex: 1, height: 26, backgroundColor: colors.bg, borderRadius: 5 }}>
               {ls.filter((l) => l.node === n.key).map((l, i) => {
                 const s = t(l.start ?? l.end!), e = t(l.end ?? today);
-                return <View key={i} style={[{ position: 'absolute', top: 4, bottom: 4, borderRadius: 4, left: `${((s - a) / span) * 100}%`, width: `${Math.max(0.8, ((e - s) / span) * 100)}%`, opacity: l.open ? 0.75 : 1 }, nodeFill(n.key)]} />;
+                return <View key={i} style={[{ position: 'absolute', top: 4, bottom: 4, borderRadius: 4, left: `${((s - a) / span) * 100}%`, width: `${Math.max(0.8, ((e - s) / span) * 100)}%`, opacity: l.open ? 0.75 : 1 }, nodeFill(l.est ? 'finx' : n.key)]} />;
               })}
             </View>
             <Text style={{ width: 60, textAlign: 'right', fontWeight: '700', color: colors.ink }}>{total(n.key) || '—'}</Text>
           </Row>
         ))}
-        <Muted>Days are working days per node. Faded bars are still open. Finance is striped: only going in and coming out are visible.</Muted>
+        <Muted>Days are working days per node. Faded bars are still open. Finance is striped: only going in and coming out are visible. Light stripes: Finance time whose start or end we did not see.</Muted>
       </Card>
       <DataTable
         rows={steps}
@@ -239,8 +249,8 @@ function Timeline({ it, today }: { it: NodeItem; today: string }) {
         edge={(l) => (l.late ? colors.red : undefined)}
         columns={[
           { h: 'Done', w: 100, v: (l) => (l.end ? fmtDate(l.end) : 'open') },
-          { h: 'Node', w: 140, v: (l) => <NodeName k={l.node} /> },
-          { h: 'Step', w: 320, grow: true, v: (l) => l.label },
+          { h: 'Node', w: 170, v: (l) => <NodeName k={l.node} est={l.est} /> },
+          { h: 'Step', w: 320, grow: true, v: (l) => (l.est === 'end' ? `${l.label} – counted as Finance (${l.via} not seen)` : l.est === 'start' ? `${l.label} – timed from before the hand-over (${l.via} not seen)` : l.label) },
           { h: 'Who', w: 140, v: (l) => l.owner },
           { h: 'Days', w: 60, right: true, bold: true, tone: (l) => (l.late ? colors.red : undefined), v: (l) => (l.days == null ? '—' : `${l.days}${l.open ? '+' : ''}`) },
           { h: 'SLA', w: 60, right: true, v: (l) => (l.sla != null ? String(l.sla) : '—') },
