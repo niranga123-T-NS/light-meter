@@ -120,19 +120,21 @@ export default function OrderNodes() {
       tables: [
         {
           title: `Waiting longest – who to chase (${rep.waiting.length})`,
-          head: ['Order', 'Category', 'Project', 'With', 'Since', 'Days', 'SLA', 'Last step we saw', 'Waiting for'],
-          right: [5, 6],
-          rows: rep.waiting.map((r) => [r.it.code, r.it.cat, r.it.project, nn(r.l.node, r.l.est), fmtDate(r.l.start), r.l.days ?? '—', r.l.sla ?? '—', r.last ? `${r.last.label} (${fmtDate(r.last.end)})` : '—', waitingFor(r.l)]),
+          head: ['Order', 'Project', 'With', 'Since', 'Days', 'SLA', 'Last step we saw', 'Waiting for'],
+          right: [4, 5],
+          widths: [11, 13, 13, 8, 5, 4, 20, 26],
+          rows: rep.waiting.map((r) => [{ text: r.it.code, sub: r.it.cat }, r.it.project, nn(r.l.node, r.l.est), fmtDate(r.l.start), r.l.days ?? '—', r.l.sla ?? '—', r.last ? `${r.last.label} (${fmtDate(r.last.end)})` : '—', waitingFor(r.l)]),
           late: rep.waiting.map((r) => r.l.late),
           note: 'Red: over the step\'s SLA.',
           empty: 'Nothing open.',
         },
-        { title: 'Average working days per step, month by month', head: ['Node', ...rep.months.map(pdfMonth), 'Change'], right: [1, 2, 3, 4, 5, 6, 7], rows: trendRows(rep.trend) },
+        { title: 'Average working days per step, month by month', head: ['Node', ...rep.months.map(pdfMonth), 'Change'], right: [1, 2, 3, 4, 5, 6, 7], widths: [22, 11, 11, 11, 11, 11, 11, 12], rows: trendRows(rep.trend) },
         ...(chosen
           ? [{
               title: `One order through the nodes: ${chosen.code} · ${chosen.title}`,
               head: ['Done', 'Node', 'Step', 'Who', 'Days', 'SLA'],
               right: [4, 5],
+              widths: [11, 17, 46, 14, 6, 6],
               rows: [...chosen.lines].sort((x, y) => ((x.end ?? '9999') < (y.end ?? '9999') ? -1 : 1)).map((l): PdfCell[] => [l.end ? fmtDate(l.end) : 'open', nn(l.node, l.est), stepText(l), l.owner, l.days == null ? '—' : `${l.days}${l.open ? '+' : ''}`, l.sla ?? '—']),
               late: chosen.lines.map((l) => l.late),
             }]
