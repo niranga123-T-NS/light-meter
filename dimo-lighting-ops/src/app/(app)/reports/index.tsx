@@ -3,7 +3,18 @@ import { useState } from 'react';
 import { TextInput } from 'react-native';
 import { Card, colors, Empty, ListRow, Muted, Pill, Screen, Section, styles } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { reportsFor } from '@/lib/roles';
+import { isDesigner, isEstimator, reportsFor } from '@/lib/roles';
+import type { Role } from '@/lib/types';
+
+/** The node reports a role may open: sales for Sales, estimation for Estimation, design for Design, orders for Operations and management */
+function nodeReports(r: Role) {
+  const out: { title: string; sub: string; href: string }[] = [];
+  if (['asm_building', 'asm_infra', 'sm_projects', 'gm'].includes(r)) out.push({ title: 'Sales – inquiry to the client’s decision', sub: 'Sales, intake, design, estimation, approvals, client (hidden), on hold', href: '/reports/nodes/sales' });
+  if (r === 'sm_estimation' || isEstimator(r) || r === 'gm') out.push({ title: 'Estimation – job to released quotation', sub: 'Queue, estimator, suppliers and Sales / client (hidden), review, approvals, rework', href: '/reports/nodes/estimation' });
+  if (r === 'design_manager' || isDesigner(r) || r === 'gm') out.push({ title: 'Design – job to released design', sub: 'Acknowledge, designer, Sales / client (hidden), date change, review, rework', href: '/reports/nodes/design' });
+  if (['operations_exec', 'sm_estimation', 'sm_projects', 'gm'].includes(r)) out.push({ title: 'Import and local orders', sub: 'Lighting Dept, Director, FBP, Procurement, Finance (hidden), Logistics, outside DIMO', href: '/orders/nodes' });
+  return out;
+}
 
 /** Reports tab (Section 9.7): only the reports the role may run are listed – others are hidden, not greyed out. */
 export default function Reports() {
@@ -23,6 +34,15 @@ export default function Reports() {
             onPress={() => router.push('/reports/management')}
           />
         </Card>
+      ) : null}
+      {nodeReports(me.role).length ? (
+        <Section title="Node reports – where the time goes">
+          <Card style={{ padding: 0, overflow: 'hidden' }}>
+            {nodeReports(me.role).map((r) => (
+              <ListRow key={r.href} title={r.title} subtitle={r.sub} onPress={() => router.push(r.href as never)} />
+            ))}
+          </Card>
+        </Section>
       ) : null}
       <TextInput value={q} onChangeText={setQ} placeholder="Search reports" placeholderTextColor={colors.faint} style={styles.input} />
       {areas.map((a) => (
