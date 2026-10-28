@@ -55,6 +55,8 @@ export type SecuredProject = {
   billed_before: number;
   budget_id: string | null;
   schedule_status: 'missing' | 'review' | 'approved';
+  /** Supply only → supply order for SM Estimation; Supply & installation → execution hand-over */
+  project_type?: 'supply' | 'supply_install' | null;
   submitted_at: string | null;
   approved_at: string | null;
   review_note: string | null;
