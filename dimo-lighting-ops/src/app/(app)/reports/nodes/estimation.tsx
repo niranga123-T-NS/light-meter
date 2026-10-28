@@ -109,6 +109,8 @@ export default function EstimationNodes() {
       <Stack.Screen options={{ title: 'Estimation node report' }} />
       {!data ? (error ? <ErrorBanner message={error} /> : <Loading />) : (
         <ProcessReport
+          title="Estimation node report"
+          reportKey="node_report_estimation"
           intro="Where estimation jobs spend their time, from the queue to the released quotation. Each change of a job's status starts a slice that belongs to a node; days are working days. While a supplier quotation or a clarification is outstanding, the estimator's time counts as waiting on suppliers or on Sales / the client instead – never twice."
           nodes={NODES}
           items={data}

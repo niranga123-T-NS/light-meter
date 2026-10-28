@@ -81,6 +81,8 @@ export default function SalesNodes() {
       <Stack.Screen options={{ title: 'Sales node report' }} />
       {!data ? (error ? <ErrorBanner message={error} /> : <Loading />) : (
         <ProcessReport
+          title="Sales node report"
+          reportKey="node_report_sales"
           intro="Where inquiries spend their time, from being raised to the client's decision. Each change of an inquiry's status starts a slice that belongs to a node; days are working days. Once the quotation goes to the client we only see the decision, so that time is one block. Clarifications asked of Sales or the client during design and estimation count as client time."
           nodes={NODES}
           items={data}
