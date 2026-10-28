@@ -310,7 +310,7 @@ export default function EstimationJobScreen() {
           </Row>
         </Card>
       ) : j.revision_request ? (
-        <Notice tone={colors.amber}>Client revision R{j.revision} requested: {j.revision_request}</Notice>
+        <Notice tone={colors.amber}>{j.validity_extension ? `Validity extension R${j.revision}: ${j.revision_request} – re-check the prices; the new valid-until date is set below.` : `Client revision R${j.revision} requested: ${j.revision_request}`}</Notice>
       ) : null}
       {data.previous.map((p) => (
         <Section key={p.job.id} title={`Previous quotation – ${p.quote?.full_no ?? `R${p.job.revision}`} (submitted)`}>

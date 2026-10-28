@@ -670,6 +670,58 @@ reset role;
 select pg_temp.act_as('asm_building'); set role authenticated;
 rollback to savepoint quote_rev;
 select pg_temp.act_as('asm_building'); set role authenticated;
+-- Validity extension (Request a change): new valid-until date → SM Estimation as a quotation revision → estimator → release
+savepoint validity_ext;
+do $$ begin
+  begin perform public.request_validity_extension('00000000-0000-0000-0000-00000000d001', current_date + 60, current_date + 5, ' '); assert false, 'reason needed';
+  exception when others then assert sqlerrm = 'A reason is required', sqlerrm; end;
+  begin perform public.request_validity_extension('00000000-0000-0000-0000-00000000d001', current_date + 4, current_date + 5, 'Client delayed'); assert false, 'after needed-by';
+  exception when others then assert sqlerrm like 'The new validity must be after%', sqlerrm; end;
+end $$;
+reset role;
+do $$ begin
+  update public.inquiries set route = 'C' where id = '00000000-0000-0000-0000-00000000d001';
+end $$;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  begin perform public.request_validity_extension('00000000-0000-0000-0000-00000000d001', current_date + 90, current_date + 5, 'Client delayed'); assert false, 'design only refused';
+  exception when others then assert sqlerrm like 'A validity extension applies to%', sqlerrm; end;
+end $$;
+reset role;
+do $$ begin
+  update public.inquiries set route = 'A' where id = '00000000-0000-0000-0000-00000000d001';
+end $$;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ declare jid uuid;
+begin
+  jid := public.request_validity_extension('00000000-0000-0000-0000-00000000d001', current_date + 90, current_date + 5, 'Client board meets next quarter');
+  perform set_config('test.vjid', jid::text, false);
+end $$;
+reset role;
+do $$ declare jid uuid := current_setting('test.vjid')::uuid;
+begin
+  assert (select status from public.inquiries where id = '00000000-0000-0000-0000-00000000d001') = 'in_estimation', 'with Estimation';
+  assert (select revision_kind from public.inquiries where id = '00000000-0000-0000-0000-00000000d001') = 'validity', 'kind validity';
+  assert (select status from public.estimation_jobs where id = jid) = 'accepted', 'waits for SM Estimation to assign';
+  assert (select validity_extension and validity_until = current_date + 90 from public.estimation_jobs where id = jid), 'new validity carried';
+  assert (select revision_request from public.estimation_jobs where id = jid) like 'Validity extension to %: Client board meets next quarter', 'request on the job';
+  assert (select customer_deadline from public.inquiries where id = '00000000-0000-0000-0000-00000000d001') = current_date + 5, 'needed-by date';
+  assert exists (select 1 from public.notifications where kind = 'validity_extension' and title like 'Validity extension requested: %-R1'
+                 and recipient_id = (select id from u where role = 'sm_estimation')), 'SM Estimation told';
+end $$;
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+select public.assign_estimation_job(current_setting('test.vjid')::uuid, (select id from u where role = 'am_estimation'), now() + interval '2 days', 'small', 'Re-check prices');
+reset role;
+do $$ begin
+  assert (select assignee_id from public.estimation_jobs where id = current_setting('test.vjid')::uuid) = (select id from u where role = 'am_estimation'), 'estimator assigned';
+end $$;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  begin perform public.request_validity_extension('00000000-0000-0000-0000-00000000d001', current_date + 120, current_date + 5, 'again'); assert false, 'one at a time';
+  exception when others then assert sqlerrm like 'A revision can be requested only after%', sqlerrm; end;
+end $$;
+rollback to savepoint validity_ext;
+select pg_temp.act_as('asm_building'); set role authenticated;
 -- Revision kinds: revised quotation with a deadline → SM Estimation; revised design (and quotation) → Design Manager,
 -- designers the usual way, then the released design goes to SM Estimation for the quotation
 savepoint rev_kinds;
