@@ -2,6 +2,7 @@ import { File as FsFile, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { PDFDocument, rgb, StandardFonts, type PDFFont, type PDFPage } from 'pdf-lib';
 import { Platform } from 'react-native';
+import { saveWebFile } from './export';
 import { fmtDateNum, fmtTime } from './format';
 import type { HseEquipment, HseForm, HseRecord, Induction } from './hse';
 import layouts from './hseLayouts.json';
@@ -313,14 +314,7 @@ export async function deliver(bytes: Uint8Array, name: string, key: string, filt
   if (data.user) await supabase.from('report_runs').insert({ user_id: data.user.id, report_key: key, filters: { text: filters }, format: 'pdf' });
   const fileName = `${name.replace(/[^A-Za-z0-9-]+/g, '_')}.pdf`;
   if (Platform.OS === 'web') {
-    const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'application/pdf' }));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    await saveWebFile(new Blob([bytes as BlobPart], { type: 'application/pdf' }), fileName, name);
     return;
   }
   const file = new FsFile(Paths.cache, fileName);
