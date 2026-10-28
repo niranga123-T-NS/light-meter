@@ -5,6 +5,7 @@ import { Attachments, KIND_LABELS } from '@/components/Attachments';
 import { DeadlineCard } from '@/components/DeadlineCard';
 import { DesignNotes } from '@/components/DesignNotes';
 import { ProjectTeam } from '@/components/ProjectTeam';
+import { PageTablets, useWizardNudge } from '@/components/WinUse';
 import { useDialog } from '@/components/dialog';
 import { CLOSED_INQUIRY, deadlineCounting, deadlineNote, InquiryTimeline, REVISION_FLAG_AFTER, RevisionFlag, STAGE_COLOUR } from '@/components/InquiryBits';
 import { PersonPicker } from '@/components/pickers';
@@ -91,6 +92,8 @@ export default function InquiryDetail() {
       supabase.removeChannel(ch);
     };
   }, [id, refresh]);
+  const nudgeInq = data && isSales(me.role) && data.inquiry.sales_person_id === me.id && OPEN_INQUIRY(data.inquiry.status) ? data.inquiry : null;
+  useWizardNudge(nudgeInq?.project_id, nudgeInq ? { id: nudgeInq.id, code: nudgeInq.code } : null);
 
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const { inquiry: i, designJobs, estimationJobs, quotations, clocks, approvals, files, group, groupQuotes, offer, late } = data;
@@ -521,6 +524,7 @@ export default function InquiryDetail() {
   return (
     <Screen maxWidth={1100}>
       <Stack.Screen options={{ title: `${i.code}${i.revision ? `-R${i.revision}` : ''}` }} />
+      <PageTablets projectId={i.project_id} inquiryId={i.id} />
       <Card style={{ borderLeftWidth: 5, borderLeftColor: STAGE_COLOUR[colour] }}>
         <Row wrap style={{ justifyContent: 'space-between' }}>
           <View style={{ flex: 1, minWidth: 240 }}>

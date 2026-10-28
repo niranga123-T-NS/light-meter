@@ -4,6 +4,7 @@ import { Text } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { MeetingActions } from '@/components/MeetingActions';
 import { WeekMeetings } from '@/components/WeekMeetings';
+import { VisitTablets, WinUsagePopup } from '@/components/WinUse';
 import { TargetCard } from '@/components/TargetCharts';
 import { useMe } from '@/lib/auth';
 import { fyOf, type Performance } from '@/lib/finance';
@@ -79,6 +80,8 @@ export function SalesHome() {
       <Stack.Screen options={{ title: 'My Day' }} />
       <H1>Good day, {me.full_name.split(' ')[0]}</H1>
       <ErrorBanner message={error} />
+      <WinUsagePopup />
+      <VisitTablets />
       <AcademyCard />
       {offline.pending ? (
         <Notice tone={colors.amber}>

@@ -1,5 +1,5 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
 import { WinGraphic } from '@/components/WinGraphic';
@@ -134,7 +134,7 @@ async function initialMap(p: Project): Promise<WinMap> {
 
 /** Win Probability Wizard for one project (testing stage – used when the project's wizard tick is on) */
 export default function WinWizard() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, inquiry } = useLocalSearchParams<{ id: string; inquiry?: string }>();
   const me = useMe();
   const people = usePeople();
   const dialog = useDialog();
@@ -149,8 +149,16 @@ export default function WinWizard() {
       supabase.from('win_scores').select('id, scored_at, scored_by, wizard_pct, manual_pct, chosen_pct, applied, confidence').eq('project_id', id).order('scored_at', { ascending: false }).limit(12),
     ]);
     const map = saved?.data ? (saved.data as WinMap) : await initialMap(project);
-    return { project, map, savedAt: (saved?.updated_at as string | undefined) ?? null, scores: (scores ?? []) as Score[] };
-  }, [id]);
+    // Opened from an inquiry: its % can be set from the score in one step
+    const { data: inq } = inquiry
+      ? await supabase.from('inquiries').select('id, code, inquiry_name, status, win_probability').eq('id', inquiry).eq('project_id', id).maybeSingle()
+      : { data: null };
+    return { project, map, savedAt: (saved?.updated_at as string | undefined) ?? null, scores: (scores ?? []) as Score[], inq: inq as { id: string; code: string; inquiry_name: string | null; status: string; win_probability: number | null } | null };
+  }, [id, inquiry]);
+  // Every open of the wizard is logged for the Win Predictor use report
+  useEffect(() => {
+    if (id) rpc('log_wizard_open', { p_project: id, p_inquiry: inquiry ?? null }).catch(() => null);
+  }, [id, inquiry]);
   const map = m ?? data?.map ?? null;
   const R = useMemo(() => (map ? compute(map) : null), [map]);
   // How the % moved with each change in this session (for the live picture)
@@ -233,7 +241,7 @@ export default function WinWizard() {
       applyArgs = { pct: Number(r.pct), reason: r.reason ?? '' };
       if (!(applyArgs.pct >= 0 && applyArgs.pct <= 100)) return dialog.toast('Win probability is 0 – 100', 'error');
     }
-    await dialog.run(
+    const saved = await dialog.run(
       async () => {
         const sid = await rpc<number>('save_win_score', {
           p_project: p.id,
@@ -250,6 +258,21 @@ export default function WinWizard() {
       },
       !applyArgs ? 'Score saved' : manager ? 'Win probability set' : 'Sent to SM Projects for approval',
     );
+    const q = data.inq;
+    if (saved && !applyArgs && q && !['won', 'lost', 'cancelled', 'rejected'].includes(q.status)) {
+      const r = await dialog.prompt({
+        title: `Use the score for ${q.code}?`,
+        message: `The wizard gives ${wiz}%. ${q.code}${q.inquiry_name ? ` · ${q.inquiry_name}` : ''} is at ${q.win_probability ?? '—'}% – the project's % follows its inquiries.`,
+        fields: [{ key: 'pct', label: 'Win probability % for this inquiry', initial: String(wiz), required: true }],
+        confirmLabel: 'Set',
+        cancelLabel: 'Keep as it is',
+      });
+      if (!r) return;
+      const pct = Number(r.pct);
+      if (!(pct >= 0 && pct <= 100)) return dialog.toast('Win probability is 0 – 100', 'error');
+      await dialog.run(() => rpc('set_inquiry_probability', { p_inquiry: q.id, p_pct: pct }), `${q.code} set to ${pct}%`);
+      await reload();
+    }
   };
 
   const pillarHead = (k: PeoplePillar, l: string) => (

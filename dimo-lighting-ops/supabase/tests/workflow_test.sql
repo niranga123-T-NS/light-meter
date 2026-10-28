@@ -10177,5 +10177,85 @@ do $$ begin
   assert exists (select 1 from public.approvals where kind = 'estimation_hold' and entity_id = current_setting('test.hold_job')::uuid and status = 'pending'), 'hold request waits for SM Estimation';
 end $$;
 
+-- Win Predictor use: log of opens/scores, follow-ups after a visit (project + each open inquiry), pop-ups, escalation, report
+select pg_temp.act_as('asm_building'); set role authenticated;
+insert into public.projects (id, name, project_type, organization_id, unit_id, city, expected_duration_months, project_term, lighting_value, project_value, owner_id, win_probability)
+values ('00000000-0000-0000-0000-00000000b455', 'Win use – Harbour Hotel', 'hospitality', '00000000-0000-0000-0000-00000000a001', '00000000-0000-0000-0000-00000000a002',
+        'Colombo', 12, 'medium', 20000000, 400000000, (select id from u where role = 'asm_building'), 40);
+insert into public.inquiries (id, project_id, organization_id, unit_id, route, duty_status, design_scope, customer_deadline, design_required_by, quotation_required_by, scope_description, solution_level, manufacturing_origin)
+values ('00000000-0000-0000-0000-00000000e451', '00000000-0000-0000-0000-00000000b455', '00000000-0000-0000-0000-00000000a001', '00000000-0000-0000-0000-00000000a002',
+        'B', 'duty_paid', 'lighting', current_date + 30, current_date + 12, current_date + 25, 'Lobby lighting package', 'high', 'european'),
+       ('00000000-0000-0000-0000-00000000e452', '00000000-0000-0000-0000-00000000b455', '00000000-0000-0000-0000-00000000a001', '00000000-0000-0000-0000-00000000a002',
+        'B', 'duty_paid', 'lighting', current_date + 30, current_date + 12, current_date + 25, 'Car park lighting package', 'high', 'european');
+do $$ declare u jsonb; n jsonb; vid uuid := gen_random_uuid(); sid bigint;
+begin
+  u := public.my_win_usage();
+  assert (u ->> 'show')::boolean, 'usage pop-up due today';
+  assert jsonb_array_length(u -> 'weeks') = 8, '8 weeks';
+  assert exists (select 1 from jsonb_array_elements(u -> 'to_score') x where x ->> 'id' = '00000000-0000-0000-0000-00000000b455'), 'project to score listed';
+  perform public.win_nudge_dismiss('usage');
+  assert not (public.my_win_usage() ->> 'show')::boolean, 'once a day';
+  n := public.wizard_nudge('00000000-0000-0000-0000-00000000b455');
+  assert (n ->> 'due')::boolean and n ->> 'last_at' is null, 'never scored → reminder';
+  -- a visit checked out: one follow-up for the project and one per open inquiry
+  insert into public.visits (id, organization_id, project_id, visit_category, primary_objective) values (vid, '00000000-0000-0000-0000-00000000a001', '00000000-0000-0000-0000-00000000b455', 'End-Client', 'Requirement Gathering');
+  assert not exists (select 1 from public.win_followups where visit_id = vid), 'nothing before check-out';
+  update public.visits set checkout_at = now(), summary = repeat('Talked about the lobby. ', 3), outcome = 'positive', status = 'closed' where id = vid;
+  assert (select count(*) from public.win_followups where visit_id = vid) = 3, 'project + 2 inquiries';
+  assert jsonb_array_length(public.my_win_followups()) = 3, 'my tablets';
+  -- a second visit before the update adds nothing
+  update public.visits set checkout_at = null where id = vid;
+  update public.visits set checkout_at = now() where id = vid;
+  assert (select count(*) from public.win_followups where project_id = '00000000-0000-0000-0000-00000000b455') = 3, 'no duplicates';
+  -- the inquiry % set (same value counts) closes its tablet
+  perform public.set_inquiry_probability('00000000-0000-0000-0000-00000000e451', (select win_probability from public.inquiries where id = '00000000-0000-0000-0000-00000000e451'));
+  assert (select done_how from public.win_followups where inquiry_id = '00000000-0000-0000-0000-00000000e451') = 'pct', 'inquiry updated';
+  -- "No change" on the other inquiry
+  perform public.win_followup_no_change((select id from public.win_followups where inquiry_id = '00000000-0000-0000-0000-00000000e452'));
+  assert (select done_how from public.win_followups where inquiry_id = '00000000-0000-0000-0000-00000000e452') = 'no_change', 'kept';
+  -- the wizard opened from an inquiry, then a score: logged with the inquiry, after the visit; the project tablet closes
+  perform public.set_wizard_use('00000000-0000-0000-0000-00000000b455', true);
+  perform public.log_wizard_open('00000000-0000-0000-0000-00000000b455', '00000000-0000-0000-0000-00000000e451');
+  perform public.log_wizard_open('00000000-0000-0000-0000-00000000b455', '00000000-0000-0000-0000-00000000e451');
+  assert (select count(*) from public.win_wizard_log where project_id = '00000000-0000-0000-0000-00000000b455' and action = 'opened') = 1, 'repeat open counts once';
+  sid := public.save_win_score('00000000-0000-0000-0000-00000000b455', '{"v":1,"type":"spec"}', '{"final":0.55}', 55, 50, 60, '{}');
+  assert (select inquiry_id = '00000000-0000-0000-0000-00000000e451' and after_visit and wizard_pct = 55 from public.win_wizard_log where score_id = sid and action = 'scored'), 'score logged';
+  assert (select done_how from public.win_followups where project_id = '00000000-0000-0000-0000-00000000b455' and inquiry_id is null) = 'wizard', 'project tablet closed';
+  assert jsonb_array_length(public.my_win_followups()) = 0, 'all done';
+  assert exists (select 1 from public.win_wizard_log where project_id = '00000000-0000-0000-0000-00000000b001' and action = 'applied' and after_pct = 60), 'earlier applies logged';
+  assert not (public.wizard_nudge('00000000-0000-0000-0000-00000000b455') ->> 'due')::boolean, 'scored → no reminder';
+  assert (public.my_win_usage() ->> 'uses')::int >= 1, 'use counted';
+  begin perform public.win_wizard_report(current_date - 30, current_date); assert false, 'sales cannot see the report';
+  exception when others then assert sqlerrm like 'Win Predictor use is reported%', sqlerrm; end;
+end $$;
+reset role;
+-- another visit, left without an update for 3 working days → the manager (SM Projects) is told once
+do $$ declare vid uuid := gen_random_uuid(); begin
+  insert into public.visits (id, sales_person_id, organization_id, project_id, visit_category, primary_objective, checkout_at, summary, outcome, status)
+  values (vid, (select id from u where role = 'asm_building'), '00000000-0000-0000-0000-00000000a001', '00000000-0000-0000-0000-00000000b455', 'End-Client', 'Requirement Gathering',
+          now(), repeat('Talked about the car park. ', 3), 'positive', 'closed');
+  assert (select count(*) from public.win_followups where visit_id = vid) = 3, 'new tablets on a new visit';
+  update public.win_followups set created_at = now() - interval '8 days' where visit_id = vid;
+  assert public.win_followup_tick() = 3, 'escalated';
+  assert public.win_followup_tick() = 0, 'once';
+  assert exists (select 1 from public.notifications where kind = 'win_followup_late' and recipient_id = (select id from u where role = 'sm_projects')), 'manager told';
+end $$;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ declare r jsonb := public.win_wizard_report(current_date - 30, current_date); p jsonb;
+begin
+  select x into p from jsonb_array_elements(r -> 'people') x where x ->> 'id' = (select id::text from u where role = 'asm_building');
+  assert (p ->> 'scores')::int >= 1 and (p ->> 'opens')::int >= 1 and (p ->> 'late')::int = 3, p::text;
+  assert jsonb_array_length(p -> 'weeks') = 12, '12 weeks';
+  assert exists (select 1 from jsonb_array_elements(r -> 'uses') x where x ->> 'inquiry_code' is not null and x ->> 'action' = 'scored'), 'what it was used on';
+  assert (select count(*) from public.win_followups where project_id = '00000000-0000-0000-0000-00000000b455') = 6, 'SM Projects reads the follow-ups';
+end $$;
+reset role;
+select pg_temp.act_as('asm_infra'); set role authenticated;
+do $$ begin
+  assert not exists (select 1 from public.win_wizard_log where project_id = '00000000-0000-0000-0000-00000000b455'), 'other sales cannot see the log';
+  assert not exists (select 1 from public.win_followups where project_id = '00000000-0000-0000-0000-00000000b455'), 'nor the follow-ups';
+end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;
