@@ -13,6 +13,7 @@ import { addDaysISO, fmtDate, fmtTime, todayISO } from '@/lib/format';
 import type { HseRecord } from '@/lib/hse';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
+import { oneLine, weatherOn } from '@/lib/weather';
 
 type SubItem = { id: string; ae_item_id: string | null; title: string; zone: string | null; qty: number | null; unit: string | null; additional: boolean; status: 'planned' | 'done' | 'partial' | 'not_done'; done_qty: number | null; result_note: string | null };
 type SubEdit = { status: string; done_qty: number | null; note: string };
@@ -195,8 +196,9 @@ export default function NewReport() {
           <Select label="Project" required value={proj} onChange={(v) => set('project', v)} options={(projects ?? []).map((p) => ({ value: p.id, label: `${p.wbs_no || p.code || ''} ${p.name}` }))} />
           <Grid min={220}>
             <DateField label="Report date" required value={f.date} onChange={(v) => set('date', v ?? todayISO())} quick={[0, -1]} />
-            <Field label="Weather" value={f.weather} onChangeText={(v) => set('weather', v)} placeholder="e.g. Sunny, rain after 16:00" />
+            <Field label="Weather remarks (optional)" value={f.weather} onChangeText={(v) => set('weather', v)} placeholder="e.g. work stopped 14:00–15:30 for rain" />
           </Grid>
+          <SiteWeatherLine exec={proj} day={f.date} />
           {sup ? (
             <Grid min={220}>
               <NumberField label="Crew on site" required value={f.crew_count} onChange={(v) => set('crew_count', v)} />
@@ -343,5 +345,16 @@ export default function NewReport() {
         <Button title="Submit report" disabled={needTbt || needUsage} onPress={save} />
       </Row>
     </Screen>
+  );
+}
+
+/** The site weather of the report date: recorded automatically at 19:00 and added to the report */
+function SiteWeatherLine({ exec, day }: { exec: string | null; day: string }) {
+  const { data } = useLoad(async () => (exec ? weatherOn(exec, day) : null), [exec, day]);
+  if (!exec) return null;
+  return data ? (
+    <Notice tone={colors.blue}>{`Site weather (added to the report automatically): ${oneLine(data.summary)}`}</Notice>
+  ) : (
+    <Muted>The site weather is recorded automatically at 19:00 and added to this report – write above only what it meant on site.</Muted>
   );
 }

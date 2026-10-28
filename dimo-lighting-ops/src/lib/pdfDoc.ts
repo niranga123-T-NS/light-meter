@@ -243,6 +243,62 @@ export class SiteDoc {
     }
   }
 
+  /**
+   * The day's weather hour by hour: rain as blue bars (mm, left scale), the temperature as a red line with its value, the
+   * hour and the chance of rain under each column. Kept on one page.
+   */
+  weatherChart(hours: { label: string; t: number | null; p: number | null; pp: number | null }[]) {
+    if (!hours.length) return;
+    // temperature in a band at the top, rain bars in their own band under it – they never overlap
+    const H = 168, tTop = 30, tBot = 58, rTop = 72, base = 122;
+    this.need(H + 8);
+    const y0 = this.y;
+    this.rect(M, y0, CW, H);
+    const L = M + 34, R = M + CW - 10, w = (R - L) / hours.length;
+    const ts = hours.map((x) => x.t).filter((v): v is number => v != null);
+    const tmin = Math.floor(Math.min(...ts, 99) - 1), tmax = Math.ceil(Math.max(...ts, -99) + 1);
+    const pmax = Math.max(2, ...hours.map((x) => x.p ?? 0));
+    const yT = (v: number) => y0 + tTop + (1 - (v - tmin) / Math.max(1, tmax - tmin)) * (tBot - tTop);
+    const yP = (v: number) => y0 + base - (v / pmax) * (base - rTop);
+    const RAIN = rgb(0.16, 0.42, 0.78), TEMP = rgb(0.78, 0.06, 0.18);
+    // scale lines and the rain scale on the left
+    [0, pmax / 2, pmax].forEach((v) => {
+      this.page.drawLine({ start: { x: L, y: PH - yP(v) }, end: { x: R, y: PH - yP(v) }, thickness: 0.3, color: rgb(0.85, 0.85, 0.85) });
+      this.text(`${Math.round(v * 10) / 10}`, M + 4, yP(v) + 3, 6.5, this.f, MUTED);
+    });
+    this.text('Rain mm', M + 4, y0 + rTop - 8, 6.5, this.f, MUTED);
+    this.text('°C', M + 4, y0 + tTop + 10, 6.5, this.f, MUTED);
+    hours.forEach((x, i) => {
+      const cx = L + w * i + w / 2;
+      if (x.p) this.page.drawRectangle({ x: cx - w * 0.3, y: PH - y0 - base, width: w * 0.6, height: y0 + base - yP(x.p), color: RAIN });
+      if (x.p) this.text(`${x.p}`, cx - this.f.widthOfTextAtSize(`${x.p}`, 6.5) / 2, yP(x.p) - 2, 6.5, this.b, RAIN);
+      this.text(x.label, cx - this.f.widthOfTextAtSize(x.label, 7) / 2, y0 + base + 12, 7, this.b);
+      const pp = x.pp == null ? '' : `${x.pp}%`;
+      this.text(pp, cx - this.f.widthOfTextAtSize(pp, 6.5) / 2, y0 + base + 22, 6.5, this.f, MUTED);
+    });
+    // temperature line
+    const pts = hours.map((x, i) => (x.t == null ? null : { x: L + w * i + w / 2, y: yT(x.t), t: x.t }));
+    pts.forEach((pt, i) => {
+      const nx = pts[i + 1];
+      if (pt && nx) this.page.drawLine({ start: { x: pt.x, y: PH - pt.y }, end: { x: nx.x, y: PH - nx.y }, thickness: 1.4, color: TEMP });
+    });
+    pts.forEach((pt) => {
+      if (!pt) return;
+      this.page.drawCircle({ x: pt.x, y: PH - pt.y, size: 1.8, color: TEMP });
+      const tx = `${Math.round(pt.t)}°`;
+      this.text(tx, pt.x - this.b.widthOfTextAtSize(tx, 6.5) / 2, pt.y - 4, 6.5, this.b, TEMP);
+    });
+    // legend and the row names
+    this.page.drawRectangle({ x: R - 168, y: PH - y0 - 12, width: 8, height: 6, color: RAIN });
+    this.text('Rain (mm)', R - 157, y0 + 11, 7, this.f);
+    this.page.drawLine({ start: { x: R - 100, y: PH - y0 - 9 }, end: { x: R - 88, y: PH - y0 - 9 }, thickness: 1.4, color: TEMP });
+    this.text('Temperature (°C)', R - 84, y0 + 11, 7, this.f);
+    this.text('Hour', M + 4, y0 + base + 12, 6.5, this.b, MUTED);
+    this.text('Rain %', M + 4, y0 + base + 22, 6.5, this.f, MUTED);
+    this.text('Site weather by hour (Open-Meteo) · rain in mm in that hour · chance of rain under each hour', M + 4, y0 + H - 8, 6.5, this.f, MUTED);
+    this.y = y0 + H + 8;
+  }
+
   /** Sign-off block like the HSE forms */
   signOff(rows: [string, string, string | null][]) {
     this.table(
