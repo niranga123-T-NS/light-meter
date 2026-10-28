@@ -138,6 +138,7 @@ export default function LocalOrders() {
         />
         <Row wrap gap={8}>
           <Button small variant="secondary" title="Performance" onPress={() => router.push('/orders/local/performance')} />
+          <Button small variant="secondary" title="Node report" onPress={() => router.push('/orders/nodes')} />
           {LO_REQUESTERS.includes(me.role) ? <Button small title="+ Request" onPress={() => router.push('/orders/local/request-form')} /> : null}
         </Row>
       </Row>

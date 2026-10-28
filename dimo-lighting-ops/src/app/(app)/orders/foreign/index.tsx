@@ -112,6 +112,7 @@ export default function ForeignOrders() {
         />
         <Row wrap gap={8}>
           <Button small variant="secondary" title="Performance" onPress={() => router.push('/orders/foreign/performance')} />
+          <Button small variant="secondary" title="Node report" onPress={() => router.push('/orders/nodes')} />
           {keeper ? <Button small title="+ Import request" onPress={newHandover} /> : null}
         </Row>
       </Row>
