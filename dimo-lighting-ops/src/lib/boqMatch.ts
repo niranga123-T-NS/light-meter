@@ -3,6 +3,7 @@ import readXlsxFile from 'read-excel-file/universal';
 import writeXlsxFile from 'write-excel-file/universal';
 import { File as FsFile, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import { saveWebFile } from './export';
 import { readBytes, type PickedFile } from './files';
 import { picBlob, pictureFromUrl, readPdfBoq, xlsxPictures, type BoqPic } from './boqPictures';
 import { bestMatches, brandOk, cctText, compare, fixtureImage, fmt, levelOk, parseSpecText, PARAMS, priceLabel, wattText, type Fixture, type Level, type Match, type ParamKey, type PriceLevel, type Spec } from './fixtures';
@@ -335,10 +336,7 @@ export async function exportBoqExcel(fileName: string, all: Fixture[], lines: Bo
   ] as never).toBlob();
   const name = `${fileName.replace(/\.[^.]+$/, '')} – DIMO options.xlsx`;
   if (Platform.OS === 'web') {
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = name;
-    a.click();
+    await saveWebFile(blob, name, name.replace(/\.[^.]+$/, ''));
     return;
   }
   const b64 = await new Promise<string>((ok, bad) => { const r = new FileReader(); r.onerror = () => bad(r.error); r.onload = () => ok(String(r.result).split(',')[1] ?? ''); r.readAsDataURL(blob); });

@@ -107,6 +107,66 @@ async function generatedBy() {
   return p ? `${p.full_name} – ${ROLE_SHORT[p.role as keyof typeof ROLE_SHORT] ?? p.role}` : '';
 }
 
+const isIos = () => /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+/**
+ * Web: a made file (PDF, Excel) to the user as a file. iPhone / iPad: the share sheet with the file (Save to Files, Mail,
+ * WhatsApp …) – a download link there only opens the file on a page of the app's address. When the tap that started the
+ * export is too long ago for the share sheet, a "Save or share" button is shown and a tap on it opens the sheet.
+ * Elsewhere: downloaded.
+ */
+export async function saveWebFile(blob: Blob, name: string, title: string) {
+  const type = blob.type || (name.endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream');
+  const file = new File([blob], name, { type });
+  if (isIos() && typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title });
+      return;
+    } catch (e) {
+      if ((e as Error).name === 'AbortError') return;
+      if ((e as Error).name === 'NotAllowedError') return shareButton(file, title);
+    }
+  }
+  const url = URL.createObjectURL(file);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+/** A small panel over the app: the file is ready – a tap opens the share sheet (it needs a fresh tap) */
+function shareButton(file: File, title: string) {
+  document.getElementById('__share_file')?.remove();
+  const box = document.createElement('div');
+  box.id = '__share_file';
+  box.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;font-family:-apple-system,Arial,sans-serif';
+  const card = document.createElement('div');
+  card.style.cssText = 'background:#fff;border-radius:14px;padding:20px;max-width:340px;width:86%;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,0.25)';
+  const t = document.createElement('div');
+  t.textContent = `${title} is ready`;
+  t.style.cssText = 'font-weight:700;font-size:17px;margin-bottom:6px;color:#111';
+  const n = document.createElement('div');
+  n.textContent = file.name;
+  n.style.cssText = 'font-size:13px;color:#555;margin-bottom:16px;word-break:break-all';
+  const go = document.createElement('button');
+  go.textContent = 'Save or share the file';
+  go.style.cssText = 'display:block;width:100%;padding:12px;border:0;border-radius:10px;background:#C8102E;color:#fff;font-size:16px;font-weight:600;margin-bottom:8px';
+  const close = document.createElement('button');
+  close.textContent = 'Close';
+  close.style.cssText = 'display:block;width:100%;padding:10px;border:0;background:none;color:#333;font-size:15px';
+  go.onclick = () => {
+    box.remove();
+    navigator.share({ files: [file], title }).catch(() => {});
+  };
+  close.onclick = () => box.remove();
+  card.append(t, n, go, close);
+  box.append(card);
+  document.body.appendChild(box);
+}
+
 /** Web: the PDF made on the server (api/pdf) and saved as a file; false when it could not be made (then the print dialog is used) */
 async function pdfFromServer(html: string, o: { title: string; landscape?: boolean; paper?: 'A4' | 'A3'; by?: string }) {
   if (html.length > 4_000_000) return false; // over the server's request limit (large embedded photos)
@@ -122,14 +182,7 @@ async function pdfFromServer(html: string, o: { title: string; landscape?: boole
       body: JSON.stringify({ html, landscape: !!o.landscape, paper: o.paper ?? 'A4', footer }),
     });
     if (!res.ok || !(res.headers.get('content-type') ?? '').includes('pdf')) return false;
-    const url = URL.createObjectURL(await res.blob());
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${(o.title || 'Report').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '')}_${new Date().toISOString().slice(0, 10)}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    await saveWebFile(await res.blob(), `${(o.title || 'Report').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '')}_${new Date().toISOString().slice(0, 10)}.pdf`, o.title);
     return true;
   } catch {
     return false;
@@ -224,12 +277,7 @@ export async function exportExcel<T>(meta: ReportMeta, columns: Column<T>[], sec
   await logRun(meta.key, meta.filters, 'xlsx');
   const name = `${meta.title.replace(/[^A-Za-z0-9]+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`;
   if (Platform.OS === 'web') {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = name;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    await saveWebFile(blob, name, meta.title);
     return;
   }
   const file = new FsFile(Paths.cache, name);

@@ -3,6 +3,7 @@ import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 import readXlsxFile from 'read-excel-file/universal';
 import writeXlsxFile from 'write-excel-file/universal';
+import { saveWebFile } from './export';
 import type { PickedFile } from './files';
 import { todayISO } from './format';
 import { cellStr, monthOf, norm, parseDate, parseMonth, parseNum, parseOrSheets, type OrParsed } from './orParse';
@@ -364,10 +365,7 @@ export async function downloadXlsx(fileName: string, header: string[], rows: (st
   ];
   const blob = await writeXlsxFile(data as never).toBlob();
   if (Platform.OS === 'web') {
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = fileName;
-    a.click();
+    await saveWebFile(blob, fileName, fileName.replace(/\.[^.]+$/, ''));
     return;
   }
   await new Promise<void>((resolve, reject) => {
