@@ -1,23 +1,35 @@
 import { useEffect, useState } from 'react';
 import { Animated, Platform, Text, View } from 'react-native';
 import { Chip, colors, Row } from '@/components/ui';
-import { PRICE_LEVELS, REGIONS, type PriceLevel, type Region } from '@/lib/fixtures';
+import { countryList, PRICE_LEVELS, type BrandGroups, type PriceLevel } from '@/lib/fixtures';
 
-/** Brands to search in: all, a category (European / China / Local / Other, set by the DGM or SM Estimation) or any few brands */
-export function BrandFilter({ brands, regions, value, onChange, label = 'Brands' }: { brands: string[]; regions: Record<string, Region>; value: string[]; onChange: (v: string[]) => void; label?: string }) {
+/** Brands to search in: all, the brands of one origin or one country of manufacturing (set by the DGM or SM Estimation), or any few brands */
+export function BrandFilter({ brands, groups, value, onChange, label = 'Brands' }: { brands: string[]; groups: BrandGroups; value: string[]; onChange: (v: string[]) => void; label?: string }) {
   const toggle = (b: string) => onChange(value.includes(b) ? value.filter((x) => x !== b) : [...value, b]);
+  const countries = countryList(groups);
+  const groupChips = (title: string, inGroup: (b: string, c: string) => boolean) => {
+    const chips = countries
+      .map((c) => ({ c, inR: brands.filter((b) => inGroup(b, c)) }))
+      .filter((x) => x.inR.length);
+    if (!chips.length) return null;
+    return (
+      <Row gap={6} wrap style={{ alignItems: 'center' }}>
+        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.muted, width: 70 }}>{title}</Text>
+        {chips.map(({ c, inR }) => {
+          const on = inR.every((b) => value.includes(b));
+          return <Chip key={c} label={`${c} (${inR.length})`} tone={on ? colors.blue : undefined} on={on} onPress={() => onChange(on ? value.filter((b) => !inR.includes(b)) : [...new Set([...value, ...inR])])} />;
+        })}
+      </Row>
+    );
+  };
   return (
     <View style={{ gap: 6 }}>
       <Text style={{ fontSize: 13, color: colors.muted }}>{value.length ? `${label} – ${value.length} of ${brands.length} chosen` : `${label} – all ${brands.length}`}</Text>
       <Row gap={6} wrap>
         <Chip label="All brands" on={!value.length} onPress={() => onChange([])} />
-        {REGIONS.map((r) => {
-          const inR = brands.filter((b) => regions[b] === r.v);
-          if (!inR.length) return null;
-          const on = inR.every((b) => value.includes(b));
-          return <Chip key={r.v} label={`${r.label} (${inR.length})`} tone={on ? colors.blue : undefined} on={on} onPress={() => onChange(on ? value.filter((b) => !inR.includes(b)) : [...new Set([...value, ...inR])])} />;
-        })}
       </Row>
+      {groupChips('Origin', (b, c) => groups.origins[b] === c)}
+      {groupChips('Made in', (b, c) => (groups.madeIn[b] ?? []).includes(c))}
       <Row gap={6} wrap>
         {brands.map((b) => <Chip key={b} label={b} on={value.includes(b)} onPress={() => toggle(b)} />)}
       </Row>

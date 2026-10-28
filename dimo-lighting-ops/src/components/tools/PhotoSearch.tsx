@@ -4,7 +4,7 @@ import { Image, Platform, Text, View } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import { Button, Card, colors, Muted, Notice, Row, Select } from '@/components/ui';
 import { pickImage } from '@/lib/files';
-import { cctText, FIXTURE_TYPES, fmt, levelOk, wattText, type Fixture, type PriceLevel, type Region } from '@/lib/fixtures';
+import { cctText, FIXTURE_TYPES, fmt, levelOk, wattText, type Fixture, type PriceLevel, type BrandGroups } from '@/lib/fixtures';
 import { fingerprintWeb, likeness, loadVisionIndex, rankByPhoto, VISION_PAGE } from '@/lib/photoSearch';
 import { BrandFilter, PriceFilter } from './BrandFilter';
 import { Thumb } from './FixtureLibrary';
@@ -52,7 +52,7 @@ function useFingerprinter() {
 const line = (p: Fixture) => [p.code, wattText(p), p.lm && `${fmt(p.lm)} lm`, cctText(p), p.ip && `IP${p.ip}`].filter(Boolean).join(' · ');
 
 /** Search by photo: a photo of a fitting (site, competitor brochure, client picture) → the catalogue fittings that look most like it */
-export function PhotoSearchView({ all, brands, regions }: { all: Fixture[]; brands: string[]; regions: Record<string, Region> }) {
+export function PhotoSearchView({ all, brands, groups }: { all: Fixture[]; brands: string[]; groups: BrandGroups }) {
   const { run, view } = useFingerprinter();
   const [photo, setPhoto] = useState<string | null>(null);
   const [query, setQuery] = useState<number[][] | null>(null);
@@ -105,7 +105,7 @@ export function PhotoSearchView({ all, brands, regions }: { all: Fixture[]; bran
         <Row gap={8} wrap style={{ alignItems: 'flex-end' }}>
           <Select label="Type" value={type} onChange={setType} options={[{ value: '', label: 'All types' }, ...FIXTURE_TYPES.map((x) => ({ value: x, label: x }))]} />
         </Row>
-        <BrandFilter brands={brands} regions={regions} value={brandSel} onChange={setBrandSel} />
+        <BrandFilter brands={brands} groups={groups} value={brandSel} onChange={setBrandSel} />
         <PriceFilter value={levelSel} onChange={setLevelSel} />
         {busy ? <Notice>{busy}</Notice> : null}
         {err ? <Notice tone={colors.amber}>{err}</Notice> : null}

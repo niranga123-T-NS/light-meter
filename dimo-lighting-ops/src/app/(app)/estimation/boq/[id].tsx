@@ -54,7 +54,7 @@ export default function BoqMatchScreen() {
     type Job = { id: string; inquiry_id: string | null; source: string; revision: number; inquiries: { code: string; project_name: string } | null; kind?: BoqProject['kind'] };
     const p = row as unknown as BoqProject;
     const job: Job = custom ? { id: p.id, inquiry_id: null, source: 'custom', revision: 0, inquiries: { code: p.ref, project_name: p.project_name }, kind: p.kind } : (row as unknown as Job);
-    return { job, saved, all: lib.products, regions: lib.regions };
+    return { job, saved, all: lib.products, groups: lib.groups };
   }, [id, custom]);
 
   const [step, setStep] = useState<Step>('upload');
@@ -78,7 +78,7 @@ export default function BoqMatchScreen() {
 
   const all = useMemo(() => data?.all ?? [], [data]);
   const brands = useMemo(() => [...new Set(all.map((p) => p.brand))].sort(), [all]);
-  const regions = data?.regions ?? {};
+  const groups = data?.groups ?? { origins: {}, madeIn: {} };
   const fit = useMemo(() => lines.filter((l) => l.kind === 'fitting'), [lines]);
   const specs = useMemo(() => new Map(lines.map((l) => [l.row, lineSpec(l, settings)])), [lines, settings]);
 
@@ -278,7 +278,7 @@ export default function BoqMatchScreen() {
                 })}
               </Card>
               <Card style={{ gap: 6 }}>
-                <BrandFilter brands={brands} regions={regions} value={settings.brands} onChange={(v) => setSettings((s) => ({ ...s, brands: v }))} />
+                <BrandFilter brands={brands} groups={groups} value={settings.brands} onChange={(v) => setSettings((s) => ({ ...s, brands: v }))} />
                 <PriceFilter value={settings.priceLevels} onChange={(v) => setSettings((s) => ({ ...s, priceLevels: v }))} />
               </Card>
               <Button title={busy ?? `Find ${n} option${n > 1 ? 's' : ''} for ${fit.length} lines →`} onPress={find} disabled={!fit.length || !!busy} />

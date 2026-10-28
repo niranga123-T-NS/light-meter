@@ -37,25 +37,31 @@ export function loadFixtures() {
   lib.catch(() => (lib = null));
   return lib;
 }
-/* ───────── Catalog supervisor mode: brand categories, corrected data, removed products (fixture_brands, fixture_edits) ───────── */
-export type Region = 'european' | 'china' | 'local' | 'other';
-export const REGIONS: { v: Region; label: string }[] = [{ v: 'european', label: 'European' }, { v: 'china', label: 'China' }, { v: 'local', label: 'Local' }, { v: 'other', label: 'Other' }];
+/* ───────── Catalog supervisor mode: brand origin and manufacturing, corrected data, removed products (fixture_brands, fixture_edits) ───────── */
+/** Countries offered for a brand's origin and manufacturing; any other country can be typed in */
+export const COUNTRIES = ['Europe', 'China', 'India', 'Singapore', 'Australia'];
+/** Each brand's country of origin (one) and countries of manufacturing (one or several) */
+export type BrandGroups = { origins: Record<string, string>; madeIn: Record<string, string[]> };
+/** The countries to offer: the standard ones, then any other typed in for a brand */
+export const countryList = (g: BrandGroups) => [...COUNTRIES, ...[...new Set([...Object.values(g.origins), ...Object.values(g.madeIn).flat()])].filter((c) => !COUNTRIES.includes(c)).sort()];
 /** Who works in the catalog supervisor mode: the DGM and SM Estimation */
 export const CATALOG_SUPERVISORS = ['gm', 'sm_estimation'];
 export type PriceLevel = 'budget' | 'mid' | 'upper_mid' | 'high' | 'top';
 export const PRICE_LEVELS: { v: PriceLevel; label: string }[] = [{ v: 'budget', label: 'Budget' }, { v: 'mid', label: 'Mid' }, { v: 'upper_mid', label: 'Upper Mid' }, { v: 'high', label: 'High' }, { v: 'top', label: 'Top' }];
 export const priceLabel = (l?: PriceLevel | null) => PRICE_LEVELS.find((x) => x.v === l)?.label ?? 'not set';
 export type FixtureEdit = { product_id: string; patch: Record<string, unknown>; hidden: boolean; price_level: PriceLevel | null; warnings: string[] | null; level_review: 'changed' | 'kept' | null; level_prev: PriceLevel | null; level_review_at: string | null; updated_by: string | null; updated_at: string };
-export type Catalog = { built: string; products: Fixture[]; hidden: Fixture[]; regions: Record<string, Region>; brandLevels: Record<string, PriceLevel>; brandWarnings: Record<string, string[]>; edits: Record<string, FixtureEdit>; raw: Record<string, Fixture> };
+export type Catalog = { built: string; products: Fixture[]; hidden: Fixture[]; groups: BrandGroups; brandLevels: Record<string, PriceLevel>; brandWarnings: Record<string, string[]>; edits: Record<string, FixtureEdit>; raw: Record<string, Fixture> };
 
 let cat: Promise<Catalog> | null = null;
 /** The library with the supervisor corrections laid over it; removed products are kept apart in `hidden` */
 export function loadCatalog(fresh = false) {
   if (!cat || fresh)
-    cat = Promise.all([loadFixtures(), supabase.from('fixture_brands').select('brand, region, price_level, warnings'), supabase.from('fixture_edits').select('*')]).then(([lib, b, e]) => {
-      const regions: Record<string, Region> = {}, brandLevels: Record<string, PriceLevel> = {}, brandWarnings: Record<string, string[]> = {};
-      for (const r of (b.data ?? []) as { brand: string; region: Region | null; price_level: PriceLevel | null; warnings: string[] | null }[]) {
-        if (r.region) regions[r.brand] = r.region;
+    cat = Promise.all([loadFixtures(), supabase.from('fixture_brands').select('brand, origin, made_in, price_level, warnings'), supabase.from('fixture_edits').select('*')]).then(([lib, b, e]) => {
+      const groups: BrandGroups = { origins: {}, madeIn: {} };
+      const brandLevels: Record<string, PriceLevel> = {}, brandWarnings: Record<string, string[]> = {};
+      for (const r of (b.data ?? []) as { brand: string; origin: string | null; made_in: string[] | null; price_level: PriceLevel | null; warnings: string[] | null }[]) {
+        if (r.origin) groups.origins[r.brand] = r.origin;
+        if (r.made_in?.length) groups.madeIn[r.brand] = r.made_in;
         if (r.price_level) brandLevels[r.brand] = r.price_level;
         if (r.warnings?.length) brandWarnings[r.brand] = r.warnings;
       }
@@ -73,7 +79,7 @@ export function loadCatalog(fresh = false) {
         if (warns.length) p = { ...p, warnings: warns };
         (ed?.hidden ? hidden : products).push(p);
       }
-      return { built: lib.built, products, hidden, regions, brandLevels, brandWarnings, edits, raw };
+      return { built: lib.built, products, hidden, groups, brandLevels, brandWarnings, edits, raw };
     });
   cat.catch(() => (cat = null));
   return cat;
@@ -160,8 +166,12 @@ export async function saveFixtureEdit(id: string, row: { patch?: Record<string, 
   const { error } = await supabase.from('fixture_edits').upsert({ product_id: id, ...row }, { onConflict: 'product_id' });
   if (error) throw new Error(error.message);
 }
-export async function setBrandRegion(brand: string, region: Region | null) {
-  const { error } = await supabase.from('fixture_brands').upsert({ brand, region }, { onConflict: 'brand' });
+export async function setBrandOrigin(brand: string, origin: string | null) {
+  const { error } = await supabase.from('fixture_brands').upsert({ brand, origin }, { onConflict: 'brand' });
+  if (error) throw new Error(error.message);
+}
+export async function setBrandMadeIn(brand: string, made_in: string[]) {
+  const { error } = await supabase.from('fixture_brands').upsert({ brand, made_in }, { onConflict: 'brand' });
   if (error) throw new Error(error.message);
 }
 /** Warnings offered first; any other text can be typed */
