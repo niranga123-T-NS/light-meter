@@ -72,6 +72,8 @@ export default function DesignNodes() {
       <Stack.Screen options={{ title: 'Design node report' }} />
       {!data ? (error ? <ErrorBanner message={error} /> : <Loading />) : (
         <ProcessReport
+          title="Design node report"
+          reportKey="node_report_design"
           intro="Where design jobs spend their time, from assignment to the released design. Each change of a job's status starts a slice that belongs to a node; days are working days. While the designer waits for information from Sales or the client, that time counts as Sales / client instead of the designer."
           nodes={NODES}
           items={data}

@@ -2,12 +2,18 @@ import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Platform, Pressable, Text, View } from 'react-native';
 import { DataTable } from '@/components/DataTable';
-import { Card, colors, Grid, Muted, Pill, Row, Section, Segmented, Select } from '@/components/ui';
+import { useDialog } from '@/components/dialog';
+import { Button, Card, colors, Grid, Muted, Pill, Row, Section, Segmented, Select } from '@/components/ui';
+import { useMe } from '@/lib/auth';
 import { monthsAgo, todayIso } from '@/lib/foreignOrders';
 import { fmtDate } from '@/lib/format';
+import { exportNodeReport, pdfMonth, trendRows, type PdfCell } from '@/lib/nodeReportPdf';
 import { processReport, type PItem, type PNode } from '@/lib/processNodes';
+import { ROLE_LABELS } from '@/lib/roles';
 
 type Period = '3' | '6' | '12' | 'all';
+export const PERIOD_LABEL: Record<Period, string> = { '3': 'Last 3 months', '6': 'Last 6 months', '12': 'Last 12 months', all: 'All time' };
+const plural = (w: string) => (w.endsWith('y') ? `${w.slice(0, -1)}ies` : `${w}s`);
 const d1 = (n: number) => (Math.round(n * 10) / 10).toFixed(1);
 const monthName = (m: string) => new Date(`${m}-01T00:00:00Z`).toLocaleString('en-GB', { month: 'short', timeZone: 'UTC' });
 
@@ -28,6 +34,8 @@ const NName = ({ nodes, k, est }: { nodes: PNode[]; k: string; est?: boolean }) 
 );
 
 export type ProcessReportProps = {
+  title: string;
+  reportKey: string;
   intro: string;
   nodes: PNode[];
   items: PItem[];
@@ -59,13 +67,86 @@ export function ProcessReport(p: ProcessReportProps) {
   const people = [...new Set(p.items.map((it) => it.person).filter((x): x is string => !!x))];
   const chosen = items.find((it) => it.key === pick) ?? rep.waiting[0]?.it ?? null;
   const workNodes = p.nodes.filter((n) => !n.hidden);
+  const dialog = useDialog();
+  const me = useMe();
+
+  const pdf = () => {
+    const nn = (k: string, est?: boolean): PdfCell => ({ node: est ? k + '~' : k, text: `${node(k)?.name ?? k}${est ? ' (not seen)' : ''}` });
+    const filters = [cat === 'all' ? 'All categories' : cat, person === 'all' ? null : `${p.personLabel}: ${p.personName(person)}`].filter(Boolean).join(' · ');
+    return exportNodeReport({
+      key: p.reportKey,
+      title: p.title,
+      intro: p.intro,
+      filters,
+      period: `${PERIOD_LABEL[period]} (slices ending ${period === 'all' ? 'at any time' : `from ${fmtDate(from)}`}) · as of ${fmtDate(today)}`,
+      generatedBy: `${me.full_name} – ${ROLE_LABELS[me.role]}`,
+      nodes: p.nodes,
+      cardsTitle: `Where the ${p.holdingWord} are now · ${openCount} open`,
+      cards: rep.cards.map((n) => ({
+        key: n.key,
+        name: n.name,
+        holding: n.holding,
+        lines: ['holding now', `Avg ${n.items ? d1(n.avg) : '—'} days each`, ...(n.work ? [`Released on time ${n.onTime == null ? '—' : `${Math.round(n.onTime * 100)} %`}`] : []), `Oldest waiting ${n.holding ? `${n.oldest} d` : '—'}`],
+        warn: n.hidden && n.est ? `${n.est} not seen exactly` : undefined,
+        who: n.who,
+      })),
+      legend: [
+        { node: p.hiddenKey, text: `Hidden node – we see the ${p.hidden.goesIn.toLowerCase()} and the ${p.hidden.comesOut.toLowerCase()}, not the work in between; the days are one block.` },
+        { node: p.hiddenKey + '~', text: p.hidden.notSeen },
+      ],
+      barsTitle: `Average working days per ${p.itemWord.toLowerCase()}, by node`,
+      bars: rep.bars.map((b) => ({ cat: b.cat, note: b.items ? `${b.items} · ${d1(b.total)} days` : 'nothing in this period', parts: b.parts.map((x) => ({ key: x.key, days: x.days })), total: b.total })),
+      hidden: {
+        title: p.hidden.title,
+        node: p.hiddenKey,
+        lines: [
+          { text: `Goes in: ${p.hidden.goesIn}. Comes out: ${p.hidden.comesOut}.` },
+          { text: `${rep.hidden.passes} ${p.hidden.unit} in this period · ${rep.hidden.open} open now` },
+          { node: p.hiddenKey, text: `Seen going in and out: ${rep.hidden.exact.n} · median ${d1(rep.hidden.exact.median)} d` },
+          { node: p.hiddenKey + '~', text: `Start or end not seen: ${rep.hidden.guess.n} · median ${d1(rep.hidden.guess.median)} d` },
+        ],
+        bins: rep.hidden.bins,
+        binsLabel: 'Working days',
+        labels: rep.hidden.labels.map((l) => `${l.label}: median ${d1(l.median)} d (${l.n})`),
+      },
+      tables: [
+        {
+          title: `By ${p.personLabel.toLowerCase()}`,
+          head: [p.personLabel, plural(p.itemWord), ...workNodes.map((n) => n.name), hn.name, 'Returned', 'On time', 'Open now'],
+          right: Array.from({ length: workNodes.length + 6 }, (_, k) => k + 1),
+          rows: rep.people.map((r) => [p.personName(r.person), r.items, ...workNodes.map((n) => (r.items ? d1(r.byNode[n.key]) : '—')), r.items ? d1(r.byNode[p.hiddenKey]) : '—', r.returned, r.onTime == null ? '—' : `${Math.round(r.onTime * 100)} %`, r.holding]),
+        },
+        {
+          title: `Waiting longest – who to chase (${rep.waiting.length})`,
+          head: [p.itemWord, 'Category', 'Project', 'With', 'Since', 'Days', 'Due', 'Last step we saw', 'Now'],
+          right: [5],
+          rows: rep.waiting.map((r) => [r.it.code, r.it.cat, r.it.project, nn(r.s.node, !!r.s.est), fmtDate(r.s.start), r.s.days, fmtDate(r.it.due), r.last ? `${r.last.label} (${fmtDate(r.last.end)})` : '—', r.s.label]),
+          late: rep.waiting.map((r) => r.late),
+          note: 'Red: past the due date.',
+          empty: 'Nothing open.',
+        },
+        { title: 'Average working days per slice, month by month', head: ['Node', ...rep.months.map(pdfMonth), 'Change'], right: [1, 2, 3, 4, 5, 6, 7], rows: trendRows(rep.trend) },
+        ...(chosen
+          ? [{
+              title: `One ${p.itemWord.toLowerCase()} through the nodes: ${chosen.code} · ${chosen.title}`,
+              head: ['From', 'To', 'Node', 'What', 'Days'],
+              right: [4],
+              rows: [...chosen.segs].sort((x, y) => (x.start < y.start ? -1 : 1)).map((s): PdfCell[] => [fmtDate(s.start), s.end ? fmtDate(s.end) : 'now', nn(s.node, !!s.est), s.label, `${s.days}${s.end ? '' : '+'}`]),
+            }]
+          : []),
+      ],
+    });
+  };
 
   return (
     <>
       <Muted>{p.intro}</Muted>
       <Row wrap gap={8} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
         <Segmented value={cat} onChange={setCat} options={[{ value: 'all', label: 'All' }, ...p.cats.map((c) => ({ value: c, label: c }))]} />
-        <Segmented value={period} onChange={setPeriod} options={[{ value: '3', label: '3 months' }, { value: '6', label: '6 months' }, { value: '12', label: '12 months' }, { value: 'all', label: 'All' }]} />
+        <Row gap={8} style={{ alignItems: 'center' }}>
+          <Segmented value={period} onChange={setPeriod} options={[{ value: '3', label: '3 months' }, { value: '6', label: '6 months' }, { value: '12', label: '12 months' }, { value: 'all', label: 'All' }]} />
+          <Button variant="secondary" small title="Export PDF" onPress={() => dialog.run(pdf)} />
+        </Row>
       </Row>
       {people.length > 1 ? (
         <View style={{ maxWidth: 360 }}>
@@ -164,7 +245,7 @@ export function ProcessReport(p: ProcessReportProps) {
           emptyTitle="Nothing in this period"
           columns={[
             { h: p.personLabel, w: 180, grow: true, bold: true, v: (r) => p.personName(r.person) },
-            { h: p.itemWord + 's', w: 70, right: true, v: (r) => String(r.items) },
+            { h: plural(p.itemWord), w: 70, right: true, v: (r) => String(r.items) },
             ...workNodes.map((n) => ({ h: n.name, w: 92, right: true, v: (r: (typeof rep.people)[number]) => (r.items ? d1(r.byNode[n.key]) : '—') })),
             { h: hn.name, w: 92, right: true, v: (r) => (r.items ? d1(r.byNode[p.hiddenKey]) : '—') },
             { h: 'Returned', w: 80, right: true, v: (r) => String(r.returned) },
