@@ -1,0 +1,40 @@
+# Site weather for the daily reports: every day at 19:00 Sri Lanka time the weather at each active execution project's site
+# (Open-Meteo) – the day's profile hour by hour and the forecast for the next day – see scripts/weather_fetch.py.
+# Run it by hand with back-fill days to load the weather of earlier days (up to 92).
+# Uses the same repository secrets as the backend deploy (SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF, DISPATCH_SECRET).
+name: DIMO – site weather
+
+on:
+  schedule:
+    - cron: '30 13 * * *'   # 19:00 Sri Lanka
+  workflow_dispatch:
+    inputs:
+      backfill_days:
+        description: How many past days to load as well (0–92)
+        default: '60'
+
+concurrency: dimo-weather
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: dimo-lighting-ops
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      FX_SECRET: ${{ secrets.DISPATCH_SECRET }}
+      BACKFILL_DAYS: ${{ inputs.backfill_days || '1' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Fetch and save the site weather
+        run: |
+          key=$(supabase projects api-keys --project-ref "$PROJECT_REF" -o json | jq -r '[.[] | select(.name == "anon" or .type == "publishable")][0].api_key')
+          if [ -z "$key" ] || [ "$key" = "null" ]; then echo "::error::Could not read the project's public (anon) key"; exit 1; fi
+          echo "::add-mask::$key"
+          SUPABASE_URL="https://$PROJECT_REF.supabase.co" SUPABASE_ANON_KEY="$key" python3 scripts/weather_fetch.py

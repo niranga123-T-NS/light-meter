@@ -2,6 +2,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Text, View } from 'react-native';
 import { Attachments } from '@/components/Attachments';
 import { useDialog } from '@/components/dialog';
+import { WeatherCard } from '@/components/exec/WeatherCard';
 import { TestingBanner } from '@/components/Testing';
 import { Button, Card, colors, ErrorBanner, KeyValue, Loading, Muted, Notice, Pill, Row, Screen } from '@/components/ui';
 import { useMe } from '@/lib/auth';
@@ -12,6 +13,7 @@ import { fmtDate, fmtDateTimeY, fmtTime } from '@/lib/format';
 import type { HseRecord } from '@/lib/hse';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { rpc, supabase } from '@/lib/supabase';
+import { weatherOn } from '@/lib/weather';
 
 type SubUpdate = { id: string; title: string; zone: string | null; qty: number | null; unit: string | null; status: keyof typeof ITEM_STATUS; done_qty: number | null; note: string | null; permits: string[] };
 
@@ -25,8 +27,11 @@ export default function ReportScreen() {
     const { data: r, error: e } = await supabase.from('exec_reports').select('*, exec_projects(*)').eq('id', id).single();
     if (e) throw new Error(e.message);
     const rep = r as DailyReport & { exec_projects: ExecProject | null; permit_ids?: string[]; sub_plan_updates?: SubUpdate[] };
-    const { data: pm } = rep.permit_ids?.length ? await supabase.from('hse_records').select('id, code, header, starts_at, ends_at, status').in('id', rep.permit_ids) : { data: [] };
-    return { ...rep, permits: (pm ?? []) as Pick<HseRecord, 'id' | 'code' | 'header' | 'starts_at' | 'ends_at' | 'status'>[] };
+    const [{ data: pm }, siteWeather] = await Promise.all([
+      rep.permit_ids?.length ? supabase.from('hse_records').select('id, code, header, starts_at, ends_at, status').in('id', rep.permit_ids) : Promise.resolve({ data: [] }),
+      weatherOn(rep.exec_project_id, rep.report_date),
+    ]);
+    return { ...rep, permits: (pm ?? []) as Pick<HseRecord, 'id' | 'code' | 'header' | 'starts_at' | 'ends_at' | 'status'>[], siteWeather };
   }, [id]);
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
   const r = data;
@@ -100,7 +105,8 @@ export default function ReportScreen() {
         {r.issues ? <KeyValue label="Issues / needs" value={r.issues} /> : null}
         {r.work_next ? <KeyValue label="Planned for tomorrow" value={r.work_next} /> : null}
         <KeyValue label="Safety" value={`${r.toolbox_talk ? `Toolbox meeting: ${r.toolbox_topic}` : 'No toolbox meeting'} · ${r.safety_check ? 'safety check done' : 'no safety check'}${r.hse_notes ? ` · ${r.hse_notes}` : ''}`} />
-        {r.weather || r.visitors ? <KeyValue label="Weather / visitors" value={[r.weather, r.visitors].filter(Boolean).join(' · ')} /> : null}
+        {r.weather ? <KeyValue label="Weather remarks" value={r.weather} /> : null}
+        {r.visitors ? <KeyValue label="Visitors" value={r.visitors} /> : null}
         <Row wrap gap={6} style={{ marginTop: 8 }}>
           {canReview ? (
             <>
@@ -116,6 +122,7 @@ export default function ReportScreen() {
           ) : null}
         </Row>
       </Card>
+      {data.siteWeather ? <WeatherCard w={data.siteWeather} /> : <Muted>{`The site weather for ${fmtDate(r.report_date)} is recorded at 19:00 and shows here (and in the PDF) once recorded.`}</Muted>}
       <Attachments entityType="exec_report" entityId={r.id} kinds={['daily_photo', 'item_photo', 'daily_doc']} title="Photos and documents" allowCamera canUpload={r.author_id === me.id && r.status !== 'verified'} />
     </Screen>
   );

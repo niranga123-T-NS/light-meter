@@ -6,6 +6,7 @@ import { SiteDoc, TONES, type Cell } from './pdfDoc';
 import { ROLE_LABELS } from './roles';
 import { supabase } from './supabase';
 import type { Attachment, Profile } from './types';
+import { condition, impacts, PROFILE_HOURS, rainText, round1, temps, weatherOn, windText, type SiteWeather } from './weather';
 
 // Daily progress report as a DIMO site document (logo header like the HSE forms): planned activities with the result
 // recorded in the report, the narrative, the supervisors' reports of the day, safety, photos per activity and sign-off.
@@ -65,10 +66,11 @@ export async function printDailyReport(r: DailyReport, project: ExecProject, peo
     return x ? ROLE_LABELS[x] ?? '' : '';
   };
   const ae = r.level === 'ae';
-  const [atts, sups, planItems] = await Promise.all([
+  const [atts, sups, planItems, wx] = await Promise.all([
     supabase.from('attachments').select('*').eq('entity_type', 'exec_report').eq('entity_id', r.id).is('archived_at', null).order('uploaded_at'),
     ae ? supabase.from('exec_reports').select('*').eq('exec_project_id', r.exec_project_id).eq('report_date', r.report_date).eq('level', 'supervisor').order('submitted_at') : Promise.resolve({ data: [] }),
     r.item_updates?.length ? Promise.resolve({ data: [] }) : supabase.from('exec_plan_items').select('*').eq('exec_project_id', r.exec_project_id).eq('day', r.report_date).order('created_at'),
+    weatherOn(r.exec_project_id, r.report_date),
   ]);
   const files = (atts.data ?? []) as Attachment[];
   const items: ItemUpdate[] = r.item_updates?.length
@@ -98,10 +100,13 @@ export async function printDailyReport(r: DailyReport, project: ExecProject, peo
     ['Prepared by', [name(r.author_id), role(r.author_id)].filter(Boolean).join(' – ')],
     ['Submitted', `${fmtDateTimeY(r.submitted_at)}${r.is_late ? ' (late)' : ''}`],
     ['Status', r.status === 'verified' ? `${ae ? 'Reviewed' : 'Verified'} by ${name(r.reviewed_by)}` : r.status === 'returned' ? 'Returned for correction' : 'Waiting for review'],
-    ['Weather', r.weather ?? ''],
+    ['Weather', wx ? `${condition(wx.summary.code)} · ${temps(wx.summary)} · rain ${round1(wx.summary.rain_mm)} mm` : r.weather ?? ''],
     ...(!ae ? ([['Crew on site', `${r.crew_count ?? 0}${r.crew ? ` · ${r.crew}` : ''}`]] as [string, string][]) : []),
     ...(r.visitors ? ([['Visitors', r.visitors]] as [string, string][]) : []),
   ]);
+
+  if (wx) siteWeather(d, wx, r.weather);
+  else if (r.weather) d.para('Weather remarks', r.weather);
 
   d.section('A. Planned activities – progress');
   if (items.length) {
@@ -177,4 +182,29 @@ export async function printDailyReport(r: DailyReport, project: ExecProject, peo
   if (r.review_note) d.para('Review comment', r.review_note);
 
   await deliver(await d.save(), `Daily report ${no} ${r.report_date} ${name(r.author_id)}`, 'daily_report', `${project.name} ${r.report_date}`);
+}
+
+const LEVEL = { stop: TONES.red, warn: TONES.amber, info: TONES.green };
+
+/** Site weather of the report date as recorded at 19:00: the day's figures, the hour-by-hour profile, what it meant for the work and the next day's forecast */
+function siteWeather(d: SiteDoc, w: SiteWeather, remarks: string | null) {
+  const s = w.summary;
+  d.section('Site weather (recorded automatically at 19:00)');
+  d.keyValues([
+    ['Conditions', condition(s.code)],
+    ['Temperature', temps(s)],
+    ['Rain (whole day)', rainText(s)],
+    ['Rain 07:00–18:00', s.work_rain_mm == null ? '—' : `${round1(s.work_rain_mm)} mm in ${s.work_rain_hours ?? 0} hour${s.work_rain_hours === 1 ? '' : 's'}`],
+    ['Wind', windText(s)],
+    ['Humidity / UV', `${s.rh_avg == null ? '—' : `${s.rh_avg}%`} · UV ${s.uv_max == null ? '—' : round1(s.uv_max)}`],
+    ['Sunrise / sunset', s.sunrise && s.sunset ? `${s.sunrise} / ${s.sunset}` : '—'],
+    ['Source', `${w.source} at ${w.lat.toFixed(4)}, ${w.lng.toFixed(4)} · ${fmtDateTimeY(w.fetched_at)}`],
+  ]);
+  d.weatherChart(PROFILE_HOURS.map((h) => w.hours.find((x) => x.h === h)).filter((x) => !!x).map((x) => ({ label: String(x!.h).padStart(2, '0'), t: x!.t, p: x!.p, pp: x!.pp })));
+  d.table(['Effect on site work', 'Level'], [0.84, 0.16], impacts(s, w.hours).map((x): Cell[] => [x.text, { text: x.level === 'stop' ? 'Stop' : x.level === 'warn' ? 'Caution' : 'OK', bold: true, color: LEVEL[x.level], align: 'center' }]));
+  const t = w.tomorrow;
+  const rows: [string, string][] = [];
+  if (t) rows.push([`Forecast ${fmtDateNum(t.day)}`, `${condition(t.code)} · ${temps(t)} · rain ${rainText(t)} · wind ${windText(t)}${impacts(t, t.hours ?? []).filter((x) => x.level !== 'info').map((x) => ` · ${x.text}`).join('')}`]);
+  if (remarks) rows.push(['Remarks from site', remarks]);
+  if (rows.length) d.keyValues(rows, 1);
 }
