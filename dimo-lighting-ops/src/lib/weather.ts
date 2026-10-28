@@ -98,3 +98,56 @@ export async function weatherOn(exec: string, day: string) {
   const { data } = await supabase.from('exec_weather').select('*').eq('exec_project_id', exec).eq('day', day).maybeSingle();
   return (data as SiteWeather | null) ?? null;
 }
+
+/** Conditions at the moment of a live reading */
+export type WeatherNow = { time: string; t: number | null; rh: number | null; p: number | null; code: number | null; w: number | null; g: number | null };
+
+const HOURLY = ['temperature_2m', 'relative_humidity_2m', 'precipitation', 'precipitation_probability', 'weather_code', 'wind_speed_10m', 'wind_gusts_10m'];
+const DAILY = ['weather_code', 'temperature_2m_max', 'temperature_2m_min', 'precipitation_sum', 'precipitation_probability_max', 'wind_speed_10m_max', 'wind_gusts_10m_max', 'sunrise', 'sunset', 'uv_index_max'];
+const CURRENT = ['temperature_2m', 'relative_humidity_2m', 'precipitation', 'weather_code', 'wind_speed_10m', 'wind_gusts_10m'];
+type Series = Record<string, (number | string | null)[] | undefined>;
+const at = (s: Series, k: string, i: number) => (s[k]?.[i] ?? null) as number | null;
+const r1 = (v: number | null) => (v == null ? null : Math.round(v * 10) / 10);
+
+function hoursOf(h: Series, day: string): WeatherHour[] {
+  return ((h.time ?? []) as string[]).flatMap((t, i) =>
+    t.startsWith(day)
+      ? [{ h: Number(t.slice(11, 13)), t: r1(at(h, 'temperature_2m', i)), rh: at(h, 'relative_humidity_2m', i), p: r1(at(h, 'precipitation', i)), pp: at(h, 'precipitation_probability', i), code: at(h, 'weather_code', i), w: r1(at(h, 'wind_speed_10m', i)), g: r1(at(h, 'wind_gusts_10m', i)) }]
+      : [],
+  );
+}
+function dayOf(d: Series, day: string): WeatherDay | null {
+  const i = ((d.time ?? []) as string[]).indexOf(day);
+  if (i < 0) return null;
+  const hm = (k: string) => (((d[k]?.[i] as string | null) ?? '').slice(11, 16) || null);
+  return { code: at(d, 'weather_code', i), tmax: r1(at(d, 'temperature_2m_max', i)), tmin: r1(at(d, 'temperature_2m_min', i)), rain_mm: r1(at(d, 'precipitation_sum', i)), rain_prob: at(d, 'precipitation_probability_max', i), wind_max: r1(at(d, 'wind_speed_10m_max', i)), gust_max: r1(at(d, 'wind_gusts_10m_max', i)), uv_max: r1(at(d, 'uv_index_max', i)), sunrise: hm('sunrise'), sunset: hm('sunset') };
+}
+
+/** The weather at the site as at now, read straight from Open-Meteo (the same figures as the 19:00 record) – shown, not saved */
+export async function liveWeather(exec: string, lat: number, lng: number): Promise<SiteWeather & { now: WeatherNow }> {
+  const q = new URLSearchParams({ latitude: lat.toFixed(4), longitude: lng.toFixed(4), hourly: HOURLY.join(','), daily: DAILY.join(','), current: CURRENT.join(','), timezone: 'Asia/Colombo', forecast_days: '2', wind_speed_unit: 'kmh' });
+  const res = await fetch(`https://api.open-meteo.com/v1/forecast?${q}`);
+  if (!res.ok) throw new Error(`The weather service did not answer (${res.status}) – try again in a minute`);
+  const data = (await res.json()) as { hourly: Series; daily: Series; current: Record<string, number | string | null> };
+  const days = (data.daily.time ?? []) as string[];
+  const [today, tomorrow] = days;
+  const hours = hoursOf(data.hourly, today);
+  const work = hours.filter((x) => x.h >= WORK_FROM && x.h <= WORK_TO);
+  const rh = hours.map((x) => x.rh).filter((v): v is number => v != null);
+  const temps = work.map((x) => x.t).filter((v): v is number => v != null);
+  const summary: WeatherDay = {
+    ...(dayOf(data.daily, today) as WeatherDay),
+    rh_avg: rh.length ? Math.round(rh.reduce((a, b) => a + b, 0) / rh.length) : null,
+    work_rain_mm: r1(work.reduce((a, x) => a + (x.p ?? 0), 0)),
+    work_rain_hours: work.filter((x) => (x.p ?? 0) >= 0.5).length,
+    work_tmax: temps.length ? Math.max(...temps) : null,
+  };
+  const t = tomorrow ? dayOf(data.daily, tomorrow) : null;
+  const c = data.current;
+  return {
+    exec_project_id: exec, day: today, lat, lng, summary, hours,
+    tomorrow: t && tomorrow ? { ...t, day: tomorrow, hours: hoursOf(data.hourly, tomorrow) } : null,
+    source: 'Open-Meteo (live)', fetched_at: new Date().toISOString(),
+    now: { time: String(c.time ?? ''), t: r1(c.temperature_2m as number | null), rh: c.relative_humidity_2m as number | null, p: r1(c.precipitation as number | null), code: c.weather_code as number | null, w: r1(c.wind_speed_10m as number | null), g: r1(c.wind_gusts_10m as number | null) },
+  };
+}

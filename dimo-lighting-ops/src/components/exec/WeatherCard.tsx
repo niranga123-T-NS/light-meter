@@ -62,7 +62,7 @@ function Impacts({ d, hours }: { d: WeatherDay; hours?: WeatherHour[] }) {
 }
 
 /** The recorded weather of one day at the site: summary, hour-by-hour profile, what it meant for work, and the next day's forecast */
-export function WeatherCard({ w, title, showTomorrow = true }: { w: SiteWeather; title?: string; showTomorrow?: boolean }) {
+export function WeatherCard({ w, title, showTomorrow = true, live }: { w: SiteWeather; title?: string; showTomorrow?: boolean; live?: boolean }) {
   const d = w.summary;
   const t = w.tomorrow;
   return (
@@ -70,7 +70,7 @@ export function WeatherCard({ w, title, showTomorrow = true }: { w: SiteWeather;
       <Row style={{ justifyContent: 'space-between', alignItems: 'flex-start' }} wrap gap={8}>
         <View style={{ gap: 2 }}>
           <Text style={{ fontWeight: '700', color: colors.ink, fontSize: 16 }}>{title ?? `Weather on site · ${fmtDate(w.day)}`}</Text>
-          <Muted style={{ fontSize: 12 }}>{`Recorded automatically ${fmtDateTimeY(w.fetched_at)} · ${w.source} at ${w.lat.toFixed(4)}, ${w.lng.toFixed(4)}`}</Muted>
+          <Muted style={{ fontSize: 12 }}>{`${live ? 'Fetched now' : 'Recorded automatically'} ${fmtDateTimeY(w.fetched_at)} · ${w.source} at ${w.lat.toFixed(4)}, ${w.lng.toFixed(4)}${live ? ' · not saved – the day is recorded at 19:00' : ''}`}</Muted>
         </View>
         <Row gap={8} style={{ alignItems: 'center' }}>
           <Text style={{ fontSize: 28 }}>{symbol(d.code)}</Text>
