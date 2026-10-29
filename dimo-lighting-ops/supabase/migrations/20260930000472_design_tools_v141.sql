@@ -12005,8 +12005,11 @@ lcAutoOne = async function (L, n, linked, onStep) {
 const lcAutoAll2 = lcAutoAll;
 lcAutoAll = async function (L, n, onStep) {
   const msg = await lcAutoAll2(L, n, onStep); lcInvalidate(); if (!lcFails(L)) return msg; const k = lcFailKinds(L), m = L.masts.length, fixed = !!(lcLinked() || L.fixPos);
-  const tip = k.uni && !k.lev ? (fixed ? ` Why: the light level is met, but U1 / U2 cannot be reached from these ${m} fixed masts – the floodlights are too far from parts of the field. More masts (6 or 8) or masts allowed to move are needed: untick “Masts follow the stadium layout” (or set Mast locations to May change) and press this again.` : ` Why: the light level is met, but U1 / U2 are not reached even with ${m} masts – try masts nearer the field, tick a narrower and a wider luminaire so the beams can be mixed, or check the class (a broadcast class needs far more than club level).`)
-    : k.lev && !k.uni ? ` Why: the light level is not reached – a more powerful luminaire, more floodlights per mast or more masts are needed.` : '';
+  const low = L.masts.filter((x) => x.h + 0.5 < lcHmin(x)), why = [];
+  if (low.length) why.push(`${low.length === m ? 'the masts are' : `${low.length} of the ${m} masts are`} ${[...new Set(low.map((x) => x.h))].join(' / ')} m high, lower than the about ${Math.max(...low.map(lcHmin))} m needed to reach the far side of the field within 70° – raise “Highest mast height” or move them nearer`);
+  if (k.lev) why.push('the light level is not reached – a more powerful luminaire, more floodlights per mast or more masts are needed');
+  if (k.uni) why.push(fixed ? `U1 / U2 cannot be reached from these ${m} fixed masts – the floodlights are too far from parts of the field; more masts (6 or 8) or masts allowed to move are needed (untick “Masts follow the stadium layout” or set Mast locations to May change)` : `U1 / U2 are not reached even with ${m} masts – try masts nearer the field, tick a narrower and a wider luminaire so the beams can be mixed, or check the class (a broadcast class needs far more than club level)`);
+  const tip = why.length ? ` Why: ${why.join('; ')}.` : '';
   return msg + tip;
 };
 })();
