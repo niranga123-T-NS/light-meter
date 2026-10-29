@@ -38,3 +38,19 @@ export const REVIEW_STATES: { value: ReviewState; label: string }[] = [
   { value: 'blocked', label: 'Blocked – needs help' },
 ];
 export const reviewLabel = (s: string | null | undefined) => REVIEW_STATES.find((x) => x.value === s)?.label ?? 'No update';
+
+/** Why an action will not be done (closes it; SM Projects / the meeting host accept it or reopen it with a new date). */
+export type NotDoneReason = 'declined' | 'on_hold' | 'not_needed' | 'out_of_scope' | 'waiting' | 'other';
+export const NOT_DONE_REASONS: { value: NotDoneReason; label: string; short: string }[] = [
+  { value: 'declined', label: 'Customer declined / not interested', short: 'customer declined' },
+  { value: 'on_hold', label: 'Project cancelled or on hold', short: 'project on hold' },
+  { value: 'not_needed', label: 'No longer needed / overtaken by another action', short: 'no longer needed' },
+  { value: 'out_of_scope', label: 'Outside our scope', short: 'outside our scope' },
+  { value: 'waiting', label: "Can't proceed – waiting on others", short: 'waiting on others' },
+  { value: 'other', label: 'Other', short: 'other' },
+];
+export const notDoneLabel = (r: string | null | undefined) => NOT_DONE_REASONS.find((x) => x.value === r)?.label ?? 'Other';
+export const notDoneShort = (r: string | null | undefined) => NOT_DONE_REASONS.find((x) => x.value === r)?.short ?? 'other';
+
+/** Who sees Reports › Meeting actions (the DGM and SM Projects all teams; a host their own team's meetings) */
+export const MEETING_ACTION_REPORT_ROLES: string[] = ['gm', 'sm_projects', 'sm_estimation', 'design_manager', 'senior_elec_engineer'];

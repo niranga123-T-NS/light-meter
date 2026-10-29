@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { TextInput } from 'react-native';
 import { Card, colors, Empty, ListRow, Muted, Pill, Screen, Section, styles } from '@/components/ui';
 import { useMe } from '@/lib/auth';
+import { MEETING_ACTION_REPORT_ROLES } from '@/lib/meetingActions';
 import { isDesigner, isEstimator, reportsFor } from '@/lib/roles';
 import type { Role } from '@/lib/types';
 
@@ -32,6 +33,16 @@ export default function Reports() {
             subtitle="P&L, invoicing, sales, cash, execution and warranty for a month, with highlights and exceptions"
             right={<Pill label="DGM" tone={colors.brand} />}
             onPress={() => router.push('/reports/management')}
+          />
+        </Card>
+      ) : null}
+      {MEETING_ACTION_REPORT_ROLES.includes(me.role) ? (
+        <Card style={{ padding: 0, overflow: 'hidden' }}>
+          <ListRow
+            title="Meeting actions"
+            subtitle="Per person: done, not done and why, delayed, blocked and overdue actions from the meetings"
+            right={<Pill label="Meetings" tone={colors.blue} />}
+            onPress={() => router.push('/reports/meeting-actions')}
           />
         </Card>
       ) : null}

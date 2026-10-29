@@ -3,7 +3,8 @@ import { Button, Card, colors, ListRow, Pill, Row, Section } from '@/components/
 import { useDialog } from '@/components/dialog';
 import { fmtDate, fmtDateTime, todayISO } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
-import { kindLabel, REVIEW_STATES, reviewLabel } from '@/lib/meetingActions';
+import { closeNotDone, postStatusUpdate } from '@/components/MeetingActionDialogs';
+import { kindLabel, reviewLabel } from '@/lib/meetingActions';
 import { ROLE_SHORT } from '@/lib/roles';
 import { rpc, supabase } from '@/lib/supabase';
 import type { Role } from '@/lib/types';
@@ -18,8 +19,8 @@ export type MyAction = {
   customer: string | null;
   project_id: string | null;
   kind: string;
-  /** do: I carry it out · visit: my follow-up visit · assign: I appoint the person · track: appointed, I follow it */
-  my_part: 'do' | 'visit' | 'assign' | 'track';
+  /** do: I carry it out · visit: my follow-up visit · assign: I appoint the person · track: appointed, I follow it · help: blocked, I was asked to help */
+  my_part: 'do' | 'visit' | 'assign' | 'track' | 'help';
   owner: string | null;
   assignee: string | null;
   assignee_id: string | null;
@@ -36,9 +37,13 @@ export type MyAction = {
   review_at: string | null;
   review_due: string | null;
   reviewed: boolean;
+  review_by: string | null;
+  helper: string | null;
+  old_due: string | null;
 };
 
 const PARTS: { part: MyAction['my_part']; title: string }[] = [
+  { part: 'help', title: 'Your help is needed' },
   { part: 'assign', title: 'Appoint a person' },
   { part: 'visit', title: 'Follow-up visits' },
   { part: 'do', title: 'To do' },
@@ -75,22 +80,8 @@ export function MeetingActions() {
       }, 'Confirmed – SM Projects and the team are told');
   };
 
-  const statusUpdate = async (a: MyAction) => {
-    const r = await dialog.prompt({
-      title: 'Status update',
-      message: `${a.action}${a.review_due ? ` · before the next meeting ${fmtDateTime(a.review_due)}` : ''}`,
-      fields: [
-        { key: 's', label: 'Status', type: 'select', required: true, options: REVIEW_STATES, initial: a.review_state ?? undefined },
-        { key: 'n', label: 'Progress / what is holding it', type: 'multiline', required: true },
-      ],
-      confirmLabel: 'Post update',
-    });
-    if (r)
-      await dialog.run(async () => {
-        await rpc('review_meeting_action', { p_id: a.id, p_state: r.s, p_note: r.n });
-        await reload();
-      }, 'Update posted – it shows in the meeting status review');
-  };
+  const statusUpdate = (a: MyAction) => postStatusUpdate(dialog, { id: a.id, action: a.action, due_date: a.due_date, state: a.review_state, reviewDue: a.review_due }, reload);
+  const notDone = (a: MyAction) => closeNotDone(dialog, { id: a.id, action: a.action, due_date: a.due_date }, reload);
 
   const appoint = async (a: MyAction) => {
     const team = await rpc<{ id: string; full_name: string; role: Role }[]>('meeting_action_team', { p_id: a.id }).catch(() => []);
@@ -131,6 +122,8 @@ export function MeetingActions() {
       `meeting ${fmtDate(a.meeting_date)}`,
       a.due_date ? `${a.kind === 'visit' ? 'visit by' : 'due'} ${fmtDate(a.due_date)}${a.due_date < today ? ' – overdue' : ''}` : null,
       a.my_part === 'assign' && a.assign_by ? `appoint by ${fmtDateTime(a.assign_by)}${a.assign_by < now ? ' – late, DGM told' : ''}` : null,
+      a.my_part === 'help' && a.review_by ? `${a.review_by} asks for your help` : null,
+      a.review_state === 'delayed' && a.old_due && a.old_due !== a.due_date ? `moved from ${fmtDate(a.old_due)}` : null,
       a.review_state ? `last update: ${reviewLabel(a.review_state).toLowerCase()} ${fmtDateTime(a.review_at)} – ${a.review_note}` : null,
       !a.reviewed && a.review_due ? `status update due before ${fmtDateTime(a.review_due)}` : null,
     ];
@@ -166,9 +159,18 @@ export function MeetingActions() {
                       <Row gap={6} wrap>
                         {vs ? <Pill label={vs.label} tone={vs.tone} /> : null}
                         {a.review_state ? (
-                          <Pill label={reviewLabel(a.review_state)} tone={a.review_state === 'blocked' ? colors.red : a.review_state === 'delayed' ? colors.amber : colors.green} />
+                          <Pill
+                            label={
+                              a.review_state === 'blocked' && a.helper
+                                ? `Blocked – waiting on ${a.helper}`
+                                : a.review_state === 'delayed' && a.due_date
+                                  ? `Delayed – new date ${fmtDate(a.due_date)}`
+                                  : reviewLabel(a.review_state)
+                            }
+                            tone={a.review_state === 'blocked' ? colors.red : a.review_state === 'delayed' ? colors.amber : colors.green}
+                          />
                         ) : null}
-                        {part === 'do' || part === 'visit' || part === 'track' ? (
+                        {part === 'do' || part === 'visit' || part === 'track' || part === 'help' ? (
                           <Button small variant={a.reviewed ? 'ghost' : 'secondary'} title="Status update" onPress={() => statusUpdate(a)} />
                         ) : null}
                         {part === 'visit' ? (
@@ -190,6 +192,7 @@ export function MeetingActions() {
                             {part === 'do' ? <Button small title="Confirm done" onPress={() => confirmDone(a)} /> : null}
                           </>
                         )}
+                        {part === 'do' || part === 'visit' || part === 'track' ? <Button small variant="secondary" title="Not done" onPress={() => notDone(a)} /> : null}
                       </Row>
                     }
                   />

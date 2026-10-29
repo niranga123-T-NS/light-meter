@@ -2895,7 +2895,7 @@ select pg_temp.act_as('lighting_designer'); set role authenticated;
 do $$ begin
   begin perform public.review_meeting_action((select id from public.sales_meeting_actions where meeting_id = current_setting('test.m2')::uuid and kind = 'design'), 'on_track', 'x');
     assert false, 'done already';
-  exception when others then assert sqlerrm = 'Already done', sqlerrm; end;
+  exception when others then assert sqlerrm = 'This action is closed', sqlerrm; end;
 end $$;
 reset role;
 select pg_temp.act_as(current_setting('test.estrole')); set role authenticated;
@@ -2904,8 +2904,11 @@ begin
   assert not (select reviewed from public.my_meeting_actions() where id = aid), 'not reviewed yet';
   begin perform public.review_meeting_action(aid, 'blocked', ' '); assert false, 'note needed';
   exception when others then assert sqlerrm = 'Write a short status note', sqlerrm; end;
-  perform public.review_meeting_action(aid, 'blocked', 'Waiting for the façade drawings from the client');
+  begin perform public.review_meeting_action(aid, 'blocked', 'Waiting'); assert false, 'helper needed';
+  exception when others then assert sqlerrm = 'Choose who can help', sqlerrm; end;
+  perform public.review_meeting_action(aid, 'blocked', 'Waiting for the façade drawings from the client', null, (select id from u where role = 'design_manager'));
   assert (select reviewed and review_state = 'blocked' from public.my_meeting_actions() where id = aid), 'reviewed';
+  perform set_config('test.blocked_aid', aid::text, false);
 end $$;
 reset role;
 select pg_temp.act_as('sm_projects'); set role authenticated;
@@ -2920,6 +2923,54 @@ reset role;
 do $$ begin
   assert exists (select 1 from public.notifications where title = 'Meeting action blocked' and recipient_id = (select id from u where role = 'sm_projects')), 'host told of the block';
 end $$;
+-- Blocked → the named helper sees it and can update; Delayed moves the due date; Not done closes it; SM Projects accepts or reopens
+select pg_temp.act_as('design_manager'); set role authenticated;
+do $$ declare aid uuid := current_setting('test.blocked_aid')::uuid;
+begin
+  assert exists (select 1 from public.notifications where title = 'Your help is needed on a meeting action' and recipient_id = auth.uid()), 'helper told';
+  assert (select my_part from public.my_meeting_actions() where id = aid) = 'help', 'on the helper''s list';
+  begin perform public.review_meeting_action(aid, 'delayed', 'Drawings next week'); assert false, 'date needed';
+  exception when others then assert sqlerrm = 'Set the new due date', sqlerrm; end;
+  perform public.review_meeting_action(aid, 'delayed', 'Drawings promised next week', current_date + 10);
+  assert not exists (select 1 from public.my_meeting_actions() where id = aid), 'off the helper''s list once it moves';
+end $$;
+reset role;
+do $$ declare aid uuid := current_setting('test.blocked_aid')::uuid;
+begin
+  assert (select due_date from public.sales_meeting_actions where id = aid) = current_date + 10, 'due date moved';
+  assert exists (select 1 from public.meeting_action_reviews where action_id = aid and new_due = current_date + 10), 'move kept in the history';
+end $$;
+select pg_temp.act_as(current_setting('test.estrole')); set role authenticated;
+do $$ declare aid uuid := current_setting('test.blocked_aid')::uuid;
+begin
+  begin perform public.meeting_action_not_done(aid, 'other', ' '); assert false, 'explain';
+  exception when others then assert sqlerrm = 'Explain why it will not be done', sqlerrm; end;
+  perform public.meeting_action_not_done(aid, 'on_hold', 'Client froze the budget until March');
+  assert not exists (select 1 from public.my_meeting_actions() where id = aid), 'closed – not on my list';
+  begin perform public.meeting_action_not_done_decide(aid, true); assert false, 'not the reviewer';
+  exception when others then assert sqlerrm = 'SM Projects or the meeting host reviews it', sqlerrm; end;
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ declare aid uuid := current_setting('test.blocked_aid')::uuid; r jsonb := public.meeting_status_review(current_setting('test.m2')::uuid); rep jsonb;
+begin
+  assert (select i ->> 'nd_reason' from jsonb_array_elements(r -> 'items') i where (i ->> 'id')::uuid = aid) = 'on_hold', 'review shows the reason';
+  assert (r ->> 'can_decide')::boolean, 'SM Projects decides';
+  rep := public.meeting_actions_report(current_date - 60, current_date + 60);
+  assert exists (select 1 from jsonb_array_elements(rep) x where (x ->> 'not_done')::int = 1 and x ->> 'top_reason' = 'Project cancelled or on hold'), rep::text;
+  perform public.meeting_action_not_done_decide(aid, false, current_date + 5, 'Ask the client again after the board meeting');
+  assert (select status = 'open' and due_date = current_date + 5 from public.sales_meeting_actions where id = aid), 'reopened with the new date';
+  perform public.meeting_action_not_done(aid, 'not_needed', 'Covered by the new tender action');
+  perform public.meeting_action_not_done_decide(aid, true);
+  assert (select nd_accepted_at is not null from public.sales_meeting_actions where id = aid), 'accepted';
+end $$;
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  begin perform public.meeting_actions_report(current_date - 60, current_date); assert false, 'sales cannot see the report';
+  exception when others then assert sqlerrm like 'Meeting action reports are for%', sqlerrm; end;
+end $$;
+reset role;
 
 -- Team meetings: Estimation (SM Estimation) and Design (Design Manager), same flow, one Meetings tab ---------------------
 do $$ declare d date := current_date + 9; begin

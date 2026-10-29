@@ -13,7 +13,8 @@ export type MinutesAction = {
   no?: number;
   action: string;
   kind: string;
-  status: 'open' | 'done';
+  status: 'open' | 'done' | 'not_done';
+  nd_note?: string | null;
   forWhom: string | null; // whose part of the meeting it was raised in (null = general)
   owner: string;
   ownerRole: string;
@@ -266,7 +267,7 @@ ${rows
     }${a.objective ? `<div class="sub">Objective: ${esc(a.objective)}</div>` : ''}</td>${showFor ? `<td>${esc(a.forWhom ?? 'General')}</td>` : ''}<td>${esc(a.owner)}<div class="sub">${esc(a.ownerRole)}</div>${
       isTeamKind(a.kind) ? `<div class="sub">${a.assignee ? `Appointed: ${esc(a.assignee)}` : 'Person to be appointed'}</div>` : ''
     }</td><td>${a.due_date ? esc(fmtDate(a.due_date)) : '—'}</td><td>${
-      a.status === 'done' ? `<b class="ok">Done</b>${a.done_at ? `<div class="sub">${esc(fmtDate(a.done_at))}</div>` : ''}${a.done_note ? `<div class="sub">${esc(a.done_note)}</div>` : ''}` : '<b class="open">Open</b>'
+      a.status === 'done' ? `<b class="ok">Done</b>${a.done_at ? `<div class="sub">${esc(fmtDate(a.done_at))}</div>` : ''}${a.done_note ? `<div class="sub">${esc(a.done_note)}</div>` : ''}` : a.status === 'not_done' ? `<b>Not done</b>${a.nd_note ? `<div class="sub">${esc(a.nd_note)}</div>` : ''}` : '<b class="open">Open</b>'
     }</td></tr>`,
   )
   .join('')}</tbody></table>`;
