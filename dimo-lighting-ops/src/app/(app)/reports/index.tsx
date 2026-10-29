@@ -36,6 +36,16 @@ export default function Reports() {
           />
         </Card>
       ) : null}
+      {['gm', 'sm_projects', 'asm_building', 'asm_infra', 'sm_estimation'].includes(me.role) ? (
+        <Card style={{ padding: 0, overflow: 'hidden' }}>
+          <ListRow
+            title="Customers & projects by type"
+            subtitle="Choose customer types or project types – summary and detail list, PDF and Excel"
+            right={<Pill label="Lists" tone={colors.blue} />}
+            onPress={() => router.push('/reports/by-type')}
+          />
+        </Card>
+      ) : null}
       {MEETING_ACTION_REPORT_ROLES.includes(me.role) ? (
         <Card style={{ padding: 0, overflow: 'hidden' }}>
           <ListRow
