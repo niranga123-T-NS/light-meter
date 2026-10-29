@@ -80,10 +80,10 @@ export default function WinUsage() {
   const [period, setPeriod] = useState<Period>('90');
   const [person, setPerson] = useState('');
   const [unit, setUnit] = useState('');
-  const allowed = me.role === 'gm' || me.role === 'sm_projects';
+  const allowed = me.role === 'gm' || me.role === 'sm_projects' || me.role === 'sm_estimation';
   const from = fromDate(period);
   const { data, error, loading, reload } = useLoad(() => (allowed ? rpc<Report>('win_wizard_report', { p_from: from, p_to: todayISO() }) : Promise.resolve(null)), [from, allowed]);
-  if (!allowed) return <Screen><Notice tone={colors.amber}>Win Predictor use is reported to DGM / GM and SM Projects.</Notice></Screen>;
+  if (!allowed) return <Screen><Notice tone={colors.amber}>Win Predictor use is reported to DGM / GM, SM Projects and SM Estimation.</Notice></Screen>;
   if (!data) return <Screen>{error ? <ErrorBanner message={error} /> : <Loading />}</Screen>;
 
   const people = data.people.filter((p) => (!unit || p.role === unit) && (!person || p.id === person));

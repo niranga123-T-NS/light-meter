@@ -35,7 +35,7 @@ export default function Reports() {
           />
         </Card>
       ) : null}
-      {me.role === 'gm' || me.role === 'sm_projects' ? (
+      {me.role === 'gm' || me.role === 'sm_projects' || me.role === 'sm_estimation' ? (
         <Card style={{ padding: 0, overflow: 'hidden' }}>
           <ListRow
             title="Win Predictor use"

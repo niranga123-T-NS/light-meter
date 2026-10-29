@@ -9106,6 +9106,22 @@ do $$ begin
   begin perform public.csi_follow_up(current_setting('test.csi')::uuid, 'Called and agreed a plan'); assert false, 'not theirs'; exception when raise_exception then null; end;
 end $$;
 reset role;
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.csi_surveys where id = current_setting('test.csi')::uuid), 'SM Estimation sees CSI';
+  begin perform public.csi_follow_up(current_setting('test.csi')::uuid, 'x'); assert false, 'read only'; exception when raise_exception then null; end;
+end $$;
+reset role;
+select pg_temp.act_as('design_manager'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.csi_surveys where id = current_setting('test.csi')::uuid), 'Design Manager sees CSI';
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.csi_surveys where id = current_setting('test.csi')::uuid), 'SM Projects sees CSI';
+end $$;
+reset role;
 select pg_temp.act_as('asm_building'); set role authenticated;
 do $$ begin
   perform public.csi_follow_up(current_setting('test.csi')::uuid, 'Called Mr Perera – quotations within 5 days from now on');
@@ -10305,6 +10321,14 @@ begin
   assert jsonb_array_length(p -> 'weeks') = 12, '12 weeks';
   assert exists (select 1 from jsonb_array_elements(r -> 'uses') x where x ->> 'inquiry_code' is not null and x ->> 'action' = 'scored'), 'what it was used on';
   assert (select count(*) from public.win_followups where project_id = '00000000-0000-0000-0000-00000000b455') = 6, 'SM Projects reads the follow-ups';
+end $$;
+reset role;
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+do $$ declare r jsonb := public.win_wizard_report(current_date - 30, current_date);
+begin
+  assert exists (select 1 from jsonb_array_elements(r -> 'people') x where x ->> 'id' = (select id::text from u where role = 'asm_building')), 'SM Estimation sees the report';
+  assert (select count(*) from public.win_followups where project_id = '00000000-0000-0000-0000-00000000b455') = 6, 'SM Estimation reads the follow-ups';
+  assert exists (select 1 from public.win_wizard_log), 'SM Estimation reads the log';
 end $$;
 reset role;
 select pg_temp.act_as('asm_infra'); set role authenticated;

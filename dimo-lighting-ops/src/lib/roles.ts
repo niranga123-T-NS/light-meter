@@ -264,6 +264,7 @@ function baseNav(role: Role): NavItem[] {
         { href: '/jobs', label: 'Jobs', icon: '▣' },
         EXEC_NAV.queries,
         EXEC_NAV.documents,
+        { href: '/csi', label: 'CSI', icon: '☺' },
         brands,
         reports,
       ];
@@ -277,6 +278,7 @@ function baseNav(role: Role): NavItem[] {
         { href: '/inquiries', label: 'Inquiries', icon: '⧗' },
         { href: '/jobs', label: 'Jobs', icon: '▣' },
         { href: '/customers', label: 'Customers', icon: '☷' },
+        { href: '/csi', label: 'CSI', icon: '☺' },
         { href: '/finance/pnl', label: 'P&L', icon: '▥' },
         { href: '/finance/invoicing', label: 'Invoicing', icon: '⧉' },
         { href: '/finance/secured', label: 'Secured', icon: '◇' },
