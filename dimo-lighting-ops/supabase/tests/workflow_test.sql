@@ -9106,6 +9106,22 @@ do $$ begin
   begin perform public.csi_follow_up(current_setting('test.csi')::uuid, 'Called and agreed a plan'); assert false, 'not theirs'; exception when raise_exception then null; end;
 end $$;
 reset role;
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.csi_surveys where id = current_setting('test.csi')::uuid), 'SM Estimation sees CSI';
+  begin perform public.csi_follow_up(current_setting('test.csi')::uuid, 'x'); assert false, 'read only'; exception when raise_exception then null; end;
+end $$;
+reset role;
+select pg_temp.act_as('design_manager'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.csi_surveys where id = current_setting('test.csi')::uuid), 'Design Manager sees CSI';
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin
+  assert exists (select 1 from public.csi_surveys where id = current_setting('test.csi')::uuid), 'SM Projects sees CSI';
+end $$;
+reset role;
 select pg_temp.act_as('asm_building'); set role authenticated;
 do $$ begin
   perform public.csi_follow_up(current_setting('test.csi')::uuid, 'Called Mr Perera – quotations within 5 days from now on');
