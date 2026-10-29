@@ -11,7 +11,7 @@ SRC = {'zc_lighting': ('ZC Lighting', 'ZC_2.pdf'), 'zc_lighting_part1': ('ZC Lig
        'simes': ('SIMES', 'SIMES catalogue 2027-2028'), 'venezina': ('VENEZINA', 'VENEZINA_1.pdf / VENEZINA_2.pdf'),
        'vellnice': ('VELLNICE', 'Vellnice_Commercial_lighting_2024-205 (Part 1–7)'), 'disano': ('Disano', 'Disano LED 2026 (Part 1, 2, 8–11)'),
        'fosnova': ('Fosnova', 'Fosnova 2026 (Part 1–4, 6)'), 'potato': ('Potato Lighting', 'POTATO LIGHTING CATALOG 2026 (Part 2–5)'),
-       'belite': ('Belite', '2023 BELITE OUTDOOR PRODUCTS COMPLETE CATALOGUE (Part 1)')}
+       'belite': ('Belite', '2026-2027 BELITE OUTDOOR PRODUCTS (Part 1–4)')}
 TYPES = [('Strip / neon', r'strip|neon'), ('Tube / lamp', r'\btube\b|\blamp\b|bulb|corn|\bgu10\b|\bpar\b|ar111|candle|mirror'),
          ('Street light', r'street|road|post.?top|courtyard|garden pole|area light|high.?mast'), ('Floodlight', r'flood|sports|stadium|tennis|padel|façade|facade|architectural'),
          ('High bay', r'high.?bay|ufo'), ('Tri-proof / batten', r'tri.?proof|waterproof light|batten|bulkhead.*linear'),
