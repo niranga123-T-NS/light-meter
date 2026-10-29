@@ -10323,6 +10323,14 @@ begin
   assert (select count(*) from public.win_followups where project_id = '00000000-0000-0000-0000-00000000b455') = 6, 'SM Projects reads the follow-ups';
 end $$;
 reset role;
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+do $$ declare r jsonb := public.win_wizard_report(current_date - 30, current_date);
+begin
+  assert exists (select 1 from jsonb_array_elements(r -> 'people') x where x ->> 'id' = (select id::text from u where role = 'asm_building')), 'SM Estimation sees the report';
+  assert (select count(*) from public.win_followups where project_id = '00000000-0000-0000-0000-00000000b455') = 6, 'SM Estimation reads the follow-ups';
+  assert exists (select 1 from public.win_wizard_log), 'SM Estimation reads the log';
+end $$;
+reset role;
 select pg_temp.act_as('asm_infra'); set role authenticated;
 do $$ begin
   assert not exists (select 1 from public.win_wizard_log where project_id = '00000000-0000-0000-0000-00000000b455'), 'other sales cannot see the log';
