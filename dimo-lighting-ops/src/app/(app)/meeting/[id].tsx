@@ -4,7 +4,7 @@ import { Text, View } from 'react-native';
 import { pctTone } from '@/components/financeTones';
 import { useDialog } from '@/components/dialog';
 import { MeetingActionForm, type ActionDraft } from '@/components/MeetingActionForm';
-import { isTeamKind, kindLabel } from '@/lib/meetingActions';
+import { isTeamKind, kindLabel, notDoneShort } from '@/lib/meetingActions';
 import { hhmm, type Team, TEAMS } from '@/lib/meetings';
 import { ExecPackView } from '@/components/ExecPackView';
 import { ProjectPackView } from '@/components/exec/ProjectPackView';
@@ -75,7 +75,9 @@ type Action = {
   owner_id: string;
   action: string;
   due_date: string | null;
-  status: 'open' | 'done';
+  status: 'open' | 'done' | 'not_done';
+  nd_reason?: string | null;
+  nd_note?: string | null;
   new_project: string | null;
   new_customer: string | null;
   kind: string;
@@ -299,6 +301,7 @@ export default function MeetingPack() {
         action: a.action,
         kind: a.kind,
         status: a.status,
+        nd_note: a.nd_note ?? null,
         forWhom: a.sales_person_id ? name(a.sales_person_id) : null,
         owner: name(a.owner_id),
         ownerRole: roleOf(a.owner_id),
@@ -400,7 +403,7 @@ export default function MeetingPack() {
     <View style={{ gap: 4, marginTop: 6 }}>
       {actionsFor(personId, itemId).map((a) => (
         <Row key={a.id} wrap gap={6} style={{ alignItems: 'center' }}>
-          <Pill label={a.status === 'done' ? 'Done' : 'Open'} tone={a.status === 'done' ? colors.green : colors.amber} />
+          <Pill label={a.status === 'done' ? 'Done' : a.status === 'not_done' ? `Not done – ${notDoneShort(a.nd_reason)}` : 'Open'} tone={a.status === 'done' ? colors.green : a.status === 'not_done' ? colors.grey : colors.amber} />
           {a.kind !== 'task' ? <Pill label={kindLabel(a.kind)} tone={colors.blue} /> : null}
           <Text style={{ color: colors.ink, flexShrink: 1 }}>
             {a.action} · {people[a.owner_id]?.full_name ?? '—'}
@@ -409,8 +412,9 @@ export default function MeetingPack() {
             {a.projects?.name || a.new_project ? ` · ${a.projects?.name ?? `${a.new_project} (new)`}` : ''}
             {a.organizations?.name || a.new_customer ? ` · ${a.organizations?.name ?? `${a.new_customer} (new)`}` : ''}
             {a.status === 'done' && a.done_note ? ` · ${a.done_note}` : ''}
+            {a.status === 'not_done' && a.nd_note ? ` · ${a.nd_note}` : ''}
           </Text>
-          {host ? (
+          {host && a.status !== 'not_done' ? (
             <Button small variant="ghost" title={a.status === 'done' ? 'Re-open' : 'Mark done'} onPress={() => run('set_meeting_action_done', { p_id: a.id, p_done: a.status !== 'done' }, 'Updated')} />
           ) : null}
           {edit ? <Button small variant="ghost" title="Delete" onPress={() => run('delete_meeting_action', { p_id: a.id }, 'Deleted')} /> : null}
