@@ -1,4 +1,4 @@
--- Design Tools v142: Lighting calc – multi-sport: All on is report only unless set otherwise (the sports are not played at full level together), so each sport passes in its own scene; sports whose areas overlap (the pitch inside the track) share their floodlights in each other's scenes, each checked against its own standard; the scenes suggested are named as on a stadium control panel – <sport> match / competition, training, All on, Maintenance / security; in the automatic design each floodlight joins the group of where it is aimed every round, and the optimiser moves floodlights between groups only when ticked
+-- Design Tools v142: Lighting calc – multi-sport: All on is report only unless set otherwise (the sports are not played at full level together), so each sport passes in its own scene; sports whose areas overlap (the pitch inside the track) share their floodlights in each other's scenes, each checked against its own standard; the scenes suggested are named as on a stadium control panel – <sport> match / competition, training, All on, Maintenance / security; in the automatic design each floodlight joins the group of where it is aimed every round; the automatic design keeps the number of masts set (it no longer adds masts), and the optimiser moves floodlights between groups only when ticked
 insert into public.design_tool_engine (version, html, created_at) values ('v142', $dtengine$<!doctype html>
 <html lang="en">
 <head>
@@ -11988,18 +11988,12 @@ function lcAutoSum(L) { lcInvalidate(); const R = lcResults(L), fails = lcFails(
 const lcAutoOne0 = lcAutoOne;
 lcAutoOne = async function (L, n, linked, onStep) {
   const start = lcState(L), fixed = !!(linked || L.fixPos); let r = await lcAutoOne0(L, n, linked, onStep), best = { r, s: lcState(L), n }; const tried = [];
-  // A: U1 / U2 not reached and the masts may move – the same again with 2 and 4 more masts, the best kept
-  if (r.fails && !fixed && lcFailKinds(L).uni) for (const add of [2, 4]) { const n2 = n + add; if (n2 > 12) break; tried.push(n2);
-    Object.assign(L, JSON.parse(start)); lcInvalidate(); onStep?.(`U1 / U2 not reached with ${n} masts – trying ${n2}`);
-    const r2 = await lcAutoOne0(L, n2, linked, (t) => onStep?.(`${n2} masts – ${t}`)); if (r2.fails < best.r.fails || (r2.fails === best.r.fails && r2.N < best.r.N)) best = { r: r2, s: lcState(L), n: n2 };
-    if (!r2.fails || !lcFailKinds(L).uni) break; }
-  if (best.s !== lcState(L)) { Object.assign(L, JSON.parse(best.s)); lcInvalidate(); } r = best.r;
-  if (tried.length) r = { ...r, log: `${r.log} U1 / U2 were not reached with ${n} masts, so ${tried.join(' and ')} masts were tried too – ${best.n} kept.` };
-  // C: masts fixed and still failing only on U1 / U2 while every level is met – floodlights that only over-light removed, never making a check worse
-  if (r.fails && fixed && L.autoTrimFail !== false) { const k = lcFailKinds(L); if (!k.lev && k.uni) { const f0 = lcFails(L), u0 = lcUniShort(L), N0 = r.N;
+  // the number of masts is never changed by the automatic design – too few masts are named in the reason instead
+  // C: still failing only on U1 / U2 while every level is met – floodlights that only over-light removed, never making a check worse
+  if (r.fails && L.autoTrimFail !== false) { const k = lcFailKinds(L); if (!k.lev && k.uni) { const f0 = lcFails(L), u0 = lcUniShort(L), N0 = r.N;
     onStep?.('best effort – removing floodlights that only over-light');
     await lcMinCount(L, async (w, ms) => { onStep?.(`best effort – ${w}`); await lcOptimise(L, null, ms); lcInvalidate(); }, () => lcFails(L) <= f0 && !lcFailKinds(L).lev && lcUniShort(L) <= u0 + 1e-3, onStep);
-    const r2 = lcAutoSum(L); if (r2.N < N0) r = { ...r, ...r2, log: `${r.log} Best effort from the fixed masts: ${N0 - r2.N} floodlights removed that only over-lit (${N0} → ${r2.N}) – every light level still met, no check made worse; it does not comply until U1 / U2 are met.` }; } }
+    const r2 = lcAutoSum(L); if (r2.N < N0) r = { ...r, ...r2, log: `${r.log} Best effort from these masts: ${N0 - r2.N} floodlights removed that only over-lit (${N0} → ${r2.N}) – every light level still met, no check made worse; it does not comply until U1 / U2 are met.` }; } }
   return r;
 };
 // D: why it cannot pass, said plainly
@@ -12009,7 +12003,7 @@ lcAutoAll = async function (L, n, onStep) {
   const low = L.masts.filter((x) => x.h + 0.5 < lcHmin(x)), why = [];
   if (low.length) why.push(`${low.length === m ? 'the masts are' : `${low.length} of the ${m} masts are`} ${[...new Set(low.map((x) => x.h))].join(' / ')} m high, lower than the about ${Math.max(...low.map(lcHmin))} m needed to reach the far side of the field within 70° – raise “Highest mast height” or move them nearer`);
   if (k.lev) why.push('the light level is not reached – a more powerful luminaire, more floodlights per mast or more masts are needed');
-  if (k.uni) why.push(fixed ? `U1 / U2 cannot be reached from these ${m} fixed masts – the floodlights are too far from parts of the field; more masts (6 or 8) or masts allowed to move are needed (untick “Masts follow the stadium layout” or set Mast locations to May change)` : `U1 / U2 are not reached even with ${m} masts – try masts nearer the field, tick a narrower and a wider luminaire so the beams can be mixed, or check the class (a broadcast class needs far more than club level)`);
+  if (k.uni) why.push(fixed ? `U1 / U2 cannot be reached from these ${m} fixed masts – the floodlights are too far from parts of the field; more masts (6 or 8) or masts allowed to move are needed (untick “Masts follow the stadium layout” or set Mast locations to May change)` : `U1 / U2 are not reached with these ${m} masts – set more masts under Masts (6 or 8 for this class), or try masts nearer the field, tick a narrower and a wider luminaire so the beams can be mixed, or check the class (a broadcast class needs far more than club level)`);
   const tip = why.length ? ` Why: ${why.join('; ')}.` : '';
   return msg + tip;
 };
@@ -12020,6 +12014,8 @@ const lcOptimise3 = lcOptimise;
 lcOptimise = async function (L, onStep, ms) { if (LCAUTOGRP) lcScRegroup(L); return lcOptimise3(L, onStep, ms); };
 const lcAutoAll3 = lcAutoAll;
 lcAutoAll = async function (L, n, onStep) { LCAUTOGRP = true; try { return await lcAutoAll3(L, n, onStep); } finally { LCAUTOGRP = false; } };
+const lcAutoAll4 = lcAutoAll;
+lcAutoAll = async function (L, n, onStep) { return lcAutoAll4(L, L.masts.length || n, onStep); };
 })();
 </script>
 
