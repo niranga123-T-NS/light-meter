@@ -12237,21 +12237,38 @@ function lcScFollowStd(L, key, was, now) { if (!was || was === now) return; let 
 function lcScStdOf(L) { return L.sport === 'multi' ? lcZGroups(L).filter((G) => G.sport !== 'extra').map((G) => ({ key: G.gid, sport: G.sport, std: G.std, name: G.name })) : [{ key: '_', sport: L.sport ?? 'cricket', std: L.std, name: lcSport(L).name }]; }
 function lcScMismatch(L) {
   if (!lcScOn(L)) return []; const out = [];
-  lcScStdOf(L).forEach((u) => { const low = lcScLower(u.sport, u.std); (L.scenes ?? []).forEach((sc) => { const c = sc.cls?.[u.key]; if (sc.req !== 'must' || !c || c === u.std || c === 'off' || c === 'report' || c.startsWith?.('pct:') || low.includes(c) || sc.clsOk?.[u.key]) return; out.push({ sc, u, c }); }); });
+  lcScStdOf(L).forEach((u) => { const low = lcScLower(u.sport, u.std); (L.scenes ?? []).forEach((sc) => { const c = sc.cls?.[u.key]; if (sc.req !== 'must' || !c || c === u.std || c === 'off' || c === 'report' || c.startsWith?.('pct:') || low.includes(c) || sc.clsOk?.[u.key]) return; if ((L.scenes ?? []).some((o) => o !== sc && o.req !== 'report' && o.cls?.[u.key] === u.std)) return; out.push({ sc, u, c }); }); }); // another scene already checks the standard: this one is an extra (e.g. televised) scene
   return out;
 }
+const lcEcOf = (k) => LC_STD[k]?.t?.i?.Ec ?? LC_STD[k]?.t?.w?.Ec;
+const lcScTvName = (u) => `${u.name} – televised ${['football', 'rugby', 'cricket', 'hockey'].includes(u.sport) ? 'match' : 'competition'}`;
+const lcScTvKey = (sport) => { const ks = Object.keys(LC_STD).filter((k) => LC_STD[k].sport === sport && lcEcOf(k)); return ks.find((k) => /_tv$/.test(k)) ?? ks[0] ?? null; };
+// cameras on for a sport whose standard has no camera targets, and no scene checking them: offer the televised scene
+function lcScCamHint(L) { if (!lcScOn(L)) return []; return lcScStdOf(L).filter((u) => { if (lcEcOf(u.std)) return false; const cams = L.cams.filter((c) => c.on !== false && (L.sport !== 'multi' || !c.gid || c.gid === u.key)); if (!cams.length) return false; return !(L.scenes ?? []).some((sc) => sc.req !== 'report' && lcEcOf(sc.cls?.[u.key])); }).map((u) => ({ ...u, tv: lcScTvKey(u.sport) })).filter((u) => u.tv); }
+// a televised scene for a sport: the floodlights of its match scene, checked against the broadcast class
+function lcScAddTv(L, key, from) { const u = lcScStdOf(L).find((x) => x.key === key); if (!u) return; const tv = from?.cls?.[key] && lcEcOf(from.cls[key]) ? from.cls[key] : lcScTvKey(u.sport); if (!tv) return;
+  const base = from ?? (L.scenes ?? []).find((sc) => sc.req === 'must' && sc.cls?.[key] === u.std) ?? (L.scenes ?? []).find((sc) => sc.cls?.[key] === u.std);
+  const lv = base ? { ...base.lv } : Object.fromEntries((L.lgrp ?? []).map((g) => [g.id, 1])), cls = base ? Object.fromEntries(Object.entries(base.cls ?? {}).map(([k, v]) => [k, k === key ? tv : v])) : L.sport === 'multi' ? Object.fromEntries(lcZGroups(L).map((G) => [G.gid, G.gid === key ? tv : G.sport === 'extra' ? G.std : 'off'])) : { _: tv };
+  const sc = { id: lcScUid(), name: lcScTvName(u), req: 'must', lv, cls }, at = base ? L.scenes.indexOf(base) + 1 : L.scenes.length; L.scenes.splice(at, 0, sc); return sc; }
 const lcStdNm = (k) => LC_STD[k]?.name ?? (k === 'custom' ? 'custom values' : k);
 function lcScMustBad(L) { if (!lcScOn(L) || LCSCREADY !== lcBase(L)) return []; return lcScList(L).filter((sc) => sc.req === 'must').map((sc) => lcScEval(L, sc)).filter((e) => e.fail); }
 var lcResHtml6 = lcResHtml;
 lcResHtml = function (L, R) {
   let h = lcResHtml6(L, R); const mm = lcScMismatch(L), bad = lcScMustBad(L);
   if (mm.length) { const note = `<div style="border:1.5px solid #b45309;background:#fef3c7;color:#78350f;border-radius:8px;padding:8px 10px;margin:6px 0;display:grid;gap:6px">${mm.map(({ sc, u, c }) => { const ec = LC_STD[c]?.t?.i?.Ec ?? LC_STD[c]?.t?.w?.Ec, ec0 = LC_STD[u.std]?.t?.i?.Ec ?? LC_STD[u.std]?.t?.w?.Ec;
-      return `<div><b>${esc(sc.name)}</b> is checked against <b>${esc(lcStdNm(c))}</b>${ec ? ` (cameras Ecam ${ec} lx)` : ''}, not ${esc(u.name)}’s standard <b>${esc(lcStdNm(u.std))}</b>${ec0 ? '' : ' (no camera targets)'}.<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px"><button class="btn" data-lcscstd="${sc.id}|${u.key}">Check it against ${esc(lcClsName(L, u.std, lcZGroups(L).find((G) => G.gid === u.key)))}</button><button class="btn" data-lcsckeep="${sc.id}|${u.key}">Keep ${esc(lcClsName(L, c, lcZGroups(L).find((G) => G.gid === u.key)))} for this scene</button></div></div>`; }).join('')}</div>`;
+      return `<div><b>${esc(sc.name)}</b> is checked against <b>${esc(lcStdNm(c))}</b>${ec ? ` (cameras Ecam ${ec} lx)` : ''}, not ${esc(u.name)}’s standard <b>${esc(lcStdNm(u.std))}</b>${ec0 ? '' : ' (no camera targets)'}.<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px"><button class="btn" data-lcscstd="${sc.id}|${u.key}">Check it against ${esc(lcClsName(L, u.std, lcZGroups(L).find((G) => G.gid === u.key)))}</button><button class="btn" data-lcscsplit="${sc.id}|${u.key}">Make it two scenes – match at ${esc(lcClsName(L, u.std, lcZGroups(L).find((G) => G.gid === u.key)))}, televised at ${esc(lcClsName(L, c, lcZGroups(L).find((G) => G.gid === u.key)))}</button><button class="btn" data-lcsckeep="${sc.id}|${u.key}">Keep ${esc(lcClsName(L, c, lcZGroups(L).find((G) => G.gid === u.key)))} for this scene</button></div></div>`; }).join('')}</div>`;
+    const i = h.search(/<h3[^>]*>Results by scene/); h = i >= 0 ? h.slice(0, i) + note + h.slice(i) : note + h; }
+  const ch = lcScCamHint(L);
+  if (ch.length) { const note = `<div style="border:1.5px solid #2563eb;background:#eff6ff;color:#1e3a8a;border-radius:8px;padding:8px 10px;margin:6px 0;display:grid;gap:6px">${ch.map((u) => `<div>The cameras of <b>${esc(u.name)}</b> are not checked in any scene – its standard <b>${esc(lcStdNm(u.std))}</b> has no camera targets. Cameras count only in a broadcast (televised) scene.<div style="margin-top:4px"><button class="btn" data-lcsctv="${u.key}">Add “${esc(lcScTvName(u))}” (${esc(lcStdNm(u.tv))})</button></div></div>`).join('')}</div>`;
     const i = h.search(/<h3[^>]*>Results by scene/); h = i >= 0 ? h.slice(0, i) + note + h.slice(i) : note + h; }
   if (bad.length) h = h.replace(/<b style="font-size:18px;color:var\(--ok\)">All pass ✓<\/b><div class="note">([^<]*)<\/div>/, (m, sub) => `<b style="font-size:18px;color:var(--bad)">${bad.length} scene${bad.length > 1 ? 's' : ''} to fix</b><div class="note">${sub} with all floodlights on – must pass: ${bad.map((e) => esc(e.sc.name)).join(', ')}</div>`);
   return h;
 };
 (() => {
+  document.addEventListener('click', (e) => { const t = e.target.closest?.('button[data-lcsctv],button[data-lcscsplit]'); if (!t || !document.getElementById('tab-lc')?.contains(t)) return; const L = LC();
+    if (t.dataset.lcsctv != null) { lcSnap(L, 'televised scene'); lcScAddTv(L, t.dataset.lcsctv); }
+    else { const [sid, key] = t.dataset.lcscsplit.split('|'), sc = (L.scenes ?? []).find((s) => s.id === sid), u = lcScStdOf(L).find((x) => x.key === key); if (!sc || !u) return; lcSnap(L, 'televised scene'); lcScAddTv(L, key, sc); sc.cls[key] = u.std; }
+    LCSCC.clear(); LCSCE.clear(); LCSCREADY = null; renderLc(); }, true);
   document.addEventListener('click', (e) => { const t = e.target.closest?.('button[data-lcscstd],button[data-lcsckeep]'); if (!t || !document.getElementById('tab-lc')?.contains(t)) return; const L = LC(), [sid, key] = (t.dataset.lcscstd ?? t.dataset.lcsckeep).split('|'), sc = (L.scenes ?? []).find((s) => s.id === sid); if (!sc) return;
     lcSnap(L, 'class of a scene'); if (t.dataset.lcscstd != null) { const u = lcScStdOf(L).find((x) => x.key === key); if (u) sc.cls[key] = u.std; } else sc.clsOk = { ...(sc.clsOk ?? {}), [key]: true };
     LCSCC.clear(); LCSCE.clear(); LCSCREADY = null; renderLc(); }, true);
