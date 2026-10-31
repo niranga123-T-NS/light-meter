@@ -96,5 +96,12 @@
     const qb = place(b, [0, 0, 30], [30 * Math.tan(50 * deg), 0, 0]), sb = (() => { let t = 0; for (let x = -20; x < 400; x += 0.5) for (let y = -150; y < 150; y += 0.5) t += Eeng(qb, [x + 0.25, y + 0.25, 0], [0, 0, 1]) * 0.25; return t; })();
     rows.push({ at: 'floodlight 24°, tilted 50°, 30 m high – Σ E·ΔA over the ground', eng: sb, ref: fb, err: rel(sb, fb) });
     add('12', 'Energy balance', 'Luminous flux reaching the ground equals the flux sent downward', 'Σ E·ΔA (0.5 m cells) = Φ: 2π·I0/5 for cos⁴γ; the numerically integrated beam flux for the 24° floodlight', rows, 1); }
+  // 13. CIE 171:2006 test case 5.6 – light reflection over diffuse surfaces: a 4 × 4 m floor (ρ 0.3, uniformly lit) seen from a vertical wall (points B–F, 0.75–2.75 m above the floor edge, facing the floor)
+  // and from a ceiling 3 m above (points G–N across the middle, facing down). Measured E/(Ehz·ρ) = configuration factor F12 (%), CIE published reference values (as reproduced by Geisler-Moroder & Dür 2008)
+  { const s = 0.25, gs = [], rho = 0.3, Ehz = 1000; for (let x = s / 2; x < 4; x += s) for (let y = s / 2; y < 4; y += s) gs.push({ x, y, a: 'i' }); const gE = Float32Array.from(gs.map(() => Ehz)), L = { rho, s }, rows = [];
+    const run = (pt, n, h) => { const pts = [pt], N = [[n]], Ec = [new Float32Array(1)], Eh = new Float32Array(1); lcRefl(L, pts, Eh, Ec, N, h, gs, gE); return (Ec[0][0] / (Ehz * rho)) * 100; };
+    [['B', 0.75, 35.901], ['C', 1.25, 27.992], ['D', 1.75, 21.639], ['E', 2.25, 16.716], ['F', 2.75, 12.967]].forEach(([k, h, ref]) => { const e = run({ x: 2, y: 0, a: 'i' }, [0, 1, 0], h); rows.push({ at: `point ${k} – wall, ${h} m above the floor edge`, eng: e, ref, err: rel(e, ref) }); });
+    [['G', 0.25, 26.80], ['H', 0.75, 30.94], ['I', 1.25, 33.98], ['J', 1.75, 35.57], ['K', 2.25, 35.57], ['L', 2.75, 33.98], ['M', 3.25, 30.94], ['N', 3.75, 26.80]].forEach(([k, x, ref]) => { const e = run({ x, y: 2, a: 'i' }, [0, 0, -1], 3); rows.push({ at: `point ${k} – ceiling 3 m, x ${x} m`, eng: e, ref, err: rel(e, ref) }); });
+    add('13', 'CIE 171 case', 'CIE 171:2006 case 5.6 – light reflected by a diffuse floor onto a wall and a ceiling (published reference values)', 'E / (Ehz·ρ) = configuration factor F12 between the point and the 4 × 4 m reflecting floor; CIE reference values', rows, 5); }
   return R.filter((x) => x.id);
 })()
