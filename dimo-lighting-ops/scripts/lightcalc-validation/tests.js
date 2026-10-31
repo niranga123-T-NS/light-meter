@@ -144,5 +144,12 @@
     const g2 = { ...g, stp: [[[-10, -30], [10, -30], [10, -10], [-10, -10]]] }, P1 = lcGrid(g2, 2.5), n1 = P1.filter(inB).length;
     rows.push({ at: 'points inside a 20 × 20 m building on the field', eng: n1, ref: 0, err: n1 }, { at: `points outside it kept (${n0} were inside)`, eng: P1.length, ref: P0.length - n0, err: Math.abs(P1.length - (P0.length - n0)) }, { at: 'areas at a point inside it', eng: lcAreasAt(g2, 0, -20).length, ref: 0, err: lcAreasAt(g2, 0, -20).length });
     add('19', 'Ground', 'Calculation points under a pavilion or closed structure are left out', 'a closed structure marked on a football ground: no point inside its footprint, every point outside kept – counted from the grid with and without it', rows, 0); }
+  // 20. Pools: the reflectance of water (Fresnel, n = 1.333) against the closed form; Eh on a plane 1 m above the water (diving) against the inverse-square cosine law; the grid points over the diving pool lifted to it
+  { const n = 1.333, rows = [], fr = (deg) => { const i = (deg * Math.PI) / 180, t = Math.asin(Math.sin(i) / n), rs = Math.sin(i - t) / Math.sin(i + t), rp = Math.tan(i - t) / Math.tan(i + t); return deg === 0 ? ((n - 1) / (n + 1)) ** 2 : (rs * rs + rp * rp) / 2; };
+    [0, 30, 60, 80].forEach((d) => { const e = lcFresnel(Math.cos((d * Math.PI) / 180)), r = fr(d); rows.push({ at: `water reflectance at ${d}° from vertical`, eng: e, ref: r, err: rel(e, r) }); });
+    const pm = lcParseIES(ies('Isotropic', range(0, 180, 5), [0], () => 10000), 'iso.ies'), q = place(pm, [0, 0, 20], [0, 0, 0, 'down']);
+    [0, 10, 25].forEach((x) => { const [k, , , bz] = lcOne(q, x, 0, 1), e = k * bz, h = q.P.z - 1, d = Math.hypot(x - q.P.x, q.P.y, h), r = (10000 * h) / d ** 3; rows.push({ at: `Eh 1 m above the water, ${x} m from below the floodlight`, eng: e, ref: r, err: rel(e, r) }); });
+    const g = { ...lcGeom('diving'), zh: { i: 1 } }, P = lcGrid(g, 2.5), wrong = P.filter((p) => (p.a === 'i') !== ((p.zh || 0) === 1)).length; rows.push({ at: `grid points over the pool at 1 m, the deck at 0 m (${P.length} points)`, eng: wrong, ref: 0, err: wrong });
+    add('20', 'Pools', 'Water reflectance (Fresnel) and Eh on the plane 1 m above a diving pool', 'reflectance of water for unpolarised light from the Fresnel equations, n = 1.333 (0°: ((n − 1)/(n + 1))²); Eh = I·cos θ / d² on the raised plane; the grid points over the pool carry the plane height and the deck points do not', rows, 0.001); }
   return R.filter((x) => x.id);
 })()
