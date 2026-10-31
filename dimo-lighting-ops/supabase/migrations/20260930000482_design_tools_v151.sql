@@ -12314,6 +12314,30 @@ lcRefl = function (L, pts, Eh, Ec, N, hc, gs = pts, gE = Eh) { // pts / Ec / N: 
       for (let c = 0; c < nC; c++) { const n = Ni[c], t = vx * n[0] + vy * n[1] - h * n[2]; if (t > 0) e[c] += w * t; } }
     for (let c = 0; c < nC; c++) Ec[c][i] += e[c]; }
 };
+// =================== glare rating to CIE 112: only luminaires between 1.5° and 60° from the line of sight count (the formula's range); 1.5° is the least angle used
+lcGR = function (L, Q, obs, view, EhAv, rho = 0.2) {
+  let Lvl = 0; for (const q of Q) { const [k, bx, by, bz] = lcOne(q, obs.x, obs.y, obs.z); const cs = bx * view[0] + by * view[1] + bz * view[2]; if (cs <= 0) continue; const th = (Math.acos(Math.min(1, cs)) * 180) / Math.PI; if (th > 60) continue; Lvl += (10 * k * cs * (+L.mf || 0.8)) / Math.max(1.5, th) ** 2; }
+  const Lve = (0.035 * rho * EhAv) / Math.PI; return Lvl > 0 && Lve > 0 ? 27 + 24 * Math.log10(Lvl / Lve ** 0.9) : 0;
+};
+// =================== light blocked by a structure, exactly: the line from the luminaire is cut where it enters and leaves the footprint, at the ridge and hip lines and every 0.1 m;
+// the roof faces are planes between those points, so the line passes under the roof exactly where the height difference changes sign or is below at one of them
+lcBlocked = function (P, x, y, z) {
+  for (const o of LC_OBS) {
+    if (Math.min(P.z, z) >= o.top) continue; const dx = x - P.x, dy = y - P.y, dz = z - P.z, ts = [0, 1], n = o.p.length;
+    if (Math.max(P.x, x) < o.x0 || Math.min(P.x, x) > o.x1 || Math.max(P.y, y) < o.y0 || Math.min(P.y, y) > o.y1) continue;
+    for (let i = 0; i < n; i++) { const [ax, ay] = o.p[i], [bx, by] = o.p[(i + 1) % n], ex = bx - ax, ey = by - ay, den = dx * ey - dy * ex; if (Math.abs(den) < 1e-12) continue; const t = ((ax - P.x) * ey - (ay - P.y) * ex) / den, u = ((ax - P.x) * dy - (ay - P.y) * dx) / den; if (t > 0 && t < 1 && u >= -1e-9 && u <= 1 + 1e-9) ts.push(Math.max(0, t - 1e-7), Math.min(1, t + 1e-7)); } // just either side of the outline
+    const du = dx * o.ca + dy * o.sa, dv = -dx * o.sa + dy * o.ca, u0 = P.x * o.ca + P.y * o.sa, v0 = -P.x * o.sa + P.y * o.ca, uc = (o.u0 + o.u1) / 2, vc = (o.v0 + o.v1) / 2, U = (o.u1 - o.u0) / 2, V = (o.v1 - o.v0) / 2;
+    const cut = (a, b, val) => { if (Math.abs(b) > 1e-12) { const t = (val - a) / b; if (t > 0 && t < 1) ts.push(t); } };
+    cut(v0, dv, vc); if (o.roof === 'hip') { const k = Math.max(0, U - V); cut(u0, du, uc - k); cut(u0, du, uc + k); }
+    let t0 = 0, t1 = 1; for (const [q, d, lo, hi] of [[P.x, dx, o.x0, o.x1], [P.y, dy, o.y0, o.y1]]) { if (Math.abs(d) < 1e-9) continue; let a = (lo - q) / d, b = (hi - q) / d; if (a > b) [a, b] = [b, a]; t0 = Math.max(t0, a); t1 = Math.min(t1, b); }
+    if (t0 > t1) continue; const len = Math.hypot(dx, dy) * (t1 - t0); for (let k = 1, m = Math.max(2, Math.ceil(len / 0.1)); k < m; k++) ts.push(t0 + ((t1 - t0) * k) / m);
+    ts.sort((a, b) => a - b); let prev = null;
+    for (const t of ts) { const sx = P.x + dx * t, sy = P.y + dy * t, sz = P.z + dz * t; const ins = lcPip(o.p, sx, sy); if (!ins) { prev = null; continue; } const rz = lcRoofZ(o, sx, sy), d1 = sz - rz;
+      if (o.roof === 'canopy') { if (d1 <= 0 && d1 >= -0.6) return true; if (prev != null && Math.sign(prev) !== Math.sign(d1)) return true; prev = d1; continue; }
+      if (d1 <= 1e-9) return true; prev = d1; }
+  }
+  return false;
+};
 })();
 </script>
 
