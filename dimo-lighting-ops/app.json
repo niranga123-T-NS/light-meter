@@ -3,7 +3,7 @@
     "name": "DIMO Lighting Ops",
     "slug": "dimo-lighting-ops",
     "scheme": "dimolighting",
-    "version": "0.6.0",
+    "version": "0.7.0",
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -58,6 +58,12 @@
         "expo-notifications",
         {
           "color": "#C8102E"
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "DIMO Lighting Ops uses the microphone only while you hold the Site radio talk button."
         }
       ]
     ],

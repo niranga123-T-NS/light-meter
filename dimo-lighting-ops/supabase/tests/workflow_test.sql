@@ -10473,5 +10473,52 @@ select pg_temp.act_as('asm_infra'); set role authenticated;
 do $$ begin assert jsonb_array_length(public.so_list()) = 0, 'other sales do not see it'; end $$;
 reset role;
 
+-- Site radio (walkie-talkie) --------------------------------------------------------------------------------------------
+savepoint site_radio;
+reset role;
+insert into u values ('radio_ae', gen_random_uuid()), ('radio_sup', gen_random_uuid());
+insert into auth.users (id, email) select id, role || '@test.local' from u where role in ('radio_ae', 'radio_sup');
+insert into public.profiles (id, full_name, role) select id, 'Radio AE', 'assistant_engineer' from u where role = 'radio_ae';
+insert into public.profiles (id, full_name, role) select id, 'Radio Supervisor', 'sub_supervisor' from u where role = 'radio_sup';
+insert into public.exec_members (exec_project_id, user_id, member_role)
+select current_setting('test.ex')::uuid, id, 'assistant_engineer' from u where role = 'radio_ae';
+insert into public.exec_members (exec_project_id, user_id, member_role)
+select current_setting('test.ex')::uuid, id, 'sub_supervisor' from u where role = 'radio_sup';
+
+select pg_temp.act_as('radio_sup'); set role authenticated;
+do $$ declare ex uuid := current_setting('test.ex')::uuid; me uuid := auth.uid(); r uuid; begin
+  r := public.radio_send(ex, 'text', p_body => '  Cable drum at gate 2  ');
+  assert (select body from public.radio_messages where id = r) = 'Cable drum at gate 2', 'text trimmed';
+  r := public.radio_send(ex, 'voice', p_path => ex || '/' || me || '/a.m4a', p_duration_ms => 4200);
+  assert (select kind from public.radio_messages where id = r) = 'voice', 'voice message';
+  begin perform public.radio_send(ex, 'voice', p_path => ex || '/' || gen_random_uuid() || '/b.m4a', p_duration_ms => 4200); assert false, 'path of someone else';
+  exception when others then assert sqlerrm like 'The voice clip is not in this channel%', sqlerrm; end;
+  begin perform public.radio_send(gen_random_uuid(), 'text', p_body => 'x'); assert false, 'other project';
+  exception when others then assert sqlerrm like 'You are not on this project%', sqlerrm; end;
+  begin perform public.radio_send(ex, 'voice', p_path => ex || '/' || me || '/c.m4a', p_duration_ms => 200000); assert false, 'too long';
+  exception when others then assert sqlerrm like 'Voice messages are%', sqlerrm; end;
+  begin perform public.radio_send(ex, 'text', p_body => '   '); assert false, 'empty';
+  exception when others then assert sqlerrm like 'Type a message%', sqlerrm; end;
+  begin insert into public.radio_messages (exec_project_id, kind, body) values (ex, 'text', 'direct'); assert false, 'no direct insert';
+  exception when insufficient_privilege then null; end;
+  -- emergency: the rest of the crew and the SEE are told at once (critical)
+  r := public.radio_send(ex, 'text', p_body => 'Man down at pole 14', p_urgent => true);
+end $$;
+reset role;
+do $$ begin
+  assert exists (select 1 from public.notifications where kind = 'radio_emergency' and priority = 'critical' and recipient_id = (select id from u where role = 'radio_ae')), 'AE alerted';
+  assert exists (select 1 from public.notifications where kind = 'radio_emergency' and recipient_id = (select id from u where role = 'senior_elec_engineer')), 'SEE alerted';
+  assert not exists (select 1 from public.notifications where kind = 'radio_emergency' and recipient_id = (select id from u where role = 'radio_sup')), 'not the caller';
+end $$;
+
+-- the crew hears it; people off the project do not
+select pg_temp.act_as('radio_ae'); set role authenticated;
+do $$ begin assert (select count(*) from public.radio_messages where exec_project_id = current_setting('test.ex')::uuid) = 3, 'crew sees the channel'; end $$;
+reset role;
+select pg_temp.act_as('asm_infra'); set role authenticated;
+do $$ begin assert (select count(*) from public.radio_messages) = 0, 'sales do not hear the site radio'; end $$;
+reset role;
+rollback to savepoint site_radio;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

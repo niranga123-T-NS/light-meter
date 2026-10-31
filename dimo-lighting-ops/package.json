@@ -19,6 +19,7 @@
     "@supabase/supabase-js": "^2.117.2",
     "d3-contour": "^4.0.2",
     "expo": "~57.0.24",
+    "expo-audio": "~57.0.5",
     "expo-constants": "~57.0.20",
     "expo-dev-client": "~57.0.19",
     "expo-device": "~57.0.2",

@@ -12,6 +12,7 @@ import { OverviewTab } from '@/components/exec/OverviewTab';
 import { PlansTab } from '@/components/exec/PlansTab';
 import { ProgrammeTab } from '@/components/exec/ProgrammeTab';
 import { QaTab } from '@/components/exec/QaTab';
+import { RadioTab } from '@/components/exec/RadioTab';
 import { SubCertsTab } from '@/components/exec/SubCertsTab';
 import { SubPlanningTab } from '@/components/exec/SubPlanningTab';
 import { ReportsTab } from '@/components/exec/ReportsTab';
@@ -33,6 +34,7 @@ const INTERNAL: Role[] = [...TEAM, 'operations_exec'];
 const TABS: Tab[] = [
   { key: 'overview', label: 'Overview' },
   { key: 'team', label: 'Project team', roles: TEAM },
+  { key: 'radio', label: 'Site radio', roles: [...INTERNAL, 'sub_supervisor'] },
   { key: 'meetings', label: 'Meetings', roles: TEAM },
   { key: 'programme', label: 'Programme', roles: TEAM },
   { key: 'plans', label: 'Plan', roles: TEAM },
@@ -95,6 +97,7 @@ export default function ExecProjectScreen() {
       {t === 'billing' ? <BillingTab key={p.secured_id ?? 'none'} p={p} onChange={reload} /> : null}
       {t === 'team' ? <TeamTab p={p} /> : null}
       {t === 'meetings' ? <MeetingsTab p={p} /> : null}
+      {t === 'radio' ? <RadioTab p={p} /> : null}
     </Screen>
   );
 }
