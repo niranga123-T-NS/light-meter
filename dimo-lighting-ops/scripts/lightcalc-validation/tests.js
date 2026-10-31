@@ -139,5 +139,10 @@
   { const m = 0.048, ph = [0, (240 * Math.PI) / 180, (480 * Math.PI) / 180], rows = [];
     [['three equal, one per phase', [1, 1, 1], ph, 0], ['three equal, all on one phase', [1, 1, 1], [0, 0, 0], 4.8], ['2 : 1 : 1 over the phases', [2, 1, 1], ph, 1.2], ['two equal on L1 and L2', [1, 1], ph.slice(0, 2), 2.4]].forEach(([n, E, P, ref]) => { const e = lcTvComb(E.map((x, i) => ({ E: x, m, ph: P[i] }))); rows.push({ at: n, eng: e, ref, err: ref ? rel(e, ref) : Math.abs(e) }); });
     add('18', 'Colour & flicker', 'Combined flicker on the pitch from floodlights on different phases', 'percent flicker of the summed light = |Σ Ei·mi·e^(jφi)| / Σ Ei; references worked out by hand', rows, 0.01); }
+  // 19. The ground under a pavilion or closed structure is not playing area: its calculation points are left out, every other point kept
+  { const g = { shape: 'rect', Rx: 62.5, Ry: 44, px: 52.5, py: 34 }, rows = [], inB = (p) => Math.abs(p.x) < 10 && Math.abs(p.y + 20) < 10, P0 = lcGrid(g, 2.5), n0 = P0.filter(inB).length;
+    const g2 = { ...g, stp: [[[-10, -30], [10, -30], [10, -10], [-10, -10]]] }, P1 = lcGrid(g2, 2.5), n1 = P1.filter(inB).length;
+    rows.push({ at: 'points inside a 20 × 20 m building on the field', eng: n1, ref: 0, err: n1 }, { at: `points outside it kept (${n0} were inside)`, eng: P1.length, ref: P0.length - n0, err: Math.abs(P1.length - (P0.length - n0)) }, { at: 'areas at a point inside it', eng: lcAreasAt(g2, 0, -20).length, ref: 0, err: lcAreasAt(g2, 0, -20).length });
+    add('19', 'Ground', 'Calculation points under a pavilion or closed structure are left out', 'a closed structure marked on a football ground: no point inside its footprint, every point outside kept – counted from the grid with and without it', rows, 0); }
   return R.filter((x) => x.id);
 })()
