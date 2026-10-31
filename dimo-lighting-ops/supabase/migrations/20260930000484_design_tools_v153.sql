@@ -3,6 +3,7 @@ insert into public.design_tool_engine (version, html, created_at) values ('v153'
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }</script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>DIMO Design Tools</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -9715,16 +9716,16 @@ function lc3Draw() {
   const bw = Math.min(220, Wc - 40), bx = 12, by = Hc - 30; for (let i = 0; i < bw; i++) { const c = lcCol(i / bw); cx.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`; cx.fillRect(bx + i, by, 1, 10); }
   cx.font = '600 10.5px system-ui, sans-serif'; cx.fillStyle = '#111827'; cx.textAlign = 'left'; cx.fillText('0', bx, by + 22); cx.textAlign = 'right'; cx.fillText(`${top} lx`, bx + bw, by + 22); cx.textAlign = 'center'; cx.fillText({ Eh: 'Horizontal Eh', min: 'Ecam – lowest' }[L.view] ?? 'Ecam', bx + bw / 2, by - 4);
 }
-const lc3Paint = () => { if (!LC3RAF) LC3RAF = requestAnimationFrame(lc3Draw); };
+const lc3Paint = () => { if (LCREAL) { lcRealPaint(); return; } if (!LC3RAF) LC3RAF = requestAnimationFrame(lc3Draw); };
 // Plan | 3D tabs on the plan's zoom bar; the 3D view takes the plan's place, same size
 function lc3Init() {
   const wrap = $('#lcWrap'); if (!wrap || $('#lcDim')) return; const bar = wrap.previousElementSibling?.classList.contains('zoombar') ? wrap.previousElementSibling : null;
-  const seg = document.createElement('div'); seg.className = 'seg'; seg.id = 'lcDim'; seg.style.marginRight = 'auto'; seg.innerHTML = '<button data-lcdim="plan" aria-pressed="true">Plan</button><button data-lcdim="3d" aria-pressed="false">3D</button>';
+  const seg = document.createElement('div'); seg.className = 'seg'; seg.id = 'lcDim'; seg.style.marginRight = 'auto'; seg.innerHTML = '<button data-lcdim="plan" aria-pressed="true">Plan</button><button data-lcdim="3d" aria-pressed="false">3D</button><button data-lcdim="real" aria-pressed="false">Realistic</button>';
   if (bar) bar.prepend(seg); else wrap.parentElement.insertBefore(seg, wrap);
   const box = document.createElement('div'); box.id = 'lc3dBox'; box.hidden = true;
   box.innerHTML = '<canvas id="lc3d"></canvas><div class="lc3Ctl"><div class="seg" id="lc3Views"><button data-lc3v="iso">Iso</button><button data-lc3v="front">Front</button><button data-lc3v="side">Side</button><button data-lc3v="top">Top</button><button data-lc3v="turn">Turn 90°</button><button data-lc3v="head" title="Each press: the next mast’s head frame">Mast head</button></div><label class="f chk"><input type="checkbox" id="lc3Beams" checked> beams</label><label class="f chk"><input type="checkbox" id="lc3Labels" checked> labels</label></div><div class="lc3Hint">Drag to turn · pinch or wheel to zoom · two fingers or Shift + drag to move</div>';
   wrap.appendChild(box);
-  seg.addEventListener('click', (e) => { const b = e.target.closest('[data-lcdim]'); if (!b) return; lc3Set(b.dataset.lcdim === '3d'); });
+  seg.addEventListener('click', (e) => { const b = e.target.closest('[data-lcdim]'); if (!b) return; lcRealSet(b.dataset.lcdim === 'real'); lc3Set(b.dataset.lcdim !== 'plan'); });
   $('#lc3Views').addEventListener('click', (e) => { const b = e.target.closest('[data-lc3v]'); if (!b) return; const v = b.dataset.lc3v;
     if (v === 'head') { const L = LC(), n = L.masts.length; if (!n) return; LC3.mi = (LC3.mi + 1) % n; const m = L.masts[LC3.mi], G = lcFrameGeom(m), az = lcMastAz(m); Object.assign(LC3, { px: m.x, py: m.y, pz: +m.h + (G.H ?? 1) / 2, dist: Math.max(0.04, (Math.max(G.W, G.H) * 3.5) / (Math.max(L.g.Rx, L.g.Ry) * 2.5 + 20)), yaw: Math.atan2(-Math.cos(az), -Math.sin(az)) + 0.4, pitch: 0.15 }); lc3Paint(); return; } // from the field side, a little off square
     Object.assign(LC3, { pz: null }, v === 'iso' ? { yaw: 0.55, pitch: 0.5, dist: 1, px: 0, py: 0 } : v === 'front' ? { yaw: 0, pitch: 0.18, dist: 1, px: 0, py: 0 } : v === 'side' ? { yaw: Math.PI / 2, pitch: 0.18, dist: 1, px: 0, py: 0 } : v === 'top' ? { yaw: 0, pitch: 1.5, dist: 1, px: 0, py: 0 } : { yaw: LC3.yaw + Math.PI / 2 }); lc3Paint(); });
@@ -9745,8 +9746,8 @@ function lc3Init() {
   if (window.ResizeObserver) new ResizeObserver(() => { if (LC3D) lc3Paint(); }).observe(wrap);
 }
 function lc3Set(on) {
-  LC3D = !!on; const wrap = $('#lcWrap'); if (!wrap) return; wrap.classList.toggle('lc3on', LC3D); $('#lc3dBox').hidden = !LC3D;
-  document.querySelectorAll('#lcDim [data-lcdim]').forEach((b) => b.setAttribute('aria-pressed', String((b.dataset.lcdim === '3d') === LC3D)));
+  LC3D = !!on; if (!LC3D && LCREAL) lcRealSet(false); const wrap = $('#lcWrap'); if (!wrap) return; wrap.classList.toggle('lc3on', LC3D); $('#lc3dBox').hidden = !LC3D;
+  document.querySelectorAll('#lcDim [data-lcdim]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lcdim === (LC3D ? (LCREAL ? 'real' : '3d') : 'plan'))));
   const bar = $('#lcDim')?.parentElement; if (bar?.classList.contains('zoombar')) [...bar.children].forEach((c) => { if (c.id !== 'lcDim') c.style.visibility = LC3D ? 'hidden' : ''; });
   if (LC3D) { wrap.scrollTop = 0; wrap.scrollLeft = 0; lc3Paint(); }
 }
@@ -12606,6 +12607,160 @@ function lcRfHtml(L) {
     if (t.id === 'lcrf_src') return go(L, 'stand line', (r) => { if (v === 'trace') { r.src = 'trace'; if (!(r.tr?.length >= 3)) { LCMODE = 'rftr'; LCRFTR = []; } } else { r.src = 'shape'; r.shape = { ...r.shape, k: v, r: v === 'oval' ? 0 : r.shape?.r || 12 }; } }, v === 'trace' && !(L.rf.tr?.length >= 3) ? 'Tap round the front edge of the stands, corner by corner – then Finish.' : '');
     if (t.id === 'lcrf_a' || t.id === 'lcrf_b' || t.id === 'lcrf_r') { if (!Number.isFinite(n) || n < 0) return; return go(L, 'stand line size', (r) => { r.shape = { ...r.shape, [t.id.slice(5)]: t.id === 'lcrf_r' ? n : n / 2 }; }); } }, true);
 })();
+// =================== the realistic view: the stadium, masts and floodlights as they will look – sky and sun, materials, seats and crowd; at dusk and night every floodlight glows
+// and the pitch is lit by the calculated illuminance itself (its brightness comes from the results grid, so a club-level pitch looks dimmer than a broadcast one).
+// three.js is loaded only when this view is opened (import map in the page head); without a connection the other views work as before.
+var LCREAL = false, LCRL = null, LCRS = { time: 'night', crowd: true, lux: false, busy: false };
+function lcRealSet(on) {
+  LCREAL = !!on; const box = $('#lc3dBox'); if (!box) return; let rv = $('#lcReal');
+  if (!rv) { rv = document.createElement('div'); rv.id = 'lcReal'; rv.style.cssText = 'position:absolute;inset:0;display:none;background:#0b1220';
+    rv.innerHTML = `<div id="lcRealView" style="position:absolute;inset:0"></div><div class="lc3Ctl"><div class="seg" id="lcRealT"><button data-lcrt="day">Day</button><button data-lcrt="dusk">Dusk</button><button data-lcrt="night">Night</button></div><div class="seg" id="lcRealV"><button data-lcrv="over">Overview</button><button data-lcrv="cam">Main camera</button><button data-lcrv="low">Pitch side</button><button data-lcrv="top">Top</button></div><label class="f chk"><input type="checkbox" id="lcRealCrowd" checked> crowd</label><label class="f chk"><input type="checkbox" id="lcRealLux"> light levels</label><button class="btn" id="lcRealPng" style="padding:4px 10px">Save picture</button></div><div id="lcRealMsg" style="position:absolute;left:10px;bottom:8px;right:120px;font-size:12px;color:#fff;background:rgba(15,23,42,.72);border-radius:6px;padding:4px 9px;pointer-events:none"></div><div class="lc3Hint">Drag to turn · scroll or pinch to zoom · right-drag to move</div>`;
+    box.appendChild(rv);
+    rv.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return;
+      if (b.dataset.lcrt) { LCRS.time = b.dataset.lcrt; lcRealTime(); lcRealBar(); }
+      if (b.dataset.lcrv) lcRealView(b.dataset.lcrv);
+      if (b.id === 'lcRealPng') lcRealPng(); });
+    rv.addEventListener('change', (e) => { if (e.target.id === 'lcRealCrowd') { LCRS.crowd = e.target.checked; if (LCRL?.crowd) { LCRL.crowd.forEach((c) => (c.visible = LCRS.crowd)); LCRL.dirty = true; } } if (e.target.id === 'lcRealLux') { LCRS.lux = e.target.checked; if (LCRL) LCRL.kF = null; lcRealPaint(); } });
+    ['pointerdown', 'wheel', 'touchstart'].forEach((ev) => rv.addEventListener(ev, (e) => e.stopPropagation(), { passive: true })); }
+  rv.style.display = LCREAL ? '' : 'none'; [...box.children].forEach((c) => { if (c !== rv) c.style.visibility = LCREAL ? 'hidden' : ''; });
+  if (!LCREAL && LCRL?.r) LCRL.r.setAnimationLoop(null); lcRealBar(); }
+function lcRealBar() { document.querySelectorAll('#lcRealT [data-lcrt]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lcrt === LCRS.time))); }
+async function lcRealLib() {
+  if (LCRL?.T) return LCRL; if (LCRL?.p) return LCRL.p;
+  const p = Promise.all(['three', 'three/addons/controls/OrbitControls.js', 'three/addons/objects/Sky.js', 'three/addons/environments/RoomEnvironment.js', 'three/addons/postprocessing/EffectComposer.js', 'three/addons/postprocessing/RenderPass.js', 'three/addons/postprocessing/UnrealBloomPass.js', 'three/addons/postprocessing/OutputPass.js', 'three/addons/utils/BufferGeometryUtils.js'].map((u) => import(u)))
+    .then(([T, a, b, c, d, e, f, g, h]) => (LCRL = { T, OrbitControls: a.OrbitControls, Sky: b.Sky, RoomEnvironment: c.RoomEnvironment, EffectComposer: d.EffectComposer, RenderPass: e.RenderPass, UnrealBloomPass: f.UnrealBloomPass, OutputPass: g.OutputPass, merge: h.mergeGeometries }));
+  LCRL = { p }; try { return await p; } catch (e) { LCRL = null; throw e; } }
+function lcRealMsg(t) { const m = $('#lcRealMsg'); if (m) { m.textContent = t; m.style.display = t ? '' : 'none'; } }
+let LCRREQ = 0;
+function lcRealPaint() { if (!LCREAL || LCRREQ) return; LCRREQ = requestAnimationFrame(async () => { LCRREQ = 0; if (!LCREAL) return;
+  if (!LCRL?.T) { lcRealMsg('Loading the realistic view…'); try { await lcRealLib(); } catch (e) { lcRealMsg('The realistic view needs an internet connection (it loads the three.js 3D library). Plan and 3D work without it.'); return; } }
+  try { if (!LCRL.r) lcRealInit(); lcRealUpdate(LC()); LCRL.dirty = true; LCRL.r.setAnimationLoop(() => { if (LCRL.ctl.update() || LCRL.dirty) { LCRL.dirty = false; LCRL.comp.render(); } }); } catch (e) { lcRealMsg('The realistic view could not start: ' + (e?.message ?? e)); } }); }
+// ---- the scene: renderer, camera and controls, sky and sun, environment light, bloom; ground and trees; textures and materials
+function lcRealTex(w, h, draw, rep = [1, 1]) { const T = LCRL.T, c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(...rep); t.anisotropy = 8; return t; }
+function lcRealInit() {
+  const R3 = LCRL, T = R3.T, host = $('#lcRealView'), r = new T.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+  r.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)); r.shadowMap.enabled = true; r.shadowMap.type = T.PCFSoftShadowMap; r.toneMapping = T.ACESFilmicToneMapping; r.outputColorSpace = T.SRGBColorSpace; host.prepend(r.domElement); r.domElement.style.cssText = 'display:block;width:100%;height:100%;touch-action:none';
+  const scene = new T.Scene(), cam = new T.PerspectiveCamera(40, 1.6, 0.5, 8000), ctl = new R3.OrbitControls(cam, r.domElement); ctl.enableDamping = true; ctl.maxPolarAngle = Math.PI * 0.495; ctl.screenSpacePanning = false;
+  const pm = new T.PMREMGenerator(r), ENV = pm.fromScene(new R3.RoomEnvironment(), 0.04).texture; scene.environment = ENV;
+  const sky = new R3.Sky(); sky.scale.setScalar(6000); scene.add(sky);
+  const sun = new T.DirectionalLight(0xffffff, 3); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0004; scene.add(sun, sun.target);
+  const hemi = new T.HemisphereLight(0xcfe0ff, 0x4a5a3a, 0.6); scene.add(hemi);
+  const comp = new R3.EffectComposer(r); comp.addPass(new R3.RenderPass(scene, cam)); const bloom = new R3.UnrealBloomPass(new T.Vector2(1024, 640), 0.5, 0.5, 0.9); comp.addPass(bloom); comp.addPass(new R3.OutputPass());
+  const land = new T.Mesh(new T.CircleGeometry(2400, 72), new T.MeshStandardMaterial({ color: 0x5d6b4a, roughness: 1 })); land.rotation.x = -Math.PI / 2; land.position.y = -0.06; land.receiveShadow = true; scene.add(land);
+  const conc = lcRealTex(128, 128, (x, w, h) => { x.fillStyle = '#b9b6ae'; x.fillRect(0, 0, w, h); for (let i = 0; i < 900; i++) { x.fillStyle = `rgba(0,0,0,${((i * 7919) % 100) / 1600})`; x.fillRect((i * 37) % w, (i * 91) % h, 2, 2); } x.fillStyle = 'rgba(0,0,0,.12)'; x.fillRect(0, 62, w, 3); });
+  const sheet = lcRealTex(64, 64, (x, w, h) => { x.fillStyle = '#c9ced6'; x.fillRect(0, 0, w, h); for (let i = 0; i < 8; i++) { x.fillStyle = i % 2 ? '#b4bac3' : '#dde1e7'; x.fillRect(i * 8, 0, 4, h); } });
+  const glass = lcRealTex(128, 128, (x, w, h) => { x.fillStyle = '#e9ecef'; x.fillRect(0, 0, w, h); x.fillStyle = '#5d7184'; x.fillRect(0, 40, w, 44); x.fillStyle = '#c3ccd5'; for (let i = 0; i <= 4; i++) x.fillRect(i * 32, 40, 3, 44); x.fillStyle = 'rgba(0,0,0,.08)'; x.fillRect(0, 0, w, 3); });
+  const S = (o) => new T.MeshStandardMaterial({ side: T.DoubleSide, ...o });
+  R3.mats = { conc: S({ map: conc, roughness: 0.9 }), step: S({ map: conc, color: 0xd4d2cc, roughness: 0.9 }), roofTop: S({ map: sheet, metalness: 0.6, roughness: 0.35, side: T.BackSide }), roofUnder: S({ color: 0xeef1f4, roughness: 0.7, side: T.BackSide }), glass: S({ map: glass, metalness: 0.5, roughness: 0.2 }), steel: S({ color: 0xe8ebef, metalness: 0.7, roughness: 0.3 }), dark: S({ color: 0x2c3036, metalness: 0.6, roughness: 0.4 }), membrane: S({ color: 0xf6f7f8, roughness: 0.55, transparent: true, opacity: 0.93, side: T.BackSide }), grass: S({ color: 0x4f8a3c, roughness: 1 }), fence: S({ color: 0x9aa3ad, metalness: 0.5, roughness: 0.5, transparent: true, opacity: 0.55 }), dome: S({ color: 0xe9f1f8, metalness: 0.1, roughness: 0.3, transparent: true, opacity: 0.3, depthWrite: false }), apron: S({ color: 0x8d8f8c, roughness: 0.95 }), face: new T.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff6e8, emissiveIntensity: 0 }) };
+  Object.assign(R3, { r, scene, cam, ctl, ENV, sky, sun, hemi, comp, bloom, stad: new T.Group(), gear: new T.Group(), spots: [], crowd: [] }); scene.add(R3.stad, R3.gear);
+  const fit = () => { const w = host.clientWidth || 800, h = host.clientHeight || 520; r.setSize(w, h, false); comp.setSize(w, h); cam.aspect = w / h; cam.updateProjectionMatrix(); LCRL.dirty = true; }; ctl.addEventListener('change', () => (LCRL.dirty = true)); fit(); if (window.ResizeObserver) new ResizeObserver(fit).observe(host);
+}
+const lcRW = (x, y, z = 0) => new LCRL.T.Vector3(x, z, -y);
+function lcRealClear(g) { while (g.children.length) { const o = g.children.pop(); o.traverse?.((q) => { q.geometry?.dispose?.(); }); } }
+// a profile [[d out from the stand line, height], …] swept along a section of the stand line – every part of the stadium is built on the same line, so they always meet
+function lcRealSv(G, S) { const out = [S.s0]; for (let k = -1; k <= 1; k++) for (let i = 0; i < G.n; i++) { const v = G.S[i] + k * G.P; if (v > S.s0 + 1e-6 && v < S.s1 - 1e-6) out.push(v); } out.push(S.s1); return out; }
+function lcRealSweep(G, sv, prof, mat, cast = true) {
+  const T = LCRL.T, pos = [], uv = [], idx = [], m = prof.length, P0 = sv.map((s) => G.at(s, 0)), along = [0]; for (let i = 1; i < sv.length; i++) along.push(along[i - 1] + Math.hypot(P0[i][0] - P0[i - 1][0], P0[i][1] - P0[i - 1][1]));
+  const pl = [0]; for (let j = 1; j < m; j++) pl.push(pl[j - 1] + Math.hypot(prof[j][0] - prof[j - 1][0], prof[j][1] - prof[j - 1][1]));
+  sv.forEach((s, i) => prof.forEach(([d, z], j) => { const p = G.at(s, d); pos.push(p[0], z, -p[1]); uv.push(along[i] / 8, pl[j] / 8); }));
+  for (let i = 0; i < sv.length - 1; i++) for (let j = 0; j < m - 1; j++) { const a = i * m + j, b = (i + 1) * m + j; idx.push(a, b, a + 1, b, b + 1, a + 1); }
+  const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals(); const me = new T.Mesh(g, mat); me.castShadow = cast; me.receiveShadow = true; return me; }
+function lcRealCap(G, s, prof, mat) { const T = LCRL.T, tri = T.ShapeUtils.triangulateShape(prof.map(([d, z]) => new T.Vector2(d, z)), []), pos = []; prof.forEach(([d, z]) => { const p = G.at(s, d); pos.push(p[0], z, -p[1]); });
+  const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setIndex(tri.flat()); g.computeVertexNormals(); const me = new T.Mesh(g, mat); me.castShadow = me.receiveShadow = true; return me; }
+// walk a polyline in equal steps: [x, y, inward normal]
+function lcRealWalk(P, step) { const out = []; let carry = 0; for (let i = 1; i < P.length; i++) { const a = P[i - 1], b = P[i], l = Math.hypot(b[0] - a[0], b[1] - a[1]); if (!l) continue; const tx = (b[0] - a[0]) / l, ty = (b[1] - a[1]) / l; for (let t = carry; t < l; t += step) out.push([a[0] + tx * t, a[1] + ty * t, -ty, tx]); carry = (step - ((l - carry) % step)) % step; } return out; }
+// ---- the stadium from the Stadium roof settings
+function lcRealStad(L) {
+  const R3 = LCRL, T = R3.T, M = R3.mats, g = R3.stad; lcRealClear(g); R3.crowd = []; if (!L.rf?.on) return;
+  const r = L.rf, G = lcRfGeo(L); if (!G) return; const D = Math.max(3, +r.sd || 30), Hs = Math.max(1, +r.sh || 22), sf = +r.sf || 1.5, re = +r.re || 0, rd = Math.max(3, +r.rd || 30), rh = +r.rh || 28, rise = +r.rise || 0, gt = Math.tan((14 * Math.PI) / 180);
+  const col = { football: '#c8102e', rugby: '#1f4fa8', cricket: '#2f7d3a', athletics: '#e2b007', hockey: '#1d6fb8', multi: '#1d6fb8' }[L.sport] ?? '#1f4fa8', seats = [];
+  const tiers = [[0.6, sf, 0.6 + D * 0.46, Math.max(sf + 1, Hs * 0.45)], [0.6 + D * 0.52, Hs * 0.5, D, Hs]];
+  lcRfSecs(L).forEach((Sx) => { if (Sx.t === 'none') return; const sv = lcRealSv(G, Sx);
+    if (Sx.t === 'grass') { const gd = D * 0.6, top = 0.5 + gd * gt, pz = [[0, 0], [0, 0.5], [0.6, 0.5], [gd, top], [gd + 0.6, top], [gd + 0.6, 0]];
+      g.add(lcRealSweep(G, sv, [[0, 0], [0, 0.5], [0.6, 0.5]], M.conc), lcRealSweep(G, sv, [[0.6, 0.5], [gd, top]], M.grass), lcRealSweep(G, sv, [[gd, top], [gd, top + 1.2]], M.fence, false), lcRealSweep(G, sv, [[gd, top], [gd + 0.6, top], [gd + 0.6, 0]], M.conc));
+      if (!Sx.closed) [Sx.s0, Sx.s1].forEach((s) => g.add(lcRealCap(G, s, pz, M.conc)));
+      for (let dd = 2; dd < gd - 1; dd += 1.1) lcRealWalk(G.path(Sx.s0, Sx.s1, dd), 0.9).forEach(([x, y, nx, ny], k) => { if ((k * 7919 + Math.round(dd * 13)) % 100 < 40) seats.push({ x: x + Math.sin(k) * 0.3, y: y + Math.cos(k * 1.7) * 0.3, z: 0.5 + (dd - 0.6) * gt - 0.35, nx, ny, grass: true }); });
+      return; }
+    const prof = [[0, 0], [0, sf]], rows = []; tiers.forEach(([d0, z0, d1, z1], ti) => { const n = Math.max(3, Math.floor((d1 - d0) / 0.8)), rdp = (d1 - d0) / n, rz = (z1 - z0) / n; prof.push([d0, z0]); for (let k = 0; k < n; k++) { const d = d0 + k * rdp, z = z0 + (k + 1) * rz; prof.push([d, z], [d + rdp, z]); rows.push({ d: d + rdp * 0.45, z, ti, k, n }); } });
+    g.add(lcRealSweep(G, sv, prof, M.step)); g.add(lcRealSweep(G, sv, [[D, Hs], [D + 2, Hs], [D + 2, 0]], M.glass));
+    if (!Sx.closed) [Sx.s0, Sx.s1].forEach((s) => g.add(lcRealCap(G, s, [...prof, [D + 2, Hs], [D + 2, 0]], M.conc)));
+    rows.forEach((w) => { const P = G.path(Sx.s0, Sx.s1, w.d); let acc = 0; lcRealWalk(P, 0.5).forEach(([x, y, nx, ny]) => { acc += 0.5; const a = acc % 18; if (a < 1.1) return; if (w.ti === 0 && w.k >= w.n - 6 && Math.floor(acc / 18) % 3 === 0 && a < 4.3) return; seats.push({ x, y, z: w.z, nx, ny }); }); });
+    if (Sx.t !== 'roof') return;
+    const ty = r.type, top = ty === 'segc' ? [[re, rh], [re + rd * 0.3, rh - 1.2], [re + rd * 0.65, rh - 0.4], [re + rd, rh + rise]] : [[re, rh], [re + rd, rh + rise]];
+    g.add(lcRealSweep(G, sv, top, ty === 'cable' ? M.membrane : M.roofTop)); g.add(lcRealSweep(G, sv, [...top.map(([d, z]) => [d, z - 0.9]).reverse(), [re, rh - 1.2]], M.roofUnder)); g.add(lcRealSweep(G, sv, [[re - 0.05, rh + 0.15], [re - 0.05, rh - 1.3]], M.steel));
+    const bk = re + rd - 0.6, zb = bk > D + 2 ? 0 : Hs; for (let s = Sx.s0 + 4; s < Sx.s1 - 2; s += 8) { const p = G.at(s, bk), h = rh + rise - zb, c = new T.Mesh(new T.CylinderGeometry(0.35, 0.45, h, 10), M.steel); c.position.copy(lcRW(p[0], p[1], zb + h / 2)); c.castShadow = true; g.add(c); }
+    if (ty === 'canopy') for (let s = Sx.s0 + 5; s < Sx.s1 - 2; s += 10) { const p = G.at(s, Math.max(1.5, re + 1)), c = new T.Mesh(new T.CylinderGeometry(0.2, 0.25, rh - sf, 8), M.steel); c.position.copy(lcRW(p[0], p[1], sf + (rh - sf) / 2)); c.castShadow = true; g.add(c); }
+    if (ty === 'cable' && Sx.closed) [[re, rh, 0.7], [re + rd, rh + rise, 1.2]].forEach(([d, z, rr]) => { const pts = lcRealSv(G, Sx).slice(0, -1).map((s) => { const p = G.at(s, d); return lcRW(p[0], p[1], z); }); g.add(new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(pts, true), 300, rr, 8, true), M.steel)); }); });
+  const xs = [], ys = []; for (let s = 0; s < G.P; s += 3) { const p = G.at(s, re); xs.push(p[0]); ys.push(p[1]); } const ax = Math.max(...xs.map(Math.abs)), by = Math.max(...ys.map(Math.abs));
+  if (r.type === 'arch') { const A = ax + 40, H = rh + 90, pts = []; for (let i = 0; i <= 60; i++) { const t = -1 + (2 * i) / 60; pts.push(new T.Vector3(t * A, H * (1 - t * t), 0)); } const arch = new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(pts), 120, 3, 12, false), M.steel); arch.castShadow = true; g.add(arch);
+    const lm = new T.LineBasicMaterial({ color: 0x39404a }); lcRfSecs(L).filter((Sx) => Sx.t === 'roof').forEach((Sx) => { for (let s = Sx.s0; s < Sx.s1; s += 6) { const p = G.at(s, re + rd * 0.5), t = p[0] / A, yy = H * (1 - t * t); if (yy < rh + 6) continue; g.add(new T.Line(new T.BufferGeometry().setFromPoints([new T.Vector3(p[0], yy, 0), lcRW(p[0], p[1], rh + rise / 2)]), lm)); } }); }
+  if (r.type === 'dome') { const ex = lcRfExt(L), a = (ex[2] - ex[0]) / 2, b = (ex[3] - ex[1]) / 2, H = 0.45 * Math.min(a, b), dm = new T.Mesh(new T.SphereGeometry(1, 72, 24, 0, Math.PI * 2, 0, Math.PI / 2), M.dome); dm.scale.set(a, H, b); dm.position.y = Hs; g.add(dm); const rib = new T.Mesh(new T.SphereGeometry(1.002, 24, 8, 0, Math.PI * 2, 0, Math.PI / 2), new T.MeshBasicMaterial({ color: 0x9aa3ad, wireframe: true, transparent: true, opacity: 0.5 })); rib.scale.copy(dm.scale); rib.position.copy(dm.position); g.add(rib); }
+  if (r.type === 'retract' && lcRfRing(L)) { const outer = G.path(0, G.P, re + rd - 1.5), ins = (x, y) => lcPip(outer, x, y), hw = (y) => Math.max(...xs.filter((_, i) => Math.abs(ys[i]) >= y - 0.01).map(Math.abs)), NP = 3;
+    [-1, 1].forEach((sg) => { for (let k = 0; k < NP; k++) { const y0 = (k * by) / NP - (k ? 1 : 0), y1 = ((k + 1) * by) / NP + (k === NP - 1 ? 2.5 : 1), hx = hw((k * by) / NP) + 2.5, ok = (d) => [[hx, y0 + d], [-hx, y0 + d], [hx, y1 + d], [-hx, y1 + d]].every(([x, y]) => ins(x, y)); let dO = 0; for (let d = by - y0 + 2; d > 0; d -= 0.5) if (ok(d)) { dO = d; break; }
+      const pn = new T.Mesh(new T.BoxGeometry(2 * hx, 0.9, y1 - y0), M.roofTop); pn.position.set(0, rh + rise + 0.9 + (NP - 1 - k) * 1.1, -sg * ((y0 + y1) / 2 + dO)); pn.castShadow = true; g.add(pn); } }); }
+  // the seats (and the crowd in them), turned to the field
+  const o = new T.Object3D(), st = seats.filter((q) => !q.grass), seatG = R3.merge([new T.BoxGeometry(0.44, 0.06, 0.4).translate(0, 0.42, 0.02), new T.BoxGeometry(0.44, 0.44, 0.05).translate(0, 0.66, -0.18)]), SI = new T.InstancedMesh(seatG, new T.MeshStandardMaterial({ roughness: 0.55 }), Math.max(1, st.length)), c1 = new T.Color(col), c2 = new T.Color(col).multiplyScalar(0.72);
+  st.forEach((q, k) => { o.position.copy(lcRW(q.x, q.y, q.z)); o.lookAt(lcRW(q.x + q.nx, q.y + q.ny, q.z)); o.updateMatrix(); SI.setMatrixAt(k, o.matrix); SI.setColorAt(k, Math.floor(k / 37) % 9 ? c1 : c2); }); SI.count = st.length; SI.receiveShadow = true; g.add(SI);
+  const bodyG = R3.merge([new T.BoxGeometry(0.38, 0.5, 0.24).translate(0, 0.78, 0), new T.SphereGeometry(0.11, 8, 6).translate(0, 1.15, 0)]), pal = ['#c8102e', '#1f4fa8', '#f4f6f8', '#1b1b1b', '#e2b007', '#2f7d3a', '#7c3aed', '#f97316'].map((c) => new T.Color(c));
+  const occ = seats.filter((q, k) => q.grass || (k * 7919 + Math.floor(k / 211) * 31) % 100 < 60); if (occ.length) { const CR = new T.InstancedMesh(bodyG, new T.MeshStandardMaterial({ roughness: 0.8 }), occ.length); occ.forEach((q, k) => { o.position.copy(lcRW(q.x, q.y, q.z)); o.lookAt(lcRW(q.x + q.nx, q.y + q.ny, q.z)); o.updateMatrix(); CR.setMatrixAt(k, o.matrix); CR.setColorAt(k, pal[(k * 5) % pal.length]); }); CR.visible = LCRS.crowd; g.add(CR); R3.crowd.push(CR); }
+  R3.nSeats = st.length;
+}
+// ---- the pitch: grass, the lines of the ground, optionally the light levels; its night brightness from the calculated illuminance
+function lcRealField(L, R) {
+  const R3 = LCRL, T = R3.T, g0 = L.g, G = L.rf?.on ? lcRfGeo(L) : null, E = Math.ceil(Math.max(+g0.Rx || 60, +g0.Ry || 40, ...(G ? G.F.map((p) => Math.max(Math.abs(p[0]), Math.abs(p[1]))) : [])) + 12), N = 2048, k = N / (2 * E), X = (x) => (x + E) * k, Y = (y) => (E - y) * k;
+  const grass = document.createElement('canvas'); grass.width = grass.height = N; const x = grass.getContext('2d'); x.fillStyle = '#3d7a33'; x.fillRect(0, 0, N, N); for (let i = -40; i < 40; i++) { x.fillStyle = i % 2 ? '#41833a' : '#3a742f'; x.fillRect(X(i * 6), 0, 6 * k, N); }
+  if (!g0.mk?.on && lcShape(g0) === 'oval') { x.fillStyle = '#c9b48a'; x.fillRect(X(-10.06), Y(1.525), 20.12 * k, 3.05 * k); }
+  x.strokeStyle = 'rgba(255,255,255,.92)'; x.lineCap = 'round'; lc3Lines(L).forEach((o) => { if (o.p.length < 2) return; x.lineWidth = Math.max(0.12, (o.w ?? 1) * 0.08) * k; x.beginPath(); o.p.forEach(([px, py], i) => (i ? x.lineTo(X(px), Y(py)) : x.moveTo(X(px), Y(py)))); if (o.c) x.closePath(); x.stroke(); });
+  const arr = lcViewArr(L, R), h0 = (+L.s || 2.5) / 2; let vmax = 0; R.pts.forEach((p, i) => { if (p.a !== 'w' && arr[i] > vmax) vmax = arr[i]; }); const top = Math.max(500, Math.ceil(vmax / 500) * 500);
+  if (LCRS.lux) { x.globalAlpha = 0.8; R.pts.forEach((p, i) => { if (p.a === 'w') return; const c = lcCol(arr[i] / top); x.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`; x.fillRect(X(p.x - h0), Y(p.y + h0), 2 * h0 * k + 1, 2 * h0 * k + 1); }); x.globalAlpha = 1; }
+  // brightness: the illuminance on a fixed scale (2000 lx = full), smoothed between the grid points
+  const lum = document.createElement('canvas'); lum.width = lum.height = 512; const y = lum.getContext('2d'), kk = 512 / (2 * E); y.fillStyle = '#000'; y.fillRect(0, 0, 512, 512); y.filter = `blur(${Math.max(1, h0 * kk * 1.2)}px)`;
+  R.pts.forEach((p, i) => { if (p.a === 'w') return; const v = Math.round(255 * Math.min(1, Math.pow(Math.max(0, R.Eh[i]) / 2000, 0.6))); y.fillStyle = `rgb(${v},${v},${v})`; y.fillRect((p.x - h0 + E) * kk, (E - p.y - h0) * kk, 2 * h0 * kk + 1, 2 * h0 * kk + 1); });
+  const em = document.createElement('canvas'); em.width = em.height = N; const z = em.getContext('2d'); z.drawImage(grass, 0, 0); z.globalCompositeOperation = 'multiply'; z.drawImage(lum, 0, 0, N, N);
+  const map = new T.CanvasTexture(grass), emap = new T.CanvasTexture(em); [map, emap].forEach((t) => { t.colorSpace = T.SRGBColorSpace; t.anisotropy = 8; });
+  let geo; if (G) { const fo = G.F; geo = new T.ShapeGeometry(new T.Shape(fo.map(([a, b]) => new T.Vector2(a, b))), 2); } else geo = new T.PlaneGeometry(2 * E, 2 * E);
+  const pa = geo.attributes.position, uv = []; for (let i = 0; i < pa.count; i++) uv.push((pa.getX(i) + E) / (2 * E), (pa.getY(i) + E) / (2 * E)); geo.setAttribute('uv', new T.Float32BufferAttribute(uv, 2));
+  if (R3.field) { R3.scene.remove(R3.field); R3.field.geometry.dispose(); R3.field.material.map?.dispose(); R3.field.material.emissiveMap?.dispose(); }
+  const f = new T.Mesh(geo, new T.MeshStandardMaterial({ map, emissive: 0xffffff, emissiveMap: emap, emissiveIntensity: 0, roughness: 0.95 })); f.rotation.x = -Math.PI / 2; f.position.y = 0.03; f.receiveShadow = true; R3.scene.add(f); R3.field = f;
+  if (!R3.apron) { R3.apron = new T.Mesh(new T.CircleGeometry(1, 96), R3.mats.apron); R3.apron.rotation.x = -Math.PI / 2; R3.apron.position.y = -0.03; R3.apron.receiveShadow = true; R3.scene.add(R3.apron); } R3.apron.scale.setScalar(E * 1.9 + 60);
+  const avg = (() => { let t = 0, n = 0; R.pts.forEach((p, i) => { if (p.a !== 'w' && p.a) { t += R.Eh[i]; n++; } }); return n ? t / n : 0; })(); R3.avg = avg; R3.E = E;
+}
+// ---- masts, head frames, the roof catwalk, every floodlight aimed as designed, and the TV cameras
+function lcRealGear(L, R) {
+  const R3 = LCRL, T = R3.T, M = R3.mats, g = R3.gear; lcRealClear(g); R3.spots.forEach((s) => R3.scene.remove(s, s.target)); R3.spots = []; const Q = R.Q ?? lcLums(L), o = new T.Object3D();
+  L.masts.forEach((m, mi) => { const mine = Q.filter((q) => q.mi === mi);
+    if (m.roof) { const p = m.roof.p; for (let i = 1; i < p.length; i++) { const a = p[i - 1], b = p[i], l = Math.hypot(b[0] - a[0], b[1] - a[1]); if (l < 0.01) continue; const bx = new T.Mesh(new T.BoxGeometry(l + 0.05, 0.25, 1.2), M.steel); bx.position.copy(lcRW((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, m.roof.h + 0.45)); bx.rotation.y = Math.atan2(b[1] - a[1], b[0] - a[0]); g.add(bx); } return; }
+    const h = +m.h || 0, pole = new T.Mesh(new T.CylinderGeometry(0.45, Math.max(0.7, h / 45), h, 14), M.steel); pole.position.copy(lcRW(m.x, m.y, h / 2)); pole.castShadow = true; g.add(pole);
+    if (mine.length) { const Gm = lcFrameGeom(m), az = lcMastAz(m), fr = new T.Mesh(new T.BoxGeometry(Math.max(1, Gm.W + 0.4), Math.max(0.8, Gm.H + 0.4), 0.18), M.dark); fr.position.copy(lcRW(m.x, m.y, h + Gm.H / 2)); fr.lookAt(lcRW(m.x + Math.cos(az), m.y + Math.sin(az), h + Gm.H / 2)); fr.castShadow = true; g.add(fr); } });
+  const bodyG = new T.BoxGeometry(0.62, 0.5, 0.28), faceG = new T.PlaneGeometry(0.54, 0.42).translate(0, 0, 0.145), B = new T.InstancedMesh(bodyG, M.dark, Math.max(1, Q.length)), F = new T.InstancedMesh(faceG, M.face, Math.max(1, Q.length));
+  Q.forEach((q, i) => { o.position.copy(lcRW(q.P.x, q.P.y, q.P.z)); o.lookAt(lcRW(q.P.x + q.f[0], q.P.y + q.f[1], q.P.z + q.f[2])); o.updateMatrix(); B.setMatrixAt(i, o.matrix); F.setMatrixAt(i, o.matrix); }); B.count = F.count = Q.length; B.castShadow = true; g.add(B, F);
+  // a few spot lights, one per mast or roof run (up to 8), for the light on the stands and the shadows – the pitch itself is lit from the calculated illuminance
+  const grp = L.masts.map((m, mi) => ({ m, q: Q.filter((x) => x.mi === mi) })).filter((x) => x.q.length).sort((a, b) => b.q.length - a.q.length).slice(0, 8);
+  grp.forEach(({ m, q }, i) => { const c = q.reduce((t, x) => [t[0] + x.P.x, t[1] + x.P.y, t[2] + x.P.z], [0, 0, 0]).map((v) => v / q.length), a = m.lights.reduce((t, l) => [t[0] + (+l.ax || 0), t[1] + (+l.ay || 0)], [0, 0]).map((v) => v / m.lights.length);
+    const s = new T.SpotLight(0xf3f7ff, 0, 0, 0.9, 0.7, 0); s.position.copy(lcRW(c[0], c[1], c[2])); s.target.position.copy(lcRW(a[0], a[1], 0)); s.castShadow = i < 4; s.shadow.mapSize.set(1024, 1024); s.shadow.bias = -0.0005; s.userData.n = q.length; R3.scene.add(s, s.target); R3.spots.push(s); });
+  L.cams.forEach((c) => { if (c.on === false) return; const z = +c.z || 0, b = new T.Mesh(new T.BoxGeometry(0.7, 0.5, 1.1), new T.MeshStandardMaterial({ color: c.main ? 0xc8102e : 0xf59e0b, roughness: 0.5 })); b.position.copy(lcRW(c.x, c.y, z)); b.lookAt(lcRW(0, 0, 0)); g.add(b); if (z > 0.8) { const t = new T.Mesh(new T.CylinderGeometry(0.06, 0.06, z - 0.25, 6), M.dark); t.position.copy(lcRW(c.x, c.y, (z - 0.25) / 2)); g.add(t); } });
+  R3.nLums = Q.length;
+}
+// ---- day, dusk and night
+function lcRealTime() {
+  const R3 = LCRL; if (!R3?.r) return; const T = R3.T, t = LCRS.time, el = t === 'day' ? 38 : t === 'dusk' ? 3 : -8, u = R3.sky.material.uniforms, sv = new T.Vector3();
+  u.turbidity.value = t === 'day' ? 6 : 10; u.rayleigh.value = t === 'night' ? 0.05 : t === 'dusk' ? 2.5 : 1.4; u.mieCoefficient.value = 0.005; u.mieDirectionalG.value = 0.8; sv.setFromSphericalCoords(1, T.MathUtils.degToRad(90 - el), T.MathUtils.degToRad(200)); u.sunPosition.value.copy(sv);
+  const ex = (R3.E || 150) * 1.6; R3.sun.position.copy(sv).multiplyScalar(ex * 2); Object.assign(R3.sun.shadow.camera, { left: -ex, right: ex, top: ex, bottom: -ex, near: 1, far: ex * 5 }); R3.sun.shadow.camera.updateProjectionMatrix();
+  R3.sun.intensity = t === 'day' ? 3.2 : t === 'dusk' ? 0.9 : 0; R3.sun.color.set(t === 'dusk' ? 0xffb37a : 0xffffff); R3.hemi.intensity = t === 'day' ? 0.6 : t === 'dusk' ? 0.25 : 0.06;
+  R3.r.toneMappingExposure = t === 'night' ? 0.8 : t === 'dusk' ? 0.65 : 0.55; R3.scene.environment = t === 'night' ? null : R3.ENV; R3.sky.visible = t !== 'night'; R3.scene.background = t === 'night' ? new T.Color(0x05080f) : null;
+  const on = t !== 'day', lit = (R3.nLums ?? 0) > 0; R3.mats.face.emissiveIntensity = on && lit ? 3 : 0; if (R3.field) R3.field.material.emissiveIntensity = on && lit ? (t === 'night' ? 0.62 : 0.38) : 0;
+  const tot = R3.spots.reduce((a, s) => a + s.userData.n, 0) || 1; R3.spots.forEach((s) => (s.intensity = on ? ((t === 'night' ? 12 : 8) * s.userData.n) / tot : 0)); R3.bloom.strength = on ? 0.45 : 0.08; R3.bloom.threshold = 0.9; R3.dirty = true;
+  lcRealMsg(`${t === 'day' ? 'Day' : t === 'dusk' ? 'Dusk' : 'Night'} · ${R3.nLums ?? 0} floodlights${on && lit ? ` · the pitch lit by the calculated illuminance – average ${Math.round(R3.avg ?? 0)} lx` : ''}${R3.nSeats ? ` · ${R3.nSeats.toLocaleString()} seats` : ''}`); }
+function lcRealView(v) { const R3 = LCRL; if (!R3?.cam) return; const L = LC(), E = R3.E || 150, c = L.cams.find((x) => x.main && x.on !== false) ?? L.cams[0];
+  if (v === 'cam' && c) { const d = Math.hypot(c.x, c.y) || 1; R3.cam.position.copy(lcRW(c.x + (c.x / d) * 3, c.y + (c.y / d) * 3, (+c.z || 10) + 1.5)); R3.ctl.target.set(0, 0, 0); }
+  else if (v === 'low') { R3.cam.position.set(E * 0.55, 3, -E * 0.05); R3.ctl.target.set(-E * 0.2, 4, 0); }
+  else if (v === 'top') { R3.cam.position.set(0.01, E * 3.2, 0.01); R3.ctl.target.set(0, 0, 0); }
+  else { const d = E * 2.1; R3.cam.position.set(d * 0.72, d * 0.5, d * 0.72); R3.ctl.target.set(0, 6, 0); } R3.ctl.update(); R3.dirty = true; }
+function lcRealUpdate(L) {
+  const R3 = LCRL, R = lcResults(L), kS = JSON.stringify([L.rf ? { ...L.rf, poles: null, mount: null } : null, L.sport]), kG = JSON.stringify([L.masts.map((m) => [m.x, m.y, m.h, m.az, m.frame, m.roof?.p, m.lights.map((l) => [l.ax, l.ay, l.az, l.spin, l.po])]), L.cams.map((c) => [c.x, c.y, c.z, c.on, c.main])]);
+  const first = !R3.kS && !R3.kF; if (R3.kS !== kS) { lcRealStad(L); R3.kS = kS; } if (R3.kF !== R || R3.kFl !== LCRS.lux || R3.kFs !== kS) { lcRealField(L, R); R3.kF = R; R3.kFl = LCRS.lux; R3.kFs = kS; } if (R3.kG !== kG || R3.kGr !== R) { lcRealGear(L, R); R3.kG = kG; R3.kGr = R; }
+  if (first) lcRealView('over'); lcRealTime(); lcRealBar(); }
+function lcRealPng() { const R3 = LCRL; if (!R3?.r) return; R3.comp.render(); const u = R3.r.domElement.toDataURL('image/png'), b = atob(u.split(',')[1]), out = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) out[i] = b.charCodeAt(i); rdfSave(`${(SITE?.name || 'Stadium').replace(/[\\/:*?"<>|]+/g, ' ')} – realistic view.png`, out); }
 })();
 </script>
 
