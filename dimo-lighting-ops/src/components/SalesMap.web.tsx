@@ -15,7 +15,7 @@ const SRI_LANKA: L.LatLngTuple = [7.8731, 80.7718];
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string);
 
 /** Leaflet map with OpenStreetMap tiles (web only): circles, numbered stops, lines and an optional heat layer. */
-export function SalesMap({ points, lines = [], heat, fitKey, onOpen, height = 560 }: MapProps) {
+export function SalesMap({ points, lines = [], heat, fitKey, onOpen, height = 560, maxZoom = 15 }: MapProps) {
   const el = useRef<HTMLDivElement | null>(null);
   const map = useRef<L.Map | null>(null);
   const layer = useRef<L.LayerGroup | null>(null);
@@ -91,11 +91,11 @@ export function SalesMap({ points, lines = [], heat, fitKey, onOpen, height = 56
     if (fitted.current !== fitKey) {
       const all: L.LatLngTuple[] = [...points.map((p) => [p.lat, p.lng] as L.LatLngTuple), ...lines.flatMap((l) => l.coords), ...(heat ?? []).map((h) => [h[0], h[1]] as L.LatLngTuple)];
       if (all.length) {
-        m.fitBounds(L.latLngBounds(all), { padding: [30, 30], maxZoom: 15 });
+        m.fitBounds(L.latLngBounds(all), { padding: [30, 30], maxZoom });
         fitted.current = fitKey;
       }
     }
-  }, [points, lines, heat, fitKey]);
+  }, [points, lines, heat, fitKey, maxZoom]);
 
   return <div ref={el} style={{ height, width: '100%', borderRadius: 10, overflow: 'hidden', border: '1px solid #E5E7EB', zIndex: 0 }} />;
 }

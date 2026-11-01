@@ -33,19 +33,19 @@ window.draw = function (d) {
   });
   if (fitted !== d.fitKey) {
     var all = d.points.map(function (p) { return [p.lat, p.lng]; }).concat([].concat.apply([], (d.lines || []).map(function (l) { return l.coords; }))).concat((d.heat || []).map(function (h) { return [h[0], h[1]]; }));
-    if (all.length) { m.fitBounds(L.latLngBounds(all), { padding: [30, 30], maxZoom: 15 }); fitted = d.fitKey; }
+    if (all.length) { m.fitBounds(L.latLngBounds(all), { padding: [30, 30], maxZoom: d.maxZoom || 15 }); fitted = d.fitKey; }
   }
 };
 window.ReactNativeWebView.postMessage('ready');
 </script></body></html>`;
 
 /** The sales map in the phone app (needs app 0.6.0 or later – the web view). */
-export function SalesMap({ points, lines = [], heat, fitKey, onOpen, height = 560 }: MapProps) {
+export function SalesMap({ points, lines = [], heat, fitKey, onOpen, height = 560, maxZoom = 15 }: MapProps) {
   const web = useRef<WebView>(null);
   const [ready, setReady] = useState(false);
   const data = useMemo(
-    () => JSON.stringify({ fitKey, lines, heat: heat ?? [], points: points.map((p) => ({ ...p, html: `${p.label}${p.href ? `<div style="margin-top:6px"><a href="#" data-href="${esc(p.href)}" style="font-weight:600">Open</a></div>` : ''}` })) }),
-    [points, lines, heat, fitKey],
+    () => JSON.stringify({ fitKey, maxZoom, lines, heat: heat ?? [], points: points.map((p) => ({ ...p, html: `${p.label}${p.href ? `<div style="margin-top:6px"><a href="#" data-href="${esc(p.href)}" style="font-weight:600">Open</a></div>` : ''}` })) }),
+    [points, lines, heat, fitKey, maxZoom],
   );
   useEffect(() => {
     if (ready) web.current?.injectJavaScript(`window.draw(${data});true;`);

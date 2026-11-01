@@ -1,6 +1,7 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Text } from 'react-native';
+import { AslaidTab } from '@/components/exec/AslaidTab';
 import { BillingTab } from '@/components/exec/BillingTab';
 import { DocumentsTab } from '@/components/exec/DocumentsTab';
 import { DrawingsTab } from '@/components/exec/DrawingsTab';
@@ -44,6 +45,7 @@ const TABS: Tab[] = [
   { key: 'materials', label: 'Materials & services', roles: INTERNAL },
   { key: 'qa', label: 'QA', roles: TEAM },
   { key: 'drawings', label: 'Smart drawings · testing', roles: [...INTERNAL, 'sub_supervisor'] },
+  { key: 'aslaid', label: 'As-laid cable routes', roles: [...INTERNAL, 'sub_supervisor'] },
   { key: 'documents', label: 'Documents' },
   { key: 'handover', label: 'Handover', roles: INTERNAL },
   { key: 'subcerts', label: 'Subcontractor IPC & invoices', roles: ['senior_elec_engineer', 'sm_projects', 'gm', 'operations_exec', 'assistant_engineer', 'sub_supervisor'] },
@@ -88,6 +90,7 @@ export default function ExecProjectScreen() {
       {t === 'workers' ? <WorkersTab p={p} /> : null}
       {t === 'materials' ? <MaterialsTab p={p} /> : null}
       {t === 'qa' ? <QaTab p={p} /> : null}
+      {t === 'aslaid' ? <AslaidTab p={p} /> : null}
       {t === 'drawings' ? <DrawingsTab p={p} /> : null}
       {t === 'documents' ? <DocumentsTab p={p} queries={TEAM.includes(me.role)} /> : null}
       {t === 'handover' ? <HandoverTab p={p} onChange={reload} /> : null}

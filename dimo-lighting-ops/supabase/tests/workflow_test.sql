@@ -10473,5 +10473,51 @@ select pg_temp.act_as('asm_infra'); set role authenticated;
 do $$ begin assert jsonb_array_length(public.so_list()) = 0, 'other sales do not see it'; end $$;
 reset role;
 
+-- As-laid cable routes: the team walks the trench, marks depths and photos, the SEE approves ----
+select pg_temp.act_as('asm_infra'); set role authenticated;
+do $$ begin
+  begin perform public.aslaid_route_save(jsonb_build_object('exec_project_id', current_setting('test.ex'), 'from_name', 'MDB', 'to_name', 'HM-1')); assert false, 'sales cannot record';
+  exception when raise_exception then null; end;
+end $$;
+reset role;
+select pg_temp.act_as('senior_elec_engineer'); set role authenticated;
+do $$ declare ex uuid := current_setting('test.ex')::uuid; r uuid; pt uuid; len numeric;
+begin
+  begin perform public.aslaid_route_save(jsonb_build_object('exec_project_id', ex, 'from_name', 'MDB', 'to_name', '')); assert false, 'both ends';
+  exception when raise_exception then null; end;
+  r := public.aslaid_route_save(jsonb_build_object('exec_project_id', ex, 'code', 'C-07', 'from_name', 'MDB', 'to_name', 'HM-3 panel', 'cable', '4C 70 mm² Cu XLPE/SWA', 'schedule_m', 205, 'req_depth_m', 0.75));
+  begin perform public.aslaid_track_add(r, '[[6.9479, 79.8684, 3]]'::jsonb); assert false, 'not started'; exception when raise_exception then null; end;
+  perform public.aslaid_start(r);
+  len := public.aslaid_track_add(r, '[[6.94790, 79.86840, 3, 1], [6.94880, 79.86840, 3, 2], ["x", 1], [91, 0]]'::jsonb);
+  assert len between 99 and 101, 'about 100 m north: ' || len;
+  assert jsonb_array_length((select track from public.exec_aslaid_routes where id = r)) = 2, 'bad fixes dropped';
+  begin perform public.aslaid_finish(r); assert false, 'a depth first'; exception when raise_exception then null; end;
+  begin perform public.aslaid_point_add(jsonb_build_object('route_id', r, 'kind', 'depth', 'lat', 6.9484, 'lng', 79.8684)); assert false, 'depth measured';
+  exception when raise_exception then null; end;
+  pt := public.aslaid_point_add(jsonb_build_object('route_id', r, 'kind', 'depth', 'lat', 6.9484, 'lng', 79.8684, 'depth_m', 0.70, 'protection', '["sand","tiles","tape","bogus"]'::jsonb));
+  assert (select protection = '{sand,tiles,tape}' from public.exec_aslaid_points where id = pt), 'protection kept, unknown dropped';
+  begin perform public.aslaid_point_add(jsonb_build_object('route_id', r, 'kind', 'service', 'lat', 6.9485, 'lng', 79.8684)); assert false, 'say what service';
+  exception when raise_exception then null; end;
+  begin perform public.aslaid_finish(r); assert false, 'photos before backfill'; exception when raise_exception then null; end;
+  begin perform public.aslaid_photo_add(r, pt, gen_random_uuid() || '/aslaid/a.jpg'); assert false, 'own folder'; exception when raise_exception then null; end;
+  perform public.aslaid_photo_add(r, pt, ex || '/aslaid/a.jpg', 'Tiles + tape', 6.9484, 79.8684);
+  perform public.aslaid_finish(r, 210, null, 0.31);
+  assert (select status from public.exec_aslaid_routes where id = r) = 'to_approve', 'waiting for approval';
+  begin perform public.aslaid_approve(r); assert false, 'insulation test first'; exception when raise_exception then null; end;
+  perform public.aslaid_query(r, 'Add the IR test');
+  perform public.aslaid_finish(r, null, 999, null);
+  begin perform public.aslaid_approve(r); assert false, 'shallow point needs a reason'; exception when raise_exception then assert sqlerrm like '1 depth point(s) shallower%', sqlerrm; end;
+  perform public.aslaid_approve(r, 'Concrete slab added over the shallow 10 m');
+  assert (select status = 'approved' and drum_m = 210 and armour_ohm = 0.31 and ir_mohm = 999 from public.exec_aslaid_routes where id = r), 'approved with the tests';
+  begin perform public.aslaid_route_save(jsonb_build_object('id', r, 'cable', 'x')); assert false, 'locked'; exception when raise_exception then null; end;
+  begin perform public.aslaid_point_delete(pt); assert false, 'locked points'; exception when raise_exception then null; end;
+  begin perform public.aslaid_route_delete(r); assert false, 'kept as the record'; exception when raise_exception then null; end;
+  perform set_config('test.aslaid', r::text, false);
+end $$;
+reset role;
+select pg_temp.act_as('asm_infra'); set role authenticated;
+do $$ begin assert (select count(*) from public.exec_aslaid_routes where id = current_setting('test.aslaid')::uuid) = 0, 'outside the project team – not visible'; end $$;
+reset role;
+
 \echo 'ALL WORKFLOW TESTS PASSED'
 rollback;

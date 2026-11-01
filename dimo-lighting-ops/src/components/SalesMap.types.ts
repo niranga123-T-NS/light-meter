@@ -24,4 +24,6 @@ export type MapProps = {
   fitKey: string;
   onOpen?: (href: string) => void;
   height?: number;
+  /** The closest the map zooms in when it fits the data (default 15 – a whole area; 18 for a cable route) */
+  maxZoom?: number;
 };
