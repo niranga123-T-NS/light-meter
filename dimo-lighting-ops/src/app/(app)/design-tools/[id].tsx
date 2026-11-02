@@ -9,7 +9,6 @@ import { Button, Card, ErrorBanner, ListRow, Loading, Muted, Notice, Pill, Row, 
 import { useAuth, useMe } from '@/lib/auth';
 import {
   canUseDesignTools,
-  DT_ACTION_LABEL,
   DT_STATUS,
   DT_TEAM,
   dtSummaryText,
@@ -22,7 +21,6 @@ import {
   saveDriver,
   saveProfile,
   type DtFile,
-  type DtLog,
   type DtOut,
   type DtRevision,
   type DtState,
@@ -103,15 +101,14 @@ export default function DesignToolScreen() {
       loadDesignEngine(),
       supabase.from('inquiries').select('id, code, project_name').order('created_at', { ascending: false }).limit(400),
     ]);
-    if (isNew) return { eng, inqs: (inqs.data ?? []) as Inq[], file: null, state: { tpl: tpl || 'blank' } as DtState, revs: [] as DtRevision[], log: [] as DtLog[] };
-    const [f, revs, log] = await Promise.all([
+    if (isNew) return { eng, inqs: (inqs.data ?? []) as Inq[], file: null, state: { tpl: tpl || 'blank' } as DtState, revs: [] as DtRevision[] };
+    const [f, revs] = await Promise.all([
       supabase.from('design_tool_files').select('*, inquiries(code, project_name, inquiry_name)').eq('id', id).single(),
-      supabase.from('design_tool_revisions').select('id, revision, summary, note, saved_by, saved_at').eq('file_id', id).order('revision', { ascending: false }),
-      supabase.from('design_tool_log').select('*').eq('file_id', id).order('at', { ascending: false }).limit(50),
+      supabase.from('design_tool_revisions').select('id, revision, summary, note, saved_by, saved_at').eq('file_id', id).order('revision', { ascending: false }).limit(1),
     ]);
     if (f.error) throw new Error(f.error.message);
     const { state, ...file } = f.data as DtFile & { state: DtState };
-    return { eng, inqs: (inqs.data ?? []) as Inq[], file: file as DtFile, state, revs: (revs.data ?? []) as DtRevision[], log: (log.data ?? []) as DtLog[] };
+    return { eng, inqs: (inqs.data ?? []) as Inq[], file: file as DtFile, state, revs: (revs.data ?? []) as DtRevision[] };
   }, [id, allowed]);
 
   // first load: the title and inquiry the page shows
@@ -335,32 +332,19 @@ export default function DesignToolScreen() {
       )}
       {!ready ? <Loading label="Opening the calculation page…" /> : null}
       <DesignEngine ref={engine} html={data.eng.html} onMessage={onMessage} height={Math.max(640, height - 190)} full={full} />
-      {f && !full ? (
-        <Row wrap gap={12} style={{ alignItems: 'flex-start' }}>
-          <View style={{ flex: 1, minWidth: 300 }}>
-            <Section title="Revisions">
-              <Card>
-                {data.revs.map((r) => (
-                  <ListRow
-                    key={r.id}
-                    title={`Rev ${r.revision}${r.revision === f.revision ? ' (current)' : ''}`}
-                    subtitle={[dtSummaryText(r.summary), r.note, `${people[r.saved_by ?? '']?.full_name ?? ''} · ${fmtDateTime(r.saved_at)}`].filter(Boolean).join('\n')}
-                    right={<Button small variant="ghost" title="Open" onPress={() => openRev(r)} />}
-                  />
-                ))}
-              </Card>
-            </Section>
-          </View>
-          <View style={{ flex: 1, minWidth: 300 }}>
-            <Section title="History">
-              <Card>
-                {data.log.map((l) => (
-                  <ListRow key={l.id} title={`${DT_ACTION_LABEL[l.action] ?? l.action}${l.revision ? ` · rev ${l.revision}` : ''}`} subtitle={[l.note, `${people[l.by_user ?? '']?.full_name ?? ''} · ${fmtDateTime(l.at)}`].filter(Boolean).join('\n')} />
-                ))}
-              </Card>
-            </Section>
-          </View>
-        </Row>
+      {f && !full && data.revs.length ? (
+        <Section title="Last saved revision">
+          <Card>
+            {data.revs.slice(0, 1).map((r) => (
+              <ListRow
+                key={r.id}
+                title={`Rev ${r.revision}${r.revision === f.revision ? ' (current)' : ''}`}
+                subtitle={[dtSummaryText(r.summary), r.note, `${people[r.saved_by ?? '']?.full_name ?? ''} · ${fmtDateTime(r.saved_at)}`].filter(Boolean).join('\n')}
+                right={<Button small variant="ghost" title="Open" onPress={() => openRev(r)} />}
+              />
+            ))}
+          </Card>
+        </Section>
       ) : null}
     </Screen>
   );

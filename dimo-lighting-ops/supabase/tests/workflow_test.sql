@@ -9770,12 +9770,12 @@ begin
   select * into r from public.design_tool_files where id = f; assert r.revision = 1, 'unchanged keeps rev 1';
   perform public.design_tool_save(f, 'Hotel – main LV', null, '{"tpl":"building","tree":{"id":"n1","kva":1000}}'::jsonb, '{"kw":130}'::jsonb, 'transformer 1000 kVA');
   select * into r from public.design_tool_files where id = f; assert r.revision = 2 and r.status = 'draft', 'rev 2';
-  assert (select count(*) from public.design_tool_revisions where file_id = f) = 2, 'two revisions kept';
+  assert (select count(*) from public.design_tool_revisions where file_id = f) = 1 and (select revision from public.design_tool_revisions where file_id = f) = 2, 'only the last revision kept';
   -- autosave: one revision for autosaves one after another, made ordinary by a save by hand; save as makes a new design
   perform public.design_tool_save(f, 'Hotel – main LV', null, '{"tpl":"building","tree":{"id":"n1","kva":1000,"a":1}}'::jsonb, '{}'::jsonb, 'Autosave');
   perform public.design_tool_save(f, 'Hotel – main LV', null, '{"tpl":"building","tree":{"id":"n1","kva":1000,"a":2}}'::jsonb, '{}'::jsonb, 'Autosave');
   select * into r from public.design_tool_files where id = f; assert r.revision = 3 and r.state->'tree'->>'a' = '2', 'autosaves share rev 3';
-  assert (select count(*) from public.design_tool_revisions where file_id = f) = 3, 'one autosave revision';
+  assert (select count(*) from public.design_tool_revisions where file_id = f) = 1, 'one autosave revision, the older ones deleted';
   assert (select state->'tree'->>'a' = '2' and note = 'Autosave' from public.design_tool_revisions where file_id = f and revision = 3), 'autosave revision up to date';
   perform public.design_tool_save(f, 'Hotel – main LV', null, '{"tpl":"building","tree":{"id":"n1","kva":1000,"a":2}}'::jsonb);
   assert (select note is null from public.design_tool_revisions where file_id = f and revision = 3), 'saved by hand: no longer an autosave';
