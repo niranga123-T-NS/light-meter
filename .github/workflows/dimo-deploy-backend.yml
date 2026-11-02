@@ -42,13 +42,13 @@ jobs:
 
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.122.0
 
       - name: Link the Supabase project
         run: supabase link --project-ref "$PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
 
       - name: Apply database migrations${{ inputs.seed && ' and seed' || '' }}
-        run: supabase db push --yes --password "$SUPABASE_DB_PASSWORD" ${{ inputs.seed && '--include-seed' || '' }}
+        run: supabase db push --linked --yes --password "$SUPABASE_DB_PASSWORD" ${{ inputs.seed && '--include-seed' || '' }}
 
       - name: Set Edge Function secrets
         run: supabase secrets set --project-ref "$PROJECT_REF" DISPATCH_SECRET="${{ secrets.DISPATCH_SECRET }}" APP_URL="${{ vars.APP_URL || 'https://dimo-lighting-ops.vercel.app' }}"

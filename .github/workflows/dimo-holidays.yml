@@ -26,7 +26,7 @@ jobs:
         run: pip install -q --upgrade holidays
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.122.0
       - name: Fetch and save the holidays
         run: |
           key=$(supabase projects api-keys --project-ref "$PROJECT_REF" -o json | jq -r '[.[] | select(.name == "anon" or .type == "publishable")][0].api_key')
