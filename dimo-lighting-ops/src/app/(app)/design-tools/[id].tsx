@@ -95,6 +95,8 @@ export default function DesignToolScreen() {
   // when the first unsaved change was made (autosave counts from it) and the last autosave
   const [changedAt, setChangedAt] = useState<number | null>(null);
   const [autoAt, setAutoAt] = useState<string | null>(null);
+  // the revisions and history start folded: only the last saved revision shows
+  const [allRevs, setAllRevs] = useState(false);
   const allowed = canUseDesignTools(realRole);
 
   const { data, error, reload } = useLoad(async () => {
@@ -336,11 +338,14 @@ export default function DesignToolScreen() {
       {!ready ? <Loading label="Opening the calculation page…" /> : null}
       <DesignEngine ref={engine} html={data.eng.html} onMessage={onMessage} height={Math.max(640, height - 190)} full={full} />
       {f && !full ? (
-        <Row wrap gap={12} style={{ alignItems: 'flex-start' }}>
-          <View style={{ flex: 1, minWidth: 300 }}>
-            <Section title="Revisions">
+        <>
+          <Section
+            title={allRevs ? 'Revisions' : 'Last saved revision'}
+            right={data.revs.length > 1 || data.log.length ? <Button small variant="ghost" title={allRevs ? 'Hide revisions & history' : `Show all ${data.revs.length} revisions & history`} onPress={() => setAllRevs((v) => !v)} /> : undefined}
+          >
+            {!allRevs ? (
               <Card>
-                {data.revs.map((r) => (
+                {data.revs.slice(0, 1).map((r) => (
                   <ListRow
                     key={r.id}
                     title={`Rev ${r.revision}${r.revision === f.revision ? ' (current)' : ''}`}
@@ -349,18 +354,34 @@ export default function DesignToolScreen() {
                   />
                 ))}
               </Card>
-            </Section>
-          </View>
-          <View style={{ flex: 1, minWidth: 300 }}>
-            <Section title="History">
-              <Card>
-                {data.log.map((l) => (
-                  <ListRow key={l.id} title={`${DT_ACTION_LABEL[l.action] ?? l.action}${l.revision ? ` · rev ${l.revision}` : ''}`} subtitle={[l.note, `${people[l.by_user ?? '']?.full_name ?? ''} · ${fmtDateTime(l.at)}`].filter(Boolean).join('\n')} />
-                ))}
-              </Card>
-            </Section>
-          </View>
-        </Row>
+            ) : null}
+          </Section>
+          {allRevs ? (
+            <Row wrap gap={12} style={{ alignItems: 'flex-start' }}>
+              <View style={{ flex: 1, minWidth: 300 }}>
+                <Card>
+                  {data.revs.map((r) => (
+                    <ListRow
+                      key={r.id}
+                      title={`Rev ${r.revision}${r.revision === f.revision ? ' (current)' : ''}`}
+                      subtitle={[dtSummaryText(r.summary), r.note, `${people[r.saved_by ?? '']?.full_name ?? ''} · ${fmtDateTime(r.saved_at)}`].filter(Boolean).join('\n')}
+                      right={<Button small variant="ghost" title="Open" onPress={() => openRev(r)} />}
+                    />
+                  ))}
+                </Card>
+              </View>
+              <View style={{ flex: 1, minWidth: 300 }}>
+                <Section title="History">
+                  <Card>
+                    {data.log.map((l) => (
+                      <ListRow key={l.id} title={`${DT_ACTION_LABEL[l.action] ?? l.action}${l.revision ? ` · rev ${l.revision}` : ''}`} subtitle={[l.note, `${people[l.by_user ?? '']?.full_name ?? ''} · ${fmtDateTime(l.at)}`].filter(Boolean).join('\n')} />
+                    ))}
+                  </Card>
+                </Section>
+              </View>
+            </Row>
+          ) : null}
+        </>
       ) : null}
     </Screen>
   );
