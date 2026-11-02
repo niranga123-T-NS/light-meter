@@ -34,7 +34,7 @@ jobs:
         run: sudo apt-get update -qq && sudo apt-get install -y -qq tesseract-ocr poppler-utils > /dev/null && pip install -q pillow
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.122.0
       - name: Fetch and save the rates
         run: |
           key=$(supabase projects api-keys --project-ref "$PROJECT_REF" -o json | jq -r '[.[] | select(.name == "anon" or .type == "publishable")][0].api_key')
