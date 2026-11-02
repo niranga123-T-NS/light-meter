@@ -14495,9 +14495,10 @@ function bgSiteStands(D) { const X = BGX, T = X.T, g = X.G.std ?? (X.G.std = (()
   st.textContent = `.bench { position: relative; }
 .pminBtn { position: absolute; top: 6px; z-index: 30; width: 26px; height: 26px; border-radius: 7px; border: 1px solid var(--line, #d0d5d9); background: var(--panel, #fff); color: var(--ink, #1a2227); font: 700 14px/1 system-ui, sans-serif; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.12); display: flex; align-items: center; justify-content: center; padding: 0; }
 .pminBtn:hover { border-color: var(--sel, #1f6feb); color: var(--sel, #1f6feb); } .pminBtn:focus-visible { outline: 2px solid var(--sel, #1f6feb); outline-offset: 2px; }
-aside.pmin { padding: 0 !important; min-width: 0 !important; width: 34px !important; overflow: hidden !important; cursor: pointer; min-height: 220px; position: relative; }
+aside.pmin { padding: 0 !important; min-width: 0 !important; width: 34px !important; overflow: hidden !important; cursor: pointer; min-height: 220px; position: relative !important; top: auto !important; }
 aside.pmin > * { display: none !important; }
-aside.pmin::after { content: attr(aria-label); position: absolute; top: 40px; left: 50%; transform: translateX(-50%); writing-mode: vertical-rl; font: 600 12px system-ui, sans-serif; letter-spacing: .4px; color: var(--muted, #5b6770); white-space: nowrap; }
+aside.pmin > .lcFsx, aside.pmin > [style*="position:fixed"] { display: inline-flex !important; } /* a fixed Exit full screen stays on the screen */
+aside.pmin::after { content: attr(aria-label); position: absolute; top: 90px; left: 50%; transform: translateX(-50%); writing-mode: vertical-rl; font: 600 12px system-ui, sans-serif; letter-spacing: .4px; color: var(--muted, #5b6770); white-space: nowrap; }
 @media (max-width: 1100px) { aside.pmin { width: auto !important; min-height: 34px; } aside.pmin::after { writing-mode: horizontal-tb; top: 50%; transform: translate(-50%, -50%); } }`;
   document.head.appendChild(st);
   const KEY = (a) => 'dt.pmin.' + a.id, wide = () => window.matchMedia('(min-width: 1101px)').matches;
@@ -14512,14 +14513,15 @@ aside.pmin::after { content: attr(aria-label); position: absolute; top: 40px; le
   }
   function place(b) { const a = b._aside, bench = a.parentElement; if (!a.offsetParent) { b.hidden = true; return; } b.hidden = false; const mn = a.classList.contains('pmin'), left = a.classList.contains('palette');
     b.textContent = left ? (mn ? '›' : '‹') : mn ? '‹' : '›'; b.title = `${mn ? 'Show' : 'Minimise'} ${a.getAttribute('aria-label') || 'panel'}`; b.setAttribute('aria-label', b.title); b.setAttribute('aria-expanded', String(!mn));
-    const x = a.offsetLeft + (left ? a.offsetWidth - 32 : 4); b.style.left = `${Math.max(0, x)}px`; b.style.top = `${a.offsetTop + 6}px`; void bench; }
-  function toggle(a, v) { if (!a.classList.contains('pmin')) a.dataset.w = String(Math.round(a.getBoundingClientRect().width) || a.dataset.w || 320); a.classList.toggle('pmin', v); setMin(a, v); layout(a.parentElement); }
+    const x = a.offsetLeft + (left ? a.offsetWidth - 32 : 4); b.style.left = `${Math.max(0, x)}px`; b.style.top = `${a.offsetTop + (document.documentElement.classList.contains('lcFullOn') ? 56 : 6)}px`; void bench; }
+  function toggle(a, v) { if (!a.classList.contains('pmin')) a.dataset.w = String(Math.round(a.getBoundingClientRect().width) || a.dataset.w || 320); a.classList.toggle('pmin', v); setMin(a, v); layout(a.parentElement);
+    if (a.id === 'lcInsp') requestAnimationFrame(() => { try { ZOOM.lcSvg = null; renderLc(); } catch (e) { void e; } }); }
   function init() {
     document.querySelectorAll('.bench').forEach((bench) => { if (bench.dataset.pmInit) return; bench.dataset.pmInit = '1'; bench.dataset.gtc = bench.style.gridTemplateColumns || '';
       [...bench.children].filter((c) => c.tagName === 'ASIDE' && c.id && (c.classList.contains('insp') || c.classList.contains('palette'))).forEach((a) => {
         const b = document.createElement('button'); b.type = 'button'; b.className = 'pminBtn'; b._aside = a; bench.appendChild(b);
         b.addEventListener('click', (e) => { e.stopPropagation(); toggle(a, !a.classList.contains('pmin')); });
-        a.addEventListener('click', (e) => { if (a.classList.contains('pmin')) { e.stopPropagation(); toggle(a, false); } }, true);
+        a.addEventListener('click', (e) => { if (e.target.closest?.('.lcFsx')) return; if (a.classList.contains('pmin')) { e.stopPropagation(); toggle(a, false); } }, true);
         if (getMin(a)) { a.dataset.w = String(Math.round(a.getBoundingClientRect().width) || 320); a.classList.add('pmin'); } });
       layout(bench); });
   }
