@@ -1,12 +1,13 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Link, router, usePathname } from 'expo-router';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDialog } from '@/components/dialog';
 import { useAuth, useMe } from '@/lib/auth';
 import { showBrowserNotification } from '@/lib/push';
 import { TestingTag } from './Testing';
-import { colourSide, navFor, NavItem, ROLE_SHORT, SIDE_COLUMN } from '@/lib/roles';
+import { colourSide, navFor, navGrouped, NavItem, ROLE_SHORT, SIDE_COLUMN } from '@/lib/roles';
 import { rpc, supabase } from '@/lib/supabase';
 import type { AppNotification } from '@/lib/types';
 import { BrandLogo } from './BrandLogo';
@@ -79,21 +80,84 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+/** Which menu groups a person has open – remembered on this device; every group starts closed. */
+function useOpenGroups(userId: string) {
+  const key = `dimo.navOpen.${userId}`;
+  const [open, setOpen] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    AsyncStorage.getItem(key)
+      .then((raw) => setOpen(raw ? JSON.parse(raw) : {}))
+      .catch(() => undefined);
+  }, [key]);
+  const set = useCallback(
+    (g: string, v: boolean) =>
+      setOpen((o) => {
+        const n = { ...o, [g]: v };
+        AsyncStorage.setItem(key, JSON.stringify(n)).catch(() => undefined);
+        return n;
+      }),
+    [key],
+  );
+  return [open, set] as const;
+}
+
 export function Sidebar() {
   const me = useMe();
   const pathname = usePathname();
   const { counts } = useShellCounts();
   const nav = navFor(me.role, useAuth().realRole, useAuth().sqAccess, useAuth().sqReports);
+  const [open, setOpen] = useOpenGroups(me.id);
+  const [q, setQ] = useState('');
+  const { top, groups } = navGrouped(nav);
+  const badgeOf = (i: NavItem) => (i.badgeKey ? counts[i.badgeKey] : 0);
+  const match = (i: NavItem) => !q.trim() || i.label.toLowerCase().includes(q.trim().toLowerCase());
   return (
     <View style={{ width: 236, backgroundColor: '#15171C', paddingTop: 18 }}>
       <View style={{ paddingHorizontal: 18, marginBottom: 18 }}>
         <BrandLogo width={150} />
         <Text style={{ color: '#9CA3AF', fontSize: 12, marginTop: 8 }}>Lighting Operations</Text>
       </View>
+      {nav.length > 20 ? (
+        <TextInput
+          value={q}
+          onChangeText={setQ}
+          placeholder="Find a menu…"
+          placeholderTextColor="#6B7280"
+          accessibilityLabel="Find a menu"
+          style={{ marginHorizontal: 12, marginBottom: 8, backgroundColor: '#1F2228', borderWidth: 1, borderColor: '#2A2D34', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 7, color: '#E5E7EB', fontSize: 13 }}
+        />
+      ) : null}
       <ScrollView style={{ flex: 1 }}>
-        {nav.map((item) => (
-          <SideLink key={item.href} item={item} active={isActive(pathname, item.href)} badge={item.badgeKey ? counts[item.badgeKey] : 0} />
+        {top.filter(match).map((item) => (
+          <SideLink key={item.href} item={item} active={isActive(pathname, item.href)} badge={badgeOf(item)} />
         ))}
+        {top.length ? <View style={{ height: 1, backgroundColor: '#2A2D34', marginHorizontal: 14, marginVertical: 6 }} /> : null}
+        {groups.map((g) => {
+          const items = g.items.filter(match);
+          if (!items.length) return null;
+          const here = items.some((i) => isActive(pathname, i.href));
+          // closed unless opened; the group of the page you are on opens by itself (until you close it); a search opens them all
+          const isOpen = q.trim() ? true : open[g.key] ?? here;
+          const badge = items.reduce((t, i) => t + badgeOf(i), 0);
+          return (
+            <View key={g.key}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ expanded: isOpen }}
+                onPress={() => setOpen(g.key, !isOpen)}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingLeft: 14, paddingRight: 14, marginTop: 2 }}
+              >
+                <Text style={{ color: '#6B7280', width: 12, fontSize: 10 }}>{isOpen ? '▾' : '▸'}</Text>
+                <Text style={{ color: here ? '#E5E7EB' : '#9CA3AF', flex: 1, fontSize: 10.5, fontWeight: '700', letterSpacing: 0.3, textTransform: 'uppercase' }} numberOfLines={1}>
+                  {g.label}
+                </Text>
+                {!isOpen && badge ? <Badge count={badge} /> : null}
+                <Text style={{ color: '#6B7280', fontSize: 11 }}>{items.length}</Text>
+              </Pressable>
+              {isOpen ? items.map((item) => <SideLink key={item.href + item.label} item={item} active={isActive(pathname, item.href)} badge={badgeOf(item)} />) : null}
+            </View>
+          );
+        })}
       </ScrollView>
       <Pressable onPress={() => router.push('/profile')} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderTopWidth: 1, borderTopColor: '#2A2D34' }}>
         <Avatar name={me.full_name} path={me.avatar_path} size={34} />
