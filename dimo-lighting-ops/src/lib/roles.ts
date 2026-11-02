@@ -150,6 +150,40 @@ export function navFor(role: Role, realRole?: Role | null, sq?: boolean, sqRepor
   return [...items.slice(0, 1), meetings, ...items.slice(1)];
 }
 
+/** The left-hand menu in groups: Home, Meetings and Approvals at the top, the rest under labelled groups that open and close. Every role keeps exactly its own pages. */
+export type NavGroupKey = 'sales' | 'cust' | 'design' | 'exec' | 'fin' | 'supply' | 'perf' | 'tools' | 'admin';
+export const NAV_GROUPS: { key: NavGroupKey; label: string }[] = [
+  { key: 'sales', label: 'Sales & pipeline' },
+  { key: 'cust', label: 'Customers & after-sales' },
+  { key: 'design', label: 'Design & estimation' },
+  { key: 'exec', label: 'Project execution' },
+  { key: 'fin', label: 'Finance & collections' },
+  { key: 'supply', label: 'Stock, orders & rates' },
+  { key: 'perf', label: 'Performance & reports' },
+  { key: 'tools', label: 'Tools & learning' },
+  { key: 'admin', label: 'Administration' },
+];
+
+export function navGroupOf(href: string): NavGroupKey | 'top' {
+  if (href === '/' || href === '/meetings' || href === '/approvals') return 'top';
+  if (['/customers', '/csi', '/samples', '/warranty'].includes(href)) return 'cust';
+  if (href.startsWith('/execution') || href === '/engineering') return 'exec';
+  if (['/visits', '/map', '/plan', '/projects', '/inquiries', '/tenders'].includes(href)) return 'sales';
+  if (['/jobs', '/estimating', '/design-tools', '/brands', '/fixtures'].includes(href)) return 'design';
+  if (href.startsWith('/debtors') || ['/retentions', '/bonds'].includes(href) || ['/finance/invoicing', '/finance/secured', '/finance/budget', '/finance/pnl', '/finance/upload'].includes(href)) return 'fin';
+  if (['/stock', '/orders', '/instruments', '/fx', '/market'].includes(href) || href.startsWith('/supplier-quotes')) return 'supply';
+  if (['/dashboard', '/finance/targets', '/finance/my', '/scorecard', '/reports'].includes(href)) return 'perf';
+  if (['/admin', '/high-level'].includes(href)) return 'admin';
+  return 'tools';
+}
+
+/** A role's menu split into the top items and its groups, in the groups' order (only the groups it has pages in). */
+export function navGrouped(items: NavItem[]): { top: NavItem[]; groups: { key: NavGroupKey; label: string; items: NavItem[] }[] } {
+  const top = items.filter((i) => navGroupOf(i.href) === 'top');
+  const groups = NAV_GROUPS.map((g) => ({ ...g, items: items.filter((i) => navGroupOf(i.href) === g.key) })).filter((g) => g.items.length);
+  return { top, groups };
+}
+
 function baseNav(role: Role): NavItem[] {
   const home: NavItem = { href: '/', label: 'Home', icon: '⌂' };
   const approvals: NavItem = { href: '/approvals', label: 'Approvals', icon: '✓', badgeKey: 'approvals' };

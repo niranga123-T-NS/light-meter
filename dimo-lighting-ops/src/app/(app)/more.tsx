@@ -4,7 +4,7 @@ import { APP_UPDATE, APP_VERSION, BUILD_ID, BUILD_TIME } from '@/components/Upda
 import { useShellCounts } from '@/components/AppShell';
 import { Avatar, Badge, Card, ListRow, Muted, Screen, Section } from '@/components/ui';
 import { useAuth, useMe } from '@/lib/auth';
-import { navFor, ROLE_SHORT } from '@/lib/roles';
+import { navFor, navGrouped, ROLE_SHORT } from '@/lib/roles';
 
 /** Phone navigation: everything that doesn't fit in the bottom bar. */
 export default function More() {
@@ -19,11 +19,28 @@ export default function More() {
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         <ListRow left={<Avatar name={me.full_name} path={me.avatar_path} size={40} />} title={me.full_name} subtitle={ROLE_SHORT[me.role]} onPress={() => router.push('/profile')} />
       </Card>
-      <Section title="Menu">
+      {(() => {
+        const { top, groups } = navGrouped(nav);
+        const row = (n: (typeof nav)[number]) => (
+          <ListRow key={n.href + n.label} left={<Muted>{n.icon}</Muted>} title={n.label} right={n.badgeKey ? <Badge count={counts[n.badgeKey]} /> : n.testing ? <TestingTag /> : undefined} onPress={() => router.push(n.href as never)} />
+        );
+        return (
+          <>
+            {top.length ? (
+              <Section title="Menu">
+                <Card style={{ padding: 0, overflow: 'hidden' }}>{top.map(row)}</Card>
+              </Section>
+            ) : null}
+            {groups.map((g) => (
+              <Section key={g.key} title={g.label}>
+                <Card style={{ padding: 0, overflow: 'hidden' }}>{g.items.map(row)}</Card>
+              </Section>
+            ))}
+          </>
+        );
+      })()}
+      <Section title="Account">
         <Card style={{ padding: 0, overflow: 'hidden' }}>
-          {nav.map((n) => (
-            <ListRow key={n.href} left={<Muted>{n.icon}</Muted>} title={n.label} right={n.badgeKey ? <Badge count={counts[n.badgeKey]} /> : n.testing ? <TestingTag /> : undefined} onPress={() => router.push(n.href as never)} />
-          ))}
           <ListRow left={<Muted>🔔</Muted>} title="Notifications" right={<Badge count={counts.notifications} />} onPress={() => router.push('/notifications')} />
           <ListRow left={<Muted>⌕</Muted>} title="Search" onPress={() => router.push('/search')} />
           <ListRow left={<Muted>⎋</Muted>} title="Sign out" onPress={signOut} />
