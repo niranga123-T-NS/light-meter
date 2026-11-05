@@ -2,7 +2,7 @@ import { router, Stack } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
-import { Button, Card, colors, DateField, ErrorBanner, Field, Loading, MultiSelect, Muted, Notice, Row, Screen, Segmented, Select } from '@/components/ui';
+import { Button, Card, colors, DateField, ErrorBanner, Field, Loading, MultiSelect, Muted, Notice, Row, Screen, Segmented, Select, Toggle } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { LINES } from '@/lib/finance';
 import { fmtDate, fmtMoney, human, todayISO } from '@/lib/format';
@@ -24,7 +24,7 @@ export default function EarlierAward() {
   const allowed = me.role === 'sm_estimation' || me.role === 'gm';
   const { data, error } = useLoad(() => (allowed ? rpc<Opts>('earlier_award_options') : Promise.resolve(null)), [allowed]);
   const [f, setF] = useState({ inquiry: '', name: '', customer: '', sales: '', line: '', po: '', value: '', currency: 'LKR', won: '' as string | null, type: 'supply' as Kind,
-    book: 'link' as 'link' | 'add', secured: '', mfr: '1', needed: null as string | null, site: '', start: null as string | null, end: null as string | null, see: '', areas: [] as string[], note: '' });
+    book: 'link' as 'link' | 'add', secured: '', mfr: '1', needed: null as string | null, site: '', start: null as string | null, end: null as string | null, see: '', areas: [] as string[], note: '', signName: '', signDesig: '', signPhone: '', police: false });
   const set = (p: Partial<typeof f>) => setF((x) => ({ ...x, ...p }));
   const sales = useMemo(() => Object.values(people).filter((p) => isSales(p.role) && p.active !== false).sort((a, b) => a.full_name.localeCompare(b.full_name)), [people]);
   const sees = useMemo(() => Object.values(people).filter((p) => p.role === 'senior_elec_engineer' && p.active !== false), [people]);
@@ -49,6 +49,7 @@ export default function EarlierAward() {
           inquiry_id: f.inquiry || null, project_name: f.name, customer: f.customer, sales_person_id: f.sales || null, business_line: f.line || null, po_no: f.po,
           order_value: f.value.replace(/[^\d.]/g, ''), currency: f.currency, won_on: f.won, type: f.type, secured_id: f.book === 'link' ? f.secured : null,
           mfr_count: f.mfr, needed_by: f.needed, site_address: f.site, start_date: f.start, end_date: f.end, see_id: f.see || null, areas: f.areas, note: f.note,
+          letter_sign_name: f.signName, letter_sign_designation: f.signDesig, letter_sign_phone: f.signPhone, police_required: f.police,
         },
       });
       router.replace(r.kind === 'supply_order' ? `/supply-orders/${r.id}` : `/execution/handover/${r.id}`);
@@ -104,6 +105,12 @@ export default function EarlierAward() {
               <View style={{ flex: 1, minWidth: 240 }}><Select label="Senior Electrical Engineer (optional – SM Projects assigns)" value={f.see} onChange={(v) => set({ see: v })} options={[{ value: '', label: 'Leave to SM Projects' }, ...sees.map((p) => ({ value: p.id, label: p.full_name }))]} /></View>
               <View style={{ flex: 1, minWidth: 240 }}><MultiSelect label="Areas" values={f.areas} onChange={(v) => set({ areas: v })} options={data.areas.map((a) => ({ value: a, label: human(a) }))} /></View>
             </Row>
+            <Row wrap gap={8}>
+              <View style={{ flex: 1, minWidth: 200 }}><Field label="Signing authority of the project letters – name" required value={f.signName} onChangeText={(v) => set({ signName: v })} /></View>
+              <View style={{ flex: 1, minWidth: 200 }}><Field label="Designation" required value={f.signDesig} onChangeText={(v) => set({ signDesig: v })} /></View>
+              <View style={{ flex: 1, minWidth: 160 }}><Field label="Phone" value={f.signPhone} onChangeText={(v) => set({ signPhone: v })} /></View>
+            </Row>
+            <Toggle label="Police reports / clearance needed for the site" value={f.police} onChange={(v) => set({ police: v })} />
             <Muted>Raises the hand-over of a project won before the system to SM Projects, who approves it and assigns the execution team.</Muted>
           </>
         )}
