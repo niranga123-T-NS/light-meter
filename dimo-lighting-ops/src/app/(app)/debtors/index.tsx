@@ -4,7 +4,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { AgeingChip } from '@/components/Ageing';
 import { Button, Card, colors, Empty, ErrorBanner, ListRow, Muted, Pill, Row, Screen, Segmented, Select } from '@/components/ui';
 import { useMe } from '@/lib/auth';
-import { AGEING_COLOURS, AGEING_ORDER, fmtDate, fmtMoney, human, todayISO } from '@/lib/format';
+import { AGEING_COLOURS, AGEING_ORDER, debtOwed, fmtDate, fmtMoney, human, todayISO } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
 import { isSales } from '@/lib/roles';
 import { rpc, supabase } from '@/lib/supabase';
@@ -17,8 +17,8 @@ type CustomerRow = { client: string; n: number; legal: number; maxDays: number; 
 
 const hearingPassed = (d: Debt) => d.is_legal && !d.legal_outcome && !!d.next_hearing_date && d.next_hearing_date < todayISO();
 const sumMoney = (list: Debt[]): Money => ({
-  lkr: list.filter((d) => d.currency === 'LKR').reduce((a, d) => a + Number(d.amount), 0),
-  usd: list.filter((d) => d.currency === 'USD').reduce((a, d) => a + Number(d.amount), 0),
+  lkr: list.filter((d) => d.currency === 'LKR').reduce((a, d) => a + debtOwed(d), 0),
+  usd: list.filter((d) => d.currency === 'USD').reduce((a, d) => a + debtOwed(d), 0),
 });
 const moneyText = (m: Money) => [m.lkr ? fmtMoney(m.lkr, 'LKR') : null, m.usd ? fmtMoney(m.usd, 'USD') : null].filter(Boolean).join(' + ') || '—';
 
@@ -164,8 +164,8 @@ export default function Debtors() {
               <Pressable key={b} onPress={() => setBucket(bucket === b ? null : b)} style={{ minWidth: 118, padding: 8, borderRadius: 8, borderWidth: 2, borderColor: bucket === b ? colors.ink : colors.line }}>
                 <AgeingChip bucket={b} />
                 <Text style={{ fontWeight: '700', marginTop: 4 }}>{list.length}</Text>
-                <Muted>{fmtMoney(list.filter((d) => d.currency === 'LKR').reduce((a, d) => a + Number(d.amount), 0), 'LKR')}</Muted>
-                <Muted>{fmtMoney(list.filter((d) => d.currency === 'USD').reduce((a, d) => a + Number(d.amount), 0), 'USD')}</Muted>
+                <Muted>{fmtMoney(list.filter((d) => d.currency === 'LKR').reduce((a, d) => a + debtOwed(d), 0), 'LKR')}</Muted>
+                <Muted>{fmtMoney(list.filter((d) => d.currency === 'USD').reduce((a, d) => a + debtOwed(d), 0), 'USD')}</Muted>
                 <View style={{ height: 3, backgroundColor: c.bg, marginTop: 4 }} />
               </Pressable>
             );
@@ -320,7 +320,12 @@ export default function Debtors() {
               <Row gap={4}>
                 {hearingPassed(d) ? <Pill label="Hearing passed – update" tone={colors.red} solid /> : null}
                 {d.collection_mismatch ? <Pill label="Mismatch" tone={colors.red} /> : null}
-                {d.status === 'partially_collected' && d.collected_amount ? (
+                {d.status === 'collected' ? (
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={{ fontWeight: '700', color: colors.green }}>{fmtMoney(0, d.currency)}</Text>
+                    <Text style={{ fontSize: 11, color: colors.muted }}>{`${fmtMoney(d.amount, d.currency)} collected – to be confirmed by the next list`}</Text>
+                  </View>
+                ) : d.status === 'partially_collected' && d.collected_amount ? (
                   <View style={{ alignItems: 'flex-end' }}>
                     <Text style={{ fontWeight: '700' }}>{fmtMoney(Number(d.amount) - Number(d.collected_amount), d.currency)}</Text>
                     <Text style={{ fontSize: 11, color: colors.green }}>{`${fmtMoney(d.collected_amount, d.currency)} collected`}</Text>

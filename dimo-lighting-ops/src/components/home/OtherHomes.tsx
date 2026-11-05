@@ -5,7 +5,7 @@ import { MeetingActions } from '@/components/MeetingActions';
 import { SupplyOrdersCard } from '@/components/SupplyOrders';
 import { WeekMeetings } from '@/components/WeekMeetings';
 import { useMe } from '@/lib/auth';
-import { fmtDate, fmtMoney } from '@/lib/format';
+import { debtOwed, fmtDate, fmtMoney } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import { ROLE_LABELS } from '@/lib/roles';
 import { supabase } from '@/lib/supabase';
@@ -16,7 +16,7 @@ export function OpsHome() {
   const { data, error, loading, reload } = useLoad(async () => {
     const [uploads, debts, samples] = await Promise.all([
       supabase.from('debt_uploads').select('as_at, status, confirmed_at').eq('status', 'confirmed').order('as_at', { ascending: false }).limit(1),
-      supabase.from('debts').select('id, client_name, invoice_no, amount, currency, is_legal, legal_outcome, next_hearing_date, collection_mismatch').not('status', 'in', '(collected_confirmed,cleared)'),
+      supabase.from('debts').select('id, client_name, invoice_no, amount, balance, currency, is_legal, legal_outcome, next_hearing_date, collection_mismatch').not('status', 'in', '(collected_confirmed,cleared)'),
       supabase.from('samples').select('status, expected_return_date'),
     ]);
     const today = new Date().toISOString().slice(0, 10);
@@ -24,8 +24,8 @@ export function OpsHome() {
     const s = samples.data ?? [];
     return {
       lastUpload: uploads.data?.[0]?.as_at ?? null,
-      lkr: d.filter((x) => x.currency === 'LKR').reduce((a, x) => a + Number(x.amount), 0),
-      usd: d.filter((x) => x.currency === 'USD').reduce((a, x) => a + Number(x.amount), 0),
+      lkr: d.filter((x) => x.currency === 'LKR').reduce((a, x) => a + debtOwed(x), 0),
+      usd: d.filter((x) => x.currency === 'USD').reduce((a, x) => a + debtOwed(x), 0),
       legal: d.filter((x) => x.is_legal).length,
       hearings: d.filter((x) => x.is_legal && x.next_hearing_date && x.next_hearing_date <= today).length,
       // Legal cases whose hearing date has passed without an update (alerted every day)

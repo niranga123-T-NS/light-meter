@@ -474,6 +474,8 @@ export type Debt = {
   sales_person_id: string | null;
   invoice_date: string | null;
   amount: number;
+  /** what is still owed (0 once marked collected, less the part collections) */
+  balance?: number;
   currency: Currency;
   outstanding_days: number;
   ageing_bucket: string;
