@@ -27,6 +27,12 @@ export default function SampleDetail() {
   const mine = s.sales_person_id === me.id;
   const ops = me.role === 'operations_exec';
   const smp = me.role === 'sm_projects' || me.role === 'gm';
+  const est = me.role === 'sm_estimation' || me.role === 'gm';
+  const os = s.order_status ?? null;
+  const ORDER_STEP: Record<string, [string, string]> = {
+    requested: ['With SM Estimation', colors.amber], accepted: ['With SM Projects for approval', colors.amber], approved: ['On order – supply order with SM Estimation / Operations', colors.blue],
+    arrived: ['Arrived – continues as a normal sample request', colors.green], declined: ['Declined by SM Estimation', colors.red], rejected: ['Not approved by SM Projects', colors.red], cancelled: ['Ordering request cancelled', colors.grey],
+  };
   const run = (fn: string, args: Record<string, unknown>, ok: string) =>
     dialog.run(async () => {
       await rpc(fn, args);
@@ -64,8 +70,87 @@ export default function SampleDetail() {
         {s.status === 'sold_unpaid' ? <Notice tone={colors.amber}>Sold – in the debtors list until it is collected. The sample clears automatically when the debt is cleared.</Notice> : null}
         {s.status === 'damaged_lost' ? <Notice tone={colors.red}>Returned {human(s.return_condition)} – stays open until the Operations Executive clears it.</Notice> : null}
         {s.debt_id ? <Button small variant="ghost" title="Open the debt in Debtors ›" onPress={() => router.push(`/debtors/${s.debt_id}`)} /> : null}
+        {os ? (
+          <Card style={{ marginTop: 10, borderColor: ORDER_STEP[os][1], gap: 4 }}>
+            <Row wrap gap={8} style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ fontWeight: '800', color: colors.ink }}>Ordering the sample items</Text>
+              <Pill label={ORDER_STEP[os][0]} tone={ORDER_STEP[os][1]} solid={os === 'requested' || os === 'accepted'} />
+            </Row>
+            {s.order_reason ? <Muted>{`Why: ${s.order_reason}${s.order_needed_by ? ` · needed by ${fmtDate(s.order_needed_by)}` : ''} · asked ${fmtDateTime(s.order_requested_at)}`}</Muted> : null}
+            {s.order_supplier ? <Muted>{`SM Estimation: ${[s.order_supplier, s.order_cost != null ? `${s.order_currency ?? 'USD'} ${Number(s.order_cost).toLocaleString('en-US')}` : null, s.order_lead].filter(Boolean).join(' · ')} · ${people[s.order_accepted_by ?? '']?.full_name ?? ''} ${fmtDateTime(s.order_accepted_at)}`}</Muted> : null}
+            {s.order_note ? <Muted>{`Note: ${s.order_note}`}</Muted> : null}
+            {s.supply_order_id ? <Button small variant="secondary" title="Supply order ›" onPress={() => router.push(`/supply-orders/${s.supply_order_id}`)} /> : null}
+          </Card>
+        ) : null}
         <Row wrap gap={8} style={{ marginTop: 8 }}>
           {mine && ['draft', 'returned_for_changes'].includes(s.status) ? <Button title="Submit request" onPress={() => run('submit_sample', { p_sample: s.id }, 'Submitted')} /> : null}
+          {mine && s.status === 'not_available' && (!os || ['declined', 'rejected', 'cancelled'].includes(os)) ? (
+            <Button
+              title="Request ordering from SM Estimation"
+              onPress={async () => {
+                const r = await dialog.prompt({
+                  title: 'Ask SM Estimation to order the items',
+                  message: 'SM Estimation accepts it (supplier, cost, lead time), then SM Projects approves, and a supply order opens. When the items arrive the request continues as a normal sample.',
+                  fields: [
+                    { key: 'why', label: 'Why it is needed (client, consultant, approval …)', type: 'multiline', required: true },
+                    { key: 'by', label: 'Needed by', type: 'date', initial: s.required_by?.slice(0, 10) },
+                  ],
+                });
+                if (r) await run('sample_order_request', { p_sample: s.id, p_reason: r.why, p_needed_by: r.by || null }, 'Sent to SM Estimation');
+              }}
+            />
+          ) : null}
+          {mine && os === 'requested' ? <Button variant="secondary" title="Cancel the ordering request" onPress={() => run('sample_order_cancel', { p_sample: s.id }, 'Cancelled')} /> : null}
+          {est && os === 'requested' ? (
+            <>
+              <Button
+                title="Accept – send to SM Projects"
+                onPress={async () => {
+                  const r = await dialog.prompt({
+                    title: `Order the items of ${s.code}`,
+                    fields: [
+                      { key: 'supplier', label: 'Supplier / manufacturer', required: true },
+                      { key: 'cost', label: 'Estimated cost incl. freight' },
+                      { key: 'currency', label: 'Currency', type: 'select', initial: 'USD', options: [{ value: 'USD', label: 'USD' }, { value: 'LKR', label: 'LKR' }, { value: 'EUR', label: 'EUR' }, { value: 'CNY', label: 'CNY' }] },
+                      { key: 'lead', label: 'Lead time (e.g. 3 weeks)', required: true },
+                      { key: 'note', label: 'Note', type: 'multiline' },
+                    ],
+                  });
+                  if (r) await run('sample_order_accept', { p_sample: s.id, p: { supplier: r.supplier, cost: r.cost?.replace(/[^\d.]/g, '') || null, currency: r.currency, lead: r.lead, note: r.note } }, 'Sent to SM Projects');
+                }}
+              />
+              <Button
+                variant="danger"
+                title="Decline"
+                onPress={async () => {
+                  const r = await dialog.prompt({ title: 'Decline the ordering', fields: [{ key: 'c', label: 'Reason', type: 'multiline', required: true }] });
+                  if (r) await run('sample_order_decline', { p_sample: s.id, p_reason: r.c }, 'Declined');
+                }}
+              />
+            </>
+          ) : null}
+          {smp && os === 'accepted' ? (
+            <>
+              <Button title="Approve – open the supply order" onPress={() => run('sample_order_decide', { p_sample: s.id, p_approve: true }, 'Approved – supply order opened with SM Estimation')} />
+              <Button
+                variant="danger"
+                title="Reject"
+                onPress={async () => {
+                  const r = await dialog.prompt({ title: 'Reject the ordering', fields: [{ key: 'c', label: 'Reason', type: 'multiline', required: true }] });
+                  if (r) await run('sample_order_decide', { p_sample: s.id, p_approve: false, p_note: r.c }, 'Rejected');
+                }}
+              />
+            </>
+          ) : null}
+          {ops && os === 'approved' ? (
+            <Button
+              title="Ordered items arrived"
+              onPress={async () => {
+                const r = await dialog.prompt({ title: 'Items arrived', message: 'The sample becomes available and goes to SM Projects for approval, as a normal sample request.', fields: [{ key: 'n', label: 'Note (date received, GRN …)', type: 'multiline' }] });
+                if (r) await run('sample_order_arrived', { p_sample: s.id, p_note: r.n || null }, 'Recorded – with SM Projects');
+              }}
+            />
+          ) : null}
           {ops && s.status === 'submitted' ? (
             <Button
               title="Record availability"

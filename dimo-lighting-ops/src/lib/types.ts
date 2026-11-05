@@ -529,6 +529,21 @@ export type Sample = {
   cleared_at?: string | null;
   clear_note?: string | null;
   debt_id?: string | null;
+  /** ordering a sample that is not available: sales person → SM Estimation → SM Projects → supply order → arrived */
+  order_status?: 'requested' | 'accepted' | 'approved' | 'declined' | 'rejected' | 'arrived' | 'cancelled' | null;
+  order_reason?: string | null;
+  order_needed_by?: string | null;
+  order_requested_at?: string | null;
+  order_supplier?: string | null;
+  order_cost?: number | null;
+  order_currency?: string | null;
+  order_lead?: string | null;
+  order_accepted_by?: string | null;
+  order_accepted_at?: string | null;
+  order_decided_by?: string | null;
+  order_decided_at?: string | null;
+  order_note?: string | null;
+  supply_order_id?: string | null;
 };
 
 export type SampleItem = {
