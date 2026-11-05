@@ -5587,6 +5587,7 @@ begin
   exception when others then assert sqlerrm like 'Add a note%', sqlerrm; end;
   c := public.record_debt_collection(d, 400000, current_date, 'Cheque 123456 deposited – balance next month', 'CHQ-123456');
   assert (select status = 'partially_collected' and collected_amount = 400000 from public.debts where id = d), 'part collected';
+  assert (select balance = 600000 from public.debts where id = d), 'balance after a part collection';
   assert app.debt_collected(d) = 400000, 'total';
   begin perform public.record_debt_collection(d, 700000, current_date, 'too much'); assert false, 'over balance';
   exception when others then assert sqlerrm like 'More than the balance%', sqlerrm; end;
@@ -5595,6 +5596,7 @@ begin
   perform public.record_debt_collection(d, 250000, current_date, 'Transfer received');
   perform public.record_debt_collection(d, 750000, current_date, 'Final transfer');
   assert (select status = 'collected' and collected_amount = 1000000 from public.debts where id = d), 'collected in full';
+  assert (select balance = 0 from public.debts where id = d), 'a collected invoice no longer counts as outstanding';
   assert (select count(*) from public.debt_log where debt_id = d and kind = 'collection') = 4, 'history';
 end $$;
 reset role;
@@ -5605,9 +5607,19 @@ begin
   update public.debts set status = 'partially_collected' where id = d;
   delete from public.debt_collections where debt_id = d and note = 'Final transfer';
   insert into public.debt_uploads (as_at, status, uploaded_by) values (current_date, 'confirmed', (select id from u where role = 'operations_exec')) returning id into up;
+  insert into public.debt_upload_rows (upload_id, row_no, invoice_no, amount, currency, outstanding_days) values (up, 1, 'INV-COLL-1', 750000, 'LKR', 52);
   update public.debts set last_upload_id = up, amount = 750000 where id = d;
-  assert (select status = 'outstanding' and collected_amount is null from public.debts where id = d), 'reset after upload';
+  assert (select status = 'outstanding' and collected_amount is null and balance = 750000 from public.debts where id = d), 'reset after upload';
   assert app.debt_collected(d) = 0, 'old collections are history';
+  assert (select count(*) from public.debt_collections where debt_id = d) = 2, 'collection entries kept';
+  assert exists (select 1 from public.debt_log where debt_id = d and kind = 'upload' and note like 'Still in the debtors list%'), 'logged';
+  -- marked collected but still in the next list at the same amount: the list is the truth, outstanding again
+  update public.debts set status = 'collected' where id = d;
+  assert (select balance = 0 from public.debts where id = d), 'collected';
+  insert into public.debt_uploads (as_at, status, uploaded_by) values (current_date, 'confirmed', (select id from u where role = 'operations_exec')) returning id into up;
+  insert into public.debt_upload_rows (upload_id, row_no, invoice_no, amount, currency, outstanding_days) values (up, 1, 'INV-COLL-1', 750000, 'LKR', 59);
+  update public.debts set last_upload_id = up where id = d;
+  assert (select status = 'outstanding' and balance = 750000 from public.debts where id = d), 'still in the list: outstanding again';
 end $$;
 rollback to savepoint collections;
 
