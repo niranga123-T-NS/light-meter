@@ -7,7 +7,7 @@ import { TeamTargetCard } from '@/components/TargetCharts';
 import { useMe } from '@/lib/auth';
 import { companyInvoicing } from '@/lib/companyInvoicing';
 import { fyLabel, fyOf, thisMonth, type Performance } from '@/lib/finance';
-import { AGEING_COLOURS, AGEING_ORDER, fmtDate, fmtMoney, fmtNumber, fmtWorkDays, human, SLA_COLOURS, todayISO } from '@/lib/format';
+import { AGEING_COLOURS, AGEING_ORDER, debtOwed, fmtDate, fmtMoney, fmtNumber, fmtWorkDays, human, SLA_COLOURS, todayISO } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
 import { projectTypeLabel } from '@/lib/roles';
 import { rpc, supabase } from '@/lib/supabase';
@@ -73,9 +73,9 @@ export function ExecDashboard() {
   const { data, error, loading, reload } = useLoad(() => rpc<Dash>('overall_dashboard', { p_from: from, p_to: to }), [from, to]);
   // Total debtor outstanding, with legal debtors shown separately
   const debtTotals = useLoad(async () => {
-    const { data: rows } = await supabase.from('debts').select('amount, currency, is_legal').not('status', 'in', '(collected_confirmed,cleared)').limit(5000);
-    const list = (rows ?? []) as { amount: number; currency: 'LKR' | 'USD'; is_legal: boolean }[];
-    const sum = (f: (d: (typeof list)[number]) => boolean, cur: 'LKR' | 'USD') => list.filter((d) => f(d) && d.currency === cur).reduce((a, d) => a + Number(d.amount), 0);
+    const { data: rows } = await supabase.from('debts').select('amount, balance, currency, is_legal').not('status', 'in', '(collected_confirmed,cleared)').limit(5000);
+    const list = (rows ?? []) as { amount: number; balance: number; currency: 'LKR' | 'USD'; is_legal: boolean }[];
+    const sum = (f: (d: (typeof list)[number]) => boolean, cur: 'LKR' | 'USD') => list.filter((d) => f(d) && d.currency === cur).reduce((a, d) => a + debtOwed(d), 0);
     return {
       n: list.length,
       nLegal: list.filter((d) => d.is_legal).length,

@@ -127,6 +127,9 @@ export const AGEING_COLOURS: Record<string, { bg: string; fg: string; border?: s
   'over-365': { bg: '#000000', fg: '#fff', border: '#D32F2F', label: 'Over 365' },
 };
 
+/** What is still owed on a debtor invoice: nothing once marked collected (until the next debtors list confirms it), the amount less the part collections, else the amount */
+export const debtOwed = (d: { amount: number; balance?: number | null; status?: string; collected_amount?: number | null }) =>
+  d.balance != null ? Number(d.balance) : d.status === 'collected' ? 0 : d.status === 'partially_collected' ? Math.max(0, Number(d.amount) - Number(d.collected_amount ?? 0)) : Number(d.amount);
 export const AGEING_ORDER = ['1-30', '31-60', '61-90', '91-120', '121-150', '151-180', 'over-180', 'over-365'];
 
 export const INQUIRY_STATUS_LABEL: Record<string, string> = {

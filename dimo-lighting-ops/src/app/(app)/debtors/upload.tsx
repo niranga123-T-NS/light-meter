@@ -184,8 +184,8 @@ export default function DebtorsUpload() {
       <Stack.Screen options={{ title: 'Debtors upload' }} />
       <ErrorBanner message={error} />
       <Card>
-        <Text style={{ fontWeight: '700' }}>Saturday debtors list</Text>
-        <Muted>Upload the standard Excel template every Saturday evening. Each confirmed upload is a dated snapshot: new invoices are added, amounts and days updated, and invoices no longer in the file are cleared.</Muted>
+        <Text style={{ fontWeight: '700' }}>Weekly debtors list</Text>
+        <Muted>Upload the standard Excel template every week. Each confirmed upload is a dated snapshot and updates every invoice in full: new invoices are added, amounts and days updated, an invoice marked collected but still in the list is outstanding again (flagged as a mismatch), and invoices no longer in the file are cleared. Collection entries stay in the invoice and customer history.</Muted>
         <DateField label="As at" value={asAt} onChange={setAsAt} quick={[0]} />
         <Row wrap gap={8}>
           <Button title="Choose Excel file" icon="⇪" onPress={pickAndStage} />

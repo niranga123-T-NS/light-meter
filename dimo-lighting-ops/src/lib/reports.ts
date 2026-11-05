@@ -1,5 +1,5 @@
 import type { Column, Section } from './export';
-import { AGEING_COLOURS, AGEING_ORDER, fmtDate, fmtMoney, human, WORKING_HOURS_PER_DAY, inquiryTitle } from './format';
+import { AGEING_COLOURS, AGEING_ORDER, debtOwed, fmtDate, fmtMoney, human, WORKING_HOURS_PER_DAY, inquiryTitle } from './format';
 import { PROJECT_TYPES, projectTypeLabel, ROLE_SHORT } from './roles';
 import { rpc, supabase } from './supabase';
 import type { Debt, Inquiry, Profile, Project, Quotation, Sample, SlaClock, Visit } from './types';
@@ -356,7 +356,7 @@ export async function buildReport(key: string, f: Filters, people: Record<string
     case 'debtors': {
       const { data } = await supabase.from('debts').select('*').not('status', 'in', '(collected_confirmed,cleared)');
       const debts = (data ?? []) as Debt[];
-      const toRow = (d: Debt) => ({ client: d.client_name, project: d.project_name, invoice: d.invoice_no, amount: fmtMoney(d.amount, d.currency), raw: d.amount, currency: d.currency, days: d.outstanding_days, person: name(d.sales_person_id), status: human(d.status), updated: fmtDate(d.last_status_at) });
+      const toRow = (d: Debt) => ({ client: d.client_name, project: d.project_name, invoice: d.invoice_no, amount: fmtMoney(debtOwed(d), d.currency), raw: debtOwed(d), currency: d.currency, days: d.outstanding_days, person: name(d.sales_person_id), status: human(d.status), updated: fmtDate(d.last_status_at) });
       const columns = [col('Client', 'client'), col('Project', 'project'), col('Invoice', 'invoice'), col('Amount', 'amount', 'right'), col('Currency', 'currency'), col('Days', 'days', 'right'), col('Sales person', 'person'), col('Status', 'status'), col('Last update', 'updated')];
       const fourteen = Date.now() - 14 * 86400000;
       const sections: Section<Row>[] = AGEING_ORDER.map((b) => {
