@@ -5692,7 +5692,8 @@ do $$ declare r jsonb; sid uuid := (select id from public.secured_projects where
   assert (select project_type = 'supply' and order_value = 2500000 and po_no = 'PO-77' from public.secured_projects where id = (r ->> 'secured_id')::uuid), 'order book entry added';
   -- linked to the opening-list entry: no second entry, the value is not counted again
   r := public.send_earlier_award(jsonb_build_object('secured_id', sid, 'project_name', 'Harbour Front Lighting', 'customer', 'Port City', 'order_value', 4800000,
-                                                   'won_on', '2025-08-14', 'type', 'supply_install', 'site_address', 'Colombo 1', 'areas', jsonb_build_array((app.exec_areas())[1])));
+                                                   'won_on', '2025-08-14', 'type', 'supply_install', 'site_address', 'Colombo 1', 'areas', jsonb_build_array((app.exec_areas())[1]),
+                                                   'letter_sign_name', 'A. Perera', 'letter_sign_designation', 'Project Director'));
   assert r ->> 'kind' = 'exec_request' and (r ->> 'secured_id')::uuid = sid, 'hand-over for the linked entry';
   assert (select kind = 'legacy' and status = 'pending_smp' and see_id is null from public.exec_requests where id = (r ->> 'id')::uuid), 'pre-system hand-over with SM Projects';
   assert (select order_value = 4800000 and project_type = 'supply_install' from public.secured_projects where id = sid), 'value unchanged';

@@ -241,14 +241,15 @@ create or replace function public.send_earlier_award(p jsonb) returns jsonb
 language plpgsql security definer set search_path = public as $$
 declare
   i public.inquiries; s public.secured_projects; t text := p ->> 'type'; v numeric := nullif(p ->> 'order_value', '')::numeric;
-  cur text := coalesce(nullif(p ->> 'currency', ''), 'LKR'); won date := nullif(p ->> 'won_on', '')::date; nm text := nullif(btrim(p ->> 'project_name'), '');
+  cur public.currency; won date := nullif(p ->> 'won_on', '')::date; nm text := nullif(btrim(p ->> 'project_name'), '');
   cust text := nullif(btrim(p ->> 'customer'), ''); sp uuid := nullif(p ->> 'sales_person_id', '')::uuid; oid uuid; c text; rid uuid; sid uuid;
 begin
   perform app.require(app.has_role('sm_estimation', 'gm'), 'SM Estimation sends earlier awards to order');
   perform app.require(t in ('supply', 'supply_install'), 'Choose Supply only or Supply & installation');
   perform app.require(v is not null and v > 0, 'Enter the order value');
   perform app.require(won is not null and won <= (now() at time zone app.tz())::date, 'Enter the award date');
-  perform app.require(cur in ('LKR', 'USD'), 'Currency LKR or USD');
+  perform app.require(coalesce(nullif(p ->> 'currency', ''), 'LKR') in ('LKR', 'USD'), 'Currency LKR or USD');
+  cur := coalesce(nullif(p ->> 'currency', ''), 'LKR')::public.currency;
   if nullif(p ->> 'inquiry_id', '') is not null then
     select * into i from public.inquiries where id = (p ->> 'inquiry_id')::uuid;
     perform app.require(i.id is not null, 'Inquiry not found');
@@ -318,7 +319,9 @@ begin
   rid := public.request_execution(jsonb_build_object('kind', 'legacy', 'name', s.project_name, 'client_name', coalesce(s.customer, cust),
     'contract_value', round(app.to_lkr(v, cur, won), 2), 'contract_ref', coalesce(nullif(btrim(p ->> 'po_no'), ''), s.po_no),
     'site_address', p ->> 'site_address', 'start_date', p ->> 'start_date', 'end_date', p ->> 'end_date', 'areas', coalesce(p -> 'areas', '[]'),
-    'see_id', p ->> 'see_id', 'note', concat_ws(' · ', 'Earlier award sent by SM Estimation', nullif(btrim(p ->> 'note'), ''))));
+    'see_id', p ->> 'see_id', 'note', concat_ws(' · ', 'Earlier award sent by SM Estimation', nullif(btrim(p ->> 'note'), '')),
+    'letter_sign_name', p ->> 'letter_sign_name', 'letter_sign_designation', p ->> 'letter_sign_designation', 'letter_sign_phone', p ->> 'letter_sign_phone',
+    'police_required', coalesce((p ->> 'police_required')::boolean, false)));
   perform set_config('app.earlier_award', '', true);
   update public.exec_requests set project_id = s.project_id where id = rid and s.project_id is not null;
   insert into public.secured_log (secured_id, action, note) values (s.id, 'handover', 'Earlier award – hand-over to execution requested by SM Estimation');
