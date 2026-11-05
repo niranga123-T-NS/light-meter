@@ -32,7 +32,12 @@ export type SupplyOrder = {
   code: string;
   created_at: string;
   mfr_count: number;
-  secured_id: string;
+  secured_id: string | null;
+  /** project (from an approved invoice plan), sample (ordering a sample that is not available) or earlier_award (sent by SM Estimation) */
+  kind?: 'project' | 'sample' | 'earlier_award';
+  sample_id?: string | null;
+  sample_code?: string | null;
+  needed_by?: string | null;
   project: string;
   customer: string | null;
   sales_person_id: string | null;
@@ -82,7 +87,7 @@ export function SupplyOrdersList() {
   const rows = show === 'open' ? data.filter(open) : data;
   return (
     <View style={{ gap: 10 }}>
-      <Muted>Supply-only projects: once the sales person&apos;s invoice plan is approved, SM Estimation gets each manufacturer&apos;s PI and submits it – one by one or together – to Operations, who handles it by e-mail and sets its status.</Muted>
+      <Muted>Supply-only projects (once the sales person&apos;s invoice plan is approved), earlier awards sent by SM Estimation, and samples approved for ordering: SM Estimation gets each manufacturer&apos;s PI and submits it – one by one or together – to Operations, who handles it by e-mail and sets its status.</Muted>
       <Row wrap gap={8} style={{ alignItems: 'center' }}>
         <Segmented<'open' | 'all'> value={show} onChange={setShow} options={[{ value: 'open', label: `Open (${data.filter(open).length})` }, { value: 'all', label: `All (${data.length})` }]} />
         <Button small variant="ghost" title={loading ? 'Loading…' : 'Refresh'} onPress={reload} />
@@ -92,7 +97,7 @@ export function SupplyOrdersList() {
         <Card key={o.id} onPress={() => router.push(`/supply-orders/${o.id}`)} style={{ gap: 6 }}>
           <Row wrap gap={8} style={{ justifyContent: 'space-between', alignItems: 'center' }}>
             <View style={{ flex: 1, minWidth: 220 }}>
-              <Text style={{ fontWeight: '700', color: colors.ink }}>{`${o.code} · ${o.project}`}</Text>
+              <Text style={{ fontWeight: '700', color: colors.ink }}>{`${o.code} · ${o.project}${o.kind === 'sample' ? ' · SAMPLE' : o.kind === 'earlier_award' ? ' · earlier award' : ''}`}</Text>
               <Muted style={{ fontSize: 12 }}>{[o.customer, `Sales: ${people[o.sales_person_id ?? '']?.full_name ?? '—'}`, `opened ${fmtDate(o.created_at)}`].filter(Boolean).join(' · ')}</Muted>
             </View>
             <OrderTablet o={o} />
@@ -190,7 +195,7 @@ export function SupplyOrderView({ id }: { id: string }) {
         <Row wrap gap={8} style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <View style={{ flex: 1, minWidth: 220 }}>
             <Text style={{ fontSize: 18, fontWeight: '700', color: colors.ink }}>{o.project}</Text>
-            <Muted>{`${o.code} · Supply only · opened ${fmtDate(o.created_at)}`}</Muted>
+            <Muted>{`${o.code} · ${o.kind === 'sample' ? `Sample ${o.sample_code ?? ''}` : o.kind === 'earlier_award' ? 'Supply only · earlier award' : 'Supply only'} · opened ${fmtDate(o.created_at)}${o.needed_by ? ` · needed by ${fmtDate(o.needed_by)}` : ''}`}</Muted>
           </View>
           <OrderTablet o={o} />
         </Row>
@@ -201,7 +206,8 @@ export function SupplyOrderView({ id }: { id: string }) {
           <KeyValue label="Manufacturers" value={`${o.mfr_count} · ${pis.filter((p) => p.submitted_at).length} submitted`} />
         </Grid>
         <Row wrap gap={8}>
-          <Button small variant="secondary" title="Order book ›" onPress={() => router.push(`/finance/secured/${o.secured_id}`)} />
+          {o.secured_id ? <Button small variant="secondary" title="Order book ›" onPress={() => router.push(`/finance/secured/${o.secured_id}`)} /> : null}
+          {o.sample_id ? <Button small variant="secondary" title={`Sample ${o.sample_code ?? ''} ›`} onPress={() => router.push(`/samples/${o.sample_id}`)} /> : null}
           {est ? <Button small variant="secondary" title="Number of manufacturers" onPress={setCount} /> : null}
           {est && missing ? <Button small title="+ Add manufacturer" onPress={() => edit()} /> : null}
           {est && ready.length > 1 ? <Button small title={`Submit ${ready.length} ready PIs`} onPress={() => submit(ready)} /> : null}

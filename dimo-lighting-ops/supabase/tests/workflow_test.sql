@@ -5623,6 +5623,86 @@ begin
 end $$;
 rollback to savepoint collections;
 
+-- A sample that is not available, ordered: sales person → SM Estimation → SM Projects → supply order (Sample) → arrived ----------------
+savepoint sample_order;
+select pg_temp.act_as('asm_building'); set role authenticated;
+insert into public.samples (id, project_id, sample_type, expected_return_date, purpose, required_by, handover_location)
+values ('00000000-0000-0000-0000-00000000e0a1', '00000000-0000-0000-0000-00000000b001', 'returnable', current_date + 40, 'Client approval', now() + interval '20 days', 'Site office');
+insert into public.sample_items (sample_id, description, quantity, unit_value) values ('00000000-0000-0000-0000-00000000e0a1', 'Linear 40W', 1, 6000);
+select public.submit_sample('00000000-0000-0000-0000-00000000e0a1');
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+select public.check_sample_availability('00000000-0000-0000-0000-00000000e0a1', 'not_available', 'NEED TO IMPORT');
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  begin perform public.sample_order_request('00000000-0000-0000-0000-00000000e0a1', ''); assert false, 'reason'; exception when raise_exception then assert sqlerrm like 'Say why%', sqlerrm; end;
+  perform public.sample_order_request('00000000-0000-0000-0000-00000000e0a1', 'Consultant approval – Navy LRH', current_date + 20);
+  assert (select order_status = 'requested' and status = 'not_available' from public.samples where id = '00000000-0000-0000-0000-00000000e0a1'), 'requested';
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ begin begin perform public.sample_order_decide('00000000-0000-0000-0000-00000000e0a1', true); assert false, 'SM Estimation first'; exception when raise_exception then null; end; end $$;
+reset role;
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+do $$ begin
+  begin perform public.sample_order_accept('00000000-0000-0000-0000-00000000e0a1', '{"supplier":"KYD"}'); assert false, 'lead time'; exception when raise_exception then assert sqlerrm like 'Enter the lead time%', sqlerrm; end;
+  perform public.sample_order_accept('00000000-0000-0000-0000-00000000e0a1', '{"supplier":"KYD (China)","cost":"120","currency":"USD","lead":"3 weeks"}');
+  assert (select order_status = 'accepted' and order_cost = 120 from public.samples where id = '00000000-0000-0000-0000-00000000e0a1'), 'accepted';
+end $$;
+reset role;
+select pg_temp.act_as('sm_projects'); set role authenticated;
+do $$ declare o uuid; begin
+  assert exists (select 1 from public.my_pending_approvals() where source = 'sample_order'), 'in SM Projects approvals';
+  o := public.sample_order_decide('00000000-0000-0000-0000-00000000e0a1', true);
+  assert (select kind = 'sample' and secured_id is null and sample_id = '00000000-0000-0000-0000-00000000e0a1' and mfr_count = 1 from public.supply_orders where id = o), 'sample supply order';
+  assert (select order_status = 'approved' and supply_order_id = o from public.samples where id = '00000000-0000-0000-0000-00000000e0a1'), 'approved';
+  perform set_config('test.so', o::text, false);
+end $$;
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  assert (select x ->> 'kind' = 'sample' and x ->> 'project' like 'Sample %' from jsonb_array_elements(public.so_list()) x where x ->> 'id' = current_setting('test.so')), 'the sales person sees the sample order';
+end $$;
+reset role;
+select pg_temp.act_as('operations_exec'); set role authenticated;
+do $$ begin
+  perform public.sample_order_arrived('00000000-0000-0000-0000-00000000e0a1', 'Received');
+  assert (select order_status = 'arrived' and status = 'availability_confirmed' and availability = 'available' from public.samples where id = '00000000-0000-0000-0000-00000000e0a1'), 'continues as a normal sample';
+end $$;
+reset role;
+rollback to savepoint sample_order;
+
+-- Earlier awards straight to order by SM Estimation ---------------------------------------------------------------------------------
+savepoint earlier_award;
+select pg_temp.act_as('asm_building'); set role authenticated;
+do $$ begin
+  begin perform public.send_earlier_award('{"project_name":"x","customer":"y","order_value":"1","won_on":"2026-01-01","type":"supply"}'); assert false, 'SM Estimation only';
+  exception when raise_exception then assert sqlerrm like 'SM Estimation sends%', sqlerrm; end;
+end $$;
+reset role;
+insert into public.secured_projects (code, project_name, customer, order_value, won_on, source, schedule_status)
+values ('SEC-OPEN-1', 'Harbour Front Lighting', 'Port City', 4800000, date '2025-08-14', 'opening', 'approved');
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+do $$ declare r jsonb; sid uuid := (select id from public.secured_projects where code = 'SEC-OPEN-1'); n int := (select count(*) from public.secured_projects); begin
+  -- typed, supply only, a new order-book entry
+  r := public.send_earlier_award('{"project_name":"Old Harbour Lighting","customer":"Port Authority","order_value":"2500000","won_on":"2026-08-14","type":"supply","mfr_count":"2","po_no":"PO-77"}');
+  assert r ->> 'kind' = 'supply_order', 'supply order';
+  assert (select kind = 'earlier_award' and mfr_count = 2 from public.supply_orders where id = (r ->> 'id')::uuid), 'earlier award order';
+  assert (select project_type = 'supply' and order_value = 2500000 and po_no = 'PO-77' from public.secured_projects where id = (r ->> 'secured_id')::uuid), 'order book entry added';
+  -- linked to the opening-list entry: no second entry, the value is not counted again
+  r := public.send_earlier_award(jsonb_build_object('secured_id', sid, 'project_name', 'Harbour Front Lighting', 'customer', 'Port City', 'order_value', 4800000,
+                                                   'won_on', '2025-08-14', 'type', 'supply_install', 'site_address', 'Colombo 1', 'areas', jsonb_build_array((app.exec_areas())[1])));
+  assert r ->> 'kind' = 'exec_request' and (r ->> 'secured_id')::uuid = sid, 'hand-over for the linked entry';
+  assert (select kind = 'legacy' and status = 'pending_smp' and see_id is null from public.exec_requests where id = (r ->> 'id')::uuid), 'pre-system hand-over with SM Projects';
+  assert (select order_value = 4800000 and project_type = 'supply_install' from public.secured_projects where id = sid), 'value unchanged';
+  assert (select count(*) from public.secured_projects) = n + 1, 'one new entry only';
+  begin perform public.send_earlier_award(jsonb_build_object('secured_id', (r ->> 'secured_id'), 'project_name', 'x', 'customer', 'y', 'order_value', 1, 'won_on', '2025-08-14', 'type', 'supply'));
+    assert false, 'already with execution'; exception when raise_exception then null; end;
+end $$;
+reset role;
+rollback to savepoint earlier_award;
+
 -- Daily report linked to the day's toolbox talk record (number from the TBT form) ---------------------------------
 savepoint report_tbt;
 -- (the supervisor's toolbox talks of earlier days, as recorded then)
