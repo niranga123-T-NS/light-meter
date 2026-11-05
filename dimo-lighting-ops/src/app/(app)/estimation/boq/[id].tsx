@@ -489,7 +489,10 @@ function ResultsStep(p: {
                 <Text style={{ width: 34, fontSize: 12, fontWeight: '700', color: colors.ink }}>{x.item}</Text>
                 <View style={{ flex: 1 }}>
                   <Text numberOfLines={1} style={{ fontSize: 12, color: colors.text }}>{x.desc}</Text>
-                  <Text style={{ fontSize: 11, fontWeight: '700', color: g.tone }}>{g.label}</Text>
+                  <Row gap={6} style={{ justifyContent: 'space-between' }}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: g.tone }}>{g.label}</Text>
+                    {x.qty ? <Text style={{ fontSize: 11, fontWeight: '800', color: colors.ink }}>{`× ${[x.qty, x.unit].filter(Boolean).join(' ')}`}</Text> : null}
+                  </Row>
                 </View>
               </Row>
             </Pressable>
@@ -507,8 +510,15 @@ function ResultsStep(p: {
           <Row gap={8} wrap style={{ justifyContent: 'space-between' }}>
             <ClientPic pic={p.pics[l.row]} size={110} />
             <View style={{ flex: 1, minWidth: 220, gap: 2 }}>
-              <Muted>{`Line ${l.item || l.row + 1} · ${[l.qty, l.unit].filter(Boolean).join(' ')} · ${i + 1} of ${fit.length}`}</Muted>
-              <Text style={{ fontSize: 15, fontWeight: '800', color: colors.ink }}>{l.desc}</Text>
+              <Muted>{`Line ${l.item || l.row + 1} · ${i + 1} of ${fit.length}`}</Muted>
+              <Row gap={10} style={{ alignItems: 'flex-start' }}>
+                <Text style={{ flex: 1, fontSize: 15, fontWeight: '800', color: colors.ink }}>{l.desc}</Text>
+                <View style={{ minWidth: 84, alignItems: 'center', borderWidth: 1.5, borderColor: l.qty ? colors.blue : colors.line, backgroundColor: l.qty ? '#EFF6FF' : '#fff', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
+                  <Text style={{ fontSize: 10, fontWeight: '800', color: colors.muted }}>QUANTITY</Text>
+                  <Text style={{ fontSize: 20, fontWeight: '800', color: l.qty ? '#1E3A8A' : colors.muted }}>{l.qty || '–'}</Text>
+                  {l.unit ? <Text style={{ fontSize: 11, color: colors.muted }}>{l.unit}</Text> : !l.qty ? <Text style={{ fontSize: 10, color: colors.muted }}>not in the BOQ</Text> : null}
+                </View>
+              </Row>
               {l.text !== l.desc ? <Muted>{`Read as: ${l.text}`}</Muted> : null}
               {p.pics[l.row] ? <Muted style={{ fontSize: 12 }}>{l.look?.length ? "The client's picture – the options are also ranked by how alike they look" : "The client's picture – press Find again on step 2 to compare it (website)"}</Muted> : null}
             </View>
