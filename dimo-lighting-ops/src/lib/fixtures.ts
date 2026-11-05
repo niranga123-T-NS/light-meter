@@ -252,11 +252,12 @@ const cctOk = (p: Fixture, k: number) => p.cct.k.includes(k) || (!!p.cct.range &
 
 /* ───────── Requirement / competitor spec ───────── */
 export type Level = 'must' | 'important' | 'nice';
-export type ParamKey = 'type' | 'size' | 'w' | 'lm' | 'cct' | 'cri' | 'ugr' | 'ip' | 'ik' | 'control' | 'beam' | 'aut' | 'warranty' | 'life';
+export type ParamKey = 'type' | 'mounting' | 'size' | 'w' | 'lm' | 'cct' | 'cri' | 'ugr' | 'ip' | 'ik' | 'control' | 'beam' | 'aut' | 'warranty' | 'life';
 export type SpecValue = { v: string; level: Level };
 export type Spec = Partial<Record<ParamKey, SpecValue>>;
 export const PARAMS: { key: ParamKey; label: string; hint: string; tol: string; level: Level }[] = [
   { key: 'type', label: 'Type', hint: 'Panel, Downlight, Floodlight…', tol: 'same type', level: 'must' },
+  { key: 'mounting', label: 'Mounting', hint: 'Surface, Recessed, Pendant, Track', tol: 'same mounting', level: 'must' },
   { key: 'size', label: 'Size (mm)', hint: '600 × 600, Φ200', tol: '±5 % (±10 % small deviation)', level: 'must' },
   { key: 'w', label: 'Power (W)', hint: '36', tol: '±10 %', level: 'important' },
   { key: 'lm', label: 'Lumens', hint: '4000', tol: '−5 % / +20 %', level: 'must' },
@@ -272,6 +273,21 @@ export const PARAMS: { key: ParamKey; label: string; hint: string; tol: string; 
   { key: 'life', label: 'Life (h)', hint: '50000', tol: '≥ value', level: 'nice' },
 ];
 
+/** How a light is mounted – read from a BOQ line, and from a product's mounting, title, family, size (cut-out) and notes */
+type Mount = 'recessed' | 'surface' | 'pendant' | 'track' | 'pole';
+const MOUNTS: [string, RegExp][] = [['Recessed', /recess|flush.?mount|built.?in|concealed|in.?ceiling|trimless|cut.?out/], ['Surface', /surface|ceiling.?mount|wall.?mount|on.?ceiling|ceiling surface/], ['Pendant', /pendant|suspen|hanging/], ['Track', /\btrack\b|trunking rail/]];
+const mountsIn = (s: string): Mount[] => { const t = s.toLowerCase().replace(/(suspended|false|gypsum|grid|drop|t-bar)\s*ceilings?|ceiling tiles?/g, ' '); return MOUNTS.filter(([, rx]) => rx.test(t)).map(([m]) => m.toLowerCase() as Mount); };
+const mountName = (m: Mount) => m[0].toUpperCase() + m.slice(1);
+const MOUNTC = new WeakMap<Fixture, Mount[]>();
+export function fxMounts(p: Fixture): Mount[] {
+  const hit = MOUNTC.get(p); if (hit) return hit;
+  const t = [p.mounting, p.title, p.fam, p.size, p.extras, p.note].filter(Boolean).join(' · ').toLowerCase(), out = new Set(mountsIn(t));
+  if (/hook|wire rope|chain/.test(t)) out.add('pendant');
+  if (!out.size && (/bracket|wall/.test(p.mounting?.toLowerCase() ?? '') || p.type === 'Wall / bulkhead' || p.type === 'Ceiling light')) out.add('surface');
+  if (/spigot|slip fitter|pole|post.?top/.test(t)) out.add('pole');
+  const r = [...out]; MOUNTC.set(p, r); return r;
+}
+
 /** Reads a datasheet or BOQ line: "LED panel 600x600, 36W, 4000lm, 4000K, CRI>80, UGR<19, IP40, DALI, 5 years" */
 export function parseSpecText(text: string): Spec {
   const t = text.replace(/\s+/g, ' ');
@@ -285,8 +301,12 @@ export function parseSpecText(text: string): Spec {
     ['Downlight', /down ?light/], ['Track / spot', /track|spot ?light/], ['Tri-proof / batten', /tri.?proof|batten|waterproof linear/], ['Linear', /linear|pendant/], ['Ceiling light', /ceiling light/],
     ['Wall / bulkhead', /bulkhead|wall light|wall pack/], ['Outdoor landscape', /bollard|in.?ground|underwater|wall washer/], ['Tube / lamp', /\btube\b|bulb|lamp\b/], ['Strip / neon', /strip|neon/]];
   put('type', typeRx.find(([, rx]) => rx.test(low))?.[0]);
+  put('mounting', mountsIn(low).map(mountName).join(' / '));
   const size = /(?:Φ|ø|Ø|dia\.?\s*)\s*(\d{2,4})|(\d{3,4})\s*[x×*]\s*(\d{3,4})(?:\s*[x×*]\s*(\d{1,3}))?/i.exec(t);
   if (size) put('size', size[1] ? `Φ${size[1]}` : `${size[2]} × ${size[3]}${size[4] ? ` × ${size[4]}` : ''}`);
+  // a single length: "1200mm length", "length 1200 mm", "L=1500mm", "4ft" (a linear light or batten)
+  const len = /(\d{3,4})\s*mm\.?\s*(?:long|length|lenth|lg\b)|(?:\blength|\blenth|\bL)\s*[:=]?\s*(\d{3,4})\s*mm/i.exec(t), ft = /\b([2-8])\s*(?:ft|feet|foot|')(?![a-z])/i.exec(t);
+  if (len) put('size', `L ${len[1] ?? len[2]}`); else if (ft) put('size', `L ${+ft[1] * 300}`);
   put('w', /(\d+(?:\.\d+)?)\s*(?:W|watts?)\b(?!\s*\/)/i.exec(t)?.[1]);
   put('lm', /(\d{1,3}(?:[,.]\d{3})+|\d{3,6})\s*(?:lm|lumens?)\b(?!\s*\/)/i.exec(t)?.[1].replace(/[,.]/g, ''));
   put('cct', /\b(\d{4})\s*K\b/.exec(t)?.[1]);
@@ -335,11 +355,18 @@ export function compare(p: Fixture, spec: Spec): Partial<Record<ParamKey, Cell>>
       case 'type':
         out.type = p.type.toLowerCase() === ask.toLowerCase() ? c('ok', p.type) : c('fail', p.type, `not a ${ask.toLowerCase()}`);
         break;
+      case 'mounting': {
+        const want = mountsIn(ask), has = fxMounts(p);
+        if (!has.length) { out.mounting = c('na', 'not in catalogue'); break; }
+        const okM = !want.length || want.some((m) => has.includes(m));
+        out.mounting = c(okM ? 'ok' : 'fail', has.map(mountName).join(' / '), okM ? '' : `${want.map(mountName).join(' / ').toLowerCase()} asked`);
+        break;
+      }
       case 'size': {
         const a = dims(ask), b = dims(p.size);
         if (!b.length) { out.size = c('na', p.size || 'not in catalogue'); break; }
-        const round = /Φ|ø|Ø/.test(ask);
-        const pairs = round ? [[a[0], b[0]]] : [[Math.max(a[0], a[1] ?? 0), Math.max(b[0], b[1] ?? 0)], [Math.min(a[0], a[1] ?? a[0]), Math.min(b[0], b[1] ?? b[0])]];
+        const round = /Φ|ø|Ø/.test(ask), lenOnly = /^L\b/.test(ask);
+        const pairs = lenOnly ? [[a[0], Math.max(...b)]] : round ? [[a[0], b[0]]] : [[Math.max(a[0], a[1] ?? 0), Math.max(b[0], b[1] ?? 0)], [Math.min(a[0], a[1] ?? a[0]), Math.min(b[0], b[1] ?? b[0])]];
         const worst = Math.max(...pairs.map(([x, y]) => Math.abs(pct(y, x))));
         const d = pairs.map(([x, y]) => (Math.abs(y - x) > 2 ? `${sgn(y - x)} mm` : '')).filter(Boolean).join(' / ');
         out.size = c(worst <= 5 ? 'ok' : worst <= 10 ? 'minor' : 'fail', p.size ?? '', worst <= 5 ? '' : d);
