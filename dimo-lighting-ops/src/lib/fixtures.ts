@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 import { pdfText } from './pdfText';
-import { readBytes, type PickedFile } from './files';
+import { pickImage, readBytes, type PickedFile } from './files';
 import { supabase } from './supabase';
 
 /** The fixture library: every model from the manufacturer catalogues (data/catalogs → public/fixtures/library.json, built by scripts/build-fixtures.py).
@@ -41,7 +41,7 @@ export function loadFixtures() {
 /** Countries offered for a brand's origin and manufacturing; any other country can be typed in */
 export const COUNTRIES = ['Europe', 'China', 'India', 'Singapore', 'Australia'];
 /** Each brand's country of origin (one) and countries of manufacturing (one or several) */
-export type BrandGroups = { origins: Record<string, string>; madeIn: Record<string, string[]> };
+export type BrandGroups = { origins: Record<string, string>; madeIn: Record<string, string[]>; logos?: Record<string, string> };
 /** The countries to offer: the standard ones, then any other typed in for a brand */
 export const countryList = (g: BrandGroups) => [...COUNTRIES, ...[...new Set([...Object.values(g.origins), ...Object.values(g.madeIn).flat()])].filter((c) => !COUNTRIES.includes(c)).sort()];
 /** Who works in the catalog supervisor mode: the DGM and SM Estimation */
@@ -56,10 +56,11 @@ let cat: Promise<Catalog> | null = null;
 /** The library with the supervisor corrections laid over it; removed products are kept apart in `hidden` */
 export function loadCatalog(fresh = false) {
   if (!cat || fresh)
-    cat = Promise.all([loadFixtures(), supabase.from('fixture_brands').select('brand, origin, made_in, price_level, warnings'), supabase.from('fixture_edits').select('*')]).then(([lib, b, e]) => {
-      const groups: BrandGroups = { origins: {}, madeIn: {} };
+    cat = Promise.all([loadFixtures(), supabase.from('fixture_brands').select('brand, origin, made_in, price_level, warnings, logo'), supabase.from('fixture_edits').select('*')]).then(([lib, b, e]) => {
+      const groups: BrandGroups = { origins: {}, madeIn: {}, logos: {} };
       const brandLevels: Record<string, PriceLevel> = {}, brandWarnings: Record<string, string[]> = {};
-      for (const r of (b.data ?? []) as { brand: string; origin: string | null; made_in: string[] | null; price_level: PriceLevel | null; warnings: string[] | null }[]) {
+      for (const r of (b.data ?? []) as { brand: string; origin: string | null; made_in: string[] | null; price_level: PriceLevel | null; warnings: string[] | null; logo: string | null }[]) {
+        if (r.logo) groups.logos![r.brand] = r.logo;
         if (r.origin) groups.origins[r.brand] = r.origin;
         if (r.made_in?.length) groups.madeIn[r.brand] = r.made_in;
         if (r.price_level) brandLevels[r.brand] = r.price_level;
@@ -524,3 +525,33 @@ export const STATUS_STYLE: Record<Status, { bg: string; fg: string; icon: string
   fail: { bg: '#FEF2F2', fg: '#991B1B', icon: '✕', label: 'does not meet' },
   na: { bg: '#F9FAFB', fg: '#4B5563', icon: '?', label: 'not in the catalogue' },
 };
+
+/** A brand's small logo (a data URL kept on the brand row), or null to go back to its initials */
+export async function setBrandLogo(brand: string, logo: string | null) {
+  const { error } = await supabase.from('fixture_brands').upsert({ brand, logo }, { onConflict: 'brand' });
+  if (error) throw new Error(error.message);
+}
+/** Picks a logo image and makes it small: at most 160 px on the web (redrawn), and at most 250 kB on a phone or iPad */
+export async function pickBrandLogo(): Promise<string | null> {
+  const f = await pickImage(false, false, true);
+  if (!f) return null;
+  if (Platform.OS === 'web') {
+    const src = f.base64 ? `data:${f.mimeType ?? 'image/png'};base64,${f.base64}` : f.uri;
+    return await new Promise<string>((ok, bad) => {
+      const img = new window.Image();
+      img.onload = () => {
+        const k = Math.min(1, 160 / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.max(1, Math.round(img.width * k));
+        c.height = Math.max(1, Math.round(img.height * k));
+        c.getContext('2d')?.drawImage(img, 0, 0, c.width, c.height);
+        ok(c.toDataURL('image/png'));
+      };
+      img.onerror = () => bad(new Error('The image could not be read'));
+      img.src = src;
+    });
+  }
+  if (!f.base64) throw new Error('The image could not be read');
+  if (f.base64.length > 340000) throw new Error('The logo is too large – use a small image (under 250 kB), e.g. a screenshot of the logo');
+  return `data:${f.mimeType ?? 'image/jpeg'};base64,${f.base64}`;
+}

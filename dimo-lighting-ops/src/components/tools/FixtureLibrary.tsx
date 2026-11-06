@@ -2,16 +2,17 @@ import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, Text, View } from 'react-native';
 import { useDialog } from '@/components/dialog';
-import { Button, Card, Chip, colors, ErrorBanner, Field, Loading, Muted, Notice, Pill, Row, Segmented, Select, Toggle } from '@/components/ui';
+import { Button, Card, Chip, colors, ErrorBanner, Field, Loading, Muted, Notice, Pill, Row } from '@/components/ui';
 import { useMe } from '@/lib/auth';
 import { pickDocument } from '@/lib/files';
 import {
   bestMatches, buildPatch, CATALOG_SUPERVISORS, cctText, EDIT_FIELDS, editText, FIXTURE_TYPES, fixtureImage, fmt, loadCatalog, missingData, PARAMS, parseSpecText, readDatasheet, COUNTRIES, countryList,
-  brandLevelFollowUp, clearLevelReview, PRICE_LEVELS, priceLabel, saveFixtureEdit, searchFixtures, setBrandPriceLevel, setBrandMadeIn, setBrandOrigin, setBrandWarnings, setProductPriceLevel, setProductWarnings, WARNING_PRESETS, STATUS_STYLE, wattText, type Catalog, type Fixture, type Level, type Match, type ParamKey, type PriceLevel, type Spec, type BrandGroups,
+  brandLevelFollowUp, clearLevelReview, PRICE_LEVELS, priceLabel, saveFixtureEdit, searchFixtures, setBrandPriceLevel, setBrandMadeIn, setBrandOrigin, setBrandWarnings, setBrandLogo, pickBrandLogo, setProductPriceLevel, setProductWarnings, WARNING_PRESETS, STATUS_STYLE, wattText, type Catalog, type Fixture, type Level, type Match, type ParamKey, type PriceLevel, type Spec, type BrandGroups,
 } from '@/lib/fixtures';
 import { fmtDateTime } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
-import { BrandFilter, PriceFilter, PriceTag, WarningTags } from './BrandFilter';
+import { BrandFilter, FilterTokens, PriceFilter, PriceTag, SearchBox, TypeFilter, WarningTags } from './BrandFilter';
+import { BrandBadge, EstIcon, IconBtn, IconTabs, Tip, ToolBar } from './EstUi';
 import { PhotoSearchView } from './PhotoSearch';
 
 /** What a supervisor can do from a search result */
@@ -96,30 +97,31 @@ export function FixtureLibrary() {
   };
   return (
     <View style={{ gap: 10 }}>
-      {canSup ? (
-        <Row gap={10} wrap style={{ alignItems: 'center' }}>
-          <View style={{ minWidth: 260 }}><Toggle label="Catalog supervisor mode" value={supOn} onChange={setSupOn} /></View>
-          {supOn ? <Muted>Only the DGM and SM Estimation see this: brand origin and manufacturing, price levels and warnings, correct or delete product data, remove products from the catalog.</Muted> : null}
-        </Row>
-      ) : null}
-      {sup ? <BrandCategories brands={brands} cat={data} onOrigin={(b, c) => dialog.run(async () => { await setBrandOrigin(b, c); await refresh(); })} onMadeIn={(b, list) => dialog.run(async () => { await setBrandMadeIn(b, list); await refresh(); })} onLevel={(b, l) => setBrandLevel(b, l)} onWarn={brandWarn} /> : null}
-      <Segmented
-        value={mode}
-        onChange={setMode}
-        options={[
-          { value: 'search', label: 'Search' },
-          { value: 'photo', label: 'Search by photo' },
-          { value: 'match', label: 'Find a match (BOQ line / competitor datasheet)' },
-        ]}
-      />
-      <Muted>{`${data.products.length.toLocaleString('en-US')} products · ${brands.length} brands · ${brands.join(', ')}${data.hidden.length ? ` · ${data.hidden.length} removed` : ''}`}</Muted>
+      <Row gap={8} wrap style={{ alignItems: 'center' }}>
+        <IconTabs
+          value={mode}
+          onChange={setMode}
+          options={[
+            { value: 'search', label: 'Search', icon: 'search' },
+            { value: 'photo', label: 'Photo', icon: 'photo' },
+            { value: 'match', label: 'Find a match', icon: 'match' },
+          ]}
+        />
+        <View style={{ flex: 1 }} />
+        <Tip title={`${data.products.length.toLocaleString('en-US')} products · ${brands.length} brands`} text={`${brands.join(', ')}${data.hidden.length ? ` · ${data.hidden.length} removed` : ''}`} style={{ padding: 8 }}>
+          <EstIcon name="info" size={17} />
+        </Tip>
+        {canSup ? <IconBtn icon="shield" on={supOn} title={supOn ? 'Catalog supervisor mode – on' : 'Catalog supervisor mode'} text="DGM and SM Estimation: brand origin and manufacturing, logos, price levels and warnings; correct or delete product data, remove products from the catalog." onPress={() => setSupOn(!supOn)} /> : null}
+      </Row>
+      {supOn ? <Muted>Catalog supervisor mode – only the DGM and SM Estimation see this.</Muted> : null}
+      {sup ? <BrandCategories brands={brands} cat={data} onOrigin={(b, c) => dialog.run(async () => { await setBrandOrigin(b, c); await refresh(); })} onMadeIn={(b, list) => dialog.run(async () => { await setBrandMadeIn(b, list); await refresh(); })} onLogo={(b, remove) => dialog.run(async () => { const logo = remove ? null : await pickBrandLogo(); if (!remove && !logo) return; await setBrandLogo(b, logo); await refresh(); }, remove ? 'Logo removed – the initials show again' : 'Logo saved')} onLevel={(b, l) => setBrandLevel(b, l)} onWarn={brandWarn} /> : null}
       {mode === 'search' ? <SearchView all={data.products} brands={brands} groups={data.groups} sup={sup} /> : mode === 'photo' ? <PhotoSearchView all={data.products} brands={brands} groups={data.groups} /> : <MatchView all={data.products} brands={brands} groups={data.groups} />}
     </View>
   );
 }
 
 /** Supervisor: each brand's country of origin (one) and countries of manufacturing (one or several), price level and warnings */
-function BrandCategories({ brands, cat, onOrigin, onMadeIn, onLevel, onWarn }: { brands: string[]; cat: Catalog; onOrigin: (brand: string, c: string | null) => void; onMadeIn: (brand: string, list: string[]) => void; onLevel: (brand: string, l: PriceLevel | null) => void; onWarn: (brand: string, remove?: string) => void }) {
+function BrandCategories({ brands, cat, onOrigin, onMadeIn, onLevel, onWarn, onLogo }: { brands: string[]; cat: Catalog; onLogo: (brand: string, remove?: boolean) => void; onOrigin: (brand: string, c: string | null) => void; onMadeIn: (brand: string, list: string[]) => void; onLevel: (brand: string, l: PriceLevel | null) => void; onWarn: (brand: string, remove?: string) => void }) {
   const dialog = useDialog();
   const all = [...cat.products, ...cat.hidden];
   const countries = countryList(cat.groups);
@@ -145,7 +147,12 @@ function BrandCategories({ brands, cat, onOrigin, onMadeIn, onLevel, onWarn }: {
         return (
           <View key={b} style={{ gap: 4, paddingVertical: 6, borderBottomWidth: 1, borderColor: '#F3F4F6' }}>
             <Row gap={8} wrap style={{ alignItems: 'center' }}>
-              <Text style={{ width: 170, fontWeight: '700', color: colors.ink }}>{b}</Text>
+              <View style={{ width: 170, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <BrandBadge brand={b} logo={cat.groups.logos?.[b]} size={26} />
+                <Text style={{ flex: 1, fontWeight: '700', color: colors.ink }} numberOfLines={1}>{b}</Text>
+              </View>
+              <Text onPress={() => onLogo(b)} style={{ fontSize: 12, fontWeight: '700', color: colors.blue }}>{cat.groups.logos?.[b] ? 'Change logo' : '+ Logo'}</Text>
+              {cat.groups.logos?.[b] ? <Text onPress={() => onLogo(b, true)} style={{ fontSize: 12, fontWeight: '700', color: colors.red }}>Remove logo</Text> : null}
               <Muted style={{ width: 90, fontSize: 12 }}>{`${ps.length} products`}</Muted>
               <Text style={{ fontSize: 12, fontWeight: '700', color: colors.muted, width: 70 }}>Origin</Text>
               {originOpts.map((c) => <Chip key={c} label={c} on={origin === c} onPress={() => onOrigin(b, origin === c ? null : c)} />)}
@@ -230,14 +237,20 @@ function SearchView({ all, brands, groups, sup }: { all: Fixture[]; brands: stri
   const view = sup ? show : 'all';
   const src = useMemo(() => (view === 'removed' ? sup!.cat.hidden : view === 'missing' ? all.filter((p) => missingData(p).length) : view === 'edited' ? all.filter((p) => p.edited) : view === 'levels' ? all.filter((p) => p.levelReview) : all), [all, sup, view]);
   const hits = useMemo(() => searchFixtures(src, q, { type, brands: brandSel, levels: levelSel }), [src, q, type, brandSel, levelSel]);
+  const counts = useMemo(() => {
+    const b: Record<string, number> = {}, l: Partial<Record<PriceLevel, number>> = {};
+    for (const p of src) { b[p.brand] = (b[p.brand] ?? 0) + 1; if (p.priceLevel) l[p.priceLevel] = (l[p.priceLevel] ?? 0) + 1; }
+    return { brands: b, levels: l };
+  }, [src]);
   return (
     <View style={{ gap: 8 }}>
-      <Field label="Search" value={q} onChangeText={(t) => { setQ(t); setLimit(60); }} placeholder="Code, name or values – e.g. BP-6060, panel 36w ugr19 dali, flood 200w ip66 4000k" autoCapitalize="none" />
-      <Row gap={8} wrap style={{ alignItems: 'flex-end' }}>
-        <Select label="Type" value={type} onChange={setType} options={[{ value: '', label: 'All types' }, ...FIXTURE_TYPES.map((x) => ({ value: x, label: x }))]} />
-      </Row>
-      <BrandFilter brands={brands} groups={groups} value={brandSel} onChange={setBrandSel} />
-      <PriceFilter value={levelSel} onChange={setLevelSel} />
+      <ToolBar>
+        <SearchBox value={q} onChange={(t) => { setQ(t); setLimit(60); }} placeholder="Code, name or values – e.g. BP-6060, panel 36w ugr19 dali, flood 200w ip66 4000k" />
+        <TypeFilter value={type} onChange={setType} types={FIXTURE_TYPES} />
+        <BrandFilter brands={brands} groups={groups} value={brandSel} onChange={setBrandSel} counts={counts.brands} />
+        <PriceFilter value={levelSel} onChange={setLevelSel} counts={counts.levels} />
+      </ToolBar>
+      <FilterTokens type={type} onType={setType} brands={brandSel} onBrands={setBrandSel} levels={levelSel} onLevels={setLevelSel} logos={groups.logos} />
       {sup ? (
         <Row gap={6} wrap>
           <Chip label="In the catalog" on={show === 'all'} onPress={() => setShow('all')} />
@@ -247,13 +260,18 @@ function SearchView({ all, brands, groups, sup }: { all: Fixture[]; brands: stri
           <Chip label={`Removed (${sup.cat.hidden.length})`} tone={show === 'removed' ? colors.red : undefined} on={show === 'removed'} onPress={() => setShow('removed')} />
         </Row>
       ) : null}
-      <Muted>{`${hits.length.toLocaleString('en-US')} found${q ? '' : ' – type to narrow down'}. Values: 36w · 4000lm · 4000k · ip65 · ik08 · ugr19 · cri90 · dali`}</Muted>
+      <Row gap={8} wrap style={{ alignItems: 'center', paddingHorizontal: 2 }}>
+        <Text style={{ fontSize: 12.5, color: colors.muted }}><Text style={{ fontWeight: '800', color: colors.ink }}>{hits.length.toLocaleString('en-US')}</Text>{` found${q ? '' : ' – type to narrow down'}`}</Text>
+        <View style={{ flex: 1 }} />
+        <Text style={{ fontSize: 12, color: colors.faint }}>Values: 36w · 4000lm · 4000k · ip65 · ik08 · ugr19 · cri90 · dali</Text>
+      </Row>
       {hits.slice(0, limit).map((p) => (
         <Card key={p.id} onPress={() => router.push(`/fixtures/${encodeURIComponent(p.id)}`)} style={{ padding: 10 }}>
           <Row gap={12} style={{ alignItems: 'center' }}>
             <Thumb p={p} />
             <View style={{ flex: 1, gap: 2 }}>
               <Row gap={8} style={{ alignItems: 'center' }}>
+                <BrandBadge brand={p.brand} logo={groups.logos?.[p.brand]} size={18} />
                 <Text style={{ fontWeight: '700', color: colors.ink }}>{`${p.brand} ${p.code}`}</Text>
                 {sup ? null : <PriceTag level={p.priceLevel} />}
               </Row>
@@ -363,8 +381,12 @@ function MatchView({ all, brands, groups }: { all: Fixture[]; brands: string[]; 
             </Row>
           );
         })}
-        <BrandFilter brands={brands} groups={groups} value={brandSel} onChange={setBrandSel} label="Brands to choose from" />
-        <PriceFilter value={levelSel} onChange={setLevelSel} />
+        <Row gap={6} wrap style={{ alignItems: 'center', marginTop: 4 }}>
+          <Text style={{ fontSize: 13, color: colors.muted }}>Choose from</Text>
+          <BrandFilter brands={brands} groups={groups} value={brandSel} onChange={setBrandSel} label="Brands to choose from" />
+          <PriceFilter value={levelSel} onChange={setLevelSel} />
+          <FilterTokens brands={brandSel} onBrands={setBrandSel} levels={levelSel} onLevels={setLevelSel} logos={groups.logos} />
+        </Row>
         <Row gap={8} wrap style={{ alignItems: 'flex-end', marginTop: 6 }}>
           <View>
             <Text style={{ fontSize: 13, color: colors.muted, marginBottom: 4 }}>Options to show</Text>
