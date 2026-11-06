@@ -5701,6 +5701,20 @@ do $$ declare r jsonb; sid uuid := (select id from public.secured_projects where
   begin perform public.send_earlier_award(jsonb_build_object('secured_id', (r ->> 'secured_id'), 'project_name', 'x', 'customer', 'y', 'order_value', 1, 'won_on', '2025-08-14', 'type', 'supply'));
     assert false, 'already with execution'; exception when raise_exception then null; end;
 end $$;
+-- from an inquiry in the system: the value goes into the order book once
+reset role;
+select pg_temp.act_as('asm_building'); set role authenticated;
+insert into public.projects (id, name, project_type, organization_id, expected_duration_months, project_term, owner_id)
+values ('00000000-0000-0000-0000-0000000ea001', 'Showroom AOD – earlier award test', 'commercial', '00000000-0000-0000-0000-00000000a001', 6, 'short', auth.uid());
+insert into public.inquiries (id, project_id, organization_id, unit_id, route, design_scope, customer_deadline, scope_description, sales_person_id)
+values ('00000000-0000-0000-0000-0000000ea002', '00000000-0000-0000-0000-0000000ea001', '00000000-0000-0000-0000-00000000a001', '00000000-0000-0000-0000-00000000a002', 'C', 'lighting_electrical', current_date + 20, 'Showroom lighting', auth.uid());
+reset role;
+select pg_temp.act_as('sm_estimation'); set role authenticated;
+do $$ declare r jsonb; begin
+  r := public.send_earlier_award(jsonb_build_object('inquiry_id', '00000000-0000-0000-0000-0000000ea002', 'order_value', 3941350, 'currency', 'LKR', 'won_on', '2026-08-14', 'type', 'supply', 'mfr_count', 1));
+  assert (select order_value = 3941350 from public.secured_projects where id = (r ->> 'secured_id')::uuid), format('inquiry value once, got %s', (select order_value from public.secured_projects where id = (r ->> 'secured_id')::uuid));
+  assert (select count(*) from public.secured_projects where project_id = '00000000-0000-0000-0000-0000000ea001') = 1, 'one entry for the project';
+end $$;
 reset role;
 rollback to savepoint earlier_award;
 
