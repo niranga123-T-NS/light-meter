@@ -10525,6 +10525,9 @@ begin
   perform public.so_save_pi(a, null, '{"manufacturer":"Disano","country":"Italy","pi_no":"2026/1182","pi_date":"2026-10-14","pi_value":"21400","currency":"eur"}');
   begin perform public.so_submit(array[a]); assert false, 'PI file needed';
   exception when others then assert sqlerrm like 'Disano: attach the PI%', sqlerrm; end;
+  -- the file store asks without the kind of file: allowed, and only the PI and costing kinds for the attachment row
+  assert app.can_write_attachment('supply_pi', a, null), 'the PI file can be uploaded';
+  assert not app.can_write_attachment('supply_pi', a, 'photo'), 'other kinds are not';
   insert into public.attachments (entity_type, entity_id, kind, storage_path, file_name) values ('supply_pi', a, 'supply_pi', 'supply_pi/' || a || '/pi.pdf', 'pi.pdf');
   assert public.so_submit(array[a]) = 1, 'one submitted';
   assert (select ops_status = 'pending' and currency = 'EUR' from public.supply_pis where id = a), 'with Operations';
