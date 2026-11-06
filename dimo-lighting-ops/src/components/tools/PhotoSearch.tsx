@@ -2,11 +2,11 @@ import { router } from 'expo-router';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { Image, Platform, Text, View } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
-import { Button, Card, colors, Muted, Notice, Row, Select } from '@/components/ui';
+import { Button, Card, colors, Muted, Notice, Row } from '@/components/ui';
 import { pickImage } from '@/lib/files';
 import { cctText, FIXTURE_TYPES, fmt, levelOk, wattText, type Fixture, type PriceLevel, type BrandGroups } from '@/lib/fixtures';
 import { fingerprintWeb, likeness, loadVisionIndex, rankByPhoto, VISION_PAGE } from '@/lib/photoSearch';
-import { BrandFilter, PriceFilter } from './BrandFilter';
+import { BrandFilter, FilterTokens, PriceFilter, TypeFilter } from './BrandFilter';
 import { Thumb } from './FixtureLibrary';
 
 type Job = { ok: (v: number[][]) => void; bad: (e: Error) => void };
@@ -102,11 +102,13 @@ export function PhotoSearchView({ all, brands, groups }: { all: Fixture[]; brand
             <Muted>Site photo, brochure page or a picture from the client. Let the fitting fill the picture (crop it if you can) – a plain background works best.</Muted>
           </View>
         </Row>
-        <Row gap={8} wrap style={{ alignItems: 'flex-end' }}>
-          <Select label="Type" value={type} onChange={setType} options={[{ value: '', label: 'All types' }, ...FIXTURE_TYPES.map((x) => ({ value: x, label: x }))]} />
+        <Row gap={6} wrap style={{ alignItems: 'center' }}>
+          <Text style={{ fontSize: 13, color: colors.muted }}>Look in</Text>
+          <TypeFilter value={type} onChange={setType} types={FIXTURE_TYPES} />
+          <BrandFilter brands={brands} groups={groups} value={brandSel} onChange={setBrandSel} />
+          <PriceFilter value={levelSel} onChange={setLevelSel} />
+          <FilterTokens type={type} onType={setType} brands={brandSel} onBrands={setBrandSel} levels={levelSel} onLevels={setLevelSel} logos={groups.logos} />
         </Row>
-        <BrandFilter brands={brands} groups={groups} value={brandSel} onChange={setBrandSel} />
-        <PriceFilter value={levelSel} onChange={setLevelSel} />
         {busy ? <Notice>{busy}</Notice> : null}
         {err ? <Notice tone={colors.amber}>{err}</Notice> : null}
       </Card>

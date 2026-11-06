@@ -2,7 +2,11 @@ import { router, Stack } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { useDialog } from '@/components/dialog';
 import { EstimationTabs, useEstimationTab } from '@/components/EstimationTabs';
-import { Button, Card, colors, ErrorBanner, Field, ListRow, Loading, Muted, Pill, Row, Screen, Section } from '@/components/ui';
+import type React from 'react';
+import { Pressable, Text, View } from 'react-native';
+import { colors, ErrorBanner, Loading, Muted, Pill, Row, Screen } from '@/components/ui';
+import { SearchBox } from '@/components/tools/BrandFilter';
+import { EstIcon, IconBtn, Segments, Tip, ToolBar } from '@/components/tools/EstUi';
 import { BOQ_PROJECT_KIND, deleteBoqProject, saveBoqProject, type BoqProject } from '@/lib/boqMatch';
 import { fmtDate, fmtDateTime, human } from '@/lib/format';
 import { useLoad } from '@/lib/hooks';
@@ -80,77 +84,115 @@ export default function EstimationBoq() {
       await reload();
     }, 'Deleted');
   };
+  const head = (t: string, n: number, right?: React.ReactNode) => (
+    <Row gap={8} style={{ alignItems: 'center', marginTop: 10, marginBottom: 2, paddingHorizontal: 2 }}>
+      <Text style={{ fontSize: 13, fontWeight: '800', color: '#334155' }}>{t}</Text>
+      <Text style={{ fontSize: 11, fontWeight: '700', color: '#334155', backgroundColor: '#e2e8f0', borderRadius: 999, paddingHorizontal: 7, paddingVertical: 1 }}>{n}</Text>
+      <View style={{ flex: 1 }} />
+      {right}
+    </Row>
+  );
   return (
     <Screen maxWidth={1100}>
       <Stack.Screen options={{ title: 'Estimation' }} />
       <EstimationTabs value="boq" />
-      <Muted>Upload the client&apos;s BOQ Excel for an estimate – every light-fitting line gets the best options from the catalogue library, the estimator chooses one, and the Excel comes back with the choices and options added.</Muted>
       {error ? <ErrorBanner message={error} /> : null}
       {loading && !data ? <Loading /> : null}
+      {data ? (
+        <ToolBar>
+          <SearchBox value={search} onChange={setSearch} placeholder="Inquiry number, project or customer" />
+          <Pressable onPress={() => editCustom()} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, height: 38, paddingHorizontal: 12, borderRadius: 8, backgroundColor: colors.brand }}>
+            <EstIcon name="plus" size={16} />
+            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Inquiry not in the system</Text>
+          </Pressable>
+          <IconBtn icon="info" title="BOQ match" text="Upload the client's BOQ Excel for an estimate – every light-fitting line gets the best options from the catalogue library, the estimator chooses one, and the Excel comes back with the choices and options. Inquiries not in the system: from before the system, or never registered – added here only to match their BOQ." />
+        </ToolBar>
+      ) : null}
       {data?.saved.length ? (
-        <Section title="Recently saved BOQ matches">
-          <Card style={{ padding: 0, overflow: 'hidden' }}>
+        <>
+          {head('Recently saved', data.saved.length)}
+          <Rows>
             {data.saved.map((s) => {
               const fit = s.lines.filter((l) => l.kind === 'fitting');
+              const chosen = fit.filter((l) => l.chosen).length, none = fit.filter((l) => l.noMatch).length;
               return (
-                <ListRow
+                <IRow
                   key={s.id}
-                  title={s.boq_projects ? `${s.boq_projects.ref} · ${s.boq_projects.project_name} · not in the system` : `${s.estimation_jobs?.inquiries?.code ?? '—'} · ${s.estimation_jobs?.inquiries?.project_name ?? ''} · R${s.estimation_jobs?.revision ?? 0}`}
-                  subtitle={`${s.file_name}${s.sheet ? ` › ${s.sheet}` : ''} · ${fit.length} lines · ${fit.filter((l) => l.chosen).length} chosen · ${fit.filter((l) => l.noMatch).length} no match · saved ${fmtDateTime(s.updated_at)}`}
+                  onPress={() => open(s)}
+                  title={s.boq_projects ? `${s.boq_projects.ref} · ${s.boq_projects.project_name} · not in the system` : `${s.estimation_jobs?.inquiries?.code ?? '—'} · ${s.estimation_jobs?.inquiries?.project_name ?? ''} · R${s.estimation_jobs?.revision ?? ''}`}
+                  subtitle={`${s.file_name}${s.sheet ? ` › ${s.sheet}` : ''} · ${fit.length} lines · ${chosen} chosen · ${none} no match · saved ${fmtDateTime(s.updated_at)}`}
                   right={
-                    <Row gap={6} style={{ alignItems: 'center' }}>
-                      <Button small variant="ghost" title="Delete" onPress={() => removeSaved(s)} />
-                      <Button small variant="secondary" title="Open" onPress={() => open(s)} />
-                    </Row>
+                    <>
+                      <Segments done={fit.length ? Math.round((chosen / fit.length) * 5) : 0} />
+                      <IconBtn icon="open" title="Open" text={`Opens the saved BOQ match: ${chosen} of ${fit.length} lines chosen${none ? `, ${none} with no match` : ''}.`} onPress={() => open(s)} />
+                      <IconBtn icon="del" title="Delete" text="Deletes this saved BOQ match and the choices made in it." onPress={() => removeSaved(s)} />
+                    </>
                   }
                 />
               );
             })}
-          </Card>
-        </Section>
+          </Rows>
+        </>
       ) : null}
-      {data ? <Field label="Search" value={search} onChangeText={setSearch} placeholder="Inquiry number, project or customer" /> : null}
       {data ? (
-        <Section title="Inquiries not in the system" right={<Button small title="+ Add an inquiry" onPress={() => editCustom()} />}>
-          <Muted>From before the system, or never registered in it – added here only to match their BOQ.</Muted>
+        <>
+          {head('Inquiries not in the system', customShown.length)}
           {customShown.length ? (
-            <Card style={{ padding: 0, overflow: 'hidden' }}>
+            <Rows>
               {customShown.map((p) => (
-                <ListRow
+                <IRow
                   key={p.id}
-                  title={`${p.ref} · ${p.project_name}`}
-                  subtitle={`${p.customer_name ?? '—'}${p.inquiry_date ? ` · ${fmtDate(p.inquiry_date)}` : ''}${savedCount.get(p.id) ? ` · ${savedCount.get(p.id)} saved match${savedCount.get(p.id)! > 1 ? 'es' : ''}` : ''}${p.notes ? ` · ${p.notes}` : ''}`}
                   onPress={() => openCustom(p.id)}
+                  title={`${p.ref} · ${p.project_name}`}
+                  subtitle={`${p.customer_name ?? '—'}${p.inquiry_date ? ` · ${fmtDate(p.inquiry_date)}` : ''}${savedCount.get(p.id) ? ` · ${savedCount.get(p.id)} saved match${savedCount.get(p.id)! > 1 ? 'es' : ''}` : ''}`}
                   right={
-                    <Row gap={6} style={{ alignItems: 'center' }}>
+                    <>
                       <Pill label={BOQ_PROJECT_KIND[p.kind]} tone={colors.amber} />
-                      <Button small variant="ghost" title="Edit" onPress={() => editCustom(p)} />
-                      <Button small variant="ghost" title="Delete" onPress={() => removeCustom(p)} />
-                      <Button small title="BOQ match" onPress={() => openCustom(p.id)} />
-                    </Row>
+                      <IconBtn icon="boq" title="BOQ match" text="Match this inquiry's BOQ Excel against the catalogue." onPress={() => openCustom(p.id)} />
+                      <IconBtn icon="edit" title="Edit" text="Reference, project, customer and date." onPress={() => editCustom(p)} />
+                      <IconBtn icon="del" title="Delete" text="Deletes this inquiry and its saved BOQ matches." onPress={() => removeCustom(p)} />
+                    </>
                   }
                 />
               ))}
-            </Card>
-          ) : <Muted>{search ? 'None found.' : 'None added yet.'}</Muted>}
-        </Section>
+            </Rows>
+          ) : <Muted>{search ? 'None found.' : 'None added yet – “+ Inquiry not in the system” adds one.'}</Muted>}
+        </>
       ) : null}
       {data ? (
-        <Section title="Start a BOQ match – choose the estimate">
-          <Muted>Estimates with a saved BOQ match are under Recently saved – delete the saved match to start again from here.</Muted>
-          <Card style={{ padding: 0, overflow: 'hidden' }}>
+        <>
+          {head('Start a BOQ match – choose the estimate', shown.length, <Tip title="Saved matches" text="Estimates with a saved BOQ match are under Recently saved – delete the saved match to start again from here." style={{ padding: 4 }}><EstIcon name="info" size={15} /></Tip>)}
+          <Rows>
             {shown.length ? shown.map((j) => (
-              <ListRow
+              <IRow
                 key={j.id}
+                onPress={() => router.push(`/estimation/boq/${j.id}`)}
                 title={`${j.inquiries?.code ?? '—'} · ${j.inquiries?.project_name ?? ''} · R${j.revision}`}
                 subtitle={`${j.inquiries?.customer_name ?? '—'} · ${human(j.status)} · source ${j.source}`}
-                onPress={() => router.push(`/estimation/boq/${j.id}`)}
-                right={<Button small title="BOQ match" onPress={() => router.push(`/estimation/boq/${j.id}`)} />}
+                right={<IconBtn icon="boq" title="BOQ match" text="Upload this estimate's BOQ Excel and match every line." onPress={() => router.push(`/estimation/boq/${j.id}`)} />}
               />
-            )) : <ListRow title="No estimates found" />}
-          </Card>
-        </Section>
+            )) : <IRow title="No estimates found" />}
+          </Rows>
+        </>
       ) : null}
     </Screen>
+  );
+}
+
+/** A list of compact rows */
+function Rows({ children }: { children: React.ReactNode }) {
+  return <View style={{ borderWidth: 1, borderColor: colors.line, borderRadius: 10, overflow: 'visible', backgroundColor: '#fff' }}>{children}</View>;
+}
+/** A compact row: the Excel icon, title and details, and icon actions */
+function IRow({ title, subtitle, right, onPress }: { title: string; subtitle?: string; right?: React.ReactNode; onPress?: () => void }) {
+  return (
+    <Pressable onPress={onPress} disabled={!onPress} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderColor: '#eef2f7' }}>
+      <View style={{ width: 34, height: 34, borderRadius: 6, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' }}><EstIcon name="xls" size={18} /></View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={{ fontSize: 13.5, fontWeight: '700', color: colors.ink }} numberOfLines={1}>{title}</Text>
+        {subtitle ? <Text style={{ fontSize: 12, color: colors.muted }} numberOfLines={2}>{subtitle}</Text> : null}
+      </View>
+      <Row gap={6} wrap style={{ alignItems: 'center', justifyContent: 'flex-end' }}>{right}</Row>
+    </Pressable>
   );
 }
