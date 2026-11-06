@@ -101,13 +101,18 @@ export type DtOut =
   | { type: 'dt:drvOpen'; path: string; name: string }
   | { type: 'dt:profSave'; profile: DtProfileRow }
   | { type: 'dt:profDel'; id: string }
-  | { type: 'dt:fullscreen'; on: boolean };
+  | { type: 'dt:fullscreen'; on: boolean }
+  | { type: 'dt:recOk' }
+  | { type: 'dt:act'; id: string };
 export type DtIn =
   | { type: 'dt:load'; state: DtState | null; title?: string }
   | { type: 'dt:get'; id: number }
   | { type: 'dt:saved'; title?: string }
   | { type: 'dt:drivers'; list: DtDriverRow[]; saved?: { id: string; file_path: string | null; file_name: string | null }; error?: string }
-  | { type: 'dt:profiles'; list: DtProfileRow[]; error?: string };
+  | { type: 'dt:profiles'; list: DtProfileRow[]; error?: string }
+  | DtRec;
+/** The design file shown in the page's menu bar: status, the lines of the card, the commands (the page sends dt:act with the id) */
+export type DtRec = { type: 'dt:rec'; title: string; status: { label: string; tone: string }; rev: string; unsaved: boolean; info: string[]; note: string[]; actions: { id: string; label: string; disabled?: boolean; hint?: string }[]; testing?: string };
 export type EngineHandle = { send: (m: DtIn) => void };
 
 /** The design team's LED driver library – datasheet values the page checks the breakers against, and the datasheet PDFs */
