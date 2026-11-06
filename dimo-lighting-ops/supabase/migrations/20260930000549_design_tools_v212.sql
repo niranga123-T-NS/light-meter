@@ -15853,7 +15853,9 @@ body.rbRec .rbMb { margin-top: 0; }
 .rb3Info div.n { font-size: 11.5px; color: #f5c56b; line-height: 1.4; margin-top: 4px; }
 .rb3Test { font-size: 11px; color: #f5c56b; padding: 4px 10px 6px; line-height: 1.4; max-width: 340px; }
 @media (max-width: 1250px) { #rbRecBox .rbPill.rev, #rbRecBox .rbTest { display: none; } }
-@media (max-width: 1100px) { .rbFileB > span { display: none; } .rbSaveB > span { display: none; } }`;
+@media (max-width: 1100px) { .rbFileB > span { display: none; } .rbSaveB > span { display: none; } }
+@media (min-width: 861px) { #tab-lc .bench:has(> #lcInsp.pmin), #tab-lc.lcFull .bench:has(> #lcInsp.pmin) { grid-template-columns: minmax(0, 1fr) 34px !important; } }
+#lcInsp.pmin { justify-self: end; }`;
   document.head.appendChild(st);
 })();
 const RB3_IC = { save: 'save', saveas: 'save', details: 'tpl', submit: 'send', check: 'check', approve: 'check', return: 'undo', archive: 'doc' };
