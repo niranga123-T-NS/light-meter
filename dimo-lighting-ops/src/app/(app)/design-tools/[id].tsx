@@ -1,5 +1,5 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
+import { type RefObject, useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
 import { Platform, useWindowDimensions, View } from 'react-native';
 import { DesignEngine } from '@/components/design-tools/DesignEngine';
 import { requestState } from '@/components/design-tools/engineBridge';
@@ -23,6 +23,7 @@ import {
   type DtFile,
   type DtOut,
   type DtRevision,
+  type DtRec,
   type DtState,
   type EngineHandle,
 } from '@/lib/designTools';
@@ -44,6 +45,17 @@ function Autosave({ since, onDue }: { since: number | null; onDue: () => void })
     const t = setTimeout(() => due(), Math.max(5000, since + AUTOSAVE_MS - Date.now()));
     return () => clearTimeout(t);
   }, [since]);
+  return null;
+}
+
+/** The file card in the page's menu bar (from v212): sent again whenever it changes and when the page is (re)loaded */
+function RecSync({ engine, msg, on, acts, actsRef }: { engine: RefObject<EngineHandle | null>; msg: string; on: number; acts: Record<string, () => void>; actsRef: RefObject<Record<string, () => void>> }) {
+  useEffect(() => {
+    actsRef.current = acts;
+  });
+  useEffect(() => {
+    if (on) engine.current?.send(JSON.parse(msg) as DtRec);
+  }, [engine, msg, on]);
   return null;
 }
 
@@ -93,6 +105,9 @@ export default function DesignToolScreen() {
   // when the first unsaved change was made (autosave counts from it) and the last autosave
   const [changedAt, setChangedAt] = useState<number | null>(null);
   const [autoAt, setAutoAt] = useState<string | null>(null);
+  // the page shows the file card and the testing note in its menu bar; the commands it sends back run here
+  const [recOk, setRecOk] = useState(0);
+  const acts = useRef<Record<string, () => void>>({});
   const allowed = canUseDesignTools(realRole);
 
   const { data, error, reload } = useLoad(async () => {
@@ -148,6 +163,8 @@ export default function DesignToolScreen() {
 
   const onMessage = useCallback((m: DtOut) => {
     if (m.type === 'dt:ready') setReady(true);
+    else if (m.type === 'dt:recOk') setRecOk((n) => n + 1);
+    else if (m.type === 'dt:act') acts.current[m.id]?.();
     else if (m.type === 'dt:fullscreen') setFull(m.on);
     else if (m.type === 'dt:dirty') {
       setDirty(m.dirty);
@@ -292,12 +309,40 @@ export default function DesignToolScreen() {
   const canReturn = (!!role && team.checkers.includes(role) || role === 'sm_projects' || role === 'gm') && status !== 'draft';
   const canArchive = !!f && (f.created_by === me.id || (!!role && team.checkers.includes(role)) || role === 'sm_projects' || role === 'gm');
 
+  const infoLine = [f ? `${DT_TEAM[f.team ?? 'design'].label} – checked by ${DT_TEAM[f.team ?? 'design'].checker}` : null, inq ? `Inquiry ${[inq.code, inq.project_name].filter(Boolean).join(' – ')}` : 'No inquiry linked', f ? dtTemplateLabel(f.template) : null, f ? dtSummaryText(f.summary) : null].filter(Boolean).join(' · ');
+  const savedLine = f ? [`Saved by ${people[f.updated_by ?? f.created_by]?.full_name ?? '—'} ${fmtDateTime(f.updated_at)}`, f.checked_by ? `checked by ${people[f.checked_by]?.full_name ?? '—'} ${fmtDateTime(f.checked_at)}` : null, f.approved_by ? `approved by ${people[f.approved_by]?.full_name ?? '—'} ${fmtDateTime(f.approved_at)}` : null].filter(Boolean).join(' · ') : null;
+  const notReDraft = unsaved && f && status !== 'draft' ? 'Saving a change makes a new revision and takes the design back to draft for checking again – so it is not autosaved; save it yourself or use Save as.' : null;
+  const autoLine = !f?.archived && status === 'draft' ? `Autosaves 15 minutes after a change${autoAt ? ` · last autosave ${autoAt}` : ''}` : null;
+  const recActs: Record<string, () => void> = { save: () => void save(), saveas: () => void saveAs(), details: () => void details(), submit: () => void decide('submit'), check: () => void decide('check'), approve: () => void decide('approve'), return: () => void decide('return'), archive: () => void archive() };
+  const rec: DtRec = {
+    type: 'dt:rec',
+    title: meta.title,
+    status: { label: f?.archived ? 'Archived' : DT_STATUS[status].label, tone: f?.archived ? '#6B7280' : DT_STATUS[status].tone },
+    rev: f ? `rev ${f.revision}` : 'not saved yet',
+    unsaved,
+    info: [infoLine, savedLine].filter((x): x is string => !!x),
+    note: [notReDraft, autoLine].filter((x): x is string => !!x),
+    actions: [
+      { id: 'save', label: busy ? 'Saving…' : 'Save', disabled: busy || !ready || !!f?.archived },
+      ...(f ? [{ id: 'saveas', label: 'Save as…', disabled: busy || !ready }] : []),
+      { id: 'details', label: 'Title / inquiry…', disabled: !!f?.archived },
+      ...(f && !f.archived && status === 'draft' ? [{ id: 'submit', label: 'Send for check', disabled: unsaved, hint: unsaved ? 'Save the changes first' : undefined }] : []),
+      ...(canCheck ? [{ id: 'check', label: 'Checked', disabled: unsaved, hint: unsaved ? 'Save the changes first' : undefined }] : []),
+      ...(canApprove ? [{ id: 'approve', label: 'Approve', disabled: unsaved, hint: unsaved ? 'Save the changes first' : undefined }] : []),
+      ...(canReturn ? [{ id: 'return', label: 'Return…' }] : []),
+      ...(canArchive ? [{ id: 'archive', label: f?.archived ? 'Restore' : 'Archive' }] : []),
+    ],
+    testing: 'Design Tools is new and in testing – report anything that looks wrong to the System Administrator.',
+  };
+  const inBar = recOk > 0;
+
   return (
     <Screen maxWidth={1800} flush={full}>
       <Stack.Screen options={{ title: meta.title, headerShown: !full }} />
       <Autosave since={changedAt} onDue={autosave} />
-      {full ? null : <TestingBanner what="Design Tools" show />}
-      {full ? null : (
+      <RecSync engine={engine} msg={JSON.stringify(rec)} on={recOk} acts={recActs} actsRef={acts} />
+      {full || inBar ? null : <TestingBanner what="Design Tools" show />}
+      {full || inBar ? null : (
       <Card>
         <Row wrap gap={8} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
           <View style={{ flex: 1, minWidth: 240, gap: 4 }}>
@@ -306,14 +351,8 @@ export default function DesignToolScreen() {
               {f ? <Pill label={`rev ${f.revision}`} /> : <Pill label="not saved yet" tone="#B45309" />}
               {unsaved ? <Pill label="unsaved changes" tone="#B45309" solid /> : null}
             </Row>
-            <Muted>
-              {[f ? `${DT_TEAM[f.team ?? 'design'].label} – checked by ${DT_TEAM[f.team ?? 'design'].checker}` : null, inq ? `Inquiry ${[inq.code, inq.project_name].filter(Boolean).join(' – ')}` : 'No inquiry linked', f ? dtTemplateLabel(f.template) : null, f ? dtSummaryText(f.summary) : null].filter(Boolean).join(' · ')}
-            </Muted>
-            {f ? (
-              <Muted>
-                {[`Saved by ${people[f.updated_by ?? f.created_by]?.full_name ?? '—'} ${fmtDateTime(f.updated_at)}`, f.checked_by ? `checked by ${people[f.checked_by]?.full_name ?? '—'} ${fmtDateTime(f.checked_at)}` : null, f.approved_by ? `approved by ${people[f.approved_by]?.full_name ?? '—'} ${fmtDateTime(f.approved_at)}` : null].filter(Boolean).join(' · ')}
-              </Muted>
-            ) : null}
+            <Muted>{infoLine}</Muted>
+            {savedLine ? <Muted>{savedLine}</Muted> : null}
           </View>
           <Row wrap gap={6}>
             <Button small variant="secondary" title="Title / inquiry" onPress={details} disabled={!!f?.archived} />
@@ -326,12 +365,12 @@ export default function DesignToolScreen() {
             {canArchive ? <Button small variant="ghost" title={f?.archived ? 'Restore' : 'Archive'} onPress={archive} /> : null}
           </Row>
         </Row>
-        {unsaved && f && status !== 'draft' ? <Muted>Saving a change makes a new revision and takes the design back to draft for checking again – so it is not autosaved; save it yourself or use Save as.</Muted> : null}
-        {!f?.archived && status === 'draft' ? <Muted>{`Autosaves 15 minutes after a change${autoAt ? ` · last autosave ${autoAt}` : ''}`}</Muted> : null}
+        {notReDraft ? <Muted>{notReDraft}</Muted> : null}
+        {autoLine ? <Muted>{autoLine}</Muted> : null}
       </Card>
       )}
       {!ready ? <Loading label="Opening the calculation page…" /> : null}
-      <DesignEngine ref={engine} html={data.eng.html} onMessage={onMessage} height={Math.max(640, height - 190)} full={full} />
+      <DesignEngine ref={engine} html={data.eng.html} onMessage={onMessage} height={Math.max(640, height - (inBar ? 110 : 190))} full={full} />
       {f && !full && data.revs.length ? (
         <Section title="Last saved revision">
           <Card>
