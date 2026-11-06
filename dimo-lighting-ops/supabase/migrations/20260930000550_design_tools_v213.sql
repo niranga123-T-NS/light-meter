@@ -15944,7 +15944,7 @@ function rb4Sync() {
   const have = new Set(); kp.querySelectorAll('.ksec').forEach((s) => { const k = rb4Key(s); have.add(k); s.classList.toggle('rb4On', k === RB4K); });
   kp.classList.toggle('rb4Closed', !RB4K || !have.has(RB4K));
   // circuits: the full name as a ScreenTip, and a filter
-  kp.querySelectorAll('.kcirc .kpal').forEach((c) => { if (!c.getAttribute('title')) c.setAttribute('title', c.textContent.replace(/^[●○⊘]\s*/, '').replace(/\s+/g, ' ').trim()); });
+  kp.querySelectorAll('.kcirc .kpal:not(.rb5T)').forEach((c) => { if (!c.getAttribute('title')) c.setAttribute('title', c.textContent.replace(/^[●○⊘]\s*/, '').replace(/\s+/g, ' ').trim()); });
   const ch = [...kp.querySelectorAll('.ksec')].find((s) => rb4Key(s) === 'circ')?.querySelector('.khead');
   if (ch && !ch.querySelector('.rb4Filter')) { ch.querySelector('h3')?.insertAdjacentHTML('afterend', `<input class="rb4Filter" type="search" placeholder="Filter circuits…" autocomplete="off"><span class="rb4Count"></span>`); const f = ch.querySelector('.rb4Filter'); f.value = RB4Q; f.addEventListener('input', () => { RB4Q = f.value; rb4Filter(); }); }
   rb4Filter();
@@ -15960,6 +15960,69 @@ function rb4Sync() {
 }
 { const base = renderKnxPalette; renderKnxPalette = function (...a) { const r = base(...a); try { rb4Sync(); } catch (e) { console.error('knx tray', e); } return r; }; }
 { const kp = document.getElementById('kpalette'); if (kp) new MutationObserver(() => { try { rb4Sync(); } catch (e) { void e; } }).observe(kp, { attributes: true, attributeFilter: ['hidden'] }); }
+try { rb4Sync(); } catch (e) { console.error('knx tray', e); }
+// ---- the tray as icons: circuits as small type icons grouped by board, KNX devices as small pictures; the full name in the ScreenTip
+const RB5_SYM = `
+<symbol id="rb-kdin" viewBox="0 0 32 32"><rect x="6" y="2" width="20" height="28" rx="2" fill="#e5e7eb" stroke="#6b7280"/><rect x="8" y="4" width="16" height="4" rx="1" fill="#9ca3af"/><rect x="8" y="24" width="16" height="4" rx="1" fill="#9ca3af"/><g fill="#4b5563"><circle cx="11" cy="6" r="1"/><circle cx="16" cy="6" r="1"/><circle cx="21" cy="6" r="1"/><circle cx="11" cy="26" r="1"/><circle cx="16" cy="26" r="1"/><circle cx="21" cy="26" r="1"/></g><rect x="8" y="10" width="16" height="12" rx="1" fill="currentColor"/><circle cx="11" cy="13" r="1.3" fill="#4ade80"/><path d="M14 13h8M14 16h8M14 19h6" stroke="#fff" stroke-width="1.2" opacity=".85"/></symbol>
+<symbol id="rb-kpb" viewBox="0 0 32 32"><rect x="4" y="4" width="24" height="24" rx="4" fill="#f8fafc" stroke="#94a3b8"/><rect x="8" y="8" width="7" height="16" rx="1.5" fill="#e2e8f0" stroke="#94a3b8"/><rect x="17" y="8" width="7" height="16" rx="1.5" fill="#e2e8f0" stroke="#94a3b8"/><circle cx="11.5" cy="11" r="1.1" fill="#f59e0b"/><circle cx="20.5" cy="11" r="1.1" fill="#22c55e"/></symbol>
+<symbol id="rb-kpir" viewBox="0 0 32 32"><rect x="3" y="3" width="26" height="4" rx="1" fill="#cbd5e1"/><path d="M8 7a8 8 0 0 0 16 0z" fill="#f8fafc" stroke="#94a3b8"/><path d="M6 20q10 8 20 0M9 25q7 5 14 0" fill="none" stroke="#3b82f6" stroke-width="1.6" stroke-linecap="round"/></symbol>
+<symbol id="rb-krc" viewBox="0 0 32 32"><rect x="4" y="4" width="24" height="24" rx="5" fill="#f8fafc" stroke="#94a3b8"/><rect x="8" y="8" width="16" height="9" rx="1.5" fill="#0f172a"/><text x="16" y="15" font-size="7" text-anchor="middle" fill="#38bdf8" font-family="Arial" font-weight="700">21°</text><circle cx="11" cy="22" r="2" fill="#ef4444"/><circle cx="21" cy="22" r="2" fill="#3b82f6"/></symbol>
+<symbol id="rb-ktp" viewBox="0 0 32 32"><rect x="3" y="5" width="26" height="22" rx="3" fill="#111827" stroke="#6b7280"/><rect x="6" y="8" width="20" height="16" rx="1" fill="#1e293b"/><rect x="7.5" y="9.5" width="5" height="6" rx=".8" fill="#f59e0b"/><rect x="13.5" y="9.5" width="5" height="6" rx=".8" fill="#3b82f6"/><rect x="19.5" y="9.5" width="5" height="6" rx=".8" fill="#22c55e"/><rect x="7.5" y="16.5" width="11" height="6" rx=".8" fill="#8b5cf6"/><rect x="19.5" y="16.5" width="5" height="6" rx=".8" fill="#ef4444"/></symbol>
+<symbol id="rb-kws" viewBox="0 0 32 32"><path d="M17 18v12" stroke="#64748b" stroke-width="2"/><circle cx="11" cy="9" r="4.5" fill="#fbbf24"/><path d="M11 1.5v2M3.5 9h2M5.7 3.7l1.4 1.4M16.3 3.7l-1.4 1.4" stroke="#fbbf24" stroke-width="1.4" stroke-linecap="round"/><path d="M12 19a5 5 0 0 1 1-9.8 6 6 0 0 1 11.4 2 4 4 0 0 1-.4 7.8z" fill="#e2e8f0" stroke="#94a3b8"/></symbol>
+<symbol id="rb-kgw" viewBox="0 0 32 32"><rect x="2" y="9" width="11" height="14" rx="2" fill="#dbeafe" stroke="#3b82f6"/><rect x="19" y="9" width="11" height="14" rx="2" fill="#ede9fe" stroke="#8b5cf6"/><path d="M13 14h6m-2-2 2 2-2 2M19 18h-6m2-2-2 2 2 2" fill="none" stroke="#475569" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="rb-ksrv" viewBox="0 0 32 32"><rect x="6" y="3" width="20" height="26" rx="2" fill="#334155" stroke="#0f172a"/><rect x="8" y="6" width="16" height="5" rx="1" fill="#475569"/><rect x="8" y="13" width="16" height="5" rx="1" fill="#475569"/><rect x="8" y="20" width="16" height="5" rx="1" fill="#475569"/><circle cx="21" cy="8.5" r="1" fill="#22c55e"/><circle cx="21" cy="15.5" r="1" fill="#22c55e"/><circle cx="21" cy="22.5" r="1" fill="#f59e0b"/></symbol>
+<symbol id="rb-kmon" viewBox="0 0 32 32"><rect x="3" y="5" width="26" height="17" rx="2" fill="#0f172a" stroke="#64748b"/><rect x="5" y="7" width="22" height="13" fill="#1d4ed8"/><path d="M8 17l4-4 3 3 5-6 4 5" fill="none" stroke="#93c5fd" stroke-width="1.4"/><path d="M12 27h8M16 22v5" stroke="#64748b" stroke-width="2"/></symbol>
+<symbol id="rb-krtr" viewBox="0 0 32 32"><rect x="6" y="2" width="20" height="28" rx="2" fill="#e5e7eb" stroke="#6b7280"/><rect x="8" y="5" width="16" height="10" rx="1" fill="#0ea5e9"/><path d="M11 12V9h10v3M13 9V7h6v2" fill="none" stroke="#fff" stroke-width="1.2"/><rect x="11" y="19" width="10" height="7" rx="1" fill="#374151"/><rect x="13" y="21" width="6" height="3" fill="#9ca3af"/></symbol>
+<symbol id="rb-kpsu" viewBox="0 0 32 32"><rect x="6" y="2" width="20" height="28" rx="2" fill="#e5e7eb" stroke="#6b7280"/><rect x="8" y="5" width="16" height="12" rx="1" fill="#16a34a"/><path d="M11 11q2.5-4 5 0t5 0" fill="none" stroke="#fff" stroke-width="1.6"/><circle cx="16" cy="23" r="2" fill="#22c55e"/></symbol>`;
+{ const sp = document.getElementById('rbSprite'); if (sp && !document.getElementById('rb-kdin')) sp.insertAdjacentHTML('beforeend', RB5_SYM); }
+const RB5_DEV = { sa16: ['kdin', '#2563eb'], sa8: ['kdin', '#2563eb'], sa4: ['kdin', '#2563eb'], dim4: ['kdin', '#d97706'], ctl110: ['kdin', '#0d9488'], dali: ['kdin', '#7c3aed'], bin: ['kdin', '#64748b'], bl4: ['kdin', '#a16207'], bl8: ['kdin', '#a16207'], lgc: ['kdin', '#0284c7'], spd: ['kdin', '#dc2626'],
+  pb: ['kpb'], pd: ['kpir'], rc: ['krc'], tp: ['ktp'], ws: ['kws'], gwDmx: ['kgw'], gwBac: ['kgw'], gwCbus: ['kgw'], gwAc: ['kgw'], vis: ['ksrv'], ipv: ['kmon'], ipr: ['krtr'], ips: ['krtr'], lc: ['krtr'], psu: ['kpsu'], psu160: ['kpsu'], psu320: ['kpsu'], psu640: ['kpsu'], psu1280: ['kpsu'] };
+const RB5_KIND = { flood: 'flood', motor: 'motor', light: 'bulb', socket: 'sock', ac: 'ac', street: 'street', spare: 'spare', hvac: 'ac', pump: 'motor' };
+(() => {
+  const st = document.createElement('style'); st.id = 'rb5Style';
+  st.textContent = `
+#kpalette.rb4Tray .kgrid.kcirc { display: flex !important; flex-wrap: wrap; gap: 6px; }
+#kpalette.rb4Tray .kgrid.rb5Devs { display: flex !important; flex-wrap: wrap; gap: 5px; }
+.rb5Grp { display: flex; flex-direction: column; gap: 2px; border: 1px solid var(--line); border-radius: 8px; padding: 2px 4px 4px; }
+.rb5Grp[hidden] { display: none; }
+.rb5Grp > i { font-style: normal; font-size: 10px; font-weight: 700; color: var(--muted); padding: 0 2px; white-space: nowrap; max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+.rb5Grp > div { display: flex; gap: 3px; flex-wrap: wrap; }
+.rb5Nm { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+#kpalette .pal.rb5T { width: 50px; height: 48px; padding: 3px 2px 2px !important; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; position: relative; border-radius: 7px; min-width: 0; }
+#kpalette .pal.rb5T.rb5D { width: 72px; height: 54px; }
+#kpalette .pal.rb5T .rbI { width: 24px; height: 24px; margin: 0; flex: none; }
+#kpalette .pal.rb5T.rb5D .rbI { width: 28px; height: 28px; }
+#kpalette .pal.rb5T b { font-size: 10px; font-weight: 600; line-height: 1.1; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
+#kpalette .pal.rb5T.rb4Out { display: none; }
+.rb5B { position: absolute; right: 2px; top: 2px; width: 12px; height: 12px; border-radius: 50%; font-size: 8px; line-height: 12px; text-align: center; color: #fff; font-style: normal; font-weight: 700; }
+#kpalette .pal.rb5T.on { border-color: #2E9B48; background: rgba(46,155,72,.08); }
+.pal.on .rb5B { background: #2E9B48; } .pal.koff .rb5B { background: #9ca3af; }
+#kpalette.rb4Tray { max-height: 230px; }`;
+  document.head.appendChild(st);
+})();
+function rb5Icons(kp) {
+  // circuits: grouped by board, a type icon each
+  const cg = kp.querySelector('.kcirc'); if (cg && !cg.dataset.rb5) {
+    cg.dataset.rb5 = '1'; const groups = new Map();
+    [...cg.querySelectorAll(':scope > .kpal')].forEach((c) => {
+      const name = (c.querySelector('.kname')?.textContent ?? c.textContent).trim(), meta = (c.querySelector('small')?.textContent ?? '').trim(), [kind, ...rest] = meta.split(' · '), board = rest.join(' · ') || '—';
+      const on = c.classList.contains('on'), off = c.classList.contains('koff'), why = c.getAttribute('title') || '';
+      const tk = 'kc:' + c.dataset.kload; RB_TIPS[tk] = [name, `${kind} · ${board} – ${on ? 'on KNX' : off ? `cannot go on KNX${why ? ': ' + why : ''}` : 'not on KNX yet – drag it onto a board'}`];
+      c.removeAttribute('title'); c.dataset.rbtip = tk; c.classList.add('rb5T');
+      c.innerHTML = `<span class="rb5Nm">${esc(name)}</span>${rbI(RB5_KIND[(kind || '').toLowerCase()] ?? 'power')}<b>${esc(kind || 'Circuit')}</b>${on ? '<em class="rb5B">✓</em>' : off ? '<em class="rb5B">⊘</em>' : ''}`;
+      if (!groups.has(board)) groups.set(board, []); groups.get(board).push(c);
+    });
+    groups.forEach((list, board) => { const g = document.createElement('div'); g.className = 'rb5Grp'; g.innerHTML = `<i>${esc(board)}</i><div></div>`; list.forEach((c) => g.lastChild.appendChild(c)); cg.appendChild(g); });
+  }
+  // devices: a small picture each
+  kp.querySelectorAll('.kgrid:not(.kcirc)').forEach((g) => { if (g.dataset.rb5) return; g.dataset.rb5 = '1'; g.classList.add('rb5Devs');
+    g.querySelectorAll('.kpal.kdev').forEach((d) => { const k = d.dataset.kadd ?? 'ipr', s = RB5_DEV[k] ?? ['kdin', '#64748b'], short = (d.querySelector('b')?.textContent ?? '').trim(), art = (d.querySelector('small')?.textContent ?? '').trim(), full = d.getAttribute('title') || short;
+      const tk = 'kd:' + k; RB_TIPS[tk] = [full, `${art ? art + ' – ' : ''}${d.dataset.kadd ? 'drag it onto a board, or tap it, then tap the board.' : 'one set per line, added by the design.'}`];
+      d.removeAttribute('title'); d.dataset.rbtip = tk; d.classList.add('rb5T', 'rb5D');
+      d.innerHTML = `<span class="rb5Nm">${esc(short)}</span><svg class="rbI" aria-hidden="true"${s[1] ? ` style="color:${s[1]}"` : ''}><use href="#rb-${s[0]}"/></svg><b>${esc(short)}</b>`; }); });
+}
+{ const f0 = rb4Filter; rb4Filter = function () { f0(); document.querySelectorAll('#kpalette .rb5Grp').forEach((g) => { g.hidden = !g.querySelector('.kpal:not(.rb4Out)'); }); }; }
+{ const s0 = rb4Sync; rb4Sync = function () { const kp = document.getElementById('kpalette'); if (kp) { try { rb5Icons(kp); } catch (e) { console.error('knx icons', e); } } return s0(); }; }
 try { rb4Sync(); } catch (e) { console.error('knx tray', e); }
 })();
 </script>
