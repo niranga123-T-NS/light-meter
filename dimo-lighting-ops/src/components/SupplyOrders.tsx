@@ -1,10 +1,12 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { Text, View } from 'react-native';
 import { Attachments } from '@/components/Attachments';
 import { useDialog } from '@/components/dialog';
 import { BlinkTablet } from '@/components/WinUse';
-import { Button, Card, colors, Empty, ErrorBanner, Grid, KeyValue, Loading, Muted, Notice, Row, Section, Segmented } from '@/components/ui';
+import { Button, Card, colors, Empty, ErrorBanner, Grid, KeyValue, Loading, Muted, Notice, Row, Section } from '@/components/ui';
+import { SearchBox } from '@/components/tools/BrandFilter';
+import { EstIcon, IconBtn, IconTabs, ToolBar } from '@/components/tools/EstUi';
 import { useMe } from '@/lib/auth';
 import { fmtDate, fmtDateTime, fmtMoney } from '@/lib/format';
 import { useLoad, usePeople } from '@/lib/hooks';
@@ -77,25 +79,30 @@ export function PiTablet({ p, small }: { p: Pick<SupplyPi, 'submitted_at' | 'ops
 const money = (v: number | null, cur: string | null) => (v == null ? '—' : `${cur ?? ''} ${Number(v).toLocaleString('en-US', { maximumFractionDigits: 2 })}`.trim());
 
 /** Estimation › Supply orders and Orders › Supply orders: every supply-only project with its tablets */
-export function SupplyOrdersList() {
+export function SupplyOrdersList({ extra }: { extra?: ReactNode } = {}) {
   const people = usePeople();
   const [show, setShow] = useState<'open' | 'all'>('open');
+  const [q, setQ] = useState('');
   const { data, error, reload, loading } = useLoad(() => rpc<SupplyOrder[]>('so_list'));
   if (!data) return error ? <ErrorBanner message={error} /> : <Loading />;
   // Open: a PI still to come, or one that is not OK yet
   const open = (o: SupplyOrder) => o.submitted < o.mfr_count || o.pis.some((p) => p.ops_status !== 'ok');
-  const rows = show === 'open' ? data.filter(open) : data;
+  const ql = q.trim().toLowerCase();
+  const rows = (show === 'open' ? data.filter(open) : data).filter((o) => !ql || [o.code, o.project, o.customer, ...o.pis.map((p) => p.manufacturer)].filter(Boolean).join(' ').toLowerCase().includes(ql));
   return (
     <View style={{ gap: 10 }}>
-      <Muted>Supply-only projects (once the sales person&apos;s invoice plan is approved), earlier awards sent by SM Estimation, and samples approved for ordering: SM Estimation gets each manufacturer&apos;s PI and submits it – one by one or together – to Operations, who handles it by e-mail and sets its status.</Muted>
-      <Row wrap gap={8} style={{ alignItems: 'center' }}>
-        <Segmented<'open' | 'all'> value={show} onChange={setShow} options={[{ value: 'open', label: `Open (${data.filter(open).length})` }, { value: 'all', label: `All (${data.length})` }]} />
-        <Button small variant="ghost" title={loading ? 'Loading…' : 'Refresh'} onPress={reload} />
-      </Row>
+      <ToolBar>
+        <IconTabs<'open' | 'all'> value={show} onChange={setShow} options={[{ value: 'open', label: 'Open', icon: 'supply', badge: data.filter(open).length }, { value: 'all', label: 'All', icon: 'catalog', badge: data.length }]} />
+        <SearchBox value={q} onChange={setQ} placeholder="SO number, project, customer or manufacturer" />
+        <IconBtn icon="refresh" title={loading ? 'Loading…' : 'Refresh'} text="Loads the supply orders again." onPress={reload} />
+        <IconBtn icon="info" title="Supply orders" text="Supply-only projects (once the sales person's invoice plan is approved), earlier awards sent by SM Estimation, and samples approved for ordering: SM Estimation gets each manufacturer's PI and submits it to Operations." />
+        {extra}
+      </ToolBar>
       {!rows.length ? <Empty title={show === 'open' ? 'No supply order waiting' : 'No supply orders yet'} hint="They open when a supply-only project's invoice plan is approved." /> : null}
       {rows.map((o) => (
-        <Card key={o.id} onPress={() => router.push(`/supply-orders/${o.id}`)} style={{ gap: 6 }}>
+        <Card key={o.id} onPress={() => router.push(`/supply-orders/${o.id}`)} style={{ gap: 4, paddingVertical: 8 }}>
           <Row wrap gap={8} style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+            <View style={{ width: 34, height: 34, borderRadius: 6, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' }}><EstIcon name={o.kind === 'sample' ? 'photo' : o.kind === 'earlier_award' ? 'award' : 'supply'} size={18} /></View>
             <View style={{ flex: 1, minWidth: 220 }}>
               <Text style={{ fontWeight: '700', color: colors.ink }}>{`${o.code} · ${o.project}${o.kind === 'sample' ? ' · SAMPLE' : o.kind === 'earlier_award' ? ' · earlier award' : ''}`}</Text>
               <Muted style={{ fontSize: 12 }}>{[o.customer, `Sales: ${people[o.sales_person_id ?? '']?.full_name ?? '—'}`, `opened ${fmtDate(o.created_at)}`].filter(Boolean).join(' · ')}</Muted>
@@ -104,7 +111,7 @@ export function SupplyOrdersList() {
           </Row>
           {o.pis.map((p) => (
             <Row key={p.id} wrap gap={8} style={{ justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 6 }}>
-              <Text style={{ color: colors.text, flex: 1, minWidth: 200 }}>{[p.manufacturer, p.country, p.pi_no ? `PI ${p.pi_no}` : null, p.pi_value != null ? money(p.pi_value, p.currency) : null].filter(Boolean).join(' · ')}</Text>
+              <Text style={{ color: colors.text, flex: 1, minWidth: 200, fontSize: 13, paddingLeft: 42 }}>{[p.manufacturer, p.country, p.pi_no ? `PI ${p.pi_no}` : null, p.pi_value != null ? money(p.pi_value, p.currency) : null].filter(Boolean).join(' · ')}</Text>
               <PiTablet p={p} small />
             </Row>
           ))}
